@@ -1,0 +1,930 @@
+{
+  "address": "0x8D136BA56d165473257D366585B41257acD89b3a",
+  "abi": [
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "_baseCurrencyUnit",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "constructor"
+    },
+    {
+      "inputs": [],
+      "name": "AccessControlBadConfirmation",
+      "type": "error"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "account",
+          "type": "address"
+        },
+        {
+          "internalType": "bytes32",
+          "name": "neededRole",
+          "type": "bytes32"
+        }
+      ],
+      "name": "AccessControlUnauthorizedAccount",
+      "type": "error"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "asset",
+          "type": "address"
+        }
+      ],
+      "name": "FeedNotSet",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "PriceIsStale",
+      "type": "error"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "asset",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "proxy1",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "proxy2",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "lowerThresholdInBase1",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "fixedPriceInBase1",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "lowerThresholdInBase2",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "fixedPriceInBase2",
+          "type": "uint256"
+        }
+      ],
+      "name": "CompositeFeedAdded",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "asset",
+          "type": "address"
+        }
+      ],
+      "name": "CompositeFeedRemoved",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "asset",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "lowerThresholdInBase1",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "fixedPriceInBase1",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "lowerThresholdInBase2",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "fixedPriceInBase2",
+          "type": "uint256"
+        }
+      ],
+      "name": "CompositeFeedUpdated",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "bytes32",
+          "name": "role",
+          "type": "bytes32"
+        },
+        {
+          "indexed": true,
+          "internalType": "bytes32",
+          "name": "previousAdminRole",
+          "type": "bytes32"
+        },
+        {
+          "indexed": true,
+          "internalType": "bytes32",
+          "name": "newAdminRole",
+          "type": "bytes32"
+        }
+      ],
+      "name": "RoleAdminChanged",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "bytes32",
+          "name": "role",
+          "type": "bytes32"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "account",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "sender",
+          "type": "address"
+        }
+      ],
+      "name": "RoleGranted",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "bytes32",
+          "name": "role",
+          "type": "bytes32"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "account",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "sender",
+          "type": "address"
+        }
+      ],
+      "name": "RoleRevoked",
+      "type": "event"
+    },
+    {
+      "inputs": [],
+      "name": "API3_BASE_CURRENCY_UNIT",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "API3_HEARTBEAT",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "BASE_CURRENCY",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "BASE_CURRENCY_UNIT",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "DEFAULT_ADMIN_ROLE",
+      "outputs": [
+        {
+          "internalType": "bytes32",
+          "name": "",
+          "type": "bytes32"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "ORACLE_MANAGER_ROLE",
+      "outputs": [
+        {
+          "internalType": "bytes32",
+          "name": "",
+          "type": "bytes32"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "asset",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "proxy1",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "proxy2",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "lowerThresholdInBase1",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "fixedPriceInBase1",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "lowerThresholdInBase2",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "fixedPriceInBase2",
+          "type": "uint256"
+        }
+      ],
+      "name": "addCompositeFeed",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "name": "compositeFeeds",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "proxy1",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "proxy2",
+          "type": "address"
+        },
+        {
+          "components": [
+            {
+              "internalType": "uint256",
+              "name": "lowerThresholdInBase",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "fixedPriceInBase",
+              "type": "uint256"
+            }
+          ],
+          "internalType": "struct ThresholdingUtils.ThresholdConfig",
+          "name": "primaryThreshold",
+          "type": "tuple"
+        },
+        {
+          "components": [
+            {
+              "internalType": "uint256",
+              "name": "lowerThresholdInBase",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "fixedPriceInBase",
+              "type": "uint256"
+            }
+          ],
+          "internalType": "struct ThresholdingUtils.ThresholdConfig",
+          "name": "secondaryThreshold",
+          "type": "tuple"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "asset",
+          "type": "address"
+        }
+      ],
+      "name": "getAssetPrice",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "asset",
+          "type": "address"
+        }
+      ],
+      "name": "getPriceInfo",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "price",
+          "type": "uint256"
+        },
+        {
+          "internalType": "bool",
+          "name": "isAlive",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "role",
+          "type": "bytes32"
+        }
+      ],
+      "name": "getRoleAdmin",
+      "outputs": [
+        {
+          "internalType": "bytes32",
+          "name": "",
+          "type": "bytes32"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "role",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "address",
+          "name": "account",
+          "type": "address"
+        }
+      ],
+      "name": "grantRole",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "role",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "address",
+          "name": "account",
+          "type": "address"
+        }
+      ],
+      "name": "hasRole",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "heartbeatStaleTimeLimit",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "asset",
+          "type": "address"
+        }
+      ],
+      "name": "removeCompositeFeed",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "role",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "address",
+          "name": "callerConfirmation",
+          "type": "address"
+        }
+      ],
+      "name": "renounceRole",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "role",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "address",
+          "name": "account",
+          "type": "address"
+        }
+      ],
+      "name": "revokeRole",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "_newHeartbeatStaleTimeLimit",
+          "type": "uint256"
+        }
+      ],
+      "name": "setHeartbeatStaleTimeLimit",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes4",
+          "name": "interfaceId",
+          "type": "bytes4"
+        }
+      ],
+      "name": "supportsInterface",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "asset",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "lowerThresholdInBase1",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "fixedPriceInBase1",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "lowerThresholdInBase2",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "fixedPriceInBase2",
+          "type": "uint256"
+        }
+      ],
+      "name": "updateCompositeFeed",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    }
+  ],
+  "transactionHash": "0x39c2d259cdc6caa368e94ca837bb0fcf04e7384ae6a3771a39908504484c201b",
+  "receipt": {
+    "to": null,
+    "from": "0x53Ae1433Ab4563d7D5a84d27524784837259f105",
+    "contractAddress": "0x8D136BA56d165473257D366585B41257acD89b3a",
+    "transactionIndex": 1,
+    "gasUsed": "1642671",
+    "logsBloom": "0x00000004000000000000000000000000000000000000000000000000000000000000000000000100000020000000001000000000000400100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000020000000000000000000800000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000001000000000000000000000000000000020000000000000000000000000000100000000000020000000000000000000000000000000000000000000000000000000000000000000",
+    "blockHash": "0x262b58edd06c850d39692f13b1f77fb28638f88da89f1c4e8d21bccc0b5cf250",
+    "transactionHash": "0x39c2d259cdc6caa368e94ca837bb0fcf04e7384ae6a3771a39908504484c201b",
+    "logs": [
+      {
+        "transactionIndex": 1,
+        "blockNumber": 24722189,
+        "transactionHash": "0x39c2d259cdc6caa368e94ca837bb0fcf04e7384ae6a3771a39908504484c201b",
+        "address": "0x8D136BA56d165473257D366585B41257acD89b3a",
+        "topics": [
+          "0x2f8788117e7eff1d82e926ec794901d17c78024a50270940304540a733656f0d",
+          "0x0000000000000000000000000000000000000000000000000000000000000000",
+          "0x00000000000000000000000053ae1433ab4563d7d5a84d27524784837259f105",
+          "0x00000000000000000000000053ae1433ab4563d7d5a84d27524784837259f105"
+        ],
+        "data": "0x",
+        "logIndex": 0,
+        "blockHash": "0x262b58edd06c850d39692f13b1f77fb28638f88da89f1c4e8d21bccc0b5cf250"
+      },
+      {
+        "transactionIndex": 1,
+        "blockNumber": 24722189,
+        "transactionHash": "0x39c2d259cdc6caa368e94ca837bb0fcf04e7384ae6a3771a39908504484c201b",
+        "address": "0x8D136BA56d165473257D366585B41257acD89b3a",
+        "topics": [
+          "0x2f8788117e7eff1d82e926ec794901d17c78024a50270940304540a733656f0d",
+          "0xced6982f480260bdd8ad5cb18ff2854f0306d78d904ad6cc107e8f3a0f526c18",
+          "0x00000000000000000000000053ae1433ab4563d7d5a84d27524784837259f105",
+          "0x00000000000000000000000053ae1433ab4563d7d5a84d27524784837259f105"
+        ],
+        "data": "0x",
+        "logIndex": 1,
+        "blockHash": "0x262b58edd06c850d39692f13b1f77fb28638f88da89f1c4e8d21bccc0b5cf250"
+      }
+    ],
+    "blockNumber": 24722189,
+    "cumulativeGasUsed": "1663671",
+    "status": 1,
+    "byzantium": true
+  },
+  "args": [
+    "100000000"
+  ],
+  "numDeployments": 1,
+  "solcInputHash": "f239d04eaaada22b9dff563307bc85cb",
+  "metadata": "{\"compiler\":{\"version\":\"0.8.20+commit.a1b79de6\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_baseCurrencyUnit\",\"type\":\"uint256\"}],\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"inputs\":[],\"name\":\"AccessControlBadConfirmation\",\"type\":\"error\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"},{\"internalType\":\"bytes32\",\"name\":\"neededRole\",\"type\":\"bytes32\"}],\"name\":\"AccessControlUnauthorizedAccount\",\"type\":\"error\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"asset\",\"type\":\"address\"}],\"name\":\"FeedNotSet\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"PriceIsStale\",\"type\":\"error\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"asset\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"address\",\"name\":\"proxy1\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"address\",\"name\":\"proxy2\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"lowerThresholdInBase1\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"fixedPriceInBase1\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"lowerThresholdInBase2\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"fixedPriceInBase2\",\"type\":\"uint256\"}],\"name\":\"CompositeFeedAdded\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"asset\",\"type\":\"address\"}],\"name\":\"CompositeFeedRemoved\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"asset\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"lowerThresholdInBase1\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"fixedPriceInBase1\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"lowerThresholdInBase2\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"fixedPriceInBase2\",\"type\":\"uint256\"}],\"name\":\"CompositeFeedUpdated\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"bytes32\",\"name\":\"role\",\"type\":\"bytes32\"},{\"indexed\":true,\"internalType\":\"bytes32\",\"name\":\"previousAdminRole\",\"type\":\"bytes32\"},{\"indexed\":true,\"internalType\":\"bytes32\",\"name\":\"newAdminRole\",\"type\":\"bytes32\"}],\"name\":\"RoleAdminChanged\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"bytes32\",\"name\":\"role\",\"type\":\"bytes32\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"sender\",\"type\":\"address\"}],\"name\":\"RoleGranted\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"bytes32\",\"name\":\"role\",\"type\":\"bytes32\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"sender\",\"type\":\"address\"}],\"name\":\"RoleRevoked\",\"type\":\"event\"},{\"inputs\":[],\"name\":\"API3_BASE_CURRENCY_UNIT\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"API3_HEARTBEAT\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"BASE_CURRENCY\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"BASE_CURRENCY_UNIT\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"DEFAULT_ADMIN_ROLE\",\"outputs\":[{\"internalType\":\"bytes32\",\"name\":\"\",\"type\":\"bytes32\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"ORACLE_MANAGER_ROLE\",\"outputs\":[{\"internalType\":\"bytes32\",\"name\":\"\",\"type\":\"bytes32\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"asset\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"proxy1\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"proxy2\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"lowerThresholdInBase1\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"fixedPriceInBase1\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"lowerThresholdInBase2\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"fixedPriceInBase2\",\"type\":\"uint256\"}],\"name\":\"addCompositeFeed\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"name\":\"compositeFeeds\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"proxy1\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"proxy2\",\"type\":\"address\"},{\"components\":[{\"internalType\":\"uint256\",\"name\":\"lowerThresholdInBase\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"fixedPriceInBase\",\"type\":\"uint256\"}],\"internalType\":\"struct ThresholdingUtils.ThresholdConfig\",\"name\":\"primaryThreshold\",\"type\":\"tuple\"},{\"components\":[{\"internalType\":\"uint256\",\"name\":\"lowerThresholdInBase\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"fixedPriceInBase\",\"type\":\"uint256\"}],\"internalType\":\"struct ThresholdingUtils.ThresholdConfig\",\"name\":\"secondaryThreshold\",\"type\":\"tuple\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"asset\",\"type\":\"address\"}],\"name\":\"getAssetPrice\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"asset\",\"type\":\"address\"}],\"name\":\"getPriceInfo\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"price\",\"type\":\"uint256\"},{\"internalType\":\"bool\",\"name\":\"isAlive\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"role\",\"type\":\"bytes32\"}],\"name\":\"getRoleAdmin\",\"outputs\":[{\"internalType\":\"bytes32\",\"name\":\"\",\"type\":\"bytes32\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"role\",\"type\":\"bytes32\"},{\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"}],\"name\":\"grantRole\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"role\",\"type\":\"bytes32\"},{\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"}],\"name\":\"hasRole\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"heartbeatStaleTimeLimit\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"asset\",\"type\":\"address\"}],\"name\":\"removeCompositeFeed\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"role\",\"type\":\"bytes32\"},{\"internalType\":\"address\",\"name\":\"callerConfirmation\",\"type\":\"address\"}],\"name\":\"renounceRole\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"role\",\"type\":\"bytes32\"},{\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"}],\"name\":\"revokeRole\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_newHeartbeatStaleTimeLimit\",\"type\":\"uint256\"}],\"name\":\"setHeartbeatStaleTimeLimit\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes4\",\"name\":\"interfaceId\",\"type\":\"bytes4\"}],\"name\":\"supportsInterface\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"asset\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"lowerThresholdInBase1\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"fixedPriceInBase1\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"lowerThresholdInBase2\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"fixedPriceInBase2\",\"type\":\"uint256\"}],\"name\":\"updateCompositeFeed\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}],\"devdoc\":{\"errors\":{\"AccessControlBadConfirmation()\":[{\"details\":\"The caller of a function is not the expected one. NOTE: Don't confuse with {AccessControlUnauthorizedAccount}.\"}],\"AccessControlUnauthorizedAccount(address,bytes32)\":[{\"details\":\"The `account` is missing a role.\"}]},\"events\":{\"RoleAdminChanged(bytes32,bytes32,bytes32)\":{\"details\":\"Emitted when `newAdminRole` is set as ``role``'s admin role, replacing `previousAdminRole` `DEFAULT_ADMIN_ROLE` is the starting admin for all roles, despite {RoleAdminChanged} not being emitted signaling this.\"},\"RoleGranted(bytes32,address,address)\":{\"details\":\"Emitted when `account` is granted `role`. `sender` is the account that originated the contract call. This account bears the admin role (for the granted role). Expected in cases where the role was granted using the internal {AccessControl-_grantRole}.\"},\"RoleRevoked(bytes32,address,address)\":{\"details\":\"Emitted when `account` is revoked `role`. `sender` is the account that originated the contract call:   - if using `revokeRole`, it is the admin role bearer   - if using `renounceRole`, it is the role bearer (i.e. `account`)\"}},\"kind\":\"dev\",\"methods\":{\"getAssetPrice(address)\":{\"params\":{\"asset\":\"The address of the asset\"},\"returns\":{\"_0\":\"The price of the asset\"}},\"getPriceInfo(address)\":{\"params\":{\"asset\":\"The address of the asset\"},\"returns\":{\"isAlive\":\"The alive status of the asset\",\"price\":\"The price of the asset\"}},\"getRoleAdmin(bytes32)\":{\"details\":\"Returns the admin role that controls `role`. See {grantRole} and {revokeRole}. To change a role's admin, use {_setRoleAdmin}.\"},\"grantRole(bytes32,address)\":{\"details\":\"Grants `role` to `account`. If `account` had not been already granted `role`, emits a {RoleGranted} event. Requirements: - the caller must have ``role``'s admin role. May emit a {RoleGranted} event.\"},\"hasRole(bytes32,address)\":{\"details\":\"Returns `true` if `account` has been granted `role`.\"},\"renounceRole(bytes32,address)\":{\"details\":\"Revokes `role` from the calling account. Roles are often managed via {grantRole} and {revokeRole}: this function's purpose is to provide a mechanism for accounts to lose their privileges if they are compromised (such as when a trusted device is misplaced). If the calling account had been revoked `role`, emits a {RoleRevoked} event. Requirements: - the caller must be `callerConfirmation`. May emit a {RoleRevoked} event.\"},\"revokeRole(bytes32,address)\":{\"details\":\"Revokes `role` from `account`. If `account` had been granted `role`, emits a {RoleRevoked} event. Requirements: - the caller must have ``role``'s admin role. May emit a {RoleRevoked} event.\"},\"supportsInterface(bytes4)\":{\"details\":\"See {IERC165-supportsInterface}.\"}},\"version\":1},\"userdoc\":{\"kind\":\"user\",\"methods\":{\"BASE_CURRENCY()\":{\"notice\":\"Returns the base currency address\"},\"BASE_CURRENCY_UNIT()\":{\"notice\":\"Returns the base currency unit\"},\"getAssetPrice(address)\":{\"notice\":\"Returns the asset price in the base currency\"},\"getPriceInfo(address)\":{\"notice\":\"Returns the price and alive status of an asset\"}},\"version\":1}},\"settings\":{\"compilationTarget\":{\"contracts/oracle_aggregator/wrapper/API3CompositeWrapperWithThresholding.sol\":\"API3CompositeWrapperWithThresholding\"},\"evmVersion\":\"paris\",\"libraries\":{},\"metadata\":{\"bytecodeHash\":\"ipfs\",\"useLiteralContent\":true},\"optimizer\":{\"enabled\":false,\"runs\":200},\"remappings\":[]},\"sources\":{\"@openzeppelin/contracts/access/AccessControl.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\n// OpenZeppelin Contracts (last updated v5.0.0) (access/AccessControl.sol)\\n\\npragma solidity ^0.8.20;\\n\\nimport {IAccessControl} from \\\"./IAccessControl.sol\\\";\\nimport {Context} from \\\"../utils/Context.sol\\\";\\nimport {ERC165} from \\\"../utils/introspection/ERC165.sol\\\";\\n\\n/**\\n * @dev Contract module that allows children to implement role-based access\\n * control mechanisms. This is a lightweight version that doesn't allow enumerating role\\n * members except through off-chain means by accessing the contract event logs. Some\\n * applications may benefit from on-chain enumerability, for those cases see\\n * {AccessControlEnumerable}.\\n *\\n * Roles are referred to by their `bytes32` identifier. These should be exposed\\n * in the external API and be unique. The best way to achieve this is by\\n * using `public constant` hash digests:\\n *\\n * ```solidity\\n * bytes32 public constant MY_ROLE = keccak256(\\\"MY_ROLE\\\");\\n * ```\\n *\\n * Roles can be used to represent a set of permissions. To restrict access to a\\n * function call, use {hasRole}:\\n *\\n * ```solidity\\n * function foo() public {\\n *     require(hasRole(MY_ROLE, msg.sender));\\n *     ...\\n * }\\n * ```\\n *\\n * Roles can be granted and revoked dynamically via the {grantRole} and\\n * {revokeRole} functions. Each role has an associated admin role, and only\\n * accounts that have a role's admin role can call {grantRole} and {revokeRole}.\\n *\\n * By default, the admin role for all roles is `DEFAULT_ADMIN_ROLE`, which means\\n * that only accounts with this role will be able to grant or revoke other\\n * roles. More complex role relationships can be created by using\\n * {_setRoleAdmin}.\\n *\\n * WARNING: The `DEFAULT_ADMIN_ROLE` is also its own admin: it has permission to\\n * grant and revoke this role. Extra precautions should be taken to secure\\n * accounts that have been granted it. We recommend using {AccessControlDefaultAdminRules}\\n * to enforce additional security measures for this role.\\n */\\nabstract contract AccessControl is Context, IAccessControl, ERC165 {\\n    struct RoleData {\\n        mapping(address account => bool) hasRole;\\n        bytes32 adminRole;\\n    }\\n\\n    mapping(bytes32 role => RoleData) private _roles;\\n\\n    bytes32 public constant DEFAULT_ADMIN_ROLE = 0x00;\\n\\n    /**\\n     * @dev Modifier that checks that an account has a specific role. Reverts\\n     * with an {AccessControlUnauthorizedAccount} error including the required role.\\n     */\\n    modifier onlyRole(bytes32 role) {\\n        _checkRole(role);\\n        _;\\n    }\\n\\n    /**\\n     * @dev See {IERC165-supportsInterface}.\\n     */\\n    function supportsInterface(bytes4 interfaceId) public view virtual override returns (bool) {\\n        return interfaceId == type(IAccessControl).interfaceId || super.supportsInterface(interfaceId);\\n    }\\n\\n    /**\\n     * @dev Returns `true` if `account` has been granted `role`.\\n     */\\n    function hasRole(bytes32 role, address account) public view virtual returns (bool) {\\n        return _roles[role].hasRole[account];\\n    }\\n\\n    /**\\n     * @dev Reverts with an {AccessControlUnauthorizedAccount} error if `_msgSender()`\\n     * is missing `role`. Overriding this function changes the behavior of the {onlyRole} modifier.\\n     */\\n    function _checkRole(bytes32 role) internal view virtual {\\n        _checkRole(role, _msgSender());\\n    }\\n\\n    /**\\n     * @dev Reverts with an {AccessControlUnauthorizedAccount} error if `account`\\n     * is missing `role`.\\n     */\\n    function _checkRole(bytes32 role, address account) internal view virtual {\\n        if (!hasRole(role, account)) {\\n            revert AccessControlUnauthorizedAccount(account, role);\\n        }\\n    }\\n\\n    /**\\n     * @dev Returns the admin role that controls `role`. See {grantRole} and\\n     * {revokeRole}.\\n     *\\n     * To change a role's admin, use {_setRoleAdmin}.\\n     */\\n    function getRoleAdmin(bytes32 role) public view virtual returns (bytes32) {\\n        return _roles[role].adminRole;\\n    }\\n\\n    /**\\n     * @dev Grants `role` to `account`.\\n     *\\n     * If `account` had not been already granted `role`, emits a {RoleGranted}\\n     * event.\\n     *\\n     * Requirements:\\n     *\\n     * - the caller must have ``role``'s admin role.\\n     *\\n     * May emit a {RoleGranted} event.\\n     */\\n    function grantRole(bytes32 role, address account) public virtual onlyRole(getRoleAdmin(role)) {\\n        _grantRole(role, account);\\n    }\\n\\n    /**\\n     * @dev Revokes `role` from `account`.\\n     *\\n     * If `account` had been granted `role`, emits a {RoleRevoked} event.\\n     *\\n     * Requirements:\\n     *\\n     * - the caller must have ``role``'s admin role.\\n     *\\n     * May emit a {RoleRevoked} event.\\n     */\\n    function revokeRole(bytes32 role, address account) public virtual onlyRole(getRoleAdmin(role)) {\\n        _revokeRole(role, account);\\n    }\\n\\n    /**\\n     * @dev Revokes `role` from the calling account.\\n     *\\n     * Roles are often managed via {grantRole} and {revokeRole}: this function's\\n     * purpose is to provide a mechanism for accounts to lose their privileges\\n     * if they are compromised (such as when a trusted device is misplaced).\\n     *\\n     * If the calling account had been revoked `role`, emits a {RoleRevoked}\\n     * event.\\n     *\\n     * Requirements:\\n     *\\n     * - the caller must be `callerConfirmation`.\\n     *\\n     * May emit a {RoleRevoked} event.\\n     */\\n    function renounceRole(bytes32 role, address callerConfirmation) public virtual {\\n        if (callerConfirmation != _msgSender()) {\\n            revert AccessControlBadConfirmation();\\n        }\\n\\n        _revokeRole(role, callerConfirmation);\\n    }\\n\\n    /**\\n     * @dev Sets `adminRole` as ``role``'s admin role.\\n     *\\n     * Emits a {RoleAdminChanged} event.\\n     */\\n    function _setRoleAdmin(bytes32 role, bytes32 adminRole) internal virtual {\\n        bytes32 previousAdminRole = getRoleAdmin(role);\\n        _roles[role].adminRole = adminRole;\\n        emit RoleAdminChanged(role, previousAdminRole, adminRole);\\n    }\\n\\n    /**\\n     * @dev Attempts to grant `role` to `account` and returns a boolean indicating if `role` was granted.\\n     *\\n     * Internal function without access restriction.\\n     *\\n     * May emit a {RoleGranted} event.\\n     */\\n    function _grantRole(bytes32 role, address account) internal virtual returns (bool) {\\n        if (!hasRole(role, account)) {\\n            _roles[role].hasRole[account] = true;\\n            emit RoleGranted(role, account, _msgSender());\\n            return true;\\n        } else {\\n            return false;\\n        }\\n    }\\n\\n    /**\\n     * @dev Attempts to revoke `role` to `account` and returns a boolean indicating if `role` was revoked.\\n     *\\n     * Internal function without access restriction.\\n     *\\n     * May emit a {RoleRevoked} event.\\n     */\\n    function _revokeRole(bytes32 role, address account) internal virtual returns (bool) {\\n        if (hasRole(role, account)) {\\n            _roles[role].hasRole[account] = false;\\n            emit RoleRevoked(role, account, _msgSender());\\n            return true;\\n        } else {\\n            return false;\\n        }\\n    }\\n}\\n\",\"keccak256\":\"0xa0e92d42942f4f57c5be50568dac11e9d00c93efcb458026e18d2d9b9b2e7308\",\"license\":\"MIT\"},\"@openzeppelin/contracts/access/IAccessControl.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\n// OpenZeppelin Contracts (last updated v5.1.0) (access/IAccessControl.sol)\\n\\npragma solidity ^0.8.20;\\n\\n/**\\n * @dev External interface of AccessControl declared to support ERC-165 detection.\\n */\\ninterface IAccessControl {\\n    /**\\n     * @dev The `account` is missing a role.\\n     */\\n    error AccessControlUnauthorizedAccount(address account, bytes32 neededRole);\\n\\n    /**\\n     * @dev The caller of a function is not the expected one.\\n     *\\n     * NOTE: Don't confuse with {AccessControlUnauthorizedAccount}.\\n     */\\n    error AccessControlBadConfirmation();\\n\\n    /**\\n     * @dev Emitted when `newAdminRole` is set as ``role``'s admin role, replacing `previousAdminRole`\\n     *\\n     * `DEFAULT_ADMIN_ROLE` is the starting admin for all roles, despite\\n     * {RoleAdminChanged} not being emitted signaling this.\\n     */\\n    event RoleAdminChanged(bytes32 indexed role, bytes32 indexed previousAdminRole, bytes32 indexed newAdminRole);\\n\\n    /**\\n     * @dev Emitted when `account` is granted `role`.\\n     *\\n     * `sender` is the account that originated the contract call. This account bears the admin role (for the granted role).\\n     * Expected in cases where the role was granted using the internal {AccessControl-_grantRole}.\\n     */\\n    event RoleGranted(bytes32 indexed role, address indexed account, address indexed sender);\\n\\n    /**\\n     * @dev Emitted when `account` is revoked `role`.\\n     *\\n     * `sender` is the account that originated the contract call:\\n     *   - if using `revokeRole`, it is the admin role bearer\\n     *   - if using `renounceRole`, it is the role bearer (i.e. `account`)\\n     */\\n    event RoleRevoked(bytes32 indexed role, address indexed account, address indexed sender);\\n\\n    /**\\n     * @dev Returns `true` if `account` has been granted `role`.\\n     */\\n    function hasRole(bytes32 role, address account) external view returns (bool);\\n\\n    /**\\n     * @dev Returns the admin role that controls `role`. See {grantRole} and\\n     * {revokeRole}.\\n     *\\n     * To change a role's admin, use {AccessControl-_setRoleAdmin}.\\n     */\\n    function getRoleAdmin(bytes32 role) external view returns (bytes32);\\n\\n    /**\\n     * @dev Grants `role` to `account`.\\n     *\\n     * If `account` had not been already granted `role`, emits a {RoleGranted}\\n     * event.\\n     *\\n     * Requirements:\\n     *\\n     * - the caller must have ``role``'s admin role.\\n     */\\n    function grantRole(bytes32 role, address account) external;\\n\\n    /**\\n     * @dev Revokes `role` from `account`.\\n     *\\n     * If `account` had been granted `role`, emits a {RoleRevoked} event.\\n     *\\n     * Requirements:\\n     *\\n     * - the caller must have ``role``'s admin role.\\n     */\\n    function revokeRole(bytes32 role, address account) external;\\n\\n    /**\\n     * @dev Revokes `role` from the calling account.\\n     *\\n     * Roles are often managed via {grantRole} and {revokeRole}: this function's\\n     * purpose is to provide a mechanism for accounts to lose their privileges\\n     * if they are compromised (such as when a trusted device is misplaced).\\n     *\\n     * If the calling account had been granted `role`, emits a {RoleRevoked}\\n     * event.\\n     *\\n     * Requirements:\\n     *\\n     * - the caller must be `callerConfirmation`.\\n     */\\n    function renounceRole(bytes32 role, address callerConfirmation) external;\\n}\\n\",\"keccak256\":\"0xc1c2a7f1563b77050dc6d507db9f4ada5d042c1f6a9ddbffdc49c77cdc0a1606\",\"license\":\"MIT\"},\"@openzeppelin/contracts/utils/Context.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\n// OpenZeppelin Contracts (last updated v5.0.1) (utils/Context.sol)\\n\\npragma solidity ^0.8.20;\\n\\n/**\\n * @dev Provides information about the current execution context, including the\\n * sender of the transaction and its data. While these are generally available\\n * via msg.sender and msg.data, they should not be accessed in such a direct\\n * manner, since when dealing with meta-transactions the account sending and\\n * paying for execution may not be the actual sender (as far as an application\\n * is concerned).\\n *\\n * This contract is only required for intermediate, library-like contracts.\\n */\\nabstract contract Context {\\n    function _msgSender() internal view virtual returns (address) {\\n        return msg.sender;\\n    }\\n\\n    function _msgData() internal view virtual returns (bytes calldata) {\\n        return msg.data;\\n    }\\n\\n    function _contextSuffixLength() internal view virtual returns (uint256) {\\n        return 0;\\n    }\\n}\\n\",\"keccak256\":\"0x493033a8d1b176a037b2cc6a04dad01a5c157722049bbecf632ca876224dd4b2\",\"license\":\"MIT\"},\"@openzeppelin/contracts/utils/introspection/ERC165.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\n// OpenZeppelin Contracts (last updated v5.1.0) (utils/introspection/ERC165.sol)\\n\\npragma solidity ^0.8.20;\\n\\nimport {IERC165} from \\\"./IERC165.sol\\\";\\n\\n/**\\n * @dev Implementation of the {IERC165} interface.\\n *\\n * Contracts that want to implement ERC-165 should inherit from this contract and override {supportsInterface} to check\\n * for the additional interface id that will be supported. For example:\\n *\\n * ```solidity\\n * function supportsInterface(bytes4 interfaceId) public view virtual override returns (bool) {\\n *     return interfaceId == type(MyInterface).interfaceId || super.supportsInterface(interfaceId);\\n * }\\n * ```\\n */\\nabstract contract ERC165 is IERC165 {\\n    /**\\n     * @dev See {IERC165-supportsInterface}.\\n     */\\n    function supportsInterface(bytes4 interfaceId) public view virtual returns (bool) {\\n        return interfaceId == type(IERC165).interfaceId;\\n    }\\n}\\n\",\"keccak256\":\"0xddce8e17e3d3f9ed818b4f4c4478a8262aab8b11ed322f1bf5ed705bb4bd97fa\",\"license\":\"MIT\"},\"@openzeppelin/contracts/utils/introspection/IERC165.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\n// OpenZeppelin Contracts (last updated v5.1.0) (utils/introspection/IERC165.sol)\\n\\npragma solidity ^0.8.20;\\n\\n/**\\n * @dev Interface of the ERC-165 standard, as defined in the\\n * https://eips.ethereum.org/EIPS/eip-165[ERC].\\n *\\n * Implementers can declare support of contract interfaces, which can then be\\n * queried by others ({ERC165Checker}).\\n *\\n * For an implementation, see {ERC165}.\\n */\\ninterface IERC165 {\\n    /**\\n     * @dev Returns true if this contract implements the interface defined by\\n     * `interfaceId`. See the corresponding\\n     * https://eips.ethereum.org/EIPS/eip-165#how-interfaces-are-identified[ERC section]\\n     * to learn more about how these ids are created.\\n     *\\n     * This function call must use less than 30 000 gas.\\n     */\\n    function supportsInterface(bytes4 interfaceId) external view returns (bool);\\n}\\n\",\"keccak256\":\"0x79796192ec90263f21b464d5bc90b777a525971d3de8232be80d9c4f9fb353b8\",\"license\":\"MIT\"},\"contracts/oracle_aggregator/interface/IOracleWrapper.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\n/* \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 *\\n *    _____     ______   ______     __     __   __     __     ______   __  __       *\\n *   /\\\\  __-.  /\\\\__  _\\\\ /\\\\  == \\\\   /\\\\ \\\\   /\\\\ \\\"-.\\\\ \\\\   /\\\\ \\\\   /\\\\__  _\\\\ /\\\\ \\\\_\\\\ \\\\      *\\n *   \\\\ \\\\ \\\\/\\\\ \\\\ \\\\/_/\\\\ \\\\/ \\\\ \\\\  __<   \\\\ \\\\ \\\\  \\\\ \\\\ \\\\-.  \\\\  \\\\ \\\\ \\\\  \\\\/_/\\\\ \\\\/ \\\\ \\\\____ \\\\     *\\n *    \\\\ \\\\____-    \\\\ \\\\_\\\\  \\\\ \\\\_\\\\ \\\\_\\\\  \\\\ \\\\_\\\\  \\\\ \\\\_\\\\\\\\\\\"\\\\_\\\\  \\\\ \\\\_\\\\    \\\\ \\\\_\\\\  \\\\/\\\\_____\\\\    *\\n *     \\\\/____/     \\\\/_/   \\\\/_/ /_/   \\\\/_/   \\\\/_/ \\\\/_/   \\\\/_/     \\\\/_/   \\\\/_____/    *\\n *                                                                                  *\\n * \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 dtrinity.org \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 *\\n *                                                                                  *\\n *                                         \\u25b2                                        *\\n *                                        \\u25b2 \\u25b2                                       *\\n *                                                                                  *\\n * \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 *\\n * dTRINITY Protocol: https://github.com/dtrinity                                   *\\n * \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 */\\n\\npragma solidity ^0.8.20;\\n\\n/**\\n * @dev Interface for the individual oracle wrappers, to unify interface between Redstone and API3 for example\\n */\\ninterface IOracleWrapper {\\n    /**\\n     * @notice Returns the base currency address\\n     * @dev Address 0x0 is reserved for USD as base currency.\\n     * @return Returns the base currency address.\\n     */\\n    function BASE_CURRENCY() external view returns (address);\\n\\n    /**\\n     * @notice Returns the base currency unit\\n     * @dev 1 ether for ETH, 1e8 for USD.\\n     * @return Returns the base currency unit.\\n     */\\n    function BASE_CURRENCY_UNIT() external view returns (uint256);\\n\\n    /**\\n     * @notice Returns the asset price in the base currency\\n     * @param asset The address of the asset\\n     * @return The price of the asset\\n     */\\n    function getAssetPrice(address asset) external view returns (uint256);\\n\\n    /**\\n     * @notice Returns the price and alive status of an asset\\n     * @param asset The address of the asset\\n     * @return price The price of the asset\\n     * @return isAlive The alive status of the asset\\n     */\\n    function getPriceInfo(\\n        address asset\\n    ) external view returns (uint256 price, bool isAlive);\\n}\\n\",\"keccak256\":\"0x5cf05337d3efb5418b570d148a89f484c809c224cd3931307f1096010bb7d085\",\"license\":\"MIT\"},\"contracts/oracle_aggregator/interface/api3/IAPI3Wrapper.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\n/* \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 *\\n *    _____     ______   ______     __     __   __     __     ______   __  __       *\\n *   /\\\\  __-.  /\\\\__  _\\\\ /\\\\  == \\\\   /\\\\ \\\\   /\\\\ \\\"-.\\\\ \\\\   /\\\\ \\\\   /\\\\__  _\\\\ /\\\\ \\\\_\\\\ \\\\      *\\n *   \\\\ \\\\ \\\\/\\\\ \\\\ \\\\/_/\\\\ \\\\/ \\\\ \\\\  __<   \\\\ \\\\ \\\\  \\\\ \\\\ \\\\-.  \\\\  \\\\ \\\\ \\\\  \\\\/_/\\\\ \\\\/ \\\\ \\\\____ \\\\     *\\n *    \\\\ \\\\____-    \\\\ \\\\_\\\\  \\\\ \\\\_\\\\ \\\\_\\\\  \\\\ \\\\_\\\\  \\\\ \\\\_\\\\\\\\\\\"\\\\_\\\\  \\\\ \\\\_\\\\    \\\\ \\\\_\\\\  \\\\/\\\\_____\\\\    *\\n *     \\\\/____/     \\\\/_/   \\\\/_/ /_/   \\\\/_/   \\\\/_/ \\\\/_/   \\\\/_/     \\\\/_/   \\\\/_____/    *\\n *                                                                                  *\\n * \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 dtrinity.org \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 *\\n *                                                                                  *\\n *                                         \\u25b2                                        *\\n *                                        \\u25b2 \\u25b2                                       *\\n *                                                                                  *\\n * \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 *\\n * dTRINITY Protocol: https://github.com/dtrinity                                   *\\n * \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 */\\n\\npragma solidity ^0.8.20;\\n\\nimport \\\"../IOracleWrapper.sol\\\";\\nimport \\\"@openzeppelin/contracts/access/AccessControl.sol\\\";\\n\\nabstract contract IAPI3Wrapper is IOracleWrapper, AccessControl {\\n    /* Core state */\\n\\n    uint256 public constant API3_BASE_CURRENCY_UNIT = 10 ** 18;\\n    uint256 public constant API3_HEARTBEAT = 24 hours;\\n    address public constant BASE_CURRENCY = address(0);\\n    uint256 public immutable BASE_CURRENCY_UNIT;\\n    uint256 public heartbeatStaleTimeLimit = 30 minutes;\\n\\n    /* Roles */\\n\\n    bytes32 public constant ORACLE_MANAGER_ROLE =\\n        keccak256(\\\"ORACLE_MANAGER_ROLE\\\");\\n\\n    /* Errors */\\n\\n    error PriceIsStale();\\n\\n    constructor(uint256 _baseCurrencyUnit) {\\n        BASE_CURRENCY_UNIT = _baseCurrencyUnit;\\n        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);\\n        _grantRole(ORACLE_MANAGER_ROLE, msg.sender);\\n    }\\n\\n    function getPriceInfo(\\n        address asset\\n    ) public view virtual override returns (uint256 price, bool isAlive);\\n\\n    function getAssetPrice(\\n        address asset\\n    ) external view virtual override returns (uint256) {\\n        (uint256 price, bool isAlive) = getPriceInfo(asset);\\n        if (!isAlive) {\\n            revert PriceIsStale();\\n        }\\n        return price;\\n    }\\n\\n    function _convertToBaseCurrencyUnit(\\n        uint256 price\\n    ) internal view returns (uint256) {\\n        return (price * BASE_CURRENCY_UNIT) / API3_BASE_CURRENCY_UNIT;\\n    }\\n\\n    function setHeartbeatStaleTimeLimit(\\n        uint256 _newHeartbeatStaleTimeLimit\\n    ) external onlyRole(ORACLE_MANAGER_ROLE) {\\n        heartbeatStaleTimeLimit = _newHeartbeatStaleTimeLimit;\\n    }\\n}\\n\",\"keccak256\":\"0x606a0a08145a2689d1daf6720ae6819d44b4750737400c6aaa58c3a6cddb22b5\",\"license\":\"MIT\"},\"contracts/oracle_aggregator/interface/api3/IProxy.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\n/* \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 *\\n *    _____     ______   ______     __     __   __     __     ______   __  __       *\\n *   /\\\\  __-.  /\\\\__  _\\\\ /\\\\  == \\\\   /\\\\ \\\\   /\\\\ \\\"-.\\\\ \\\\   /\\\\ \\\\   /\\\\__  _\\\\ /\\\\ \\\\_\\\\ \\\\      *\\n *   \\\\ \\\\ \\\\/\\\\ \\\\ \\\\/_/\\\\ \\\\/ \\\\ \\\\  __<   \\\\ \\\\ \\\\  \\\\ \\\\ \\\\-.  \\\\  \\\\ \\\\ \\\\  \\\\/_/\\\\ \\\\/ \\\\ \\\\____ \\\\     *\\n *    \\\\ \\\\____-    \\\\ \\\\_\\\\  \\\\ \\\\_\\\\ \\\\_\\\\  \\\\ \\\\_\\\\  \\\\ \\\\_\\\\\\\\\\\"\\\\_\\\\  \\\\ \\\\_\\\\    \\\\ \\\\_\\\\  \\\\/\\\\_____\\\\    *\\n *     \\\\/____/     \\\\/_/   \\\\/_/ /_/   \\\\/_/   \\\\/_/ \\\\/_/   \\\\/_/     \\\\/_/   \\\\/_____/    *\\n *                                                                                  *\\n * \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 dtrinity.org \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 *\\n *                                                                                  *\\n *                                         \\u25b2                                        *\\n *                                        \\u25b2 \\u25b2                                       *\\n *                                                                                  *\\n * \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 *\\n * dTRINITY Protocol: https://github.com/dtrinity                                   *\\n * \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 */\\n\\npragma solidity ^0.8.0;\\n\\n/// @dev See DapiProxy.sol for comments about usage\\ninterface IProxy {\\n    function read() external view returns (int224 value, uint32 timestamp);\\n\\n    function api3ServerV1() external view returns (address);\\n}\\n\",\"keccak256\":\"0xd03de7d668b2916278fcfe7d5e0344c995da4caad59b58a95cf429301327362e\",\"license\":\"MIT\"},\"contracts/oracle_aggregator/wrapper/API3CompositeWrapperWithThresholding.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\n/* \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 *\\n *    _____     ______   ______     __     __   __     __     ______   __  __       *\\n *   /\\\\  __-.  /\\\\__  _\\\\ /\\\\  == \\\\   /\\\\ \\\\   /\\\\ \\\"-.\\\\ \\\\   /\\\\ \\\\   /\\\\__  _\\\\ /\\\\ \\\\_\\\\ \\\\      *\\n *   \\\\ \\\\ \\\\/\\\\ \\\\ \\\\/_/\\\\ \\\\/ \\\\ \\\\  __<   \\\\ \\\\ \\\\  \\\\ \\\\ \\\\-.  \\\\  \\\\ \\\\ \\\\  \\\\/_/\\\\ \\\\/ \\\\ \\\\____ \\\\     *\\n *    \\\\ \\\\____-    \\\\ \\\\_\\\\  \\\\ \\\\_\\\\ \\\\_\\\\  \\\\ \\\\_\\\\  \\\\ \\\\_\\\\\\\\\\\"\\\\_\\\\  \\\\ \\\\_\\\\    \\\\ \\\\_\\\\  \\\\/\\\\_____\\\\    *\\n *     \\\\/____/     \\\\/_/   \\\\/_/ /_/   \\\\/_/   \\\\/_/ \\\\/_/   \\\\/_/     \\\\/_/   \\\\/_____/    *\\n *                                                                                  *\\n * \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 dtrinity.org \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 *\\n *                                                                                  *\\n *                                         \\u25b2                                        *\\n *                                        \\u25b2 \\u25b2                                       *\\n *                                                                                  *\\n * \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 *\\n * dTRINITY Protocol: https://github.com/dtrinity                                   *\\n * \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 */\\n\\npragma solidity ^0.8.20;\\n\\nimport \\\"../interface/api3/IAPI3Wrapper.sol\\\";\\nimport \\\"@openzeppelin/contracts/access/AccessControl.sol\\\";\\nimport {IProxy} from \\\"../interface/api3/IProxy.sol\\\";\\nimport \\\"./ThresholdingUtils.sol\\\";\\n\\ncontract API3CompositeWrapperWithThresholding is\\n    IAPI3Wrapper,\\n    ThresholdingUtils\\n{\\n    /* Core state */\\n\\n    struct CompositeFeed {\\n        address proxy1;\\n        address proxy2;\\n        ThresholdConfig primaryThreshold; // Primary price source threshold config\\n        ThresholdConfig secondaryThreshold; // Secondary price source threshold config\\n    }\\n\\n    mapping(address => CompositeFeed) public compositeFeeds;\\n\\n    /* Events */\\n\\n    event CompositeFeedAdded(\\n        address indexed asset,\\n        address proxy1,\\n        address proxy2,\\n        uint256 lowerThresholdInBase1,\\n        uint256 fixedPriceInBase1,\\n        uint256 lowerThresholdInBase2,\\n        uint256 fixedPriceInBase2\\n    );\\n    event CompositeFeedRemoved(address indexed asset);\\n    event CompositeFeedUpdated(\\n        address indexed asset,\\n        uint256 lowerThresholdInBase1,\\n        uint256 fixedPriceInBase1,\\n        uint256 lowerThresholdInBase2,\\n        uint256 fixedPriceInBase2\\n    );\\n\\n    /* Errors */\\n\\n    error FeedNotSet(address asset);\\n\\n    constructor(uint256 _baseCurrencyUnit) IAPI3Wrapper(_baseCurrencyUnit) {\\n        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);\\n        _grantRole(ORACLE_MANAGER_ROLE, msg.sender);\\n    }\\n\\n    function addCompositeFeed(\\n        address asset,\\n        address proxy1,\\n        address proxy2,\\n        uint256 lowerThresholdInBase1,\\n        uint256 fixedPriceInBase1,\\n        uint256 lowerThresholdInBase2,\\n        uint256 fixedPriceInBase2\\n    ) external onlyRole(ORACLE_MANAGER_ROLE) {\\n        compositeFeeds[asset] = CompositeFeed({\\n            proxy1: proxy1,\\n            proxy2: proxy2,\\n            primaryThreshold: ThresholdConfig({\\n                lowerThresholdInBase: lowerThresholdInBase1,\\n                fixedPriceInBase: fixedPriceInBase1\\n            }),\\n            secondaryThreshold: ThresholdConfig({\\n                lowerThresholdInBase: lowerThresholdInBase2,\\n                fixedPriceInBase: fixedPriceInBase2\\n            })\\n        });\\n        emit CompositeFeedAdded(\\n            asset,\\n            proxy1,\\n            proxy2,\\n            lowerThresholdInBase1,\\n            fixedPriceInBase1,\\n            lowerThresholdInBase2,\\n            fixedPriceInBase2\\n        );\\n    }\\n\\n    function removeCompositeFeed(\\n        address asset\\n    ) external onlyRole(ORACLE_MANAGER_ROLE) {\\n        delete compositeFeeds[asset];\\n        emit CompositeFeedRemoved(asset);\\n    }\\n\\n    function updateCompositeFeed(\\n        address asset,\\n        uint256 lowerThresholdInBase1,\\n        uint256 fixedPriceInBase1,\\n        uint256 lowerThresholdInBase2,\\n        uint256 fixedPriceInBase2\\n    ) external onlyRole(ORACLE_MANAGER_ROLE) {\\n        CompositeFeed storage feed = compositeFeeds[asset];\\n        if (feed.proxy1 == address(0) || feed.proxy2 == address(0)) {\\n            revert FeedNotSet(asset);\\n        }\\n        feed.primaryThreshold.lowerThresholdInBase = lowerThresholdInBase1;\\n        feed.primaryThreshold.fixedPriceInBase = fixedPriceInBase1;\\n        feed.secondaryThreshold.lowerThresholdInBase = lowerThresholdInBase2;\\n        feed.secondaryThreshold.fixedPriceInBase = fixedPriceInBase2;\\n        emit CompositeFeedUpdated(\\n            asset,\\n            lowerThresholdInBase1,\\n            fixedPriceInBase1,\\n            lowerThresholdInBase2,\\n            fixedPriceInBase2\\n        );\\n    }\\n\\n    function getPriceInfo(\\n        address asset\\n    ) public view override returns (uint256 price, bool isAlive) {\\n        CompositeFeed memory feed = compositeFeeds[asset];\\n        if (feed.proxy1 == address(0) || feed.proxy2 == address(0)) {\\n            revert FeedNotSet(asset);\\n        }\\n\\n        (int224 value1, uint32 timestamp1) = IProxy(feed.proxy1).read();\\n        (int224 value2, uint32 timestamp2) = IProxy(feed.proxy2).read();\\n\\n        uint256 api3Price1 = value1 > 0 ? uint256(uint224(value1)) : 0;\\n        uint256 api3Price2 = value2 > 0 ? uint256(uint224(value2)) : 0;\\n\\n        // Convert both prices to BASE_CURRENCY_UNIT first\\n        uint256 priceInBase1 = _convertToBaseCurrencyUnit(api3Price1);\\n        uint256 priceInBase2 = _convertToBaseCurrencyUnit(api3Price2);\\n\\n        // Apply thresholding to prices in BASE_CURRENCY_UNIT if specified\\n        if (feed.primaryThreshold.lowerThresholdInBase > 0) {\\n            priceInBase1 = _applyThreshold(priceInBase1, feed.primaryThreshold);\\n        }\\n        if (feed.secondaryThreshold.lowerThresholdInBase > 0) {\\n            priceInBase2 = _applyThreshold(\\n                priceInBase2,\\n                feed.secondaryThreshold\\n            );\\n        }\\n\\n        price = (priceInBase1 * priceInBase2) / BASE_CURRENCY_UNIT;\\n        isAlive =\\n            price > 0 &&\\n            timestamp1 + API3_HEARTBEAT + heartbeatStaleTimeLimit >\\n            block.timestamp &&\\n            timestamp2 + API3_HEARTBEAT + heartbeatStaleTimeLimit >\\n            block.timestamp;\\n    }\\n\\n    function getAssetPrice(\\n        address asset\\n    ) external view override returns (uint256) {\\n        (uint256 price, bool isAlive) = getPriceInfo(asset);\\n        if (!isAlive) {\\n            revert PriceIsStale();\\n        }\\n        return price;\\n    }\\n}\\n\",\"keccak256\":\"0xdf60c5e016fe5e15d02aa9ab2af0f6cd7e1b35ec83b0bcdc98f87b74f584b5ae\",\"license\":\"MIT\"},\"contracts/oracle_aggregator/wrapper/ThresholdingUtils.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\n/* \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 *\\n *    _____     ______   ______     __     __   __     __     ______   __  __       *\\n *   /\\\\  __-.  /\\\\__  _\\\\ /\\\\  == \\\\   /\\\\ \\\\   /\\\\ \\\"-.\\\\ \\\\   /\\\\ \\\\   /\\\\__  _\\\\ /\\\\ \\\\_\\\\ \\\\      *\\n *   \\\\ \\\\ \\\\/\\\\ \\\\ \\\\/_/\\\\ \\\\/ \\\\ \\\\  __<   \\\\ \\\\ \\\\  \\\\ \\\\ \\\\-.  \\\\  \\\\ \\\\ \\\\  \\\\/_/\\\\ \\\\/ \\\\ \\\\____ \\\\     *\\n *    \\\\ \\\\____-    \\\\ \\\\_\\\\  \\\\ \\\\_\\\\ \\\\_\\\\  \\\\ \\\\_\\\\  \\\\ \\\\_\\\\\\\\\\\"\\\\_\\\\  \\\\ \\\\_\\\\    \\\\ \\\\_\\\\  \\\\/\\\\_____\\\\    *\\n *     \\\\/____/     \\\\/_/   \\\\/_/ /_/   \\\\/_/   \\\\/_/ \\\\/_/   \\\\/_/     \\\\/_/   \\\\/_____/    *\\n *                                                                                  *\\n * \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 dtrinity.org \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 *\\n *                                                                                  *\\n *                                         \\u25b2                                        *\\n *                                        \\u25b2 \\u25b2                                       *\\n *                                                                                  *\\n * \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 *\\n * dTRINITY Protocol: https://github.com/dtrinity                                   *\\n * \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 */\\n\\npragma solidity ^0.8.20;\\n\\nabstract contract ThresholdingUtils {\\n    /* Types */\\n    struct ThresholdConfig {\\n        /// @notice The minimum price after which thresholding is applied. Not a price cap, but a trigger point.\\n        /// @dev If lowerThresholdInBase == fixedPriceInBase: Acts as an upper threshold\\n        /// @dev If lowerThresholdInBase < fixedPriceInBase: Acts as \\\"price rounding up\\\" (e.g. if USDC > 0.997 then round to 1)\\n        /// @dev If lowerThresholdInBase > fixedPriceInBase: Acts as \\\"price rounding down\\\" (e.g. if USDC > 1.003 then round to 1)\\n        uint256 lowerThresholdInBase;\\n        uint256 fixedPriceInBase;\\n    }\\n\\n    /**\\n     * @notice Apply threshold to a price value\\n     * @param priceInBase The price to check against threshold\\n     * @param thresholdConfig The threshold configuration\\n     * @return The original price or fixed price based on threshold\\n     */\\n    function _applyThreshold(\\n        uint256 priceInBase,\\n        ThresholdConfig memory thresholdConfig\\n    ) internal pure returns (uint256) {\\n        if (priceInBase > thresholdConfig.lowerThresholdInBase) {\\n            return thresholdConfig.fixedPriceInBase;\\n        }\\n        return priceInBase;\\n    }\\n}\\n\",\"keccak256\":\"0x2c3bb0f98af6761a8de5660cd7c9516880936bf5bfb1070b2065ab958476bb00\",\"license\":\"MIT\"}},\"version\":1}",
+  "bytecode": "0x60a06040526107086001553480156200001757600080fd5b5060405162001e4238038062001e4283398181016040528101906200003d919062000295565b8080608081815250506200005b6000801b33620000e060201b60201c565b506200008e7fced6982f480260bdd8ad5cb18ff2854f0306d78d904ad6cc107e8f3a0f526c1833620000e060201b60201c565b5050620000a56000801b33620000e060201b60201c565b50620000d87fced6982f480260bdd8ad5cb18ff2854f0306d78d904ad6cc107e8f3a0f526c1833620000e060201b60201c565b5050620002c7565b6000620000f48383620001e360201b60201c565b620001d857600160008085815260200190815260200160002060000160008473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200190815260200160002060006101000a81548160ff021916908315150217905550620001746200024d60201b60201c565b73ffffffffffffffffffffffffffffffffffffffff168273ffffffffffffffffffffffffffffffffffffffff16847f2f8788117e7eff1d82e926ec794901d17c78024a50270940304540a733656f0d60405160405180910390a460019050620001dd565b600090505b92915050565b600080600084815260200190815260200160002060000160008373ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200190815260200160002060009054906101000a900460ff16905092915050565b600033905090565b600080fd5b6000819050919050565b6200026f816200025a565b81146200027b57600080fd5b50565b6000815190506200028f8162000264565b92915050565b600060208284031215620002ae57620002ad62000255565b5b6000620002be848285016200027e565b91505092915050565b608051611b51620002f16000396000818161084301528181610c1f015261134a0152611b516000f3fe608060405234801561001057600080fd5b506004361061012c5760003560e01c806391d14854116100ad578063d547741f11610071578063d547741f14610342578063e19f47001461035e578063f99256d51461037c578063fbff771c146103af578063ffceb415146103cd5761012c565b806391d148541461028a578063a217fddf146102ba578063b3596f07146102d8578063bfc69e1c14610308578063c5efe27c146103265761012c565b806336568abe116100f457806336568abe146101e7578063519ffff1146102035780638c89b64f1461021f5780638edbf4361461023d5780638f5997151461026e5761012c565b806301ffc9a71461013157806304dea65114610161578063248a9ca31461017d5780632ecac6fc146101ad5780632f2ff15d146101cb575b600080fd5b61014b60048036038101906101469190611457565b6103eb565b604051610158919061149f565b60405180910390f35b61017b6004803603810190610176919061154e565b610465565b005b610197600480360381019061019291906115ff565b610650565b6040516101a4919061163b565b60405180910390f35b6101b561066f565b6040516101c29190611665565b60405180910390f35b6101e560048036038101906101e09190611680565b610675565b005b61020160048036038101906101fc9190611680565b610697565b005b61021d600480360381019061021891906116c0565b610712565b005b610227610841565b6040516102349190611665565b60405180910390f35b610257600480360381019061025291906116c0565b610865565b6040516102659291906116ed565b60405180910390f35b61028860048036038101906102839190611716565b610cc2565b005b6102a4600480360381019061029f9190611680565b610ed1565b6040516102b1919061149f565b60405180910390f35b6102c2610f3b565b6040516102cf919061163b565b60405180910390f35b6102f260048036038101906102ed91906116c0565b610f42565b6040516102ff9190611665565b60405180910390f35b610310610f95565b60405161031d919061163b565b60405180910390f35b610340600480360381019061033b91906117b8565b610fb9565b005b61035c60048036038101906103579190611680565b610fee565b005b610366611010565b60405161037391906117f4565b60405180910390f35b610396600480360381019061039191906116c0565b611015565b6040516103a6949392919061184d565b60405180910390f35b6103b76110c1565b6040516103c49190611665565b60405180910390f35b6103d56110cd565b6040516103e29190611665565b60405180910390f35b60007f7965db0b000000000000000000000000000000000000000000000000000000007bffffffffffffffffffffffffffffffffffffffffffffffffffffffff1916827bffffffffffffffffffffffffffffffffffffffffffffffffffffffff1916148061045e575061045d826110d4565b5b9050919050565b7fced6982f480260bdd8ad5cb18ff2854f0306d78d904ad6cc107e8f3a0f526c1861048f8161113e565b6000600260008873ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff1681526020019081526020016000209050600073ffffffffffffffffffffffffffffffffffffffff168160000160009054906101000a900473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff1614806105815750600073ffffffffffffffffffffffffffffffffffffffff168160010160009054906101000a900473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16145b156105c357866040517f0dcaf86b0000000000000000000000000000000000000000000000000000000081526004016105ba91906117f4565b60405180910390fd5b8581600201600001819055508481600201600101819055508381600401600001819055508281600401600101819055508673ffffffffffffffffffffffffffffffffffffffff167fbdebb389cb3e5b0a7c038b900aeea5b6e265e74efd0de50488c3574a4d7861d58787878760405161063f9493929190611892565b60405180910390a250505050505050565b6000806000838152602001908152602001600020600101549050919050565b60015481565b61067e82610650565b6106878161113e565b6106918383611152565b50505050565b61069f611243565b73ffffffffffffffffffffffffffffffffffffffff168173ffffffffffffffffffffffffffffffffffffffff1614610703576040517f6697b23200000000000000000000000000000000000000000000000000000000815260040160405180910390fd5b61070d828261124b565b505050565b7fced6982f480260bdd8ad5cb18ff2854f0306d78d904ad6cc107e8f3a0f526c1861073c8161113e565b600260008373ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff168152602001908152602001600020600080820160006101000a81549073ffffffffffffffffffffffffffffffffffffffff02191690556001820160006101000a81549073ffffffffffffffffffffffffffffffffffffffff02191690556002820160008082016000905560018201600090555050600482016000808201600090556001820160009055505050508173ffffffffffffffffffffffffffffffffffffffff167fdabc58d0456c50872fa82879bc9ce7f6a455b4372db632857a62de4abd09969160405160405180910390a25050565b7f000000000000000000000000000000000000000000000000000000000000000081565b6000806000600260008573ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff1681526020019081526020016000206040518060800160405290816000820160009054906101000a900473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff1681526020016001820160009054906101000a900473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff168152602001600282016040518060400160405290816000820154815260200160018201548152505081526020016004820160405180604001604052908160008201548152602001600182015481525050815250509050600073ffffffffffffffffffffffffffffffffffffffff16816000015173ffffffffffffffffffffffffffffffffffffffff161480610a215750600073ffffffffffffffffffffffffffffffffffffffff16816020015173ffffffffffffffffffffffffffffffffffffffff16145b15610a6357836040517f0dcaf86b000000000000000000000000000000000000000000000000000000008152600401610a5a91906117f4565b60405180910390fd5b600080826000015173ffffffffffffffffffffffffffffffffffffffff166357de26a46040518163ffffffff1660e01b81526004016040805180830381865afa158015610ab4573d6000803e3d6000fd5b505050506040513d601f19601f82011682018060405250810190610ad8919061194c565b91509150600080846020015173ffffffffffffffffffffffffffffffffffffffff166357de26a46040518163ffffffff1660e01b81526004016040805180830381865afa158015610b2d573d6000803e3d6000fd5b505050506040513d601f19601f82011682018060405250810190610b51919061194c565b9150915060008085601b0b13610b68576000610b88565b847bffffffffffffffffffffffffffffffffffffffffffffffffffffffff165b905060008084601b0b13610b9d576000610bbd565b837bffffffffffffffffffffffffffffffffffffffffffffffffffffffff165b90506000610bca8361133d565b90506000610bd78361133d565b905060008960400151600001511115610bfb57610bf8828a60400151611385565b91505b60008960600151600001511115610c1d57610c1a818a60600151611385565b90505b7f00000000000000000000000000000000000000000000000000000000000000008183610c4a91906119bb565b610c549190611a2c565b9a5060008b118015610c86575042600154620151808963ffffffff16610c7a9190611a5d565b610c849190611a5d565b115b8015610cb2575042600154620151808763ffffffff16610ca69190611a5d565b610cb09190611a5d565b115b9950505050505050505050915091565b7fced6982f480260bdd8ad5cb18ff2854f0306d78d904ad6cc107e8f3a0f526c18610cec8161113e565b60405180608001604052808873ffffffffffffffffffffffffffffffffffffffff1681526020018773ffffffffffffffffffffffffffffffffffffffff1681526020016040518060400160405280888152602001878152508152602001604051806040016040528086815260200185815250815250600260008a73ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200190815260200160002060008201518160000160006101000a81548173ffffffffffffffffffffffffffffffffffffffff021916908373ffffffffffffffffffffffffffffffffffffffff16021790555060208201518160010160006101000a81548173ffffffffffffffffffffffffffffffffffffffff021916908373ffffffffffffffffffffffffffffffffffffffff16021790555060408201518160020160008201518160000155602082015181600101555050606082015181600401600082015181600001556020820151816001015550509050508773ffffffffffffffffffffffffffffffffffffffff167f8af3f37e726b4aaf30de76bd00359c9166bf6b9a01e457c3d4557df631227eed888888888888604051610ebf96959493929190611a91565b60405180910390a25050505050505050565b600080600084815260200190815260200160002060000160008373ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200190815260200160002060009054906101000a900460ff16905092915050565b6000801b81565b6000806000610f5084610865565b9150915080610f8b576040517f857860b600000000000000000000000000000000000000000000000000000000815260040160405180910390fd5b8192505050919050565b7fced6982f480260bdd8ad5cb18ff2854f0306d78d904ad6cc107e8f3a0f526c1881565b7fced6982f480260bdd8ad5cb18ff2854f0306d78d904ad6cc107e8f3a0f526c18610fe38161113e565b816001819055505050565b610ff782610650565b6110008161113e565b61100a838361124b565b50505050565b600081565b60026020528060005260406000206000915090508060000160009054906101000a900473ffffffffffffffffffffffffffffffffffffffff16908060010160009054906101000a900473ffffffffffffffffffffffffffffffffffffffff16908060020160405180604001604052908160008201548152602001600182015481525050908060040160405180604001604052908160008201548152602001600182015481525050905084565b670de0b6b3a764000081565b6201518081565b60007f01ffc9a7000000000000000000000000000000000000000000000000000000007bffffffffffffffffffffffffffffffffffffffffffffffffffffffff1916827bffffffffffffffffffffffffffffffffffffffffffffffffffffffff1916149050919050565b61114f8161114a611243565b6113a9565b50565b600061115e8383610ed1565b61123857600160008085815260200190815260200160002060000160008473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200190815260200160002060006101000a81548160ff0219169083151502179055506111d5611243565b73ffffffffffffffffffffffffffffffffffffffff168273ffffffffffffffffffffffffffffffffffffffff16847f2f8788117e7eff1d82e926ec794901d17c78024a50270940304540a733656f0d60405160405180910390a46001905061123d565b600090505b92915050565b600033905090565b60006112578383610ed1565b1561133257600080600085815260200190815260200160002060000160008473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200190815260200160002060006101000a81548160ff0219169083151502179055506112cf611243565b73ffffffffffffffffffffffffffffffffffffffff168273ffffffffffffffffffffffffffffffffffffffff16847ff6391f5c32d9c69d2a47ea670b442974b53935d1edc7fd64eb21e047a839171b60405160405180910390a460019050611337565b600090505b92915050565b6000670de0b6b3a76400007f00000000000000000000000000000000000000000000000000000000000000008361137491906119bb565b61137e9190611a2c565b9050919050565b6000816000015183111561139f57816020015190506113a3565b8290505b92915050565b6113b38282610ed1565b6113f65780826040517fe2517d3f0000000000000000000000000000000000000000000000000000000081526004016113ed929190611af2565b60405180910390fd5b5050565b600080fd5b60007fffffffff0000000000000000000000000000000000000000000000000000000082169050919050565b611434816113ff565b811461143f57600080fd5b50565b6000813590506114518161142b565b92915050565b60006020828403121561146d5761146c6113fa565b5b600061147b84828501611442565b91505092915050565b60008115159050919050565b61149981611484565b82525050565b60006020820190506114b46000830184611490565b92915050565b600073ffffffffffffffffffffffffffffffffffffffff82169050919050565b60006114e5826114ba565b9050919050565b6114f5816114da565b811461150057600080fd5b50565b600081359050611512816114ec565b92915050565b6000819050919050565b61152b81611518565b811461153657600080fd5b50565b60008135905061154881611522565b92915050565b600080600080600060a0868803121561156a576115696113fa565b5b600061157888828901611503565b955050602061158988828901611539565b945050604061159a88828901611539565b93505060606115ab88828901611539565b92505060806115bc88828901611539565b9150509295509295909350565b6000819050919050565b6115dc816115c9565b81146115e757600080fd5b50565b6000813590506115f9816115d3565b92915050565b600060208284031215611615576116146113fa565b5b6000611623848285016115ea565b91505092915050565b611635816115c9565b82525050565b6000602082019050611650600083018461162c565b92915050565b61165f81611518565b82525050565b600060208201905061167a6000830184611656565b92915050565b60008060408385031215611697576116966113fa565b5b60006116a5858286016115ea565b92505060206116b685828601611503565b9150509250929050565b6000602082840312156116d6576116d56113fa565b5b60006116e484828501611503565b91505092915050565b60006040820190506117026000830185611656565b61170f6020830184611490565b9392505050565b600080600080600080600060e0888a031215611735576117346113fa565b5b60006117438a828b01611503565b97505060206117548a828b01611503565b96505060406117658a828b01611503565b95505060606117768a828b01611539565b94505060806117878a828b01611539565b93505060a06117988a828b01611539565b92505060c06117a98a828b01611539565b91505092959891949750929550565b6000602082840312156117ce576117cd6113fa565b5b60006117dc84828501611539565b91505092915050565b6117ee816114da565b82525050565b600060208201905061180960008301846117e5565b92915050565b61181881611518565b82525050565b604082016000820151611834600085018261180f565b506020820151611847602085018261180f565b50505050565b600060c08201905061186260008301876117e5565b61186f60208301866117e5565b61187c604083018561181e565b611889608083018461181e565b95945050505050565b60006080820190506118a76000830187611656565b6118b46020830186611656565b6118c16040830185611656565b6118ce6060830184611656565b95945050505050565b600081601b0b9050919050565b6118ed816118d7565b81146118f857600080fd5b50565b60008151905061190a816118e4565b92915050565b600063ffffffff82169050919050565b61192981611910565b811461193457600080fd5b50565b60008151905061194681611920565b92915050565b60008060408385031215611963576119626113fa565b5b6000611971858286016118fb565b925050602061198285828601611937565b9150509250929050565b7f4e487b7100000000000000000000000000000000000000000000000000000000600052601160045260246000fd5b60006119c682611518565b91506119d183611518565b92508282026119df81611518565b915082820484148315176119f6576119f561198c565b5b5092915050565b7f4e487b7100000000000000000000000000000000000000000000000000000000600052601260045260246000fd5b6000611a3782611518565b9150611a4283611518565b925082611a5257611a516119fd565b5b828204905092915050565b6000611a6882611518565b9150611a7383611518565b9250828201905080821115611a8b57611a8a61198c565b5b92915050565b600060c082019050611aa660008301896117e5565b611ab360208301886117e5565b611ac06040830187611656565b611acd6060830186611656565b611ada6080830185611656565b611ae760a0830184611656565b979650505050505050565b6000604082019050611b0760008301856117e5565b611b14602083018461162c565b939250505056fea26469706673582212200cb4d4b0362b920ccf7ffd5e65f38f43851d7db38eca1c0e77f9e11fdbb89b8c64736f6c63430008140033",
+  "deployedBytecode": "0x608060405234801561001057600080fd5b506004361061012c5760003560e01c806391d14854116100ad578063d547741f11610071578063d547741f14610342578063e19f47001461035e578063f99256d51461037c578063fbff771c146103af578063ffceb415146103cd5761012c565b806391d148541461028a578063a217fddf146102ba578063b3596f07146102d8578063bfc69e1c14610308578063c5efe27c146103265761012c565b806336568abe116100f457806336568abe146101e7578063519ffff1146102035780638c89b64f1461021f5780638edbf4361461023d5780638f5997151461026e5761012c565b806301ffc9a71461013157806304dea65114610161578063248a9ca31461017d5780632ecac6fc146101ad5780632f2ff15d146101cb575b600080fd5b61014b60048036038101906101469190611457565b6103eb565b604051610158919061149f565b60405180910390f35b61017b6004803603810190610176919061154e565b610465565b005b610197600480360381019061019291906115ff565b610650565b6040516101a4919061163b565b60405180910390f35b6101b561066f565b6040516101c29190611665565b60405180910390f35b6101e560048036038101906101e09190611680565b610675565b005b61020160048036038101906101fc9190611680565b610697565b005b61021d600480360381019061021891906116c0565b610712565b005b610227610841565b6040516102349190611665565b60405180910390f35b610257600480360381019061025291906116c0565b610865565b6040516102659291906116ed565b60405180910390f35b61028860048036038101906102839190611716565b610cc2565b005b6102a4600480360381019061029f9190611680565b610ed1565b6040516102b1919061149f565b60405180910390f35b6102c2610f3b565b6040516102cf919061163b565b60405180910390f35b6102f260048036038101906102ed91906116c0565b610f42565b6040516102ff9190611665565b60405180910390f35b610310610f95565b60405161031d919061163b565b60405180910390f35b610340600480360381019061033b91906117b8565b610fb9565b005b61035c60048036038101906103579190611680565b610fee565b005b610366611010565b60405161037391906117f4565b60405180910390f35b610396600480360381019061039191906116c0565b611015565b6040516103a6949392919061184d565b60405180910390f35b6103b76110c1565b6040516103c49190611665565b60405180910390f35b6103d56110cd565b6040516103e29190611665565b60405180910390f35b60007f7965db0b000000000000000000000000000000000000000000000000000000007bffffffffffffffffffffffffffffffffffffffffffffffffffffffff1916827bffffffffffffffffffffffffffffffffffffffffffffffffffffffff1916148061045e575061045d826110d4565b5b9050919050565b7fced6982f480260bdd8ad5cb18ff2854f0306d78d904ad6cc107e8f3a0f526c1861048f8161113e565b6000600260008873ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff1681526020019081526020016000209050600073ffffffffffffffffffffffffffffffffffffffff168160000160009054906101000a900473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff1614806105815750600073ffffffffffffffffffffffffffffffffffffffff168160010160009054906101000a900473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16145b156105c357866040517f0dcaf86b0000000000000000000000000000000000000000000000000000000081526004016105ba91906117f4565b60405180910390fd5b8581600201600001819055508481600201600101819055508381600401600001819055508281600401600101819055508673ffffffffffffffffffffffffffffffffffffffff167fbdebb389cb3e5b0a7c038b900aeea5b6e265e74efd0de50488c3574a4d7861d58787878760405161063f9493929190611892565b60405180910390a250505050505050565b6000806000838152602001908152602001600020600101549050919050565b60015481565b61067e82610650565b6106878161113e565b6106918383611152565b50505050565b61069f611243565b73ffffffffffffffffffffffffffffffffffffffff168173ffffffffffffffffffffffffffffffffffffffff1614610703576040517f6697b23200000000000000000000000000000000000000000000000000000000815260040160405180910390fd5b61070d828261124b565b505050565b7fced6982f480260bdd8ad5cb18ff2854f0306d78d904ad6cc107e8f3a0f526c1861073c8161113e565b600260008373ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff168152602001908152602001600020600080820160006101000a81549073ffffffffffffffffffffffffffffffffffffffff02191690556001820160006101000a81549073ffffffffffffffffffffffffffffffffffffffff02191690556002820160008082016000905560018201600090555050600482016000808201600090556001820160009055505050508173ffffffffffffffffffffffffffffffffffffffff167fdabc58d0456c50872fa82879bc9ce7f6a455b4372db632857a62de4abd09969160405160405180910390a25050565b7f000000000000000000000000000000000000000000000000000000000000000081565b6000806000600260008573ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff1681526020019081526020016000206040518060800160405290816000820160009054906101000a900473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff1681526020016001820160009054906101000a900473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff168152602001600282016040518060400160405290816000820154815260200160018201548152505081526020016004820160405180604001604052908160008201548152602001600182015481525050815250509050600073ffffffffffffffffffffffffffffffffffffffff16816000015173ffffffffffffffffffffffffffffffffffffffff161480610a215750600073ffffffffffffffffffffffffffffffffffffffff16816020015173ffffffffffffffffffffffffffffffffffffffff16145b15610a6357836040517f0dcaf86b000000000000000000000000000000000000000000000000000000008152600401610a5a91906117f4565b60405180910390fd5b600080826000015173ffffffffffffffffffffffffffffffffffffffff166357de26a46040518163ffffffff1660e01b81526004016040805180830381865afa158015610ab4573d6000803e3d6000fd5b505050506040513d601f19601f82011682018060405250810190610ad8919061194c565b91509150600080846020015173ffffffffffffffffffffffffffffffffffffffff166357de26a46040518163ffffffff1660e01b81526004016040805180830381865afa158015610b2d573d6000803e3d6000fd5b505050506040513d601f19601f82011682018060405250810190610b51919061194c565b9150915060008085601b0b13610b68576000610b88565b847bffffffffffffffffffffffffffffffffffffffffffffffffffffffff165b905060008084601b0b13610b9d576000610bbd565b837bffffffffffffffffffffffffffffffffffffffffffffffffffffffff165b90506000610bca8361133d565b90506000610bd78361133d565b905060008960400151600001511115610bfb57610bf8828a60400151611385565b91505b60008960600151600001511115610c1d57610c1a818a60600151611385565b90505b7f00000000000000000000000000000000000000000000000000000000000000008183610c4a91906119bb565b610c549190611a2c565b9a5060008b118015610c86575042600154620151808963ffffffff16610c7a9190611a5d565b610c849190611a5d565b115b8015610cb2575042600154620151808763ffffffff16610ca69190611a5d565b610cb09190611a5d565b115b9950505050505050505050915091565b7fced6982f480260bdd8ad5cb18ff2854f0306d78d904ad6cc107e8f3a0f526c18610cec8161113e565b60405180608001604052808873ffffffffffffffffffffffffffffffffffffffff1681526020018773ffffffffffffffffffffffffffffffffffffffff1681526020016040518060400160405280888152602001878152508152602001604051806040016040528086815260200185815250815250600260008a73ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200190815260200160002060008201518160000160006101000a81548173ffffffffffffffffffffffffffffffffffffffff021916908373ffffffffffffffffffffffffffffffffffffffff16021790555060208201518160010160006101000a81548173ffffffffffffffffffffffffffffffffffffffff021916908373ffffffffffffffffffffffffffffffffffffffff16021790555060408201518160020160008201518160000155602082015181600101555050606082015181600401600082015181600001556020820151816001015550509050508773ffffffffffffffffffffffffffffffffffffffff167f8af3f37e726b4aaf30de76bd00359c9166bf6b9a01e457c3d4557df631227eed888888888888604051610ebf96959493929190611a91565b60405180910390a25050505050505050565b600080600084815260200190815260200160002060000160008373ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200190815260200160002060009054906101000a900460ff16905092915050565b6000801b81565b6000806000610f5084610865565b9150915080610f8b576040517f857860b600000000000000000000000000000000000000000000000000000000815260040160405180910390fd5b8192505050919050565b7fced6982f480260bdd8ad5cb18ff2854f0306d78d904ad6cc107e8f3a0f526c1881565b7fced6982f480260bdd8ad5cb18ff2854f0306d78d904ad6cc107e8f3a0f526c18610fe38161113e565b816001819055505050565b610ff782610650565b6110008161113e565b61100a838361124b565b50505050565b600081565b60026020528060005260406000206000915090508060000160009054906101000a900473ffffffffffffffffffffffffffffffffffffffff16908060010160009054906101000a900473ffffffffffffffffffffffffffffffffffffffff16908060020160405180604001604052908160008201548152602001600182015481525050908060040160405180604001604052908160008201548152602001600182015481525050905084565b670de0b6b3a764000081565b6201518081565b60007f01ffc9a7000000000000000000000000000000000000000000000000000000007bffffffffffffffffffffffffffffffffffffffffffffffffffffffff1916827bffffffffffffffffffffffffffffffffffffffffffffffffffffffff1916149050919050565b61114f8161114a611243565b6113a9565b50565b600061115e8383610ed1565b61123857600160008085815260200190815260200160002060000160008473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200190815260200160002060006101000a81548160ff0219169083151502179055506111d5611243565b73ffffffffffffffffffffffffffffffffffffffff168273ffffffffffffffffffffffffffffffffffffffff16847f2f8788117e7eff1d82e926ec794901d17c78024a50270940304540a733656f0d60405160405180910390a46001905061123d565b600090505b92915050565b600033905090565b60006112578383610ed1565b1561133257600080600085815260200190815260200160002060000160008473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200190815260200160002060006101000a81548160ff0219169083151502179055506112cf611243565b73ffffffffffffffffffffffffffffffffffffffff168273ffffffffffffffffffffffffffffffffffffffff16847ff6391f5c32d9c69d2a47ea670b442974b53935d1edc7fd64eb21e047a839171b60405160405180910390a460019050611337565b600090505b92915050565b6000670de0b6b3a76400007f00000000000000000000000000000000000000000000000000000000000000008361137491906119bb565b61137e9190611a2c565b9050919050565b6000816000015183111561139f57816020015190506113a3565b8290505b92915050565b6113b38282610ed1565b6113f65780826040517fe2517d3f0000000000000000000000000000000000000000000000000000000081526004016113ed929190611af2565b60405180910390fd5b5050565b600080fd5b60007fffffffff0000000000000000000000000000000000000000000000000000000082169050919050565b611434816113ff565b811461143f57600080fd5b50565b6000813590506114518161142b565b92915050565b60006020828403121561146d5761146c6113fa565b5b600061147b84828501611442565b91505092915050565b60008115159050919050565b61149981611484565b82525050565b60006020820190506114b46000830184611490565b92915050565b600073ffffffffffffffffffffffffffffffffffffffff82169050919050565b60006114e5826114ba565b9050919050565b6114f5816114da565b811461150057600080fd5b50565b600081359050611512816114ec565b92915050565b6000819050919050565b61152b81611518565b811461153657600080fd5b50565b60008135905061154881611522565b92915050565b600080600080600060a0868803121561156a576115696113fa565b5b600061157888828901611503565b955050602061158988828901611539565b945050604061159a88828901611539565b93505060606115ab88828901611539565b92505060806115bc88828901611539565b9150509295509295909350565b6000819050919050565b6115dc816115c9565b81146115e757600080fd5b50565b6000813590506115f9816115d3565b92915050565b600060208284031215611615576116146113fa565b5b6000611623848285016115ea565b91505092915050565b611635816115c9565b82525050565b6000602082019050611650600083018461162c565b92915050565b61165f81611518565b82525050565b600060208201905061167a6000830184611656565b92915050565b60008060408385031215611697576116966113fa565b5b60006116a5858286016115ea565b92505060206116b685828601611503565b9150509250929050565b6000602082840312156116d6576116d56113fa565b5b60006116e484828501611503565b91505092915050565b60006040820190506117026000830185611656565b61170f6020830184611490565b9392505050565b600080600080600080600060e0888a031215611735576117346113fa565b5b60006117438a828b01611503565b97505060206117548a828b01611503565b96505060406117658a828b01611503565b95505060606117768a828b01611539565b94505060806117878a828b01611539565b93505060a06117988a828b01611539565b92505060c06117a98a828b01611539565b91505092959891949750929550565b6000602082840312156117ce576117cd6113fa565b5b60006117dc84828501611539565b91505092915050565b6117ee816114da565b82525050565b600060208201905061180960008301846117e5565b92915050565b61181881611518565b82525050565b604082016000820151611834600085018261180f565b506020820151611847602085018261180f565b50505050565b600060c08201905061186260008301876117e5565b61186f60208301866117e5565b61187c604083018561181e565b611889608083018461181e565b95945050505050565b60006080820190506118a76000830187611656565b6118b46020830186611656565b6118c16040830185611656565b6118ce6060830184611656565b95945050505050565b600081601b0b9050919050565b6118ed816118d7565b81146118f857600080fd5b50565b60008151905061190a816118e4565b92915050565b600063ffffffff82169050919050565b61192981611910565b811461193457600080fd5b50565b60008151905061194681611920565b92915050565b60008060408385031215611963576119626113fa565b5b6000611971858286016118fb565b925050602061198285828601611937565b9150509250929050565b7f4e487b7100000000000000000000000000000000000000000000000000000000600052601160045260246000fd5b60006119c682611518565b91506119d183611518565b92508282026119df81611518565b915082820484148315176119f6576119f561198c565b5b5092915050565b7f4e487b7100000000000000000000000000000000000000000000000000000000600052601260045260246000fd5b6000611a3782611518565b9150611a4283611518565b925082611a5257611a516119fd565b5b828204905092915050565b6000611a6882611518565b9150611a7383611518565b9250828201905080821115611a8b57611a8a61198c565b5b92915050565b600060c082019050611aa660008301896117e5565b611ab360208301886117e5565b611ac06040830187611656565b611acd6060830186611656565b611ada6080830185611656565b611ae760a0830184611656565b979650505050505050565b6000604082019050611b0760008301856117e5565b611b14602083018461162c565b939250505056fea26469706673582212200cb4d4b0362b920ccf7ffd5e65f38f43851d7db38eca1c0e77f9e11fdbb89b8c64736f6c63430008140033",
+  "devdoc": {
+    "errors": {
+      "AccessControlBadConfirmation()": [
+        {
+          "details": "The caller of a function is not the expected one. NOTE: Don't confuse with {AccessControlUnauthorizedAccount}."
+        }
+      ],
+      "AccessControlUnauthorizedAccount(address,bytes32)": [
+        {
+          "details": "The `account` is missing a role."
+        }
+      ]
+    },
+    "events": {
+      "RoleAdminChanged(bytes32,bytes32,bytes32)": {
+        "details": "Emitted when `newAdminRole` is set as ``role``'s admin role, replacing `previousAdminRole` `DEFAULT_ADMIN_ROLE` is the starting admin for all roles, despite {RoleAdminChanged} not being emitted signaling this."
+      },
+      "RoleGranted(bytes32,address,address)": {
+        "details": "Emitted when `account` is granted `role`. `sender` is the account that originated the contract call. This account bears the admin role (for the granted role). Expected in cases where the role was granted using the internal {AccessControl-_grantRole}."
+      },
+      "RoleRevoked(bytes32,address,address)": {
+        "details": "Emitted when `account` is revoked `role`. `sender` is the account that originated the contract call:   - if using `revokeRole`, it is the admin role bearer   - if using `renounceRole`, it is the role bearer (i.e. `account`)"
+      }
+    },
+    "kind": "dev",
+    "methods": {
+      "getAssetPrice(address)": {
+        "params": {
+          "asset": "The address of the asset"
+        },
+        "returns": {
+          "_0": "The price of the asset"
+        }
+      },
+      "getPriceInfo(address)": {
+        "params": {
+          "asset": "The address of the asset"
+        },
+        "returns": {
+          "isAlive": "The alive status of the asset",
+          "price": "The price of the asset"
+        }
+      },
+      "getRoleAdmin(bytes32)": {
+        "details": "Returns the admin role that controls `role`. See {grantRole} and {revokeRole}. To change a role's admin, use {_setRoleAdmin}."
+      },
+      "grantRole(bytes32,address)": {
+        "details": "Grants `role` to `account`. If `account` had not been already granted `role`, emits a {RoleGranted} event. Requirements: - the caller must have ``role``'s admin role. May emit a {RoleGranted} event."
+      },
+      "hasRole(bytes32,address)": {
+        "details": "Returns `true` if `account` has been granted `role`."
+      },
+      "renounceRole(bytes32,address)": {
+        "details": "Revokes `role` from the calling account. Roles are often managed via {grantRole} and {revokeRole}: this function's purpose is to provide a mechanism for accounts to lose their privileges if they are compromised (such as when a trusted device is misplaced). If the calling account had been revoked `role`, emits a {RoleRevoked} event. Requirements: - the caller must be `callerConfirmation`. May emit a {RoleRevoked} event."
+      },
+      "revokeRole(bytes32,address)": {
+        "details": "Revokes `role` from `account`. If `account` had been granted `role`, emits a {RoleRevoked} event. Requirements: - the caller must have ``role``'s admin role. May emit a {RoleRevoked} event."
+      },
+      "supportsInterface(bytes4)": {
+        "details": "See {IERC165-supportsInterface}."
+      }
+    },
+    "version": 1
+  },
+  "userdoc": {
+    "kind": "user",
+    "methods": {
+      "BASE_CURRENCY()": {
+        "notice": "Returns the base currency address"
+      },
+      "BASE_CURRENCY_UNIT()": {
+        "notice": "Returns the base currency unit"
+      },
+      "getAssetPrice(address)": {
+        "notice": "Returns the asset price in the base currency"
+      },
+      "getPriceInfo(address)": {
+        "notice": "Returns the price and alive status of an asset"
+      }
+    },
+    "version": 1
+  },
+  "storageLayout": {
+    "storage": [
+      {
+        "astId": 2521,
+        "contract": "contracts/oracle_aggregator/wrapper/API3CompositeWrapperWithThresholding.sol:API3CompositeWrapperWithThresholding",
+        "label": "_roles",
+        "offset": 0,
+        "slot": "0",
+        "type": "t_mapping(t_bytes32,t_struct(RoleData)2516_storage)"
+      },
+      {
+        "astId": 15795,
+        "contract": "contracts/oracle_aggregator/wrapper/API3CompositeWrapperWithThresholding.sol:API3CompositeWrapperWithThresholding",
+        "label": "heartbeatStaleTimeLimit",
+        "offset": 0,
+        "slot": "1",
+        "type": "t_uint256"
+      },
+      {
+        "astId": 15932,
+        "contract": "contracts/oracle_aggregator/wrapper/API3CompositeWrapperWithThresholding.sol:API3CompositeWrapperWithThresholding",
+        "label": "compositeFeeds",
+        "offset": 0,
+        "slot": "2",
+        "type": "t_mapping(t_address,t_struct(CompositeFeed)15927_storage)"
+      }
+    ],
+    "types": {
+      "t_address": {
+        "encoding": "inplace",
+        "label": "address",
+        "numberOfBytes": "20"
+      },
+      "t_bool": {
+        "encoding": "inplace",
+        "label": "bool",
+        "numberOfBytes": "1"
+      },
+      "t_bytes32": {
+        "encoding": "inplace",
+        "label": "bytes32",
+        "numberOfBytes": "32"
+      },
+      "t_mapping(t_address,t_bool)": {
+        "encoding": "mapping",
+        "key": "t_address",
+        "label": "mapping(address => bool)",
+        "numberOfBytes": "32",
+        "value": "t_bool"
+      },
+      "t_mapping(t_address,t_struct(CompositeFeed)15927_storage)": {
+        "encoding": "mapping",
+        "key": "t_address",
+        "label": "mapping(address => struct API3CompositeWrapperWithThresholding.CompositeFeed)",
+        "numberOfBytes": "32",
+        "value": "t_struct(CompositeFeed)15927_storage"
+      },
+      "t_mapping(t_bytes32,t_struct(RoleData)2516_storage)": {
+        "encoding": "mapping",
+        "key": "t_bytes32",
+        "label": "mapping(bytes32 => struct AccessControl.RoleData)",
+        "numberOfBytes": "32",
+        "value": "t_struct(RoleData)2516_storage"
+      },
+      "t_struct(CompositeFeed)15927_storage": {
+        "encoding": "inplace",
+        "label": "struct API3CompositeWrapperWithThresholding.CompositeFeed",
+        "members": [
+          {
+            "astId": 15918,
+            "contract": "contracts/oracle_aggregator/wrapper/API3CompositeWrapperWithThresholding.sol:API3CompositeWrapperWithThresholding",
+            "label": "proxy1",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_address"
+          },
+          {
+            "astId": 15920,
+            "contract": "contracts/oracle_aggregator/wrapper/API3CompositeWrapperWithThresholding.sol:API3CompositeWrapperWithThresholding",
+            "label": "proxy2",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_address"
+          },
+          {
+            "astId": 15923,
+            "contract": "contracts/oracle_aggregator/wrapper/API3CompositeWrapperWithThresholding.sol:API3CompositeWrapperWithThresholding",
+            "label": "primaryThreshold",
+            "offset": 0,
+            "slot": "2",
+            "type": "t_struct(ThresholdConfig)16647_storage"
+          },
+          {
+            "astId": 15926,
+            "contract": "contracts/oracle_aggregator/wrapper/API3CompositeWrapperWithThresholding.sol:API3CompositeWrapperWithThresholding",
+            "label": "secondaryThreshold",
+            "offset": 0,
+            "slot": "4",
+            "type": "t_struct(ThresholdConfig)16647_storage"
+          }
+        ],
+        "numberOfBytes": "192"
+      },
+      "t_struct(RoleData)2516_storage": {
+        "encoding": "inplace",
+        "label": "struct AccessControl.RoleData",
+        "members": [
+          {
+            "astId": 2513,
+            "contract": "contracts/oracle_aggregator/wrapper/API3CompositeWrapperWithThresholding.sol:API3CompositeWrapperWithThresholding",
+            "label": "hasRole",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_mapping(t_address,t_bool)"
+          },
+          {
+            "astId": 2515,
+            "contract": "contracts/oracle_aggregator/wrapper/API3CompositeWrapperWithThresholding.sol:API3CompositeWrapperWithThresholding",
+            "label": "adminRole",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_bytes32"
+          }
+        ],
+        "numberOfBytes": "64"
+      },
+      "t_struct(ThresholdConfig)16647_storage": {
+        "encoding": "inplace",
+        "label": "struct ThresholdingUtils.ThresholdConfig",
+        "members": [
+          {
+            "astId": 16644,
+            "contract": "contracts/oracle_aggregator/wrapper/API3CompositeWrapperWithThresholding.sol:API3CompositeWrapperWithThresholding",
+            "label": "lowerThresholdInBase",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_uint256"
+          },
+          {
+            "astId": 16646,
+            "contract": "contracts/oracle_aggregator/wrapper/API3CompositeWrapperWithThresholding.sol:API3CompositeWrapperWithThresholding",
+            "label": "fixedPriceInBase",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_uint256"
+          }
+        ],
+        "numberOfBytes": "64"
+      },
+      "t_uint256": {
+        "encoding": "inplace",
+        "label": "uint256",
+        "numberOfBytes": "32"
+      }
+    }
+  }
+}
