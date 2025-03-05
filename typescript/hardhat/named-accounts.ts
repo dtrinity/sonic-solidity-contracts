@@ -10,11 +10,11 @@ export function getEnvPrivateKeys(network: string): string[] {
   let pks: string[] = [];
 
   switch (network) {
-    case "ethereum_testnet":
+    case "sonic_testnet":
       pks = [getPrivateKeyFromMnemonic(`testnet_deployer`)];
       break;
-    case "fraxtal_testnet":
-      pks = [getPrivateKeyFromMnemonic(`testnet_deployer`)];
+    case "sonic_mainnet":
+      pks = [getPrivateKeyFromMnemonic(`mainnet_deployer`)];
       break;
     default:
       throw new Error(`Unsupported network: ${network}`);
@@ -100,7 +100,8 @@ export function getStandardNamedAccounts(): {
     deployer: {
       hardhat: 0,
       localhost: 0,
-      ethereum_testnet: 0,
+      sonic_testnet: 0,
+      sonic_mainnet: 0,
     },
     // For testing ONLY
     user1: {

@@ -25,18 +25,12 @@ const config: HardhatUserConfig = {
       deploy: ["deploy-mocks", "deploy"],
       saveDeployments: true,
     },
-    ethereum_testnet: {
-      url: `https://ethereum-sepolia-rpc.publicnode.com`,
+    sonic_testnet: {
+      // https://docs.soniclabs.com/sonic/build-on-sonic/getting-started
+      url: `https://rpc.blaze.soniclabs.com`,
       deploy: ["deploy-mocks", "deploy"],
       saveDeployments: true,
-      accounts: getEnvPrivateKeys("ethereum_testnet"),
-    },
-    // A much cheaper EVM testnet for testing deployments
-    fraxtal_testnet: {
-      url: `https://fraxtal-holesky-rpc.publicnode.com`,
-      deploy: ["deploy-mocks", "deploy"],
-      saveDeployments: true,
-      accounts: getEnvPrivateKeys("fraxtal_testnet"),
+      accounts: getEnvPrivateKeys("sonic_testnet"),
     },
   },
   namedAccounts: getStandardNamedAccounts(),
