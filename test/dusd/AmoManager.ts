@@ -11,6 +11,10 @@ import {
 import { TokenInfo } from "../../typescript/token/utils";
 import { getTokenContractForSymbol } from "../../typescript/token/utils";
 import { standaloneMinimalFixture } from "./fixtures";
+import {
+  DUSD_AMO_MANAGER_ID,
+  DUSD_ISSUER_CONTRACT_ID,
+} from "../../typescript/deploy-ids";
 
 describe("AmoManager", () => {
   let amoManagerContract: AmoManager;
@@ -26,14 +30,16 @@ describe("AmoManager", () => {
 
     ({ deployer, user1, user2 } = await getNamedAccounts());
 
-    const amoManagerAddress = (await hre.deployments.get("AmoManager")).address;
+    const amoManagerAddress = (await hre.deployments.get(DUSD_AMO_MANAGER_ID))
+      .address;
     amoManagerContract = await hre.ethers.getContractAt(
       "AmoManager",
       amoManagerAddress,
       await hre.ethers.getSigner(deployer)
     );
 
-    const issuerAddress = (await hre.deployments.get("Issuer")).address;
+    const issuerAddress = (await hre.deployments.get(DUSD_ISSUER_CONTRACT_ID))
+      .address;
     issuerContract = await hre.ethers.getContractAt(
       "Issuer",
       issuerAddress,

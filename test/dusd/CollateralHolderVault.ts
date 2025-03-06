@@ -9,6 +9,7 @@ import {
   TokenInfo,
 } from "../../typescript/token/utils";
 import { standaloneMinimalFixture } from "./fixtures";
+import { DUSD_COLLATERAL_VAULT_CONTRACT_ID } from "../../typescript/deploy-ids";
 
 describe("CollateralHolderVault", () => {
   let collateralVaultContract: CollateralHolderVault;
@@ -27,7 +28,7 @@ describe("CollateralHolderVault", () => {
     ({ deployer, user1 } = await getNamedAccounts());
 
     const collateralVaultAddress = (
-      await hre.deployments.get("CollateralHolderVault")
+      await hre.deployments.get(DUSD_COLLATERAL_VAULT_CONTRACT_ID)
     ).address;
     collateralVaultContract = await hre.ethers.getContractAt(
       "CollateralHolderVault",

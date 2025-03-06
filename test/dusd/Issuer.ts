@@ -14,6 +14,7 @@ import {
   TokenInfo,
 } from "../../typescript/token/utils";
 import { standaloneMinimalFixture } from "./fixtures";
+import { DUSD_ISSUER_CONTRACT_ID } from "../../typescript/deploy-ids";
 
 describe("Issuer", () => {
   let issuerContract: Issuer;
@@ -32,7 +33,8 @@ describe("Issuer", () => {
 
     ({ deployer, user1, user2 } = await getNamedAccounts());
 
-    const issuerAddress = (await hre.deployments.get("Issuer")).address;
+    const issuerAddress = (await hre.deployments.get(DUSD_ISSUER_CONTRACT_ID))
+      .address;
     issuerContract = await hre.ethers.getContractAt(
       "Issuer",
       issuerAddress,

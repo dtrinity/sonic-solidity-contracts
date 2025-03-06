@@ -57,12 +57,6 @@ export async function getConfig(
           decimals: 18,
           initialSupply: 1e6,
         },
-        S: {
-          name: "Sonic",
-          address: STokenDeployment?.address,
-          decimals: 18,
-          initialSupply: 1e6,
-        },
         wOS: {
           name: "Wrapped Origin S",
           address: wOSTokenDeployment?.address,

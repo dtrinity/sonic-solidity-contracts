@@ -15,6 +15,11 @@ import { ORACLE_AGGREGATOR_PRICE_DECIMALS } from "../../typescript/oracle_aggreg
 import { TokenInfo } from "../../typescript/token/utils";
 import { getTokenContractForSymbol } from "../../typescript/token/utils";
 import { standaloneAmoFixture } from "./fixtures";
+import {
+  DUSD_AMO_MANAGER_ID,
+  DUSD_COLLATERAL_VAULT_CONTRACT_ID,
+  DUSD_ISSUER_CONTRACT_ID,
+} from "../../typescript/deploy-ids";
 
 describe("dUSD Ecosystem Lifecycle", () => {
   let amoManagerContract: AmoManager;
@@ -42,7 +47,8 @@ describe("dUSD Ecosystem Lifecycle", () => {
 
     /* Set up contracts */
 
-    const amoManagerAddress = (await hre.deployments.get("AmoManager")).address;
+    const amoManagerAddress = (await hre.deployments.get(DUSD_AMO_MANAGER_ID))
+      .address;
     amoManagerContract = await hre.ethers.getContractAt(
       "AmoManager",
       amoManagerAddress,
@@ -58,7 +64,7 @@ describe("dUSD Ecosystem Lifecycle", () => {
     );
 
     const collateralHolderVaultAddress = (
-      await hre.deployments.get("CollateralHolderVault")
+      await hre.deployments.get(DUSD_COLLATERAL_VAULT_CONTRACT_ID)
     ).address;
     collateralHolderVaultContract = await hre.ethers.getContractAt(
       "CollateralHolderVault",
@@ -84,7 +90,8 @@ describe("dUSD Ecosystem Lifecycle", () => {
       await hre.ethers.getSigner(deployer)
     );
 
-    const issuerAddress = (await hre.deployments.get("Issuer")).address;
+    const issuerAddress = (await hre.deployments.get(DUSD_ISSUER_CONTRACT_ID))
+      .address;
     issuerContract = await hre.ethers.getContractAt(
       "Issuer",
       issuerAddress,

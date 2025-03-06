@@ -12,6 +12,10 @@ import {
 import { TokenInfo } from "../../typescript/token/utils";
 import { getTokenContractForSymbol } from "../../typescript/token/utils";
 import { standaloneMinimalFixture } from "./fixtures";
+import {
+  DUSD_REDEEMER_CONTRACT_ID,
+  DUSD_ISSUER_CONTRACT_ID,
+} from "../../typescript/deploy-ids";
 
 describe("Redeemer", () => {
   let redeemerContract: Redeemer;
@@ -30,7 +34,9 @@ describe("Redeemer", () => {
 
     ({ deployer, user1, user2 } = await getNamedAccounts());
 
-    const redeemerAddress = (await hre.deployments.get("Redeemer")).address;
+    const redeemerAddress = (
+      await hre.deployments.get(DUSD_REDEEMER_CONTRACT_ID)
+    ).address;
     redeemerContract = await hre.ethers.getContractAt(
       "Redeemer",
       redeemerAddress,
@@ -44,7 +50,8 @@ describe("Redeemer", () => {
       await hre.ethers.getSigner(deployer)
     );
 
-    const issuerAddress = (await hre.deployments.get("Issuer")).address;
+    const issuerAddress = (await hre.deployments.get(DUSD_ISSUER_CONTRACT_ID))
+      .address;
     issuerContract = await hre.ethers.getContractAt(
       "Issuer",
       issuerAddress,

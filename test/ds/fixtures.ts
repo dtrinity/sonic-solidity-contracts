@@ -3,11 +3,11 @@ import hre, { deployments } from "hardhat";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 
 import {
-  DUSD_COLLATERAL_VAULT_CONTRACT_ID,
-  DUSD_ISSUER_CONTRACT_ID,
-  DUSD_REDEEMER_CONTRACT_ID,
+  DS_COLLATERAL_VAULT_CONTRACT_ID,
+  DS_ISSUER_CONTRACT_ID,
+  DS_REDEEMER_CONTRACT_ID,
   ORACLE_AGGREGATOR_ID,
-  DUSD_AMO_MANAGER_ID,
+  DS_AMO_MANAGER_ID,
 } from "../../typescript/deploy-ids";
 import { ORACLE_AGGREGATOR_PRICE_DECIMALS } from "../../typescript/oracle_aggregator/constants";
 import { getTokenContractForSymbol } from "../../typescript/token/utils";
@@ -15,30 +15,25 @@ import { getTokenContractForSymbol } from "../../typescript/token/utils";
 export const standaloneMinimalFixture = deployments.createFixture(
   async ({ deployments }) => {
     await deployments.fixture(); // Start from a fresh deployment
-    await deployments.fixture(["dusd"]);
+    await deployments.fixture(["ds"]);
 
     const { deployer } = await hre.getNamedAccounts();
     const signer = await hre.ethers.getSigner(deployer);
 
-    const { tokenInfo: dusdInfo } = await getTokenContractForSymbol(
+    const { tokenInfo: dsInfo } = await getTokenContractForSymbol(
       hre,
       deployer,
-      "dUSD"
+      "dS"
     );
-    const { tokenInfo: frxUSDInfo } = await getTokenContractForSymbol(
+    const { tokenInfo: wOSInfo } = await getTokenContractForSymbol(
       hre,
       deployer,
-      "frxUSD"
+      "wOS"
     );
-    const { tokenInfo: usdcInfo } = await getTokenContractForSymbol(
+    const { tokenInfo: stSInfo } = await getTokenContractForSymbol(
       hre,
       deployer,
-      "USDC"
-    );
-    const { tokenInfo: sfrxUSDInfo } = await getTokenContractForSymbol(
-      hre,
-      deployer,
-      "sfrxUSD"
+      "stS"
     );
     const mockOracleAggregator = await hre.deployments.deploy(
       "MockOracleAggregator",
@@ -60,15 +55,11 @@ export const standaloneMinimalFixture = deployments.createFixture(
       signer
     );
     await mockOracleAggregatorContract.setAssetPrice(
-      frxUSDInfo.address,
-      hre.ethers.parseUnits("1", ORACLE_AGGREGATOR_PRICE_DECIMALS)
+      wOSInfo.address,
+      hre.ethers.parseUnits("1.1", ORACLE_AGGREGATOR_PRICE_DECIMALS)
     );
     await mockOracleAggregatorContract.setAssetPrice(
-      usdcInfo.address,
-      hre.ethers.parseUnits("1", ORACLE_AGGREGATOR_PRICE_DECIMALS)
-    );
-    await mockOracleAggregatorContract.setAssetPrice(
-      sfrxUSDInfo.address,
+      stSInfo.address,
       hre.ethers.parseUnits("1.1", ORACLE_AGGREGATOR_PRICE_DECIMALS)
     );
 
@@ -85,22 +76,18 @@ export const standaloneMinimalFixture = deployments.createFixture(
       deployer
     );
     await oracleAggregator.setOracle(
-      frxUSDInfo.address,
+      wOSInfo.address,
       mockOracleAggregator.address
     );
     await oracleAggregator.setOracle(
-      usdcInfo.address,
-      mockOracleAggregator.address
-    );
-    await oracleAggregator.setOracle(
-      sfrxUSDInfo.address,
+      stSInfo.address,
       mockOracleAggregator.address
     );
 
     await setupDusdEcosystem(
       hre,
       oracleAggregatorAddress as string,
-      dusdInfo.address,
+      dsInfo.address,
       deployer
     );
   }
@@ -112,11 +99,11 @@ export const standaloneAmoFixture = deployments.createFixture(
 
     const { deployer } = await hre.getNamedAccounts();
     const { address: amoManagerAddress } =
-      await deployments.get(DUSD_AMO_MANAGER_ID);
-    const { tokenInfo: dusdInfo } = await getTokenContractForSymbol(
+      await deployments.get(DS_AMO_MANAGER_ID);
+    const { tokenInfo: dsInfo } = await getTokenContractForSymbol(
       hre,
       deployer,
-      "dUSD"
+      "dS"
     );
     const { address: mockOracleAggregatorAddress } =
       await deployments.get(ORACLE_AGGREGATOR_ID);
@@ -125,7 +112,7 @@ export const standaloneAmoFixture = deployments.createFixture(
     await hre.deployments.deploy("MockAmoVault", {
       from: deployer,
       args: [
-        dusdInfo.address,
+        dsInfo.address,
         amoManagerAddress,
         deployer,
         deployer,
@@ -141,10 +128,10 @@ export const standaloneAmoFixture = deployments.createFixture(
 const setupDusdEcosystem = async (
   hre: HardhatRuntimeEnvironment,
   oracleAddress: string,
-  dusdAddress: string,
-  dusdDeployer: string
+  dsAddress: string,
+  dsDeployer: string
 ): Promise<void> => {
-  // Update dUSD contracts with oracle
+  // Update dS contracts with oracle
   const setOracleForContract = async (
     contractId: string,
     contractName: string
@@ -153,15 +140,15 @@ const setupDusdEcosystem = async (
     const contract = await hre.ethers.getContractAt(
       contractName,
       address,
-      await hre.ethers.getSigner(dusdDeployer)
+      await hre.ethers.getSigner(dsDeployer)
     );
     await contract.setOracle(oracleAddress);
   };
 
   await setOracleForContract(
-    DUSD_COLLATERAL_VAULT_CONTRACT_ID,
+    DS_COLLATERAL_VAULT_CONTRACT_ID,
     "CollateralHolderVault"
   );
-  await setOracleForContract(DUSD_REDEEMER_CONTRACT_ID, "Redeemer");
-  await setOracleForContract(DUSD_ISSUER_CONTRACT_ID, "Issuer");
+  await setOracleForContract(DS_REDEEMER_CONTRACT_ID, "Redeemer");
+  await setOracleForContract(DS_ISSUER_CONTRACT_ID, "Issuer");
 };

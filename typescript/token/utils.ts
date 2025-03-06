@@ -13,7 +13,7 @@ import { TestERC20, TestMintableERC20 } from "../../typechain-types";
 export async function getTokenContractForSymbol(
   hre: HardhatRuntimeEnvironment,
   callerAddress: string,
-  symbol: "dUSD"
+  symbol: "dUSD" | "dS"
 ): Promise<{ contract: TestMintableERC20; tokenInfo: TokenInfo }>;
 
 /**
