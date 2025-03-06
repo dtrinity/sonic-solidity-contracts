@@ -3,8 +3,8 @@ import { DeployFunction } from "hardhat-deploy/types";
 
 import { getConfig } from "../../config/config";
 import {
-  DUSD_COLLATERAL_VAULT_CONTRACT_ID,
-  DUSD_REDEEMER_CONTRACT_ID,
+  DS_COLLATERAL_VAULT_CONTRACT_ID,
+  DS_REDEEMER_CONTRACT_ID,
   ORACLE_AGGREGATOR_ID,
 } from "../../typescript/deploy-ids";
 
@@ -16,18 +16,18 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     await hre.deployments.get(ORACLE_AGGREGATOR_ID);
 
   const { address: collateralVaultAddress } = await hre.deployments.get(
-    DUSD_COLLATERAL_VAULT_CONTRACT_ID
+    DS_COLLATERAL_VAULT_CONTRACT_ID
   );
   const collateralVault = await hre.ethers.getContractAt(
     "CollateralHolderVault",
     collateralVaultAddress,
     await hre.ethers.getSigner(deployer)
   );
-  const { dusd } = await getConfig(hre);
+  const { ds } = await getConfig(hre);
 
-  const deployment = await hre.deployments.deploy(DUSD_REDEEMER_CONTRACT_ID, {
+  const deployment = await hre.deployments.deploy(DS_REDEEMER_CONTRACT_ID, {
     from: deployer,
-    args: [collateralVaultAddress, dusd.address, oracleAggregatorAddress],
+    args: [collateralVaultAddress, ds.address, oracleAggregatorAddress],
     contract: "Redeemer",
     autoMine: true,
     log: false,
@@ -39,16 +39,16 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     deployment.address
   );
 
-  console.log(`☯️ ${__filename.split("/").slice(-2).join("/")}: ✅`);
+  console.log(`≻ ${__filename.split("/").slice(-2).join("/")}: ✅`);
 
   return true;
 };
 
-func.id = `dUSD:${DUSD_REDEEMER_CONTRACT_ID}`;
-func.tags = ["dusd"];
+func.id = `dS:${DS_REDEEMER_CONTRACT_ID}`;
+func.tags = ["ds"];
 func.dependencies = [
-  DUSD_COLLATERAL_VAULT_CONTRACT_ID,
-  "dUSD",
+  DS_COLLATERAL_VAULT_CONTRACT_ID,
+  "dS",
   ORACLE_AGGREGATOR_ID,
 ];
 

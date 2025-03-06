@@ -3,9 +3,9 @@ import hre, { deployments } from "hardhat";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 
 import {
-  COLLATERAL_VAULT_CONTRACT_ID,
-  ISSUER_CONTRACT_ID,
-  REDEEMER_CONTRACT_ID,
+  DUSD_COLLATERAL_VAULT_CONTRACT_ID,
+  DUSD_ISSUER_CONTRACT_ID,
+  DUSD_REDEEMER_CONTRACT_ID,
   ORACLE_AGGREGATOR_ID,
 } from "../../typescript/deploy-ids";
 import { ORACLE_AGGREGATOR_PRICE_DECIMALS } from "../../typescript/oracle_aggregator/constants";
@@ -157,9 +157,9 @@ const setupDusdEcosystem = async (
   };
 
   await setOracleForContract(
-    COLLATERAL_VAULT_CONTRACT_ID,
+    DUSD_COLLATERAL_VAULT_CONTRACT_ID,
     "CollateralHolderVault"
   );
-  await setOracleForContract(REDEEMER_CONTRACT_ID, "Redeemer");
-  await setOracleForContract(ISSUER_CONTRACT_ID, "Issuer");
+  await setOracleForContract(DUSD_REDEEMER_CONTRACT_ID, "Redeemer");
+  await setOracleForContract(DUSD_ISSUER_CONTRACT_ID, "Issuer");
 };

@@ -1,6 +1,7 @@
 export interface Config {
   readonly MOCK_ONLY?: MockConfig;
   readonly dusd: DusdConfig;
+  readonly ds: DsConfig;
   readonly oracleAggregator: OracleAggregatorConfig;
 }
 
@@ -20,8 +21,13 @@ export interface DusdConfig {
   readonly address: string;
 }
 
+export interface DsConfig {
+  readonly address: string;
+}
+
 export interface OracleAggregatorConfig {
   readonly dUSDAddress: string;
+  readonly dSAddress: string;
   readonly priceDecimals: number;
   readonly hardDusdPeg: number;
   readonly api3OracleAssets: {

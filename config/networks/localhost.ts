@@ -14,11 +14,15 @@ export async function getConfig(
 ): Promise<Config> {
   // Token info will only be populated after their deployment
   const dUSDDeployment = await _hre.deployments.getOrNull("dUSD");
+  const dSDeployment = await _hre.deployments.getOrNull("dS");
   const USDCDeployment = await _hre.deployments.getOrNull("USDC");
   const USDSDeployment = await _hre.deployments.getOrNull("USDS");
   const sUSDSDeployment = await _hre.deployments.getOrNull("sUSDS");
   const frxUSDDeployment = await _hre.deployments.getOrNull("frxUSD");
   const sfrxUSDDeployment = await _hre.deployments.getOrNull("sfrxUSD");
+  const STokenDeployment = await _hre.deployments.getOrNull("S");
+  const wOSTokenDeployment = await _hre.deployments.getOrNull("wOS");
+  const stSTokenDeployment = await _hre.deployments.getOrNull("stS");
 
   return {
     MOCK_ONLY: {
@@ -53,15 +57,37 @@ export async function getConfig(
           decimals: 18,
           initialSupply: 1e6,
         },
+        S: {
+          name: "Sonic",
+          address: STokenDeployment?.address,
+          decimals: 18,
+          initialSupply: 1e6,
+        },
+        wOS: {
+          name: "Wrapped Origin S",
+          address: wOSTokenDeployment?.address,
+          decimals: 18,
+          initialSupply: 1e6,
+        },
+        stS: {
+          name: "Staked S",
+          address: stSTokenDeployment?.address,
+          decimals: 18,
+          initialSupply: 1e6,
+        },
       },
     },
     dusd: {
       address: emptyStringIfUndefined(dUSDDeployment?.address),
     },
+    ds: {
+      address: emptyStringIfUndefined(dSDeployment?.address),
+    },
     oracleAggregator: {
       hardDusdPeg: 10 ** ORACLE_AGGREGATOR_PRICE_DECIMALS,
       priceDecimals: ORACLE_AGGREGATOR_PRICE_DECIMALS,
       dUSDAddress: emptyStringIfUndefined(dUSDDeployment?.address),
+      dSAddress: emptyStringIfUndefined(dSDeployment?.address),
       api3OracleAssets: {
         plainApi3OracleWrappers: {},
         api3OracleWrappersWithThresholding: {},

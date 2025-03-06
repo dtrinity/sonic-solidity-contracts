@@ -16,14 +16,21 @@ export const TOKEN_INFO = {
 export async function getConfig(
   _hre: HardhatRuntimeEnvironment
 ): Promise<Config> {
+  const dUSDDeployment = await _hre.deployments.getOrNull("dUSD");
+  const dSDeployment = await _hre.deployments.getOrNull("dS");
+
   return {
     dusd: {
-      address: "", // TODO
+      address: emptyStringIfUndefined(dUSDDeployment?.address),
+    },
+    ds: {
+      address: emptyStringIfUndefined(dSDeployment?.address),
     },
     oracleAggregator: {
       hardDusdPeg: 10 ** ORACLE_AGGREGATOR_PRICE_DECIMALS,
       priceDecimals: ORACLE_AGGREGATOR_PRICE_DECIMALS,
-      dUSDAddress: "", // TODO
+      dUSDAddress: emptyStringIfUndefined(dUSDDeployment?.address),
+      dSAddress: emptyStringIfUndefined(dSDeployment?.address),
       api3OracleAssets: {
         plainApi3OracleWrappers: {},
         api3OracleWrappersWithThresholding: {},
@@ -31,4 +38,8 @@ export async function getConfig(
       },
     },
   };
+}
+
+function emptyStringIfUndefined(value: string | undefined): string {
+  return value ?? "";
 }
