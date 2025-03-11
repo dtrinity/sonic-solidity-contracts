@@ -289,7 +289,7 @@ describe("AmoCollateralInteraction", () => {
           frxUSDContract.getAddress()
         );
       const transferValueInDusd =
-        await amoManagerContract.usdValueToDusdAmount(transferValue);
+        await amoManagerContract.usdValueToDstableAmount(transferValue);
 
       assert.equal(
         finalAllocation,
@@ -340,7 +340,7 @@ describe("AmoCollateralInteraction", () => {
           frxUSDContract.getAddress()
         );
       const transferValueInDusd =
-        await amoManagerContract.usdValueToDusdAmount(transferValue);
+        await amoManagerContract.usdValueToDstableAmount(transferValue);
 
       assert.equal(
         finalAllocation,

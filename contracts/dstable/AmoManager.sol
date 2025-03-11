@@ -24,7 +24,7 @@ import "./AmoVault.sol";
 
 /**
  * @title AmoManager
- * @dev Manages AMOs for dUSD
+ * @dev Manages AMOs for dStable
  * Handles allocation, deallocation, collateral management, and profit management for AMO vaults.
  */
 contract AmoManager is AccessControl, OracleAware {
@@ -34,7 +34,7 @@ contract AmoManager is AccessControl, OracleAware {
 
     EnumerableMap.AddressToUintMap private _amoVaults;
     uint256 public totalAllocated;
-    IMintableERC20 public dusd;
+    IMintableERC20 public dstable;
     CollateralVault public collateralHolderVault;
 
     uint256 public immutable USD_UNIT;
@@ -42,8 +42,8 @@ contract AmoManager is AccessControl, OracleAware {
     /* Events */
 
     event AmoVaultSet(address indexed amoVault, bool isActive);
-    event AmoAllocated(address indexed amoVault, uint256 dusdAmount);
-    event AmoDeallocated(address indexed amoVault, uint256 dusdAmount);
+    event AmoAllocated(address indexed amoVault, uint256 dstableAmount);
+    event AmoDeallocated(address indexed amoVault, uint256 dstableAmount);
     event ProfitsWithdrawn(address indexed amoVault, uint256 amount);
 
     /* Roles */
@@ -61,7 +61,7 @@ contract AmoManager is AccessControl, OracleAware {
         uint256 endingSupply
     );
     error AmoVaultAlreadyEnabled(address amoVault);
-    error CannotTransferDUSD();
+    error CannotTransferDStable();
     error InsufficientProfits(
         uint256 takeProfitValueInUsd,
         int256 availableProfitInUsd
@@ -69,16 +69,16 @@ contract AmoManager is AccessControl, OracleAware {
 
     /**
      * @notice Initializes the AmoManager contract.
-     * @param _dusd The address of the dUSD stablecoin.
+     * @param _dstable The address of the dStable stablecoin.
      * @param _collateralHolderVault The address of the collateral holder vault.
      * @param _oracle The oracle for price feeds.
      */
     constructor(
-        address _dusd,
+        address _dstable,
         address _collateralHolderVault,
         IPriceOracleGetter _oracle
     ) OracleAware(_oracle, DTrinityOracleConstants.ORACLE_BASE_CURRENCY_UNIT) {
-        dusd = IMintableERC20(_dusd);
+        dstable = IMintableERC20(_dstable);
         collateralHolderVault = CollateralVault(_collateralHolderVault);
 
         USD_UNIT = oracle.BASE_CURRENCY_UNIT();
@@ -93,11 +93,11 @@ contract AmoManager is AccessControl, OracleAware {
     /**
      * @notice Allocates AMO tokens to an AMO vault.
      * @param amoVault The address of the AMO vault.
-     * @param dusdAmount The amount of dUSD to allocate.
+     * @param dstableAmount The amount of dStable to allocate.
      */
     function allocateAmo(
         address amoVault,
-        uint256 dusdAmount
+        uint256 dstableAmount
     ) public onlyRole(AMO_ALLOCATOR_ROLE) {
         uint256 startingAmoSupply = totalAmoSupply();
 
@@ -108,11 +108,11 @@ contract AmoManager is AccessControl, OracleAware {
 
         // Update the allocation for this vault
         (, uint256 currentAllocation) = _amoVaults.tryGet(amoVault);
-        _amoVaults.set(amoVault, currentAllocation + dusdAmount);
+        _amoVaults.set(amoVault, currentAllocation + dstableAmount);
 
         // Make the deposit
-        totalAllocated += dusdAmount;
-        dusd.transfer(amoVault, dusdAmount);
+        totalAllocated += dstableAmount;
+        dstable.transfer(amoVault, dstableAmount);
 
         // Check invariants
         uint256 endingAmoSupply = totalAmoSupply();
@@ -123,17 +123,17 @@ contract AmoManager is AccessControl, OracleAware {
             );
         }
 
-        emit AmoAllocated(amoVault, dusdAmount);
+        emit AmoAllocated(amoVault, dstableAmount);
     }
 
     /**
      * @notice Deallocates AMO tokens from an AMO vault.
      * @param amoVault The address of the AMO vault.
-     * @param dusdAmount The amount of dUSD to deallocate.
+     * @param dstableAmount The amount of dStable to deallocate.
      */
     function deallocateAmo(
         address amoVault,
-        uint256 dusdAmount
+        uint256 dstableAmount
     ) public onlyRole(AMO_ALLOCATOR_ROLE) {
         uint256 startingAmoSupply = totalAmoSupply();
 
@@ -143,12 +143,12 @@ contract AmoManager is AccessControl, OracleAware {
         (, uint256 currentAllocation) = _amoVaults.tryGet(amoVault);
         if (currentAllocation > 0) {
             // Update the allocation for this vault
-            _amoVaults.set(amoVault, currentAllocation - dusdAmount);
+            _amoVaults.set(amoVault, currentAllocation - dstableAmount);
         }
 
         // Make the withdrawal
-        totalAllocated -= dusdAmount;
-        dusd.transferFrom(amoVault, address(this), dusdAmount);
+        totalAllocated -= dstableAmount;
+        dstable.transferFrom(amoVault, address(this), dstableAmount);
 
         // Check invariants
         uint256 endingAmoSupply = totalAmoSupply();
@@ -159,7 +159,7 @@ contract AmoManager is AccessControl, OracleAware {
             );
         }
 
-        emit AmoDeallocated(amoVault, dusdAmount);
+        emit AmoDeallocated(amoVault, dstableAmount);
     }
 
     /**
@@ -167,18 +167,18 @@ contract AmoManager is AccessControl, OracleAware {
      * @return The total AMO supply.
      */
     function totalAmoSupply() public view returns (uint256) {
-        uint256 freeBalance = dusd.balanceOf(address(this));
+        uint256 freeBalance = dstable.balanceOf(address(this));
         return freeBalance + totalAllocated;
     }
 
     /**
-     * @notice Decreases the AMO supply by burning dUSD.
-     * @param dusdAmount The amount of dUSD to burn.
+     * @notice Decreases the AMO supply by burning dStable.
+     * @param dstableAmount The amount of dStable to burn.
      */
     function decreaseAmoSupply(
-        uint256 dusdAmount
+        uint256 dstableAmount
     ) public onlyRole(AMO_ALLOCATOR_ROLE) {
-        dusd.burn(dusdAmount);
+        dstable.burn(dstableAmount);
     }
 
     /**
@@ -266,27 +266,29 @@ contract AmoManager is AccessControl, OracleAware {
         address token,
         uint256 amount
     ) public onlyRole(AMO_ALLOCATOR_ROLE) {
-        if (token == address(dusd)) {
-            revert CannotTransferDUSD();
+        if (token == address(dstable)) {
+            revert CannotTransferDStable();
         }
 
         // Update allocation
         // A note on why we modify AMO allocation when we withdraw collateral:
-        // 1. When dUSD AMO enters the AMO vault, the dUSD is initially unbacked
-        // 2. Over time the AMO vault accrues collateral in exchange for distributing dUSD
+        // 1. When dStable AMO enters the AMO vault, the dStable is initially unbacked
+        // 2. Over time the AMO vault accrues collateral in exchange for distributing dStable
         // 3. We may be able to make better use of that collateral in a different collateral vault
-        // 4. So we transfer the collateral out of the AMO vault, but at that point the dUSD that
+        // 4. So we transfer the collateral out of the AMO vault, but at that point the dStable that
         //    converted to that collateral is now free-floating and fully backed
-        // 5. Thus we decrement the AMO allocation to reflect the fact that the dUSD is no longer
+        // 5. Thus we decrement the AMO allocation to reflect the fact that the dStable is no longer
         //    unbacked, but is actually fully backed and circulating
         uint256 collateralUsdValue = collateralHolderVault.assetValueFromAmount(
             amount,
             token
         );
-        uint256 collateralInDusd = usdValueToDusdAmount(collateralUsdValue);
+        uint256 collateralInDstable = usdValueToDstableAmount(
+            collateralUsdValue
+        );
         (, uint256 currentAllocation) = _amoVaults.tryGet(amoVault);
-        _amoVaults.set(amoVault, currentAllocation - collateralInDusd);
-        totalAllocated -= collateralInDusd;
+        _amoVaults.set(amoVault, currentAllocation - collateralInDstable);
+        totalAllocated -= collateralInDstable;
 
         // Transfer the collateral
         AmoVault(amoVault).withdrawTo(
@@ -307,8 +309,8 @@ contract AmoManager is AccessControl, OracleAware {
         address token,
         uint256 amount
     ) public onlyRole(AMO_ALLOCATOR_ROLE) {
-        if (token == address(dusd)) {
-            revert CannotTransferDUSD();
+        if (token == address(dstable)) {
+            revert CannotTransferDStable();
         }
         if (!_amoVaults.contains(amoVault)) {
             revert InactiveAmoVault(amoVault);
@@ -316,18 +318,20 @@ contract AmoManager is AccessControl, OracleAware {
 
         // Update allocation
         // A note on why we modify AMO allocation when we deposit collateral:
-        // 1. When we deposit collateral, it can be used to buy back dUSD
-        // 2. When we buy back dUSD, the dUSD is now unbacked (a redemption)
-        // 3. Thus any collateral deposited to an AMO vault can create unbacked dUSD,
+        // 1. When we deposit collateral, it can be used to buy back dStable
+        // 2. When we buy back dStable, the dStable is now unbacked (a redemption)
+        // 3. Thus any collateral deposited to an AMO vault can create unbacked dStable,
         //    which means the AMO allocation for that vault must be increased to reflect this
         uint256 collateralUsdValue = collateralHolderVault.assetValueFromAmount(
             amount,
             token
         );
-        uint256 collateralInDusd = usdValueToDusdAmount(collateralUsdValue);
+        uint256 collateralInDstable = usdValueToDstableAmount(
+            collateralUsdValue
+        );
         (, uint256 currentAllocation) = _amoVaults.tryGet(amoVault);
-        _amoVaults.set(amoVault, currentAllocation + collateralInDusd);
-        totalAllocated += collateralInDusd;
+        _amoVaults.set(amoVault, currentAllocation + collateralInDstable);
+        totalAllocated += collateralInDstable;
 
         // Transfer the collateral
         collateralHolderVault.withdrawTo(amoVault, amount, token);
@@ -344,8 +348,8 @@ contract AmoManager is AccessControl, OracleAware {
         address vaultAddress
     ) public view returns (int256) {
         uint256 totalVaultValueInUsd = AmoVault(vaultAddress).totalValue();
-        uint256 allocatedDusd = amoVaultAllocation(vaultAddress);
-        uint256 allocatedValueInUsd = dusdAmountToUsdValue(allocatedDusd);
+        uint256 allocatedDstable = amoVaultAllocation(vaultAddress);
+        uint256 allocatedValueInUsd = dstableAmountToUsdValue(allocatedDstable);
 
         return int256(totalVaultValueInUsd) - int256(allocatedValueInUsd);
     }
@@ -420,29 +424,31 @@ contract AmoManager is AccessControl, OracleAware {
     /* Utility */
 
     /**
-     * @notice Converts a USD value to an equivalent amount of dUSD tokens.
+     * @notice Converts a USD value to an equivalent amount of dStable tokens.
      * @param usdValue The amount of USD value to convert.
-     * @return The equivalent amount of dUSD tokens.
+     * @return The equivalent amount of dStable tokens.
      */
-    function usdValueToDusdAmount(
+    function usdValueToDstableAmount(
         uint256 usdValue
     ) public view returns (uint256) {
-        uint8 dusdDecimals = dusd.decimals();
-        return (usdValue * (10 ** dusdDecimals)) / USD_UNIT;
+        uint8 dstableDecimals = dstable.decimals();
+        return
+            (usdValue * (10 ** dstableDecimals)) /
+            (oracle.getAssetPrice(address(dstable)));
     }
 
     /**
-     * @notice Converts an amount of dUSD tokens to an equivalent USD value.
-     * @param dusdAmount The amount of dUSD tokens to convert.
+     * @notice Converts an amount of dStable tokens to an equivalent USD value.
+     * @param dstableAmount The amount of dStable tokens to convert.
      * @return The equivalent amount of USD value.
      */
-    function dusdAmountToUsdValue(
-        uint256 dusdAmount
+    function dstableAmountToUsdValue(
+        uint256 dstableAmount
     ) public view returns (uint256) {
-        uint8 dusdDecimals = dusd.decimals();
+        uint8 dstableDecimals = dstable.decimals();
         return
-            (dusdAmount * oracle.getAssetPrice(address(dusd))) /
-            (10 ** dusdDecimals);
+            (dstableAmount * oracle.getAssetPrice(address(dstable))) /
+            (10 ** dstableDecimals);
     }
 
     /* Admin */

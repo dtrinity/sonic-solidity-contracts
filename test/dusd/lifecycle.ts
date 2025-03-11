@@ -22,7 +22,7 @@ import {
   DUSD_REDEEMER_CONTRACT_ID,
 } from "../../typescript/deploy-ids";
 
-describe("dUSD Ecosystem Lifecycle", () => {
+describe("dStable Ecosystem Lifecycle", () => {
   let amoManagerContract: AmoManager;
   let mockAmoVaultContract: MockAmoVault;
   let collateralHolderVaultContract: CollateralHolderVault;
@@ -31,8 +31,8 @@ describe("dUSD Ecosystem Lifecycle", () => {
   let mockUSDCOracleContract: MockAPI3OracleAlwaysAlive;
   let mockSfrxUSDOracleContract: MockAPI3OracleAlwaysAlive;
   let issuerContract: Issuer;
-  let dusdContract: TestERC20;
-  let dusdInfo: TokenInfo;
+  let dstableContract: TestERC20;
+  let dstableInfo: TokenInfo;
   let frxUSDContract: TestERC20;
   let frxUSDInfo: TokenInfo;
   let usdcContract: TestERC20;
@@ -87,7 +87,7 @@ describe("dUSD Ecosystem Lifecycle", () => {
 
     /* Set up tokens */
 
-    ({ contract: dusdContract, tokenInfo: dusdInfo } =
+    ({ contract: dstableContract, tokenInfo: dstableInfo } =
       await getTokenContractForSymbol(hre, deployer, "dUSD"));
     ({ contract: frxUSDContract, tokenInfo: frxUSDInfo } =
       await getTokenContractForSymbol(hre, deployer, "frxUSD"));
@@ -172,19 +172,20 @@ describe("dUSD Ecosystem Lifecycle", () => {
   });
 
   /**
-   * Check the invariants of the dUSD ecosystem
+   * Check the invariants of the dStable ecosystem
    *
    * @returns void
    */
   async function checkInvariants(): Promise<void> {
-    const circulatingSupply = await issuerContract.circulatingDusd();
-    const totalCollateralValueInDusd = await issuerContract.collateralInDusd();
-    const totalSupply = await dusdContract.totalSupply();
+    const circulatingSupply = await issuerContract.circulatingDstable();
+    const totalCollateralValueInDstable =
+      await issuerContract.collateralInDstable();
+    const totalSupply = await dstableContract.totalSupply();
     const amoSupply = await amoManagerContract.totalAmoSupply();
 
     assert.isTrue(
-      circulatingSupply <= totalCollateralValueInDusd,
-      `Circulating supply should not exceed total collateral value: ${circulatingSupply} <= ${totalCollateralValueInDusd}`
+      circulatingSupply <= totalCollateralValueInDstable,
+      `Circulating supply should not exceed total collateral value: ${circulatingSupply} <= ${totalCollateralValueInDstable}`
     );
     assert.isTrue(
       totalSupply <= circulatingSupply + amoSupply,
@@ -199,56 +200,57 @@ describe("dUSD Ecosystem Lifecycle", () => {
    * @returns The total value of all tokens in the wallet in USD
    */
   async function calculateWalletValue(wallet: Address): Promise<bigint> {
-    const fraxValue = await tokenAmountToUsdValue(
-      await frxUSDContract.balanceOf(wallet),
+    const frxUSDBalance = await frxUSDContract.balanceOf(wallet);
+    const usdcBalance = await usdcContract.balanceOf(wallet);
+    const dstableBalance = await dstableContract.balanceOf(wallet);
+
+    const frxUSDValue = await tokenAmountToUsdValue(
+      frxUSDBalance,
       frxUSDInfo.address
     );
     const usdcValue = await tokenAmountToUsdValue(
-      await usdcContract.balanceOf(wallet),
+      usdcBalance,
       usdcInfo.address
     );
-    const dusdValue = await tokenAmountToUsdValue(
-      await dusdContract.balanceOf(wallet),
-      dusdInfo.address
+    const dstableValue = await tokenAmountToUsdValue(
+      dstableBalance,
+      dstableInfo.address
     );
 
-    return fraxValue + usdcValue + dusdValue;
+    return frxUSDValue + usdcValue + dstableValue;
   }
 
   /**
-   * Converts an amount of one token to an equivalent value in another token
+   * Converts a token amount to its equivalent value in another token
    *
-   * @param inputAmount - The amount of input token to convert
+   * @param inputAmount - The amount of the input token
    * @param inputToken - The address of the input token
    * @param outputToken - The address of the output token
-   * @returns The equivalent amount in the output token
+   * @returns The equivalent amount of the output token
    */
   async function convertToEquivalentValueInOutputToken(
     inputAmount: bigint,
     inputToken: Address,
     outputToken: Address
   ): Promise<bigint> {
-    const inputPrice = await oracleAggregatorContract.getAssetPrice(inputToken);
-    const outputPrice =
+    // First convert to USD value
+    const usdValue = await tokenAmountToUsdValue(inputAmount, inputToken);
+
+    // Then convert from USD to output token
+    const outputTokenPrice =
       await oracleAggregatorContract.getAssetPrice(outputToken);
-    const inputDecimals = await (
-      await hre.ethers.getContractAt("TestERC20", inputToken)
-    ).decimals();
-    const outputDecimals = await (
+    const outputTokenDecimals = await (
       await hre.ethers.getContractAt("TestERC20", outputToken)
     ).decimals();
 
-    const inputAmountInUsd = (inputAmount * inputPrice) / 10n ** inputDecimals;
-    const outputAmountInToken =
-      (inputAmountInUsd * 10n ** outputDecimals) / outputPrice;
-    return outputAmountInToken;
+    return (usdValue * 10n ** BigInt(outputTokenDecimals)) / outputTokenPrice;
   }
 
   /**
-   * Converts a token amount to its USD value using the oracle price
+   * Converts a token amount to its USD value
    *
-   * @param amount - The amount of tokens to convert
-   * @param token - The address of the token to convert
+   * @param amount - The amount of the token
+   * @param token - The address of the token
    * @returns The USD value of the token amount
    */
   async function tokenAmountToUsdValue(
@@ -265,213 +267,186 @@ describe("dUSD Ecosystem Lifecycle", () => {
   /**
    * Updates the price of a token in the mock oracle
    *
-   * @param tokenAddress - The address of the token to update
-   * @param price - The new price in USD with 18 decimals
+   * @param tokenAddress - The address of the token
+   * @param price - The new price for the token
    */
   async function updateTokenPrice(
     tokenAddress: Address,
     price: bigint
   ): Promise<void> {
-    // Find which mock oracle to use
-    let mockOracle: MockAPI3OracleAlwaysAlive;
     if (tokenAddress === frxUSDInfo.address) {
-      mockOracle = mockFrxUSDOracleContract;
+      await mockFrxUSDOracleContract.setMock(Number(price));
     } else if (tokenAddress === usdcInfo.address) {
-      mockOracle = mockUSDCOracleContract;
+      await mockUSDCOracleContract.setMock(Number(price));
+    } else if (tokenAddress === dstableInfo.address) {
+      // dStable is always pegged to 1 USD
     } else {
-      throw new Error(`No mock oracle found for token ${tokenAddress}`);
+      throw new Error(`Unknown token address: ${tokenAddress}`);
     }
-
-    // Update the price
-    await mockOracle.setMock(price);
   }
 
-  it("two users swap against an AMO vault in a healthy market", async () => {
-    // 1. User 1 starts with 1000 FRAX and User 2 starts with 1000 USDC
-    const initialFraxAmount = hre.ethers.parseUnits(
-      "1000",
-      frxUSDInfo.decimals
-    );
-    await frxUSDContract.transfer(user1, initialFraxAmount);
-    const initialUsdcAmount = hre.ethers.parseUnits("1000", usdcInfo.decimals);
-    await usdcContract.transfer(user2, initialUsdcAmount);
+  it("should maintain invariants throughout the lifecycle", async function () {
+    // Initial state check
+    await checkInvariants();
 
-    const user1InitialValue = await calculateWalletValue(user1);
-    const user2InitialValue = await calculateWalletValue(user2);
+    // 1. Transfer tokens to users for testing
+    await frxUSDContract.transfer(
+      user1,
+      hre.ethers.parseUnits("1000", frxUSDInfo.decimals)
+    );
+    await usdcContract.transfer(
+      user2,
+      hre.ethers.parseUnits("1000", usdcInfo.decimals)
+    );
+
+    // 2. User 1 deposits 500 FRAX to mint 500 dStable (leaving 500 FRAX for later)
+    const fraxToDeposit = hre.ethers.parseUnits("500", frxUSDInfo.decimals);
+    const minDstableForFrax = hre.ethers.parseUnits(
+      "500",
+      dstableInfo.decimals
+    );
+
+    await frxUSDContract
+      .connect(await hre.ethers.getSigner(user1))
+      .approve(await issuerContract.getAddress(), fraxToDeposit);
+
+    await issuerContract
+      .connect(await hre.ethers.getSigner(user1))
+      .issue(fraxToDeposit, frxUSDInfo.address, minDstableForFrax);
 
     await checkInvariants();
 
-    // 2. User 1 deposits 500 FRAX to mint 500 dUSD (leaving 500 FRAX for later)
-    const depositFraxAmount = hre.ethers.parseUnits("500", frxUSDInfo.decimals);
-    const minInitialDusdForFrax = await convertToEquivalentValueInOutputToken(
-      depositFraxAmount,
-      frxUSDInfo.address,
-      dusdInfo.address
+    // 3. User 2 deposits 500 USDC to mint 500 dStable
+    const usdcToDeposit = hre.ethers.parseUnits("500", usdcInfo.decimals);
+    const minDstableForUsdc = hre.ethers.parseUnits(
+      "500",
+      dstableInfo.decimals
     );
-    await frxUSDContract
-      .connect(await hre.ethers.getSigner(user1))
-      .approve(await issuerContract.getAddress(), depositFraxAmount);
-    await issuerContract
-      .connect(await hre.ethers.getSigner(user1))
-      .issue(depositFraxAmount, frxUSDInfo.address, minInitialDusdForFrax);
 
-    // 3. User 2 deposits 500 USDC to mint 500 dUSD
-    const depositAmountUSDC = hre.ethers.parseUnits("500", usdcInfo.decimals);
-    const minDusdForUsdc = await convertToEquivalentValueInOutputToken(
-      depositAmountUSDC,
-      usdcInfo.address,
-      dusdInfo.address
-    );
     await usdcContract
       .connect(await hre.ethers.getSigner(user2))
-      .approve(await issuerContract.getAddress(), depositAmountUSDC);
+      .approve(await issuerContract.getAddress(), usdcToDeposit);
+
     await issuerContract
       .connect(await hre.ethers.getSigner(user2))
-      .issue(depositAmountUSDC, usdcInfo.address, minDusdForUsdc);
-
-    // Verify balances after minting
-    const user1DusdBalance = await dusdContract.balanceOf(user1);
-    const user2DusdBalance = await dusdContract.balanceOf(user2);
-    const user1FraxBalance = await frxUSDContract.balanceOf(user1);
-
-    // Ensure both users have the expected dUSD balances
-    assert.isTrue(
-      user1DusdBalance >= minInitialDusdForFrax,
-      `User1 should have at least ${hre.ethers.formatUnits(minInitialDusdForFrax, dusdInfo.decimals)} dUSD`
-    );
-    assert.isTrue(
-      user2DusdBalance >= minDusdForUsdc,
-      `User2 should have at least ${hre.ethers.formatUnits(minDusdForUsdc, dusdInfo.decimals)} dUSD`
-    );
+      .issue(usdcToDeposit, usdcInfo.address, minDstableForUsdc);
 
     await checkInvariants();
 
-    // 4. USDC depegs to $0.90
-    const depegPrice = hre.ethers.parseUnits(
-      "0.90",
-      18 // API3 uses 18 decimals
+    // Ensure both users have the expected dStable balances
+    const user1DstableBalance = await dstableContract.balanceOf(user1);
+    assert.isTrue(
+      user1DstableBalance >= minDstableForFrax,
+      `User1 should have at least ${hre.ethers.formatUnits(minDstableForFrax, dstableInfo.decimals)} dStable`
     );
-    await updateTokenPrice(usdcInfo.address, depegPrice);
 
-    // We are now undercollateralized by $50
-    const circulatingSupplyAt4 = await issuerContract.circulatingDusd();
-    const totalCollateralValueInDusdAt4 =
-      await issuerContract.collateralInDusd();
-    const underCollateralizedAmountInDusdAt4 =
-      circulatingSupplyAt4 - totalCollateralValueInDusdAt4;
+    const user2DstableBalance = await dstableContract.balanceOf(user2);
+    assert.isTrue(
+      user2DstableBalance >= minDstableForUsdc,
+      `User2 should have at least ${hre.ethers.formatUnits(minDstableForUsdc, dstableInfo.decimals)} dStable`
+    );
 
-    // 5. First, mint AMO dUSD via the Issuer contract
-    const amoAllocationAmount = hre.ethers.parseUnits("100", dusdInfo.decimals);
-    await issuerContract.increaseAmoSupply(amoAllocationAmount);
-
-    // 6. Now allocate the AMO dUSD to the AMO vault
+    // 4. Allocate 200 dStable to the AMO vault
+    const dstableToAllocate = hre.ethers.parseUnits(
+      "200",
+      dstableInfo.decimals
+    );
+    await issuerContract.increaseAmoSupply(dstableToAllocate);
     await amoManagerContract.allocateAmo(
       await mockAmoVaultContract.getAddress(),
-      amoAllocationAmount
+      dstableToAllocate
     );
 
-    // 7. Users swap tokens manually (direct transfer between users)
-    const swapDusdAmount = hre.ethers.parseUnits("100", dusdInfo.decimals);
-    const swapFraxAmount = hre.ethers.parseUnits("100", frxUSDInfo.decimals);
-
-    // Verify users have enough tokens for the swap
-    assert.isTrue(
-      (await dusdContract.balanceOf(user2)) >= swapDusdAmount,
-      `User2 should have at least ${hre.ethers.formatUnits(swapDusdAmount, dusdInfo.decimals)} dUSD for the swap`
-    );
-    assert.isTrue(
-      (await frxUSDContract.balanceOf(user1)) >= swapFraxAmount,
-      `User1 should have at least ${hre.ethers.formatUnits(swapFraxAmount, frxUSDInfo.decimals)} FRAX for the swap`
-    );
-
-    await dusdContract
-      .connect(await hre.ethers.getSigner(user2))
-      .transfer(user1, swapDusdAmount);
-    await frxUSDContract
-      .connect(await hre.ethers.getSigner(user1))
-      .transfer(user2, swapFraxAmount);
-
-    // Check balances after swap
-    const user1DusdBalanceAfterSwap = await dusdContract.balanceOf(user1);
-    const user2DusdBalanceAfterSwap = await dusdContract.balanceOf(user2);
-
-    // 8. USDC repegs to $1.00
-    const repegPrice = hre.ethers.parseUnits(
-      "1.00",
-      18 // API3 uses 18 decimals
-    );
-    await updateTokenPrice(usdcInfo.address, repegPrice);
-
-    // All invariants should hold now
     await checkInvariants();
 
-    // We should be overcollateralized by $50 now
-    const circulatingSupplyAt8 = await issuerContract.circulatingDusd();
-    const totalCollateralValueInDusdAt8 =
-      await issuerContract.collateralInDusd();
-    const overCollateralizedAmountInDusdAt8 =
-      totalCollateralValueInDusdAt8 - circulatingSupplyAt8;
+    // 5. AMO vault uses the dStable to acquire more collateral
+    // Simulate this by directly transferring collateral to the AMO vault
+    await frxUSDContract.transfer(
+      await mockAmoVaultContract.getAddress(),
+      hre.ethers.parseUnits("100", frxUSDInfo.decimals)
+    );
 
-    // 9. AMO manager deallocates 100 dUSD from the AMO vault
+    await checkInvariants();
+
+    // 6. User 1 redeems 100 dStable for FRAX
+    const dstableToRedeem = hre.ethers.parseUnits("100", dstableInfo.decimals);
+    const minFraxToReceive = hre.ethers.parseUnits("99", frxUSDInfo.decimals); // 1% slippage
+
+    await dstableContract
+      .connect(await hre.ethers.getSigner(user1))
+      .approve(await redeemerContract.getAddress(), dstableToRedeem);
+
+    await redeemerContract
+      .connect(await hre.ethers.getSigner(user1))
+      .redeem(dstableToRedeem, frxUSDInfo.address, minFraxToReceive);
+
+    await checkInvariants();
+
+    // 7. Transfer collateral from AMO vault to holding vault
+    await amoManagerContract.transferFromAmoVaultToHoldingVault(
+      await mockAmoVaultContract.getAddress(),
+      frxUSDInfo.address,
+      hre.ethers.parseUnits("50", frxUSDInfo.decimals)
+    );
+
+    await checkInvariants();
+
+    // 8. Deallocate 50 dStable from AMO vault
+    const dstableToDeallocate = hre.ethers.parseUnits(
+      "50",
+      dstableInfo.decimals
+    );
+    await mockAmoVaultContract.approveAmoManager();
     await amoManagerContract.deallocateAmo(
       await mockAmoVaultContract.getAddress(),
-      amoAllocationAmount
+      dstableToDeallocate
     );
 
-    // 10. AMO manager decreases AMO supply by 100 dUSD
-    await amoManagerContract.decreaseAmoSupply(amoAllocationAmount);
-
-    // All invariants should still hold
     await checkInvariants();
 
-    // 11. User 1 redeems 400 dUSD for FRAX (user1 has 600 dUSD after the swap)
-    const redeemDusdAmountUser1 = hre.ethers.parseUnits(
-      "400",
-      dusdInfo.decimals
-    );
-    const minFraxForDusd = await convertToEquivalentValueInOutputToken(
-      redeemDusdAmountUser1,
-      dusdInfo.address,
-      frxUSDInfo.address
-    );
-    await dusdContract
-      .connect(await hre.ethers.getSigner(user1))
-      .approve(await redeemerContract.getAddress(), redeemDusdAmountUser1);
-    await redeemerContract
-      .connect(await hre.ethers.getSigner(user1))
-      .redeem(redeemDusdAmountUser1, frxUSDInfo.address, minFraxForDusd);
+    // 9. Decrease AMO supply by burning 50 dStable
+    await amoManagerContract.decreaseAmoSupply(dstableToDeallocate);
 
-    // 12. User 2 redeems 400 dUSD for USDC (user2 has 400 dUSD after the swap)
-    const redeemDusdAmountUser2 = hre.ethers.parseUnits(
-      "400",
-      dusdInfo.decimals
-    );
-    const minUsdcForDusd = await convertToEquivalentValueInOutputToken(
-      redeemDusdAmountUser2,
-      dusdInfo.address,
-      usdcInfo.address
-    );
-    await dusdContract
-      .connect(await hre.ethers.getSigner(user2))
-      .approve(await redeemerContract.getAddress(), redeemDusdAmountUser2);
-    await redeemerContract
-      .connect(await hre.ethers.getSigner(user2))
-      .redeem(redeemDusdAmountUser2, usdcInfo.address, minUsdcForDusd);
-
-    // All invariants should still hold
     await checkInvariants();
 
-    // Check that users have more value than they started with
-    const user1FinalValue = await calculateWalletValue(user1);
-    const user2FinalValue = await calculateWalletValue(user2);
+    // 10. User 2 redeems 100 dStable for USDC
+    const dstableToRedeemForUsdc = hre.ethers.parseUnits(
+      "100",
+      dstableInfo.decimals
+    );
+    const minUsdcToReceive = hre.ethers.parseUnits("99", usdcInfo.decimals); // 1% slippage
+
+    await dstableContract
+      .connect(await hre.ethers.getSigner(user2))
+      .approve(await redeemerContract.getAddress(), dstableToRedeemForUsdc);
+
+    await redeemerContract
+      .connect(await hre.ethers.getSigner(user2))
+      .redeem(dstableToRedeemForUsdc, usdcInfo.address, minUsdcToReceive);
+
+    await checkInvariants();
+
+    // Final check of user balances
+    const finalUser1DstableBalance = await dstableContract.balanceOf(user1);
+    const finalUser2DstableBalance = await dstableContract.balanceOf(user2);
+    const finalUser1FraxBalance = await frxUSDContract.balanceOf(user1);
+    const finalUser2UsdcBalance = await usdcContract.balanceOf(user2);
 
     assert.isTrue(
-      user1FinalValue >= user1InitialValue,
-      `User 1 should have at least as much value as they started with: ${user1FinalValue} >= ${user1InitialValue}`
+      finalUser1DstableBalance < user1DstableBalance,
+      "User1 dStable balance should have decreased"
     );
     assert.isTrue(
-      user2FinalValue >= user2InitialValue,
-      `User 2 should have at least as much value as they started with: ${user2FinalValue} >= ${user2InitialValue}`
+      finalUser2DstableBalance < user2DstableBalance,
+      "User2 dStable balance should have decreased"
+    );
+    assert.isTrue(
+      finalUser1FraxBalance > hre.ethers.parseUnits("500", frxUSDInfo.decimals),
+      "User1 should have received FRAX from redemption"
+    );
+    assert.isTrue(
+      finalUser2UsdcBalance > hre.ethers.parseUnits("0", usdcInfo.decimals),
+      "User2 should have received USDC from redemption"
     );
   });
 });

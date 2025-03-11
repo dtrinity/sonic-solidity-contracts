@@ -33,7 +33,7 @@ interface IRecoverable {
 
 /**
  * @title AmoVault
- * @notice Base contract for AMO (Algorithmic Market Operations) vaults that manage dUSD and collateral assets
+ * @notice Base contract for AMO (Algorithmic Market Operations) vaults that manage dStable and collateral assets
  */
 abstract contract AmoVault is CollateralVault, IRecoverable, ReentrancyGuard {
     using SafeERC20 for IERC20;
@@ -41,8 +41,8 @@ abstract contract AmoVault is CollateralVault, IRecoverable, ReentrancyGuard {
 
     /* Core state */
 
-    IMintableERC20 public immutable dusd;
-    uint8 public immutable dusdDecimals;
+    IMintableERC20 public immutable dstable;
+    uint8 public immutable dstableDecimals;
     AmoManager public amoManager;
 
     /* Roles */
@@ -55,15 +55,15 @@ abstract contract AmoVault is CollateralVault, IRecoverable, ReentrancyGuard {
     error InvalidAmoManager();
 
     constructor(
-        address _dusd,
+        address _dstable,
         address _amoManager,
         address _admin,
         address _collateralWithdrawer,
         address _recoverer,
         IPriceOracleGetter _oracle
     ) CollateralVault(_oracle) {
-        dusd = IMintableERC20(_dusd);
-        dusdDecimals = IERC20Metadata(_dusd).decimals();
+        dstable = IMintableERC20(_dstable);
+        dstableDecimals = IERC20Metadata(_dstable).decimals();
         amoManager = AmoManager(_amoManager);
         _grantRole(DEFAULT_ADMIN_ROLE, _admin);
         grantRole(COLLATERAL_WITHDRAWER_ROLE, _collateralWithdrawer);
@@ -72,11 +72,11 @@ abstract contract AmoVault is CollateralVault, IRecoverable, ReentrancyGuard {
     }
 
     /**
-     * @notice Approves the AmoManager to spend dUSD on behalf of this contract
+     * @notice Approves the AmoManager to spend dStable on behalf of this contract
      * @dev Only callable by the contract owner or an account with the DEFAULT_ADMIN_ROLE
      */
     function approveAmoManager() public onlyRole(DEFAULT_ADMIN_ROLE) {
-        dusd.approve(address(amoManager), type(uint256).max);
+        dstable.approve(address(amoManager), type(uint256).max);
     }
 
     /**
@@ -90,7 +90,7 @@ abstract contract AmoVault is CollateralVault, IRecoverable, ReentrancyGuard {
         if (_newAmoManager == address(0)) revert InvalidAmoManager();
 
         // Reset allowance for old AMO manager
-        dusd.approve(address(amoManager), 0);
+        dstable.approve(address(amoManager), 0);
 
         // Set new AMO manager
         amoManager = AmoManager(_newAmoManager);
@@ -112,7 +112,7 @@ abstract contract AmoVault is CollateralVault, IRecoverable, ReentrancyGuard {
         address to,
         uint256 amount
     ) external onlyRole(RECOVERER_ROLE) nonReentrant {
-        if (token == address(dusd) || isCollateralSupported(token)) {
+        if (token == address(dstable) || isCollateralSupported(token)) {
             revert CannotRecoverVaultToken(token);
         }
         IERC20(token).safeTransfer(to, amount);
@@ -133,16 +133,16 @@ abstract contract AmoVault is CollateralVault, IRecoverable, ReentrancyGuard {
     /* Virtual functions */
 
     /**
-     * @notice Calculates the total value of non-dUSD collateral assets in the vault
+     * @notice Calculates the total value of non-dStable collateral assets in the vault
      * @return The total value of collateral assets denominated in the base currency (e.g., USD)
      * @dev Must be implemented by derived contracts
      */
     function totalCollateralValue() public view virtual returns (uint256);
 
     /**
-     * @notice Calculates the total value of dUSD holdings in the vault
-     * @return The total value of dUSD holdings denominated in the base currency (e.g., USD)
+     * @notice Calculates the total value of dStable holdings in the vault
+     * @return The total value of dStable holdings denominated in the base currency (e.g., USD)
      * @dev Must be implemented by derived contracts
      */
-    function totalDusdValue() public view virtual returns (uint256);
+    function totalDstableValue() public view virtual returns (uint256);
 }

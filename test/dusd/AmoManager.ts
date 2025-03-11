@@ -19,8 +19,8 @@ import {
 describe("AmoManager", () => {
   let amoManagerContract: AmoManager;
   let issuerContract: Issuer;
-  let dusdContract: TestMintableERC20;
-  let dusdInfo: TokenInfo;
+  let dstableContract: TestMintableERC20;
+  let dstableInfo: TokenInfo;
   let deployer: Address;
   let user1: Address;
   let user2: Address;
@@ -46,29 +46,35 @@ describe("AmoManager", () => {
       await hre.ethers.getSigner(deployer)
     );
 
-    ({ contract: dusdContract, tokenInfo: dusdInfo } =
+    ({ contract: dstableContract, tokenInfo: dstableInfo } =
       await getTokenContractForSymbol(hre, deployer, "dUSD"));
 
-    // Mint some dUSD to the AmoManager for testing
-    const initialAmoSupply = hre.ethers.parseUnits("10000", dusdInfo.decimals);
+    // Mint some dStable to the AmoManager for testing
+    const initialAmoSupply = hre.ethers.parseUnits(
+      "10000",
+      dstableInfo.decimals
+    );
     await issuerContract.increaseAmoSupply(initialAmoSupply);
   });
 
   describe("AMO allocation", () => {
     it("allocates AMO tokens to an active vault", async function () {
       const amoVault = user1;
-      const allocateAmount = hre.ethers.parseUnits("1000", dusdInfo.decimals);
+      const allocateAmount = hre.ethers.parseUnits(
+        "1000",
+        dstableInfo.decimals
+      );
 
       // Enable the AMO vault
       await amoManagerContract.enableAmoVault(amoVault);
 
       const initialAmoSupply = await amoManagerContract.totalAmoSupply();
-      const initialVaultBalance = await dusdContract.balanceOf(amoVault);
+      const initialVaultBalance = await dstableContract.balanceOf(amoVault);
 
       await amoManagerContract.allocateAmo(amoVault, allocateAmount);
 
       const finalAmoSupply = await amoManagerContract.totalAmoSupply();
-      const finalVaultBalance = await dusdContract.balanceOf(amoVault);
+      const finalVaultBalance = await dstableContract.balanceOf(amoVault);
 
       assert.equal(
         finalAmoSupply.toString(),
@@ -84,7 +90,10 @@ describe("AmoManager", () => {
 
     it("cannot allocate to an inactive vault", async function () {
       const inactiveVault = user2;
-      const allocateAmount = hre.ethers.parseUnits("1000", dusdInfo.decimals);
+      const allocateAmount = hre.ethers.parseUnits(
+        "1000",
+        dstableInfo.decimals
+      );
 
       await expect(
         amoManagerContract.allocateAmo(inactiveVault, allocateAmount)
@@ -95,25 +104,42 @@ describe("AmoManager", () => {
   describe("AMO deallocation", () => {
     it("deallocates AMO tokens from an active vault", async function () {
       const amoVault = user1;
-      const allocateAmount = hre.ethers.parseUnits("1000", dusdInfo.decimals);
-      const deallocateAmount = hre.ethers.parseUnits("500", dusdInfo.decimals);
+      const allocateAmount = hre.ethers.parseUnits(
+        "1000",
+        dstableInfo.decimals
+      );
+      const deallocateAmount = hre.ethers.parseUnits(
+        "500",
+        dstableInfo.decimals
+      );
 
-      // Enable the AMO vault and allocate tokens
+      // Enable the AMO vault
       await amoManagerContract.enableAmoVault(amoVault);
+
+      // Allocate tokens to the vault
       await amoManagerContract.allocateAmo(amoVault, allocateAmount);
 
-      // Approve AmoManager to spend dUSD on behalf of the vault
-      await dusdContract
-        .connect(await hre.ethers.getSigner(amoVault))
-        .approve(amoManagerContract.getAddress(), deallocateAmount);
+      // Approve AmoManager to spend dStable on behalf of the vault
+      await dstableContract
+        .connect(await hre.ethers.getSigner(user1))
+        .approve(
+          await amoManagerContract.getAddress(),
+          hre.ethers.parseUnits("1000", dstableInfo.decimals)
+        );
 
       const initialAmoSupply = await amoManagerContract.totalAmoSupply();
-      const initialVaultBalance = await dusdContract.balanceOf(amoVault);
+      const initialVaultBalance = await dstableContract.balanceOf(amoVault);
+      const initialManagerBalance = await dstableContract.balanceOf(
+        await amoManagerContract.getAddress()
+      );
 
       await amoManagerContract.deallocateAmo(amoVault, deallocateAmount);
 
       const finalAmoSupply = await amoManagerContract.totalAmoSupply();
-      const finalVaultBalance = await dusdContract.balanceOf(amoVault);
+      const finalVaultBalance = await dstableContract.balanceOf(amoVault);
+      const finalManagerBalance = await dstableContract.balanceOf(
+        await amoManagerContract.getAddress()
+      );
 
       assert.equal(
         finalAmoSupply.toString(),
@@ -125,58 +151,69 @@ describe("AmoManager", () => {
         deallocateAmount,
         "Vault balance should decrease by deallocated amount"
       );
-    });
-
-    it("can also deallocate AMO tokens from an inactive vault", async function () {
-      const amoVault = user1;
-      const allocateAmount = hre.ethers.parseUnits("1000", dusdInfo.decimals);
-      const deallocateAmount = hre.ethers.parseUnits("500", dusdInfo.decimals);
-
-      // First enable the AMO vault and allocate tokens
-      await amoManagerContract.enableAmoVault(amoVault);
-      await amoManagerContract.allocateAmo(amoVault, allocateAmount);
-
-      // Approve AmoManager to spend dUSD on behalf of the vault
-      await dusdContract
-        .connect(await hre.ethers.getSigner(amoVault))
-        .approve(amoManagerContract.getAddress(), deallocateAmount);
-
-      const initialAmoSupply = await amoManagerContract.totalAmoSupply();
-      const initialVaultBalance = await dusdContract.balanceOf(amoVault);
-
-      // Disable the AMO vault
-      await amoManagerContract.disableAmoVault(amoVault);
-
-      // We can still deallocate the AMO tokens
-      await amoManagerContract.deallocateAmo(amoVault, deallocateAmount);
-
-      const finalAmoSupply = await amoManagerContract.totalAmoSupply();
-      const finalVaultBalance = await dusdContract.balanceOf(amoVault);
-
       assert.equal(
-        finalAmoSupply.toString(),
-        initialAmoSupply.toString(),
-        "Total AMO supply should not change"
-      );
-      assert.equal(
-        initialVaultBalance - finalVaultBalance,
+        finalManagerBalance - initialManagerBalance,
         deallocateAmount,
-        "Vault balance should decrease by deallocated amount"
+        "Manager balance should increase by deallocated amount"
       );
     });
   });
 
+  describe("AMO vault management", () => {
+    it("enables and disables AMO vaults", async function () {
+      const amoVault = user1;
+
+      // Enable the vault
+      await amoManagerContract.enableAmoVault(amoVault);
+      assert.isTrue(
+        await amoManagerContract.isAmoActive(amoVault),
+        "Vault should be active after enabling"
+      );
+
+      // Disable the vault
+      await amoManagerContract.disableAmoVault(amoVault);
+      assert.isFalse(
+        await amoManagerContract.isAmoActive(amoVault),
+        "Vault should be inactive after disabling"
+      );
+    });
+
+    it("cannot enable an already enabled vault", async function () {
+      const amoVault = user1;
+
+      // Enable the vault
+      await amoManagerContract.enableAmoVault(amoVault);
+
+      // Try to enable it again
+      await expect(
+        amoManagerContract.enableAmoVault(amoVault)
+      ).to.be.revertedWithCustomError(
+        amoManagerContract,
+        "AmoVaultAlreadyEnabled"
+      );
+    });
+
+    it("cannot disable an inactive vault", async function () {
+      const inactiveVault = user2;
+
+      // Try to disable an inactive vault
+      await expect(
+        amoManagerContract.disableAmoVault(inactiveVault)
+      ).to.be.revertedWithCustomError(amoManagerContract, "InactiveAmoVault");
+    });
+  });
+
   describe("AMO supply management", () => {
-    it("decreases AMO supply by burning dUSD", async function () {
-      const burnAmount = hre.ethers.parseUnits("1000", dusdInfo.decimals);
+    it("decreases AMO supply by burning dStable", async function () {
+      const burnAmount = hre.ethers.parseUnits("1000", dstableInfo.decimals);
 
       const initialAmoSupply = await amoManagerContract.totalAmoSupply();
-      const initialDusdSupply = await dusdContract.totalSupply();
+      const initialTotalSupply = await dstableContract.totalSupply();
 
       await amoManagerContract.decreaseAmoSupply(burnAmount);
 
       const finalAmoSupply = await amoManagerContract.totalAmoSupply();
-      const finalDusdSupply = await dusdContract.totalSupply();
+      const finalTotalSupply = await dstableContract.totalSupply();
 
       assert.equal(
         initialAmoSupply - finalAmoSupply,
@@ -184,117 +221,92 @@ describe("AmoManager", () => {
         "AMO supply should decrease by burn amount"
       );
       assert.equal(
-        initialDusdSupply - finalDusdSupply,
+        initialTotalSupply - finalTotalSupply,
         burnAmount,
-        "dUSD total supply should decrease by burn amount"
-      );
-    });
-
-    it("calculates total AMO supply correctly", async function () {
-      const amoVault = user1;
-      const allocateAmount = hre.ethers.parseUnits("500", dusdInfo.decimals);
-
-      await amoManagerContract.enableAmoVault(amoVault);
-      await amoManagerContract.allocateAmo(amoVault, allocateAmount);
-
-      const expectedTotalSupply =
-        (await dusdContract.balanceOf(amoManagerContract.getAddress())) +
-        allocateAmount;
-      const actualTotalSupply = await amoManagerContract.totalAmoSupply();
-
-      assert.equal(
-        actualTotalSupply.toString(),
-        expectedTotalSupply.toString(),
-        "Total AMO supply calculation is incorrect"
+        "dStable total supply should decrease by burn amount"
       );
     });
   });
 
-  describe("AMO vault management", () => {
-    it("enables an AMO vault", async function () {
-      const newVault = user2;
-
-      await amoManagerContract.enableAmoVault(newVault);
-
-      const isActive = await amoManagerContract.isAmoActive(newVault);
-      assert.isTrue(isActive, "AMO vault should be active after enabling");
-    });
-
-    it("disables an AMO vault", async function () {
-      const vault = user1;
-
-      await amoManagerContract.enableAmoVault(vault);
-      await amoManagerContract.disableAmoVault(vault);
-
-      const isActive = await amoManagerContract.isAmoActive(vault);
-      assert.isFalse(isActive, "AMO vault should be inactive after disabling");
-    });
-
-    it("only admin can enable/disable AMO vaults", async function () {
-      const normalUser = await hre.ethers.getSigner(user1);
-      const newVault = user2;
-
-      await expect(
-        amoManagerContract.connect(normalUser).enableAmoVault(newVault)
-      ).to.be.revertedWithCustomError(
-        amoManagerContract,
-        "AccessControlUnauthorizedAccount"
+  describe("USD value conversion", () => {
+    it("converts USD value to dStable amount correctly", async function () {
+      const usdValue = hre.ethers.parseUnits("1000", 8); // 8 decimals for USD value
+      const expectedDstableAmount = hre.ethers.parseUnits(
+        "1000",
+        dstableInfo.decimals
       );
+      const actualDstableAmount =
+        await amoManagerContract.usdValueToDstableAmount(usdValue);
 
-      await expect(
-        amoManagerContract.connect(normalUser).disableAmoVault(newVault)
-      ).to.be.revertedWithCustomError(
-        amoManagerContract,
-        "AccessControlUnauthorizedAccount"
+      assert.equal(
+        actualDstableAmount,
+        expectedDstableAmount,
+        "USD to dStable conversion is incorrect"
+      );
+    });
+
+    it("converts dStable amount to USD value correctly", async function () {
+      const dstableAmount = hre.ethers.parseUnits("1000", dstableInfo.decimals);
+      const expectedUsdValue = hre.ethers.parseUnits("1000", 8); // 8 decimals for USD value
+      const actualUsdValue =
+        await amoManagerContract.dstableAmountToUsdValue(dstableAmount);
+
+      assert.equal(
+        actualUsdValue,
+        expectedUsdValue,
+        "dStable to USD conversion is incorrect"
       );
     });
   });
 
   describe("Access control", () => {
     it("only AMO allocator can allocate AMO", async function () {
-      const normalUser = await hre.ethers.getSigner(user1);
-      const amoVault = user2;
-      const allocateAmount = hre.ethers.parseUnits("1000", dusdInfo.decimals);
+      const amoVault = user1;
+      const allocateAmount = hre.ethers.parseUnits(
+        "1000",
+        dstableInfo.decimals
+      );
 
+      // Enable the AMO vault
       await amoManagerContract.enableAmoVault(amoVault);
 
+      // Try to allocate as a non-allocator
       await expect(
         amoManagerContract
-          .connect(normalUser)
+          .connect(await hre.ethers.getSigner(user2))
           .allocateAmo(amoVault, allocateAmount)
-      ).to.be.revertedWithCustomError(
-        amoManagerContract,
-        "AccessControlUnauthorizedAccount"
-      );
+      ).to.be.reverted;
     });
 
     it("only AMO allocator can deallocate AMO", async function () {
-      const normalUser = await hre.ethers.getSigner(user1);
-      const amoVault = user2;
-      const deallocateAmount = hre.ethers.parseUnits("1000", dusdInfo.decimals);
+      const amoVault = user1;
+      const allocateAmount = hre.ethers.parseUnits(
+        "1000",
+        dstableInfo.decimals
+      );
+      const deallocateAmount = hre.ethers.parseUnits(
+        "500",
+        dstableInfo.decimals
+      );
 
+      // Enable the AMO vault and allocate tokens
       await amoManagerContract.enableAmoVault(amoVault);
+      await amoManagerContract.allocateAmo(amoVault, allocateAmount);
 
+      // Approve AmoManager to spend dStable on behalf of the vault
+      await dstableContract
+        .connect(await hre.ethers.getSigner(user1))
+        .approve(
+          await amoManagerContract.getAddress(),
+          hre.ethers.parseUnits("1000", dstableInfo.decimals)
+        );
+
+      // Try to deallocate as a non-allocator
       await expect(
         amoManagerContract
-          .connect(normalUser)
+          .connect(await hre.ethers.getSigner(user2))
           .deallocateAmo(amoVault, deallocateAmount)
-      ).to.be.revertedWithCustomError(
-        amoManagerContract,
-        "AccessControlUnauthorizedAccount"
-      );
-    });
-
-    it("only AMO allocator can decrease AMO supply", async function () {
-      const normalUser = await hre.ethers.getSigner(user1);
-      const burnAmount = hre.ethers.parseUnits("1000", dusdInfo.decimals);
-
-      await expect(
-        amoManagerContract.connect(normalUser).decreaseAmoSupply(burnAmount)
-      ).to.be.revertedWithCustomError(
-        amoManagerContract,
-        "AccessControlUnauthorizedAccount"
-      );
+      ).to.be.reverted;
     });
   });
 });

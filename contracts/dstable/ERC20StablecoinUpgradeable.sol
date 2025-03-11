@@ -41,9 +41,9 @@ contract ERC20StablecoinUpgradeable is
         _grantRole(PAUSER_ROLE, msg.sender);
     }
 
-    // By convention all dUSD tokens have 6 decimals on all chains
+    // By convention all dStable tokens have 18 decimals on all chains
     function decimals() public view virtual override returns (uint8) {
-        return 6;
+        return 18;
     }
 
     function pause() public onlyRole(PAUSER_ROLE) {

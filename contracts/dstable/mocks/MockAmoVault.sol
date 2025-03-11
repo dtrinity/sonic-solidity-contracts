@@ -28,7 +28,7 @@ contract MockAmoVault is AmoVault {
     uint256 private fakeDeFiCollateralValue;
 
     constructor(
-        address _dusd,
+        address _dstable,
         address _amoManager,
         address _admin,
         address _collateralWithdrawer,
@@ -36,7 +36,7 @@ contract MockAmoVault is AmoVault {
         IPriceOracleGetter _oracle
     )
         AmoVault(
-            _dusd,
+            _dstable,
             _amoManager,
             _admin,
             _collateralWithdrawer,
@@ -50,17 +50,18 @@ contract MockAmoVault is AmoVault {
         return _totalValueOfSupportedCollaterals() + fakeDeFiCollateralValue;
     }
 
-    // Override totalDusdValue to return the sum of all simulated values
-    function totalDusdValue() public view override returns (uint256) {
-        uint256 dusdBalance = dusd.balanceOf(address(this));
-        uint256 dusdPrice = oracle.getAssetPrice(address(dusd));
-        uint256 dusdValue = (dusdBalance * dusdPrice) / (10 ** dusdDecimals);
+    // Override totalDstableValue to return the sum of all simulated values
+    function totalDstableValue() public view override returns (uint256) {
+        uint256 dstableBalance = dstable.balanceOf(address(this));
+        uint256 dstablePrice = oracle.getAssetPrice(address(dstable));
+        uint256 dstableValue = (dstableBalance * dstablePrice) /
+            (10 ** dstableDecimals);
 
-        return dusdValue;
+        return dstableValue;
     }
 
     function totalValue() public view override returns (uint256) {
-        return totalCollateralValue() + totalDusdValue();
+        return totalCollateralValue() + totalDstableValue();
     }
 
     // Simulate AmoVault losing some value

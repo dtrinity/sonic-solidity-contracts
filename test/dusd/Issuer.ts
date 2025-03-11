@@ -22,8 +22,8 @@ describe("Issuer", () => {
   let amoManagerContract: AmoManager;
   let frxUSDContract: TestERC20;
   let frxUSDInfo: TokenInfo;
-  let dusdContract: TestERC20;
-  let dusdInfo: TokenInfo;
+  let dstableContract: TestERC20;
+  let dstableInfo: TokenInfo;
   let deployer: Address;
   let user1: Address;
   let user2: Address;
@@ -57,7 +57,7 @@ describe("Issuer", () => {
 
     ({ contract: frxUSDContract, tokenInfo: frxUSDInfo } =
       await getTokenContractForSymbol(hre, deployer, "frxUSD"));
-    ({ contract: dusdContract, tokenInfo: dusdInfo } =
+    ({ contract: dstableContract, tokenInfo: dstableInfo } =
       await getTokenContractForSymbol(hre, deployer, "dUSD"));
 
     // Allow frxUSD as collateral
@@ -74,12 +74,12 @@ describe("Issuer", () => {
         "1000",
         frxUSDInfo.decimals
       );
-      const minDUSD = hre.ethers.parseUnits("1000", dusdInfo.decimals);
+      const minDStable = hre.ethers.parseUnits("1000", dstableInfo.decimals);
 
       const vaultBalanceBefore = await frxUSDContract.balanceOf(
         await collateralVaultContract.getAddress()
       );
-      const userDusdBalanceBefore = await dusdContract.balanceOf(user1);
+      const userDstableBalanceBefore = await dstableContract.balanceOf(user1);
 
       await frxUSDContract
         .connect(await hre.ethers.getSigner(user1))
@@ -87,23 +87,22 @@ describe("Issuer", () => {
 
       await issuerContract
         .connect(await hre.ethers.getSigner(user1))
-        .issue(collateralAmount, frxUSDInfo.address, minDUSD);
+        .issue(collateralAmount, frxUSDInfo.address, minDStable);
 
       const vaultBalanceAfter = await frxUSDContract.balanceOf(
         await collateralVaultContract.getAddress()
       );
-      const userDusdBalanceAfter = await dusdContract.balanceOf(user1);
+      const userDstableBalanceAfter = await dstableContract.balanceOf(user1);
 
       assert.equal(
         vaultBalanceAfter - vaultBalanceBefore,
         collateralAmount,
         "Collateral vault balance did not increase by the expected amount"
       );
-
-      const dusdReceived = userDusdBalanceAfter - userDusdBalanceBefore;
-      assert.isTrue(
-        dusdReceived >= minDUSD,
-        "User did not receive the expected amount of dUSD"
+      assert.equal(
+        userDstableBalanceAfter - userDstableBalanceBefore,
+        minDStable,
+        "User did not receive the expected amount of dStable"
       );
     });
 
@@ -112,7 +111,7 @@ describe("Issuer", () => {
         "1001",
         frxUSDInfo.decimals
       );
-      const minDUSD = hre.ethers.parseUnits("1001", dusdInfo.decimals);
+      const minDStable = hre.ethers.parseUnits("1001", dstableInfo.decimals);
 
       await frxUSDContract
         .connect(await hre.ethers.getSigner(user1))
@@ -121,50 +120,54 @@ describe("Issuer", () => {
       await expect(
         issuerContract
           .connect(await hre.ethers.getSigner(user1))
-          .issue(collateralAmount, frxUSDInfo.address, minDUSD)
+          .issue(collateralAmount, frxUSDInfo.address, minDStable)
       ).to.be.reverted;
     });
 
-    it("circulatingDusd function calculates correctly", async function () {
-      // Make sure there's some dUSD supply at the start of the test
+    it("circulatingDstable function calculates correctly", async function () {
+      // Make sure there's some dStable supply at the start of the test
       const collateralAmount = hre.ethers.parseUnits(
         "10000",
         frxUSDInfo.decimals
       );
-      const minDUSD = hre.ethers.parseUnits("10000", dusdInfo.decimals);
+      const minDStable = hre.ethers.parseUnits("10000", dstableInfo.decimals);
 
       await frxUSDContract.transfer(deployer, collateralAmount);
       await frxUSDContract.approve(
         await issuerContract.getAddress(),
         collateralAmount
       );
-      await issuerContract.issue(collateralAmount, frxUSDInfo.address, minDUSD);
+      await issuerContract.issue(
+        collateralAmount,
+        frxUSDInfo.address,
+        minDStable
+      );
 
       // Mint some AMO supply
-      const amoSupply = hre.ethers.parseUnits("3000", dusdInfo.decimals);
+      const amoSupply = hre.ethers.parseUnits("3000", dstableInfo.decimals);
       await issuerContract.increaseAmoSupply(amoSupply);
 
-      const totalSupply = await dusdContract.totalSupply();
+      const totalSupply = await dstableContract.totalSupply();
       const actualAmoSupply = await amoManagerContract.totalAmoSupply();
       const expectedCirculating = totalSupply - actualAmoSupply;
 
-      const actualCirculating = await issuerContract.circulatingDusd();
+      const actualCirculating = await issuerContract.circulatingDstable();
 
       assert.equal(
         actualCirculating,
         expectedCirculating,
-        "Circulating dUSD calculation is incorrect"
+        "Circulating dStable calculation is incorrect"
       );
       assert.notEqual(
         actualCirculating,
         totalSupply,
-        "Circulating dUSD should be less than total supply"
+        "Circulating dStable should be less than total supply"
       );
       assert.notEqual(actualAmoSupply, 0n, "AMO supply should not be zero");
     });
 
-    it("usdValueToDusdAmount converts correctly", async function () {
-      const dusdPriceOracle = await hre.ethers.getContractAt(
+    it("usdValueToDstableAmount converts correctly", async function () {
+      const dstablePriceOracle = await hre.ethers.getContractAt(
         "MockOracleAggregator",
         await issuerContract.oracle(),
         await hre.ethers.getSigner(deployer)
@@ -174,33 +177,35 @@ describe("Issuer", () => {
         "100",
         ORACLE_AGGREGATOR_PRICE_DECIMALS
       ); // 100 USD
-      const dusdPrice = await dusdPriceOracle.getAssetPrice(dusdInfo.address);
-      const expectedDusdAmount =
-        (usdValue * 10n ** BigInt(dusdInfo.decimals)) / dusdPrice;
+      const dstablePrice = await dstablePriceOracle.getAssetPrice(
+        dstableInfo.address
+      );
+      const expectedDstableAmount =
+        (usdValue * 10n ** BigInt(dstableInfo.decimals)) / dstablePrice;
 
-      const actualDusdAmount =
-        await issuerContract.usdValueToDusdAmount(usdValue);
+      const actualDstableAmount =
+        await issuerContract.usdValueToDstableAmount(usdValue);
 
       assert.equal(
-        actualDusdAmount,
-        expectedDusdAmount,
-        "USD to dUSD conversion is incorrect"
+        actualDstableAmount,
+        expectedDstableAmount,
+        "USD to dStable conversion is incorrect"
       );
     });
   });
 
   describe("Permissioned issuance", () => {
-    it("increaseAmoSupply mints dUSD to AMO Manager", async function () {
+    it("increaseAmoSupply mints dStable to AMO Manager", async function () {
       const initialAmoSupply = await amoManagerContract.totalAmoSupply();
-      const initialAmoManagerBalance = await dusdContract.balanceOf(
+      const initialAmoManagerBalance = await dstableContract.balanceOf(
         await amoManagerContract.getAddress()
       );
-      const amountToMint = hre.ethers.parseUnits("1000", dusdInfo.decimals);
+      const amountToMint = hre.ethers.parseUnits("1000", dstableInfo.decimals);
 
       await issuerContract.increaseAmoSupply(amountToMint);
 
       const finalAmoSupply = await amoManagerContract.totalAmoSupply();
-      const finalAmoManagerBalance = await dusdContract.balanceOf(
+      const finalAmoManagerBalance = await dstableContract.balanceOf(
         await amoManagerContract.getAddress()
       );
 
@@ -216,7 +221,7 @@ describe("Issuer", () => {
       );
     });
 
-    it("issueUsingExcessCollateral mints dUSD up to excess collateral", async function () {
+    it("issueUsingExcessCollateral mints dStable up to excess collateral", async function () {
       // Ensure there's excess collateral
       const collateralAmount = hre.ethers.parseUnits(
         "2000",
@@ -231,20 +236,21 @@ describe("Issuer", () => {
         frxUSDInfo.address
       );
 
-      const initialCirculatingDusd = await issuerContract.circulatingDusd();
-      const amountToMint = hre.ethers.parseUnits("2000", dusdInfo.decimals);
+      const initialCirculatingDstable =
+        await issuerContract.circulatingDstable();
+      const amountToMint = hre.ethers.parseUnits("2000", dstableInfo.decimals);
       const receiver = user2;
-      const initialReceiverBalance = await dusdContract.balanceOf(receiver);
+      const initialReceiverBalance = await dstableContract.balanceOf(receiver);
 
       await issuerContract.issueUsingExcessCollateral(receiver, amountToMint);
 
-      const finalCirculatingDusd = await issuerContract.circulatingDusd();
-      const finalReceiverBalance = await dusdContract.balanceOf(receiver);
+      const finalCirculatingDstable = await issuerContract.circulatingDstable();
+      const finalReceiverBalance = await dstableContract.balanceOf(receiver);
 
       assert.equal(
-        finalCirculatingDusd - initialCirculatingDusd,
+        finalCirculatingDstable - initialCirculatingDstable,
         amountToMint,
-        "Circulating dUSD was not increased correctly"
+        "Circulating dStable was not increased correctly"
       );
       assert.equal(
         finalReceiverBalance - initialReceiverBalance,
@@ -268,7 +274,7 @@ describe("Issuer", () => {
         frxUSDInfo.address
       );
 
-      const amountToMint = hre.ethers.parseUnits("2001", dusdInfo.decimals);
+      const amountToMint = hre.ethers.parseUnits("2001", dstableInfo.decimals);
       const receiver = user2;
 
       await expect(
@@ -324,7 +330,7 @@ describe("Issuer", () => {
 
     it("only AMO manager can increase AMO supply", async function () {
       const normalUser = await hre.ethers.getSigner(user1);
-      const amountToMint = hre.ethers.parseUnits("1000", dusdInfo.decimals);
+      const amountToMint = hre.ethers.parseUnits("1000", dstableInfo.decimals);
       await expect(
         issuerContract.connect(normalUser).increaseAmoSupply(amountToMint)
       ).to.be.revertedWithCustomError(
@@ -335,7 +341,7 @@ describe("Issuer", () => {
 
     it("only incentives manager can issue using excess collateral", async function () {
       const normalUser = await hre.ethers.getSigner(user1);
-      const amountToMint = hre.ethers.parseUnits("1000", dusdInfo.decimals);
+      const amountToMint = hre.ethers.parseUnits("1000", dstableInfo.decimals);
       const receiver = user2;
       await expect(
         issuerContract

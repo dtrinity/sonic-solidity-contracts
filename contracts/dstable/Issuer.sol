@@ -28,15 +28,15 @@ import "./OracleAware.sol";
 
 /**
  * @title Issuer
- * @notice Contract responsible for issuing dUSD tokens
+ * @notice Contract responsible for issuing dStable tokens
  */
 contract Issuer is AccessControl, OracleAware {
     using SafeERC20 for IERC20Metadata;
 
     /* Core state */
 
-    IMintableERC20 public dusd;
-    uint8 public immutable dusdDecimals;
+    IMintableERC20 public dstable;
+    uint8 public immutable dstableDecimals;
     CollateralVault public collateralVault;
     AmoManager public amoManager;
 
@@ -55,32 +55,32 @@ contract Issuer is AccessControl, OracleAware {
 
     /* Errors */
 
-    error SlippageTooHigh(uint256 minDUSD, uint256 dusdAmount);
+    error SlippageTooHigh(uint256 minDStable, uint256 dstableAmount);
     error IssuanceSurpassesExcessCollateral(
-        uint256 collateralInDusd,
-        uint256 circulatingDusd
+        uint256 collateralInDstable,
+        uint256 circulatingDstable
     );
     error MintingToAmoShouldNotIncreaseSupply(
-        uint256 circulatingDusdBefore,
-        uint256 circulatingDusdAfter
+        uint256 circulatingDstableBefore,
+        uint256 circulatingDstableAfter
     );
 
     /**
      * @notice Initializes the Issuer contract with core dependencies
      * @param _collateralVault The address of the collateral vault
-     * @param _dusd The address of the dUSD stablecoin
+     * @param _dstable The address of the dStable stablecoin
      * @param oracle The address of the price oracle
      * @param _amoManager The address of the AMO Manager
      */
     constructor(
         address _collateralVault,
-        address _dusd,
+        address _dstable,
         IPriceOracleGetter oracle,
         address _amoManager
     ) OracleAware(oracle, DTrinityOracleConstants.ORACLE_BASE_CURRENCY_UNIT) {
         collateralVault = CollateralVault(_collateralVault);
-        dusd = IMintableERC20(_dusd);
-        dusdDecimals = dusd.decimals();
+        dstable = IMintableERC20(_dstable);
+        dstableDecimals = dstable.decimals();
         amoManager = AmoManager(_amoManager);
 
         USD_UNIT = oracle.BASE_CURRENCY_UNIT();
@@ -93,22 +93,22 @@ contract Issuer is AccessControl, OracleAware {
     /* Issuer */
 
     /**
-     * @notice Issues dUSD tokens in exchange for collateral from the caller
+     * @notice Issues dStable tokens in exchange for collateral from the caller
      * @param collateralAmount The amount of collateral to deposit
      * @param collateralAsset The address of the collateral asset
-     * @param minDUSD The minimum amount of dUSD to receive, used for slippage protection
+     * @param minDStable The minimum amount of dStable to receive, used for slippage protection
      */
     function issue(
         uint256 collateralAmount,
         address collateralAsset,
-        uint256 minDUSD
+        uint256 minDStable
     ) external {
         uint8 collateralDecimals = IERC20Metadata(collateralAsset).decimals();
         uint256 usdValue = (oracle.getAssetPrice(collateralAsset) *
             collateralAmount) / (10 ** collateralDecimals);
-        uint256 dusdAmount = usdValueToDusdAmount(usdValue);
-        if (dusdAmount < minDUSD) {
-            revert SlippageTooHigh(minDUSD, dusdAmount);
+        uint256 dstableAmount = usdValueToDstableAmount(usdValue);
+        if (dstableAmount < minDStable) {
+            revert SlippageTooHigh(minDStable, dstableAmount);
         }
 
         // Transfer collateral directly to vault
@@ -118,81 +118,81 @@ contract Issuer is AccessControl, OracleAware {
             collateralAmount
         );
 
-        dusd.mint(msg.sender, dusdAmount);
+        dstable.mint(msg.sender, dstableAmount);
     }
 
     /**
-     * @notice Issues dUSD tokens using excess collateral in the system
-     * @param receiver The address to receive the minted dUSD tokens
-     * @param dusdAmount The amount of dUSD to mint
+     * @notice Issues dStable tokens using excess collateral in the system
+     * @param receiver The address to receive the minted dStable tokens
+     * @param dstableAmount The amount of dStable to mint
      */
     function issueUsingExcessCollateral(
         address receiver,
-        uint256 dusdAmount
+        uint256 dstableAmount
     ) external onlyRole(INCENTIVES_MANAGER_ROLE) {
-        dusd.mint(receiver, dusdAmount);
+        dstable.mint(receiver, dstableAmount);
 
         // We don't use the buffer value here because we only mint up to the excess collateral
-        uint256 _circulatingDusd = circulatingDusd();
-        uint256 _collateralInDusd = collateralInDusd();
-        if (_collateralInDusd < _circulatingDusd) {
+        uint256 _circulatingDstable = circulatingDstable();
+        uint256 _collateralInDstable = collateralInDstable();
+        if (_collateralInDstable < _circulatingDstable) {
             revert IssuanceSurpassesExcessCollateral(
-                _collateralInDusd,
-                _circulatingDusd
+                _collateralInDstable,
+                _circulatingDstable
             );
         }
     }
 
     /**
-     * @notice Increases the AMO supply by minting new dUSD tokens
-     * @param dusdAmount The amount of dUSD to mint and send to the AMO Manager
+     * @notice Increases the AMO supply by minting new dStable tokens
+     * @param dstableAmount The amount of dStable to mint and send to the AMO Manager
      */
     function increaseAmoSupply(
-        uint256 dusdAmount
+        uint256 dstableAmount
     ) external onlyRole(AMO_MANAGER_ROLE) {
-        uint256 _circulatingDusdBefore = circulatingDusd();
+        uint256 _circulatingDstableBefore = circulatingDstable();
 
-        dusd.mint(address(amoManager), dusdAmount);
+        dstable.mint(address(amoManager), dstableAmount);
 
-        uint256 _circulatingDusdAfter = circulatingDusd();
+        uint256 _circulatingDstableAfter = circulatingDstable();
 
         // Sanity check that we are sending to the active AMO Manager
-        if (_circulatingDusdAfter != _circulatingDusdBefore) {
+        if (_circulatingDstableAfter != _circulatingDstableBefore) {
             revert MintingToAmoShouldNotIncreaseSupply(
-                _circulatingDusdBefore,
-                _circulatingDusdAfter
+                _circulatingDstableBefore,
+                _circulatingDstableAfter
             );
         }
     }
 
     /**
-     * @notice Calculates the circulating supply of dUSD tokens
-     * @return The amount of dUSD tokens that are not held by the AMO Manager
+     * @notice Calculates the circulating supply of dStable tokens
+     * @return The amount of dStable tokens that are not held by the AMO Manager
      */
-    function circulatingDusd() public view returns (uint256) {
-        uint256 totalDusd = dusd.totalSupply();
-        uint256 amoDusd = amoManager.totalAmoSupply();
-        return totalDusd - amoDusd;
+    function circulatingDstable() public view returns (uint256) {
+        uint256 totalDstable = dstable.totalSupply();
+        uint256 amoDstable = amoManager.totalAmoSupply();
+        return totalDstable - amoDstable;
     }
 
     /**
-     * @notice Calculates the collateral value in dUSD tokens
-     * @return The amount of dUSD tokens equivalent to the collateral value
+     * @notice Calculates the collateral value in dStable tokens
+     * @return The amount of dStable tokens equivalent to the collateral value
      */
-    function collateralInDusd() public view returns (uint256) {
+    function collateralInDstable() public view returns (uint256) {
         uint256 _collateralInUsd = collateralVault.totalValue();
-        return usdValueToDusdAmount(_collateralInUsd);
+        return usdValueToDstableAmount(_collateralInUsd);
     }
 
     /**
-     * @notice Converts a USD value to an equivalent amount of dUSD tokens
+     * @notice Converts a USD value to an equivalent amount of dStable tokens
      * @param usdValue The amount of USD value to convert
-     * @return The equivalent amount of dUSD tokens
+     * @return The equivalent amount of dStable tokens
      */
-    function usdValueToDusdAmount(
+    function usdValueToDstableAmount(
         uint256 usdValue
     ) public view returns (uint256) {
-        return (usdValue * (10 ** dusdDecimals)) / USD_UNIT;
+        return (usdValue * (10 ** dstableDecimals)) / USD_UNIT;
     }
 
     /* Admin */

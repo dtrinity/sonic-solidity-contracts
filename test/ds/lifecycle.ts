@@ -143,8 +143,8 @@ describe("dS Ecosystem Lifecycle", () => {
    * @returns void
    */
   async function checkInvariants(): Promise<void> {
-    const circulatingSupply = await issuerContract.circulatingDusd();
-    const totalCollateralValueInDs = await issuerContract.collateralInDusd();
+    const circulatingSupply = await issuerContract.circulatingDstable();
+    const totalCollateralValueInDs = await issuerContract.collateralInDstable();
     const totalSupply = await dsContract.totalSupply();
     const amoSupply = await amoManagerContract.totalAmoSupply();
 
@@ -267,7 +267,7 @@ describe("dS Ecosystem Lifecycle", () => {
     await stSTokenUser1.approve(issuerContract.getAddress(), transferAmount);
 
     // Issue dS with stS token
-    const issueAmount = 110000n * 10n ** 6n; // 110k dS (6 decimals)
+    const issueAmount = 110000n * 10n ** 18n; // 110k dS (18 decimals)
     const minDsAmount = issueAmount; // No slippage for testing
 
     // Get initial balances
@@ -317,8 +317,9 @@ describe("dS Ecosystem Lifecycle", () => {
     await stSTokenUser1.approve(issuerContract.getAddress(), mintAmount);
 
     // Issue dS with each token type
-    const issueAmount = 110000n * 10n ** 6n; // 110k dS (6 decimals)
-    const minDsAmount = issueAmount; // No slippage for testing
+    const issueAmount1 = 110000n * 10n ** 18n; // 110k dS (18 decimals)
+    const issueAmount2 = 110000n * 10n ** 18n; // 110k dS (18 decimals)
+    const minDsAmount = issueAmount1; // No slippage for testing
 
     // Issue with wOS token
     await issuerUser1.issue(mintAmount, wOSTokenInfo.address, minDsAmount);
@@ -327,7 +328,7 @@ describe("dS Ecosystem Lifecycle", () => {
     await issuerUser1.issue(mintAmount, stSTokenInfo.address, minDsAmount);
 
     // Check user1's dS balance
-    const expectedDsBalance = issueAmount * 2n;
+    const expectedDsBalance = issueAmount1 + issueAmount2;
     const actualDsBalance = await dsUser1.balanceOf(user1);
     assert.equal(
       actualDsBalance,
@@ -373,14 +374,14 @@ describe("dS Ecosystem Lifecycle", () => {
     await stSTokenUser1.approve(issuerContract.getAddress(), mintAmount);
 
     // Issue dS with stS token
-    const issueAmount = 100000n * 10n ** 6n; // 100k dS (6 decimals)
+    const issueAmount = 100000n * 10n ** 18n; // 100k dS (18 decimals)
     const minDsAmount = issueAmount; // No slippage for testing
 
     // Issue with stS token
     await issuerUser1.issue(mintAmount, stSTokenInfo.address, minDsAmount);
 
     // Now redeem some dS for stS token
-    const redeemAmount = 50000n * 10n ** 6n; // 50k dS
+    const redeemAmount = 50000n * 10n ** 18n; // 50k dS
     const minCollateralAmount = 0n; // No slippage check for simplicity in test
 
     // Approve dS for the redeemer
@@ -453,8 +454,9 @@ describe("dS Ecosystem Lifecycle", () => {
     await stSTokenUser1.approve(issuerContract.getAddress(), mintAmount);
 
     // Issue dS with each token type
-    const issueAmount = 100000n * 10n ** 6n; // 100k dS (6 decimals)
-    const minDsAmount = issueAmount; // No slippage for testing
+    const issueAmount1 = 100000n * 10n ** 18n; // 100k dS (18 decimals)
+    const issueAmount2 = 100000n * 10n ** 18n; // 100k dS (18 decimals)
+    const minDsAmount = issueAmount1; // No slippage for testing
 
     // Issue with wOS token
     await issuerUser1.issue(mintAmount, wOSTokenInfo.address, minDsAmount);
@@ -463,7 +465,7 @@ describe("dS Ecosystem Lifecycle", () => {
     await issuerUser1.issue(mintAmount, stSTokenInfo.address, minDsAmount);
 
     // Now redeem dS for each collateral type
-    const redeemAmount = 30000n * 10n ** 6n; // 30k dS
+    const redeemAmount = 30000n * 10n ** 18n; // 30k dS
     const minCollateralAmount = 0n; // No slippage check for simplicity in test
 
     // Approve dS for the redeemer
@@ -524,15 +526,17 @@ describe("dS Ecosystem Lifecycle", () => {
     await stSTokenUser1.approve(issuerContract.getAddress(), mintAmount);
 
     // Issue dS with each token type
-    const issueAmount = 100000n * 10n ** 6n; // 100k dS (6 decimals)
-    const minDsAmount = issueAmount; // No slippage for testing
+    const issueAmount1 = 100000n * 10n ** 18n; // 100k dS (18 decimals)
+    const issueAmount2 = 100000n * 10n ** 18n; // 100k dS (18 decimals)
+    const minDsAmount = issueAmount1; // No slippage for testing
 
     // Issue with stS token
     await issuerUser1.issue(mintAmount, stSTokenInfo.address, minDsAmount);
 
     // Check collateralization ratio after first issuance
-    const circulatingSupply1 = await issuerContract.circulatingDusd();
-    const totalCollateralValueInDs1 = await issuerContract.collateralInDusd();
+    const circulatingSupply1 = await issuerContract.circulatingDstable();
+    const totalCollateralValueInDs1 =
+      await issuerContract.collateralInDstable();
 
     assert.isTrue(
       totalCollateralValueInDs1 >= circulatingSupply1,
@@ -543,8 +547,9 @@ describe("dS Ecosystem Lifecycle", () => {
     await issuerUser1.issue(mintAmount, wOSTokenInfo.address, minDsAmount);
 
     // Check collateralization ratio after second issuance
-    const circulatingSupply2 = await issuerContract.circulatingDusd();
-    const totalCollateralValueInDs2 = await issuerContract.collateralInDusd();
+    const circulatingSupply2 = await issuerContract.circulatingDstable();
+    const totalCollateralValueInDs2 =
+      await issuerContract.collateralInDstable();
 
     assert.isTrue(
       totalCollateralValueInDs2 >= circulatingSupply2,

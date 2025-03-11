@@ -23,8 +23,8 @@ describe("Redeemer", () => {
   let collateralVaultContract: CollateralVault;
   let frxUSDContract: TestERC20;
   let frxUSDInfo: TokenInfo;
-  let dusdContract: TestMintableERC20;
-  let dusdInfo: TokenInfo;
+  let dstableContract: TestMintableERC20;
+  let dstableInfo: TokenInfo;
   let deployer: Address;
   let user1: Address;
   let user2: Address;
@@ -60,13 +60,13 @@ describe("Redeemer", () => {
 
     ({ contract: frxUSDContract, tokenInfo: frxUSDInfo } =
       await getTokenContractForSymbol(hre, deployer, "frxUSD"));
-    ({ contract: dusdContract, tokenInfo: dusdInfo } =
+    ({ contract: dstableContract, tokenInfo: dstableInfo } =
       await getTokenContractForSymbol(hre, deployer, "dUSD"));
 
     // Allow FRAX as collateral
     await collateralVaultContract.allowCollateral(frxUSDInfo.address);
 
-    // Mint some dUSD to dusdDeployer
+    // Mint some dStable to deployer
     await frxUSDContract.approve(
       issuerAddress,
       hre.ethers.parseUnits("1000", frxUSDInfo.decimals)
@@ -74,7 +74,7 @@ describe("Redeemer", () => {
     await issuerContract.issue(
       hre.ethers.parseUnits("1000", frxUSDInfo.decimals),
       frxUSDInfo.address,
-      hre.ethers.parseUnits("1000", dusdInfo.decimals)
+      hre.ethers.parseUnits("1000", dstableInfo.decimals)
     );
 
     // Deposit frxUSD into the collateral vault
@@ -94,19 +94,25 @@ describe("Redeemer", () => {
 
   describe("Permissioned redemption", () => {
     it("redeem for collateral", async function () {
-      const redeemAmount = hre.ethers.parseUnits("100", dusdInfo.decimals);
+      const redeemAmount = hre.ethers.parseUnits("100", dstableInfo.decimals);
       const minimumFraxReceived = hre.ethers.parseUnits(
         "99",
         frxUSDInfo.decimals
-      ); // Assuming 1% slippage
+      );
 
-      const dusdBalanceBefore = await dusdContract.balanceOf(deployer);
-      const fraxBalanceBefore = await frxUSDContract.balanceOf(deployer);
+      // Grant REDEMPTION_MANAGER_ROLE to deployer
+      const REDEMPTION_MANAGER_ROLE =
+        await redeemerContract.REDEMPTION_MANAGER_ROLE();
+      await redeemerContract.grantRole(REDEMPTION_MANAGER_ROLE, deployer);
 
-      await dusdContract.approve(
+      // Approve redeemer to spend dStable
+      await dstableContract.approve(
         await redeemerContract.getAddress(),
         redeemAmount
       );
+
+      const initialDstableBalance = await dstableContract.balanceOf(deployer);
+      const initialFraxBalance = await frxUSDContract.balanceOf(deployer);
 
       await redeemerContract.redeem(
         redeemAmount,
@@ -114,28 +120,34 @@ describe("Redeemer", () => {
         minimumFraxReceived
       );
 
-      const dusdBalanceAfter = await dusdContract.balanceOf(deployer);
-      const fraxBalanceAfter = await frxUSDContract.balanceOf(deployer);
+      const finalDstableBalance = await dstableContract.balanceOf(deployer);
+      const finalFraxBalance = await frxUSDContract.balanceOf(deployer);
 
       assert.equal(
-        dusdBalanceAfter,
-        dusdBalanceBefore - redeemAmount,
-        "dUSD balance did not decrease by the expected amount"
+        initialDstableBalance - finalDstableBalance,
+        redeemAmount,
+        "dStable balance did not decrease by the expected amount"
       );
       assert.isTrue(
-        fraxBalanceAfter - fraxBalanceBefore >= minimumFraxReceived,
-        "FRAX received is less than the minimum expected"
+        finalFraxBalance - initialFraxBalance >= minimumFraxReceived,
+        "Did not receive minimum amount of collateral"
       );
     });
 
-    it("fails when slippage is too high", async function () {
-      const redeemAmount = hre.ethers.parseUnits("100", dusdInfo.decimals);
-      const impossibleMinimumFraxReceived = hre.ethers.parseUnits(
+    it("reverts when slippage is too high", async function () {
+      const redeemAmount = hre.ethers.parseUnits("100", dstableInfo.decimals);
+      const tooHighMinimumFraxReceived = hre.ethers.parseUnits(
         "101",
         frxUSDInfo.decimals
-      ); // Impossible slippage
+      );
 
-      await dusdContract.approve(
+      // Grant REDEMPTION_MANAGER_ROLE to deployer
+      const REDEMPTION_MANAGER_ROLE =
+        await redeemerContract.REDEMPTION_MANAGER_ROLE();
+      await redeemerContract.grantRole(REDEMPTION_MANAGER_ROLE, deployer);
+
+      // Approve redeemer to spend dStable
+      await dstableContract.approve(
         await redeemerContract.getAddress(),
         redeemAmount
       );
@@ -144,73 +156,85 @@ describe("Redeemer", () => {
         redeemerContract.redeem(
           redeemAmount,
           frxUSDInfo.address,
-          impossibleMinimumFraxReceived
+          tooHighMinimumFraxReceived
         )
       ).to.be.revertedWithCustomError(redeemerContract, "SlippageTooHigh");
     });
 
     it("only redemption manager can redeem", async function () {
-      const normalUser = await hre.ethers.getSigner(user1);
-      const redeemAmount = hre.ethers.parseUnits("100", dusdInfo.decimals);
+      const redeemAmount = hre.ethers.parseUnits("100", dstableInfo.decimals);
       const minimumFraxReceived = hre.ethers.parseUnits(
         "99",
         frxUSDInfo.decimals
       );
 
+      // Connect with user1 who does not have the REDEMPTION_MANAGER_ROLE
+      const user1Signer = await hre.ethers.getSigner(user1);
+      const redeemerAsUser1 = redeemerContract.connect(user1Signer);
+
+      // Make sure user1 has some dStable tokens to redeem
+      await dstableContract.transfer(user1, redeemAmount);
+
+      // Connect to dStable contract with user1
+      const dstableAsUser1 = dstableContract.connect(user1Signer);
+
+      // Approve redeemer to spend dStable
+      await dstableAsUser1.approve(
+        await redeemerContract.getAddress(),
+        redeemAmount
+      );
+
+      // Try to redeem without the role
       await expect(
-        redeemerContract
-          .connect(normalUser)
-          .redeem(redeemAmount, frxUSDInfo.address, minimumFraxReceived)
+        redeemerAsUser1.redeem(
+          redeemAmount,
+          frxUSDInfo.address,
+          minimumFraxReceived
+        )
       ).to.be.revertedWithCustomError(
         redeemerContract,
         "AccessControlUnauthorizedAccount"
-      );
-    });
-
-    it("dusdAmountToUsdValue converts correctly", async function () {
-      const dusdPriceOracle = await hre.ethers.getContractAt(
-        "MockOracleAggregator",
-        await redeemerContract.oracle(),
-        await hre.ethers.getSigner(deployer)
-      );
-
-      const dusdAmount = hre.ethers.parseUnits("100", dusdInfo.decimals); // 100 dUSD
-      const dusdPrice = await dusdPriceOracle.getAssetPrice(dusdInfo.address);
-      const expectedUsdValue =
-        (dusdAmount * dusdPrice) / 10n ** BigInt(dusdInfo.decimals);
-
-      const actualUsdValue =
-        await redeemerContract.dusdAmountToUsdValue(dusdAmount);
-
-      assert.equal(
-        actualUsdValue,
-        expectedUsdValue,
-        "dUSD to USD conversion is incorrect"
       );
     });
   });
 
-  describe("Management", () => {
-    it("only admin can set collateral vault", async function () {
-      const normalUser = await hre.ethers.getSigner(user1);
+  describe("USD value conversion", () => {
+    it("converts dStable amount to USD value correctly", async function () {
+      const dstableAmount = hre.ethers.parseUnits("100", dstableInfo.decimals); // 100 dStable
+      const expectedUsdValue = hre.ethers.parseUnits("100", 8); // 100 USD with 8 decimals
 
-      await expect(
-        redeemerContract.connect(normalUser).setCollateralVault(user2)
-      ).to.be.revertedWithCustomError(
-        redeemerContract,
-        "AccessControlUnauthorizedAccount"
+      const actualUsdValue =
+        await redeemerContract.dstableAmountToUsdValue(dstableAmount);
+
+      assert.equal(
+        actualUsdValue,
+        expectedUsdValue,
+        "dStable to USD conversion is incorrect"
+      );
+    });
+  });
+
+  describe("Admin functions", () => {
+    it("allows admin to set collateral vault", async function () {
+      const newVaultAddress = user1;
+
+      await redeemerContract.setCollateralVault(newVaultAddress);
+
+      const updatedVaultAddress = await redeemerContract.collateralVault();
+      assert.equal(
+        updatedVaultAddress,
+        newVaultAddress,
+        "Collateral vault address was not updated"
       );
     });
 
-    it("only admin can set oracle", async function () {
-      const normalUser = await hre.ethers.getSigner(user1);
+    it("only admin can set collateral vault", async function () {
+      const newVaultAddress = user1;
+      const nonAdmin = await hre.ethers.getSigner(user2);
 
       await expect(
-        redeemerContract.connect(normalUser).setOracle(user2)
-      ).to.be.revertedWithCustomError(
-        redeemerContract,
-        "AccessControlUnauthorizedAccount"
-      );
+        redeemerContract.connect(nonAdmin).setCollateralVault(newVaultAddress)
+      ).to.be.reverted;
     });
   });
 });

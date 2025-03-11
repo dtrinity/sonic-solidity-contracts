@@ -27,8 +27,8 @@ import "./OracleAware.sol";
 contract Redeemer is AccessControl, OracleAware {
     /* Core state */
 
-    IMintableERC20 public dusd;
-    uint8 public immutable dusdDecimals;
+    IMintableERC20 public dstable;
+    uint8 public immutable dstableDecimals;
     CollateralVault public collateralVault;
 
     uint256 public immutable USD_UNIT;
@@ -39,24 +39,24 @@ contract Redeemer is AccessControl, OracleAware {
         keccak256("REDEMPTION_MANAGER_ROLE");
 
     /* Errors */
-    error DUSDTransferFailed();
+    error DStableTransferFailed();
     error SlippageTooHigh(uint256 actualCollateral, uint256 minCollateral);
 
     /**
      * @notice Initializes the Redeemer contract
      * @param _collateralVault The address of the collateral vault
-     * @param _dusd The address of the dUSD stablecoin
+     * @param _dstable The address of the dStable stablecoin
      * @param _oracle The address of the price oracle
      * @dev Sets up initial roles and configuration for redemption functionality
      */
     constructor(
         address _collateralVault,
-        address _dusd,
+        address _dstable,
         IPriceOracleGetter _oracle
     ) OracleAware(_oracle, DTrinityOracleConstants.ORACLE_BASE_CURRENCY_UNIT) {
         collateralVault = CollateralVault(_collateralVault);
-        dusd = IMintableERC20(_dusd);
-        dusdDecimals = dusd.decimals();
+        dstable = IMintableERC20(_dstable);
+        dstableDecimals = dstable.decimals();
         USD_UNIT = _oracle.BASE_CURRENCY_UNIT();
 
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
@@ -66,28 +66,28 @@ contract Redeemer is AccessControl, OracleAware {
     /* Redeemer */
 
     /**
-     * @notice Redeems dUSD tokens for collateral from the caller
-     * @param dusdAmount The amount of dUSD to redeem
+     * @notice Redeems dStable tokens for collateral from the caller
+     * @param dstableAmount The amount of dStable to redeem
      * @param collateralAsset The address of the collateral asset
      * @param minCollateral The minimum amount of collateral to receive, used for slippage protection
      */
     function redeem(
-        uint256 dusdAmount,
+        uint256 dstableAmount,
         address collateralAsset,
         uint256 minCollateral
     ) external onlyRole(REDEMPTION_MANAGER_ROLE) {
-        // Transfer dUSD from withdrawer to this contract
-        if (!dusd.transferFrom(msg.sender, address(this), dusdAmount)) {
-            revert DUSDTransferFailed();
+        // Transfer dStable from withdrawer to this contract
+        if (!dstable.transferFrom(msg.sender, address(this), dstableAmount)) {
+            revert DStableTransferFailed();
         }
 
-        // Burn the dUSD
-        dusd.burn(dusdAmount);
+        // Burn the dStable
+        dstable.burn(dstableAmount);
 
         // Calculate collateral amount
-        uint256 dusdValue = dusdAmountToUsdValue(dusdAmount);
+        uint256 dstableValue = dstableAmountToUsdValue(dstableAmount);
         uint256 collateralAmount = collateralVault.assetAmountFromValue(
-            dusdValue,
+            dstableValue,
             collateralAsset
         );
         if (collateralAmount < minCollateral) {
@@ -103,14 +103,14 @@ contract Redeemer is AccessControl, OracleAware {
     }
 
     /**
-     * @notice Converts an amount of dUSD tokens to its equivalent USD value
-     * @param dusdAmount The amount of dUSD tokens to convert
+     * @notice Converts an amount of dStable tokens to its equivalent USD value
+     * @param dstableAmount The amount of dStable tokens to convert
      * @return The equivalent USD value
      */
-    function dusdAmountToUsdValue(
-        uint256 dusdAmount
+    function dstableAmountToUsdValue(
+        uint256 dstableAmount
     ) public view returns (uint256) {
-        return (dusdAmount * USD_UNIT) / (10 ** dusdDecimals);
+        return (dstableAmount * USD_UNIT) / (10 ** dstableDecimals);
     }
 
     /* Admin */
