@@ -1,17 +1,14 @@
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
 import { getConfig } from "../config/config";
-import { isLocalNetwork } from "../typescript/hardhat/deploy";
+import { isMainnet } from "../typescript/hardhat/deploy";
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployer } = await hre.getNamedAccounts();
   const config = await getConfig(hre);
 
-  if (!isLocalNetwork(hre.network.name)) {
-    console.log(
-      `🪙 ${__filename.split("/").slice(-2).join("/")}: Skipped - not a local network`
-    );
-    return false;
+  if (isMainnet(hre.network.name)) {
+    throw new Error("WARNING - should not deploy mock tokens on mainnet");
   }
 
   if (!config.MOCK_ONLY?.tokens) {

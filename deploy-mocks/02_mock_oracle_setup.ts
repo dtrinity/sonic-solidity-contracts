@@ -2,20 +2,15 @@ import { ZeroAddress } from "ethers";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
 
-import { getConfig } from "../config/config";
-import { isLocalNetwork } from "../typescript/hardhat/deploy";
-import { ORACLE_AGGREGATOR_PRICE_DECIMALS } from "../typescript/oracle_aggregator/constants";
+import { isMainnet } from "../typescript/hardhat/deploy";
 import { getTokenContractForSymbol } from "../typescript/token/utils";
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployer } = await hre.getNamedAccounts();
   const signer = await hre.ethers.getSigner(deployer);
 
-  if (!isLocalNetwork(hre.network.name)) {
-    console.log(
-      `🔮 ${__filename.split("/").slice(-2).join("/")}: Skipped - not a local network`
-    );
-    return false;
+  if (isMainnet(hre.network.name)) {
+    throw new Error("WARNING - should not deploy mock oracles on mainnet");
   }
 
   // Deploy a mock API3 server V1 (this would be the actual API3 server on mainnet)

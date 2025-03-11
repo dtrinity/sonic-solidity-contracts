@@ -32,6 +32,7 @@ const config: HardhatUserConfig = {
       saveDeployments: true,
       accounts: getEnvPrivateKeys("sonic_testnet"),
     },
+    // NOTE: When setting up mainnet, DO NOT DEPLOY mocks
   },
   namedAccounts: getStandardNamedAccounts(),
   paths: {
