@@ -8,7 +8,7 @@ import {
   Issuer,
   TestERC20,
   MockAmoVault,
-  MockOracleAggregator,
+  MockAPI3OracleAlwaysAlive,
   OracleAggregator,
 } from "../../typechain-types";
 import { TokenInfo } from "../../typescript/token/utils";
@@ -26,7 +26,8 @@ describe("dS Ecosystem Lifecycle", () => {
   let mockAmoVaultContract: MockAmoVault;
   let collateralHolderVaultContract: CollateralHolderVault;
   let oracleAggregatorContract: OracleAggregator;
-  let mockOracleAggregatorContract: MockOracleAggregator;
+  let mockWSOracleContract: MockAPI3OracleAlwaysAlive;
+  let mockStSOracleContract: MockAPI3OracleAlwaysAlive;
   let issuerContract: Issuer;
   let dsContract: TestERC20;
   let dsInfo: TokenInfo;
@@ -79,12 +80,30 @@ describe("dS Ecosystem Lifecycle", () => {
       await hre.ethers.getSigner(deployer)
     );
 
-    const mockOracleAggregatorAddress = (
-      await hre.deployments.get("MockOracleAggregator")
+    /* Set up tokens */
+    ({ contract: dsContract, tokenInfo: dsInfo } =
+      await getTokenContractForSymbol(hre, deployer, "dS"));
+    ({ contract: wOSTokenContract, tokenInfo: wOSTokenInfo } =
+      await getTokenContractForSymbol(hre, deployer, "wOS"));
+    ({ contract: stSTokenContract, tokenInfo: stSTokenInfo } =
+      await getTokenContractForSymbol(hre, deployer, "stS"));
+
+    /* Get the mock oracles for each token */
+    const mockWSOracleAddress = (
+      await hre.deployments.get("MockAPI3Oracle_wOS")
     ).address;
-    mockOracleAggregatorContract = await hre.ethers.getContractAt(
-      "MockOracleAggregator",
-      mockOracleAggregatorAddress,
+    mockWSOracleContract = await hre.ethers.getContractAt(
+      "MockAPI3OracleAlwaysAlive",
+      mockWSOracleAddress,
+      await hre.ethers.getSigner(deployer)
+    );
+
+    const mockStSOracleAddress = (
+      await hre.deployments.get("MockAPI3Oracle_stS")
+    ).address;
+    mockStSOracleContract = await hre.ethers.getContractAt(
+      "MockAPI3OracleAlwaysAlive",
+      mockStSOracleAddress,
       await hre.ethers.getSigner(deployer)
     );
 
@@ -95,14 +114,6 @@ describe("dS Ecosystem Lifecycle", () => {
       issuerAddress,
       await hre.ethers.getSigner(deployer)
     );
-
-    /* Set up tokens */
-    ({ contract: dsContract, tokenInfo: dsInfo } =
-      await getTokenContractForSymbol(hre, deployer, "dS"));
-    ({ contract: wOSTokenContract, tokenInfo: wOSTokenInfo } =
-      await getTokenContractForSymbol(hre, deployer, "wOS"));
-    ({ contract: stSTokenContract, tokenInfo: stSTokenInfo } =
-      await getTokenContractForSymbol(hre, deployer, "stS"));
 
     /* Enable the MockAmoVault */
     await amoManagerContract.enableAmoVault(
@@ -215,6 +226,30 @@ describe("dS Ecosystem Lifecycle", () => {
       await hre.ethers.getContractAt("TestERC20", tokenAddress)
     ).decimals();
     return (amount * price) / 10n ** BigInt(decimals);
+  }
+
+  /**
+   * Updates the price of a token in the mock oracle
+   *
+   * @param tokenAddress - The address of the token to update
+   * @param price - The new price in USD with 18 decimals
+   */
+  async function updateTokenPrice(
+    tokenAddress: Address,
+    price: bigint
+  ): Promise<void> {
+    // Find which mock oracle to use
+    let mockOracle: MockAPI3OracleAlwaysAlive;
+    if (tokenAddress === wOSTokenInfo.address) {
+      mockOracle = mockWSOracleContract;
+    } else if (tokenAddress === stSTokenInfo.address) {
+      mockOracle = mockStSOracleContract;
+    } else {
+      throw new Error(`No mock oracle found for token ${tokenAddress}`);
+    }
+
+    // Update the price
+    await mockOracle.setMock(price);
   }
 
   it("should allow issuing dS with stS token as collateral", async function () {

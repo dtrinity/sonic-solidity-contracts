@@ -1,6 +1,5 @@
 // Oracles
 export const ORACLE_AGGREGATOR_ID = "OracleAggregator";
-export const HARD_PEG_ORACLE_WRAPPER_ID = "HardPegOracleWrapper";
 export const API3_ORACLE_WRAPPER_ID = "API3Wrapper";
 export const API3_COMPOSITE_WRAPPER_WITH_THRESHOLDING_ID =
   "API3CompositeWrapperWithThresholding";
@@ -10,6 +9,8 @@ export const DUSD_REDEEMER_CONTRACT_ID = "dUSD_Redeemer";
 export const DUSD_ISSUER_CONTRACT_ID = "dUSD_Issuer";
 export const DUSD_COLLATERAL_VAULT_CONTRACT_ID = "dUSD_CollateralHolderVault";
 export const DUSD_AMO_MANAGER_ID = "dUSD_AmoManager";
+export const DUSD_HARD_PEG_ORACLE_WRAPPER_ID = "dUSD_HardPegOracleWrapper";
+
 // dS
 export const DS_TOKEN_ID = "dS";
 export const DS_COLLATERAL_VAULT_CONTRACT_ID = "dS_CollateralHolderVault";

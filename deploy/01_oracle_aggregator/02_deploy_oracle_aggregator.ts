@@ -2,20 +2,20 @@ import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
 
 import { getConfig } from "../../config/config";
-import { HARD_PEG_ORACLE_WRAPPER_ID } from "../../typescript/deploy-ids";
+import {
+  DUSD_HARD_PEG_ORACLE_WRAPPER_ID,
+  ORACLE_AGGREGATOR_ID,
+} from "../../typescript/deploy-ids";
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployer } = await hre.getNamedAccounts();
 
   const config = await getConfig(hre);
 
-  await hre.deployments.deploy(HARD_PEG_ORACLE_WRAPPER_ID, {
+  await hre.deployments.deploy(ORACLE_AGGREGATOR_ID, {
     from: deployer,
-    args: [
-      config.oracleAggregator.hardDusdPeg,
-      BigInt(10) ** BigInt(config.oracleAggregator.priceDecimals),
-    ],
-    contract: "HardPegOracleWrapper",
+    args: [BigInt(10) ** BigInt(config.oracleAggregator.priceDecimals)],
+    contract: "OracleAggregator",
     autoMine: true,
     log: false,
   });
@@ -25,8 +25,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   return true;
 };
 
-func.tags = ["oracle-aggregator", "oracle-wrapper", "hard-peg-oracle-wrapper"];
-func.dependencies = [];
-func.id = HARD_PEG_ORACLE_WRAPPER_ID;
+func.tags = ["oracle-aggregator"];
+func.dependencies = ["oracle-wrapper"];
+func.id = ORACLE_AGGREGATOR_ID;
 
 export default func;

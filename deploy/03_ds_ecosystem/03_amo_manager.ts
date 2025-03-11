@@ -10,7 +10,7 @@ import {
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployer } = await hre.getNamedAccounts();
-  const { ds } = await getConfig(hre);
+  const { tokenAddresses } = await getConfig(hre);
 
   const { address: collateralVaultAddress } = await hre.deployments.get(
     DS_COLLATERAL_VAULT_CONTRACT_ID
@@ -21,7 +21,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   await hre.deployments.deploy(DS_AMO_MANAGER_ID, {
     from: deployer,
-    args: [ds.address, collateralVaultAddress, oracleAddress],
+    args: [tokenAddresses.dS, collateralVaultAddress, oracleAddress],
     contract: "AmoManager",
     autoMine: true,
     log: false,
@@ -34,6 +34,10 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
 func.id = `dS:${DS_AMO_MANAGER_ID}`;
 func.tags = ["ds"];
-func.dependencies = ["dS", DS_COLLATERAL_VAULT_CONTRACT_ID];
+func.dependencies = [
+  "dS",
+  DS_COLLATERAL_VAULT_CONTRACT_ID,
+  ORACLE_AGGREGATOR_ID,
+];
 
 export default func;

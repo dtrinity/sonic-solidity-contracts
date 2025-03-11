@@ -2,6 +2,7 @@ import { HardhatRuntimeEnvironment } from "hardhat/types";
 
 import { Config } from "../types";
 import { ORACLE_AGGREGATOR_PRICE_DECIMALS } from "../../typescript/oracle_aggregator/constants";
+import { ZeroAddress } from "ethers";
 
 /**
  * Get the configuration for the network
@@ -20,9 +21,16 @@ export async function getConfig(
   const sUSDSDeployment = await _hre.deployments.getOrNull("sUSDS");
   const frxUSDDeployment = await _hre.deployments.getOrNull("frxUSD");
   const sfrxUSDDeployment = await _hre.deployments.getOrNull("sfrxUSD");
-  const STokenDeployment = await _hre.deployments.getOrNull("S");
+  const wSTokenDeployment = await _hre.deployments.getOrNull("wS");
   const wOSTokenDeployment = await _hre.deployments.getOrNull("wOS");
   const stSTokenDeployment = await _hre.deployments.getOrNull("stS");
+
+  // Get mock oracle deployments
+  const mockOracleDeploymentsData = await _hre.deployments.getOrNull(
+    "MockOracleDeployments"
+  );
+  const mockOracleDeployments =
+    (mockOracleDeploymentsData?.linkedData as Record<string, string>) || {};
 
   return {
     MOCK_ONLY: {
@@ -57,6 +65,12 @@ export async function getConfig(
           decimals: 18,
           initialSupply: 1e6,
         },
+        wS: {
+          name: "Wrapped S",
+          address: wSTokenDeployment?.address,
+          decimals: 18,
+          initialSupply: 1e6,
+        },
         wOS: {
           name: "Wrapped Origin S",
           address: wOSTokenDeployment?.address,
@@ -71,19 +85,28 @@ export async function getConfig(
         },
       },
     },
-    dusd: {
-      address: emptyStringIfUndefined(dUSDDeployment?.address),
-    },
-    ds: {
-      address: emptyStringIfUndefined(dSDeployment?.address),
+    tokenAddresses: {
+      dUSD: emptyStringIfUndefined(dUSDDeployment?.address),
+      dS: emptyStringIfUndefined(dSDeployment?.address),
+      wS: emptyStringIfUndefined(wSTokenDeployment?.address),
     },
     oracleAggregator: {
       hardDusdPeg: 10 ** ORACLE_AGGREGATOR_PRICE_DECIMALS,
       priceDecimals: ORACLE_AGGREGATOR_PRICE_DECIMALS,
-      dUSDAddress: emptyStringIfUndefined(dUSDDeployment?.address),
-      dSAddress: emptyStringIfUndefined(dSDeployment?.address),
       api3OracleAssets: {
-        plainApi3OracleWrappers: {},
+        plainApi3OracleWrappers: {
+          // For local testing, we'll use the individual mock API3 oracles for each token
+          // The keys are token addresses, the values are mock oracle addresses
+          ...Object.entries(mockOracleDeployments).reduce(
+            (acc, [tokenAddress, oracleAddress]) => {
+              if (tokenAddress && oracleAddress) {
+                acc[tokenAddress] = oracleAddress;
+              }
+              return acc;
+            },
+            {} as Record<string, string>
+          ),
+        },
         api3OracleWrappersWithThresholding: {},
         compositeApi3OracleWrappersWithThresholding: {},
       },

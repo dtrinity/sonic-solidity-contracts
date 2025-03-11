@@ -3,10 +3,6 @@ import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { Config } from "../types";
 import { ORACLE_AGGREGATOR_PRICE_DECIMALS } from "../../typescript/oracle_aggregator/constants";
 
-export const TOKEN_INFO = {
-  // TODO fill out
-};
-
 /**
  * Get the configuration for the network
  *
@@ -18,19 +14,15 @@ export async function getConfig(
 ): Promise<Config> {
   const dUSDDeployment = await _hre.deployments.getOrNull("dUSD");
   const dSDeployment = await _hre.deployments.getOrNull("dS");
-
   return {
-    dusd: {
-      address: emptyStringIfUndefined(dUSDDeployment?.address),
-    },
-    ds: {
-      address: emptyStringIfUndefined(dSDeployment?.address),
+    tokenAddresses: {
+      dUSD: emptyStringIfUndefined(dUSDDeployment?.address),
+      dS: emptyStringIfUndefined(dSDeployment?.address),
+      wS: "0x039e2fB66102314Ce7b64Ce5Ce3E5183bc94aD38",
     },
     oracleAggregator: {
       hardDusdPeg: 10 ** ORACLE_AGGREGATOR_PRICE_DECIMALS,
       priceDecimals: ORACLE_AGGREGATOR_PRICE_DECIMALS,
-      dUSDAddress: emptyStringIfUndefined(dUSDDeployment?.address),
-      dSAddress: emptyStringIfUndefined(dSDeployment?.address),
       api3OracleAssets: {
         plainApi3OracleWrappers: {},
         api3OracleWrappersWithThresholding: {},

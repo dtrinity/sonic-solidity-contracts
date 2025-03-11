@@ -1,6 +1,6 @@
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
-import { DUSD_TOKEN_ID } from "../typescript/deploy-ids";
+import { DUSD_TOKEN_ID } from "../../typescript/deploy-ids";
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployer } = await hre.getNamedAccounts();
@@ -22,7 +22,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     autoMine: true,
   });
 
-  console.log(`🪙  ${__filename.split("/").slice(-1)[0]}: ✅`);
+  console.log(`☯️ ${__filename.split("/").slice(-1)[0]}: ✅`);
 
   return true;
 };

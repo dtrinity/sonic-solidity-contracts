@@ -10,7 +10,7 @@ import {
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployer } = await hre.getNamedAccounts();
-  const { dusd } = await getConfig(hre);
+  const { tokenAddresses } = await getConfig(hre);
 
   const { address: collateralVaultAddress } = await hre.deployments.get(
     DUSD_COLLATERAL_VAULT_CONTRACT_ID
@@ -21,7 +21,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   await hre.deployments.deploy(DUSD_AMO_MANAGER_ID, {
     from: deployer,
-    args: [dusd.address, collateralVaultAddress, oracleAddress],
+    args: [tokenAddresses.dUSD, collateralVaultAddress, oracleAddress],
     contract: "AmoManager",
     autoMine: true,
     log: false,
