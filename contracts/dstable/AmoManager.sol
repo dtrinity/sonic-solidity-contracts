@@ -20,7 +20,7 @@ pragma solidity ^0.8.20;
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableMap.sol";
 import "contracts/common/IMintableERC20.sol";
-import "contracts/dusd/AmoVault.sol";
+import "./AmoVault.sol";
 
 /**
  * @title AmoManager

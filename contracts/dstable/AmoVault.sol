@@ -20,10 +20,10 @@ pragma solidity ^0.8.20;
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "contracts/common/IMintableERC20.sol";
-import "contracts/dusd/AmoManager.sol";
+import "./AmoManager.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-import "contracts/dusd/CollateralVault.sol";
+import "contracts/dstable/CollateralVault.sol";
 
 interface IRecoverable {
     function recoverERC20(address token, address to, uint256 amount) external;

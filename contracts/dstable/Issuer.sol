@@ -22,9 +22,9 @@ import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
 import "contracts/common/IAaveOracle.sol";
 import "contracts/common/IMintableERC20.sol";
-import "contracts/dusd/CollateralVault.sol";
-import "contracts/dusd/AmoManager.sol";
-import "contracts/dusd/OracleAware.sol";
+import "./CollateralVault.sol";
+import "./AmoManager.sol";
+import "./OracleAware.sol";
 
 /**
  * @title Issuer

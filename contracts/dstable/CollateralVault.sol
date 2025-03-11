@@ -24,7 +24,7 @@ import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
 import "contracts/common/DTrinityOracleConstants.sol";
 import "contracts/common/IAaveOracle.sol";
-import "contracts/dusd/OracleAware.sol";
+import "./OracleAware.sol";
 
 /**
  * @title CollateralVault

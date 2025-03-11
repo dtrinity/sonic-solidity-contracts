@@ -21,8 +21,8 @@ import "@openzeppelin/contracts/access/AccessControl.sol";
 
 import "contracts/common/DTrinityOracleConstants.sol";
 import "contracts/common/IMintableERC20.sol";
-import "contracts/dusd/CollateralVault.sol";
-import "contracts/dusd/OracleAware.sol";
+import "./CollateralVault.sol";
+import "./OracleAware.sol";
 
 contract Redeemer is AccessControl, OracleAware {
     /* Core state */

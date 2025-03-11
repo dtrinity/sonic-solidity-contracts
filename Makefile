@@ -5,9 +5,6 @@ help: ## Show this help menu
 	@echo "Usage:"
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2}'
 
-compile: ## Compile the contracts
-	@yarn hardhat compile
-
 #############
 ## Linting ##
 #############
@@ -52,4 +49,17 @@ test.hardhat: ## Run the hardhat tests
 deploy: ## Deploy the contracts
 	@yarn hardhat deploy
 
-.PHONY: help compile test deploy
+##############
+## Building ##
+##############
+
+compile: ## Compile the contracts
+	@yarn hardhat compile
+
+clean: ## When renaming directories or files, run this to clean up
+	@rm -rf typechain-types
+	@rm -rf artifacts
+	@rm -rf cache
+	@echo "Cleaned solidity cache and artifacts. Remember to recompile."
+
+.PHONY: help compile test deploy clean
