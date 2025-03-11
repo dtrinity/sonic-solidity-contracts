@@ -287,8 +287,15 @@ contract AmoManager is AccessControl, OracleAware {
             collateralUsdValue
         );
         (, uint256 currentAllocation) = _amoVaults.tryGet(amoVault);
-        _amoVaults.set(amoVault, currentAllocation - collateralInDstable);
-        totalAllocated -= collateralInDstable;
+
+        // Prevent underflow by only deducting what's available
+        uint256 adjustmentAmount = collateralInDstable;
+        if (collateralInDstable > currentAllocation) {
+            adjustmentAmount = currentAllocation;
+        }
+
+        _amoVaults.set(amoVault, currentAllocation - adjustmentAmount);
+        totalAllocated -= adjustmentAmount;
 
         // Transfer the collateral
         AmoVault(amoVault).withdrawTo(
