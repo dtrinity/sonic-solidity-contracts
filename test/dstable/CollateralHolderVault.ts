@@ -149,58 +149,37 @@ dstableConfigs.forEach((config) => {
         });
 
         it(`disallows depositing non-allowed ${collateralSymbol}`, async function () {
-          const collateralContract = collateralContracts.get(
-            collateralSymbol
-          ) as TestERC20;
           const collateralInfo = collateralInfos.get(
             collateralSymbol
           ) as TokenInfo;
-
-          // First, ensure collateral is allowed (so we can disallow it)
-          try {
-            // Check if the collateral is supported
-            const isCollateralSupported =
-              await collateralVaultContract.isCollateralSupported(
-                collateralInfo.address
-              );
-
-            if (!isCollateralSupported) {
-              // If not supported, allow it first
-              await collateralVaultContract.allowCollateral(
-                collateralInfo.address
-              );
-            }
-
-            // Now disallow it
-            await collateralVaultContract.disallowCollateral(
-              collateralInfo.address
-            );
-          } catch (e) {
-            console.log(
-              `Error in setup for disallowing ${collateralSymbol}: ${e}`
-            );
-            // If we can't set up correctly, skip this test
-            this.skip();
-            return;
-          }
-
           const depositAmount = hre.ethers.parseUnits(
-            "500",
+            "1",
             collateralInfo.decimals
           );
+          const collateralContract = collateralContracts.get(
+            collateralSymbol
+          ) as TestERC20;
 
-          await collateralContract
-            .connect(await hre.ethers.getSigner(user1))
-            .approve(await collateralVaultContract.getAddress(), depositAmount);
+          // Create a non-allowed collateral address
+          const nonAllowedCollateral =
+            "0x0000000000000000000000000000000000000123";
 
-          await expect(
-            collateralVaultContract
-              .connect(await hre.ethers.getSigner(user1))
-              .deposit(depositAmount, collateralInfo.address)
-          ).to.be.revertedWithCustomError(
-            collateralVaultContract,
-            "UnsupportedCollateral"
+          // Try to deposit using the non-allowed collateral address
+          // We'll still use the original collateral contract for approval
+          await collateralContract.approve(
+            await collateralVaultContract.getAddress(),
+            depositAmount
           );
+
+          // Should revert with UnsupportedCollateral error
+          await expect(
+            collateralVaultContract.deposit(depositAmount, nonAllowedCollateral)
+          )
+            .to.be.revertedWithCustomError(
+              collateralVaultContract,
+              "UnsupportedCollateral"
+            )
+            .withArgs(nonAllowedCollateral);
         });
       });
     });

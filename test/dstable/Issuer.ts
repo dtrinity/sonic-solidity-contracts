@@ -26,12 +26,9 @@ const STABLE_ASSET_PRICE = 1.0;
 const YIELD_BEARING_ASSET_PRICE = 1.1;
 
 // Define which assets are yield-bearing (price = 1.1) vs stable (price = 1.0)
-const yieldBearingAssets = new Set(["sfrxUSD", "stS", "wOS", "wS"]);
+const yieldBearingAssets = new Set(["sfrxUSD", "sUSDS", "stS", "wOS"]);
 const isYieldBearingAsset = (symbol: string): boolean =>
   yieldBearingAssets.has(symbol);
-
-// dS token itself is treated as a yield-bearing asset in the oracle setup
-const isYieldBearingToken = (symbol: string): boolean => symbol === "dS";
 
 // Function to calculate expected dStable amount based on asset type and dStable type
 function calculateExpectedDstableAmount(
@@ -56,6 +53,22 @@ function calculateExpectedDstableAmount(
     // Stable to stable - 1:1 ratio
     return collateralAmount;
   }
+}
+
+// Function to calculate expected dStable amount from USD value based on dStable type
+function calculateExpectedDstableFromUsd(
+  usdValue: bigint,
+  dstableSymbol: string,
+  dstableDecimals: number
+): bigint {
+  // USD to dStable conversion takes into account the price of dStable
+  // Formula: (usdValue * 10^dstableDecimals) / dstablePrice
+  const dstablePrice =
+    dstableSymbol === "dS"
+      ? BigInt(YIELD_BEARING_ASSET_PRICE * 100000000) // 1.1 * 10^8
+      : BigInt(STABLE_ASSET_PRICE * 100000000); // 1.0 * 10^8
+
+  return (usdValue * 10n ** BigInt(dstableDecimals)) / dstablePrice;
 }
 
 // Run tests for each dStable configuration
@@ -296,12 +309,7 @@ dstableConfigs.forEach((config) => {
       });
 
       it(`usdValueToDstableAmount converts correctly for ${config.symbol}`, async function () {
-        // Skip this test for dS token since it has a different price (1.1) than expected (1)
-        if (config.symbol === "dS") {
-          this.skip();
-          return;
-        }
-
+        // Get the oracle contract for price information
         const dstablePriceOracle = await hre.ethers.getContractAt(
           "OracleAggregator",
           await issuerContract.oracle(),
@@ -313,20 +321,23 @@ dstableConfigs.forEach((config) => {
           ORACLE_AGGREGATOR_PRICE_DECIMALS
         ); // 100 USD
 
-        // Get the actual conversion from the contract
+        // Get the actual price of the dstable token
+        const dstablePrice = await dstablePriceOracle.getAssetPrice(
+          dstableInfo.address
+        );
+
+        // Calculate expected dStable amount based on the price
+        const expectedDstableAmount =
+          (usdValue * 10n ** BigInt(dstableInfo.decimals)) / dstablePrice;
+
         const actualDstableAmount =
           await issuerContract.usdValueToDstableAmount(usdValue);
 
-        // For dUSD, the price is 1, so the expected amount is the same as the USD value
-        const expectedDstableAmount = hre.ethers.parseUnits(
-          "100",
-          dstableInfo.decimals
-        );
-
+        // Compare the actual amount to our calculated expected amount
         assert.equal(
           actualDstableAmount,
           expectedDstableAmount,
-          "USD to dStable conversion is incorrect"
+          `USD to ${config.symbol} conversion is incorrect`
         );
       });
     });

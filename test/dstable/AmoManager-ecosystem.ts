@@ -15,6 +15,7 @@ import {
   TokenInfo,
 } from "../../typescript/token/utils";
 import { ORACLE_AGGREGATOR_ID } from "../../typescript/deploy-ids";
+import { ORACLE_AGGREGATOR_PRICE_DECIMALS } from "../../typescript/oracle_aggregator/constants";
 import {
   createDStableAmoFixture,
   DUSD_CONFIG,
@@ -327,76 +328,163 @@ dstableConfigs.forEach((config) => {
       });
 
       it("calculates profit and loss correctly", async function () {
-        // Skip this test as it's not critical and has issues with token price calculations
-        this.skip();
-        return;
+        // Get a collateral token to use for the test
+        const collateralSymbol = config.collateralSymbols[0];
+        const collateralContract = collateralContracts.get(
+          collateralSymbol
+        ) as TestERC20;
+        const collateralInfo = collateralInfos.get(collateralSymbol)!;
 
-        // Allocate dStable to the AMO vault
-        const dstableToAllocate = hre.ethers.parseUnits(
+        // Set up initial values
+        const collateralAmount = hre.ethers.parseUnits(
           "1000",
-          dstableInfo.decimals
+          collateralInfo.decimals
         );
 
-        await amoManagerContract.allocateAmo(
+        // Calculate initial vault profit/loss - should be zero at this point
+        const initialProfitUsd =
+          await amoManagerContract.availableVaultProfitsInUsd(
+            await mockAmoVaultContract.getAddress()
+          );
+
+        // Deposit collateral into the MockAmoVault
+        await collateralContract.approve(
           await mockAmoVaultContract.getAddress(),
-          dstableToAllocate
+          collateralAmount
+        );
+        await mockAmoVaultContract.deposit(
+          collateralAmount,
+          await collateralContract.getAddress()
         );
 
-        // Initial value of the vault (just the dStable allocation)
-        const initialValue = await amoManagerContract.dstableAmountToUsdValue(
-          hre.ethers.parseUnits("1000", dstableInfo.decimals)
+        // Calculate vault profit after depositing collateral
+        const profitAfterDepositUsd =
+          await amoManagerContract.availableVaultProfitsInUsd(
+            await mockAmoVaultContract.getAddress()
+          );
+
+        // Value of deposited collateral in USD
+        const depositValueUsd = await mockAmoVaultContract.assetValueFromAmount(
+          collateralAmount,
+          await collateralContract.getAddress()
         );
 
-        // Simulate profit by adding fake DeFi returns
-        const profitAmount = hre.ethers.parseUnits("200", 8); // $200 profit
-        await mockAmoVaultContract.setFakeDeFiCollateralValue(profitAmount);
-
-        // Final value is now the initial value plus the profit
-        const finalValue = await mockAmoVaultContract.totalValue();
-
-        // Instead of checking the profit directly, check that the final value is correct
-        const expectedFinalValue = initialValue + profitAmount;
+        // Profit should increase by the value of the deposited collateral
         assert.equal(
-          finalValue,
-          expectedFinalValue,
-          "Final value calculation is incorrect"
+          profitAfterDepositUsd - initialProfitUsd,
+          depositValueUsd,
+          "Profit should increase by the value of the deposited collateral"
         );
 
-        // Now simulate a loss by removing some dStable
-        const dstableRemoveAmount = hre.ethers.parseUnits(
-          "300",
-          dstableInfo.decimals
+        // Now simulate a loss by removing some of the collateral
+        const lossAmount = hre.ethers.parseUnits(
+          "500",
+          collateralInfo.decimals
         );
+
         await mockAmoVaultContract.mockRemoveAsset(
-          await dstableContract.getAddress(),
-          dstableRemoveAmount
+          await collateralContract.getAddress(),
+          lossAmount
         );
 
-        // Calculate the new value
-        const valueAfterLoss = await mockAmoVaultContract.totalValue();
+        // Calculate vault profit after loss
+        const profitAfterLossUsd =
+          await amoManagerContract.availableVaultProfitsInUsd(
+            await mockAmoVaultContract.getAddress()
+          );
 
-        // Get the dS token price to calculate the correct loss amount
-        const dstablePriceOracle = await hre.ethers.getContractAt(
-          "OracleAggregator",
-          await amoManagerContract.oracle(),
-          await hre.ethers.getSigner(deployer)
+        // Value of removed collateral in USD
+        const lossValueUsd = await mockAmoVaultContract.assetValueFromAmount(
+          lossAmount,
+          await collateralContract.getAddress()
         );
-        const dstablePrice = await dstablePriceOracle.getAssetPrice(
-          dstableInfo.address
-        );
 
-        // The loss is the dStable value removed, adjusted for the token price
-        const lossAmount =
-          (dstableRemoveAmount * dstablePrice) /
-          10n ** BigInt(dstableInfo.decimals);
-
-        // Expected value: initial + profit - loss
-        const expectedValueAfterLoss = initialValue + profitAmount - lossAmount;
-
+        // Profit should decrease by the value of the removed collateral
         assert.equal(
-          valueAfterLoss,
-          expectedValueAfterLoss,
-          "Value after loss calculation is incorrect"
+          profitAfterDepositUsd - profitAfterLossUsd,
+          lossValueUsd,
+          "Profit should decrease by the value of the removed collateral"
+        );
+
+        // Set fake DeFi collateral value to simulate additional profit
+        const fakeDeFiValueUsd = hre.ethers.parseUnits(
+          "300",
+          ORACLE_AGGREGATOR_PRICE_DECIMALS
+        );
+        await mockAmoVaultContract.setFakeDeFiCollateralValue(fakeDeFiValueUsd);
+
+        // Calculate profit after adding DeFi value
+        const profitAfterDeFiUsd =
+          await amoManagerContract.availableVaultProfitsInUsd(
+            await mockAmoVaultContract.getAddress()
+          );
+
+        // Profit should increase by the fake DeFi value
+        assert.equal(
+          profitAfterDeFiUsd - profitAfterLossUsd,
+          fakeDeFiValueUsd,
+          "Profit should increase by the fake DeFi value"
+        );
+
+        // Calculate the available profit in dstable (may differ from USD if dstable price ≠ 1)
+        // We need to get the price from the vault's perspective - using a collateral token with 1 unit
+        // to see what the oracle says about dstable's price
+        const oneUnit = 1n * 10n ** BigInt(dstableInfo.decimals);
+        const dstablePriceInUsd =
+          await mockAmoVaultContract.assetValueFromAmount(
+            oneUnit,
+            await dstableContract.getAddress()
+          );
+
+        // Try to withdraw some of the profit
+        const takeProfitAmount = hre.ethers.parseUnits(
+          "100",
+          collateralInfo.decimals
+        );
+
+        // Value of profit amount in USD
+        const takeProfitValueUsd =
+          await mockAmoVaultContract.assetValueFromAmount(
+            takeProfitAmount,
+            await collateralContract.getAddress()
+          );
+
+        // Calculate the expected amount based on dstable price
+        // If dstable price isn't 1, the amount that can be withdrawn will be affected
+
+        // Check the token's balances before taking profit
+        const initialRecipientBalance =
+          await collateralContract.balanceOf(user1);
+
+        // Take profit
+        await amoManagerContract.withdrawProfits(
+          await mockAmoVaultContract.getAddress(),
+          user1,
+          await collateralContract.getAddress(),
+          takeProfitAmount
+        );
+
+        // Check the token's balances after taking profit
+        const finalRecipientBalance = await collateralContract.balanceOf(user1);
+
+        // Recipient should receive the profit amount
+        assert.equal(
+          finalRecipientBalance - initialRecipientBalance,
+          takeProfitAmount,
+          "Recipient should receive the correct profit amount"
+        );
+
+        // Calculate profit after withdrawing
+        const profitAfterWithdrawUsd =
+          await amoManagerContract.availableVaultProfitsInUsd(
+            await mockAmoVaultContract.getAddress()
+          );
+
+        // Profit should decrease by the value of the withdrawn profit
+        assert.equal(
+          profitAfterDeFiUsd - profitAfterWithdrawUsd,
+          takeProfitValueUsd,
+          "Profit should decrease by the value of the withdrawn profit"
         );
       });
 
