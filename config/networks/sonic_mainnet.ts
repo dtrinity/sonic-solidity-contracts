@@ -21,7 +21,7 @@ export async function getConfig(
       wS: "0x039e2fB66102314Ce7b64Ce5Ce3E5183bc94aD38",
     },
     oracleAggregator: {
-      hardDusdPeg: 10 ** ORACLE_AGGREGATOR_PRICE_DECIMALS,
+      hardDStablePeg: 10 ** ORACLE_AGGREGATOR_PRICE_DECIMALS,
       priceDecimals: ORACLE_AGGREGATOR_PRICE_DECIMALS,
       api3OracleAssets: {
         plainApi3OracleWrappers: {},

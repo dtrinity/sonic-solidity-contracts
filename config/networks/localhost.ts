@@ -91,7 +91,7 @@ export async function getConfig(
       wS: emptyStringIfUndefined(wSTokenDeployment?.address),
     },
     oracleAggregator: {
-      hardDusdPeg: 10 ** ORACLE_AGGREGATOR_PRICE_DECIMALS,
+      hardDStablePeg: 10 ** ORACLE_AGGREGATOR_PRICE_DECIMALS,
       priceDecimals: ORACLE_AGGREGATOR_PRICE_DECIMALS,
       api3OracleAssets: {
         plainApi3OracleWrappers: {

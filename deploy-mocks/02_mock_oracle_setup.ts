@@ -24,16 +24,15 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   // Get token addresses
   const tokenSymbols = [
-    // DUSD ecosystem tokens
-    "dUSD",
+    // dUSD ecosystem tokens
     "frxUSD",
-    "USDC",
     "sfrxUSD",
-    // DS ecosystem tokens
-    "dS",
-    "wOS",
+    "USDC",
+    "USDS",
+    "sUSDS",
+    // dS ecosystem tokens
     "stS",
-    "wS",
+    "wOS",
   ];
 
   // Track deployed mock oracles for each asset
