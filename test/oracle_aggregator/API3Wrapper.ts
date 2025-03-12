@@ -15,6 +15,7 @@ import { API3_ORACLE_WRAPPER_ID } from "../../typescript/deploy-ids";
 describe("API3Wrappers", () => {
   let api3WrapperContract: API3Wrapper;
   let mockAPI3OracleFrxUSDContract: MockAPI3OracleAlwaysAlive;
+  let mockAPI3OracleSfrxUSDContract: MockAPI3OracleAlwaysAlive;
   let frxUSDAddress: string;
   let sfrxUSDAddress: string;
   let deployer: Address;
@@ -49,19 +50,43 @@ describe("API3Wrappers", () => {
     frxUSDAddress = frxUSDInfo.address;
     sfrxUSDAddress = sfrxUSDInfo.address;
 
-    // Get the MockOracleDeployments data which contains the mapping of token addresses to mock oracles
-    const mockOracleDeployments = await hre.deployments.get(
-      "MockOracleDeployments"
-    );
-    const mockOracleMap = mockOracleDeployments.linkedData as Record<
-      string,
-      string
-    >;
+    // Find the mock oracle deployments
+    const mockOracleDeployments: Record<string, string> = {};
+    const allDeployments = await hre.deployments.all();
 
-    // Get the mock oracle contract
+    for (const [name, deployment] of Object.entries(allDeployments)) {
+      if (name.startsWith("MockAPI3OracleAlwaysAlive_")) {
+        const feedName = name.replace("MockAPI3OracleAlwaysAlive_", "");
+        mockOracleDeployments[feedName] = deployment.address;
+      }
+    }
+
+    // Set up proxies for testing
+    const frxUSDOracleAddress = mockOracleDeployments["frxUSD_USD"];
+    const sfrxUSDOracleAddress = mockOracleDeployments["sfrxUSD_frxUSD"];
+
+    if (!frxUSDOracleAddress) {
+      throw new Error("frxUSD_USD mock oracle not found");
+    }
+
+    if (!sfrxUSDOracleAddress) {
+      throw new Error("sfrxUSD_frxUSD mock oracle not found");
+    }
+
+    // Set the proxies for the tokens we're testing
+    await api3WrapperContract.setProxy(frxUSDAddress, frxUSDOracleAddress);
+    await api3WrapperContract.setProxy(sfrxUSDAddress, sfrxUSDOracleAddress);
+
+    // Get the mock oracle contracts for verification
     mockAPI3OracleFrxUSDContract = await hre.ethers.getContractAt(
       "MockAPI3OracleAlwaysAlive",
-      mockOracleMap[frxUSDAddress],
+      frxUSDOracleAddress,
+      await hre.ethers.getSigner(deployer)
+    );
+
+    mockAPI3OracleSfrxUSDContract = await hre.ethers.getContractAt(
+      "MockAPI3OracleAlwaysAlive",
+      sfrxUSDOracleAddress,
       await hre.ethers.getSigner(deployer)
     );
   });

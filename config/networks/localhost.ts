@@ -135,10 +135,19 @@ export async function getConfig(
                 },
               }
             : {}),
-          ...(frxUSDDeployment?.address && mockOracleDeployments["frxUSD/USD"]
+          ...(frxUSDDeployment?.address && mockOracleDeployments["frxUSD_USD"]
             ? {
                 [frxUSDDeployment.address]: {
-                  proxy: mockOracleDeployments["frxUSD/USD"],
+                  proxy: mockOracleDeployments["frxUSD_USD"],
+                  lowerThreshold: thresholdValue,
+                  fixedPrice: thresholdValue,
+                },
+              }
+            : {}),
+          ...(wSTokenDeployment?.address && mockOracleDeployments["wS_USD"]
+            ? {
+                [wSTokenDeployment.address]: {
+                  proxy: mockOracleDeployments["wS_USD"],
                   lowerThreshold: thresholdValue,
                   fixedPrice: thresholdValue,
                 },
