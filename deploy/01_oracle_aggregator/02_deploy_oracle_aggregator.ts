@@ -2,10 +2,7 @@ import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
 
 import { getConfig } from "../../config/config";
-import {
-  DUSD_HARD_PEG_ORACLE_WRAPPER_ID,
-  ORACLE_AGGREGATOR_ID,
-} from "../../typescript/deploy-ids";
+import { ORACLE_AGGREGATOR_ID } from "../../typescript/deploy-ids";
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployer } = await hre.getNamedAccounts();
@@ -26,7 +23,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 };
 
 func.tags = ["oracle-aggregator"];
-func.dependencies = ["oracle-wrapper"];
+func.dependencies = [];
 func.id = ORACLE_AGGREGATOR_ID;
 
 export default func;

@@ -5,6 +5,7 @@ import { getConfig } from "../../config/config";
 import {
   API3_COMPOSITE_WRAPPER_WITH_THRESHOLDING_ID,
   API3_ORACLE_WRAPPER_ID,
+  API3_WRAPPER_WITH_THRESHOLDING_ID,
 } from "../../typescript/deploy-ids";
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
@@ -39,6 +40,43 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     await api3Wrapper.setProxy(assetAddress, proxyAddress);
     console.log(
       `Set plain API3 proxy for asset ${assetAddress} to ${proxyAddress}`
+    );
+  }
+
+  // Deploy API3WrapperWithThresholding for feeds with thresholding
+  const thresholdFeeds =
+    config.oracleAggregator.api3OracleAssets
+      .api3OracleWrappersWithThresholding || {};
+
+  const api3WrapperWithThresholdingDeployment = await hre.deployments.deploy(
+    API3_WRAPPER_WITH_THRESHOLDING_ID,
+    {
+      from: deployer,
+      args: [baseCurrencyUnit],
+      contract: "API3WrapperWithThresholding",
+      autoMine: true,
+      log: false,
+    }
+  );
+
+  const api3WrapperWithThresholding = await hre.ethers.getContractAt(
+    "API3WrapperWithThresholding",
+    api3WrapperWithThresholdingDeployment.address
+  );
+
+  // Set proxies and thresholds for feeds with thresholding
+  for (const [assetAddress, feedConfig] of Object.entries(thresholdFeeds)) {
+    await api3WrapperWithThresholding.setProxy(assetAddress, feedConfig.proxy);
+    await api3WrapperWithThresholding.setThresholdConfig(
+      assetAddress,
+      feedConfig.lowerThreshold,
+      feedConfig.fixedPrice
+    );
+    console.log(
+      `Set API3 proxy with thresholding for asset ${assetAddress}:`,
+      `\n  - Proxy: ${feedConfig.proxy}`,
+      `\n  - Lower threshold: ${feedConfig.lowerThreshold}`,
+      `\n  - Fixed price: ${feedConfig.fixedPrice}`
     );
   }
 
