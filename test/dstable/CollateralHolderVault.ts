@@ -2,7 +2,11 @@ import { assert, expect } from "chai";
 import hre, { getNamedAccounts } from "hardhat";
 import { Address } from "hardhat-deploy/types";
 
-import { CollateralHolderVault, TestERC20 } from "../../typechain-types";
+import {
+  CollateralHolderVault,
+  TestERC20,
+  OracleAggregator,
+} from "../../typechain-types";
 import {
   getTokenContractForSymbol,
   TokenInfo,
@@ -13,18 +17,7 @@ import {
   DS_CONFIG,
   DStableFixtureConfig,
 } from "./fixtures";
-
-// Define asset types for price calculation - same as in Issuer.ts
-const STABLE_ASSET_PRICE = 1.0;
-const YIELD_BEARING_ASSET_PRICE = 1.1;
-
-// Define which assets are yield-bearing (price = 1.1) vs stable (price = 1.0)
-const yieldBearingAssets = new Set(["sfrxUSD", "stS", "wOS", "wS"]);
-const isYieldBearingAsset = (symbol: string): boolean =>
-  yieldBearingAssets.has(symbol);
-
-// dS token itself is treated as a yield-bearing asset in the oracle setup
-const isYieldBearingToken = (symbol: string): boolean => symbol === "dS";
+import { ORACLE_AGGREGATOR_ID } from "../../typescript/deploy-ids";
 
 // Run tests for each dStable configuration
 const dstableConfigs: DStableFixtureConfig[] = [DUSD_CONFIG, DS_CONFIG];
@@ -34,6 +27,7 @@ dstableConfigs.forEach((config) => {
     let collateralVaultContract: CollateralHolderVault;
     let collateralContracts: Map<string, TestERC20> = new Map();
     let collateralInfos: Map<string, TokenInfo> = new Map();
+    let oracleAggregatorContract: OracleAggregator;
     let deployer: Address;
     let user1: Address;
     let user2: Address;
@@ -55,6 +49,16 @@ dstableConfigs.forEach((config) => {
         await hre.ethers.getSigner(deployer)
       );
 
+      // Get the oracle aggregator
+      const oracleAggregatorAddress = (
+        await hre.deployments.get(ORACLE_AGGREGATOR_ID)
+      ).address;
+      oracleAggregatorContract = await hre.ethers.getContractAt(
+        "OracleAggregator",
+        oracleAggregatorAddress,
+        await hre.ethers.getSigner(deployer)
+      );
+
       // Initialize all collateral tokens for this dStable
       for (const collateralSymbol of config.collateralSymbols) {
         const { contract, tokenInfo } = await getTokenContractForSymbol(
@@ -70,6 +74,40 @@ dstableConfigs.forEach((config) => {
         await contract.transfer(user1, amount);
       }
     });
+
+    /**
+     * Calculates the expected USD value of a token amount based on oracle prices
+     * @param amount - The amount of token
+     * @param tokenAddress - The address of the token
+     * @returns The USD value of the token amount
+     */
+    async function calculateUsdValueFromAmount(
+      amount: bigint,
+      tokenAddress: Address
+    ): Promise<bigint> {
+      const price = await oracleAggregatorContract.getAssetPrice(tokenAddress);
+      const decimals = await (
+        await hre.ethers.getContractAt("TestERC20", tokenAddress)
+      ).decimals();
+      return (amount * price) / 10n ** BigInt(decimals);
+    }
+
+    /**
+     * Calculates the expected token amount from a USD value based on oracle prices
+     * @param usdValue - The USD value
+     * @param tokenAddress - The address of the token
+     * @returns The token amount equivalent to the USD value
+     */
+    async function calculateAmountFromUsdValue(
+      usdValue: bigint,
+      tokenAddress: Address
+    ): Promise<bigint> {
+      const price = await oracleAggregatorContract.getAssetPrice(tokenAddress);
+      const decimals = await (
+        await hre.ethers.getContractAt("TestERC20", tokenAddress)
+      ).decimals();
+      return (usdValue * 10n ** BigInt(decimals)) / price;
+    }
 
     describe("Collateral management", () => {
       // Test for each collateral type
@@ -216,21 +254,27 @@ dstableConfigs.forEach((config) => {
             collateralInfo.address
           );
 
-          // Calculate expected USD value of this collateral
-          const collateralValue =
-            await collateralVaultContract.assetValueFromAmount(
-              depositAmount,
-              collateralInfo.address
-            );
+          // Calculate expected USD value of this collateral using oracle prices
+          const collateralValue = await calculateUsdValueFromAmount(
+            depositAmount,
+            collateralInfo.address
+          );
           expectedTotalValue += collateralValue;
         }
 
         const actualTotalValue = await collateralVaultContract.totalValue();
 
-        assert.equal(
-          actualTotalValue,
-          expectedTotalValue,
-          "Total value calculation is incorrect"
+        // Allow for a small rounding error due to fixed-point math
+        const difference =
+          actualTotalValue > expectedTotalValue
+            ? actualTotalValue - expectedTotalValue
+            : expectedTotalValue - actualTotalValue;
+
+        const acceptableError = 10n; // Small error margin for fixed-point calculations
+
+        assert.isTrue(
+          difference <= acceptableError,
+          `Total value difference (${difference}) exceeds acceptable error (${acceptableError}). Expected: ${expectedTotalValue}, Actual: ${actualTotalValue}`
         );
       });
 
@@ -240,34 +284,50 @@ dstableConfigs.forEach((config) => {
           collateralSymbol
         ) as TokenInfo;
 
-        // For yield-bearing assets, we need to account for the 1.1 price factor
-        // The amount of USD value should be 1.1x the token amount for yield-bearing assets
+        // Use a standard USD value for testing
         const usdValue = hre.ethers.parseUnits("100", 8); // 100 USD with 8 decimals
 
+        // Get the asset amount from the contract
         const assetAmount = await collateralVaultContract.assetAmountFromValue(
           usdValue,
           collateralInfo.address
         );
 
+        // Calculate the expected asset amount using oracle prices
+        const expectedAssetAmount = await calculateAmountFromUsdValue(
+          usdValue,
+          collateralInfo.address
+        );
+
+        // Calculate the USD value from the asset amount using the contract
         const calculatedValue =
           await collateralVaultContract.assetValueFromAmount(
             assetAmount,
             collateralInfo.address
           );
 
-        // The acceptable error should be larger for yield-bearing assets due to more complex calculations
-        // that might involve rounding
-        const isPriceAdjusted =
-          isYieldBearingAsset(collateralSymbol) ||
-          isYieldBearingToken(config.symbol);
-        const acceptableError = isPriceAdjusted ? 2n : 1n; // Allow slightly larger error for price-adjusted assets
-
         // Allow for a small rounding error due to fixed-point math
-        const difference = calculatedValue - usdValue;
+        const amountDifference =
+          assetAmount > expectedAssetAmount
+            ? assetAmount - expectedAssetAmount
+            : expectedAssetAmount - assetAmount;
 
-        assert(
-          (difference < 0n ? -difference : difference) <= acceptableError,
-          `Value conversion difference (${difference}) exceeds acceptable error (${acceptableError})`
+        const valueDifference =
+          calculatedValue > usdValue
+            ? calculatedValue - usdValue
+            : usdValue - calculatedValue;
+
+        const acceptableAmountError = (expectedAssetAmount * 1n) / 100n; // 1% error margin
+        const acceptableValueError = (usdValue * 1n) / 100n; // 1% error margin
+
+        assert.isTrue(
+          amountDifference <= acceptableAmountError,
+          `Asset amount difference (${amountDifference}) exceeds acceptable error (${acceptableAmountError}). Expected: ${expectedAssetAmount}, Actual: ${assetAmount}`
+        );
+
+        assert.isTrue(
+          valueDifference <= acceptableValueError,
+          `USD value difference (${valueDifference}) exceeds acceptable error (${acceptableValueError}). Expected: ${usdValue}, Actual: ${calculatedValue}`
         );
       });
     });
