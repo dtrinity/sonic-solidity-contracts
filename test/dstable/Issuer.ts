@@ -8,6 +8,7 @@ import {
   Issuer,
   TestERC20,
   TestMintableERC20,
+  OracleAggregator,
 } from "../../typechain-types";
 import { ORACLE_AGGREGATOR_PRICE_DECIMALS } from "../../typescript/oracle_aggregator/constants";
 import {
@@ -20,54 +21,57 @@ import {
   DS_CONFIG,
   DStableFixtureConfig,
 } from "./fixtures";
+import { ORACLE_AGGREGATOR_ID } from "../../typescript/deploy-ids";
 
-// Define asset types for price calculation
-const STABLE_ASSET_PRICE = 1.0;
-const YIELD_BEARING_ASSET_PRICE = 1.1;
-
-// Define which assets are yield-bearing (price = 1.1) vs stable (price = 1.0)
+// Define which assets are yield-bearing vs stable for reference
 const yieldBearingAssets = new Set(["sfrxUSD", "sUSDS", "stS", "wOS"]);
 const isYieldBearingAsset = (symbol: string): boolean =>
   yieldBearingAssets.has(symbol);
 
-// Function to calculate expected dStable amount based on asset type and dStable type
-function calculateExpectedDstableAmount(
+/**
+ * Calculates expected dStable amount based on collateral amount and oracle prices
+ * This uses the actual oracle prices instead of hard-coded values
+ */
+async function calculateExpectedDstableAmount(
   collateralAmount: bigint,
   collateralSymbol: string,
-  dstableSymbol: string
-): bigint {
-  // Based on the values set in the mock oracle setup
-  if (dstableSymbol === "dS" && collateralSymbol === "wS") {
-    // dS for wS - 1:1 ratio
-    return collateralAmount;
-  } else if (
-    dstableSymbol === "dS" &&
-    (collateralSymbol === "wOS" || collateralSymbol === "stS")
-  ) {
-    // dS for wOS or stS - 1.1:1 ratio
-    return (collateralAmount * 11n) / 10n;
-  } else if (dstableSymbol === "dUSD") {
-    // dUSD for any collateral - 1:1 ratio
-    return collateralAmount;
-  } else {
-    // Default case - 1:1 ratio
-    return collateralAmount;
-  }
+  collateralDecimals: number,
+  dstableSymbol: string,
+  dstableDecimals: number,
+  oracleAggregator: OracleAggregator,
+  collateralAddress: string,
+  dstableAddress: string
+): Promise<bigint> {
+  // Get prices from oracle aggregator
+  const collateralPrice =
+    await oracleAggregator.getAssetPrice(collateralAddress);
+  const dstablePrice = await oracleAggregator.getAssetPrice(dstableAddress);
+
+  // Calculate USD value of collateral
+  // Formula: (collateralAmount * collateralPrice) / 10^collateralDecimals
+  const collateralValueInUsd =
+    (collateralAmount * collateralPrice) / 10n ** BigInt(collateralDecimals);
+
+  // Convert USD value to dStable amount
+  // Formula: (collateralValueInUsd * 10^dstableDecimals) / dstablePrice
+  return (collateralValueInUsd * 10n ** BigInt(dstableDecimals)) / dstablePrice;
 }
 
-// Function to calculate expected dStable amount from USD value based on dStable type
-function calculateExpectedDstableFromUsd(
+/**
+ * Calculates expected dStable amount from USD value based on oracle prices
+ */
+async function calculateExpectedDstableFromUsd(
   usdValue: bigint,
   dstableSymbol: string,
-  dstableDecimals: number
-): bigint {
-  // USD to dStable conversion takes into account the price of dStable
-  // Formula: (usdValue * 10^dstableDecimals) / dstablePrice
-  const dstablePrice =
-    dstableSymbol === "dS"
-      ? BigInt(YIELD_BEARING_ASSET_PRICE * 100000000) // 1.1 * 10^8
-      : BigInt(STABLE_ASSET_PRICE * 100000000); // 1.0 * 10^8
+  dstableDecimals: number,
+  oracleAggregator: OracleAggregator,
+  dstableAddress: string
+): Promise<bigint> {
+  // Get dStable price from oracle
+  const dstablePrice = await oracleAggregator.getAssetPrice(dstableAddress);
 
+  // Convert USD value to dStable amount
+  // Formula: (usdValue * 10^dstableDecimals) / dstablePrice
   return (usdValue * 10n ** BigInt(dstableDecimals)) / dstablePrice;
 }
 
@@ -79,6 +83,7 @@ dstableConfigs.forEach((config) => {
     let issuerContract: Issuer;
     let collateralVaultContract: CollateralHolderVault;
     let amoManagerContract: AmoManager;
+    let oracleAggregatorContract: OracleAggregator;
     let collateralContracts: Map<string, TestERC20> = new Map();
     let collateralInfos: Map<string, TokenInfo> = new Map();
     let dstableContract: TestMintableERC20;
@@ -103,44 +108,64 @@ dstableConfigs.forEach((config) => {
         await hre.ethers.getSigner(deployer)
       );
 
-      const collateralVaultAddress = await issuerContract.collateralVault();
+      const collateralVaultAddress = (
+        await hre.deployments.get(config.collateralVaultContractId)
+      ).address;
       collateralVaultContract = await hre.ethers.getContractAt(
         "CollateralHolderVault",
         collateralVaultAddress,
         await hre.ethers.getSigner(deployer)
       );
 
-      const amoManagerAddress = await issuerContract.amoManager();
+      const amoManagerAddress = (await hre.deployments.get(config.amoManagerId))
+        .address;
       amoManagerContract = await hre.ethers.getContractAt(
         "AmoManager",
         amoManagerAddress,
         await hre.ethers.getSigner(deployer)
       );
 
-      // Get dStable token info
-      ({ contract: dstableContract, tokenInfo: dstableInfo } =
-        await getTokenContractForSymbol(
-          hre,
-          deployer,
-          config.symbol as "dUSD" | "dS"
-        ));
+      // Get the oracle aggregator
+      const oracleAggregatorAddress = (
+        await hre.deployments.get(ORACLE_AGGREGATOR_ID)
+      ).address;
+      oracleAggregatorContract = await hre.ethers.getContractAt(
+        "OracleAggregator",
+        oracleAggregatorAddress,
+        await hre.ethers.getSigner(deployer)
+      );
 
-      // Initialize all collateral tokens for this dStable
-      for (const collateralSymbol of config.collateralSymbols) {
-        const { contract, tokenInfo } = await getTokenContractForSymbol(
-          hre,
-          deployer,
-          collateralSymbol
-        );
-        collateralContracts.set(collateralSymbol, contract as TestERC20);
-        collateralInfos.set(collateralSymbol, tokenInfo);
+      // Get dStable token
+      const dstableResult = await getTokenContractForSymbol(
+        hre,
+        deployer,
+        config.symbol
+      );
+      dstableContract = dstableResult.contract as TestMintableERC20;
+      dstableInfo = dstableResult.tokenInfo;
+
+      // Get collateral tokens
+      for (const symbol of config.collateralSymbols) {
+        const result = await getTokenContractForSymbol(hre, deployer, symbol);
+        collateralContracts.set(symbol, result.contract);
+        collateralInfos.set(symbol, result.tokenInfo);
 
         // Allow this collateral in the vault
-        await collateralVaultContract.allowCollateral(tokenInfo.address);
+        try {
+          await collateralVaultContract.allowCollateral(
+            result.tokenInfo.address
+          );
+        } catch (e) {
+          // Ignore if already allowed
+        }
 
-        // Transfer 1000 of each collateral to user1 for testing
-        const amount = hre.ethers.parseUnits("1000", tokenInfo.decimals);
-        await contract.transfer(user1, amount);
+        // Transfer tokens to test users
+        const amount = hre.ethers.parseUnits(
+          "10000",
+          result.tokenInfo.decimals
+        );
+        await result.contract.transfer(user1, amount);
+        await result.contract.transfer(user2, amount);
       }
     });
 
@@ -160,11 +185,16 @@ dstableConfigs.forEach((config) => {
             collateralInfo.decimals
           );
 
-          // Calculate expected dStable amount based on asset types
-          const expectedDstableAmount = calculateExpectedDstableAmount(
+          // Calculate expected dStable amount based on asset types and oracle prices
+          const expectedDstableAmount = await calculateExpectedDstableAmount(
             collateralAmount,
             collateralSymbol,
-            config.symbol
+            collateralInfo.decimals,
+            config.symbol,
+            dstableInfo.decimals,
+            oracleAggregatorContract,
+            collateralInfo.address,
+            dstableInfo.address
           );
 
           // Use this as minimum to ensure test passes
@@ -199,22 +229,12 @@ dstableConfigs.forEach((config) => {
           const dstableReceived =
             userDstableBalanceAfter - userDstableBalanceBefore;
 
-          // For the USDC to dUSD case specifically, the decimals cause much larger discrepancies
-          // This is a special case for testing only
-          if (config.symbol === "dUSD" && collateralSymbol === "USDC") {
-            // Just test that some amount was received - USDC has 6 decimals, dUSD has 18
-            assert(
-              dstableReceived > 0n,
-              `User did not receive any dStable. Received: ${dstableReceived}`
-            );
-          } else {
-            // Use exact equality check
-            assert.equal(
-              dstableReceived,
-              expectedDstableAmount,
-              `User did not receive the expected amount of dStable. Expected ${expectedDstableAmount}, received ${dstableReceived}`
-            );
-          }
+          // Use exact equality check - our calculation should match the contract's calculation
+          assert.equal(
+            dstableReceived,
+            expectedDstableAmount,
+            `User did not receive the expected amount of dStable. Expected ${expectedDstableAmount}, received ${dstableReceived}`
+          );
         });
 
         it(`cannot issue ${config.symbol} with more than user's ${collateralSymbol} balance`, async function () {
@@ -225,19 +245,18 @@ dstableConfigs.forEach((config) => {
             collateralSymbol
           ) as TokenInfo;
 
-          const collateralAmount = hre.ethers.parseUnits(
-            "1001", // More than user has
-            collateralInfo.decimals
-          );
-          const minDStable = hre.ethers.parseUnits(
-            "1001",
-            dstableInfo.decimals
-          );
+          // Get user's current balance
+          const userBalance = await collateralContract.balanceOf(user1);
+
+          // Try to issue with more than the user has
+          const collateralAmount = userBalance + 1n;
+          const minDStable = 1n; // Any non-zero value
 
           await collateralContract
             .connect(await hre.ethers.getSigner(user1))
             .approve(await issuerContract.getAddress(), collateralAmount);
 
+          // This should revert because user doesn't have enough balance
           await expect(
             issuerContract
               .connect(await hre.ethers.getSigner(user1))
@@ -247,7 +266,7 @@ dstableConfigs.forEach((config) => {
       });
 
       it(`circulatingDstable function calculates correctly for ${config.symbol}`, async function () {
-        // Use the first collateral for this test
+        // Issue some dStable to create circulating supply
         const collateralSymbol = config.collateralSymbols[0];
         const collateralContract = collateralContracts.get(
           collateralSymbol
@@ -256,26 +275,37 @@ dstableConfigs.forEach((config) => {
           collateralSymbol
         ) as TokenInfo;
 
-        // Make sure there's some dStable supply at the start of the test
         const collateralAmount = hre.ethers.parseUnits(
-          "10000",
+          "1000",
           collateralInfo.decimals
         );
-        const minDStable = hre.ethers.parseUnits("10000", dstableInfo.decimals);
 
-        await collateralContract.transfer(deployer, collateralAmount);
-        await collateralContract.approve(
-          await issuerContract.getAddress(),
-          collateralAmount
-        );
-        await issuerContract.issue(
+        // Calculate expected dStable amount
+        const expectedDstableAmount = await calculateExpectedDstableAmount(
           collateralAmount,
+          collateralSymbol,
+          collateralInfo.decimals,
+          config.symbol,
+          dstableInfo.decimals,
+          oracleAggregatorContract,
           collateralInfo.address,
-          minDStable
+          dstableInfo.address
         );
 
-        // Mint some AMO supply
-        const amoSupply = hre.ethers.parseUnits("3000", dstableInfo.decimals);
+        await collateralContract
+          .connect(await hre.ethers.getSigner(user1))
+          .approve(await issuerContract.getAddress(), collateralAmount);
+
+        await issuerContract
+          .connect(await hre.ethers.getSigner(user1))
+          .issue(
+            collateralAmount,
+            collateralInfo.address,
+            expectedDstableAmount
+          );
+
+        // Create some AMO supply
+        const amoSupply = hre.ethers.parseUnits("500", dstableInfo.decimals);
         await issuerContract.increaseAmoSupply(amoSupply);
 
         const totalSupply = await dstableContract.totalSupply();
@@ -298,26 +328,19 @@ dstableConfigs.forEach((config) => {
       });
 
       it(`usdValueToDstableAmount converts correctly for ${config.symbol}`, async function () {
-        // Get the oracle contract for price information
-        const dstablePriceOracle = await hre.ethers.getContractAt(
-          "OracleAggregator",
-          await issuerContract.oracle(),
-          await hre.ethers.getSigner(deployer)
-        );
-
         const usdValue = hre.ethers.parseUnits(
           "100",
           ORACLE_AGGREGATOR_PRICE_DECIMALS
         ); // 100 USD
 
-        // Get the actual price of the dstable token
-        const dstablePrice = await dstablePriceOracle.getAssetPrice(
+        // Calculate expected dStable amount using our dynamic function
+        const expectedDstableAmount = await calculateExpectedDstableFromUsd(
+          usdValue,
+          config.symbol,
+          dstableInfo.decimals,
+          oracleAggregatorContract,
           dstableInfo.address
         );
-
-        // Calculate expected dStable amount based on the price
-        const expectedDstableAmount =
-          (usdValue * 10n ** BigInt(dstableInfo.decimals)) / dstablePrice;
 
         const actualDstableAmount =
           await issuerContract.usdValueToDstableAmount(usdValue);
@@ -369,6 +392,13 @@ dstableConfigs.forEach((config) => {
           collateralSymbol
         ) as TokenInfo;
 
+        // Ensure the collateral is allowed in the vault
+        try {
+          await collateralVaultContract.allowCollateral(collateralInfo.address);
+        } catch (e) {
+          // Ignore if already allowed
+        }
+
         // Ensure there's excess collateral
         const collateralAmount = hre.ethers.parseUnits(
           "2000",
@@ -383,12 +413,23 @@ dstableConfigs.forEach((config) => {
           collateralInfo.address
         );
 
+        // Calculate how much dStable this collateral is worth
+        const collateralValueInDstable = await calculateExpectedDstableAmount(
+          collateralAmount,
+          collateralSymbol,
+          collateralInfo.decimals,
+          config.symbol,
+          dstableInfo.decimals,
+          oracleAggregatorContract,
+          collateralInfo.address,
+          dstableInfo.address
+        );
+
         const initialCirculatingDstable =
           await issuerContract.circulatingDstable();
-        const amountToMint = hre.ethers.parseUnits(
-          "2000",
-          dstableInfo.decimals
-        );
+
+        // Use a value less than the collateral value to ensure it succeeds
+        const amountToMint = collateralValueInDstable / 2n;
         const receiver = user2;
         const initialReceiverBalance =
           await dstableContract.balanceOf(receiver);
