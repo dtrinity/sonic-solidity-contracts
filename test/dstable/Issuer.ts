@@ -36,21 +36,21 @@ function calculateExpectedDstableAmount(
   collateralSymbol: string,
   dstableSymbol: string
 ): bigint {
-  // For test purposes, we'll reverse-engineer what the contract is actually doing
-  if (dstableSymbol === "dS" && isYieldBearingAsset(collateralSymbol)) {
-    // Both dS and yield-bearing assets like wS have 1.1 price, so contract actually gives 1:1 ratio
+  // Based on the values set in the mock oracle setup
+  if (dstableSymbol === "dS" && collateralSymbol === "wS") {
+    // dS for wS - 1:1 ratio
     return collateralAmount;
-  } else if (dstableSymbol === "dS" && !isYieldBearingAsset(collateralSymbol)) {
-    // Stable asset to dS - in contract dS is worth 1.1, so user gets less dS
-    return (collateralAmount * 10n) / 11n;
   } else if (
-    dstableSymbol === "dUSD" &&
-    isYieldBearingAsset(collateralSymbol)
+    dstableSymbol === "dS" &&
+    (collateralSymbol === "wOS" || collateralSymbol === "stS")
   ) {
-    // Yield bearing asset to dUSD - in contract yield asset is worth 1.1, so user gets more dUSD
+    // dS for wOS or stS - 1.1:1 ratio
     return (collateralAmount * 11n) / 10n;
+  } else if (dstableSymbol === "dUSD") {
+    // dUSD for any collateral - 1:1 ratio
+    return collateralAmount;
   } else {
-    // Stable to stable - 1:1 ratio
+    // Default case - 1:1 ratio
     return collateralAmount;
   }
 }
@@ -160,14 +160,14 @@ dstableConfigs.forEach((config) => {
             collateralInfo.decimals
           );
 
-          // Calculate minimum dStable to receive based on asset types
+          // Calculate expected dStable amount based on asset types
           const expectedDstableAmount = calculateExpectedDstableAmount(
             collateralAmount,
             collateralSymbol,
             config.symbol
           );
 
-          // Use this as minimum to ensure test passes even if contract gives slightly more
+          // Use this as minimum to ensure test passes
           const minDStable = expectedDstableAmount;
 
           const vaultBalanceBefore = await collateralContract.balanceOf(
@@ -196,16 +196,8 @@ dstableConfigs.forEach((config) => {
             "Collateral vault balance did not increase by the expected amount"
           );
 
-          // Use approximately equal check to account for potential small rounding errors
           const dstableReceived =
             userDstableBalanceAfter - userDstableBalanceBefore;
-
-          // Set a larger acceptable error to account for the way the contract actually behaves
-          // In many implementations, the received amount may depend on specific price calculations
-          // inside the contract which may differ from our simplified test calculations
-          const acceptableErrorPercent = 10n; // 10% tolerance
-          const acceptableError =
-            (expectedDstableAmount * acceptableErrorPercent) / 100n;
 
           // For the USDC to dUSD case specifically, the decimals cause much larger discrepancies
           // This is a special case for testing only
@@ -216,14 +208,11 @@ dstableConfigs.forEach((config) => {
               `User did not receive any dStable. Received: ${dstableReceived}`
             );
           } else {
-            const difference =
-              dstableReceived > expectedDstableAmount
-                ? dstableReceived - expectedDstableAmount
-                : expectedDstableAmount - dstableReceived;
-
-            assert(
-              difference <= acceptableError,
-              `User did not receive the expected amount of dStable. Expected ~${expectedDstableAmount}, received ${dstableReceived}, difference: ${difference}, acceptable error: ${acceptableError}`
+            // Use exact equality check
+            assert.equal(
+              dstableReceived,
+              expectedDstableAmount,
+              `User did not receive the expected amount of dStable. Expected ${expectedDstableAmount}, received ${dstableReceived}`
             );
           }
         });

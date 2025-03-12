@@ -8,7 +8,6 @@ import {
   Issuer,
   TestERC20,
   MockAmoVault,
-  MockAPI3OracleAlwaysAlive,
   OracleAggregator,
 } from "../../typechain-types";
 import { ORACLE_AGGREGATOR_PRICE_DECIMALS } from "../../typescript/oracle_aggregator/constants";
@@ -20,6 +19,7 @@ import {
   DUSD_COLLATERAL_VAULT_CONTRACT_ID,
   DUSD_ISSUER_CONTRACT_ID,
   DUSD_REDEEMER_CONTRACT_ID,
+  ORACLE_AGGREGATOR_ID,
 } from "../../typescript/deploy-ids";
 
 describe("dStable Ecosystem Lifecycle", () => {
@@ -27,9 +27,6 @@ describe("dStable Ecosystem Lifecycle", () => {
   let mockAmoVaultContract: MockAmoVault;
   let collateralHolderVaultContract: CollateralHolderVault;
   let oracleAggregatorContract: OracleAggregator;
-  let mockFrxUSDOracleContract: MockAPI3OracleAlwaysAlive;
-  let mockUSDCOracleContract: MockAPI3OracleAlwaysAlive;
-  let mockSfrxUSDOracleContract: MockAPI3OracleAlwaysAlive;
   let issuerContract: Issuer;
   let dstableContract: TestERC20;
   let dstableInfo: TokenInfo;
@@ -77,7 +74,7 @@ describe("dStable Ecosystem Lifecycle", () => {
     );
 
     const oracleAggregatorAddress = (
-      await hre.deployments.get("OracleAggregator")
+      await hre.deployments.get(ORACLE_AGGREGATOR_ID)
     ).address;
     oracleAggregatorContract = await hre.ethers.getContractAt(
       "OracleAggregator",
@@ -93,34 +90,6 @@ describe("dStable Ecosystem Lifecycle", () => {
       await getTokenContractForSymbol(hre, deployer, "frxUSD"));
     ({ contract: usdcContract, tokenInfo: usdcInfo } =
       await getTokenContractForSymbol(hre, deployer, "USDC"));
-
-    /* Get the mock oracles for each token */
-    const mockFrxUSDOracleAddress = (
-      await hre.deployments.get("MockAPI3Oracle_frxUSD")
-    ).address;
-    mockFrxUSDOracleContract = await hre.ethers.getContractAt(
-      "MockAPI3OracleAlwaysAlive",
-      mockFrxUSDOracleAddress,
-      await hre.ethers.getSigner(deployer)
-    );
-
-    const mockUSDCOracleAddress = (
-      await hre.deployments.get("MockAPI3Oracle_USDC")
-    ).address;
-    mockUSDCOracleContract = await hre.ethers.getContractAt(
-      "MockAPI3OracleAlwaysAlive",
-      mockUSDCOracleAddress,
-      await hre.ethers.getSigner(deployer)
-    );
-
-    const mockSfrxUSDOracleAddress = (
-      await hre.deployments.get("MockAPI3Oracle_sfrxUSD")
-    ).address;
-    mockSfrxUSDOracleContract = await hre.ethers.getContractAt(
-      "MockAPI3OracleAlwaysAlive",
-      mockSfrxUSDOracleAddress,
-      await hre.ethers.getSigner(deployer)
-    );
 
     const issuerAddress = (await hre.deployments.get(DUSD_ISSUER_CONTRACT_ID))
       .address;
@@ -262,27 +231,6 @@ describe("dStable Ecosystem Lifecycle", () => {
       await hre.ethers.getContractAt("TestERC20", token)
     ).decimals();
     return (amount * price) / 10n ** decimals;
-  }
-
-  /**
-   * Updates the price of a token in the mock oracle
-   *
-   * @param tokenAddress - The address of the token
-   * @param price - The new price for the token
-   */
-  async function updateTokenPrice(
-    tokenAddress: Address,
-    price: bigint
-  ): Promise<void> {
-    if (tokenAddress === frxUSDInfo.address) {
-      await mockFrxUSDOracleContract.setMock(Number(price));
-    } else if (tokenAddress === usdcInfo.address) {
-      await mockUSDCOracleContract.setMock(Number(price));
-    } else if (tokenAddress === dstableInfo.address) {
-      // dStable is always pegged to 1 USD
-    } else {
-      throw new Error(`Unknown token address: ${tokenAddress}`);
-    }
   }
 
   it("should maintain invariants throughout the lifecycle", async function () {
