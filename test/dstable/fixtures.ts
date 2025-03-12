@@ -13,9 +13,7 @@ import {
   DS_COLLATERAL_VAULT_CONTRACT_ID,
   DS_AMO_MANAGER_ID,
 } from "../../typescript/deploy-ids";
-import { ORACLE_AGGREGATOR_PRICE_DECIMALS } from "../../typescript/oracle_aggregator/constants";
 import { getTokenContractForSymbol } from "../../typescript/token/utils";
-import { setupOraclesForTesting } from "./setupOracles";
 
 export interface DStableFixtureConfig {
   symbol: string;
@@ -31,9 +29,6 @@ export const createDStableFixture = (config: DStableFixtureConfig) => {
   return deployments.createFixture(async ({ deployments }) => {
     await deployments.fixture(); // Start from a fresh deployment
     await deployments.fixture([config.symbol.toLowerCase(), "local-setup"]); // Include local-setup to use the mock Oracle
-
-    // Ensure oracles are properly configured - this fixes ProxyNotSet errors
-    await setupOraclesForTesting();
   });
 };
 
