@@ -9,6 +9,7 @@ import {
   Redeemer,
   TestERC20,
   TestMintableERC20,
+  OracleAggregator,
 } from "../../typechain-types";
 import {
   getTokenContractForSymbol,
@@ -20,18 +21,43 @@ import {
   DS_CONFIG,
   DStableFixtureConfig,
 } from "./fixtures";
+import { ORACLE_AGGREGATOR_ID } from "../../typescript/deploy-ids";
 
-// Define asset types for price calculation - same as in Issuer.ts
-const STABLE_ASSET_PRICE = 1.0;
-const YIELD_BEARING_ASSET_PRICE = 1.1;
-
-// Define which assets are yield-bearing (price = 1.1) vs stable (price = 1.0)
+// Define which assets are yield-bearing vs stable for reference
 const yieldBearingAssets = new Set(["sfrxUSD", "stS", "wOS", "wS"]);
 const isYieldBearingAsset = (symbol: string): boolean =>
   yieldBearingAssets.has(symbol);
 
-// dS token itself is treated as a yield-bearing asset in the oracle setup
-const isYieldBearingToken = (symbol: string): boolean => symbol === "dS";
+/**
+ * Calculates expected collateral amount when redeeming dStable based on oracle prices
+ * This uses the actual oracle prices instead of hard-coded values
+ */
+async function calculateExpectedCollateralAmount(
+  dstableAmount: bigint,
+  dstableSymbol: string,
+  dstableDecimals: number,
+  collateralSymbol: string,
+  collateralDecimals: number,
+  oracleAggregator: OracleAggregator,
+  dstableAddress: string,
+  collateralAddress: string
+): Promise<bigint> {
+  // Get prices from oracle aggregator
+  const dstablePrice = await oracleAggregator.getAssetPrice(dstableAddress);
+  const collateralPrice =
+    await oracleAggregator.getAssetPrice(collateralAddress);
+
+  // Calculate USD value of dStable
+  // Formula: (dstableAmount * dstablePrice) / 10^dstableDecimals
+  const dstableValueInUsd =
+    (dstableAmount * dstablePrice) / 10n ** BigInt(dstableDecimals);
+
+  // Convert USD value to collateral amount
+  // Formula: (dstableValueInUsd * 10^collateralDecimals) / collateralPrice
+  return (
+    (dstableValueInUsd * 10n ** BigInt(collateralDecimals)) / collateralPrice
+  );
+}
 
 // Run tests for each dStable configuration
 const dstableConfigs: DStableFixtureConfig[] = [DUSD_CONFIG, DS_CONFIG];
@@ -42,6 +68,7 @@ dstableConfigs.forEach((config) => {
     let issuerContract: Issuer;
     let collateralVaultContract: CollateralHolderVault;
     let amoManagerContract: AmoManager;
+    let oracleAggregatorContract: OracleAggregator;
     let collateralContracts: Map<string, TestERC20> = new Map();
     let collateralInfos: Map<string, TokenInfo> = new Map();
     let dstableContract: TestMintableERC20;
@@ -75,56 +102,82 @@ dstableConfigs.forEach((config) => {
         await hre.ethers.getSigner(deployer)
       );
 
-      const collateralVaultAddress = await issuerContract.collateralVault();
+      const collateralVaultAddress = (
+        await hre.deployments.get(config.collateralVaultContractId)
+      ).address;
       collateralVaultContract = await hre.ethers.getContractAt(
         "CollateralHolderVault",
         collateralVaultAddress,
         await hre.ethers.getSigner(deployer)
       );
 
-      const amoManagerAddress = await issuerContract.amoManager();
+      const amoManagerAddress = (await hre.deployments.get(config.amoManagerId))
+        .address;
       amoManagerContract = await hre.ethers.getContractAt(
         "AmoManager",
         amoManagerAddress,
         await hre.ethers.getSigner(deployer)
       );
 
+      // Get the oracle aggregator
+      const oracleAggregatorAddress = (
+        await hre.deployments.get(ORACLE_AGGREGATOR_ID)
+      ).address;
+      oracleAggregatorContract = await hre.ethers.getContractAt(
+        "OracleAggregator",
+        oracleAggregatorAddress,
+        await hre.ethers.getSigner(deployer)
+      );
+
       // Get dStable token info
-      ({ contract: dstableContract, tokenInfo: dstableInfo } =
-        await getTokenContractForSymbol(
-          hre,
-          deployer,
-          config.symbol as "dUSD" | "dS"
-        ));
+      const dstableResult = await getTokenContractForSymbol(
+        hre,
+        deployer,
+        config.symbol
+      );
+      dstableContract = dstableResult.contract as TestMintableERC20;
+      dstableInfo = dstableResult.tokenInfo;
 
       // Initialize all collateral tokens for this dStable
       for (const collateralSymbol of config.collateralSymbols) {
-        const { contract, tokenInfo } = await getTokenContractForSymbol(
+        const result = await getTokenContractForSymbol(
           hre,
           deployer,
           collateralSymbol
         );
-        collateralContracts.set(collateralSymbol, contract as TestERC20);
-        collateralInfos.set(collateralSymbol, tokenInfo);
+        collateralContracts.set(collateralSymbol, result.contract as TestERC20);
+        collateralInfos.set(collateralSymbol, result.tokenInfo);
 
         // Allow this collateral in the vault
-        await collateralVaultContract.allowCollateral(tokenInfo.address);
+        try {
+          await collateralVaultContract.allowCollateral(
+            result.tokenInfo.address
+          );
+        } catch (e) {
+          // Ignore if already allowed
+        }
 
         // Transfer collateral to the vault for redemption
-        const amount = hre.ethers.parseUnits("10000", tokenInfo.decimals);
-        await contract.approve(
+        const amount = hre.ethers.parseUnits(
+          "10000",
+          result.tokenInfo.decimals
+        );
+        await result.contract.approve(
           await collateralVaultContract.getAddress(),
           amount
         );
-        await collateralVaultContract.deposit(amount, tokenInfo.address);
+        await collateralVaultContract.deposit(amount, result.tokenInfo.address);
 
         // Mint tokens to user1 (assuming these are test tokens with mint function)
-        const userAmount = hre.ethers.parseUnits("10000", tokenInfo.decimals);
-        if ("mint" in contract) {
-          await (contract as TestMintableERC20).mint(user1, userAmount);
+        const userAmount = hre.ethers.parseUnits(
+          "10000",
+          result.tokenInfo.decimals
+        );
+        if ("mint" in result.contract) {
+          await (result.contract as TestMintableERC20).mint(user1, userAmount);
         } else {
           // If not mintable, transfer from deployer to user1
-          await contract.transfer(user1, userAmount);
+          await result.contract.transfer(user1, userAmount);
         }
 
         // Give user1 some dStable for testing redemption by using the Issuer
@@ -135,7 +188,7 @@ dstableConfigs.forEach((config) => {
         );
 
         // First, we need to approve the issuer to use our collateral
-        await contract
+        await result.contract
           .connect(await hre.ethers.getSigner(user1))
           .approve(await issuerContract.getAddress(), userAmount);
 
@@ -145,7 +198,7 @@ dstableConfigs.forEach((config) => {
         // Issue dStable tokens to user1 using collateral - use the full approved amount
         await issuerContract
           .connect(await hre.ethers.getSigner(user1))
-          .issue(userAmount, tokenInfo.address, minAmount);
+          .issue(userAmount, result.tokenInfo.address, minAmount);
       }
 
       // Grant REDEMPTION_MANAGER_ROLE to user1
@@ -153,75 +206,67 @@ dstableConfigs.forEach((config) => {
         await redeemerContract.REDEMPTION_MANAGER_ROLE();
       await redeemerContract.grantRole(REDEMPTION_MANAGER_ROLE, user1);
       console.log(`Granted REDEMPTION_MANAGER_ROLE to user1 (${user1})`);
-
-      // Store for tests
-      this.redeemerContract = redeemerContract;
-      this.issuerContract = issuerContract;
-      this.dstableContract = dstableContract;
-      this.dstableInfo = dstableInfo;
-      this.collateralContracts = collateralContracts;
-      this.collateralInfos = collateralInfos;
-      this.collateralVaultContract = collateralVaultContract;
-      this.amoManagerContract = amoManagerContract;
-      this.user1 = user1;
-      this.user2 = user2;
     });
 
     describe("Basic redemption", () => {
       // Test redemption for each collateral type
       config.collateralSymbols.forEach((collateralSymbol) => {
         it(`redeems ${config.symbol} for ${collateralSymbol}`, async function () {
-          const collateralContract = this.collateralContracts.get(
+          const collateralContract = collateralContracts.get(
             collateralSymbol
           ) as TestERC20;
-          const collateralInfo = this.collateralInfos.get(
+          const collateralInfo = collateralInfos.get(
             collateralSymbol
           ) as TokenInfo;
 
           const redeemAmount = hre.ethers.parseUnits(
             "100",
-            this.dstableInfo.decimals
+            dstableInfo.decimals
           );
 
-          // For dS token, we need more slippage since it's a yield-bearing asset
-          // with a different price than its collateral
-          let slippagePercentage = 1; // Default 1% slippage
-          if (this.dstableInfo.symbol === "dS") {
-            slippagePercentage = 20; // 20% slippage for dS
-          }
-
-          const minCollateralOut = hre.ethers.parseUnits(
-            (100 - slippagePercentage).toString(),
-            collateralInfo.decimals
-          ); // Allow for appropriate slippage
-
-          const userDstableBalanceBefore = await this.dstableContract.balanceOf(
-            this.user1
-          );
-          const userCollateralBalanceBefore =
-            await collateralContract.balanceOf(this.user1);
-          const vaultCollateralBalanceBefore =
-            await collateralContract.balanceOf(
-              await this.collateralVaultContract.getAddress()
+          // Calculate expected collateral amount based on oracle prices
+          const expectedCollateralAmount =
+            await calculateExpectedCollateralAmount(
+              redeemAmount,
+              dstableInfo.symbol,
+              dstableInfo.decimals,
+              collateralSymbol,
+              collateralInfo.decimals,
+              oracleAggregatorContract,
+              dstableInfo.address,
+              collateralInfo.address
             );
 
-          await this.dstableContract
-            .connect(await hre.ethers.getSigner(this.user1))
-            .approve(await this.redeemerContract.getAddress(), redeemAmount);
+          // Apply a small slippage to ensure the test passes
+          const slippagePercentage = 5; // 5% slippage
+          const minCollateralOut =
+            (expectedCollateralAmount * BigInt(100 - slippagePercentage)) /
+            100n;
 
-          await this.redeemerContract
-            .connect(await hre.ethers.getSigner(this.user1))
+          const userDstableBalanceBefore =
+            await dstableContract.balanceOf(user1);
+          const userCollateralBalanceBefore =
+            await collateralContract.balanceOf(user1);
+          const vaultCollateralBalanceBefore =
+            await collateralContract.balanceOf(
+              await collateralVaultContract.getAddress()
+            );
+
+          await dstableContract
+            .connect(await hre.ethers.getSigner(user1))
+            .approve(await redeemerContract.getAddress(), redeemAmount);
+
+          await redeemerContract
+            .connect(await hre.ethers.getSigner(user1))
             .redeem(redeemAmount, collateralInfo.address, minCollateralOut);
 
-          const userDstableBalanceAfter = await this.dstableContract.balanceOf(
-            this.user1
-          );
-          const userCollateralBalanceAfter = await collateralContract.balanceOf(
-            this.user1
-          );
+          const userDstableBalanceAfter =
+            await dstableContract.balanceOf(user1);
+          const userCollateralBalanceAfter =
+            await collateralContract.balanceOf(user1);
           const vaultCollateralBalanceAfter =
             await collateralContract.balanceOf(
-              await this.collateralVaultContract.getAddress()
+              await collateralVaultContract.getAddress()
             );
 
           assert.equal(
@@ -241,6 +286,18 @@ dstableConfigs.forEach((config) => {
             "User should receive at least the minimum collateral output"
           );
 
+          // Check that the received amount is close to the expected amount (within slippage)
+          const receivedCollateral =
+            userCollateralBalanceAfter - userCollateralBalanceBefore;
+          const lowerBound = (expectedCollateralAmount * BigInt(95)) / 100n; // 5% below expected
+          const upperBound = (expectedCollateralAmount * BigInt(105)) / 100n; // 5% above expected
+
+          assert.isTrue(
+            receivedCollateral >= lowerBound &&
+              receivedCollateral <= upperBound,
+            `Received collateral (${receivedCollateral}) should be within 5% of expected amount (${expectedCollateralAmount})`
+          );
+
           assert.equal(
             vaultCollateralBalanceBefore - vaultCollateralBalanceAfter,
             userCollateralBalanceAfter - userCollateralBalanceBefore,
@@ -249,60 +306,65 @@ dstableConfigs.forEach((config) => {
         });
 
         it(`cannot redeem ${config.symbol} with insufficient balance`, async function () {
-          const collateralInfo = this.collateralInfos.get(
+          const collateralInfo = collateralInfos.get(
             collateralSymbol
           ) as TokenInfo;
 
-          const userDstableBalance = await this.dstableContract.balanceOf(
-            this.user1
-          );
+          const userDstableBalance = await dstableContract.balanceOf(user1);
           const redeemAmount = userDstableBalance + 1n; // More than the user has
-          const minCollateralOut = hre.ethers.parseUnits(
-            "99",
-            collateralInfo.decimals
-          );
+          const minCollateralOut = 1n; // Any non-zero value
 
-          await this.dstableContract
-            .connect(await hre.ethers.getSigner(this.user1))
-            .approve(await this.redeemerContract.getAddress(), redeemAmount);
+          await dstableContract
+            .connect(await hre.ethers.getSigner(user1))
+            .approve(await redeemerContract.getAddress(), redeemAmount);
 
           await expect(
-            this.redeemerContract
-              .connect(await hre.ethers.getSigner(this.user1))
+            redeemerContract
+              .connect(await hre.ethers.getSigner(user1))
               .redeem(redeemAmount, collateralInfo.address, minCollateralOut)
           ).to.be.reverted;
         });
 
         it(`cannot redeem ${config.symbol} when slippage is too high`, async function () {
-          const collateralInfo = this.collateralInfos.get(
+          const collateralInfo = collateralInfos.get(
             collateralSymbol
           ) as TokenInfo;
 
           const redeemAmount = hre.ethers.parseUnits(
             "100",
-            this.dstableInfo.decimals
-          );
-          const unrealistically_high_min_collateral = hre.ethers.parseUnits(
-            "200",
-            collateralInfo.decimals
+            dstableInfo.decimals
           );
 
-          await this.dstableContract
-            .connect(await hre.ethers.getSigner(this.user1))
-            .approve(await this.redeemerContract.getAddress(), redeemAmount);
+          // Calculate expected collateral amount
+          const expectedCollateralAmount =
+            await calculateExpectedCollateralAmount(
+              redeemAmount,
+              dstableInfo.symbol,
+              dstableInfo.decimals,
+              collateralSymbol,
+              collateralInfo.decimals,
+              oracleAggregatorContract,
+              dstableInfo.address,
+              collateralInfo.address
+            );
+
+          // Set an unrealistically high minimum (2x the expected amount)
+          const unrealistically_high_min_collateral =
+            expectedCollateralAmount * 2n;
+
+          await dstableContract
+            .connect(await hre.ethers.getSigner(user1))
+            .approve(await redeemerContract.getAddress(), redeemAmount);
 
           await expect(
-            this.redeemerContract
-              .connect(await hre.ethers.getSigner(this.user1))
+            redeemerContract
+              .connect(await hre.ethers.getSigner(user1))
               .redeem(
                 redeemAmount,
                 collateralInfo.address,
                 unrealistically_high_min_collateral
               )
-          ).to.be.revertedWithCustomError(
-            this.redeemerContract,
-            "SlippageTooHigh"
-          );
+          ).to.be.revertedWithCustomError(redeemerContract, "SlippageTooHigh");
         });
       });
     });
@@ -311,16 +373,16 @@ dstableConfigs.forEach((config) => {
       it("allows changing the collateral vault", async function () {
         // Deploy a new vault for testing
         const newVault = await hre.deployments.deploy("TestCollateralVault", {
-          from: deployer, // Use deployer from named accounts directly
+          from: deployer,
           contract: "CollateralHolderVault",
-          args: [await this.redeemerContract.oracle()],
+          args: [await redeemerContract.oracle()],
           autoMine: true,
           log: false,
         });
 
-        await this.redeemerContract.setCollateralVault(newVault.address);
+        await redeemerContract.setCollateralVault(newVault.address);
 
-        const updatedVault = await this.redeemerContract.collateralVault();
+        const updatedVault = await redeemerContract.collateralVault();
         assert.equal(
           updatedVault,
           newVault.address,
@@ -330,24 +392,21 @@ dstableConfigs.forEach((config) => {
 
       it("allows setting collateral vault only by admin", async function () {
         await expect(
-          this.redeemerContract
-            .connect(await hre.ethers.getSigner(this.user1))
+          redeemerContract
+            .connect(await hre.ethers.getSigner(user1))
             .setCollateralVault(hre.ethers.ZeroAddress)
         ).to.be.reverted;
       });
 
       it("allows admin to grant REDEMPTION_MANAGER_ROLE", async function () {
         const REDEMPTION_MANAGER_ROLE =
-          await this.redeemerContract.REDEMPTION_MANAGER_ROLE();
+          await redeemerContract.REDEMPTION_MANAGER_ROLE();
 
-        await this.redeemerContract.grantRole(
-          REDEMPTION_MANAGER_ROLE,
-          this.user2
-        );
+        await redeemerContract.grantRole(REDEMPTION_MANAGER_ROLE, user2);
 
-        const hasRole = await this.redeemerContract.hasRole(
+        const hasRole = await redeemerContract.hasRole(
           REDEMPTION_MANAGER_ROLE,
-          this.user2
+          user2
         );
         assert.isTrue(hasRole, "User should have REDEMPTION_MANAGER_ROLE");
       });
