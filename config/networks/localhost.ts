@@ -1,8 +1,7 @@
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 
-import { Config } from "../types";
 import { ORACLE_AGGREGATOR_PRICE_DECIMALS } from "../../typescript/oracle_aggregator/constants";
-import { ZeroAddress } from "ethers";
+import { Config } from "../types";
 
 /**
  * Get the configuration for the network
@@ -11,7 +10,7 @@ import { ZeroAddress } from "ethers";
  * @returns The configuration for the network
  */
 export async function getConfig(
-  _hre: HardhatRuntimeEnvironment
+  _hre: HardhatRuntimeEnvironment,
 ): Promise<Config> {
   // Token info will only be populated after their deployment
   const dUSDDeployment = await _hre.deployments.getOrNull("dUSD");
@@ -196,6 +195,12 @@ export async function getConfig(
   };
 }
 
+/**
+ * Return an empty string if the value is undefined
+ *
+ * @param value - The value to check
+ * @returns An empty string if the value is undefined, otherwise the value itself
+ */
 function emptyStringIfUndefined(value: string | undefined): string {
   return value ?? "";
 }

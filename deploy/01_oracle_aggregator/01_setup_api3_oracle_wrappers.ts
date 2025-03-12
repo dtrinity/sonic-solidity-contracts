@@ -24,12 +24,12 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       contract: "API3Wrapper",
       autoMine: true,
       log: false,
-    }
+    },
   );
 
   const api3Wrapper = await hre.ethers.getContractAt(
     API3_ORACLE_WRAPPER_ID,
-    api3WrapperDeployment.address
+    api3WrapperDeployment.address,
   );
 
   // Set proxies for plain oracle feeds
@@ -39,7 +39,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   for (const [assetAddress, proxyAddress] of Object.entries(plainFeeds)) {
     await api3Wrapper.setProxy(assetAddress, proxyAddress);
     console.log(
-      `Set plain API3 proxy for asset ${assetAddress} to ${proxyAddress}`
+      `Set plain API3 proxy for asset ${assetAddress} to ${proxyAddress}`,
     );
   }
 
@@ -56,12 +56,12 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       contract: "API3WrapperWithThresholding",
       autoMine: true,
       log: false,
-    }
+    },
   );
 
   const api3WrapperWithThresholding = await hre.ethers.getContractAt(
     "API3WrapperWithThresholding",
-    api3WrapperWithThresholdingDeployment.address
+    api3WrapperWithThresholdingDeployment.address,
   );
 
   // Set proxies and thresholds for feeds with thresholding
@@ -70,13 +70,13 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     await api3WrapperWithThresholding.setThresholdConfig(
       assetAddress,
       feedConfig.lowerThreshold,
-      feedConfig.fixedPrice
+      feedConfig.fixedPrice,
     );
     console.log(
       `Set API3 proxy with thresholding for asset ${assetAddress}:`,
       `\n  - Proxy: ${feedConfig.proxy}`,
       `\n  - Lower threshold: ${feedConfig.lowerThreshold}`,
-      `\n  - Fixed price: ${feedConfig.fixedPrice}`
+      `\n  - Fixed price: ${feedConfig.fixedPrice}`,
     );
   }
 
@@ -93,12 +93,12 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       contract: "API3CompositeWrapperWithThresholding",
       autoMine: true,
       log: false,
-    }
+    },
   );
 
   const api3CompositeWrapper = await hre.ethers.getContractAt(
     "API3CompositeWrapperWithThresholding",
-    api3CompositeWrapperDeployment.address
+    api3CompositeWrapperDeployment.address,
   );
 
   // Add composite feeds
@@ -110,7 +110,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       feedConfig.lowerThresholdInBase1,
       feedConfig.fixedPriceInBase1,
       feedConfig.lowerThresholdInBase2,
-      feedConfig.fixedPriceInBase2
+      feedConfig.fixedPriceInBase2,
     );
     console.log(
       `Set composite API3 feed for asset ${assetAddress} with:`,
@@ -119,7 +119,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       `\n  - Lower threshold in base1: ${feedConfig.lowerThresholdInBase1}`,
       `\n  - Fixed price in base1: ${feedConfig.fixedPriceInBase1}`,
       `\n  - Lower threshold in base2: ${feedConfig.lowerThresholdInBase2}`,
-      `\n  - Fixed price in base2: ${feedConfig.fixedPriceInBase2}`
+      `\n  - Fixed price in base2: ${feedConfig.fixedPriceInBase2}`,
     );
   }
 

@@ -32,7 +32,17 @@ export default [
       "**/.github/",
       "**/.yarn/",
     ],
-    files: ["*.ts", "*.js", "*.json"],
+    files: [
+      "*.ts",
+      "*.js",
+      "*.json",
+      "typescript/**/*.ts",
+      "typescript/**/*.js",
+      "deploy/**/*.ts",
+      "deploy/**/*.js",
+      "config/**/*.ts",
+      "config/**/*.js",
+    ],
   },
   ...compat.extends(
     "plugin:jsdoc/recommended",
@@ -110,24 +120,21 @@ export default [
       "import/first": "error",
       "import/newline-after-import": "error",
       "import/no-duplicates": "error",
+
+      // Keep basic JSDoc requirement but disable specific details
       "jsdoc/require-jsdoc": "error",
       "jsdoc/require-description": "error",
+      "jsdoc/require-param-description": "warn",
+      "jsdoc/require-param-type": "off",
+      "jsdoc/require-returns": "off",
+      "jsdoc/require-returns-type": "off",
+      "jsdoc/require-returns-description": "off",
 
       "jsdoc/tag-lines": [
         "error",
         "never",
         {
           startLines: 1,
-        },
-      ],
-
-      "@typescript-eslint/no-unused-vars": [
-        "warn",
-        {
-          vars: "all",
-          varsIgnorePattern: "^_",
-          args: "after-used",
-          argsIgnorePattern: "^_",
         },
       ],
     },

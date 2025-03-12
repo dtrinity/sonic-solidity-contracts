@@ -1,8 +1,8 @@
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 
+import { getConfig as getLocalhostConfig } from "./networks/localhost";
 import { getConfig as getSonicMainNetConfig } from "./networks/sonic_mainnet";
 import { getConfig as getSonicTestNetConfig } from "./networks/sonic_testnet";
-import { getConfig as getLocalhostConfig } from "./networks/localhost";
 import { Config } from "./types";
 
 /**
@@ -12,7 +12,7 @@ import { Config } from "./types";
  * @returns The configuration for the network
  */
 export async function getConfig(
-  hre: HardhatRuntimeEnvironment
+  hre: HardhatRuntimeEnvironment,
 ): Promise<Config> {
   switch (hre.network.name) {
     case "sonic_testnet":
