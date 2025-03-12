@@ -32,6 +32,7 @@ export default [
       "**/.github/",
       "**/.yarn/",
     ],
+    files: ["*.ts", "*.js", "*.json"],
   },
   ...compat.extends(
     "plugin:jsdoc/recommended",
@@ -117,6 +118,16 @@ export default [
         "never",
         {
           startLines: 1,
+        },
+      ],
+
+      "@typescript-eslint/no-unused-vars": [
+        "warn",
+        {
+          vars: "all",
+          varsIgnorePattern: "^_",
+          args: "after-used",
+          argsIgnorePattern: "^_",
         },
       ],
     },
