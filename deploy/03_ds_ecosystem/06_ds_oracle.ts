@@ -15,9 +15,9 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   await hre.deployments.deploy(DS_HARD_PEG_ORACLE_WRAPPER_ID, {
     from: deployer,
     args: [
-      config.tokenAddresses.wS,
-      BigInt(10) ** BigInt(config.oracleAggregator.priceDecimals),
-      config.oracleAggregator.hardDStablePeg,
+      config.oracleAggregators.S.baseCurrency,
+      BigInt(10) ** BigInt(config.oracleAggregators.S.priceDecimals),
+      config.oracleAggregators.S.hardDStablePeg,
     ],
     contract: "HardPegOracleWrapper",
     autoMine: true,

@@ -16,7 +16,7 @@ import {
   TokenInfo,
 } from "../../typescript/token/utils";
 import { ORACLE_AGGREGATOR_ID } from "../../typescript/deploy-ids";
-import { ORACLE_AGGREGATOR_PRICE_DECIMALS } from "../../typescript/oracle_aggregator/constants";
+import { USD_ORACLE_AGGREGATOR_PRICE_DECIMALS } from "../../typescript/oracle_aggregator/constants";
 import {
   createDStableAmoFixture,
   DUSD_CONFIG,
@@ -505,7 +505,7 @@ dstableConfigs.forEach((config) => {
         // Set fake DeFi collateral value to simulate additional profit
         const fakeDeFiValueBase = hre.ethers.parseUnits(
           "300",
-          ORACLE_AGGREGATOR_PRICE_DECIMALS
+          USD_ORACLE_AGGREGATOR_PRICE_DECIMALS
         );
         await mockAmoVaultContract.setFakeDeFiCollateralValue(
           fakeDeFiValueBase

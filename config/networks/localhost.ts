@@ -1,6 +1,6 @@
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 
-import { ORACLE_AGGREGATOR_PRICE_DECIMALS } from "../../typescript/oracle_aggregator/constants";
+import { USD_ORACLE_AGGREGATOR_PRICE_DECIMALS } from "../../typescript/oracle_aggregator/constants";
 import { Config } from "../types";
 import { ZeroAddress } from "ethers";
 
@@ -38,7 +38,8 @@ export async function getConfig(
   }
 
   // Define the threshold value (1.0 with appropriate decimals)
-  const thresholdValue = 10n ** BigInt(ORACLE_AGGREGATOR_PRICE_DECIMALS);
+  const thresholdValueForUSD =
+    10n ** BigInt(USD_ORACLE_AGGREGATOR_PRICE_DECIMALS);
 
   return {
     MOCK_ONLY: {
@@ -100,8 +101,8 @@ export async function getConfig(
     },
     oracleAggregators: {
       USD: {
-        hardDStablePeg: 10 ** ORACLE_AGGREGATOR_PRICE_DECIMALS,
-        priceDecimals: ORACLE_AGGREGATOR_PRICE_DECIMALS,
+        hardDStablePeg: 10n ** BigInt(USD_ORACLE_AGGREGATOR_PRICE_DECIMALS),
+        priceDecimals: USD_ORACLE_AGGREGATOR_PRICE_DECIMALS,
         baseCurrency: ZeroAddress, // Note that USD is represented by the zero address, per Aave's convention
         api3OracleAssets: {
           // No thresholding, passthrough raw prices
@@ -112,8 +113,8 @@ export async function getConfig(
               ? {
                   [USDCDeployment.address]: {
                     proxy: mockOracleDeployments["USDC_USD"],
-                    lowerThreshold: thresholdValue,
-                    fixedPrice: thresholdValue,
+                    lowerThreshold: thresholdValueForUSD,
+                    fixedPrice: thresholdValueForUSD,
                   },
                 }
               : {}),
@@ -121,8 +122,8 @@ export async function getConfig(
               ? {
                   [USDSDeployment.address]: {
                     proxy: mockOracleDeployments["USDS_USD"],
-                    lowerThreshold: thresholdValue,
-                    fixedPrice: thresholdValue,
+                    lowerThreshold: thresholdValueForUSD,
+                    fixedPrice: thresholdValueForUSD,
                   },
                 }
               : {}),
@@ -130,8 +131,8 @@ export async function getConfig(
               ? {
                   [frxUSDDeployment.address]: {
                     proxy: mockOracleDeployments["frxUSD_USD"],
-                    lowerThreshold: thresholdValue,
-                    fixedPrice: thresholdValue,
+                    lowerThreshold: thresholdValueForUSD,
+                    fixedPrice: thresholdValueForUSD,
                   },
                 }
               : {}),
@@ -149,8 +150,8 @@ export async function getConfig(
                     proxy2: mockOracleDeployments["USDS_USD"],
                     lowerThresholdInBase1: 0n, // No threshold for sUSDS/USDS
                     fixedPriceInBase1: 0n,
-                    lowerThresholdInBase2: thresholdValue, // Threshold for USDS/USD
-                    fixedPriceInBase2: thresholdValue,
+                    lowerThresholdInBase2: thresholdValueForUSD, // Threshold for USDS/USD
+                    fixedPriceInBase2: thresholdValueForUSD,
                   },
                 }
               : {}),
@@ -166,8 +167,8 @@ export async function getConfig(
                     proxy2: mockOracleDeployments["frxUSD_USD"],
                     lowerThresholdInBase1: 0n, // No threshold for sfrxUSD/frxUSD
                     fixedPriceInBase1: 0n,
-                    lowerThresholdInBase2: thresholdValue, // Threshold for frxUSD/USD
-                    fixedPriceInBase2: thresholdValue,
+                    lowerThresholdInBase2: thresholdValueForUSD, // Threshold for frxUSD/USD
+                    fixedPriceInBase2: thresholdValueForUSD,
                   },
                 }
               : {}),
@@ -175,8 +176,8 @@ export async function getConfig(
         },
       },
       S: {
-        hardDStablePeg: 10 ** ORACLE_AGGREGATOR_PRICE_DECIMALS,
-        priceDecimals: ORACLE_AGGREGATOR_PRICE_DECIMALS,
+        hardDStablePeg: 10n ** 18n, // wS has 18 decimals
+        priceDecimals: 18, // wS has 18 decimals
         baseCurrency: wSTokenDeployment?.address || "", // We use wS to represent S since S is not ERC20
         api3OracleAssets: {
           // No thresholding, passthrough raw prices

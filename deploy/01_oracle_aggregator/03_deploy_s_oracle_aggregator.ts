@@ -12,8 +12,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   await hre.deployments.deploy(S_ORACLE_AGGREGATOR_ID, {
     from: deployer,
     args: [
-      config.tokenAddresses.wS, // wS token as base currency to stand in for S
-      BigInt(10) ** BigInt(config.oracleAggregator.priceDecimals),
+      config.oracleAggregators.S.baseCurrency, // wS token as base currency for S
+      BigInt(10) ** BigInt(config.oracleAggregators.S.priceDecimals),
     ],
     contract: "OracleAggregator",
     autoMine: true,

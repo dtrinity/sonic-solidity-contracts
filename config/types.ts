@@ -26,7 +26,7 @@ export interface TokenAddresses {
 
 export interface OracleAggregatorConfig {
   readonly priceDecimals: number;
-  readonly hardDStablePeg: number;
+  readonly hardDStablePeg: bigint;
   readonly baseCurrency: string;
   readonly api3OracleAssets: {
     plainApi3OracleWrappers: {

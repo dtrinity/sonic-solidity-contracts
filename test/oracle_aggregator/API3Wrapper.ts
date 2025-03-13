@@ -6,7 +6,7 @@ import { API3Wrapper, MockAPI3OracleAlwaysAlive } from "../../typechain-types";
 import {
   API3_HEARTBEAT_SECONDS,
   API3_PRICE_DECIMALS,
-  ORACLE_AGGREGATOR_PRICE_DECIMALS,
+  USD_ORACLE_AGGREGATOR_PRICE_DECIMALS,
 } from "../../typescript/oracle_aggregator/constants";
 import { getTokenContractForSymbol } from "../../typescript/token/utils";
 import { oracleAggregatorMinimalFixture } from "./fixtures";
@@ -96,7 +96,7 @@ describe("API3Wrappers", () => {
       it("should return expected prices for frxUSD and sfrxUSD", async function () {
         const expectedPriceFrxUSD = hre.ethers.parseUnits(
           "1",
-          ORACLE_AGGREGATOR_PRICE_DECIMALS
+          USD_ORACLE_AGGREGATOR_PRICE_DECIMALS
         );
 
         const { price: actualPriceFrxUSD, isAlive: isAliveFrxUSD } =
@@ -107,7 +107,7 @@ describe("API3Wrappers", () => {
 
         const expectedPriceSfrxUSD = hre.ethers.parseUnits(
           "1.1",
-          ORACLE_AGGREGATOR_PRICE_DECIMALS
+          USD_ORACLE_AGGREGATOR_PRICE_DECIMALS
         );
 
         const { price: actualPriceSfrxUSD, isAlive: isAliveSfrxUSD } =
@@ -178,7 +178,7 @@ describe("API3Wrappers", () => {
       it("should return correct BASE_CURRENCY_UNIT", async function () {
         const expectedUnit = hre.ethers.parseUnits(
           "1",
-          ORACLE_AGGREGATOR_PRICE_DECIMALS
+          USD_ORACLE_AGGREGATOR_PRICE_DECIMALS
         );
         expect(await api3WrapperContract.BASE_CURRENCY_UNIT()).to.equal(
           expectedUnit

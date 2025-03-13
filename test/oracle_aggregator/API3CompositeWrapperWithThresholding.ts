@@ -9,7 +9,7 @@ import {
 import {
   API3_HEARTBEAT_SECONDS,
   API3_PRICE_DECIMALS,
-  ORACLE_AGGREGATOR_PRICE_DECIMALS,
+  USD_ORACLE_AGGREGATOR_PRICE_DECIMALS,
 } from "../../typescript/oracle_aggregator/constants";
 import { getTokenContractForSymbol } from "../../typescript/token/utils";
 import { oracleAggregatorMinimalFixture } from "./fixtures";
@@ -83,8 +83,8 @@ describe("API3CompositeWrapperWithThresholding", () => {
       mockOracleMap[frxUSDAddress],
       0, // No lower threshold for sfrxUSD/frxUSD
       0, // No fixed price for sfrxUSD/frxUSD
-      hre.ethers.parseUnits("1", ORACLE_AGGREGATOR_PRICE_DECIMALS), // $1 threshold for frxUSD/USD
-      hre.ethers.parseUnits("1", ORACLE_AGGREGATOR_PRICE_DECIMALS) // $1 fixed price for frxUSD/USD
+      hre.ethers.parseUnits("1", USD_ORACLE_AGGREGATOR_PRICE_DECIMALS), // $1 threshold for frxUSD/USD
+      hre.ethers.parseUnits("1", USD_ORACLE_AGGREGATOR_PRICE_DECIMALS) // $1 fixed price for frxUSD/USD
     );
   });
 
@@ -92,7 +92,7 @@ describe("API3CompositeWrapperWithThresholding", () => {
     it("should return expected composite price for sfrxUSD", async function () {
       const expectedPriceSfrxUSD = hre.ethers.parseUnits(
         "1.1",
-        ORACLE_AGGREGATOR_PRICE_DECIMALS
+        USD_ORACLE_AGGREGATOR_PRICE_DECIMALS
       );
 
       const { price: actualPriceSfrxUSD, isAlive: isAliveSfrxUSD } =
@@ -118,7 +118,7 @@ describe("API3CompositeWrapperWithThresholding", () => {
       );
       const fixedPrice = hre.ethers.parseUnits(
         "1.1",
-        ORACLE_AGGREGATOR_PRICE_DECIMALS
+        USD_ORACLE_AGGREGATOR_PRICE_DECIMALS
       );
 
       await mockAPI3OracleFrxUSDContract.setMock(api3PriceFrxUSD);
@@ -146,19 +146,19 @@ describe("API3CompositeWrapperWithThresholding", () => {
       // Set thresholds with 8 decimal precision
       const lowerThreshold1 = hre.ethers.parseUnits(
         "0.99",
-        ORACLE_AGGREGATOR_PRICE_DECIMALS
+        USD_ORACLE_AGGREGATOR_PRICE_DECIMALS
       ); // $0.99
       const fixedPrice1 = hre.ethers.parseUnits(
         "1.00",
-        ORACLE_AGGREGATOR_PRICE_DECIMALS
+        USD_ORACLE_AGGREGATOR_PRICE_DECIMALS
       ); // $1.00
       const lowerThreshold2 = hre.ethers.parseUnits(
         "0.98",
-        ORACLE_AGGREGATOR_PRICE_DECIMALS
+        USD_ORACLE_AGGREGATOR_PRICE_DECIMALS
       ); // $0.98
       const fixedPrice2 = hre.ethers.parseUnits(
         "1.00",
-        ORACLE_AGGREGATOR_PRICE_DECIMALS
+        USD_ORACLE_AGGREGATOR_PRICE_DECIMALS
       ); // $1.00
 
       // Add composite feed with thresholds
@@ -191,19 +191,19 @@ describe("API3CompositeWrapperWithThresholding", () => {
       // Set thresholds with 8 decimal precision
       const lowerThreshold1 = hre.ethers.parseUnits(
         "0.99",
-        ORACLE_AGGREGATOR_PRICE_DECIMALS
+        USD_ORACLE_AGGREGATOR_PRICE_DECIMALS
       ); // $0.99
       const fixedPrice1 = hre.ethers.parseUnits(
         "1.00",
-        ORACLE_AGGREGATOR_PRICE_DECIMALS
+        USD_ORACLE_AGGREGATOR_PRICE_DECIMALS
       ); // $1.00
       const lowerThreshold2 = hre.ethers.parseUnits(
         "0.98",
-        ORACLE_AGGREGATOR_PRICE_DECIMALS
+        USD_ORACLE_AGGREGATOR_PRICE_DECIMALS
       ); // $0.98
       const fixedPrice2 = hre.ethers.parseUnits(
         "1.00",
-        ORACLE_AGGREGATOR_PRICE_DECIMALS
+        USD_ORACLE_AGGREGATOR_PRICE_DECIMALS
       ); // $1.00
 
       // Add composite feed with thresholds
@@ -234,7 +234,7 @@ describe("API3CompositeWrapperWithThresholding", () => {
       // Expected: fixedPrice1 * fixedPrice2 / BASE_CURRENCY_UNIT
       const expectedPrice =
         (fixedPrice1 * fixedPrice2) /
-        hre.ethers.parseUnits("1", ORACLE_AGGREGATOR_PRICE_DECIMALS);
+        hre.ethers.parseUnits("1", USD_ORACLE_AGGREGATOR_PRICE_DECIMALS);
       expect(price).to.equal(expectedPrice);
       expect(isAlive).to.be.true;
 
@@ -252,9 +252,9 @@ describe("API3CompositeWrapperWithThresholding", () => {
 
       // Now price1 should be unchanged (0.95) while price2 is still fixed at 1.00
       const expectedPriceWithOneBelow =
-        (hre.ethers.parseUnits("0.95", ORACLE_AGGREGATOR_PRICE_DECIMALS) *
+        (hre.ethers.parseUnits("0.95", USD_ORACLE_AGGREGATOR_PRICE_DECIMALS) *
           fixedPrice2) /
-        hre.ethers.parseUnits("1", ORACLE_AGGREGATOR_PRICE_DECIMALS);
+        hre.ethers.parseUnits("1", USD_ORACLE_AGGREGATOR_PRICE_DECIMALS);
       expect(priceWithOneBelow).to.equal(expectedPriceWithOneBelow);
     });
 
@@ -262,11 +262,11 @@ describe("API3CompositeWrapperWithThresholding", () => {
       // Set threshold only for price1
       const lowerThreshold1 = hre.ethers.parseUnits(
         "0.99",
-        ORACLE_AGGREGATOR_PRICE_DECIMALS
+        USD_ORACLE_AGGREGATOR_PRICE_DECIMALS
       ); // $0.99
       const fixedPrice1 = hre.ethers.parseUnits(
         "1.00",
-        ORACLE_AGGREGATOR_PRICE_DECIMALS
+        USD_ORACLE_AGGREGATOR_PRICE_DECIMALS
       ); // $1.00
       const noThreshold = 0n;
 
@@ -296,8 +296,8 @@ describe("API3CompositeWrapperWithThresholding", () => {
       // price1 should be fixed at 1.00, price2 should be unchanged at 1.05
       const expectedPriceAbove =
         (fixedPrice1 *
-          hre.ethers.parseUnits("1.05", ORACLE_AGGREGATOR_PRICE_DECIMALS)) /
-        hre.ethers.parseUnits("1", ORACLE_AGGREGATOR_PRICE_DECIMALS);
+          hre.ethers.parseUnits("1.05", USD_ORACLE_AGGREGATOR_PRICE_DECIMALS)) /
+        hre.ethers.parseUnits("1", USD_ORACLE_AGGREGATOR_PRICE_DECIMALS);
       expect(priceWithAboveThreshold).to.equal(expectedPriceAbove);
 
       // Test when price1 is below threshold
@@ -311,9 +311,9 @@ describe("API3CompositeWrapperWithThresholding", () => {
 
       // price1 should be unchanged at 0.95, price2 should be unchanged at 1.05
       const expectedPriceBelow =
-        (hre.ethers.parseUnits("0.95", ORACLE_AGGREGATOR_PRICE_DECIMALS) *
-          hre.ethers.parseUnits("1.05", ORACLE_AGGREGATOR_PRICE_DECIMALS)) /
-        hre.ethers.parseUnits("1", ORACLE_AGGREGATOR_PRICE_DECIMALS);
+        (hre.ethers.parseUnits("0.95", USD_ORACLE_AGGREGATOR_PRICE_DECIMALS) *
+          hre.ethers.parseUnits("1.05", USD_ORACLE_AGGREGATOR_PRICE_DECIMALS)) /
+        hre.ethers.parseUnits("1", USD_ORACLE_AGGREGATOR_PRICE_DECIMALS);
       expect(priceWithBelowThreshold).to.equal(expectedPriceBelow);
     });
 
@@ -428,8 +428,8 @@ describe("API3CompositeWrapperWithThresholding", () => {
       await expect(
         api3CompositeWrapperWithThresholdingContract.updateCompositeFeed(
           newAsset,
-          hre.ethers.parseUnits("0.99", ORACLE_AGGREGATOR_PRICE_DECIMALS),
-          hre.ethers.parseUnits("1", ORACLE_AGGREGATOR_PRICE_DECIMALS),
+          hre.ethers.parseUnits("0.99", USD_ORACLE_AGGREGATOR_PRICE_DECIMALS),
+          hre.ethers.parseUnits("1", USD_ORACLE_AGGREGATOR_PRICE_DECIMALS),
           0n,
           0n
         )
@@ -440,8 +440,8 @@ describe("API3CompositeWrapperWithThresholding", () => {
         )
         .withArgs(
           newAsset,
-          hre.ethers.parseUnits("0.99", ORACLE_AGGREGATOR_PRICE_DECIMALS),
-          hre.ethers.parseUnits("1", ORACLE_AGGREGATOR_PRICE_DECIMALS),
+          hre.ethers.parseUnits("0.99", USD_ORACLE_AGGREGATOR_PRICE_DECIMALS),
+          hre.ethers.parseUnits("1", USD_ORACLE_AGGREGATOR_PRICE_DECIMALS),
           0n,
           0n
         );
@@ -453,10 +453,10 @@ describe("API3CompositeWrapperWithThresholding", () => {
       expect(updatedFeed.proxy1).to.equal(proxy1);
       expect(updatedFeed.proxy2).to.equal(proxy2);
       expect(updatedFeed.primaryThreshold.lowerThresholdInBase).to.equal(
-        hre.ethers.parseUnits("0.99", ORACLE_AGGREGATOR_PRICE_DECIMALS)
+        hre.ethers.parseUnits("0.99", USD_ORACLE_AGGREGATOR_PRICE_DECIMALS)
       );
       expect(updatedFeed.primaryThreshold.fixedPriceInBase).to.equal(
-        hre.ethers.parseUnits("1", ORACLE_AGGREGATOR_PRICE_DECIMALS)
+        hre.ethers.parseUnits("1", USD_ORACLE_AGGREGATOR_PRICE_DECIMALS)
       );
       expect(updatedFeed.secondaryThreshold.lowerThresholdInBase).to.equal(0);
       expect(updatedFeed.secondaryThreshold.fixedPriceInBase).to.equal(0);

@@ -13,8 +13,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   await hre.deployments.deploy(USD_ORACLE_AGGREGATOR_ID, {
     from: deployer,
     args: [
-      hre.ethers.ZeroAddress, // USD as base currency (address 0)
-      BigInt(10) ** BigInt(config.oracleAggregator.priceDecimals),
+      config.oracleAggregators.USD.baseCurrency, // USD as base currency (address 0)
+      BigInt(10) ** BigInt(config.oracleAggregators.USD.priceDecimals),
     ],
     contract: "OracleAggregator",
     autoMine: true,
@@ -28,6 +28,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
 func.tags = ["oracle-aggregator", "usd-oracle-aggregator"];
 func.dependencies = [];
-func.id = USD_ORACLE_AGGREGATOR_ID;
+func.id = "deploy-usd-oracle-aggregator";
 
 export default func;

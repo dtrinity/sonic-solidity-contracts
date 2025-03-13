@@ -9,7 +9,7 @@ import {
 import {
   API3_HEARTBEAT_SECONDS,
   API3_PRICE_DECIMALS,
-  ORACLE_AGGREGATOR_PRICE_DECIMALS,
+  USD_ORACLE_AGGREGATOR_PRICE_DECIMALS,
 } from "../../typescript/oracle_aggregator/constants";
 import { getTokenContractForSymbol } from "../../typescript/token/utils";
 import { oracleAggregatorMinimalFixture } from "./fixtures";
@@ -88,7 +88,7 @@ describe("API3WrapperWithThresholding", () => {
     it("should return original price when no threshold is set", async function () {
       const expectedPrice = hre.ethers.parseUnits(
         "1",
-        ORACLE_AGGREGATOR_PRICE_DECIMALS
+        USD_ORACLE_AGGREGATOR_PRICE_DECIMALS
       );
 
       const { price: actualPrice, isAlive } =
@@ -101,11 +101,11 @@ describe("API3WrapperWithThresholding", () => {
     it("should return original price when price is below threshold", async function () {
       const lowerThreshold = hre.ethers.parseUnits(
         "0.99",
-        ORACLE_AGGREGATOR_PRICE_DECIMALS
+        USD_ORACLE_AGGREGATOR_PRICE_DECIMALS
       );
       const fixedPrice = hre.ethers.parseUnits(
         "1.00",
-        ORACLE_AGGREGATOR_PRICE_DECIMALS
+        USD_ORACLE_AGGREGATOR_PRICE_DECIMALS
       );
 
       // Set threshold config
@@ -153,7 +153,7 @@ describe("API3WrapperWithThresholding", () => {
         await api3WrapperWithThresholdingContract.getPriceInfo(frxUSDAddress);
 
       expect(actualPrice).to.equal(
-        hre.ethers.parseUnits("0.98", ORACLE_AGGREGATOR_PRICE_DECIMALS)
+        hre.ethers.parseUnits("0.98", USD_ORACLE_AGGREGATOR_PRICE_DECIMALS)
       );
       expect(isAlive).to.be.true;
     });
@@ -161,11 +161,11 @@ describe("API3WrapperWithThresholding", () => {
     it("should return fixed price when price is above threshold", async function () {
       const lowerThreshold = hre.ethers.parseUnits(
         "0.99",
-        ORACLE_AGGREGATOR_PRICE_DECIMALS
+        USD_ORACLE_AGGREGATOR_PRICE_DECIMALS
       );
       const fixedPrice = hre.ethers.parseUnits(
         "1.00",
-        ORACLE_AGGREGATOR_PRICE_DECIMALS
+        USD_ORACLE_AGGREGATOR_PRICE_DECIMALS
       );
 
       // Create a mock oracle that can have custom prices
@@ -255,7 +255,7 @@ describe("API3WrapperWithThresholding", () => {
         await api3WrapperWithThresholdingContract.getPriceInfo(frxUSDAddress);
 
       expect(actualPrice).to.equal(
-        hre.ethers.parseUnits("1.02", ORACLE_AGGREGATOR_PRICE_DECIMALS)
+        hre.ethers.parseUnits("1.02", USD_ORACLE_AGGREGATOR_PRICE_DECIMALS)
       );
       expect(isAlive).to.be.true;
     });
@@ -284,11 +284,11 @@ describe("API3WrapperWithThresholding", () => {
 
       const lowerThreshold = hre.ethers.parseUnits(
         "0.99",
-        ORACLE_AGGREGATOR_PRICE_DECIMALS
+        USD_ORACLE_AGGREGATOR_PRICE_DECIMALS
       );
       const fixedPrice = hre.ethers.parseUnits(
         "1.00",
-        ORACLE_AGGREGATOR_PRICE_DECIMALS
+        USD_ORACLE_AGGREGATOR_PRICE_DECIMALS
       );
 
       // Set threshold config
@@ -325,11 +325,11 @@ describe("API3WrapperWithThresholding", () => {
     it("should allow setting and removing threshold config", async function () {
       const lowerThreshold = hre.ethers.parseUnits(
         "0.99",
-        ORACLE_AGGREGATOR_PRICE_DECIMALS
+        USD_ORACLE_AGGREGATOR_PRICE_DECIMALS
       );
       const fixedPrice = hre.ethers.parseUnits(
         "1.00",
-        ORACLE_AGGREGATOR_PRICE_DECIMALS
+        USD_ORACLE_AGGREGATOR_PRICE_DECIMALS
       );
 
       // Set threshold config
@@ -371,11 +371,11 @@ describe("API3WrapperWithThresholding", () => {
       const unauthorizedSigner = await hre.ethers.getSigner(user1);
       const lowerThreshold = hre.ethers.parseUnits(
         "0.99",
-        ORACLE_AGGREGATOR_PRICE_DECIMALS
+        USD_ORACLE_AGGREGATOR_PRICE_DECIMALS
       );
       const fixedPrice = hre.ethers.parseUnits(
         "1.00",
-        ORACLE_AGGREGATOR_PRICE_DECIMALS
+        USD_ORACLE_AGGREGATOR_PRICE_DECIMALS
       );
 
       await expect(

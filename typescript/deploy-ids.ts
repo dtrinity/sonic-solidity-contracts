@@ -1,11 +1,19 @@
-// Oracles
+// USD Oracles
 export const USD_ORACLE_AGGREGATOR_ID = "USD_OracleAggregator";
-export const S_ORACLE_AGGREGATOR_ID = "S_OracleAggregator";
+export const USD_API3_ORACLE_WRAPPER_ID = "USD_API3Wrapper";
+export const USD_API3_WRAPPER_WITH_THRESHOLDING_ID =
+  "USD_API3WrapperWithThresholding";
+export const USD_API3_COMPOSITE_WRAPPER_WITH_THRESHOLDING_ID =
+  "USD_API3CompositeWrapperWithThresholding";
 
-export const API3_ORACLE_WRAPPER_ID = "API3Wrapper";
-export const API3_WRAPPER_WITH_THRESHOLDING_ID = "API3WrapperWithThresholding";
-export const API3_COMPOSITE_WRAPPER_WITH_THRESHOLDING_ID =
-  "API3CompositeWrapperWithThresholding";
+// S Oracles
+export const S_ORACLE_AGGREGATOR_ID = "S_OracleAggregator";
+export const S_API3_ORACLE_WRAPPER_ID = "S_API3Wrapper";
+export const S_API3_WRAPPER_WITH_THRESHOLDING_ID =
+  "S_API3WrapperWithThresholding";
+export const S_API3_COMPOSITE_WRAPPER_WITH_THRESHOLDING_ID =
+  "S_API3CompositeWrapperWithThresholding";
+
 // dUSD
 export const DUSD_TOKEN_ID = "dUSD";
 export const DUSD_ISSUER_CONTRACT_ID = "dUSD_Issuer";

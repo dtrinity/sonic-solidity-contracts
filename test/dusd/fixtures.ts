@@ -9,7 +9,7 @@ import {
   ORACLE_AGGREGATOR_ID,
   DUSD_AMO_MANAGER_ID,
 } from "../../typescript/deploy-ids";
-import { ORACLE_AGGREGATOR_PRICE_DECIMALS } from "../../typescript/oracle_aggregator/constants";
+import { USD_ORACLE_AGGREGATOR_PRICE_DECIMALS } from "../../typescript/oracle_aggregator/constants";
 import { getTokenContractForSymbol } from "../../typescript/token/utils";
 
 export const standaloneMinimalFixture = deployments.createFixture(

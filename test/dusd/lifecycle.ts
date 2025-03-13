@@ -10,7 +10,7 @@ import {
   MockAmoVault,
   OracleAggregator,
 } from "../../typechain-types";
-import { ORACLE_AGGREGATOR_PRICE_DECIMALS } from "../../typescript/oracle_aggregator/constants";
+import { USD_ORACLE_AGGREGATOR_PRICE_DECIMALS } from "../../typescript/oracle_aggregator/constants";
 import { TokenInfo } from "../../typescript/token/utils";
 import { getTokenContractForSymbol } from "../../typescript/token/utils";
 import { standaloneAmoFixture } from "./fixtures";

@@ -3,7 +3,7 @@ import hre, { getNamedAccounts } from "hardhat";
 import { Address } from "hardhat-deploy/types";
 
 import { CollateralHolderVault, TestERC20 } from "../../typechain-types";
-import { ORACLE_AGGREGATOR_PRICE_DECIMALS } from "../../typescript/oracle_aggregator/constants";
+import { USD_ORACLE_AGGREGATOR_PRICE_DECIMALS } from "../../typescript/oracle_aggregator/constants";
 import {
   getTokenContractForSymbol,
   TokenInfo,
@@ -63,7 +63,7 @@ describe("CollateralHolderVault", () => {
 
       assert.equal(
         await collateralVaultContract.totalValue(),
-        hre.ethers.parseUnits("420", ORACLE_AGGREGATOR_PRICE_DECIMALS)
+        hre.ethers.parseUnits("420", USD_ORACLE_AGGREGATOR_PRICE_DECIMALS)
       );
 
       // Deposit USDC
@@ -78,7 +78,7 @@ describe("CollateralHolderVault", () => {
 
       assert.equal(
         await collateralVaultContract.totalValue(),
-        hre.ethers.parseUnits("500", ORACLE_AGGREGATOR_PRICE_DECIMALS)
+        hre.ethers.parseUnits("500", USD_ORACLE_AGGREGATOR_PRICE_DECIMALS)
       );
 
       // Deposit sfrxUSD
@@ -93,7 +93,7 @@ describe("CollateralHolderVault", () => {
 
       assert.equal(
         await collateralVaultContract.totalValue(),
-        hre.ethers.parseUnits("610", ORACLE_AGGREGATOR_PRICE_DECIMALS)
+        hre.ethers.parseUnits("610", USD_ORACLE_AGGREGATOR_PRICE_DECIMALS)
       );
     });
   });
@@ -118,7 +118,7 @@ describe("CollateralHolderVault", () => {
 
       assert.equal(
         await collateralVaultContract.totalValue(),
-        hre.ethers.parseUnits("69", ORACLE_AGGREGATOR_PRICE_DECIMALS)
+        hre.ethers.parseUnits("69", USD_ORACLE_AGGREGATOR_PRICE_DECIMALS)
       );
 
       // Normal user cannot withdraw
@@ -136,7 +136,7 @@ describe("CollateralHolderVault", () => {
 
       assert.equal(
         await collateralVaultContract.totalValue(),
-        hre.ethers.parseUnits("69", ORACLE_AGGREGATOR_PRICE_DECIMALS)
+        hre.ethers.parseUnits("69", USD_ORACLE_AGGREGATOR_PRICE_DECIMALS)
       );
     });
 
@@ -169,7 +169,7 @@ describe("CollateralHolderVault", () => {
 
       assert.equal(
         await collateralVaultContract.totalValue(),
-        hre.ethers.parseUnits("320", ORACLE_AGGREGATOR_PRICE_DECIMALS)
+        hre.ethers.parseUnits("320", USD_ORACLE_AGGREGATOR_PRICE_DECIMALS)
       );
     });
   });
@@ -201,7 +201,7 @@ describe("CollateralHolderVault", () => {
 
       assert.equal(
         await collateralVaultContract.totalValue(),
-        hre.ethers.parseUnits("420", ORACLE_AGGREGATOR_PRICE_DECIMALS)
+        hre.ethers.parseUnits("420", USD_ORACLE_AGGREGATOR_PRICE_DECIMALS)
       );
     });
 
@@ -231,7 +231,7 @@ describe("CollateralHolderVault", () => {
 
       assert.equal(
         await collateralVaultContract.totalValue(),
-        hre.ethers.parseUnits("420", ORACLE_AGGREGATOR_PRICE_DECIMALS)
+        hre.ethers.parseUnits("420", USD_ORACLE_AGGREGATOR_PRICE_DECIMALS)
       );
     });
 
@@ -264,7 +264,7 @@ describe("CollateralHolderVault", () => {
       // Ensure total value hasn't changed
       assert.equal(
         await collateralVaultContract.totalValue(),
-        hre.ethers.parseUnits("420", ORACLE_AGGREGATOR_PRICE_DECIMALS)
+        hre.ethers.parseUnits("420", USD_ORACLE_AGGREGATOR_PRICE_DECIMALS)
       );
     });
 
@@ -297,7 +297,7 @@ describe("CollateralHolderVault", () => {
       // Ensure total value hasn't changed
       assert.equal(
         await collateralVaultContract.totalValue(),
-        hre.ethers.parseUnits("420", ORACLE_AGGREGATOR_PRICE_DECIMALS)
+        hre.ethers.parseUnits("420", USD_ORACLE_AGGREGATOR_PRICE_DECIMALS)
       );
     });
   });

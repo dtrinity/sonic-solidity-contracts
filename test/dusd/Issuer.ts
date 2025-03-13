@@ -8,7 +8,7 @@ import {
   Issuer,
   TestERC20,
 } from "../../typechain-types";
-import { ORACLE_AGGREGATOR_PRICE_DECIMALS } from "../../typescript/oracle_aggregator/constants";
+import { USD_ORACLE_AGGREGATOR_PRICE_DECIMALS } from "../../typescript/oracle_aggregator/constants";
 import {
   getTokenContractForSymbol,
   TokenInfo,
@@ -175,7 +175,7 @@ describe("Issuer", () => {
 
       const baseValue = hre.ethers.parseUnits(
         "100",
-        ORACLE_AGGREGATOR_PRICE_DECIMALS
+        USD_ORACLE_AGGREGATOR_PRICE_DECIMALS
       ); // 100 base units
       const dstablePrice = await dstablePriceOracle.getAssetPrice(
         dstableInfo.address

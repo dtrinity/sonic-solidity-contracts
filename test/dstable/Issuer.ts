@@ -10,7 +10,7 @@ import {
   TestMintableERC20,
   OracleAggregator,
 } from "../../typechain-types";
-import { ORACLE_AGGREGATOR_PRICE_DECIMALS } from "../../typescript/oracle_aggregator/constants";
+import { USD_ORACLE_AGGREGATOR_PRICE_DECIMALS } from "../../typescript/oracle_aggregator/constants";
 import {
   getTokenContractForSymbol,
   TokenInfo,
@@ -330,7 +330,7 @@ dstableConfigs.forEach((config) => {
       it(`baseValueToDstableAmount converts correctly for ${config.symbol}`, async function () {
         const baseValue = hre.ethers.parseUnits(
           "100",
-          ORACLE_AGGREGATOR_PRICE_DECIMALS
+          USD_ORACLE_AGGREGATOR_PRICE_DECIMALS
         ); // 100 base units
 
         // Calculate expected dStable amount using our dynamic function

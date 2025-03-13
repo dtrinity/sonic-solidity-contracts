@@ -6,7 +6,7 @@ import {
   OracleAggregator,
   MockAPI3OracleAlwaysAlive,
 } from "../../typechain-types";
-import { ORACLE_AGGREGATOR_PRICE_DECIMALS } from "../../typescript/oracle_aggregator/constants";
+import { USD_ORACLE_AGGREGATOR_PRICE_DECIMALS } from "../../typescript/oracle_aggregator/constants";
 import { getTokenContractForSymbol } from "../../typescript/token/utils";
 import { oracleAggregatorMinimalFixture } from "./fixtures";
 import {
@@ -73,7 +73,7 @@ describe("OracleAggregator", () => {
     it("should return expected prices for frxUSD and sfrxUSD", async function () {
       const expectedPriceFrxUSD = hre.ethers.parseUnits(
         "1",
-        ORACLE_AGGREGATOR_PRICE_DECIMALS
+        USD_ORACLE_AGGREGATOR_PRICE_DECIMALS
       );
 
       const actualPriceFrxUSD =
@@ -83,7 +83,7 @@ describe("OracleAggregator", () => {
 
       const expectedPriceSfrxUSD = hre.ethers.parseUnits(
         "1.1",
-        ORACLE_AGGREGATOR_PRICE_DECIMALS
+        USD_ORACLE_AGGREGATOR_PRICE_DECIMALS
       );
 
       const actualPriceSfrxUSD =
@@ -157,7 +157,7 @@ describe("OracleAggregator", () => {
     it("should return correct BASE_CURRENCY_UNIT", async function () {
       const expectedUnit = hre.ethers.parseUnits(
         "1",
-        ORACLE_AGGREGATOR_PRICE_DECIMALS
+        USD_ORACLE_AGGREGATOR_PRICE_DECIMALS
       );
       expect(await oracleAggregatorContract.BASE_CURRENCY_UNIT()).to.equal(
         expectedUnit
@@ -170,7 +170,7 @@ describe("OracleAggregator", () => {
       const { price, isAlive } =
         await oracleAggregatorContract.getPriceInfo(frxUSDAddress);
       expect(price).to.equal(
-        hre.ethers.parseUnits("1", ORACLE_AGGREGATOR_PRICE_DECIMALS)
+        hre.ethers.parseUnits("1", USD_ORACLE_AGGREGATOR_PRICE_DECIMALS)
       );
       expect(isAlive).to.be.true;
     });

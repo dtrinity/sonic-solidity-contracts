@@ -9,7 +9,7 @@ import {
   TestERC20,
   MockAmoVault,
 } from "../../typechain-types";
-import { ORACLE_AGGREGATOR_PRICE_DECIMALS } from "../../typescript/oracle_aggregator/constants";
+import { USD_ORACLE_AGGREGATOR_PRICE_DECIMALS } from "../../typescript/oracle_aggregator/constants";
 import { TokenInfo } from "../../typescript/token/utils";
 import { getTokenContractForSymbol } from "../../typescript/token/utils";
 import { standaloneAmoFixture } from "./fixtures";
@@ -99,7 +99,7 @@ describe("AmoCollateralInteraction", () => {
       const depositAmount = hre.ethers.parseUnits("1000", frxUSDInfo.decimals);
       const fakeDeFiValue = hre.ethers.parseUnits(
         "500",
-        ORACLE_AGGREGATOR_PRICE_DECIMALS
+        USD_ORACLE_AGGREGATOR_PRICE_DECIMALS
       );
       const removeAmount = hre.ethers.parseUnits("100", frxUSDInfo.decimals);
 
@@ -482,7 +482,7 @@ describe("AmoCollateralInteraction", () => {
       // Set fake DeFi collateral value to simulate additional profit
       const fakeDeFiValue = hre.ethers.parseUnits(
         "100",
-        ORACLE_AGGREGATOR_PRICE_DECIMALS
+        USD_ORACLE_AGGREGATOR_PRICE_DECIMALS
       );
       await mockAmoVaultContract.setFakeDeFiCollateralValue(fakeDeFiValue);
 
@@ -573,17 +573,17 @@ describe("AmoCollateralInteraction", () => {
  * @returns The base value of the token.
  */
 function tokenValueFromAmount(amount: bigint, tokenInfo: TokenInfo): bigint {
-  if (tokenInfo.decimals === ORACLE_AGGREGATOR_PRICE_DECIMALS) {
+  if (tokenInfo.decimals === USD_ORACLE_AGGREGATOR_PRICE_DECIMALS) {
     return amount;
   }
 
-  if (tokenInfo.decimals > ORACLE_AGGREGATOR_PRICE_DECIMALS) {
+  if (tokenInfo.decimals > USD_ORACLE_AGGREGATOR_PRICE_DECIMALS) {
     const scaleFactor =
-      10n ** BigInt(tokenInfo.decimals - ORACLE_AGGREGATOR_PRICE_DECIMALS);
+      10n ** BigInt(tokenInfo.decimals - USD_ORACLE_AGGREGATOR_PRICE_DECIMALS);
     return amount / scaleFactor;
   } else {
     const scaleFactor =
-      10n ** BigInt(ORACLE_AGGREGATOR_PRICE_DECIMALS - tokenInfo.decimals);
+      10n ** BigInt(USD_ORACLE_AGGREGATOR_PRICE_DECIMALS - tokenInfo.decimals);
     return amount * scaleFactor;
   }
 }
