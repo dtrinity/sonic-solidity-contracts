@@ -147,10 +147,10 @@ dstableConfigs.forEach((config) => {
     });
 
     /**
-     * Calculates the expected USD value of a token amount based on oracle prices
+     * Calculates the expected base value of a token amount based on oracle prices
      * @param amount - The amount of token
      * @param tokenAddress - The address of the token
-     * @returns The USD value of the token amount
+     * @returns The base value of the token amount
      */
     async function calculateBaseValueFromAmount(
       amount: bigint,
@@ -256,7 +256,7 @@ dstableConfigs.forEach((config) => {
         );
 
         // 3. Set some fake DeFi value
-        const fakeDeFiValue = hre.ethers.parseUnits("200", 8); // $200 with 8 decimals
+        const fakeDeFiValue = hre.ethers.parseUnits("200", 8); // 200 base units with 8 decimals
         await mockAmoVaultContract.setFakeDeFiCollateralValue(fakeDeFiValue);
 
         // 4. Calculate total vault value
@@ -461,7 +461,7 @@ dstableConfigs.forEach((config) => {
             await mockAmoVaultContract.getAddress()
           );
 
-        // Calculate expected value of deposited collateral in USD using oracle prices
+        // Calculate expected value of deposited collateral in base units using oracle prices
         const expectedDepositValueBase = await calculateBaseValueFromAmount(
           collateralAmount,
           collateralInfo.address
@@ -490,7 +490,7 @@ dstableConfigs.forEach((config) => {
             await mockAmoVaultContract.getAddress()
           );
 
-        // Calculate expected value of removed collateral in USD using oracle prices
+        // Calculate expected value of removed collateral in base units using oracle prices
         const expectedLossValueBase = await calculateBaseValueFromAmount(
           lossAmount,
           collateralInfo.address
@@ -529,7 +529,7 @@ dstableConfigs.forEach((config) => {
           collateralInfo.decimals
         );
 
-        // Calculate expected value of profit amount in USD using oracle prices
+        // Calculate expected value of profit amount in base units using oracle prices
         const expectedProfitValueBase = await calculateBaseValueFromAmount(
           takeProfitAmount,
           collateralInfo.address

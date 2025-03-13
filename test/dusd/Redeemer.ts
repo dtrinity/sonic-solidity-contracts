@@ -198,18 +198,18 @@ describe("Redeemer", () => {
     });
   });
 
-  describe("USD value conversion", () => {
-    it("converts dStable amount to USD value correctly", async function () {
+  describe("Base value conversion", () => {
+    it("converts dStable amount to base value correctly", async function () {
       const dstableAmount = hre.ethers.parseUnits("100", dstableInfo.decimals); // 100 dStable
-      const expectedUsdValue = hre.ethers.parseUnits("100", 8); // 100 USD with 8 decimals
+      const expectedBaseValue = hre.ethers.parseUnits("100", 8); // 100 base units with 8 decimals
 
-      const actualUsdValue =
+      const actualBaseValue =
         await redeemerContract.dstableAmountToBaseValue(dstableAmount);
 
       assert.equal(
-        actualUsdValue,
-        expectedUsdValue,
-        "dStable to USD conversion is incorrect"
+        actualBaseValue,
+        expectedBaseValue,
+        "dStable to base value conversion is incorrect"
       );
     });
   });

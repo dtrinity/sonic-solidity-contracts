@@ -443,9 +443,9 @@ contract AmoManager is AccessControl, OracleAware {
     }
 
     /**
-     * @notice Converts an amount of dStable tokens to an equivalent USD value.
+     * @notice Converts an amount of dStable tokens to an equivalent base value.
      * @param dstableAmount The amount of dStable tokens to convert.
-     * @return The equivalent amount of USD value.
+     * @return The equivalent amount of base value.
      */
     function dstableAmountToBaseValue(
         uint256 dstableAmount
@@ -476,7 +476,7 @@ contract AmoManager is AccessControl, OracleAware {
 interface ICollateralSum {
     /**
      * @notice Returns the total collateral value of the implementing contract.
-     * @return The total collateral value in base value (e.g., USD).
+     * @return The total collateral value in base value.
      */
     function totalCollateralValue() external view returns (uint256);
 }

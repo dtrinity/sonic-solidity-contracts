@@ -176,7 +176,7 @@ describe("Issuer", () => {
       const baseValue = hre.ethers.parseUnits(
         "100",
         ORACLE_AGGREGATOR_PRICE_DECIMALS
-      ); // 100 USD
+      ); // 100 base units
       const dstablePrice = await dstablePriceOracle.getAssetPrice(
         dstableInfo.address
       );

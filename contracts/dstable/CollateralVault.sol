@@ -148,7 +148,7 @@ abstract contract CollateralVault is AccessControl, OracleAware {
     function totalValue() public view virtual returns (uint256 baseValue);
 
     /**
-     * @notice Calculates the USD value of a given amount of an asset
+     * @notice Calculates the base value of a given amount of an asset
      * @param assetAmount The amount of the asset
      * @param asset The address of the asset
      * @return baseValue The base value of the asset

@@ -103,9 +103,9 @@ contract Redeemer is AccessControl, OracleAware {
     }
 
     /**
-     * @notice Converts an amount of dStable tokens to its equivalent USD value
+     * @notice Converts an amount of dStable tokens to its equivalent base value
      * @param dstableAmount The amount of dStable tokens to convert
-     * @return The equivalent USD value
+     * @return The equivalent base value
      */
     function dstableAmountToBaseValue(
         uint256 dstableAmount

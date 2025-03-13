@@ -23,14 +23,14 @@ pragma solidity ^0.8.20;
 interface IOracleWrapper {
     /**
      * @notice Returns the base currency address
-     * @dev Address 0x0 is reserved for USD as base currency.
+     * @dev Address 0x0 is reserved for base currency.
      * @return Returns the base currency address.
      */
     function BASE_CURRENCY() external view returns (address);
 
     /**
      * @notice Returns the base currency unit
-     * @dev 1 ether for ETH, 1e8 for USD.
+     * @dev 1 ether for ETH, 1e8 for base units.
      * @return Returns the base currency unit.
      */
     function BASE_CURRENCY_UNIT() external view returns (uint256);

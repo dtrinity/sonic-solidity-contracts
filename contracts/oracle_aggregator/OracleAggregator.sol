@@ -31,11 +31,11 @@ contract OracleAggregator is AccessControl, IOracleWrapper {
     /// @notice Mapping from asset address to oracle address
     mapping(address => address) public assetOracles;
 
-    /// @notice 1 Unit of base currency (10^priceDecimals) (e.g. 1 USD)
+    /// @notice 1 Unit of base currency (10^priceDecimals)
     uint256 public immutable baseCurrencyUnit;
 
-    /// @notice Address representing USD as the base currency
-    address public constant BASE_CURRENCY_USD = address(0);
+    /// @notice Address representing the base currency
+    address public immutable baseCurrency;
 
     /* Events */
 
@@ -59,9 +59,11 @@ contract OracleAggregator is AccessControl, IOracleWrapper {
 
     /**
      * @notice Constructor to initialize the OracleAggregator
+     * @param _baseCurrency Address of the base currency
      * @param _baseCurrencyUnit Number of decimal places for price values
      */
-    constructor(uint256 _baseCurrencyUnit) {
+    constructor(address _baseCurrency, uint256 _baseCurrencyUnit) {
+        baseCurrency = _baseCurrency;
         baseCurrencyUnit = _baseCurrencyUnit;
 
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
@@ -102,8 +104,8 @@ contract OracleAggregator is AccessControl, IOracleWrapper {
     }
 
     /**
-     * @notice Returns the base currency (USD)
-     * @return Address representing USD
+     * @notice Returns the base currency
+     * @return Address representing the base currency
      */
     function BASE_CURRENCY() external pure returns (address) {
         return BASE_CURRENCY_USD;

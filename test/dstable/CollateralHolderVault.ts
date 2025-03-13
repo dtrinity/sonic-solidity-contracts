@@ -76,10 +76,10 @@ dstableConfigs.forEach((config) => {
     });
 
     /**
-     * Calculates the expected USD value of a token amount based on oracle prices
+     * Calculates the expected base value of a token amount based on oracle prices
      * @param amount - The amount of token
      * @param tokenAddress - The address of the token
-     * @returns The USD value of the token amount
+     * @returns The base value of the token amount
      */
     async function calculateBaseValueFromAmount(
       amount: bigint,
@@ -222,7 +222,7 @@ dstableConfigs.forEach((config) => {
       });
     });
 
-    describe("USD value calculations", () => {
+    describe("Base value calculations", () => {
       // Test with first collateral for simplicity
       it("calculates total value correctly", async function () {
         let expectedTotalValue = 0n;
@@ -254,7 +254,7 @@ dstableConfigs.forEach((config) => {
             collateralInfo.address
           );
 
-          // Calculate expected USD value of this collateral using oracle prices
+          // Calculate expected base value of this collateral using oracle prices
           const collateralValue = await calculateBaseValueFromAmount(
             depositAmount,
             collateralInfo.address
@@ -278,14 +278,14 @@ dstableConfigs.forEach((config) => {
         );
       });
 
-      it("correctly converts between USD value and asset amount", async function () {
+      it("correctly converts between base value and asset amount", async function () {
         const collateralSymbol = config.collateralSymbols[0];
         const collateralInfo = collateralInfos.get(
           collateralSymbol
         ) as TokenInfo;
 
         // Use a standard base value for testing
-        const baseValue = hre.ethers.parseUnits("100", 8); // 100 USD with 8 decimals
+        const baseValue = hre.ethers.parseUnits("100", 8); // 100 base units with 8 decimals
 
         // Get the asset amount from the contract
         const assetAmount = await collateralVaultContract.assetAmountFromValue(
@@ -299,7 +299,7 @@ dstableConfigs.forEach((config) => {
           collateralInfo.address
         );
 
-        // Calculate the USD value from the asset amount using the contract
+        // Calculate the base value from the asset amount using the contract
         const calculatedValue =
           await collateralVaultContract.assetValueFromAmount(
             assetAmount,

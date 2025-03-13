@@ -47,14 +47,14 @@ async function calculateExpectedDstableAmount(
     await oracleAggregator.getAssetPrice(collateralAddress);
   const dstablePrice = await oracleAggregator.getAssetPrice(dstableAddress);
 
-  // Calculate USD value of collateral
+  // Calculate base value of collateral
   // Formula: (collateralAmount * collateralPrice) / 10^collateralDecimals
-  const collateralValueInUsd =
+  const collateralBaseValue =
     (collateralAmount * collateralPrice) / 10n ** BigInt(collateralDecimals);
 
-  // Convert USD value to dStable amount
-  // Formula: (collateralValueInUsd * 10^dstableDecimals) / dstablePrice
-  return (collateralValueInUsd * 10n ** BigInt(dstableDecimals)) / dstablePrice;
+  // Convert base value to dStable amount
+  // Formula: (collateralBaseValue * 10^dstableDecimals) / dstablePrice
+  return (collateralBaseValue * 10n ** BigInt(dstableDecimals)) / dstablePrice;
 }
 
 /**
@@ -331,7 +331,7 @@ dstableConfigs.forEach((config) => {
         const baseValue = hre.ethers.parseUnits(
           "100",
           ORACLE_AGGREGATOR_PRICE_DECIMALS
-        ); // 100 USD
+        ); // 100 base units
 
         // Calculate expected dStable amount using our dynamic function
         const expectedDstableAmount = await calculateExpectedDstableFromBase(

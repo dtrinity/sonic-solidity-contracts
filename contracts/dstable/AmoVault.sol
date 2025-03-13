@@ -134,14 +134,14 @@ abstract contract AmoVault is CollateralVault, IRecoverable, ReentrancyGuard {
 
     /**
      * @notice Calculates the total value of non-dStable collateral assets in the vault
-     * @return The total value of collateral assets denominated in the base currency (e.g., USD)
+     * @return The total value of collateral assets denominated in the base currency
      * @dev Must be implemented by derived contracts
      */
     function totalCollateralValue() public view virtual returns (uint256);
 
     /**
      * @notice Calculates the total value of dStable holdings in the vault
-     * @return The total value of dStable holdings denominated in the base currency (e.g., USD)
+     * @return The total value of dStable holdings denominated in the base currency
      * @dev Must be implemented by derived contracts
      */
     function totalDstableValue() public view virtual returns (uint256);

@@ -230,7 +230,7 @@ describe("AmoManager", () => {
 
   describe("Base value conversion", () => {
     it("converts base value to dStable amount correctly", async function () {
-      const baseValue = hre.ethers.parseUnits("1000", 8); // 8 decimals for USD value
+      const baseValue = hre.ethers.parseUnits("1000", 8); // 8 decimals for base value
       const expectedDstableAmount = hre.ethers.parseUnits(
         "1000",
         dstableInfo.decimals
@@ -247,7 +247,7 @@ describe("AmoManager", () => {
 
     it("converts dStable amount to base value correctly", async function () {
       const dstableAmount = hre.ethers.parseUnits("1000", dstableInfo.decimals);
-      const expectedBaseValue = hre.ethers.parseUnits("1000", 8); // 8 decimals for USD value
+      const expectedBaseValue = hre.ethers.parseUnits("1000", 8); // 8 decimals for base value
       const actualBaseValue =
         await amoManagerContract.dstableAmountToBaseValue(dstableAmount);
 

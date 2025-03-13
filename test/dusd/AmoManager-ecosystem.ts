@@ -566,11 +566,11 @@ describe("AmoCollateralInteraction", () => {
 });
 
 /**
- * Converts an amount of a token to its value in USD, using the price oracle's decimals.
+ * Converts an amount of a token to its base value, using the price oracle's decimals.
  *
  * @param amount The amount of the token to convert.
  * @param tokenInfo The information about the token.
- * @returns The value of the token in USD.
+ * @returns The base value of the token.
  */
 function tokenValueFromAmount(amount: bigint, tokenInfo: TokenInfo): bigint {
   if (tokenInfo.decimals === ORACLE_AGGREGATOR_PRICE_DECIMALS) {

@@ -140,10 +140,10 @@ describe("dS Ecosystem Lifecycle", () => {
   }
 
   /**
-   * Calculates the total value of tokens in a wallet converted to USD
+   * Calculates the total value of tokens in a wallet converted to base value
    *
    * @param wallet - The address of the wallet to calculate value for
-   * @returns The total value of all tokens in the wallet in USD
+   * @returns The total value of all tokens in the wallet in base value
    */
   async function calculateWalletValue(wallet: Address): Promise<bigint> {
     const wOSTokenValue = await tokenAmountToBaseValue(
