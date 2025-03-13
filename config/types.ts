@@ -1,7 +1,9 @@
 export interface Config {
   readonly MOCK_ONLY?: MockConfig;
   readonly tokenAddresses: TokenAddresses;
-  readonly oracleAggregator: OracleAggregatorConfig;
+  readonly oracleAggregators: {
+    [key: string]: OracleAggregatorConfig;
+  };
 }
 
 // Configuration for mocking infrastructure on local and test networks
