@@ -1,5 +1,7 @@
 // Oracles
-export const ORACLE_AGGREGATOR_ID = "OracleAggregator";
+export const USD_ORACLE_AGGREGATOR_ID = "USD_OracleAggregator";
+export const S_ORACLE_AGGREGATOR_ID = "S_OracleAggregator";
+
 export const API3_ORACLE_WRAPPER_ID = "API3Wrapper";
 export const API3_WRAPPER_WITH_THRESHOLDING_ID = "API3WrapperWithThresholding";
 export const API3_COMPOSITE_WRAPPER_WITH_THRESHOLDING_ID =

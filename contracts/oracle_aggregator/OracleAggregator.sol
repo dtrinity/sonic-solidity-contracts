@@ -107,8 +107,8 @@ contract OracleAggregator is AccessControl, IOracleWrapper {
      * @notice Returns the base currency
      * @return Address representing the base currency
      */
-    function BASE_CURRENCY() external pure returns (address) {
-        return BASE_CURRENCY_USD;
+    function BASE_CURRENCY() external view returns (address) {
+        return baseCurrency;
     }
 
     /**

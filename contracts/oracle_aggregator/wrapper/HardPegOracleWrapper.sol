@@ -21,13 +21,18 @@ import "../interface/IOracleWrapper.sol";
 
 contract HardPegOracleWrapper is IOracleWrapper {
     uint256 public immutable pricePeg;
-    address public constant BASE_CURRENCY = address(0); // Commonly used for base currency
+    address public immutable BASE_CURRENCY;
 
     uint256 public BASE_CURRENCY_UNIT;
 
-    constructor(uint256 _pricePeg, uint256 _baseCurrencyUnit) {
-        pricePeg = _pricePeg;
+    constructor(
+        address _baseCurrency,
+        uint256 _baseCurrencyUnit,
+        uint256 _pricePeg
+    ) {
+        BASE_CURRENCY = _baseCurrency;
         BASE_CURRENCY_UNIT = _baseCurrencyUnit;
+        pricePeg = _pricePeg;
     }
 
     /**
