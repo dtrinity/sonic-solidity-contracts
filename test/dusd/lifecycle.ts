@@ -173,15 +173,15 @@ describe("dStable Ecosystem Lifecycle", () => {
     const usdcBalance = await usdcContract.balanceOf(wallet);
     const dstableBalance = await dstableContract.balanceOf(wallet);
 
-    const frxUSDValue = await tokenAmountToUsdValue(
+    const frxUSDValue = await tokenAmountToBaseValue(
       frxUSDBalance,
       frxUSDInfo.address
     );
-    const usdcValue = await tokenAmountToUsdValue(
+    const usdcValue = await tokenAmountToBaseValue(
       usdcBalance,
       usdcInfo.address
     );
-    const dstableValue = await tokenAmountToUsdValue(
+    const dstableValue = await tokenAmountToBaseValue(
       dstableBalance,
       dstableInfo.address
     );
@@ -202,27 +202,27 @@ describe("dStable Ecosystem Lifecycle", () => {
     inputToken: Address,
     outputToken: Address
   ): Promise<bigint> {
-    // First convert to USD value
-    const usdValue = await tokenAmountToUsdValue(inputAmount, inputToken);
+    // First convert to base value
+    const baseValue = await tokenAmountToBaseValue(inputAmount, inputToken);
 
-    // Then convert from USD to output token
+    // Then convert from base value to output token
     const outputTokenPrice =
       await oracleAggregatorContract.getAssetPrice(outputToken);
     const outputTokenDecimals = await (
       await hre.ethers.getContractAt("TestERC20", outputToken)
     ).decimals();
 
-    return (usdValue * 10n ** BigInt(outputTokenDecimals)) / outputTokenPrice;
+    return (baseValue * 10n ** BigInt(outputTokenDecimals)) / outputTokenPrice;
   }
 
   /**
-   * Converts a token amount to its USD value
+   * Converts a token amount to its base value
    *
    * @param amount - The amount of the token
    * @param token - The address of the token
-   * @returns The USD value of the token amount
+   * @returns The base value of the token amount
    */
-  async function tokenAmountToUsdValue(
+  async function tokenAmountToBaseValue(
     amount: bigint,
     token: Address
   ): Promise<bigint> {

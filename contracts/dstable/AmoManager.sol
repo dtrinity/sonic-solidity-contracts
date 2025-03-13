@@ -37,7 +37,7 @@ contract AmoManager is AccessControl, OracleAware {
     IMintableERC20 public dstable;
     CollateralVault public collateralHolderVault;
 
-    uint256 public immutable USD_UNIT;
+    uint256 public immutable BASE_UNIT;
 
     /* Events */
 
@@ -63,8 +63,8 @@ contract AmoManager is AccessControl, OracleAware {
     error AmoVaultAlreadyEnabled(address amoVault);
     error CannotTransferDStable();
     error InsufficientProfits(
-        uint256 takeProfitValueInUsd,
-        int256 availableProfitInUsd
+        uint256 takeProfitValueInBase,
+        int256 availableProfitInBase
     );
 
     /**
@@ -81,7 +81,7 @@ contract AmoManager is AccessControl, OracleAware {
         dstable = IMintableERC20(_dstable);
         collateralHolderVault = CollateralVault(_collateralHolderVault);
 
-        USD_UNIT = oracle.BASE_CURRENCY_UNIT();
+        BASE_UNIT = oracle.BASE_CURRENCY_UNIT();
 
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         grantRole(AMO_ALLOCATOR_ROLE, msg.sender);
@@ -242,17 +242,17 @@ contract AmoManager is AccessControl, OracleAware {
 
     /**
      * @notice Returns the total collateral value of all active AMO vaults.
-     * @return The total collateral value in USD.
+     * @return The total collateral value in base value.
      */
     function totalCollateralValue() public view returns (uint256) {
-        uint256 totalUsdValue = 0;
+        uint256 totalBaseValue = 0;
         for (uint256 i = 0; i < _amoVaults.length(); i++) {
             (address vaultAddress, ) = _amoVaults.at(i);
             if (isAmoActive(vaultAddress)) {
-                totalUsdValue += AmoVault(vaultAddress).totalCollateralValue();
+                totalBaseValue += AmoVault(vaultAddress).totalCollateralValue();
             }
         }
-        return totalUsdValue;
+        return totalBaseValue;
     }
 
     /**
@@ -279,12 +279,10 @@ contract AmoManager is AccessControl, OracleAware {
         //    converted to that collateral is now free-floating and fully backed
         // 5. Thus we decrement the AMO allocation to reflect the fact that the dStable is no longer
         //    unbacked, but is actually fully backed and circulating
-        uint256 collateralUsdValue = collateralHolderVault.assetValueFromAmount(
-            amount,
-            token
-        );
-        uint256 collateralInDstable = usdValueToDstableAmount(
-            collateralUsdValue
+        uint256 collateralBaseValue = collateralHolderVault
+            .assetValueFromAmount(amount, token);
+        uint256 collateralInDstable = baseValueToDstableAmount(
+            collateralBaseValue
         );
         (, uint256 currentAllocation) = _amoVaults.tryGet(amoVault);
 
@@ -329,12 +327,10 @@ contract AmoManager is AccessControl, OracleAware {
         // 2. When we buy back dStable, the dStable is now unbacked (a redemption)
         // 3. Thus any collateral deposited to an AMO vault can create unbacked dStable,
         //    which means the AMO allocation for that vault must be increased to reflect this
-        uint256 collateralUsdValue = collateralHolderVault.assetValueFromAmount(
-            amount,
-            token
-        );
-        uint256 collateralInDstable = usdValueToDstableAmount(
-            collateralUsdValue
+        uint256 collateralBaseValue = collateralHolderVault
+            .assetValueFromAmount(amount, token);
+        uint256 collateralInDstable = baseValueToDstableAmount(
+            collateralBaseValue
         );
         (, uint256 currentAllocation) = _amoVaults.tryGet(amoVault);
         _amoVaults.set(amoVault, currentAllocation + collateralInDstable);
@@ -347,18 +343,20 @@ contract AmoManager is AccessControl, OracleAware {
     /* Profit Management */
 
     /**
-     * @notice Returns the available profit for a specific vault in USD.
+     * @notice Returns the available profit for a specific vault in base value (e.g., the underlying).
      * @param vaultAddress The address of the AMO vault to check.
-     * @return The available profit in USD (can be negative).
+     * @return The available profit in base (can be negative).
      */
-    function availableVaultProfitsInUsd(
+    function availableVaultProfitsInBase(
         address vaultAddress
     ) public view returns (int256) {
-        uint256 totalVaultValueInUsd = AmoVault(vaultAddress).totalValue();
+        uint256 totalVaultValueInBase = AmoVault(vaultAddress).totalValue();
         uint256 allocatedDstable = amoVaultAllocation(vaultAddress);
-        uint256 allocatedValueInUsd = dstableAmountToUsdValue(allocatedDstable);
+        uint256 allocatedValueInBase = dstableAmountToBaseValue(
+            allocatedDstable
+        );
 
-        return int256(totalVaultValueInUsd) - int256(allocatedValueInUsd);
+        return int256(totalVaultValueInBase) - int256(allocatedValueInBase);
     }
 
     /**
@@ -367,7 +365,7 @@ contract AmoManager is AccessControl, OracleAware {
      * @param recipient The address to receive the profits.
      * @param takeProfitToken The collateral token to withdraw.
      * @param takeProfitAmount The amount of collateral to withdraw.
-     * @return takeProfitValueInUsd The value of the withdrawn profits in USD.
+     * @return takeProfitValueInBase The value of the withdrawn profits in base.
      */
     function withdrawProfits(
         AmoVault amoVault,
@@ -377,43 +375,43 @@ contract AmoManager is AccessControl, OracleAware {
     )
         public
         onlyRole(FEE_COLLECTOR_ROLE)
-        returns (uint256 takeProfitValueInUsd)
+        returns (uint256 takeProfitValueInBase)
     {
         // Leave open the possibility of withdrawing profits from inactive vaults
 
-        takeProfitValueInUsd = amoVault.assetValueFromAmount(
+        takeProfitValueInBase = amoVault.assetValueFromAmount(
             takeProfitAmount,
             takeProfitToken
         );
 
-        int256 _availableProfitInUsd = availableVaultProfitsInUsd(
+        int256 _availableProfitInBase = availableVaultProfitsInBase(
             address(amoVault)
         );
 
         // Make sure we are withdrawing less than the available profit
         if (
-            _availableProfitInUsd <= 0 ||
-            int256(takeProfitValueInUsd) > _availableProfitInUsd
+            _availableProfitInBase <= 0 ||
+            int256(takeProfitValueInBase) > _availableProfitInBase
         ) {
             revert InsufficientProfits(
-                takeProfitValueInUsd,
-                _availableProfitInUsd
+                takeProfitValueInBase,
+                _availableProfitInBase
             );
         }
 
         // Withdraw profits from the vault
         amoVault.withdrawTo(recipient, takeProfitAmount, takeProfitToken);
 
-        emit ProfitsWithdrawn(address(amoVault), takeProfitValueInUsd);
+        emit ProfitsWithdrawn(address(amoVault), takeProfitValueInBase);
 
-        return takeProfitValueInUsd;
+        return takeProfitValueInBase;
     }
 
     /**
-     * @notice Returns the total available profit across all AMO vaults in USD.
-     * @return The total available profit in USD.
+     * @notice Returns the total available profit across all AMO vaults in base.
+     * @return The total available profit in base.
      */
-    function availableProfitInUsd() public view returns (int256) {
+    function availableProfitInBase() public view returns (int256) {
         int256 totalProfit = 0;
 
         // Iterate through all AMO vaults
@@ -421,7 +419,7 @@ contract AmoManager is AccessControl, OracleAware {
             (address vaultAddress, ) = _amoVaults.at(i);
 
             if (isAmoActive(vaultAddress)) {
-                totalProfit += availableVaultProfitsInUsd(vaultAddress);
+                totalProfit += availableVaultProfitsInBase(vaultAddress);
             }
         }
 
@@ -431,16 +429,16 @@ contract AmoManager is AccessControl, OracleAware {
     /* Utility */
 
     /**
-     * @notice Converts a USD value to an equivalent amount of dStable tokens.
-     * @param usdValue The amount of USD value to convert.
+     * @notice Converts a base value to an equivalent amount of dStable tokens.
+     * @param baseValue The amount of base value to convert.
      * @return The equivalent amount of dStable tokens.
      */
-    function usdValueToDstableAmount(
-        uint256 usdValue
+    function baseValueToDstableAmount(
+        uint256 baseValue
     ) public view returns (uint256) {
         uint8 dstableDecimals = dstable.decimals();
         return
-            (usdValue * (10 ** dstableDecimals)) /
+            (baseValue * (10 ** dstableDecimals)) /
             (oracle.getAssetPrice(address(dstable)));
     }
 
@@ -449,7 +447,7 @@ contract AmoManager is AccessControl, OracleAware {
      * @param dstableAmount The amount of dStable tokens to convert.
      * @return The equivalent amount of USD value.
      */
-    function dstableAmountToUsdValue(
+    function dstableAmountToBaseValue(
         uint256 dstableAmount
     ) public view returns (uint256) {
         uint8 dstableDecimals = dstable.decimals();

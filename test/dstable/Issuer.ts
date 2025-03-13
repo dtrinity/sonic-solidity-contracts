@@ -58,10 +58,10 @@ async function calculateExpectedDstableAmount(
 }
 
 /**
- * Calculates expected dStable amount from USD value based on oracle prices
+ * Calculates expected dStable amount from base value based on oracle prices
  */
-async function calculateExpectedDstableFromUsd(
-  usdValue: bigint,
+async function calculateExpectedDstableFromBase(
+  baseValue: bigint,
   dstableSymbol: string,
   dstableDecimals: number,
   oracleAggregator: OracleAggregator,
@@ -70,9 +70,9 @@ async function calculateExpectedDstableFromUsd(
   // Get dStable price from oracle
   const dstablePrice = await oracleAggregator.getAssetPrice(dstableAddress);
 
-  // Convert USD value to dStable amount
-  // Formula: (usdValue * 10^dstableDecimals) / dstablePrice
-  return (usdValue * 10n ** BigInt(dstableDecimals)) / dstablePrice;
+  // Convert base value to dStable amount
+  // Formula: (baseValue * 10^dstableDecimals) / dstablePrice
+  return (baseValue * 10n ** BigInt(dstableDecimals)) / dstablePrice;
 }
 
 // Run tests for each dStable configuration
@@ -327,15 +327,15 @@ dstableConfigs.forEach((config) => {
         assert.notEqual(actualAmoSupply, 0n, "AMO supply should not be zero");
       });
 
-      it(`usdValueToDstableAmount converts correctly for ${config.symbol}`, async function () {
-        const usdValue = hre.ethers.parseUnits(
+      it(`baseValueToDstableAmount converts correctly for ${config.symbol}`, async function () {
+        const baseValue = hre.ethers.parseUnits(
           "100",
           ORACLE_AGGREGATOR_PRICE_DECIMALS
         ); // 100 USD
 
         // Calculate expected dStable amount using our dynamic function
-        const expectedDstableAmount = await calculateExpectedDstableFromUsd(
-          usdValue,
+        const expectedDstableAmount = await calculateExpectedDstableFromBase(
+          baseValue,
           config.symbol,
           dstableInfo.decimals,
           oracleAggregatorContract,
@@ -343,13 +343,13 @@ dstableConfigs.forEach((config) => {
         );
 
         const actualDstableAmount =
-          await issuerContract.usdValueToDstableAmount(usdValue);
+          await issuerContract.baseValueToDstableAmount(baseValue);
 
         // Compare the actual amount to our calculated expected amount
         assert.equal(
           actualDstableAmount,
           expectedDstableAmount,
-          `USD to ${config.symbol} conversion is incorrect`
+          `Base value to ${config.symbol} conversion is incorrect`
         );
       });
     });

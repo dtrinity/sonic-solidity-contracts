@@ -228,33 +228,33 @@ describe("AmoManager", () => {
     });
   });
 
-  describe("USD value conversion", () => {
-    it("converts USD value to dStable amount correctly", async function () {
-      const usdValue = hre.ethers.parseUnits("1000", 8); // 8 decimals for USD value
+  describe("Base value conversion", () => {
+    it("converts base value to dStable amount correctly", async function () {
+      const baseValue = hre.ethers.parseUnits("1000", 8); // 8 decimals for USD value
       const expectedDstableAmount = hre.ethers.parseUnits(
         "1000",
         dstableInfo.decimals
       );
       const actualDstableAmount =
-        await amoManagerContract.usdValueToDstableAmount(usdValue);
+        await amoManagerContract.baseValueToDstableAmount(baseValue);
 
       assert.equal(
         actualDstableAmount,
         expectedDstableAmount,
-        "USD to dStable conversion is incorrect"
+        "Base value to dStable conversion is incorrect"
       );
     });
 
-    it("converts dStable amount to USD value correctly", async function () {
+    it("converts dStable amount to base value correctly", async function () {
       const dstableAmount = hre.ethers.parseUnits("1000", dstableInfo.decimals);
-      const expectedUsdValue = hre.ethers.parseUnits("1000", 8); // 8 decimals for USD value
-      const actualUsdValue =
-        await amoManagerContract.dstableAmountToUsdValue(dstableAmount);
+      const expectedBaseValue = hre.ethers.parseUnits("1000", 8); // 8 decimals for USD value
+      const actualBaseValue =
+        await amoManagerContract.dstableAmountToBaseValue(dstableAmount);
 
       assert.equal(
-        actualUsdValue,
-        expectedUsdValue,
-        "dStable to USD conversion is incorrect"
+        actualBaseValue,
+        expectedBaseValue,
+        "dStable to base value conversion is incorrect"
       );
     });
   });

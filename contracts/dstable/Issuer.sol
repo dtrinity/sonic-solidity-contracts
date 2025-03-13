@@ -40,7 +40,7 @@ contract Issuer is AccessControl, OracleAware {
     CollateralVault public collateralVault;
     AmoManager public amoManager;
 
-    uint256 public immutable USD_UNIT;
+    uint256 public immutable BASE_UNIT;
 
     /* Events */
 
@@ -83,7 +83,7 @@ contract Issuer is AccessControl, OracleAware {
         dstableDecimals = dstable.decimals();
         amoManager = AmoManager(_amoManager);
 
-        USD_UNIT = oracle.BASE_CURRENCY_UNIT();
+        BASE_UNIT = oracle.BASE_CURRENCY_UNIT();
 
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         grantRole(AMO_MANAGER_ROLE, msg.sender);
@@ -104,9 +104,9 @@ contract Issuer is AccessControl, OracleAware {
         uint256 minDStable
     ) external {
         uint8 collateralDecimals = IERC20Metadata(collateralAsset).decimals();
-        uint256 usdValue = (oracle.getAssetPrice(collateralAsset) *
+        uint256 baseValue = (oracle.getAssetPrice(collateralAsset) *
             collateralAmount) / (10 ** collateralDecimals);
-        uint256 dstableAmount = usdValueToDstableAmount(usdValue);
+        uint256 dstableAmount = baseValueToDstableAmount(baseValue);
         if (dstableAmount < minDStable) {
             revert SlippageTooHigh(minDStable, dstableAmount);
         }
@@ -180,19 +180,19 @@ contract Issuer is AccessControl, OracleAware {
      * @return The amount of dStable tokens equivalent to the collateral value
      */
     function collateralInDstable() public view returns (uint256) {
-        uint256 _collateralInUsd = collateralVault.totalValue();
-        return usdValueToDstableAmount(_collateralInUsd);
+        uint256 _collateralInBase = collateralVault.totalValue();
+        return baseValueToDstableAmount(_collateralInBase);
     }
 
     /**
-     * @notice Converts a USD value to an equivalent amount of dStable tokens
-     * @param usdValue The amount of USD value to convert
+     * @notice Converts a base value to an equivalent amount of dStable tokens
+     * @param baseValue The amount of base value to convert
      * @return The equivalent amount of dStable tokens
      */
-    function usdValueToDstableAmount(
-        uint256 usdValue
+    function baseValueToDstableAmount(
+        uint256 baseValue
     ) public view returns (uint256) {
-        return (usdValue * (10 ** dstableDecimals)) / USD_UNIT;
+        return (baseValue * (10 ** dstableDecimals)) / BASE_UNIT;
     }
 
     /* Admin */

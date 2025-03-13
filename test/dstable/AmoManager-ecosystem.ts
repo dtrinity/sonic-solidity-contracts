@@ -152,7 +152,7 @@ dstableConfigs.forEach((config) => {
      * @param tokenAddress - The address of the token
      * @returns The USD value of the token amount
      */
-    async function calculateUsdValueFromAmount(
+    async function calculateBaseValueFromAmount(
       amount: bigint,
       tokenAddress: Address
     ): Promise<bigint> {
@@ -161,23 +161,6 @@ dstableConfigs.forEach((config) => {
         await hre.ethers.getContractAt("TestERC20", tokenAddress)
       ).decimals();
       return (amount * price) / 10n ** BigInt(decimals);
-    }
-
-    /**
-     * Calculates the expected token amount from a USD value based on oracle prices
-     * @param usdValue - The USD value
-     * @param tokenAddress - The address of the token
-     * @returns The token amount equivalent to the USD value
-     */
-    async function calculateAmountFromUsdValue(
-      usdValue: bigint,
-      tokenAddress: Address
-    ): Promise<bigint> {
-      const price = await oracleAggregatorContract.getAssetPrice(tokenAddress);
-      const decimals = await (
-        await hre.ethers.getContractAt("TestERC20", tokenAddress)
-      ).decimals();
-      return (usdValue * 10n ** BigInt(decimals)) / price;
     }
 
     /**
@@ -290,13 +273,13 @@ dstableConfigs.forEach((config) => {
         );
 
         // Calculate expected dStable value using oracle prices
-        const expectedDstableValue = await calculateUsdValueFromAmount(
+        const expectedDstableValue = await calculateBaseValueFromAmount(
           dstableToAllocate,
           dstableInfo.address
         );
 
         // Calculate expected collateral value using oracle prices
-        const expectedCollateralValue = await calculateUsdValueFromAmount(
+        const expectedCollateralValue = await calculateBaseValueFromAmount(
           collateralAmount,
           collateralInfo.address
         );
@@ -305,17 +288,10 @@ dstableConfigs.forEach((config) => {
         const expectedTotalCollateralValue =
           expectedCollateralValue + fakeDeFiValue;
 
-        // Allow for a small rounding error due to fixed-point math
-        const difference =
-          collateralValue > expectedTotalCollateralValue
-            ? collateralValue - expectedTotalCollateralValue
-            : expectedTotalCollateralValue - collateralValue;
-
-        const acceptableError = (expectedTotalCollateralValue * 1n) / 100n; // 1% error margin
-
-        assert.isTrue(
-          difference <= acceptableError,
-          `Collateral value difference (${difference}) exceeds acceptable error (${acceptableError}). Expected: ${expectedTotalCollateralValue}, Actual: ${collateralValue}`
+        assert.equal(
+          collateralValue,
+          expectedTotalCollateralValue,
+          `Collateral value should match expected value. Expected: ${expectedTotalCollateralValue}, Actual: ${collateralValue}`
         );
       });
 
@@ -464,8 +440,8 @@ dstableConfigs.forEach((config) => {
         );
 
         // Calculate initial vault profit/loss - should be zero at this point
-        const initialProfitUsd =
-          await amoManagerContract.availableVaultProfitsInUsd(
+        const initialProfitBase =
+          await amoManagerContract.availableVaultProfitsInBase(
             await mockAmoVaultContract.getAddress()
           );
 
@@ -480,31 +456,21 @@ dstableConfigs.forEach((config) => {
         );
 
         // Calculate vault profit after depositing collateral
-        const profitAfterDepositUsd =
-          await amoManagerContract.availableVaultProfitsInUsd(
+        const profitAfterDepositBase =
+          await amoManagerContract.availableVaultProfitsInBase(
             await mockAmoVaultContract.getAddress()
           );
 
         // Calculate expected value of deposited collateral in USD using oracle prices
-        const expectedDepositValueUsd = await calculateUsdValueFromAmount(
+        const expectedDepositValueBase = await calculateBaseValueFromAmount(
           collateralAmount,
           collateralInfo.address
         );
 
-        // Allow for a small rounding error due to fixed-point math
-        const depositDifference =
-          profitAfterDepositUsd > initialProfitUsd + expectedDepositValueUsd
-            ? profitAfterDepositUsd -
-              (initialProfitUsd + expectedDepositValueUsd)
-            : initialProfitUsd +
-              expectedDepositValueUsd -
-              profitAfterDepositUsd;
-
-        const acceptableDepositError = (expectedDepositValueUsd * 1n) / 100n; // 1% error margin
-
-        assert.isTrue(
-          depositDifference <= acceptableDepositError,
-          `Profit after deposit difference (${depositDifference}) exceeds acceptable error (${acceptableDepositError}). Expected: ${initialProfitUsd + expectedDepositValueUsd}, Actual: ${profitAfterDepositUsd}`
+        assert.equal(
+          profitAfterDepositBase,
+          initialProfitBase + expectedDepositValueBase,
+          `Profit after deposit should match expected value. Expected: ${initialProfitBase + expectedDepositValueBase}, Actual: ${profitAfterDepositBase}`
         );
 
         // Now simulate a loss by removing some of the collateral
@@ -519,55 +485,42 @@ dstableConfigs.forEach((config) => {
         );
 
         // Calculate vault profit after loss
-        const profitAfterLossUsd =
-          await amoManagerContract.availableVaultProfitsInUsd(
+        const profitAfterLossBase =
+          await amoManagerContract.availableVaultProfitsInBase(
             await mockAmoVaultContract.getAddress()
           );
 
         // Calculate expected value of removed collateral in USD using oracle prices
-        const expectedLossValueUsd = await calculateUsdValueFromAmount(
+        const expectedLossValueBase = await calculateBaseValueFromAmount(
           lossAmount,
           collateralInfo.address
         );
 
-        // Allow for a small rounding error due to fixed-point math
-        const lossDifference =
-          profitAfterDepositUsd - profitAfterLossUsd > expectedLossValueUsd
-            ? profitAfterDepositUsd - profitAfterLossUsd - expectedLossValueUsd
-            : expectedLossValueUsd -
-              (profitAfterDepositUsd - profitAfterLossUsd);
-
-        const acceptableLossError = (expectedLossValueUsd * 1n) / 100n; // 1% error margin
-
-        assert.isTrue(
-          lossDifference <= acceptableLossError,
-          `Loss difference (${lossDifference}) exceeds acceptable error (${acceptableLossError}). Expected: ${expectedLossValueUsd}, Actual: ${profitAfterDepositUsd - profitAfterLossUsd}`
+        assert.equal(
+          profitAfterDepositBase - profitAfterLossBase,
+          expectedLossValueBase,
+          `Loss amount should match expected value. Expected: ${expectedLossValueBase}, Actual: ${profitAfterDepositBase - profitAfterLossBase}`
         );
 
         // Set fake DeFi collateral value to simulate additional profit
-        const fakeDeFiValueUsd = hre.ethers.parseUnits(
+        const fakeDeFiValueBase = hre.ethers.parseUnits(
           "300",
           ORACLE_AGGREGATOR_PRICE_DECIMALS
         );
-        await mockAmoVaultContract.setFakeDeFiCollateralValue(fakeDeFiValueUsd);
+        await mockAmoVaultContract.setFakeDeFiCollateralValue(
+          fakeDeFiValueBase
+        );
 
         // Calculate profit after adding DeFi value
-        const profitAfterDeFiUsd =
-          await amoManagerContract.availableVaultProfitsInUsd(
+        const profitAfterDeFiBase =
+          await amoManagerContract.availableVaultProfitsInBase(
             await mockAmoVaultContract.getAddress()
           );
 
-        // Allow for a small rounding error due to fixed-point math
-        const deFiDifference =
-          profitAfterDeFiUsd - profitAfterLossUsd > fakeDeFiValueUsd
-            ? profitAfterDeFiUsd - profitAfterLossUsd - fakeDeFiValueUsd
-            : fakeDeFiValueUsd - (profitAfterDeFiUsd - profitAfterLossUsd);
-
-        const acceptableDeFiError = (fakeDeFiValueUsd * 1n) / 100n; // 1% error margin
-
-        assert.isTrue(
-          deFiDifference <= acceptableDeFiError,
-          `DeFi profit difference (${deFiDifference}) exceeds acceptable error (${acceptableDeFiError}). Expected: ${fakeDeFiValueUsd}, Actual: ${profitAfterDeFiUsd - profitAfterLossUsd}`
+        assert.equal(
+          profitAfterDeFiBase - profitAfterLossBase,
+          fakeDeFiValueBase,
+          `DeFi profit should match expected value. Expected: ${fakeDeFiValueBase}, Actual: ${profitAfterDeFiBase - profitAfterLossBase}`
         );
 
         // Try to withdraw some of the profit
@@ -577,7 +530,7 @@ dstableConfigs.forEach((config) => {
         );
 
         // Calculate expected value of profit amount in USD using oracle prices
-        const expectedProfitValueUsd = await calculateUsdValueFromAmount(
+        const expectedProfitValueBase = await calculateBaseValueFromAmount(
           takeProfitAmount,
           collateralInfo.address
         );
@@ -605,25 +558,15 @@ dstableConfigs.forEach((config) => {
         );
 
         // Calculate profit after withdrawing
-        const profitAfterWithdrawUsd =
-          await amoManagerContract.availableVaultProfitsInUsd(
+        const profitAfterWithdrawBase =
+          await amoManagerContract.availableVaultProfitsInBase(
             await mockAmoVaultContract.getAddress()
           );
 
-        // Allow for a small rounding error due to fixed-point math
-        const withdrawDifference =
-          profitAfterDeFiUsd - profitAfterWithdrawUsd > expectedProfitValueUsd
-            ? profitAfterDeFiUsd -
-              profitAfterWithdrawUsd -
-              expectedProfitValueUsd
-            : expectedProfitValueUsd -
-              (profitAfterDeFiUsd - profitAfterWithdrawUsd);
-
-        const acceptableWithdrawError = (expectedProfitValueUsd * 1n) / 100n; // 1% error margin
-
-        assert.isTrue(
-          withdrawDifference <= acceptableWithdrawError,
-          `Withdraw profit difference (${withdrawDifference}) exceeds acceptable error (${acceptableWithdrawError}). Expected: ${expectedProfitValueUsd}, Actual: ${profitAfterDeFiUsd - profitAfterWithdrawUsd}`
+        assert.equal(
+          profitAfterDeFiBase - profitAfterWithdrawBase,
+          expectedProfitValueBase,
+          `Withdraw profit should match expected value. Expected: ${expectedProfitValueBase}, Actual: ${profitAfterDeFiBase - profitAfterWithdrawBase}`
         );
       });
 

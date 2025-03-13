@@ -81,7 +81,7 @@ dstableConfigs.forEach((config) => {
      * @param tokenAddress - The address of the token
      * @returns The USD value of the token amount
      */
-    async function calculateUsdValueFromAmount(
+    async function calculateBaseValueFromAmount(
       amount: bigint,
       tokenAddress: Address
     ): Promise<bigint> {
@@ -93,20 +93,20 @@ dstableConfigs.forEach((config) => {
     }
 
     /**
-     * Calculates the expected token amount from a USD value based on oracle prices
-     * @param usdValue - The USD value
+     * Calculates the expected token amount from a base value based on oracle prices
+     * @param baseValue - The base value
      * @param tokenAddress - The address of the token
-     * @returns The token amount equivalent to the USD value
+     * @returns The token amount equivalent to the base value
      */
-    async function calculateAmountFromUsdValue(
-      usdValue: bigint,
+    async function calculateAmountFromBaseValue(
+      baseValue: bigint,
       tokenAddress: Address
     ): Promise<bigint> {
       const price = await oracleAggregatorContract.getAssetPrice(tokenAddress);
       const decimals = await (
         await hre.ethers.getContractAt("TestERC20", tokenAddress)
       ).decimals();
-      return (usdValue * 10n ** BigInt(decimals)) / price;
+      return (baseValue * 10n ** BigInt(decimals)) / price;
     }
 
     describe("Collateral management", () => {
@@ -255,7 +255,7 @@ dstableConfigs.forEach((config) => {
           );
 
           // Calculate expected USD value of this collateral using oracle prices
-          const collateralValue = await calculateUsdValueFromAmount(
+          const collateralValue = await calculateBaseValueFromAmount(
             depositAmount,
             collateralInfo.address
           );
@@ -284,18 +284,18 @@ dstableConfigs.forEach((config) => {
           collateralSymbol
         ) as TokenInfo;
 
-        // Use a standard USD value for testing
-        const usdValue = hre.ethers.parseUnits("100", 8); // 100 USD with 8 decimals
+        // Use a standard base value for testing
+        const baseValue = hre.ethers.parseUnits("100", 8); // 100 USD with 8 decimals
 
         // Get the asset amount from the contract
         const assetAmount = await collateralVaultContract.assetAmountFromValue(
-          usdValue,
+          baseValue,
           collateralInfo.address
         );
 
         // Calculate the expected asset amount using oracle prices
-        const expectedAssetAmount = await calculateAmountFromUsdValue(
-          usdValue,
+        const expectedAssetAmount = await calculateAmountFromBaseValue(
+          baseValue,
           collateralInfo.address
         );
 
@@ -313,12 +313,12 @@ dstableConfigs.forEach((config) => {
             : expectedAssetAmount - assetAmount;
 
         const valueDifference =
-          calculatedValue > usdValue
-            ? calculatedValue - usdValue
-            : usdValue - calculatedValue;
+          calculatedValue > baseValue
+            ? calculatedValue - baseValue
+            : baseValue - calculatedValue;
 
         const acceptableAmountError = (expectedAssetAmount * 1n) / 100n; // 1% error margin
-        const acceptableValueError = (usdValue * 1n) / 100n; // 1% error margin
+        const acceptableValueError = (baseValue * 1n) / 100n; // 1% error margin
 
         assert.isTrue(
           amountDifference <= acceptableAmountError,
@@ -327,7 +327,7 @@ dstableConfigs.forEach((config) => {
 
         assert.isTrue(
           valueDifference <= acceptableValueError,
-          `USD value difference (${valueDifference}) exceeds acceptable error (${acceptableValueError}). Expected: ${usdValue}, Actual: ${calculatedValue}`
+          `Base value difference (${valueDifference}) exceeds acceptable error (${acceptableValueError}). Expected: ${baseValue}, Actual: ${calculatedValue}`
         );
       });
     });

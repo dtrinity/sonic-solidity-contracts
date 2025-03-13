@@ -146,15 +146,15 @@ describe("dS Ecosystem Lifecycle", () => {
    * @returns The total value of all tokens in the wallet in USD
    */
   async function calculateWalletValue(wallet: Address): Promise<bigint> {
-    const wOSTokenValue = await tokenAmountToUsdValue(
+    const wOSTokenValue = await tokenAmountToBaseValue(
       await wOSTokenContract.balanceOf(wallet),
       wOSTokenInfo.address
     );
-    const stSTokenValue = await tokenAmountToUsdValue(
+    const stSTokenValue = await tokenAmountToBaseValue(
       await stSTokenContract.balanceOf(wallet),
       stSTokenInfo.address
     );
-    const dsValue = await tokenAmountToUsdValue(
+    const dsValue = await tokenAmountToBaseValue(
       await dsContract.balanceOf(wallet),
       dsInfo.address
     );
@@ -185,20 +185,20 @@ describe("dS Ecosystem Lifecycle", () => {
       await hre.ethers.getContractAt("TestERC20", outputToken)
     ).decimals();
 
-    const inputAmountInUsd = (inputAmount * inputPrice) / 10n ** inputDecimals;
+    const inputAmountInBase = (inputAmount * inputPrice) / 10n ** inputDecimals;
     const outputAmountInToken =
-      (inputAmountInUsd * 10n ** outputDecimals) / outputPrice;
+      (inputAmountInBase * 10n ** outputDecimals) / outputPrice;
     return outputAmountInToken;
   }
 
   /**
-   * Converts a token amount to its USD value
+   * Converts a token amount to its base value
    *
    * @param amount - The amount of token
    * @param tokenAddress - The address of the token
-   * @returns The USD value of the token amount
+   * @returns The base value of the token amount
    */
-  async function tokenAmountToUsdValue(
+  async function tokenAmountToBaseValue(
     amount: bigint,
     tokenAddress: Address
   ): Promise<bigint> {

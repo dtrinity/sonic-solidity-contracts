@@ -134,11 +134,11 @@ contract CollateralHolderVault is CollateralVault {
             .decimals();
         uint8 toCollateralDecimals = IERC20Metadata(toCollateral).decimals();
 
-        uint256 fromCollateralUsdValue = (fromCollateralPrice *
+        uint256 fromCollateralBaseValue = (fromCollateralPrice *
             fromCollateralAmount) / (10 ** fromCollateralDecimals);
 
         toCollateralAmount =
-            (fromCollateralUsdValue * (10 ** toCollateralDecimals)) /
+            (fromCollateralBaseValue * (10 ** toCollateralDecimals)) /
             toCollateralPrice;
 
         return toCollateralAmount;
@@ -146,9 +146,9 @@ contract CollateralHolderVault is CollateralVault {
 
     /**
      * @notice Calculates the total value of all collateral in the vault
-     * @return usdValue The total value of all collateral in USD
+     * @return baseValue The total value of all collateral in base
      */
-    function totalValue() public view override returns (uint256 usdValue) {
+    function totalValue() public view override returns (uint256 baseValue) {
         return _totalValueOfSupportedCollaterals();
     }
 }

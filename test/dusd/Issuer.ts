@@ -166,14 +166,14 @@ describe("Issuer", () => {
       assert.notEqual(actualAmoSupply, 0n, "AMO supply should not be zero");
     });
 
-    it("usdValueToDstableAmount converts correctly", async function () {
+    it("baseValueToDstableAmount converts correctly", async function () {
       const dstablePriceOracle = await hre.ethers.getContractAt(
         "MockOracleAggregator",
         await issuerContract.oracle(),
         await hre.ethers.getSigner(deployer)
       );
 
-      const usdValue = hre.ethers.parseUnits(
+      const baseValue = hre.ethers.parseUnits(
         "100",
         ORACLE_AGGREGATOR_PRICE_DECIMALS
       ); // 100 USD
@@ -181,15 +181,15 @@ describe("Issuer", () => {
         dstableInfo.address
       );
       const expectedDstableAmount =
-        (usdValue * 10n ** BigInt(dstableInfo.decimals)) / dstablePrice;
+        (baseValue * 10n ** BigInt(dstableInfo.decimals)) / dstablePrice;
 
       const actualDstableAmount =
-        await issuerContract.usdValueToDstableAmount(usdValue);
+        await issuerContract.baseValueToDstableAmount(baseValue);
 
       assert.equal(
         actualDstableAmount,
         expectedDstableAmount,
-        "USD to dStable conversion is incorrect"
+        "Base value to dStable conversion is incorrect"
       );
     });
   });

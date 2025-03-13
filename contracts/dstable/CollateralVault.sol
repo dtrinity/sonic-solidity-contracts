@@ -143,38 +143,38 @@ abstract contract CollateralVault is AccessControl, OracleAware {
 
     /**
      * @notice Calculates the total value of all assets in the vault
-     * @return usdValue The total value of all assets in USD
+     * @return baseValue The total value of all assets in base
      */
-    function totalValue() public view virtual returns (uint256 usdValue);
+    function totalValue() public view virtual returns (uint256 baseValue);
 
     /**
      * @notice Calculates the USD value of a given amount of an asset
      * @param assetAmount The amount of the asset
      * @param asset The address of the asset
-     * @return usdValue The USD value of the asset
+     * @return baseValue The base value of the asset
      */
     function assetValueFromAmount(
         uint256 assetAmount,
         address asset
-    ) public view returns (uint256 usdValue) {
+    ) public view returns (uint256 baseValue) {
         uint256 assetPrice = oracle.getAssetPrice(asset);
         uint8 assetDecimals = IERC20Metadata(asset).decimals();
         return (assetPrice * assetAmount) / (10 ** assetDecimals);
     }
 
     /**
-     * @notice Calculates the amount of an asset that corresponds to a given USD value
-     * @param usdValue The USD value
+     * @notice Calculates the amount of an asset that corresponds to a given base value
+     * @param baseValue The base value
      * @param asset The address of the asset
      * @return assetAmount The amount of the asset
      */
     function assetAmountFromValue(
-        uint256 usdValue,
+        uint256 baseValue,
         address asset
     ) public view returns (uint256 assetAmount) {
         uint256 assetPrice = oracle.getAssetPrice(asset);
         uint8 assetDecimals = IERC20Metadata(asset).decimals();
-        return (usdValue * (10 ** assetDecimals)) / assetPrice;
+        return (baseValue * (10 ** assetDecimals)) / assetPrice;
     }
 
     /* Collateral management */
@@ -239,16 +239,16 @@ abstract contract CollateralVault is AccessControl, OracleAware {
     }
 
     /**
-     * @notice Calculates the total USD value of all supported collateral assets in the vault
-     * @dev Iterates through all supported collaterals and sums their USD values
-     * @return uint256 The total value in USD
+     * @notice Calculates the total base value of all supported collateral assets in the vault
+     * @dev Iterates through all supported collaterals and sums their base values
+     * @return uint256 The total value in base
      */
     function _totalValueOfSupportedCollaterals()
         internal
         view
         returns (uint256)
     {
-        uint256 totalUsdValue = 0;
+        uint256 totalBaseValue = 0;
         for (uint256 i = 0; i < _supportedCollaterals.length(); i++) {
             address collateral = _supportedCollaterals.at(i);
             uint256 collateralPrice = oracle.getAssetPrice(collateral);
@@ -256,8 +256,8 @@ abstract contract CollateralVault is AccessControl, OracleAware {
             uint256 collateralValue = (collateralPrice *
                 IERC20Metadata(collateral).balanceOf(address(this))) /
                 (10 ** collateralDecimals);
-            totalUsdValue += collateralValue;
+            totalBaseValue += collateralValue;
         }
-        return totalUsdValue;
+        return totalBaseValue;
     }
 }

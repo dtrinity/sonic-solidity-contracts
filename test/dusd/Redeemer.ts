@@ -204,7 +204,7 @@ describe("Redeemer", () => {
       const expectedUsdValue = hre.ethers.parseUnits("100", 8); // 100 USD with 8 decimals
 
       const actualUsdValue =
-        await redeemerContract.dstableAmountToUsdValue(dstableAmount);
+        await redeemerContract.dstableAmountToBaseValue(dstableAmount);
 
       assert.equal(
         actualUsdValue,
