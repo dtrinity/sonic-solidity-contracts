@@ -147,7 +147,12 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   return true;
 };
 
-func.tags = ["oracle-aggregator", "oracle-wrapper", "s-api3-oracle-wrapper"];
+func.tags = [
+  "s-oracle",
+  "oracle-aggregator",
+  "oracle-wrapper",
+  "s-api3-oracle-wrapper",
+];
 func.dependencies = [];
 func.id = "setup-s-api3-oracle-wrappers";
 

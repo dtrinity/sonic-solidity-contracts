@@ -26,7 +26,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   return true;
 };
 
-func.tags = ["oracle-aggregator", "usd-oracle-aggregator"];
+func.tags = ["usd-oracle", "oracle-aggregator", "usd-oracle-aggregator"];
 func.dependencies = [];
 func.id = "deploy-usd-oracle-aggregator";
 
