@@ -13,7 +13,10 @@ import {
   MockOracleAggregator,
   OracleAggregator,
 } from "../../typechain-types";
-import { ORACLE_AGGREGATOR_ID } from "../../typescript/deploy-ids";
+import {
+  USD_ORACLE_AGGREGATOR_ID,
+  S_ORACLE_AGGREGATOR_ID,
+} from "../../typescript/deploy-ids";
 import {
   getTokenContractForSymbol,
   TokenInfo,
@@ -88,8 +91,13 @@ dstableConfigs.forEach((config) => {
         await hre.ethers.getSigner(deployer)
       );
 
+      // Get the oracle aggregator based on the dStable configuration
+      const oracleAggregatorId =
+        config.symbol === "dUSD"
+          ? USD_ORACLE_AGGREGATOR_ID
+          : S_ORACLE_AGGREGATOR_ID;
       const oracleAggregatorAddress = (
-        await hre.deployments.get(ORACLE_AGGREGATOR_ID)
+        await hre.deployments.get(oracleAggregatorId)
       ).address;
       oracleAggregatorContract = await hre.ethers.getContractAt(
         "OracleAggregator",

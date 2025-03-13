@@ -15,7 +15,10 @@ import {
   getTokenContractForSymbol,
   TokenInfo,
 } from "../../typescript/token/utils";
-import { ORACLE_AGGREGATOR_ID } from "../../typescript/deploy-ids";
+import {
+  USD_ORACLE_AGGREGATOR_ID,
+  S_ORACLE_AGGREGATOR_ID,
+} from "../../typescript/deploy-ids";
 import { USD_ORACLE_AGGREGATOR_PRICE_DECIMALS } from "../../typescript/oracle_aggregator/constants";
 import {
   createDStableAmoFixture,
@@ -76,9 +79,13 @@ dstableConfigs.forEach((config) => {
         await hre.ethers.getSigner(deployer)
       );
 
-      // Get the oracle aggregator
+      // Get the oracle aggregator based on the dStable configuration
+      const oracleAggregatorId =
+        config.symbol === "dUSD"
+          ? USD_ORACLE_AGGREGATOR_ID
+          : S_ORACLE_AGGREGATOR_ID;
       const oracleAggregatorAddress = (
-        await hre.deployments.get(ORACLE_AGGREGATOR_ID)
+        await hre.deployments.get(oracleAggregatorId)
       ).address;
       oracleAggregatorContract = await hre.ethers.getContractAt(
         "OracleAggregator",
@@ -94,16 +101,24 @@ dstableConfigs.forEach((config) => {
           config.symbol as "dUSD" | "dS"
         ));
 
-      // Deploy a new MockAmoVault directly instead of trying to find it in logs
-      const MockAmoVaultFactory =
-        await hre.ethers.getContractFactory("MockAmoVault");
-      mockAmoVaultContract = await MockAmoVaultFactory.deploy(
-        await dstableContract.getAddress(),
-        amoManagerAddress,
-        deployer,
-        deployer,
-        deployer,
-        (await hre.deployments.get(ORACLE_AGGREGATOR_ID)).address
+      // Create a new MockAmoVault for testing
+      const mockAmoVaultAddress = (await hre.deployments.get("MockAmoVault"))
+        .address;
+      mockAmoVaultContract = await hre.ethers.getContractAt(
+        "MockAmoVault",
+        mockAmoVaultAddress,
+        await hre.ethers.getSigner(deployer)
+      );
+
+      // Verify the MockAmoVault is set up correctly
+      expect(await mockAmoVaultContract.dstable()).to.equal(
+        dstableInfo.address
+      );
+      expect(await mockAmoVaultContract.amoManager()).to.equal(
+        amoManagerAddress
+      );
+      expect(await mockAmoVaultContract.oracle()).to.equal(
+        (await hre.deployments.get(oracleAggregatorId)).address
       );
 
       // Initialize all collateral tokens for this dStable

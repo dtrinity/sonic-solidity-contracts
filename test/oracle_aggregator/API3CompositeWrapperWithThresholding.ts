@@ -12,8 +12,7 @@ import {
   USD_ORACLE_AGGREGATOR_PRICE_DECIMALS,
 } from "../../typescript/oracle_aggregator/constants";
 import { getTokenContractForSymbol } from "../../typescript/token/utils";
-import { oracleAggregatorMinimalFixture } from "./fixtures";
-import { API3_COMPOSITE_WRAPPER_WITH_THRESHOLDING_ID } from "../../typescript/deploy-ids";
+import { usdOracleAggregatorFixture } from "./fixtures";
 
 describe("API3CompositeWrapperWithThresholding", () => {
   let api3CompositeWrapperWithThresholdingContract: API3CompositeWrapperWithThresholding;
@@ -25,13 +24,13 @@ describe("API3CompositeWrapperWithThresholding", () => {
   let user1: Address;
 
   beforeEach(async function () {
-    await oracleAggregatorMinimalFixture();
+    await usdOracleAggregatorFixture();
 
     ({ deployer, user1 } = await getNamedAccounts());
 
     // Get the API3CompositeWrapperWithThresholding contract
     const { address: api3CompositeWrapperAddress } = await hre.deployments.get(
-      API3_COMPOSITE_WRAPPER_WITH_THRESHOLDING_ID
+      "API3CompositeWrapperWithThresholding"
     );
     api3CompositeWrapperWithThresholdingContract =
       await hre.ethers.getContractAt(

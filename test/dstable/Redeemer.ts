@@ -21,7 +21,10 @@ import {
   DS_CONFIG,
   DStableFixtureConfig,
 } from "./fixtures";
-import { ORACLE_AGGREGATOR_ID } from "../../typescript/deploy-ids";
+import {
+  USD_ORACLE_AGGREGATOR_ID,
+  S_ORACLE_AGGREGATOR_ID,
+} from "../../typescript/deploy-ids";
 
 // Define which assets are yield-bearing vs stable for reference
 const yieldBearingAssets = new Set(["sfrxUSD", "stS", "wOS", "wS"]);
@@ -121,7 +124,7 @@ dstableConfigs.forEach((config) => {
 
       // Get the oracle aggregator
       const oracleAggregatorAddress = (
-        await hre.deployments.get(ORACLE_AGGREGATOR_ID)
+        await hre.deployments.get(S_ORACLE_AGGREGATOR_ID)
       ).address;
       oracleAggregatorContract = await hre.ethers.getContractAt(
         "OracleAggregator",

@@ -8,13 +8,7 @@ import {
 } from "../../typechain-types";
 import { USD_ORACLE_AGGREGATOR_PRICE_DECIMALS } from "../../typescript/oracle_aggregator/constants";
 import { getTokenContractForSymbol } from "../../typescript/token/utils";
-import { oracleAggregatorMinimalFixture } from "./fixtures";
-import {
-  API3_ORACLE_WRAPPER_ID,
-  API3_WRAPPER_WITH_THRESHOLDING_ID,
-  API3_COMPOSITE_WRAPPER_WITH_THRESHOLDING_ID,
-  ORACLE_AGGREGATOR_ID,
-} from "../../typescript/deploy-ids";
+import { usdOracleAggregatorFixture } from "./fixtures";
 
 describe("OracleAggregator", () => {
   let oracleAggregatorContract: OracleAggregator;
@@ -26,13 +20,14 @@ describe("OracleAggregator", () => {
   let api3WrapperAddress: string;
 
   beforeEach(async function () {
-    await oracleAggregatorMinimalFixture();
+    await usdOracleAggregatorFixture();
 
     ({ deployer, user1 } = await getNamedAccounts());
 
     // Get the OracleAggregator contract
-    const { address: oracleAggregatorAddress } =
-      await hre.deployments.get(ORACLE_AGGREGATOR_ID);
+    const { address: oracleAggregatorAddress } = await hre.deployments.get(
+      "UsdOracleAggregator"
+    );
     oracleAggregatorContract = await hre.ethers.getContractAt(
       "OracleAggregator",
       oracleAggregatorAddress,
@@ -40,9 +35,8 @@ describe("OracleAggregator", () => {
     );
 
     // Get the API3Wrapper address
-    const { address: wrapperAddress } = await hre.deployments.get(
-      API3_ORACLE_WRAPPER_ID
-    );
+    const { address: wrapperAddress } =
+      await hre.deployments.get("API3Wrapper");
     api3WrapperAddress = wrapperAddress;
 
     // Get token addresses
@@ -178,7 +172,7 @@ describe("OracleAggregator", () => {
     it("should return false isAlive when oracle returns false", async function () {
       // We'll use the existing API3Wrapper with thresholding for this test
       const { address: wrapperWithThresholdingAddress } =
-        await hre.deployments.get(API3_WRAPPER_WITH_THRESHOLDING_ID);
+        await hre.deployments.get("API3WrapperWithThresholding");
 
       // Get a unique test asset address
       const testAssetAddress = "0x9876543210987654321098765432109876543210";

@@ -9,8 +9,7 @@ import {
   USD_ORACLE_AGGREGATOR_PRICE_DECIMALS,
 } from "../../typescript/oracle_aggregator/constants";
 import { getTokenContractForSymbol } from "../../typescript/token/utils";
-import { oracleAggregatorMinimalFixture } from "./fixtures";
-import { API3_ORACLE_WRAPPER_ID } from "../../typescript/deploy-ids";
+import { usdOracleAggregatorFixture } from "./fixtures";
 
 describe("API3Wrappers", () => {
   let api3WrapperContract: API3Wrapper;
@@ -22,14 +21,13 @@ describe("API3Wrappers", () => {
   let user1: Address;
 
   beforeEach(async function () {
-    await oracleAggregatorMinimalFixture();
+    await usdOracleAggregatorFixture();
 
     ({ deployer, user1 } = await getNamedAccounts());
 
     // Get the API3Wrapper contract
-    const { address: api3WrapperAddress } = await hre.deployments.get(
-      API3_ORACLE_WRAPPER_ID
-    );
+    const { address: api3WrapperAddress } =
+      await hre.deployments.get("API3Wrapper");
     api3WrapperContract = await hre.ethers.getContractAt(
       "API3Wrapper",
       api3WrapperAddress,

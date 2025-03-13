@@ -3,7 +3,8 @@ import hre, { deployments } from "hardhat";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 
 import {
-  ORACLE_AGGREGATOR_ID,
+  USD_ORACLE_AGGREGATOR_ID,
+  S_ORACLE_AGGREGATOR_ID,
   DUSD_ISSUER_CONTRACT_ID,
   DUSD_REDEEMER_CONTRACT_ID,
   DUSD_COLLATERAL_VAULT_CONTRACT_ID,
@@ -21,6 +22,7 @@ export interface DStableFixtureConfig {
   redeemerContractId: string;
   collateralVaultContractId: string;
   amoManagerId: string;
+  oracleAggregatorId: string;
   collateralSymbols: string[];
 }
 
@@ -49,8 +51,9 @@ export const createDStableAmoFixture = (config: DStableFixtureConfig) => {
       config.symbol
     );
 
-    const { address: oracleAggregatorAddress } =
-      await deployments.get(ORACLE_AGGREGATOR_ID);
+    const { address: oracleAggregatorAddress } = await deployments.get(
+      config.oracleAggregatorId
+    );
 
     // Deploy MockAmoVault using standard deployment
     await hre.deployments.deploy("MockAmoVault", {
@@ -76,6 +79,7 @@ export const DUSD_CONFIG: DStableFixtureConfig = {
   redeemerContractId: DUSD_REDEEMER_CONTRACT_ID,
   collateralVaultContractId: DUSD_COLLATERAL_VAULT_CONTRACT_ID,
   amoManagerId: DUSD_AMO_MANAGER_ID,
+  oracleAggregatorId: USD_ORACLE_AGGREGATOR_ID,
   collateralSymbols: ["frxUSD", "USDC"],
 };
 
@@ -85,5 +89,6 @@ export const DS_CONFIG: DStableFixtureConfig = {
   redeemerContractId: DS_REDEEMER_CONTRACT_ID,
   collateralVaultContractId: DS_COLLATERAL_VAULT_CONTRACT_ID,
   amoManagerId: DS_AMO_MANAGER_ID,
+  oracleAggregatorId: S_ORACLE_AGGREGATOR_ID,
   collateralSymbols: ["wS", "wOS", "stS"],
 };
