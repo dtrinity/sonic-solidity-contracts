@@ -63,7 +63,7 @@ func.tags = ["ds"];
 func.dependencies = [
   DS_COLLATERAL_VAULT_CONTRACT_ID,
   "dS",
-  S_ORACLE_AGGREGATOR_ID,
+  "s-oracle",
   DS_AMO_MANAGER_ID,
 ];
 

@@ -63,7 +63,7 @@ func.tags = ["dusd"];
 func.dependencies = [
   DUSD_COLLATERAL_VAULT_CONTRACT_ID,
   "dUSD",
-  USD_ORACLE_AGGREGATOR_ID,
+  "usd-oracle",
   DUSD_AMO_MANAGER_ID,
 ];
 

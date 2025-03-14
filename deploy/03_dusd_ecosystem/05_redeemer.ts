@@ -51,10 +51,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
 func.id = `dUSD:${DUSD_REDEEMER_CONTRACT_ID}`;
 func.tags = ["dusd"];
-func.dependencies = [
-  DUSD_COLLATERAL_VAULT_CONTRACT_ID,
-  "dUSD",
-  USD_ORACLE_AGGREGATOR_ID,
-];
+func.dependencies = [DUSD_COLLATERAL_VAULT_CONTRACT_ID, "dUSD", "usd-oracle"];
 
 export default func;

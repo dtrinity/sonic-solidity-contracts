@@ -29,3 +29,4 @@ export const DS_REDEEMER_CONTRACT_ID = "dS_Redeemer";
 export const DS_COLLATERAL_VAULT_CONTRACT_ID = "dS_CollateralHolderVault";
 export const DS_AMO_MANAGER_ID = "dS_AmoManager";
 export const DS_HARD_PEG_ORACLE_WRAPPER_ID = "dS_HardPegOracleWrapper";
+export const WS_HARD_PEG_ORACLE_WRAPPER_ID = "wS_HardPegOracleWrapper";

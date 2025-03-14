@@ -30,7 +30,7 @@ export interface DStableFixtureConfig {
 export const createDStableFixture = (config: DStableFixtureConfig) => {
   return deployments.createFixture(async ({ deployments }) => {
     await deployments.fixture(); // Start from a fresh deployment
-    await deployments.fixture([config.symbol.toLowerCase(), "local-setup"]); // Include local-setup to use the mock Oracle
+    await deployments.fixture(["local-setup", config.symbol.toLowerCase()]); // Include local-setup to use the mock Oracle
   });
 };
 

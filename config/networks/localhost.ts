@@ -94,6 +94,24 @@ export async function getConfig(
         },
       },
     },
+    dStables: {
+      dUSD: {
+        collaterals: [
+          USDCDeployment?.address || ZeroAddress,
+          USDSDeployment?.address || ZeroAddress,
+          sUSDSDeployment?.address || ZeroAddress,
+          frxUSDDeployment?.address || ZeroAddress,
+          sfrxUSDDeployment?.address || ZeroAddress,
+        ],
+      },
+      dS: {
+        collaterals: [
+          wSTokenDeployment?.address || ZeroAddress,
+          wOSTokenDeployment?.address || ZeroAddress,
+          stSTokenDeployment?.address || ZeroAddress,
+        ],
+      },
+    },
     tokenAddresses: {
       dUSD: emptyStringIfUndefined(dUSDDeployment?.address),
       dS: emptyStringIfUndefined(dSDeployment?.address),
