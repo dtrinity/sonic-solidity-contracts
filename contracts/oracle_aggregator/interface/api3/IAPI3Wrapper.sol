@@ -20,12 +20,17 @@ pragma solidity ^0.8.20;
 import "../IOracleWrapper.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 
+/**
+ * @title IAPI3Wrapper
+ * @dev Abstract contract that implements the IOracleWrapper interface for API3 oracles
+ * Provides common functionality for all API3 oracle wrappers
+ */
 abstract contract IAPI3Wrapper is IOracleWrapper, AccessControl {
     /* Core state */
 
     uint256 public constant API3_BASE_CURRENCY_UNIT = 10 ** 18;
     uint256 public constant API3_HEARTBEAT = 24 hours;
-    address public constant BASE_CURRENCY = address(0);
+    address private immutable _baseCurrency;
     uint256 public immutable BASE_CURRENCY_UNIT;
     uint256 public heartbeatStaleTimeLimit = 30 minutes;
 
@@ -38,10 +43,24 @@ abstract contract IAPI3Wrapper is IOracleWrapper, AccessControl {
 
     error PriceIsStale();
 
-    constructor(uint256 _baseCurrencyUnit) {
+    /**
+     * @dev Constructor that sets the base currency and base currency unit
+     * @param baseCurrency The address of the base currency (zero address for USD)
+     * @param _baseCurrencyUnit The decimal precision of the base currency (e.g., 1e8 for USD)
+     */
+    constructor(address baseCurrency, uint256 _baseCurrencyUnit) {
+        _baseCurrency = baseCurrency;
         BASE_CURRENCY_UNIT = _baseCurrencyUnit;
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _grantRole(ORACLE_MANAGER_ROLE, msg.sender);
+    }
+
+    /**
+     * @notice Returns the base currency address
+     * @return Returns the base currency address.
+     */
+    function BASE_CURRENCY() external view override returns (address) {
+        return _baseCurrency;
     }
 
     function getPriceInfo(

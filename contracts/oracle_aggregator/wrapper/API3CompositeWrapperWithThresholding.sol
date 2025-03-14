@@ -22,6 +22,10 @@ import "@openzeppelin/contracts/access/AccessControl.sol";
 import {IProxy} from "../interface/api3/IProxy.sol";
 import "./ThresholdingUtils.sol";
 
+/**
+ * @title API3CompositeWrapperWithThresholding
+ * @dev Implementation of IAPI3Wrapper for composite API3 oracles with thresholding
+ */
 contract API3CompositeWrapperWithThresholding is
     IAPI3Wrapper,
     ThresholdingUtils
@@ -61,7 +65,10 @@ contract API3CompositeWrapperWithThresholding is
 
     error FeedNotSet(address asset);
 
-    constructor(uint256 _baseCurrencyUnit) IAPI3Wrapper(_baseCurrencyUnit) {
+    constructor(
+        address baseCurrency,
+        uint256 _baseCurrencyUnit
+    ) IAPI3Wrapper(baseCurrency, _baseCurrencyUnit) {
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _grantRole(ORACLE_MANAGER_ROLE, msg.sender);
     }

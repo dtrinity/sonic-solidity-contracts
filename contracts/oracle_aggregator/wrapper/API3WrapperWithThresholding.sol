@@ -33,7 +33,10 @@ contract API3WrapperWithThresholding is API3Wrapper, ThresholdingUtils {
     );
     event ThresholdConfigRemoved(address indexed asset);
 
-    constructor(uint256 _baseCurrencyUnit) API3Wrapper(_baseCurrencyUnit) {}
+    constructor(
+        address baseCurrency,
+        uint256 _baseCurrencyUnit
+    ) API3Wrapper(baseCurrency, _baseCurrencyUnit) {}
 
     function getPriceInfo(
         address asset
