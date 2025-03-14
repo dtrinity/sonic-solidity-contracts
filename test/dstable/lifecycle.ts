@@ -134,10 +134,6 @@ dstableConfigs.forEach((config) => {
         );
         collateralContracts.set(collateralSymbol, contract as TestERC20);
         collateralInfos.set(collateralSymbol, tokenInfo);
-
-        // Allow collaterals in vaults
-        await collateralHolderVaultContract.allowCollateral(tokenInfo.address);
-        await mockAmoVaultContract.allowCollateral(tokenInfo.address);
       }
 
       // Enable MockAmoVault in the AmoManager
