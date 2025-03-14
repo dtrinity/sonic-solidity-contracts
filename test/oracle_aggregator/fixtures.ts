@@ -36,13 +36,10 @@ export interface OracleAggregatorFixtureConfig {
     api3Wrapper: string;
     api3WrapperWithThresholding: string;
     api3CompositeWrapperWithThresholding: string;
-    hardPegWrapper?: string;
+    hardPegWrapper: string;
   };
-  testAssets: {
-    baseAsset: string;
-    yieldAssets: string[];
-    peggedAssets?: string[];
-  };
+  peggedAssets: string[];
+  yieldBearingAssets: string[];
   priceDecimals: number;
   heartbeatSeconds: number;
 }
@@ -60,17 +57,13 @@ export interface OracleAggregatorFixtureResult {
     hardPegWrapper?: HardPegOracleWrapper;
   };
   assets: {
-    baseAsset: {
-      address: string;
-      info: TokenInfo;
-    };
-    yieldAssets: {
+    yieldBearingAssets: {
       [symbol: string]: {
         address: string;
         info: TokenInfo;
       };
     };
-    peggedAssets?: {
+    peggedAssets: {
       [symbol: string]: {
         address: string;
         info: TokenInfo;
@@ -79,15 +72,6 @@ export interface OracleAggregatorFixtureResult {
   };
   mockOracles: {
     [feedName: string]: string;
-  };
-  utils: {
-    convertPrice: (
-      price: number | string,
-      fromDecimals?: number,
-      toDecimals?: number
-    ) => bigint;
-    convertPriceToAPI3Format: (price: number | string) => bigint;
-    convertPriceFromAPI3Format: (price: bigint) => bigint;
   };
 }
 
@@ -141,61 +125,47 @@ export const createOracleAggregatorFixture = (
         api3CompositeWrapperWithThresholdingAddress
       );
 
-      // Get hard peg wrapper if available
-      let hardPegWrapper: HardPegOracleWrapper | undefined;
-      if (config.wrapperIds.hardPegWrapper) {
-        const { address: hardPegWrapperAddress } = await deployments.get(
-          config.wrapperIds.hardPegWrapper
-        );
-        hardPegWrapper = await ethers.getContractAt(
-          "HardPegOracleWrapper",
-          hardPegWrapperAddress
-        );
-      }
-
-      // Get asset information
-      const { tokenInfo: baseAssetInfo } = await getTokenContractForSymbol(
-        { ethers, deployments } as unknown as HardhatRuntimeEnvironment,
-        deployer,
-        config.testAssets.baseAsset
+      const { address: hardPegWrapperAddress } = await deployments.get(
+        config.wrapperIds.hardPegWrapper
       );
-
-      const yieldAssets: {
+      const hardPegWrapper = await ethers.getContractAt(
+        "HardPegOracleWrapper",
+        hardPegWrapperAddress
+      );
+      const peggedAssets: {
         [symbol: string]: { address: string; info: TokenInfo };
       } = {};
-      for (const symbol of config.testAssets.yieldAssets) {
+      for (const symbol of config.peggedAssets) {
+        try {
+          const { tokenInfo } = await getTokenContractForSymbol(
+            { ethers, deployments } as unknown as HardhatRuntimeEnvironment,
+            deployer,
+            symbol
+          );
+          peggedAssets[symbol] = {
+            address: tokenInfo.address,
+            info: tokenInfo,
+          };
+        } catch (error) {
+          console.log(
+            `Warning: Could not load pegged asset ${symbol}. Skipping.`
+          );
+        }
+      }
+
+      const yieldBearingAssets: {
+        [symbol: string]: { address: string; info: TokenInfo };
+      } = {};
+      for (const symbol of config.yieldBearingAssets) {
         const { tokenInfo } = await getTokenContractForSymbol(
           { ethers, deployments } as unknown as HardhatRuntimeEnvironment,
           deployer,
           symbol
         );
-        yieldAssets[symbol] = {
+        yieldBearingAssets[symbol] = {
           address: tokenInfo.address,
           info: tokenInfo,
         };
-      }
-
-      const peggedAssets: {
-        [symbol: string]: { address: string; info: TokenInfo };
-      } = {};
-      if (config.testAssets.peggedAssets) {
-        for (const symbol of config.testAssets.peggedAssets) {
-          try {
-            const { tokenInfo } = await getTokenContractForSymbol(
-              { ethers, deployments } as unknown as HardhatRuntimeEnvironment,
-              deployer,
-              symbol
-            );
-            peggedAssets[symbol] = {
-              address: tokenInfo.address,
-              info: tokenInfo,
-            };
-          } catch (error) {
-            console.log(
-              `Warning: Could not load pegged asset ${symbol}. Skipping.`
-            );
-          }
-        }
       }
 
       // Find the mock oracle deployments
@@ -209,34 +179,6 @@ export const createOracleAggregatorFixture = (
         }
       }
 
-      // Utility functions for price conversion
-      const convertPrice = (
-        price: number | string,
-        fromDecimals = 18,
-        toDecimals = config.priceDecimals
-      ): bigint => {
-        const parsedPrice = ethers.parseUnits(price.toString(), fromDecimals);
-        if (fromDecimals === toDecimals) return parsedPrice;
-
-        if (fromDecimals > toDecimals) {
-          return parsedPrice / 10n ** BigInt(fromDecimals - toDecimals);
-        } else {
-          return parsedPrice * 10n ** BigInt(toDecimals - fromDecimals);
-        }
-      };
-
-      const convertPriceToAPI3Format = (price: number | string): bigint => {
-        return convertPrice(price, 18, API3_PRICE_DECIMALS);
-      };
-
-      const convertPriceFromAPI3Format = (price: bigint): bigint => {
-        return convertPrice(
-          price.toString(),
-          API3_PRICE_DECIMALS,
-          config.priceDecimals
-        );
-      };
-
       return {
         config,
         contracts: {
@@ -247,20 +189,10 @@ export const createOracleAggregatorFixture = (
           hardPegWrapper,
         },
         assets: {
-          baseAsset: {
-            address: baseAssetInfo.address,
-            info: baseAssetInfo,
-          },
-          yieldAssets,
-          peggedAssets:
-            Object.keys(peggedAssets).length > 0 ? peggedAssets : undefined,
+          yieldBearingAssets,
+          peggedAssets,
         },
         mockOracles,
-        utils: {
-          convertPrice,
-          convertPriceToAPI3Format,
-          convertPriceFromAPI3Format,
-        },
       };
     }
   );
@@ -280,11 +212,8 @@ export const USD_ORACLE_AGGREGATOR_CONFIG: OracleAggregatorFixtureConfig = {
       USD_API3_COMPOSITE_WRAPPER_WITH_THRESHOLDING_ID,
     hardPegWrapper: DUSD_HARD_PEG_ORACLE_WRAPPER_ID,
   },
-  testAssets: {
-    baseAsset: "frxUSD",
-    yieldAssets: ["sfrxUSD"],
-    peggedAssets: ["USDC"],
-  },
+  peggedAssets: ["USDC", "frxUSD", "USDC"],
+  yieldBearingAssets: ["sfrxUSD"],
   priceDecimals: 8,
   heartbeatSeconds: 86400,
 };
@@ -300,10 +229,8 @@ export const S_ORACLE_AGGREGATOR_CONFIG: OracleAggregatorFixtureConfig = {
       S_API3_COMPOSITE_WRAPPER_WITH_THRESHOLDING_ID,
     hardPegWrapper: DS_HARD_PEG_ORACLE_WRAPPER_ID,
   },
-  testAssets: {
-    baseAsset: "wS",
-    yieldAssets: ["stS", "wOS"],
-  },
+  peggedAssets: ["wS"],
+  yieldBearingAssets: ["stS", "wOS"],
   priceDecimals: 8,
   heartbeatSeconds: 86400,
 };
