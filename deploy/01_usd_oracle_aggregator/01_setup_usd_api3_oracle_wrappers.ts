@@ -14,13 +14,14 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const config = await getConfig(hre);
   const baseCurrencyUnit =
     BigInt(10) ** BigInt(config.oracleAggregators.USD.priceDecimals);
+  const baseCurrency = config.oracleAggregators.USD.baseCurrency;
 
   // Deploy API3Wrapper for plain oracle feeds
   const api3WrapperDeployment = await hre.deployments.deploy(
     USD_API3_ORACLE_WRAPPER_ID,
     {
       from: deployer,
-      args: [baseCurrencyUnit],
+      args: [baseCurrency, baseCurrencyUnit],
       contract: "API3Wrapper",
       autoMine: true,
       log: false,
@@ -52,7 +53,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     USD_API3_WRAPPER_WITH_THRESHOLDING_ID,
     {
       from: deployer,
-      args: [baseCurrencyUnit],
+      args: [baseCurrency, baseCurrencyUnit],
       contract: "API3WrapperWithThresholding",
       autoMine: true,
       log: false,
@@ -98,7 +99,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     USD_API3_COMPOSITE_WRAPPER_WITH_THRESHOLDING_ID,
     {
       from: deployer,
-      args: [baseCurrencyUnit],
+      args: [baseCurrency, baseCurrencyUnit],
       contract: "API3CompositeWrapperWithThresholding",
       autoMine: true,
       log: false,
