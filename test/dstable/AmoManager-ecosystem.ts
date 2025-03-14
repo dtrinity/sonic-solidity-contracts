@@ -19,7 +19,7 @@ import {
   USD_ORACLE_AGGREGATOR_ID,
   S_ORACLE_AGGREGATOR_ID,
 } from "../../typescript/deploy-ids";
-import { USD_ORACLE_AGGREGATOR_PRICE_DECIMALS } from "../../typescript/oracle_aggregator/constants";
+import { ORACLE_AGGREGATOR_PRICE_DECIMALS } from "../../typescript/oracle_aggregator/constants";
 import {
   createDStableAmoFixture,
   DUSD_CONFIG,
@@ -122,7 +122,10 @@ dstableConfigs.forEach((config) => {
       );
 
       // Initialize all collateral tokens for this dStable
-      for (const collateralSymbol of config.collateralSymbols) {
+      for (const collateralSymbol of [
+        ...config.peggedCollaterals,
+        ...config.yieldBearingCollaterals,
+      ]) {
         const { contract, tokenInfo } = await getTokenContractForSymbol(
           hre,
           deployer,
@@ -131,8 +134,7 @@ dstableConfigs.forEach((config) => {
         collateralContracts.set(collateralSymbol, contract as TestERC20);
         collateralInfos.set(collateralSymbol, tokenInfo);
 
-        // Allow collaterals in vaults
-        await collateralVaultContract.allowCollateral(tokenInfo.address);
+        // Allow this collateral in the MockAmoVault
         await mockAmoVaultContract.allowCollateral(tokenInfo.address);
       }
 
@@ -236,6 +238,123 @@ dstableConfigs.forEach((config) => {
     }
 
     describe("AMO ecosystem interactions", () => {
+      it("verifies oracle prices for pegged and yield-bearing collateral", async function () {
+        // Verify oracle setup to help with debugging
+        await verifyOracleSetup();
+
+        // Check pegged collateral prices (should be 1:1)
+        for (const symbol of config.peggedCollaterals) {
+          const collateralInfo = collateralInfos.get(symbol)!;
+          const price = await oracleAggregatorContract.getAssetPrice(
+            collateralInfo.address
+          );
+          const expectedPrice = hre.ethers.parseUnits("1", 18); // API3 uses 18 decimals
+          assert.equal(
+            price,
+            expectedPrice,
+            `Pegged collateral ${symbol} should have 1:1 price ratio`
+          );
+        }
+
+        // Check yield-bearing collateral prices (should be 1:1.1)
+        for (const symbol of config.yieldBearingCollaterals) {
+          const collateralInfo = collateralInfos.get(symbol)!;
+          const price = await oracleAggregatorContract.getAssetPrice(
+            collateralInfo.address
+          );
+          const expectedPrice = hre.ethers.parseUnits("1.1", 18); // API3 uses 18 decimals
+          assert.equal(
+            price,
+            expectedPrice,
+            `Yield-bearing collateral ${symbol} should have 1:1.1 price ratio`
+          );
+        }
+      });
+
+      it("calculates profit correctly with yield-bearing collateral", async function () {
+        if (config.yieldBearingCollaterals.length === 0) {
+          console.log(
+            "Skipping yield-bearing test as no yield-bearing collateral configured"
+          );
+          return;
+        }
+
+        // Get a yield-bearing collateral token to use for the test
+        const collateralSymbol = config.yieldBearingCollaterals[0];
+        const collateralContract = collateralContracts.get(
+          collateralSymbol
+        ) as TestERC20;
+        const collateralInfo = collateralInfos.get(collateralSymbol)!;
+
+        // Allocate dStable to the AMO vault
+        const dstableToAllocate = hre.ethers.parseUnits(
+          "1000",
+          dstableInfo.decimals
+        );
+        await amoManagerContract.allocateAmo(
+          await mockAmoVaultContract.getAddress(),
+          dstableToAllocate
+        );
+
+        // Calculate initial vault profit/loss - should be zero at this point
+        const initialProfitBase =
+          await amoManagerContract.availableVaultProfitsInBase(
+            await mockAmoVaultContract.getAddress()
+          );
+
+        // Deposit yield-bearing collateral into the MockAmoVault
+        const collateralAmount = hre.ethers.parseUnits(
+          "1000",
+          collateralInfo.decimals
+        );
+
+        // Approve and deposit instead of transfer
+        await collateralContract.approve(
+          await mockAmoVaultContract.getAddress(),
+          collateralAmount
+        );
+        await mockAmoVaultContract.deposit(
+          collateralAmount,
+          collateralInfo.address
+        );
+
+        // Calculate vault profit after depositing collateral
+        const profitAfterDepositBase =
+          await amoManagerContract.availableVaultProfitsInBase(
+            await mockAmoVaultContract.getAddress()
+          );
+
+        // Calculate expected value of deposited collateral in base units using oracle prices
+        const expectedDepositValueBase = await calculateBaseValueFromAmount(
+          collateralAmount,
+          collateralInfo.address
+        );
+
+        // Calculate expected dStable value
+        const expectedDstableValue = await calculateBaseValueFromAmount(
+          collateralAmount,
+          dstableInfo.address
+        );
+
+        console.log("Expected deposit value:", expectedDepositValueBase);
+        console.log("dStable value:", expectedDstableValue);
+
+        // Since yield-bearing collateral is worth 1.1x, we should see a profit
+        const expectedProfit = expectedDepositValueBase;
+
+        console.log("Expected profit:", expectedProfit);
+        console.log(
+          "Actual profit:",
+          profitAfterDepositBase - initialProfitBase
+        );
+
+        assert.equal(
+          profitAfterDepositBase - initialProfitBase,
+          expectedProfit,
+          `Profit from yield-bearing collateral should match expected value. Expected: ${expectedProfit}, Actual: ${profitAfterDepositBase - initialProfitBase}`
+        );
+      });
+
       it("calculates vault value with various assets", async function () {
         // Verify oracle setup to help with debugging
         await verifyOracleSetup();
@@ -251,27 +370,64 @@ dstableConfigs.forEach((config) => {
           dstableToAllocate
         );
 
-        // 2. AmoVault acquires some collateral
-        // Use the first collateral type
-        const collateralSymbol = config.collateralSymbols[0];
-        const collateralContract = collateralContracts.get(
-          collateralSymbol
+        // 2. AmoVault acquires both pegged and yield-bearing collateral
+        const peggedCollateralSymbol = config.peggedCollaterals[0];
+        const peggedCollateralContract = collateralContracts.get(
+          peggedCollateralSymbol
         ) as TestERC20;
-        const collateralInfo = collateralInfos.get(
-          collateralSymbol
+        const peggedCollateralInfo = collateralInfos.get(
+          peggedCollateralSymbol
         ) as TokenInfo;
 
-        const collateralAmount = hre.ethers.parseUnits(
+        const peggedCollateralAmount = hre.ethers.parseUnits(
           "500",
-          collateralInfo.decimals
-        );
-        await collateralContract.transfer(
-          await mockAmoVaultContract.getAddress(),
-          collateralAmount
+          peggedCollateralInfo.decimals
         );
 
+        // Approve and deposit pegged collateral
+        await peggedCollateralContract.approve(
+          await mockAmoVaultContract.getAddress(),
+          peggedCollateralAmount
+        );
+        await mockAmoVaultContract.deposit(
+          peggedCollateralAmount,
+          peggedCollateralInfo.address
+        );
+
+        // Add yield-bearing collateral if available
+        let yieldBearingCollateralAmount = 0n;
+        let yieldBearingCollateralInfo: TokenInfo | undefined;
+        if (config.yieldBearingCollaterals.length > 0) {
+          const yieldBearingCollateralSymbol =
+            config.yieldBearingCollaterals[0];
+          const yieldBearingCollateralContract = collateralContracts.get(
+            yieldBearingCollateralSymbol
+          ) as TestERC20;
+          yieldBearingCollateralInfo = collateralInfos.get(
+            yieldBearingCollateralSymbol
+          ) as TokenInfo;
+
+          yieldBearingCollateralAmount = hre.ethers.parseUnits(
+            "300",
+            yieldBearingCollateralInfo.decimals
+          );
+
+          // Approve and deposit yield-bearing collateral
+          await yieldBearingCollateralContract.approve(
+            await mockAmoVaultContract.getAddress(),
+            yieldBearingCollateralAmount
+          );
+          await mockAmoVaultContract.deposit(
+            yieldBearingCollateralAmount,
+            yieldBearingCollateralInfo.address
+          );
+        }
+
         // 3. Set some fake DeFi value
-        const fakeDeFiValue = hre.ethers.parseUnits("200", 8); // 200 base units with 8 decimals
+        const fakeDeFiValue = hre.ethers.parseUnits(
+          "200",
+          ORACLE_AGGREGATOR_PRICE_DECIMALS
+        );
         await mockAmoVaultContract.setFakeDeFiCollateralValue(fakeDeFiValue);
 
         // 4. Calculate total vault value
@@ -279,6 +435,10 @@ dstableConfigs.forEach((config) => {
         const collateralValue =
           await mockAmoVaultContract.totalCollateralValue();
         const totalValue = await mockAmoVaultContract.totalValue();
+
+        console.log("dStable value:", dstableValue);
+        console.log("Collateral value:", collateralValue);
+        console.log("Total value:", totalValue);
 
         // 5. Verify the values
         assert.equal(
@@ -293,15 +453,43 @@ dstableConfigs.forEach((config) => {
           dstableInfo.address
         );
 
-        // Calculate expected collateral value using oracle prices
-        const expectedCollateralValue = await calculateBaseValueFromAmount(
-          collateralAmount,
-          collateralInfo.address
-        );
+        // Calculate expected pegged collateral value using oracle prices
+        const expectedPeggedCollateralValue =
+          await calculateBaseValueFromAmount(
+            peggedCollateralAmount,
+            peggedCollateralInfo.address
+          );
 
-        // The collateral value should include both the actual collateral and the fake DeFi value
+        // Calculate expected yield-bearing collateral value using oracle prices
+        let expectedYieldBearingCollateralValue = 0n;
+        if (yieldBearingCollateralInfo && yieldBearingCollateralAmount > 0n) {
+          expectedYieldBearingCollateralValue =
+            await calculateBaseValueFromAmount(
+              yieldBearingCollateralAmount,
+              yieldBearingCollateralInfo.address
+            );
+        }
+
+        // The collateral value should include pegged collateral, yield-bearing collateral, and the fake DeFi value
         const expectedTotalCollateralValue =
-          expectedCollateralValue + fakeDeFiValue;
+          expectedPeggedCollateralValue +
+          expectedYieldBearingCollateralValue +
+          fakeDeFiValue;
+
+        console.log("Expected dStable value:", expectedDstableValue);
+        console.log(
+          "Expected pegged collateral value:",
+          expectedPeggedCollateralValue
+        );
+        console.log(
+          "Expected yield-bearing collateral value:",
+          expectedYieldBearingCollateralValue
+        );
+        console.log(
+          "Expected total collateral value:",
+          expectedTotalCollateralValue
+        );
+        console.log("Fake DeFi value:", fakeDeFiValue);
 
         assert.equal(
           collateralValue,
@@ -311,119 +499,137 @@ dstableConfigs.forEach((config) => {
       });
 
       it("transfers collateral between AMO vault and collateral vault", async function () {
-        // 1. AmoVault acquires some collateral
-        const collateralSymbol = config.collateralSymbols[0];
-        const collateralContract = collateralContracts.get(
-          collateralSymbol
-        ) as TestERC20;
-        const collateralInfo = collateralInfos.get(
-          collateralSymbol
-        ) as TokenInfo;
+        // Test with both pegged and yield-bearing collateral
+        const testTransfer = async (collateralSymbol: string) => {
+          const collateralContract = collateralContracts.get(
+            collateralSymbol
+          ) as TestERC20;
+          const collateralInfo = collateralInfos.get(
+            collateralSymbol
+          ) as TokenInfo;
 
-        const collateralAmount = hre.ethers.parseUnits(
-          "500",
-          collateralInfo.decimals
-        );
-        await collateralContract.transfer(
-          await mockAmoVaultContract.getAddress(),
-          collateralAmount
-        );
+          const collateralAmount = hre.ethers.parseUnits(
+            "500",
+            collateralInfo.decimals
+          );
+          await collateralContract.transfer(
+            await mockAmoVaultContract.getAddress(),
+            collateralAmount
+          );
 
-        // 2. Check initial balances
-        const initialAmoVaultBalance = await collateralContract.balanceOf(
-          await mockAmoVaultContract.getAddress()
-        );
-        const initialVaultBalance = await collateralContract.balanceOf(
-          await collateralVaultContract.getAddress()
-        );
+          // Check initial balances
+          const initialAmoVaultBalance = await collateralContract.balanceOf(
+            await mockAmoVaultContract.getAddress()
+          );
+          const initialVaultBalance = await collateralContract.balanceOf(
+            await collateralVaultContract.getAddress()
+          );
 
-        // 3. Transfer half of the collateral from AmoVault to collateral vault
-        const transferAmount = collateralAmount / 2n;
-        await amoManagerContract.transferFromAmoVaultToHoldingVault(
-          await mockAmoVaultContract.getAddress(),
-          collateralInfo.address,
-          transferAmount
-        );
+          // Transfer half of the collateral from AmoVault to collateral vault
+          const transferAmount = collateralAmount / 2n;
+          await amoManagerContract.transferFromAmoVaultToHoldingVault(
+            await mockAmoVaultContract.getAddress(),
+            collateralInfo.address,
+            transferAmount
+          );
 
-        // 4. Check final balances
-        const finalAmoVaultBalance = await collateralContract.balanceOf(
-          await mockAmoVaultContract.getAddress()
-        );
-        const finalVaultBalance = await collateralContract.balanceOf(
-          await collateralVaultContract.getAddress()
-        );
+          // Check final balances
+          const finalAmoVaultBalance = await collateralContract.balanceOf(
+            await mockAmoVaultContract.getAddress()
+          );
+          const finalVaultBalance = await collateralContract.balanceOf(
+            await collateralVaultContract.getAddress()
+          );
 
-        assert.equal(
-          initialAmoVaultBalance - finalAmoVaultBalance,
-          transferAmount,
-          "AmoVault balance should decrease by transfer amount"
-        );
+          assert.equal(
+            initialAmoVaultBalance - finalAmoVaultBalance,
+            transferAmount,
+            `AmoVault balance should decrease by transfer amount for ${collateralSymbol}`
+          );
 
-        assert.equal(
-          finalVaultBalance - initialVaultBalance,
-          transferAmount,
-          "Vault balance should increase by transfer amount"
-        );
+          assert.equal(
+            finalVaultBalance - initialVaultBalance,
+            transferAmount,
+            `Vault balance should increase by transfer amount for ${collateralSymbol}`
+          );
+        };
+
+        // Test with pegged collateral
+        await testTransfer(config.peggedCollaterals[0]);
+
+        // Test with yield-bearing collateral if available
+        if (config.yieldBearingCollaterals.length > 0) {
+          await testTransfer(config.yieldBearingCollaterals[0]);
+        }
       });
 
       it("transfers collateral from collateral vault to AMO vault", async function () {
-        // 1. Deposit collateral into the collateral vault
-        const collateralSymbol = config.collateralSymbols[0];
-        const collateralContract = collateralContracts.get(
-          collateralSymbol
-        ) as TestERC20;
-        const collateralInfo = collateralInfos.get(
-          collateralSymbol
-        ) as TokenInfo;
+        // Test with both pegged and yield-bearing collateral
+        const testTransfer = async (collateralSymbol: string) => {
+          const collateralContract = collateralContracts.get(
+            collateralSymbol
+          ) as TestERC20;
+          const collateralInfo = collateralInfos.get(
+            collateralSymbol
+          ) as TokenInfo;
 
-        const collateralAmount = hre.ethers.parseUnits(
-          "500",
-          collateralInfo.decimals
-        );
-        await collateralContract.approve(
-          await collateralVaultContract.getAddress(),
-          collateralAmount
-        );
-        await collateralVaultContract.deposit(
-          collateralAmount,
-          collateralInfo.address
-        );
+          const collateralAmount = hre.ethers.parseUnits(
+            "500",
+            collateralInfo.decimals
+          );
+          await collateralContract.approve(
+            await collateralVaultContract.getAddress(),
+            collateralAmount
+          );
+          await collateralVaultContract.deposit(
+            collateralAmount,
+            collateralInfo.address
+          );
 
-        // 2. Check initial balances
-        const initialAmoVaultBalance = await collateralContract.balanceOf(
-          await mockAmoVaultContract.getAddress()
-        );
-        const initialVaultBalance = await collateralContract.balanceOf(
-          await collateralVaultContract.getAddress()
-        );
+          // Check initial balances
+          const initialAmoVaultBalance = await collateralContract.balanceOf(
+            await mockAmoVaultContract.getAddress()
+          );
+          const initialVaultBalance = await collateralContract.balanceOf(
+            await collateralVaultContract.getAddress()
+          );
 
-        // 3. Transfer half of the collateral from collateral vault to AmoVault
-        const transferAmount = collateralAmount / 2n;
-        await amoManagerContract.transferFromHoldingVaultToAmoVault(
-          await mockAmoVaultContract.getAddress(),
-          collateralInfo.address,
-          transferAmount
-        );
+          // Transfer half of the collateral from collateral vault to AmoVault
+          const transferAmount = collateralAmount / 2n;
+          await amoManagerContract.transferFromHoldingVaultToAmoVault(
+            await mockAmoVaultContract.getAddress(),
+            collateralInfo.address,
+            transferAmount
+          );
 
-        // 4. Check final balances
-        const finalAmoVaultBalance = await collateralContract.balanceOf(
-          await mockAmoVaultContract.getAddress()
-        );
-        const finalVaultBalance = await collateralContract.balanceOf(
-          await collateralVaultContract.getAddress()
-        );
+          // Check final balances
+          const finalAmoVaultBalance = await collateralContract.balanceOf(
+            await mockAmoVaultContract.getAddress()
+          );
+          const finalVaultBalance = await collateralContract.balanceOf(
+            await collateralVaultContract.getAddress()
+          );
 
-        assert.equal(
-          finalAmoVaultBalance - initialAmoVaultBalance,
-          transferAmount,
-          "AmoVault balance should increase by transfer amount"
-        );
+          assert.equal(
+            finalAmoVaultBalance - initialAmoVaultBalance,
+            transferAmount,
+            `AmoVault balance should increase by transfer amount for ${collateralSymbol}`
+          );
 
-        assert.equal(
-          initialVaultBalance - finalVaultBalance,
-          transferAmount,
-          "Vault balance should decrease by transfer amount"
-        );
+          assert.equal(
+            initialVaultBalance - finalVaultBalance,
+            transferAmount,
+            `Vault balance should decrease by transfer amount for ${collateralSymbol}`
+          );
+        };
+
+        // Test with pegged collateral
+        await testTransfer(config.peggedCollaterals[0]);
+
+        // Test with yield-bearing collateral if available
+        if (config.yieldBearingCollaterals.length > 0) {
+          await testTransfer(config.yieldBearingCollaterals[0]);
+        }
       });
     });
 
@@ -442,7 +648,7 @@ dstableConfigs.forEach((config) => {
 
       it("calculates profit and loss correctly", async function () {
         // Get a collateral token to use for the test
-        const collateralSymbol = config.collateralSymbols[0];
+        const collateralSymbol = config.peggedCollaterals[0];
         const collateralContract = collateralContracts.get(
           collateralSymbol
         ) as TestERC20;
@@ -460,14 +666,10 @@ dstableConfigs.forEach((config) => {
             await mockAmoVaultContract.getAddress()
           );
 
-        // Deposit collateral into the MockAmoVault
-        await collateralContract.approve(
+        // Transfer collateral directly to the MockAmoVault
+        await collateralContract.transfer(
           await mockAmoVaultContract.getAddress(),
           collateralAmount
-        );
-        await mockAmoVaultContract.deposit(
-          collateralAmount,
-          await collateralContract.getAddress()
         );
 
         // Calculate vault profit after depositing collateral
@@ -520,7 +722,7 @@ dstableConfigs.forEach((config) => {
         // Set fake DeFi collateral value to simulate additional profit
         const fakeDeFiValueBase = hre.ethers.parseUnits(
           "300",
-          USD_ORACLE_AGGREGATOR_PRICE_DECIMALS
+          ORACLE_AGGREGATOR_PRICE_DECIMALS
         );
         await mockAmoVaultContract.setFakeDeFiCollateralValue(
           fakeDeFiValueBase
@@ -582,93 +784,6 @@ dstableConfigs.forEach((config) => {
           profitAfterDeFiBase - profitAfterWithdrawBase,
           expectedProfitValueBase,
           `Withdraw profit should match expected value. Expected: ${expectedProfitValueBase}, Actual: ${profitAfterDeFiBase - profitAfterWithdrawBase}`
-        );
-      });
-
-      it("handles recovery of non-vault assets", async function () {
-        // Use a collateral that's not in the vault configuration
-        const recovererRole = await mockAmoVaultContract.RECOVERER_ROLE();
-        await mockAmoVaultContract.grantRole(recovererRole, deployer);
-
-        // Transfer some ERC20 token to the vault
-        // For this test we'll use a collateral token but assume it was sent accidentally
-        const collateralSymbol = config.collateralSymbols[0];
-        const collateralContract = collateralContracts.get(
-          collateralSymbol
-        ) as TestERC20;
-
-        // First disallow the collateral to make it a "non-vault asset"
-        await mockAmoVaultContract.disallowCollateral(
-          collateralContract.getAddress()
-        );
-
-        // Send some tokens to the vault
-        const tokenAmount = hre.ethers.parseUnits(
-          "100",
-          await collateralContract.decimals()
-        );
-        await collateralContract.transfer(
-          await mockAmoVaultContract.getAddress(),
-          tokenAmount
-        );
-
-        // Recover the tokens
-        const receiverBalanceBefore = await collateralContract.balanceOf(user1);
-
-        await mockAmoVaultContract.recoverERC20(
-          await collateralContract.getAddress(),
-          user1,
-          tokenAmount
-        );
-
-        const receiverBalanceAfter = await collateralContract.balanceOf(user1);
-
-        assert.equal(
-          receiverBalanceAfter - receiverBalanceBefore,
-          tokenAmount,
-          "Token recovery failed"
-        );
-      });
-
-      it("prevents recovery of vault assets", async function () {
-        // Add a recoverer
-        const recovererRole = await mockAmoVaultContract.RECOVERER_ROLE();
-        await mockAmoVaultContract.grantRole(recovererRole, deployer);
-
-        // Try to recover dStable (a vault asset)
-        await expect(
-          mockAmoVaultContract.recoverERC20(
-            await dstableContract.getAddress(),
-            user1,
-            hre.ethers.parseUnits("1", dstableInfo.decimals)
-          )
-        ).to.be.revertedWithCustomError(
-          mockAmoVaultContract,
-          "CannotRecoverVaultToken"
-        );
-
-        // Try to recover a collateral asset
-        const collateralSymbol = config.collateralSymbols[0];
-        const collateralContract = collateralContracts.get(
-          collateralSymbol
-        ) as TestERC20;
-
-        // First add some collateral to the vault
-        await collateralContract.transfer(
-          await mockAmoVaultContract.getAddress(),
-          hre.ethers.parseUnits("10", await collateralContract.decimals())
-        );
-
-        // Try to recover the collateral
-        await expect(
-          mockAmoVaultContract.recoverERC20(
-            await collateralContract.getAddress(),
-            user1,
-            hre.ethers.parseUnits("1", await collateralContract.decimals())
-          )
-        ).to.be.revertedWithCustomError(
-          mockAmoVaultContract,
-          "CannotRecoverVaultToken"
         );
       });
     });

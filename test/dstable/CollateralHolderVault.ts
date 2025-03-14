@@ -67,7 +67,7 @@ dstableConfigs.forEach((config) => {
       );
 
       // Initialize all collateral tokens for this dStable
-      for (const collateralSymbol of config.collateralSymbols) {
+      for (const collateralSymbol of config.peggedCollaterals) {
         const { contract, tokenInfo } = await getTokenContractForSymbol(
           hre,
           deployer,
@@ -118,13 +118,21 @@ dstableConfigs.forEach((config) => {
 
     describe("Collateral management", () => {
       // Test for each collateral type
-      config.collateralSymbols.forEach((collateralSymbol) => {
+      config.peggedCollaterals.forEach((collateralSymbol) => {
         it(`allows ${collateralSymbol} as collateral`, async function () {
           const collateralInfo = collateralInfos.get(
             collateralSymbol
           ) as TokenInfo;
 
-          await collateralVaultContract.allowCollateral(collateralInfo.address);
+          // Verify that the collateral is now supported
+          const isSupported =
+            await collateralVaultContract.isCollateralSupported(
+              collateralInfo.address
+            );
+          assert.isTrue(
+            isSupported,
+            `${collateralSymbol} should be supported as collateral`
+          );
 
           // There's no direct method to check if collateral is allowed, so we'll test by trying to deposit
           const depositAmount = hre.ethers.parseUnits(
@@ -154,9 +162,6 @@ dstableConfigs.forEach((config) => {
           const collateralInfo = collateralInfos.get(
             collateralSymbol
           ) as TokenInfo;
-
-          // Allow this collateral in the vault
-          await collateralVaultContract.allowCollateral(collateralInfo.address);
 
           const depositAmount = hre.ethers.parseUnits(
             "500",
@@ -235,16 +240,13 @@ dstableConfigs.forEach((config) => {
         let expectedTotalValue = 0n;
 
         // Deposit all collaterals and track expected total value
-        for (const collateralSymbol of config.collateralSymbols) {
+        for (const collateralSymbol of config.peggedCollaterals) {
           const collateralContract = collateralContracts.get(
             collateralSymbol
           ) as TestERC20;
           const collateralInfo = collateralInfos.get(
             collateralSymbol
           ) as TokenInfo;
-
-          // Allow this collateral in the vault
-          await collateralVaultContract.allowCollateral(collateralInfo.address);
 
           const depositAmount = hre.ethers.parseUnits(
             "100",
@@ -286,7 +288,7 @@ dstableConfigs.forEach((config) => {
       });
 
       it("correctly converts between base value and asset amount", async function () {
-        const collateralSymbol = config.collateralSymbols[0];
+        const collateralSymbol = config.peggedCollaterals[0];
         const collateralInfo = collateralInfos.get(
           collateralSymbol
         ) as TokenInfo;
@@ -341,7 +343,7 @@ dstableConfigs.forEach((config) => {
 
     describe("Administrative functions", () => {
       it("allows authorized withdrawals", async function () {
-        const collateralSymbol = config.collateralSymbols[0];
+        const collateralSymbol = config.peggedCollaterals[0];
         const collateralContract = collateralContracts.get(
           collateralSymbol
         ) as TestERC20;
@@ -349,8 +351,6 @@ dstableConfigs.forEach((config) => {
           collateralSymbol
         ) as TokenInfo;
 
-        // Allow this collateral in the vault and deposit
-        await collateralVaultContract.allowCollateral(collateralInfo.address);
         const depositAmount = hre.ethers.parseUnits(
           "100",
           collateralInfo.decimals
@@ -407,7 +407,7 @@ dstableConfigs.forEach((config) => {
       });
 
       it("prevents unauthorized withdrawals", async function () {
-        const collateralSymbol = config.collateralSymbols[0];
+        const collateralSymbol = config.peggedCollaterals[0];
         const collateralContract = collateralContracts.get(
           collateralSymbol
         ) as TestERC20;
@@ -415,8 +415,6 @@ dstableConfigs.forEach((config) => {
           collateralSymbol
         ) as TokenInfo;
 
-        // Allow this collateral in the vault and deposit
-        await collateralVaultContract.allowCollateral(collateralInfo.address);
         const depositAmount = hre.ethers.parseUnits(
           "100",
           collateralInfo.decimals

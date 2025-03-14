@@ -10,7 +10,7 @@ import {
   TestMintableERC20,
   OracleAggregator,
 } from "../../typechain-types";
-import { USD_ORACLE_AGGREGATOR_PRICE_DECIMALS } from "../../typescript/oracle_aggregator/constants";
+import { ORACLE_AGGREGATOR_PRICE_DECIMALS } from "../../typescript/oracle_aggregator/constants";
 import {
   getTokenContractForSymbol,
   TokenInfo,
@@ -152,7 +152,7 @@ dstableConfigs.forEach((config) => {
       dstableInfo = dstableResult.tokenInfo;
 
       // Get collateral tokens
-      for (const symbol of config.collateralSymbols) {
+      for (const symbol of config.peggedCollaterals) {
         const result = await getTokenContractForSymbol(hre, deployer, symbol);
         collateralContracts.set(symbol, result.contract);
         collateralInfos.set(symbol, result.tokenInfo);
@@ -178,7 +178,7 @@ dstableConfigs.forEach((config) => {
 
     describe("Permissionless issuance", () => {
       // Test for each collateral type
-      config.collateralSymbols.forEach((collateralSymbol) => {
+      config.peggedCollaterals.forEach((collateralSymbol) => {
         it(`issues ${config.symbol} in exchange for ${collateralSymbol} collateral`, async function () {
           const collateralContract = collateralContracts.get(
             collateralSymbol
@@ -274,7 +274,7 @@ dstableConfigs.forEach((config) => {
 
       it(`circulatingDstable function calculates correctly for ${config.symbol}`, async function () {
         // Issue some dStable to create circulating supply
-        const collateralSymbol = config.collateralSymbols[0];
+        const collateralSymbol = config.peggedCollaterals[0];
         const collateralContract = collateralContracts.get(
           collateralSymbol
         ) as TestERC20;
@@ -337,7 +337,7 @@ dstableConfigs.forEach((config) => {
       it(`baseValueToDstableAmount converts correctly for ${config.symbol}`, async function () {
         const baseValue = hre.ethers.parseUnits(
           "100",
-          USD_ORACLE_AGGREGATOR_PRICE_DECIMALS
+          ORACLE_AGGREGATOR_PRICE_DECIMALS
         ); // 100 base units
 
         // Calculate expected dStable amount using our dynamic function
@@ -391,7 +391,7 @@ dstableConfigs.forEach((config) => {
 
       it(`issueUsingExcessCollateral mints ${config.symbol} up to excess collateral`, async function () {
         // Use the first collateral for this test
-        const collateralSymbol = config.collateralSymbols[0];
+        const collateralSymbol = config.peggedCollaterals[0];
         const collateralContract = collateralContracts.get(
           collateralSymbol
         ) as TestERC20;

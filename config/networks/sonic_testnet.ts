@@ -1,6 +1,6 @@
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 
-import { USD_ORACLE_AGGREGATOR_PRICE_DECIMALS } from "../../typescript/oracle_aggregator/constants";
+import { ORACLE_AGGREGATOR_PRICE_DECIMALS } from "../../typescript/oracle_aggregator/constants";
 import { Config } from "../types";
 import { ZeroAddress } from "ethers";
 
@@ -32,9 +32,9 @@ export async function getConfig(
     },
     oracleAggregators: {
       USD: {
-        hardDStablePeg: 10n ** BigInt(USD_ORACLE_AGGREGATOR_PRICE_DECIMALS),
+        hardDStablePeg: 10n ** BigInt(ORACLE_AGGREGATOR_PRICE_DECIMALS),
         baseCurrency: ZeroAddress, // Note that USD is represented by the zero address, per Aave's convention
-        priceDecimals: USD_ORACLE_AGGREGATOR_PRICE_DECIMALS,
+        priceDecimals: ORACLE_AGGREGATOR_PRICE_DECIMALS,
         api3OracleAssets: {
           plainApi3OracleWrappers: {},
           api3OracleWrappersWithThresholding: {},

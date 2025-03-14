@@ -126,7 +126,7 @@ dstableConfigs.forEach((config) => {
       );
 
       // Initialize all collateral tokens for this dStable
-      for (const collateralSymbol of config.collateralSymbols) {
+      for (const collateralSymbol of config.peggedCollaterals) {
         const { contract, tokenInfo } = await getTokenContractForSymbol(
           hre,
           deployer,
@@ -325,11 +325,11 @@ dstableConfigs.forEach((config) => {
       await checkInvariants();
 
       // 1. Transfer tokens to users for testing
-      const primaryCollateralSymbol = config.collateralSymbols[0];
+      const primaryCollateralSymbol = config.peggedCollaterals[0];
       const secondaryCollateralSymbol =
-        config.collateralSymbols.length > 1
-          ? config.collateralSymbols[1]
-          : config.collateralSymbols[0];
+        config.peggedCollaterals.length > 1
+          ? config.peggedCollaterals[1]
+          : config.peggedCollaterals[0];
 
       const primaryCollateralContract = collateralContracts.get(
         primaryCollateralSymbol

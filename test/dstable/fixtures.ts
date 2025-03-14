@@ -23,7 +23,8 @@ export interface DStableFixtureConfig {
   collateralVaultContractId: string;
   amoManagerId: string;
   oracleAggregatorId: string;
-  collateralSymbols: string[];
+  peggedCollaterals: string[];
+  yieldBearingCollaterals: string[];
 }
 
 // Create a fixture factory for any dstable based on its configuration
@@ -80,7 +81,8 @@ export const DUSD_CONFIG: DStableFixtureConfig = {
   collateralVaultContractId: DUSD_COLLATERAL_VAULT_CONTRACT_ID,
   amoManagerId: DUSD_AMO_MANAGER_ID,
   oracleAggregatorId: USD_ORACLE_AGGREGATOR_ID,
-  collateralSymbols: ["frxUSD", "USDC"],
+  peggedCollaterals: ["frxUSD", "USDC", "USDS"], // USDC is interesting due to 6 decimals
+  yieldBearingCollaterals: ["sfrxUSD", "sUSDS"],
 };
 
 export const DS_CONFIG: DStableFixtureConfig = {
@@ -90,5 +92,6 @@ export const DS_CONFIG: DStableFixtureConfig = {
   collateralVaultContractId: DS_COLLATERAL_VAULT_CONTRACT_ID,
   amoManagerId: DS_AMO_MANAGER_ID,
   oracleAggregatorId: S_ORACLE_AGGREGATOR_ID,
-  collateralSymbols: ["wS", "wOS", "stS"],
+  peggedCollaterals: ["wS"],
+  yieldBearingCollaterals: ["wOS", "stS"],
 };
