@@ -4,6 +4,7 @@ import { Address } from "hardhat-deploy/types";
 import {
   getOracleAggregatorFixture,
   OracleAggregatorFixtureResult,
+  getRandomTestAsset,
 } from "./fixtures";
 import { getConfig } from "../../config/config";
 import { OracleAggregator, MockOracleAggregator } from "../../typechain-types";
@@ -92,16 +93,8 @@ async function runTestsForCurrency(
           BigInt(10) ** BigInt(fixtureResult.config.priceDecimals)
         );
 
-        // Get the first asset from any of the asset groups
-        const testAsset =
-          Object.keys(fixtureResult.assets.plainAssets)[0] ||
-          Object.keys(fixtureResult.assets.thresholdAssets)[0] ||
-          Object.keys(fixtureResult.assets.compositeAssets)[0];
-
-        if (!testAsset) {
-          this.skip();
-          return;
-        }
+        // Get a random test asset
+        const testAsset = getRandomTestAsset(fixtureResult);
 
         // Set a mock price for the test asset
         const mockPrice = ethers.parseEther("1.5");
@@ -131,16 +124,8 @@ async function runTestsForCurrency(
       });
 
       it("should revert when setting oracle with wrong decimals", async function () {
-        // Get the first asset from any of the asset groups
-        const testAsset =
-          Object.keys(fixtureResult.assets.plainAssets)[0] ||
-          Object.keys(fixtureResult.assets.thresholdAssets)[0] ||
-          Object.keys(fixtureResult.assets.compositeAssets)[0];
-
-        if (!testAsset) {
-          this.skip();
-          return;
-        }
+        // Get a random test asset
+        const testAsset = getRandomTestAsset(fixtureResult);
 
         // Deploy a MockOracleAggregator with wrong decimals
         const MockOracleAggregatorFactory = await hre.ethers.getContractFactory(
@@ -170,16 +155,8 @@ async function runTestsForCurrency(
       });
 
       it("should only allow oracle manager to set oracles", async function () {
-        // Get the first asset from any of the asset groups
-        const testAsset =
-          Object.keys(fixtureResult.assets.plainAssets)[0] ||
-          Object.keys(fixtureResult.assets.thresholdAssets)[0] ||
-          Object.keys(fixtureResult.assets.compositeAssets)[0];
-
-        if (!testAsset) {
-          this.skip();
-          return;
-        }
+        // Get a random test asset
+        const testAsset = getRandomTestAsset(fixtureResult);
 
         // Deploy a mock oracle for testing
         const MockAPI3OracleFactory =

@@ -307,3 +307,26 @@ export function logAvailableOracles(mockOracles: {
     console.log(`  ${feedName}: ${address}`);
   }
 }
+
+/**
+ * Helper function to get a random test asset from the available assets
+ * @param fixtureResult The fixture result containing the assets
+ * @returns A randomly selected asset address
+ * @throws Error if no assets are available
+ */
+export function getRandomTestAsset(
+  fixtureResult: OracleAggregatorFixtureResult
+): string {
+  const allAssets = [
+    ...Object.keys(fixtureResult.assets.plainAssets),
+    ...Object.keys(fixtureResult.assets.thresholdAssets),
+    ...Object.keys(fixtureResult.assets.compositeAssets),
+  ];
+
+  if (allAssets.length === 0) {
+    throw new Error("No assets configured in the fixture");
+  }
+
+  const randomIndex = Math.floor(Math.random() * allAssets.length);
+  return allAssets[randomIndex];
+}
