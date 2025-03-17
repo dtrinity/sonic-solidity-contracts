@@ -90,35 +90,25 @@ async function runTestsForCurrency(
     describe("Asset pricing", () => {
       it("should correctly price assets with configured proxies", async function () {
         // Test pricing for plain assets
-        for (const [address, asset] of Object.entries(
+        for (const [address, _asset] of Object.entries(
           fixtureResult.assets.plainAssets
         )) {
-          try {
-            const { price, isAlive } = await api3Wrapper.getPriceInfo(address);
+          const { price, isAlive } = await api3Wrapper.getPriceInfo(address);
 
-            // The price should be non-zero
-            expect(price).to.be.gt(
-              0,
-              `Price for asset ${address} should be greater than 0`
-            );
-            expect(isAlive).to.be.true,
-              `Price for asset ${address} should be alive`;
+          // The price should be non-zero
+          expect(price).to.be.gt(
+            0,
+            `Price for asset ${address} should be greater than 0`
+          );
+          expect(isAlive).to.be.true,
+            `Price for asset ${address} should be alive`;
 
-            // Verify getAssetPrice returns the same value
-            const directPrice = await api3Wrapper.getAssetPrice(address);
-            expect(directPrice).to.equal(
-              price,
-              `Direct price should match price info for ${address}`
-            );
-          } catch (error: any) {
-            if (error.message && error.message.includes("ProxyNotSet")) {
-              // Proxy not configured, continue with the test
-              continue;
-            } else {
-              // Any other error should be thrown
-              throw error;
-            }
-          }
+          // Verify getAssetPrice returns the same value
+          const directPrice = await api3Wrapper.getAssetPrice(address);
+          expect(directPrice).to.equal(
+            price,
+            `Direct price should match price info for ${address}`
+          );
         }
       });
 
@@ -207,39 +197,29 @@ async function runTestsForCurrency(
         for (const [address, asset] of Object.entries(
           fixtureResult.assets.thresholdAssets
         )) {
-          try {
-            const { price, isAlive } =
-              await api3WrapperWithThresholding.getPriceInfo(address);
+          const { price, isAlive } =
+            await api3WrapperWithThresholding.getPriceInfo(address);
 
-            // The price should be non-zero
-            expect(price).to.be.gt(
-              0,
-              `Price for asset ${address} should be greater than 0`
-            );
-            expect(isAlive).to.be.true,
-              `Price for asset ${address} should be alive`;
+          // The price should be non-zero
+          expect(price).to.be.gt(
+            0,
+            `Price for asset ${address} should be greater than 0`
+          );
+          expect(isAlive).to.be.true,
+            `Price for asset ${address} should be alive`;
 
-            // If price is below threshold, it should return fixed price
-            if (price < asset.lowerThreshold) {
-              expect(price).to.equal(asset.fixedPrice);
-            }
-
-            // Verify getAssetPrice returns the same value
-            const directPrice =
-              await api3WrapperWithThresholding.getAssetPrice(address);
-            expect(directPrice).to.equal(
-              price,
-              `Direct price should match price info for ${address}`
-            );
-          } catch (error: any) {
-            if (error.message && error.message.includes("ProxyNotSet")) {
-              // Proxy not configured, continue with the test
-              continue;
-            } else {
-              // Any other error should be thrown
-              throw error;
-            }
+          // If price is below threshold, it should return fixed price
+          if (price < asset.lowerThreshold) {
+            expect(price).to.equal(asset.fixedPrice);
           }
+
+          // Verify getAssetPrice returns the same value
+          const directPrice =
+            await api3WrapperWithThresholding.getAssetPrice(address);
+          expect(directPrice).to.equal(
+            price,
+            `Direct price should match price info for ${address}`
+          );
         }
       });
     });

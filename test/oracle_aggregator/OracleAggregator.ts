@@ -185,41 +185,23 @@ async function runTestsForCurrency(
         };
 
         for (const [address, _asset] of Object.entries(allAssets)) {
-          try {
-            const price = await oracleAggregator.getAssetPrice(address);
+          const price = await oracleAggregator.getAssetPrice(address);
 
-            // The price should be non-zero
-            expect(price).to.be.gt(
-              0,
-              `Price for asset ${address} should be greater than 0`
-            );
+          // The price should be non-zero
+          expect(price).to.be.gt(
+            0,
+            `Price for asset ${address} should be greater than 0`
+          );
 
-            // Get price info
-            const [priceInfo, isAlive] =
-              await oracleAggregator.getPriceInfo(address);
-            expect(priceInfo).to.equal(
-              price,
-              `Price info for asset ${address} should match getAssetPrice`
-            );
-            expect(isAlive).to.be.true,
-              `Price for asset ${address} should be alive`;
-          } catch (error: any) {
-            // If the error is OracleNotSet, log it but don't fail the test
-            if (error.message && error.message.includes("OracleNotSet")) {
-              // Oracle not configured, continue with the test
-              continue;
-            } else if (
-              error.message &&
-              (error.message.includes("ProxyNotSet") ||
-                error.message.includes("FeedNotSet"))
-            ) {
-              // Feed not set, continue with the test
-              continue;
-            } else {
-              // Any other error should be thrown
-              throw error;
-            }
-          }
+          // Get price info
+          const [priceInfo, isAlive] =
+            await oracleAggregator.getPriceInfo(address);
+          expect(priceInfo).to.equal(
+            price,
+            `Price info for asset ${address} should match getAssetPrice`
+          );
+          expect(isAlive).to.be.true,
+            `Price for asset ${address} should be alive`;
         }
       });
     });
