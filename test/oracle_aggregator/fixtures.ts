@@ -1,4 +1,5 @@
-import { ethers, deployments } from "hardhat";
+import { deployments } from "hardhat";
+import hre from "hardhat";
 import {
   USD_ORACLE_AGGREGATOR_ID,
   USD_API3_ORACLE_WRAPPER_ID,
@@ -11,7 +12,6 @@ import {
   S_API3_COMPOSITE_WRAPPER_WITH_THRESHOLDING_ID,
   DS_HARD_PEG_ORACLE_WRAPPER_ID,
 } from "../../typescript/deploy-ids";
-import { API3_PRICE_DECIMALS } from "../../typescript/oracle_aggregator/constants";
 import {
   OracleAggregator,
   API3Wrapper,
@@ -19,17 +19,14 @@ import {
   API3CompositeWrapperWithThresholding,
   HardPegOracleWrapper,
 } from "../../typechain-types";
-import { HardhatRuntimeEnvironment } from "hardhat/types";
-import {
-  getTokenContractForSymbol,
-  TokenInfo,
-} from "../../typescript/token/utils";
+import { getConfig } from "../../config/config";
+import { OracleAggregatorConfig } from "../../config/types";
 
 /**
  * Configuration for oracle aggregator fixtures
  */
-export interface OracleAggregatorFixtureConfig {
-  baseCurrency: string;
+export interface OracleAggregatorFixtureConfig extends OracleAggregatorConfig {
+  currency: string;
   deploymentTag: string;
   oracleAggregatorId: string;
   wrapperIds: {
@@ -38,10 +35,6 @@ export interface OracleAggregatorFixtureConfig {
     api3CompositeWrapperWithThresholding: string;
     hardPegWrapper: string;
   };
-  peggedAssets: string[];
-  yieldBearingAssets: string[];
-  priceDecimals: number;
-  heartbeatSeconds: number;
 }
 
 /**
@@ -57,16 +50,30 @@ export interface OracleAggregatorFixtureResult {
     hardPegWrapper?: HardPegOracleWrapper;
   };
   assets: {
-    yieldBearingAssets: {
-      [symbol: string]: {
+    plainAssets: {
+      [address: string]: {
         address: string;
-        info: TokenInfo;
+        proxy: string;
       };
     };
-    peggedAssets: {
-      [symbol: string]: {
+    thresholdAssets: {
+      [address: string]: {
         address: string;
-        info: TokenInfo;
+        proxy: string;
+        lowerThreshold: bigint;
+        fixedPrice: bigint;
+      };
+    };
+    compositeAssets: {
+      [address: string]: {
+        address: string;
+        feedAsset: string;
+        proxy1: string;
+        proxy2: string;
+        lowerThresholdInBase1: bigint;
+        fixedPriceInBase1: bigint;
+        lowerThresholdInBase2: bigint;
+        fixedPriceInBase2: bigint;
       };
     };
   };
@@ -132,41 +139,6 @@ export const createOracleAggregatorFixture = (
         "HardPegOracleWrapper",
         hardPegWrapperAddress
       );
-      const peggedAssets: {
-        [symbol: string]: { address: string; info: TokenInfo };
-      } = {};
-      for (const symbol of config.peggedAssets) {
-        try {
-          const { tokenInfo } = await getTokenContractForSymbol(
-            { ethers, deployments } as unknown as HardhatRuntimeEnvironment,
-            deployer,
-            symbol
-          );
-          peggedAssets[symbol] = {
-            address: tokenInfo.address,
-            info: tokenInfo,
-          };
-        } catch (error) {
-          console.log(
-            `Warning: Could not load pegged asset ${symbol}. Skipping.`
-          );
-        }
-      }
-
-      const yieldBearingAssets: {
-        [symbol: string]: { address: string; info: TokenInfo };
-      } = {};
-      for (const symbol of config.yieldBearingAssets) {
-        const { tokenInfo } = await getTokenContractForSymbol(
-          { ethers, deployments } as unknown as HardhatRuntimeEnvironment,
-          deployer,
-          symbol
-        );
-        yieldBearingAssets[symbol] = {
-          address: tokenInfo.address,
-          info: tokenInfo,
-        };
-      }
 
       // Find the mock oracle deployments
       const mockOracles: { [feedName: string]: string } = {};
@@ -179,6 +151,69 @@ export const createOracleAggregatorFixture = (
         }
       }
 
+      // Group assets by their oracle type
+      const plainAssets: {
+        [address: string]: { address: string; proxy: string };
+      } = {};
+      const thresholdAssets: {
+        [address: string]: {
+          address: string;
+          proxy: string;
+          lowerThreshold: bigint;
+          fixedPrice: bigint;
+        };
+      } = {};
+      const compositeAssets: {
+        [address: string]: {
+          address: string;
+          feedAsset: string;
+          proxy1: string;
+          proxy2: string;
+          lowerThresholdInBase1: bigint;
+          fixedPriceInBase1: bigint;
+          lowerThresholdInBase2: bigint;
+          fixedPriceInBase2: bigint;
+        };
+      } = {};
+
+      // Populate plain assets
+      for (const [address, proxy] of Object.entries(
+        config.api3OracleAssets.plainApi3OracleWrappers
+      )) {
+        plainAssets[address] = {
+          address,
+          proxy,
+        };
+      }
+
+      // Populate threshold assets
+      for (const [address, data] of Object.entries(
+        config.api3OracleAssets.api3OracleWrappersWithThresholding
+      )) {
+        thresholdAssets[address] = {
+          address,
+          proxy: data.proxy,
+          lowerThreshold: data.lowerThreshold,
+          fixedPrice: data.fixedPrice,
+        };
+      }
+
+      // Populate composite assets
+      for (const [address, data] of Object.entries(
+        config.api3OracleAssets.compositeApi3OracleWrappersWithThresholding
+      )) {
+        compositeAssets[address] = {
+          address,
+          feedAsset: data.feedAsset,
+          proxy1: data.proxy1,
+          proxy2: data.proxy2,
+          lowerThresholdInBase1: data.lowerThresholdInBase1,
+          fixedPriceInBase1: data.fixedPriceInBase1,
+          lowerThresholdInBase2: data.lowerThresholdInBase2,
+          fixedPriceInBase2: data.fixedPriceInBase2,
+        };
+      }
+
       return {
         config,
         contracts: {
@@ -189,8 +224,9 @@ export const createOracleAggregatorFixture = (
           hardPegWrapper,
         },
         assets: {
-          yieldBearingAssets,
-          peggedAssets,
+          plainAssets,
+          thresholdAssets,
+          compositeAssets,
         },
         mockOracles,
       };
@@ -199,91 +235,48 @@ export const createOracleAggregatorFixture = (
 };
 
 /**
- * Predefined configurations
- */
-export const USD_ORACLE_AGGREGATOR_CONFIG: OracleAggregatorFixtureConfig = {
-  baseCurrency: "USD",
-  deploymentTag: "usd-oracle",
-  oracleAggregatorId: USD_ORACLE_AGGREGATOR_ID,
-  wrapperIds: {
-    api3Wrapper: USD_API3_ORACLE_WRAPPER_ID,
-    api3WrapperWithThresholding: USD_API3_WRAPPER_WITH_THRESHOLDING_ID,
-    api3CompositeWrapperWithThresholding:
-      USD_API3_COMPOSITE_WRAPPER_WITH_THRESHOLDING_ID,
-    hardPegWrapper: DUSD_HARD_PEG_ORACLE_WRAPPER_ID,
-  },
-  peggedAssets: ["USDC", "frxUSD", "USDC"],
-  yieldBearingAssets: ["sfrxUSD"],
-  priceDecimals: 8,
-  heartbeatSeconds: 86400,
-};
-
-export const S_ORACLE_AGGREGATOR_CONFIG: OracleAggregatorFixtureConfig = {
-  baseCurrency: "wS",
-  deploymentTag: "s-oracle",
-  oracleAggregatorId: S_ORACLE_AGGREGATOR_ID,
-  wrapperIds: {
-    api3Wrapper: S_API3_ORACLE_WRAPPER_ID,
-    api3WrapperWithThresholding: S_API3_WRAPPER_WITH_THRESHOLDING_ID,
-    api3CompositeWrapperWithThresholding:
-      S_API3_COMPOSITE_WRAPPER_WITH_THRESHOLDING_ID,
-    hardPegWrapper: DS_HARD_PEG_ORACLE_WRAPPER_ID,
-  },
-  peggedAssets: ["wS"],
-  yieldBearingAssets: ["stS", "wOS"],
-  priceDecimals: 8,
-  heartbeatSeconds: 86400,
-};
-
-/**
- * Registry of all available oracle aggregator configurations
- */
-export const ORACLE_AGGREGATOR_CONFIGS: Record<
-  string,
-  OracleAggregatorFixtureConfig
-> = {
-  USD: USD_ORACLE_AGGREGATOR_CONFIG,
-  S: S_ORACLE_AGGREGATOR_CONFIG,
-};
-
-/**
- * Legacy fixture that sets up the oracle aggregator and mock oracles
- * @deprecated Use createOracleAggregatorFixture with appropriate config instead
- */
-export const oracleAggregatorMinimalFixture = deployments.createFixture(
-  async ({ deployments }) => {
-    await deployments.fixture(); // Start from a fresh deployment
-    await deployments.fixture(["oracle-aggregator", "local-setup"]); // Include local-setup to use the mock Oracle
-  }
-);
-
-/**
- * Fixture that sets up the USD oracle aggregator and mock oracles
- */
-export const usdOracleAggregatorFixture = createOracleAggregatorFixture(
-  USD_ORACLE_AGGREGATOR_CONFIG
-);
-
-/**
- * Fixture that sets up the S oracle aggregator and mock oracles
- */
-export const sOracleAggregatorFixture = createOracleAggregatorFixture(
-  S_ORACLE_AGGREGATOR_CONFIG
-);
-
-/**
  * Helper function to get an oracle aggregator fixture by currency
  * @param currency The currency to get the fixture for (e.g., "USD", "S")
  * @returns The fixture for the specified currency
  */
-export const getOracleAggregatorFixture = (currency: string) => {
-  const config = ORACLE_AGGREGATOR_CONFIGS[currency];
-  if (!config) {
+export const getOracleAggregatorFixture = async (currency: string) => {
+  const networkConfig = await getConfig(hre);
+  const oracleConfig = networkConfig.oracleAggregators[currency];
+
+  if (!oracleConfig) {
     throw new Error(
       `No oracle aggregator configuration found for currency: ${currency}`
     );
   }
-  return createOracleAggregatorFixture(config);
+
+  // Map the network config to our fixture config
+  const fixtureConfig: OracleAggregatorFixtureConfig = {
+    ...oracleConfig,
+    currency,
+    deploymentTag: `${currency.toLowerCase()}-oracle`,
+    oracleAggregatorId:
+      currency === "USD" ? USD_ORACLE_AGGREGATOR_ID : S_ORACLE_AGGREGATOR_ID,
+    wrapperIds: {
+      api3Wrapper:
+        currency === "USD"
+          ? USD_API3_ORACLE_WRAPPER_ID
+          : S_API3_ORACLE_WRAPPER_ID,
+      api3WrapperWithThresholding:
+        currency === "USD"
+          ? USD_API3_WRAPPER_WITH_THRESHOLDING_ID
+          : S_API3_WRAPPER_WITH_THRESHOLDING_ID,
+      api3CompositeWrapperWithThresholding:
+        currency === "USD"
+          ? USD_API3_COMPOSITE_WRAPPER_WITH_THRESHOLDING_ID
+          : S_API3_COMPOSITE_WRAPPER_WITH_THRESHOLDING_ID,
+      hardPegWrapper:
+        currency === "USD"
+          ? DUSD_HARD_PEG_ORACLE_WRAPPER_ID
+          : DS_HARD_PEG_ORACLE_WRAPPER_ID,
+    },
+  };
+
+  return createOracleAggregatorFixture(fixtureConfig);
 };
 
 /**
