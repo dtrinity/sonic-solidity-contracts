@@ -1,0 +1,193 @@
+{
+  "address": "0x15CcbEfeA1bD932444F7eDE4eaA0393d5bA2e5bF",
+  "abi": [
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_baseCurrency",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_baseCurrencyUnit",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_pricePeg",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "constructor"
+    },
+    {
+      "inputs": [],
+      "name": "BASE_CURRENCY",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "BASE_CURRENCY_UNIT",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "name": "getAssetPrice",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "name": "getPriceInfo",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "price",
+          "type": "uint256"
+        },
+        {
+          "internalType": "bool",
+          "name": "isAlive",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "pricePeg",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    }
+  ],
+  "transactionHash": "0xa1e596ec3c3b938df4e45d928aca4eedd2c062d9b52aad56c61d6620564312c8",
+  "receipt": {
+    "to": null,
+    "from": "0xd2f775Ff2cD41bfe43C7A8c016eD10393553fe44",
+    "contractAddress": "0x15CcbEfeA1bD932444F7eDE4eaA0393d5bA2e5bF",
+    "transactionIndex": 0,
+    "gasUsed": "255019",
+    "logsBloom": "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+    "blockHash": "0xfb3b03d08fa297dae691c93a36da0ba13fb22db1d7fdfa9fa14e36c5e21921a4",
+    "transactionHash": "0xa1e596ec3c3b938df4e45d928aca4eedd2c062d9b52aad56c61d6620564312c8",
+    "logs": [],
+    "blockNumber": 26943440,
+    "cumulativeGasUsed": "255019",
+    "status": 1,
+    "byzantium": true
+  },
+  "args": [
+    "0x0000000000000000000000000000000000000000",
+    "1000000000000000000",
+    "1000000000000000000"
+  ],
+  "numDeployments": 1,
+  "solcInputHash": "601a421431a4d1b98bcec471579cced1",
+  "metadata": "{\"compiler\":{\"version\":\"0.8.20+commit.a1b79de6\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_baseCurrency\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"_baseCurrencyUnit\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"_pricePeg\",\"type\":\"uint256\"}],\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"inputs\":[],\"name\":\"BASE_CURRENCY\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"BASE_CURRENCY_UNIT\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"name\":\"getAssetPrice\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"name\":\"getPriceInfo\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"price\",\"type\":\"uint256\"},{\"internalType\":\"bool\",\"name\":\"isAlive\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"pricePeg\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"}],\"devdoc\":{\"kind\":\"dev\",\"methods\":{\"getAssetPrice(address)\":{\"details\":\"Get the price of an asset\"},\"getPriceInfo(address)\":{\"details\":\"Get the price info of an asset\"}},\"stateVariables\":{\"BASE_CURRENCY\":{\"details\":\"Address 0x0 is commonly used for USD, but can be any token address based on the implementation.\",\"return\":\"Returns the base currency address.\",\"returns\":{\"_0\":\"Returns the base currency address.\"}},\"BASE_CURRENCY_UNIT\":{\"details\":\"Represents the decimal precision of the base currency (e.g., 1e8 for USD, 1e18 for ETH).\",\"return\":\"Returns the base currency unit.\",\"returns\":{\"_0\":\"Returns the base currency unit.\"}}},\"version\":1},\"userdoc\":{\"kind\":\"user\",\"methods\":{\"BASE_CURRENCY()\":{\"notice\":\"Returns the base currency address\"},\"BASE_CURRENCY_UNIT()\":{\"notice\":\"Returns the base currency unit\"}},\"version\":1}},\"settings\":{\"compilationTarget\":{\"contracts/oracle_aggregator/wrapper/HardPegOracleWrapper.sol\":\"HardPegOracleWrapper\"},\"evmVersion\":\"paris\",\"libraries\":{},\"metadata\":{\"bytecodeHash\":\"ipfs\",\"useLiteralContent\":true},\"optimizer\":{\"enabled\":false,\"runs\":200},\"remappings\":[]},\"sources\":{\"contracts/oracle_aggregator/interface/IOracleWrapper.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\n/* \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 *\\n *    _____     ______   ______     __     __   __     __     ______   __  __       *\\n *   /\\\\  __-.  /\\\\__  _\\\\ /\\\\  == \\\\   /\\\\ \\\\   /\\\\ \\\"-.\\\\ \\\\   /\\\\ \\\\   /\\\\__  _\\\\ /\\\\ \\\\_\\\\ \\\\      *\\n *   \\\\ \\\\ \\\\/\\\\ \\\\ \\\\/_/\\\\ \\\\/ \\\\ \\\\  __<   \\\\ \\\\ \\\\  \\\\ \\\\ \\\\-.  \\\\  \\\\ \\\\ \\\\  \\\\/_/\\\\ \\\\/ \\\\ \\\\____ \\\\     *\\n *    \\\\ \\\\____-    \\\\ \\\\_\\\\  \\\\ \\\\_\\\\ \\\\_\\\\  \\\\ \\\\_\\\\  \\\\ \\\\_\\\\\\\\\\\"\\\\_\\\\  \\\\ \\\\_\\\\    \\\\ \\\\_\\\\  \\\\/\\\\_____\\\\    *\\n *     \\\\/____/     \\\\/_/   \\\\/_/ /_/   \\\\/_/   \\\\/_/ \\\\/_/   \\\\/_/     \\\\/_/   \\\\/_____/    *\\n *                                                                                  *\\n * \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 dtrinity.org \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 *\\n *                                                                                  *\\n *                                         \\u25b2                                        *\\n *                                        \\u25b2 \\u25b2                                       *\\n *                                                                                  *\\n * \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 *\\n * dTRINITY Protocol: https://github.com/dtrinity                                   *\\n * \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 */\\n\\npragma solidity ^0.8.20;\\n\\n/**\\n * @dev Interface for the individual oracle wrappers, to unify interface between Redstone and API3 for example\\n */\\ninterface IOracleWrapper {\\n    /**\\n     * @notice Returns the base currency address\\n     * @dev Address 0x0 is commonly used for USD, but can be any token address based on the implementation.\\n     * @return Returns the base currency address.\\n     */\\n    function BASE_CURRENCY() external view returns (address);\\n\\n    /**\\n     * @notice Returns the base currency unit\\n     * @dev Represents the decimal precision of the base currency (e.g., 1e8 for USD, 1e18 for ETH).\\n     * @return Returns the base currency unit.\\n     */\\n    function BASE_CURRENCY_UNIT() external view returns (uint256);\\n\\n    /**\\n     * @notice Returns the asset price in the base currency\\n     * @param asset The address of the asset\\n     * @return The price of the asset\\n     */\\n    function getAssetPrice(address asset) external view returns (uint256);\\n\\n    /**\\n     * @notice Returns the price and alive status of an asset\\n     * @param asset The address of the asset\\n     * @return price The price of the asset\\n     * @return isAlive The alive status of the asset\\n     */\\n    function getPriceInfo(\\n        address asset\\n    ) external view returns (uint256 price, bool isAlive);\\n}\\n\",\"keccak256\":\"0x2380e6baabbf9e14b8103829d508cb48bf6187ac3644d970dbcb5699795fff8e\",\"license\":\"MIT\"},\"contracts/oracle_aggregator/wrapper/HardPegOracleWrapper.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\n/* \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 *\\n *    _____     ______   ______     __     __   __     __     ______   __  __       *\\n *   /\\\\  __-.  /\\\\__  _\\\\ /\\\\  == \\\\   /\\\\ \\\\   /\\\\ \\\"-.\\\\ \\\\   /\\\\ \\\\   /\\\\__  _\\\\ /\\\\ \\\\_\\\\ \\\\      *\\n *   \\\\ \\\\ \\\\/\\\\ \\\\ \\\\/_/\\\\ \\\\/ \\\\ \\\\  __<   \\\\ \\\\ \\\\  \\\\ \\\\ \\\\-.  \\\\  \\\\ \\\\ \\\\  \\\\/_/\\\\ \\\\/ \\\\ \\\\____ \\\\     *\\n *    \\\\ \\\\____-    \\\\ \\\\_\\\\  \\\\ \\\\_\\\\ \\\\_\\\\  \\\\ \\\\_\\\\  \\\\ \\\\_\\\\\\\\\\\"\\\\_\\\\  \\\\ \\\\_\\\\    \\\\ \\\\_\\\\  \\\\/\\\\_____\\\\    *\\n *     \\\\/____/     \\\\/_/   \\\\/_/ /_/   \\\\/_/   \\\\/_/ \\\\/_/   \\\\/_/     \\\\/_/   \\\\/_____/    *\\n *                                                                                  *\\n * \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 dtrinity.org \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 *\\n *                                                                                  *\\n *                                         \\u25b2                                        *\\n *                                        \\u25b2 \\u25b2                                       *\\n *                                                                                  *\\n * \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 *\\n * dTRINITY Protocol: https://github.com/dtrinity                                   *\\n * \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 */\\n\\npragma solidity ^0.8.20;\\n\\nimport \\\"../interface/IOracleWrapper.sol\\\";\\n\\ncontract HardPegOracleWrapper is IOracleWrapper {\\n    uint256 public immutable pricePeg;\\n    address public immutable BASE_CURRENCY;\\n\\n    uint256 public BASE_CURRENCY_UNIT;\\n\\n    constructor(\\n        address _baseCurrency,\\n        uint256 _baseCurrencyUnit,\\n        uint256 _pricePeg\\n    ) {\\n        BASE_CURRENCY = _baseCurrency;\\n        BASE_CURRENCY_UNIT = _baseCurrencyUnit;\\n        pricePeg = _pricePeg;\\n    }\\n\\n    /**\\n     * @dev Get the price info of an asset\\n     */\\n    function getPriceInfo(\\n        address // asset\\n    ) external view returns (uint256 price, bool isAlive) {\\n        return (pricePeg, true);\\n    }\\n\\n    /**\\n     * @dev Get the price of an asset\\n     */\\n    function getAssetPrice(\\n        address // asset\\n    ) external view override returns (uint256) {\\n        return pricePeg;\\n    }\\n}\\n\",\"keccak256\":\"0x133014b9d90fc074ae1cc1a830d710e3fe36fc9415f6fa303dd33e058fc99791\",\"license\":\"MIT\"}},\"version\":1}",
+  "bytecode": "0x60c060405234801561001057600080fd5b506040516104c23803806104c283398181016040528101906100329190610116565b8273ffffffffffffffffffffffffffffffffffffffff1660a08173ffffffffffffffffffffffffffffffffffffffff1681525050816000819055508060808181525050505050610169565b600080fd5b600073ffffffffffffffffffffffffffffffffffffffff82169050919050565b60006100ad82610082565b9050919050565b6100bd816100a2565b81146100c857600080fd5b50565b6000815190506100da816100b4565b92915050565b6000819050919050565b6100f3816100e0565b81146100fe57600080fd5b50565b600081519050610110816100ea565b92915050565b60008060006060848603121561012f5761012e61007d565b5b600061013d868287016100cb565b935050602061014e86828701610101565b925050604061015f86828701610101565b9150509250925092565b60805160a05161032661019c600039600061019c01526000818161011901528181610146015261017401526103266000f3fe608060405234801561001057600080fd5b50600436106100575760003560e01c80636af8ecae1461005c5780638c89b64f1461007a5780638edbf43614610098578063b3596f07146100c9578063e19f4700146100f9575b600080fd5b610064610117565b60405161007191906101d7565b60405180910390f35b61008261013b565b60405161008f91906101d7565b60405180910390f35b6100b260048036038101906100ad9190610255565b610141565b6040516100c092919061029d565b60405180910390f35b6100e360048036038101906100de9190610255565b610170565b6040516100f091906101d7565b60405180910390f35b61010161019a565b60405161010e91906102d5565b60405180910390f35b7f000000000000000000000000000000000000000000000000000000000000000081565b60005481565b6000807f0000000000000000000000000000000000000000000000000000000000000000600191509150915091565b60007f00000000000000000000000000000000000000000000000000000000000000009050919050565b7f000000000000000000000000000000000000000000000000000000000000000081565b6000819050919050565b6101d1816101be565b82525050565b60006020820190506101ec60008301846101c8565b92915050565b600080fd5b600073ffffffffffffffffffffffffffffffffffffffff82169050919050565b6000610222826101f7565b9050919050565b61023281610217565b811461023d57600080fd5b50565b60008135905061024f81610229565b92915050565b60006020828403121561026b5761026a6101f2565b5b600061027984828501610240565b91505092915050565b60008115159050919050565b61029781610282565b82525050565b60006040820190506102b260008301856101c8565b6102bf602083018461028e565b9392505050565b6102cf81610217565b82525050565b60006020820190506102ea60008301846102c6565b9291505056fea26469706673582212201ef5e36bff0080e01983a93d6d93214e04fc17380ed30ed8bc1cbd043419741364736f6c63430008140033",
+  "deployedBytecode": "0x608060405234801561001057600080fd5b50600436106100575760003560e01c80636af8ecae1461005c5780638c89b64f1461007a5780638edbf43614610098578063b3596f07146100c9578063e19f4700146100f9575b600080fd5b610064610117565b60405161007191906101d7565b60405180910390f35b61008261013b565b60405161008f91906101d7565b60405180910390f35b6100b260048036038101906100ad9190610255565b610141565b6040516100c092919061029d565b60405180910390f35b6100e360048036038101906100de9190610255565b610170565b6040516100f091906101d7565b60405180910390f35b61010161019a565b60405161010e91906102d5565b60405180910390f35b7f000000000000000000000000000000000000000000000000000000000000000081565b60005481565b6000807f0000000000000000000000000000000000000000000000000000000000000000600191509150915091565b60007f00000000000000000000000000000000000000000000000000000000000000009050919050565b7f000000000000000000000000000000000000000000000000000000000000000081565b6000819050919050565b6101d1816101be565b82525050565b60006020820190506101ec60008301846101c8565b92915050565b600080fd5b600073ffffffffffffffffffffffffffffffffffffffff82169050919050565b6000610222826101f7565b9050919050565b61023281610217565b811461023d57600080fd5b50565b60008135905061024f81610229565b92915050565b60006020828403121561026b5761026a6101f2565b5b600061027984828501610240565b91505092915050565b60008115159050919050565b61029781610282565b82525050565b60006040820190506102b260008301856101c8565b6102bf602083018461028e565b9392505050565b6102cf81610217565b82525050565b60006020820190506102ea60008301846102c6565b9291505056fea26469706673582212201ef5e36bff0080e01983a93d6d93214e04fc17380ed30ed8bc1cbd043419741364736f6c63430008140033",
+  "devdoc": {
+    "kind": "dev",
+    "methods": {
+      "getAssetPrice(address)": {
+        "details": "Get the price of an asset"
+      },
+      "getPriceInfo(address)": {
+        "details": "Get the price info of an asset"
+      }
+    },
+    "stateVariables": {
+      "BASE_CURRENCY": {
+        "details": "Address 0x0 is commonly used for USD, but can be any token address based on the implementation.",
+        "return": "Returns the base currency address.",
+        "returns": {
+          "_0": "Returns the base currency address."
+        }
+      },
+      "BASE_CURRENCY_UNIT": {
+        "details": "Represents the decimal precision of the base currency (e.g., 1e8 for USD, 1e18 for ETH).",
+        "return": "Returns the base currency unit.",
+        "returns": {
+          "_0": "Returns the base currency unit."
+        }
+      }
+    },
+    "version": 1
+  },
+  "userdoc": {
+    "kind": "user",
+    "methods": {
+      "BASE_CURRENCY()": {
+        "notice": "Returns the base currency address"
+      },
+      "BASE_CURRENCY_UNIT()": {
+        "notice": "Returns the base currency unit"
+      }
+    },
+    "version": 1
+  },
+  "storageLayout": {
+    "storage": [
+      {
+        "astId": 16613,
+        "contract": "contracts/oracle_aggregator/wrapper/HardPegOracleWrapper.sol:HardPegOracleWrapper",
+        "label": "BASE_CURRENCY_UNIT",
+        "offset": 0,
+        "slot": "0",
+        "type": "t_uint256"
+      }
+    ],
+    "types": {
+      "t_uint256": {
+        "encoding": "inplace",
+        "label": "uint256",
+        "numberOfBytes": "32"
+      }
+    }
+  }
+}
