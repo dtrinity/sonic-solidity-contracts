@@ -17,14 +17,7 @@
 
 pragma solidity ^0.8.20;
 
-import "@openzeppelin/contracts/access/AccessControl.sol";
-import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
-
-import "contracts/common/IAaveOracle.sol";
-import "contracts/common/IMintableERC20.sol";
-import "./CollateralVault.sol";
 import "./AmoManager.sol";
-import "./OracleAware.sol";
 
 /**
  * @title Issuer

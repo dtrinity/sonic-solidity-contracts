@@ -23,9 +23,9 @@ lint.solidity: ## Run the solidity linter
 lint.typescript: ## Run the typescript linter
 	@yarn eslint . --fix
 
-##############
+#############
 ## Testing ##
-##############
+#############
 
 test: test.hardhat test.typescript ## Run all tests
 
@@ -41,6 +41,67 @@ test.typescript.integ: ## Run the typescript integration tests
 
 test.hardhat: ## Run the hardhat tests
 	@yarn hardhat test
+
+#############
+## Certora ##
+#############
+
+certora.install: ## Install Certora prover
+	@virtualenv certora
+	@certora/bin/pip install certora-cli
+	@echo "\n\n"
+	@echo "REMINDER: Add CERTORAKEY=<your-certora-key> to .env"
+	@echo "Also consider installing the language plugin: https://marketplace.visualstudio.com/items?itemName=Certora.evmspec-lsp"
+
+certora.run: ## Run Certora prover
+	@if [ ! -d "certora" ]; then \
+		echo "Certora environment not found. Run 'make certora.install' first."; \
+		exit 1; \
+	fi; \
+	. certora/bin/activate; \
+	if [ -z "$(contract)" ]; then \
+		echo "Error: contract path not provided. Usage: make certora.run contract=path/to/contract.sol"; \
+		exit 1; \
+	fi; \
+	contract_name=$$(basename $(contract) .sol); \
+	spec_file=$$(dirname $(contract))/$${contract_name}.spec; \
+	if [ ! -f "$${spec_file}" ]; then \
+		echo "Error: Spec file not found at $${spec_file}"; \
+		exit 1; \
+	fi; \
+	certoraRun $(contract):$${contract_name} \
+		--verify $${contract_name}:$${spec_file} \
+		--solc solc \
+		--optimistic_loop || { echo "Certora verification failed"; exit 1; }
+
+certora.verify: ## Verify a specific rule in a contract
+	@if [ ! -d "certora" ]; then \
+		echo "Certora environment not found. Run 'make certora.install' first."; \
+		exit 1; \
+	fi; \
+	. certora/bin/activate; \
+	if [ -z "$(contract)" ] || [ -z "$(rule)" ]; then \
+		echo "Error: contract and rule must be provided. Usage: make certora.verify contract=path/to/contract.sol rule=ruleName"; \
+		exit 1; \
+	fi; \
+	contract_name=$$(basename $(contract) .sol); \
+	spec_file=$$(dirname $(contract))/$${contract_name}.spec; \
+	certoraRun $(contract):$${contract_name} \
+		--verify $${contract_name}:$${spec_file} \
+		--solc solc \
+		--optimistic_loop \
+		--rule $(rule)
+
+certora.shell: ## Activate Certora virtual environment in current shell
+	@if [ ! -d "certora" ]; then \
+		echo "Certora environment not found. Run 'make certora.install' first."; \
+		exit 1; \
+	fi; \
+	echo "Activating Certora virtual environment..."; \
+	echo "Run 'deactivate' to exit when done."; \
+	. certora/bin/activate; \
+	PS1="(certora) $$PS1"; \
+	/bin/bash --norc -i
 
 ################
 ## Deployment ##
