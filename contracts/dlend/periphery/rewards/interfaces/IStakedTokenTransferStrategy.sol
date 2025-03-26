@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: AGPL-3.0
 /* ———————————————————————————————————————————————————————————————————————————————— *
  *    _____     ______   ______     __     __   __     __     ______   __  __       *
  *   /\  __-.  /\__  _\ /\  == \   /\ \   /\ "-.\ \   /\ \   /\__  _\ /\ \_\ \      *
@@ -15,11 +15,33 @@
  * dTRINITY Protocol: https://github.com/dtrinity                                   *
  * ———————————————————————————————————————————————————————————————————————————————— */
 
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.10;
 
-/// @dev See DapiProxy.sol for comments about usage
-interface IProxy {
-    function read() external view returns (int224 value, uint32 timestamp);
+import {IStakedToken} from "../interfaces/IStakedToken.sol";
+import {ITransferStrategyBase} from "./ITransferStrategyBase.sol";
 
-    function api3ServerV1() external view returns (address);
+/**
+ * @title IStakedTokenTransferStrategy
+ * @author Aave
+ **/
+interface IStakedTokenTransferStrategy is ITransferStrategyBase {
+    /**
+     * @dev Perform a MAX_UINT approval of AAVE to the Staked Aave contract.
+     */
+    function renewApproval() external;
+
+    /**
+     * @dev Drop approval of AAVE to the Staked Aave contract in case of emergency.
+     */
+    function dropApproval() external;
+
+    /**
+     * @return Staked Token contract address
+     */
+    function getStakeContract() external view returns (address);
+
+    /**
+     * @return Underlying token address from the stake contract
+     */
+    function getUnderlyingToken() external view returns (address);
 }

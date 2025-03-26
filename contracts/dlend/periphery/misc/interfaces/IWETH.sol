@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: AGPL-3.0
 /* ———————————————————————————————————————————————————————————————————————————————— *
  *    _____     ______   ______     __     __   __     __     ______   __  __       *
  *   /\  __-.  /\__  _\ /\  == \   /\ \   /\ "-.\ \   /\ \   /\__  _\ /\ \_\ \      *
@@ -15,11 +15,18 @@
  * dTRINITY Protocol: https://github.com/dtrinity                                   *
  * ———————————————————————————————————————————————————————————————————————————————— */
 
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.10;
 
-/// @dev See DapiProxy.sol for comments about usage
-interface IProxy {
-    function read() external view returns (int224 value, uint32 timestamp);
+interface IWETH {
+    function deposit() external payable;
 
-    function api3ServerV1() external view returns (address);
+    function withdraw(uint256) external;
+
+    function approve(address guy, uint256 wad) external returns (bool);
+
+    function transferFrom(
+        address src,
+        address dst,
+        uint256 wad
+    ) external returns (bool);
 }

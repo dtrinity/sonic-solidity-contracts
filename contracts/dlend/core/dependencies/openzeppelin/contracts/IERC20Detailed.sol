@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: AGPL-3.0
 /* ———————————————————————————————————————————————————————————————————————————————— *
  *    _____     ______   ______     __     __   __     __     ______   __  __       *
  *   /\  __-.  /\__  _\ /\  == \   /\ \   /\ "-.\ \   /\ \   /\__  _\ /\ \_\ \      *
@@ -17,9 +17,12 @@
 
 pragma solidity ^0.8.20;
 
-/// @dev See DapiProxy.sol for comments about usage
-interface IProxy {
-    function read() external view returns (int224 value, uint32 timestamp);
+import {IERC20} from "./IERC20.sol";
 
-    function api3ServerV1() external view returns (address);
+interface IERC20Detailed is IERC20 {
+    function name() external view returns (string memory);
+
+    function symbol() external view returns (string memory);
+
+    function decimals() external view returns (uint8);
 }

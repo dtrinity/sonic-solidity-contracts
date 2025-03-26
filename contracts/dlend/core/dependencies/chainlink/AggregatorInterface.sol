@@ -15,11 +15,29 @@
  * dTRINITY Protocol: https://github.com/dtrinity                                   *
  * ———————————————————————————————————————————————————————————————————————————————— */
 
+// Chainlink Contracts v0.8
 pragma solidity ^0.8.20;
 
-/// @dev See DapiProxy.sol for comments about usage
-interface IProxy {
-    function read() external view returns (int224 value, uint32 timestamp);
+interface AggregatorInterface {
+    function latestAnswer() external view returns (int256);
 
-    function api3ServerV1() external view returns (address);
+    function latestTimestamp() external view returns (uint256);
+
+    function latestRound() external view returns (uint256);
+
+    function getAnswer(uint256 roundId) external view returns (int256);
+
+    function getTimestamp(uint256 roundId) external view returns (uint256);
+
+    event AnswerUpdated(
+        int256 indexed current,
+        uint256 indexed roundId,
+        uint256 updatedAt
+    );
+
+    event NewRound(
+        uint256 indexed roundId,
+        address indexed startedBy,
+        uint256 startedAt
+    );
 }

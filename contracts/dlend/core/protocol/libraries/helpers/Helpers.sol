@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: BUSL-1.1
 /* ———————————————————————————————————————————————————————————————————————————————— *
  *    _____     ______   ______     __     __   __     __     ______   __  __       *
  *   /\  __-.  /\__  _\ /\  == \   /\ \   /\ "-.\ \   /\ \   /\__  _\ /\ \_\ \      *
@@ -17,9 +17,28 @@
 
 pragma solidity ^0.8.20;
 
-/// @dev See DapiProxy.sol for comments about usage
-interface IProxy {
-    function read() external view returns (int224 value, uint32 timestamp);
+import {IERC20} from "../../../dependencies/openzeppelin/contracts/IERC20.sol";
+import {DataTypes} from "../types/DataTypes.sol";
 
-    function api3ServerV1() external view returns (address);
+/**
+ * @title Helpers library
+ * @author Aave
+ */
+library Helpers {
+    /**
+     * @notice Fetches the user current stable and variable debt balances
+     * @param user The user address
+     * @param reserveCache The reserve cache data object
+     * @return The stable debt balance
+     * @return The variable debt balance
+     */
+    function getUserCurrentDebt(
+        address user,
+        DataTypes.ReserveCache memory reserveCache
+    ) internal view returns (uint256, uint256) {
+        return (
+            IERC20(reserveCache.stableDebtTokenAddress).balanceOf(user),
+            IERC20(reserveCache.variableDebtTokenAddress).balanceOf(user)
+        );
+    }
 }

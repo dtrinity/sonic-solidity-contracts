@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: AGPL-3.0
 /* ———————————————————————————————————————————————————————————————————————————————— *
  *    _____     ______   ______     __     __   __     __     ______   __  __       *
  *   /\  __-.  /\__  _\ /\  == \   /\ \   /\ "-.\ \   /\ \   /\__  _\ /\ \_\ \      *
@@ -15,11 +15,31 @@
  * dTRINITY Protocol: https://github.com/dtrinity                                   *
  * ———————————————————————————————————————————————————————————————————————————————— */
 
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.10;
 
-/// @dev See DapiProxy.sol for comments about usage
-interface IProxy {
-    function read() external view returns (int224 value, uint32 timestamp);
+import {IERC20} from "contracts/dlend/core/dependencies/openzeppelin/contracts/IERC20.sol";
+import {DataTypes} from "contracts/dlend/core/protocol/libraries/types/DataTypes.sol";
 
-    function api3ServerV1() external view returns (address);
+/**
+ * @title DataTypesHelper
+ * @author Aave
+ * @dev Helper library to track user current debt balance, used by WrappedTokenGatewayV3
+ */
+library DataTypesHelper {
+    /**
+     * @notice Fetches the user current stable and variable debt balances
+     * @param user The user address
+     * @param reserve The reserve data object
+     * @return The stable debt balance
+     * @return The variable debt balance
+     **/
+    function getUserCurrentDebt(
+        address user,
+        DataTypes.ReserveData memory reserve
+    ) internal view returns (uint256, uint256) {
+        return (
+            IERC20(reserve.stableDebtTokenAddress).balanceOf(user),
+            IERC20(reserve.variableDebtTokenAddress).balanceOf(user)
+        );
+    }
 }

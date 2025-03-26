@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: AGPL-3.0
 /* ———————————————————————————————————————————————————————————————————————————————— *
  *    _____     ______   ______     __     __   __     __     ______   __  __       *
  *   /\  __-.  /\__  _\ /\  == \   /\ \   /\ "-.\ \   /\ \   /\__  _\ /\ \_\ \      *
@@ -15,11 +15,16 @@
  * dTRINITY Protocol: https://github.com/dtrinity                                   *
  * ———————————————————————————————————————————————————————————————————————————————— */
 
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.10;
 
-/// @dev See DapiProxy.sol for comments about usage
-interface IProxy {
-    function read() external view returns (int224 value, uint32 timestamp);
+interface IStakedToken {
+    function STAKED_TOKEN() external view returns (address);
 
-    function api3ServerV1() external view returns (address);
+    function stake(address to, uint256 amount) external;
+
+    function redeem(address to, uint256 amount) external;
+
+    function cooldown() external;
+
+    function claimRewards(address to, uint256 amount) external;
 }

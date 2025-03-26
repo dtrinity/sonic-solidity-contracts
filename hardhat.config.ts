@@ -14,7 +14,15 @@ import {
 } from "./typescript/hardhat/named-accounts";
 
 const config: HardhatUserConfig = {
-  solidity: "0.8.20",
+  solidity: {
+    version: "0.8.20",
+    settings: {
+      optimizer: {
+        enabled: true,
+        runs: 200,
+      },
+    },
+  },
   /* eslint-disable camelcase -- Network names follow specific naming conventions that require snake_case */
   networks: {
     hardhat: {

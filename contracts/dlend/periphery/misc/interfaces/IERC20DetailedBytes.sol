@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: AGPL-3.0
 /* ———————————————————————————————————————————————————————————————————————————————— *
  *    _____     ______   ______     __     __   __     __     ______   __  __       *
  *   /\  __-.  /\__  _\ /\  == \   /\ \   /\ "-.\ \   /\ \   /\__  _\ /\ \_\ \      *
@@ -15,11 +15,14 @@
  * dTRINITY Protocol: https://github.com/dtrinity                                   *
  * ———————————————————————————————————————————————————————————————————————————————— */
 
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.10;
 
-/// @dev See DapiProxy.sol for comments about usage
-interface IProxy {
-    function read() external view returns (int224 value, uint32 timestamp);
+import {IERC20} from "contracts/dlend/core/dependencies/openzeppelin/contracts/IERC20.sol";
 
-    function api3ServerV1() external view returns (address);
+interface IERC20DetailedBytes is IERC20 {
+    function name() external view returns (bytes32);
+
+    function symbol() external view returns (bytes32);
+
+    function decimals() external view returns (uint8);
 }
