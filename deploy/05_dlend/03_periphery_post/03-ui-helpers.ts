@@ -1,5 +1,6 @@
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
+import { POOL_ADDRESSES_PROVIDER_ID } from "../../../typescript/deploy-ids";
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployments, getNamedAccounts } = hre;
@@ -7,10 +8,10 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployer } = await getNamedAccounts();
 
   // Get AddressesProvider address
-  const addressesProvider = await deployments.get("AddressesProvider");
+  const addressesProvider = await deployments.get(POOL_ADDRESSES_PROVIDER_ID);
 
   console.log("Deploying UiPoolDataProvider...");
-  const uiPoolDataProvider = await deploy("UiPoolDataProvider", {
+  const uiPoolDataProvider = await deploy("UiPoolDataProviderV3", {
     from: deployer,
     args: [addressesProvider.address],
     log: true,
@@ -22,7 +23,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 };
 
 func.tags = ["dlend", "dlend-periphery-post"];
-func.dependencies = ["AddressesProvider"];
-func.id = "UiPoolDataProvider";
+func.dependencies = ["PoolAddressesProvider"];
+func.id = "UiPoolDataProviderV3";
 
 export default func;

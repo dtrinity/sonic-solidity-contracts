@@ -12,11 +12,7 @@ import {
 import { getConfig } from "../../../config/config";
 import { chunk } from "../../../typescript/dlend/helpers";
 
-interface IERC20Extended {
-  name(): Promise<string>;
-  symbol(): Promise<string>;
-  decimals(): Promise<number>;
-}
+const RESERVES_SETUP_HELPER_ID = "ReservesSetupHelper";
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployer } = await hre.getNamedAccounts();
@@ -74,6 +70,25 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     signer
   );
 
+  // Add debug logs for roles
+  const aclManagerAddress = await addressesProviderContract.getACLManager();
+  console.log("ACL Manager address:", aclManagerAddress);
+
+  const aclManager = await hre.ethers.getContractAt(
+    "ACLManager",
+    aclManagerAddress,
+    signer
+  );
+
+  const deployerAddress = await signer.getAddress();
+  console.log("Deployer address:", deployerAddress);
+
+  const isPoolAdmin = await aclManager.isPoolAdmin(deployerAddress);
+  console.log("Is deployer pool admin?", isPoolAdmin);
+
+  const isRiskAdmin = await aclManager.isRiskAdmin(deployerAddress);
+  console.log("Is deployer risk admin?", isRiskAdmin);
+
   const poolConfiguratorAddress =
     await addressesProviderContract.getPoolConfigurator();
   const poolConfiguratorContract = await hre.ethers.getContractAt(
@@ -89,7 +104,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     aTokenImpl: string;
     stableDebtTokenImpl: string;
     variableDebtTokenImpl: string;
-    underlyingAssetDecimals: string;
+    underlyingAssetDecimals: number;
     interestRateStrategyAddress: string;
     underlyingAsset: string;
     treasury: string;
@@ -131,13 +146,13 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       await hre.deployments.get(`ReserveStrategy-${params.strategy.name}`)
     ).address;
 
-    const tokenContract = (await hre.ethers.getContractAt(
-      "IERC20Extended",
+    const tokenContract = await hre.ethers.getContractAt(
+      "IERC20Detailed",
       tokenAddress
-    )) as unknown as IERC20Extended;
+    );
     const tokenName = await tokenContract.name();
     const tokenSymbol = await tokenContract.symbol();
-    const tokenDecimals = await tokenContract.decimals();
+    const tokenDecimals = Number(await tokenContract.decimals());
 
     reserveTokens.push(tokenAddress);
     reserveSymbols.push(symbol);
@@ -146,19 +161,19 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       aTokenImpl: aTokenImplementationAddress,
       stableDebtTokenImpl: stableDebtTokenImplementationAddress,
       variableDebtTokenImpl: variableDebtTokenImplementationAddress,
-      underlyingAssetDecimals: tokenDecimals.toString(),
+      underlyingAssetDecimals: tokenDecimals,
       interestRateStrategyAddress: strategyAddress,
       underlyingAsset: tokenAddress,
       treasury: treasuryAddress,
       incentivesController: ZeroAddress,
       underlyingAssetName: tokenName,
-      aTokenName: `Sonic ${tokenName}`,
-      aTokenSymbol: `s${tokenSymbol}`,
-      variableDebtTokenName: `Sonic Variable Debt ${tokenSymbol}`,
+      aTokenName: `dTRINITY ${tokenName}`,
+      aTokenSymbol: `dTRINITY${tokenSymbol}`,
+      variableDebtTokenName: `dTRINITY Variable Debt ${tokenSymbol}`,
       variableDebtTokenSymbol: `variableDebt${tokenSymbol}`,
-      stableDebtTokenName: `Sonic Stable Debt ${tokenSymbol}`,
+      stableDebtTokenName: `dTRINITY Stable Debt ${tokenSymbol}`,
       stableDebtTokenSymbol: `stableDebt${tokenSymbol}`,
-      params: "0x",
+      params: "0x10",
     });
   }
 
@@ -185,7 +200,26 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     console.log(`    * TxHash: ${tx.hash}`);
   }
 
-  // Configure reserves
+  // Get reserves setup helper for configuration
+  const reservesSetupHelper = await hre.ethers.getContractAt(
+    "ReservesSetupHelper",
+    (await hre.deployments.get(RESERVES_SETUP_HELPER_ID)).address,
+    signer
+  );
+
+  // Add ReservesSetupHelper as a risk admin temporarily
+  console.log(`\n------------------------`);
+  console.log(`Add Risk Admin`);
+  const reserveHelperAddress = await reservesSetupHelper.getAddress();
+  console.log(`  - ReservesSetupHelper: ${reserveHelperAddress}`);
+  const tx = await aclManager.addRiskAdmin(reserveHelperAddress);
+  const receipt = await tx.wait();
+  console.log(`  - TxHash : ${receipt?.hash}`);
+  console.log(`  - From   : ${receipt?.from}`);
+  console.log(`  - GasUsed: ${receipt?.gasUsed.toString()}`);
+  console.log(`------------------------`);
+
+  // Configure reserves using the helper
   console.log(`\nConfiguring reserves`);
   for (const [symbol, params] of Object.entries(reservesConfig)) {
     const tokenAddress =
@@ -196,53 +230,39 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     }
 
     console.log(`- Configuring reserve ${symbol}`);
-    const tx = await poolConfiguratorContract.configureReserveAsCollateral(
-      tokenAddress,
-      params.baseLTVAsCollateral,
-      params.liquidationThreshold,
-      params.liquidationBonus
+
+    const configInputParams = {
+      asset: tokenAddress,
+      baseLTV: params.baseLTVAsCollateral,
+      liquidationThreshold: params.liquidationThreshold,
+      liquidationBonus: params.liquidationBonus,
+      reserveFactor: params.reserveFactor,
+      borrowCap: params.borrowCap,
+      supplyCap: params.supplyCap,
+      stableBorrowingEnabled: params.stableBorrowRateEnabled,
+      borrowingEnabled: params.borrowingEnabled,
+      flashLoanEnabled: true,
+    };
+
+    const configTx = await reservesSetupHelper.configureReserves(
+      poolConfiguratorAddress,
+      [configInputParams]
     );
-    console.log(`  * TxHash: ${tx.hash}`);
-
-    if (params.borrowingEnabled) {
-      console.log(`  * Enabling borrowing on ${symbol}`);
-      const tx = await (
-        poolConfiguratorContract as any
-      ).enableBorrowingOnReserve(tokenAddress, params.stableBorrowRateEnabled);
-      console.log(`    * TxHash: ${tx.hash}`);
-    }
-
-    console.log(
-      `  * Setting reserve factor for ${symbol} to ${params.reserveFactor}`
-    );
-    const reserveFactorTx = await poolConfiguratorContract.setReserveFactor(
-      tokenAddress,
-      params.reserveFactor
-    );
-    console.log(`    * TxHash: ${reserveFactorTx.hash}`);
-
-    if (params.borrowCap !== "0") {
-      console.log(
-        `  * Setting borrow cap for ${symbol} to ${params.borrowCap}`
-      );
-      const borrowCapTx = await poolConfiguratorContract.setBorrowCap(
-        tokenAddress,
-        params.borrowCap
-      );
-      console.log(`    * TxHash: ${borrowCapTx.hash}`);
-    }
-
-    if (params.supplyCap !== "0") {
-      console.log(
-        `  * Setting supply cap for ${symbol} to ${params.supplyCap}`
-      );
-      const supplyCapTx = await poolConfiguratorContract.setSupplyCap(
-        tokenAddress,
-        params.supplyCap
-      );
-      console.log(`    * TxHash: ${supplyCapTx.hash}`);
-    }
+    console.log(`  * TxHash: ${configTx.hash}`);
   }
+
+  // Remove ReservesSetupHelper from risk admins
+  console.log(`\n------------------------`);
+  console.log(`Remove ReservesSetupHelper from risk admins`);
+  console.log(`  - ReservesSetupHelper : ${reserveHelperAddress}`);
+  console.log(`  - ACL Manager         : ${await aclManager.getAddress()}`);
+  const removeRiskAdminResponse =
+    await aclManager.removeRiskAdmin(reserveHelperAddress);
+  const removeRiskAdminReceipt = await removeRiskAdminResponse.wait();
+  console.log(`  - TxHash : ${removeRiskAdminReceipt?.hash}`);
+  console.log(`  - From   : ${removeRiskAdminReceipt?.from}`);
+  console.log(`  - GasUsed: ${removeRiskAdminReceipt?.gasUsed.toString()}`);
+  console.log(`------------------------`);
 
   // Save pool tokens
   const dataProvider = await hre.deployments.get(POOL_DATA_PROVIDER_ID);

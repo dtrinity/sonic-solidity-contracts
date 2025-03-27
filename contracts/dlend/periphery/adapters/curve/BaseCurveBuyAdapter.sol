@@ -15,7 +15,7 @@
  * dTRINITY Protocol: https://github.com/dtrinity                                   *
  * ———————————————————————————————————————————————————————————————————————————————— */
 
-pragma solidity ^0.8.10;
+pragma solidity ^0.8.20;
 
 import {SafeERC20} from "contracts/dlend/periphery/treasury/libs/SafeERC20.sol";
 import {PercentageMath} from "contracts/dlend/core/protocol/libraries/math/PercentageMath.sol";

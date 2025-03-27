@@ -39,6 +39,8 @@ export async function getConfig(
   // Get mock oracle deployments
   const mockOracleDeployments: Record<string, string> = {};
   const mockOracleDeploymentsAll = await _hre.deployments.all();
+  // Get the named accounts
+  const { deployer } = await _hre.getNamedAccounts();
 
   for (const [name, deployment] of Object.entries(mockOracleDeploymentsAll)) {
     if (name.startsWith("MockAPI3OracleAlwaysAlive_")) {
@@ -107,7 +109,7 @@ export async function getConfig(
       wS: emptyStringIfUndefined(wSTokenDeployment?.address),
     },
     walletAddresses: {
-      governanceMultisig: "0xd2f775Ff2cD41bfe43C7A8c016eD10393553fe44", // Actually just the testnet deployer address
+      governanceMultisig: deployer,
     },
     dStables: {
       dUSD: {

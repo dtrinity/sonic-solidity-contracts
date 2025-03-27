@@ -15,7 +15,7 @@
  * dTRINITY Protocol: https://github.com/dtrinity                                   *
  * ———————————————————————————————————————————————————————————————————————————————— */
 
-pragma solidity ^0.8.10;
+pragma solidity ^0.8.20;
 
 import {Ownable} from "contracts/dlend/core/dependencies/openzeppelin/contracts/Ownable.sol";
 import {IStreamable} from "./interfaces/IStreamable.sol";

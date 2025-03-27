@@ -48,3 +48,5 @@ export const ATOKEN_IMPL_ID = "ATokenImpl";
 export const VARIABLE_DEBT_TOKEN_IMPL_ID = "VariableDebtTokenImpl";
 export const STABLE_DEBT_TOKEN_IMPL_ID = "StableDebtTokenImpl";
 export const RATE_STRATEGY_ID = "RateStrategy";
+export const POOL_PROXY_ID = "PoolProxy";
+export const POOL_CONFIGURATOR_PROXY_ID = "PoolConfiguratorProxy";

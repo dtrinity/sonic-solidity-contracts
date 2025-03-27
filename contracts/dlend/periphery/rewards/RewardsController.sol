@@ -15,7 +15,7 @@
  * dTRINITY Protocol: https://github.com/dtrinity                                   *
  * ———————————————————————————————————————————————————————————————————————————————— */
 
-pragma solidity ^0.8.10;
+pragma solidity ^0.8.20;
 
 import {VersionedInitializable} from "contracts/dlend/core/protocol/libraries/aave-upgradeability/VersionedInitializable.sol";
 import {SafeCast} from "contracts/dlend/core/dependencies/openzeppelin/contracts/SafeCast.sol";
@@ -26,7 +26,6 @@ import {IRewardsController} from "./interfaces/IRewardsController.sol";
 import {ITransferStrategyBase} from "./interfaces/ITransferStrategyBase.sol";
 import {IPullRewardsTransferStrategy} from "./interfaces/IPullRewardsTransferStrategy.sol";
 import {RewardsDataTypes} from "./libraries/RewardsDataTypes.sol";
-import {IEACAggregatorProxy} from "../misc/interfaces/IEACAggregatorProxy.sol";
 import {IERC20} from "contracts/dlend/core/dependencies/openzeppelin/contracts/IERC20.sol";
 import {SafeERC20} from "contracts/dlend/core/dependencies/openzeppelin/contracts/SafeERC20.sol";
 

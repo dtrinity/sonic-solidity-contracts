@@ -15,7 +15,7 @@
  * dTRINITY Protocol: https://github.com/dtrinity                                   *
  * ———————————————————————————————————————————————————————————————————————————————— */
 
-pragma solidity ^0.8.10;
+pragma solidity ^0.8.20;
 
 import {IPullRewardsTransferStrategy} from "../interfaces/IPullRewardsTransferStrategy.sol";
 import {ITransferStrategyBase} from "../interfaces/ITransferStrategyBase.sol";

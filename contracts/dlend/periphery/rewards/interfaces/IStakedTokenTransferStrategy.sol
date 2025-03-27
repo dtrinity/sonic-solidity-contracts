@@ -15,7 +15,7 @@
  * dTRINITY Protocol: https://github.com/dtrinity                                   *
  * ———————————————————————————————————————————————————————————————————————————————— */
 
-pragma solidity ^0.8.10;
+pragma solidity ^0.8.20;
 
 import {IStakedToken} from "../interfaces/IStakedToken.sol";
 import {ITransferStrategyBase} from "./ITransferStrategyBase.sol";

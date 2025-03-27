@@ -17,7 +17,7 @@
 
 // OpenZeppelin Contracts (last updated v4.9.0) (interfaces/IERC3156FlashBorrower.sol)
 
-pragma solidity ^0.8.10;
+pragma solidity ^0.8.20;
 
 /**
  * @dev Interface of the ERC3156 FlashBorrower, as defined in

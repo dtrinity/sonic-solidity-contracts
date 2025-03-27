@@ -15,7 +15,7 @@
  * dTRINITY Protocol: https://github.com/dtrinity                                   *
  * ———————————————————————————————————————————————————————————————————————————————— */
 
-pragma solidity ^0.8.10;
+pragma solidity ^0.8.20;
 
 import {IAaveOracle} from "contracts/dlend/core/interfaces/IAaveOracle.sol";
 import {IRewardsDistributor} from "./IRewardsDistributor.sol";
@@ -131,8 +131,7 @@ interface IRewardsController is IRewardsDistributor {
      *   address asset: The asset address to incentivize
      *   address reward: The reward token address
      *   ITransferStrategy transferStrategy: The TransferStrategy address with the install hook and claim logic.
-     *   IEACAggregatorProxy rewardOracle: The Price Oracle of a reward to visualize the incentives at the UI Frontend.
-     *                                     Must follow Chainlink Aggregator IEACAggregatorProxy interface to be compatible.
+     *   IAaveOracle rewardOracle: The Price Oracle of a reward to visualize the incentives at the UI Frontend.
      */
     function configureAssets(
         RewardsDataTypes.RewardsConfigInput[] memory config

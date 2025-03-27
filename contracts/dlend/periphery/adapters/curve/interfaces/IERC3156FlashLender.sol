@@ -17,7 +17,7 @@
 
 // OpenZeppelin Contracts v4.4.1 (interfaces/IERC3156FlashLender.sol)
 
-pragma solidity ^0.8.10;
+pragma solidity ^0.8.20;
 
 import {IERC3156FlashBorrower} from "./IERC3156FlashBorrower.sol";
 

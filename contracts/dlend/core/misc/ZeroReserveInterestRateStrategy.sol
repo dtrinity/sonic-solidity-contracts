@@ -15,7 +15,7 @@
  * dTRINITY Protocol: https://github.com/dtrinity                                   *
  * ———————————————————————————————————————————————————————————————————————————————— */
 
-pragma solidity ^0.8.10;
+pragma solidity ^0.8.20;
 
 import {DataTypes} from "../protocol/libraries/types/DataTypes.sol";
 import {IDefaultInterestRateStrategy} from "../interfaces/IDefaultInterestRateStrategy.sol";

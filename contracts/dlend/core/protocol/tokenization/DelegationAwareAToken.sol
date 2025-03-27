@@ -15,7 +15,7 @@
  * dTRINITY Protocol: https://github.com/dtrinity                                   *
  * ———————————————————————————————————————————————————————————————————————————————— */
 
-pragma solidity ^0.8.10;
+pragma solidity ^0.8.20;
 
 import {IPool} from "../../interfaces/IPool.sol";
 import {IDelegationToken} from "../../interfaces/IDelegationToken.sol";

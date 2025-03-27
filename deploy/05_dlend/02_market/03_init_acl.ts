@@ -7,8 +7,7 @@ import {
 } from "../../../typescript/deploy-ids";
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
-  const [deployer, poolAdmin, aclAdmin, emergencyAdmin] =
-    await hre.ethers.getSigners();
+  const [deployer] = await hre.ethers.getSigners();
 
   const addressesProviderDeployedResult = await hre.deployments.get(
     POOL_ADDRESSES_PROVIDER_ID
@@ -26,9 +25,9 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   console.log(
     `  - Address Provider: ${addressesProviderDeployedResult.address}`
   );
-  console.log(`  - ACL Admin       : ${aclAdmin.address}`);
+  console.log(`  - ACL Admin       : ${deployer.address}`);
   const setACLAdminResponse = await addressesProviderContract.setACLAdmin(
-    aclAdmin.address
+    deployer.address
   );
   const setACLAdminReceipt = await setACLAdminResponse.wait();
   console.log(`  - TxHash  : ${setACLAdminReceipt?.hash}`);
@@ -47,7 +46,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const aclManagerContract = await hre.ethers.getContractAt(
     "ACLManager",
     aclManagerDeployment.address,
-    aclAdmin
+    deployer
   );
 
   // 3. Setup ACLManager for AddressProvider
@@ -70,9 +69,9 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   console.log(`-----------------------------`);
   console.log(`Add Pool Admin to ACL Manager`);
   console.log(`  - ACL Manager : ${aclManagerDeployment.address}`);
-  console.log(`  - Pool Admin  : ${poolAdmin.address}`);
+  console.log(`  - Pool Admin  : ${deployer.address}`);
   const addPoolAdminResponse = await aclManagerContract.addPoolAdmin(
-    poolAdmin.address
+    deployer.address
   );
   const addPoolAdminReceipt = await addPoolAdminResponse.wait();
   console.log(`  - TxHash  : ${addPoolAdminReceipt?.hash}`);
@@ -84,9 +83,9 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   console.log(`----------------------------------`);
   console.log(`Add Emergency Admin to ACL Manager`);
   console.log(`  - ACL Manager     : ${aclManagerDeployment.address}`);
-  console.log(`  - Emergency Admin : ${emergencyAdmin.address}`);
+  console.log(`  - Emergency Admin : ${deployer.address}`);
   const addEmergencyAdminResponse = await aclManagerContract.addEmergencyAdmin(
-    emergencyAdmin.address
+    deployer.address
   );
   const addEmergencyAdminReceipt = await addEmergencyAdminResponse.wait();
   console.log(`  - TxHash  : ${addEmergencyAdminReceipt?.hash}`);
@@ -95,10 +94,14 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   console.log(`----------------------------------`);
 
   // Verify setup
-  const isACLAdmin = await aclManagerContract.hasRole(ZERO_BYTES_32, aclAdmin);
-  const isPoolAdmin = await aclManagerContract.isPoolAdmin(poolAdmin);
-  const isEmergencyAdmin =
-    await aclManagerContract.isEmergencyAdmin(emergencyAdmin);
+  const isACLAdmin = await aclManagerContract.hasRole(
+    ZERO_BYTES_32,
+    deployer.address
+  );
+  const isPoolAdmin = await aclManagerContract.isPoolAdmin(deployer.address);
+  const isEmergencyAdmin = await aclManagerContract.isEmergencyAdmin(
+    deployer.address
+  );
 
   if (!isACLAdmin) {
     throw "[ACL][ERROR] ACLAdmin is not setup correctly";
@@ -113,9 +116,9 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   }
 
   console.log("== Market Admins ==");
-  console.log("- ACL Admin", aclAdmin.address);
-  console.log("- Pool Admin", poolAdmin.address);
-  console.log("- Emergency Admin", emergencyAdmin.address);
+  console.log("- ACL Admin", deployer.address);
+  console.log("- Pool Admin", deployer.address);
+  console.log("- Emergency Admin", deployer.address);
   console.log("===================");
 
   return true;

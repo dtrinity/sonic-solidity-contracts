@@ -12,24 +12,24 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const wrappedNativeTokenAddress = config.tokenAddresses.wS;
 
   // Get pool address
-  const pool = await deployments.get("Pool");
+  const pool = await deployments.get("PoolProxy");
 
-  console.log("Deploying WrappedTokenGateway...");
-  const wrappedTokenGateway = await deploy("WrappedTokenGateway", {
+  console.log("Deploying WrappedTokenGatewayV3...");
+  const wrappedTokenGateway = await deploy("WrappedTokenGatewayV3", {
     from: deployer,
-    args: [pool.address, wrappedNativeTokenAddress],
+    args: [wrappedNativeTokenAddress, deployer, pool.address],
     log: true,
     waitConfirmations: 1,
   });
 
   console.log(
-    `WrappedTokenGateway deployed at: ${wrappedTokenGateway.address}`
+    `WrappedTokenGatewayV3 deployed at: ${wrappedTokenGateway.address}`
   );
   return true;
 };
 
 func.tags = ["dlend", "dlend-periphery-post"];
 func.dependencies = ["dlend-core", "dlend-periphery-pre"];
-func.id = "WrappedTokenGateway";
+func.id = "WrappedTokenGatewayV3";
 
 export default func;
