@@ -1,47 +1,9 @@
 import { Address } from "hardhat-deploy/types";
 
-export interface IInterestRateStrategyParams {
-  readonly name: string;
-  readonly optimalUsageRatio: string;
-  readonly baseVariableBorrowRate: string;
-  readonly variableRateSlope1: string;
-  readonly variableRateSlope2: string;
-  readonly stableRateSlope1: string;
-  readonly stableRateSlope2: string;
-  readonly baseStableRateOffset: string;
-  readonly stableRateExcessOffset: string;
-  readonly optimalStableToTotalDebtRatio: string;
-}
-
-export interface IReserveBorrowParams {
-  readonly borrowingEnabled: boolean;
-  readonly stableBorrowRateEnabled: boolean;
-  readonly reserveDecimals: string;
-  readonly borrowCap: string;
-  readonly debtCeiling: string;
-  readonly borrowableIsolation: boolean;
-  readonly flashLoanEnabled: boolean;
-}
-
-export interface IReserveCollateralParams {
-  readonly baseLTVAsCollateral: string;
-  readonly liquidationThreshold: string;
-  readonly liquidationBonus: string;
-  readonly liquidationProtocolFee?: string;
-}
-
-export interface IReserveParams
-  extends IReserveBorrowParams,
-    IReserveCollateralParams {
-  readonly aTokenImpl: string;
-  readonly reserveFactor: string;
-  readonly supplyCap: string;
-  readonly strategy: IInterestRateStrategyParams;
-}
-
 export interface Config {
   readonly MOCK_ONLY?: MockConfig;
   readonly tokenAddresses: TokenAddresses;
+  readonly walletAddresses: WalletAddresses;
   readonly oracleAggregators: {
     [key: string]: OracleAggregatorConfig;
   };
@@ -79,6 +41,10 @@ export interface TokenAddresses {
   readonly dS: string;
 }
 
+export interface WalletAddresses {
+  readonly governanceMultisig: string;
+}
+
 export interface OracleAggregatorConfig {
   readonly priceDecimals: number;
   readonly hardDStablePeg: bigint;
@@ -106,4 +72,43 @@ export interface OracleAggregatorConfig {
       };
     };
   };
+}
+
+export interface IInterestRateStrategyParams {
+  readonly name: string;
+  readonly optimalUsageRatio: string;
+  readonly baseVariableBorrowRate: string;
+  readonly variableRateSlope1: string;
+  readonly variableRateSlope2: string;
+  readonly stableRateSlope1: string;
+  readonly stableRateSlope2: string;
+  readonly baseStableRateOffset: string;
+  readonly stableRateExcessOffset: string;
+  readonly optimalStableToTotalDebtRatio: string;
+}
+
+export interface IReserveBorrowParams {
+  readonly borrowingEnabled: boolean;
+  readonly stableBorrowRateEnabled: boolean;
+  readonly reserveDecimals: string;
+  readonly borrowCap: string;
+  readonly debtCeiling: string;
+  readonly borrowableIsolation: boolean;
+  readonly flashLoanEnabled: boolean;
+}
+
+export interface IReserveCollateralParams {
+  readonly baseLTVAsCollateral: string;
+  readonly liquidationThreshold: string;
+  readonly liquidationBonus: string;
+  readonly liquidationProtocolFee?: string;
+}
+
+export interface IReserveParams
+  extends IReserveBorrowParams,
+    IReserveCollateralParams {
+  readonly aTokenImpl: string;
+  readonly reserveFactor: string;
+  readonly supplyCap: string;
+  readonly strategy: IInterestRateStrategyParams;
 }

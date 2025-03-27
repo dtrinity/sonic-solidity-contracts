@@ -22,6 +22,9 @@ export async function getConfig(
       dS: emptyStringIfUndefined(dSDeployment?.address),
       wS: wSAddress,
     },
+    walletAddresses: {
+      governanceMultisig: "", // TODO fill out
+    },
     dStables: {
       dUSD: {
         collaterals: [],
@@ -44,7 +47,9 @@ export async function getConfig(
       // TODO add one for wS
     },
     dLend: {
-      providerID: 3, // Use 3 for mainnet
+      providerID: 1, // Arbitrary as long as we don't repeat
+      rateStrategies: [],
+      reservesConfig: {},
     },
   };
 }

@@ -93,6 +93,9 @@ export async function getConfig(
       dS: emptyStringIfUndefined(dSDeployment?.address),
       wS: wSAddress,
     },
+    walletAddresses: {
+      governanceMultisig: "0xd2f775Ff2cD41bfe43C7A8c016eD10393553fe44", // Actually just the testnet deployer address
+    },
     dStables: {
       dUSD: {
         collaterals: [
@@ -211,7 +214,9 @@ export async function getConfig(
       },
     },
     dLend: {
-      providerID: 2, // Use 2 for testnet
+      providerID: 1, // Arbitrary as long as we don't repeat
+      rateStrategies: [],
+      reservesConfig: {},
     },
   };
 }

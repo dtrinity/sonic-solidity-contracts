@@ -5,9 +5,13 @@ import {
   TREASURY_IMPL_ID,
   TREASURY_PROXY_ID,
 } from "../../../typescript/deploy-ids";
+import { getConfig } from "../../../config/config";
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
-  const { deployer, governanceMultisig } = await hre.getNamedAccounts();
+  const { deployer } = await hre.getNamedAccounts();
+  const { walletAddresses } = await getConfig(hre);
+
+  const governanceMultisig = walletAddresses.governanceMultisig;
 
   // Deploy Treasury proxy
   const treasuryProxyDeployment = await hre.deployments.deploy(

@@ -93,6 +93,14 @@ export async function getConfig(
         },
       },
     },
+    tokenAddresses: {
+      dUSD: emptyStringIfUndefined(dUSDDeployment?.address),
+      dS: emptyStringIfUndefined(dSDeployment?.address),
+      wS: emptyStringIfUndefined(wSTokenDeployment?.address),
+    },
+    walletAddresses: {
+      governanceMultisig: "0xd2f775Ff2cD41bfe43C7A8c016eD10393553fe44", // Actually just the testnet deployer address
+    },
     dStables: {
       dUSD: {
         collaterals: [
@@ -110,11 +118,6 @@ export async function getConfig(
           stSTokenDeployment?.address || ZeroAddress,
         ],
       },
-    },
-    tokenAddresses: {
-      dUSD: emptyStringIfUndefined(dUSDDeployment?.address),
-      dS: emptyStringIfUndefined(dSDeployment?.address),
-      wS: emptyStringIfUndefined(wSTokenDeployment?.address),
     },
     oracleAggregators: {
       USD: {
@@ -216,7 +219,7 @@ export async function getConfig(
       },
     },
     dLend: {
-      providerID: 1, // Use 1 for localhost
+      providerID: 1, // Arbitrary as long as we don't repeat
       rateStrategies: [],
       reservesConfig: {},
     },

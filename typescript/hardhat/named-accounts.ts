@@ -11,16 +11,10 @@ export function getEnvPrivateKeys(network: string): string[] {
 
   switch (network) {
     case "sonic_testnet":
-      pks = [
-        getPrivateKeyFromMnemonic(`testnet_deployer`),
-        getPrivateKeyFromMnemonic(`testnet_governance_multisig`),
-      ];
+      pks = [getPrivateKeyFromMnemonic(`testnet_deployer`)];
       break;
     case "sonic_mainnet":
-      pks = [
-        getPrivateKeyFromMnemonic(`mainnet_deployer`),
-        getPrivateKeyFromMnemonic(`mainnet_governance_multisig`),
-      ];
+      pks = [getPrivateKeyFromMnemonic(`mainnet_deployer`)];
       break;
     default:
       throw new Error(`Unsupported network: ${network}`);
@@ -108,12 +102,6 @@ export function getStandardNamedAccounts(): {
       localhost: 0,
       sonic_testnet: 0,
       sonic_mainnet: 0,
-    },
-    governanceMultisig: {
-      hardhat: 0,
-      localhost: 0,
-      sonic_testnet: 1,
-      sonic_mainnet: 1,
     },
     // For testing ONLY
     user1: {
