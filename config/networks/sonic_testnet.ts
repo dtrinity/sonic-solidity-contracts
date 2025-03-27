@@ -215,6 +215,10 @@ export async function getConfig(
     },
     dLend: {
       providerID: 1, // Arbitrary as long as we don't repeat
+      flashLoanPremium: {
+        total: 0.0005e4, // 0.05%
+        protocol: 0.0004e4, // 0.04%
+      },
       rateStrategies: [],
       reservesConfig: {},
     },

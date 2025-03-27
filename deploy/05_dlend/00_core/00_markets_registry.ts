@@ -8,8 +8,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployer } = await hre.getNamedAccounts();
   const { walletAddresses } = await getConfig(hre);
 
-  const governanceMultisig = walletAddresses.governanceMultisig;
-
   // Deploy the PoolAddressesProviderRegistry contract
   await hre.deployments.deploy(REGISTRY_CONTRACT_NAME, {
     from: deployer,

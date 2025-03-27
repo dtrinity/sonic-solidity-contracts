@@ -6,13 +6,15 @@ import {
   POOL_IMPL_ID,
   POOL_CONFIGURATOR_ID,
 } from "../../../typescript/deploy-ids";
-
+import { getConfig } from "../../../config/config";
 const POOL_PROXY_ID = "PoolProxy";
 const POOL_CONFIGURATOR_PROXY_ID = "PoolConfiguratorProxy";
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployer } = await hre.getNamedAccounts();
   const signer = await hre.ethers.getSigner(deployer);
+
+  const config = await getConfig(hre);
 
   const proxyArtifact = await hre.deployments.getExtendedArtifact(
     "InitializableImmutableAdminUpgradeabilityProxy"
@@ -105,11 +107,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     signer
   );
 
-  // Default flash loan premiums (can be updated later through governance)
-  const flashLoanPremium = {
-    total: 9, // 0.09%
-    protocol: 3, // 0.03%
-  };
+  const flashLoanPremium = config.dLend.flashLoanPremium;
 
   // Set total Flash Loan Premium
   console.log(`------------------------------`);

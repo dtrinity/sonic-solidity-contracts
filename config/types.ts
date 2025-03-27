@@ -1,4 +1,5 @@
 import { Address } from "hardhat-deploy/types";
+import { DLendConfig } from "./dlend/types";
 
 export interface Config {
   readonly MOCK_ONLY?: MockConfig;
@@ -10,13 +11,7 @@ export interface Config {
   readonly dStables: {
     [key: string]: DStableConfig;
   };
-  readonly dLend: {
-    readonly providerID: number;
-    readonly rateStrategies: IInterestRateStrategyParams[];
-    readonly reservesConfig: {
-      [symbol: string]: IReserveParams;
-    };
-  };
+  readonly dLend: DLendConfig;
 }
 
 // Configuration for mocking infrastructure on local and test networks

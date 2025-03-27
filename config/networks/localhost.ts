@@ -6,6 +6,14 @@ import {
 } from "../../typescript/oracle_aggregator/constants";
 import { Config } from "../types";
 import { ZeroAddress } from "ethers";
+import { rateStrategyHighLiquidityStable } from "../dlend/interest-rate-strategies";
+import { rateStrategyMediumLiquidityVolatile } from "../dlend/interest-rate-strategies";
+import { rateStrategyHighLiquidityVolatile } from "../dlend/interest-rate-strategies";
+import { rateStrategyMediumLiquidityStable } from "../dlend/interest-rate-strategies";
+import {
+  strategyDStable,
+  strategyYieldBearingStablecoin,
+} from "../dlend/reserves-params";
 
 /**
  * Get the configuration for the network
@@ -220,8 +228,22 @@ export async function getConfig(
     },
     dLend: {
       providerID: 1, // Arbitrary as long as we don't repeat
-      rateStrategies: [],
-      reservesConfig: {},
+      flashLoanPremium: {
+        total: 0.0005e4, // 0.05%
+        protocol: 0.0004e4, // 0.04%
+      },
+      rateStrategies: [
+        rateStrategyHighLiquidityVolatile,
+        rateStrategyMediumLiquidityVolatile,
+        rateStrategyHighLiquidityStable,
+        rateStrategyMediumLiquidityStable,
+      ],
+      reservesConfig: {
+        dUSD: strategyDStable,
+        dS: strategyDStable,
+        stS: strategyYieldBearingStablecoin,
+        sfrxUSD: strategyYieldBearingStablecoin,
+      },
     },
   };
 }
