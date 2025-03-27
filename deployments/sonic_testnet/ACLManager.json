@@ -1,0 +1,992 @@
+{
+  "address": "0x3730153688ec89ce327FE41A7Bd854788754A86F",
+  "abi": [
+    {
+      "inputs": [
+        {
+          "internalType": "contract IPoolAddressesProvider",
+          "name": "provider",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "constructor"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "bytes32",
+          "name": "role",
+          "type": "bytes32"
+        },
+        {
+          "indexed": true,
+          "internalType": "bytes32",
+          "name": "previousAdminRole",
+          "type": "bytes32"
+        },
+        {
+          "indexed": true,
+          "internalType": "bytes32",
+          "name": "newAdminRole",
+          "type": "bytes32"
+        }
+      ],
+      "name": "RoleAdminChanged",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "bytes32",
+          "name": "role",
+          "type": "bytes32"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "account",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "sender",
+          "type": "address"
+        }
+      ],
+      "name": "RoleGranted",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "bytes32",
+          "name": "role",
+          "type": "bytes32"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "account",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "sender",
+          "type": "address"
+        }
+      ],
+      "name": "RoleRevoked",
+      "type": "event"
+    },
+    {
+      "inputs": [],
+      "name": "ADDRESSES_PROVIDER",
+      "outputs": [
+        {
+          "internalType": "contract IPoolAddressesProvider",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "ASSET_LISTING_ADMIN_ROLE",
+      "outputs": [
+        {
+          "internalType": "bytes32",
+          "name": "",
+          "type": "bytes32"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "BRIDGE_ROLE",
+      "outputs": [
+        {
+          "internalType": "bytes32",
+          "name": "",
+          "type": "bytes32"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "DEFAULT_ADMIN_ROLE",
+      "outputs": [
+        {
+          "internalType": "bytes32",
+          "name": "",
+          "type": "bytes32"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "EMERGENCY_ADMIN_ROLE",
+      "outputs": [
+        {
+          "internalType": "bytes32",
+          "name": "",
+          "type": "bytes32"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "FLASH_BORROWER_ROLE",
+      "outputs": [
+        {
+          "internalType": "bytes32",
+          "name": "",
+          "type": "bytes32"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "POOL_ADMIN_ROLE",
+      "outputs": [
+        {
+          "internalType": "bytes32",
+          "name": "",
+          "type": "bytes32"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "RISK_ADMIN_ROLE",
+      "outputs": [
+        {
+          "internalType": "bytes32",
+          "name": "",
+          "type": "bytes32"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "admin",
+          "type": "address"
+        }
+      ],
+      "name": "addAssetListingAdmin",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "bridge",
+          "type": "address"
+        }
+      ],
+      "name": "addBridge",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "admin",
+          "type": "address"
+        }
+      ],
+      "name": "addEmergencyAdmin",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "borrower",
+          "type": "address"
+        }
+      ],
+      "name": "addFlashBorrower",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "admin",
+          "type": "address"
+        }
+      ],
+      "name": "addPoolAdmin",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "admin",
+          "type": "address"
+        }
+      ],
+      "name": "addRiskAdmin",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "role",
+          "type": "bytes32"
+        }
+      ],
+      "name": "getRoleAdmin",
+      "outputs": [
+        {
+          "internalType": "bytes32",
+          "name": "",
+          "type": "bytes32"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "role",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "address",
+          "name": "account",
+          "type": "address"
+        }
+      ],
+      "name": "grantRole",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "role",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "address",
+          "name": "account",
+          "type": "address"
+        }
+      ],
+      "name": "hasRole",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "admin",
+          "type": "address"
+        }
+      ],
+      "name": "isAssetListingAdmin",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "bridge",
+          "type": "address"
+        }
+      ],
+      "name": "isBridge",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "admin",
+          "type": "address"
+        }
+      ],
+      "name": "isEmergencyAdmin",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "borrower",
+          "type": "address"
+        }
+      ],
+      "name": "isFlashBorrower",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "admin",
+          "type": "address"
+        }
+      ],
+      "name": "isPoolAdmin",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "admin",
+          "type": "address"
+        }
+      ],
+      "name": "isRiskAdmin",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "admin",
+          "type": "address"
+        }
+      ],
+      "name": "removeAssetListingAdmin",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "bridge",
+          "type": "address"
+        }
+      ],
+      "name": "removeBridge",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "admin",
+          "type": "address"
+        }
+      ],
+      "name": "removeEmergencyAdmin",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "borrower",
+          "type": "address"
+        }
+      ],
+      "name": "removeFlashBorrower",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "admin",
+          "type": "address"
+        }
+      ],
+      "name": "removePoolAdmin",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "admin",
+          "type": "address"
+        }
+      ],
+      "name": "removeRiskAdmin",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "role",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "address",
+          "name": "account",
+          "type": "address"
+        }
+      ],
+      "name": "renounceRole",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "role",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "address",
+          "name": "account",
+          "type": "address"
+        }
+      ],
+      "name": "revokeRole",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "role",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "bytes32",
+          "name": "adminRole",
+          "type": "bytes32"
+        }
+      ],
+      "name": "setRoleAdmin",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes4",
+          "name": "interfaceId",
+          "type": "bytes4"
+        }
+      ],
+      "name": "supportsInterface",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    }
+  ],
+  "transactionHash": "0x3fda1ffb676b6d8d7eada53a9060938130ca0ac168bbb7c5abe43ee653fb4355",
+  "receipt": {
+    "to": null,
+    "from": "0xd2f775Ff2cD41bfe43C7A8c016eD10393553fe44",
+    "contractAddress": "0x3730153688ec89ce327FE41A7Bd854788754A86F",
+    "transactionIndex": 1,
+    "gasUsed": "873315",
+    "logsBloom": "0x00000004000000000000000000000000000000000000800000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000800000000000000000000000000000000000000000000000000000020000000000000000000800000000000000000000000001000000000000200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001002000000000000000000000000000000000040000000000000000000000100000000000020000000000000000000000000000000000000000000000000000000000000000000",
+    "blockHash": "0x97f9cf05f37136700300ce2e753ba9410777f48eb9d3136bda9c3e1e40298da6",
+    "transactionHash": "0x3fda1ffb676b6d8d7eada53a9060938130ca0ac168bbb7c5abe43ee653fb4355",
+    "logs": [
+      {
+        "transactionIndex": 1,
+        "blockNumber": 28579280,
+        "transactionHash": "0x3fda1ffb676b6d8d7eada53a9060938130ca0ac168bbb7c5abe43ee653fb4355",
+        "address": "0x3730153688ec89ce327FE41A7Bd854788754A86F",
+        "topics": [
+          "0x2f8788117e7eff1d82e926ec794901d17c78024a50270940304540a733656f0d",
+          "0x0000000000000000000000000000000000000000000000000000000000000000",
+          "0x000000000000000000000000d2f775ff2cd41bfe43c7a8c016ed10393553fe44",
+          "0x000000000000000000000000d2f775ff2cd41bfe43c7a8c016ed10393553fe44"
+        ],
+        "data": "0x",
+        "logIndex": 0,
+        "blockHash": "0x97f9cf05f37136700300ce2e753ba9410777f48eb9d3136bda9c3e1e40298da6"
+      }
+    ],
+    "blockNumber": 28579280,
+    "cumulativeGasUsed": "894315",
+    "status": 1,
+    "byzantium": true
+  },
+  "args": [
+    "0x66c14c4e9e2D0221af96429712FAE82936900c21"
+  ],
+  "numDeployments": 1,
+  "solcInputHash": "fc12a95e301ffa7eb8eb5d268e2061c9",
+  "metadata": "{\"compiler\":{\"version\":\"0.8.20+commit.a1b79de6\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"inputs\":[{\"internalType\":\"contract IPoolAddressesProvider\",\"name\":\"provider\",\"type\":\"address\"}],\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"bytes32\",\"name\":\"role\",\"type\":\"bytes32\"},{\"indexed\":true,\"internalType\":\"bytes32\",\"name\":\"previousAdminRole\",\"type\":\"bytes32\"},{\"indexed\":true,\"internalType\":\"bytes32\",\"name\":\"newAdminRole\",\"type\":\"bytes32\"}],\"name\":\"RoleAdminChanged\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"bytes32\",\"name\":\"role\",\"type\":\"bytes32\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"sender\",\"type\":\"address\"}],\"name\":\"RoleGranted\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"bytes32\",\"name\":\"role\",\"type\":\"bytes32\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"sender\",\"type\":\"address\"}],\"name\":\"RoleRevoked\",\"type\":\"event\"},{\"inputs\":[],\"name\":\"ADDRESSES_PROVIDER\",\"outputs\":[{\"internalType\":\"contract IPoolAddressesProvider\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"ASSET_LISTING_ADMIN_ROLE\",\"outputs\":[{\"internalType\":\"bytes32\",\"name\":\"\",\"type\":\"bytes32\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"BRIDGE_ROLE\",\"outputs\":[{\"internalType\":\"bytes32\",\"name\":\"\",\"type\":\"bytes32\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"DEFAULT_ADMIN_ROLE\",\"outputs\":[{\"internalType\":\"bytes32\",\"name\":\"\",\"type\":\"bytes32\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"EMERGENCY_ADMIN_ROLE\",\"outputs\":[{\"internalType\":\"bytes32\",\"name\":\"\",\"type\":\"bytes32\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"FLASH_BORROWER_ROLE\",\"outputs\":[{\"internalType\":\"bytes32\",\"name\":\"\",\"type\":\"bytes32\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"POOL_ADMIN_ROLE\",\"outputs\":[{\"internalType\":\"bytes32\",\"name\":\"\",\"type\":\"bytes32\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"RISK_ADMIN_ROLE\",\"outputs\":[{\"internalType\":\"bytes32\",\"name\":\"\",\"type\":\"bytes32\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"admin\",\"type\":\"address\"}],\"name\":\"addAssetListingAdmin\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"bridge\",\"type\":\"address\"}],\"name\":\"addBridge\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"admin\",\"type\":\"address\"}],\"name\":\"addEmergencyAdmin\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"borrower\",\"type\":\"address\"}],\"name\":\"addFlashBorrower\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"admin\",\"type\":\"address\"}],\"name\":\"addPoolAdmin\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"admin\",\"type\":\"address\"}],\"name\":\"addRiskAdmin\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"role\",\"type\":\"bytes32\"}],\"name\":\"getRoleAdmin\",\"outputs\":[{\"internalType\":\"bytes32\",\"name\":\"\",\"type\":\"bytes32\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"role\",\"type\":\"bytes32\"},{\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"}],\"name\":\"grantRole\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"role\",\"type\":\"bytes32\"},{\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"}],\"name\":\"hasRole\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"admin\",\"type\":\"address\"}],\"name\":\"isAssetListingAdmin\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"bridge\",\"type\":\"address\"}],\"name\":\"isBridge\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"admin\",\"type\":\"address\"}],\"name\":\"isEmergencyAdmin\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"borrower\",\"type\":\"address\"}],\"name\":\"isFlashBorrower\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"admin\",\"type\":\"address\"}],\"name\":\"isPoolAdmin\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"admin\",\"type\":\"address\"}],\"name\":\"isRiskAdmin\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"admin\",\"type\":\"address\"}],\"name\":\"removeAssetListingAdmin\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"bridge\",\"type\":\"address\"}],\"name\":\"removeBridge\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"admin\",\"type\":\"address\"}],\"name\":\"removeEmergencyAdmin\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"borrower\",\"type\":\"address\"}],\"name\":\"removeFlashBorrower\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"admin\",\"type\":\"address\"}],\"name\":\"removePoolAdmin\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"admin\",\"type\":\"address\"}],\"name\":\"removeRiskAdmin\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"role\",\"type\":\"bytes32\"},{\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"}],\"name\":\"renounceRole\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"role\",\"type\":\"bytes32\"},{\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"}],\"name\":\"revokeRole\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"role\",\"type\":\"bytes32\"},{\"internalType\":\"bytes32\",\"name\":\"adminRole\",\"type\":\"bytes32\"}],\"name\":\"setRoleAdmin\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes4\",\"name\":\"interfaceId\",\"type\":\"bytes4\"}],\"name\":\"supportsInterface\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"}],\"devdoc\":{\"author\":\"Aave\",\"events\":{\"RoleAdminChanged(bytes32,bytes32,bytes32)\":{\"details\":\"Emitted when `newAdminRole` is set as ``role``'s admin role, replacing `previousAdminRole` `DEFAULT_ADMIN_ROLE` is the starting admin for all roles, despite {RoleAdminChanged} not being emitted signaling this. _Available since v3.1._\"},\"RoleGranted(bytes32,address,address)\":{\"details\":\"Emitted when `account` is granted `role`. `sender` is the account that originated the contract call, an admin role bearer except when using {AccessControl-_setupRole}.\"},\"RoleRevoked(bytes32,address,address)\":{\"details\":\"Emitted when `account` is revoked `role`. `sender` is the account that originated the contract call:   - if using `revokeRole`, it is the admin role bearer   - if using `renounceRole`, it is the role bearer (i.e. `account`)\"}},\"kind\":\"dev\",\"methods\":{\"addAssetListingAdmin(address)\":{\"params\":{\"admin\":\"The address of the new admin\"}},\"addBridge(address)\":{\"params\":{\"bridge\":\"The address of the new Bridge\"}},\"addEmergencyAdmin(address)\":{\"params\":{\"admin\":\"The address of the new admin\"}},\"addFlashBorrower(address)\":{\"params\":{\"borrower\":\"The address of the new FlashBorrower\"}},\"addPoolAdmin(address)\":{\"params\":{\"admin\":\"The address of the new admin\"}},\"addRiskAdmin(address)\":{\"params\":{\"admin\":\"The address of the new admin\"}},\"constructor\":{\"details\":\"ConstructorThe ACL admin should be initialized at the addressesProvider beforehand\",\"params\":{\"provider\":\"The address of the PoolAddressesProvider\"}},\"getRoleAdmin(bytes32)\":{\"details\":\"Returns the admin role that controls `role`. See {grantRole} and {revokeRole}. To change a role's admin, use {_setRoleAdmin}.\"},\"grantRole(bytes32,address)\":{\"details\":\"Grants `role` to `account`. If `account` had not been already granted `role`, emits a {RoleGranted} event. Requirements: - the caller must have ``role``'s admin role.\"},\"hasRole(bytes32,address)\":{\"details\":\"Returns `true` if `account` has been granted `role`.\"},\"isAssetListingAdmin(address)\":{\"params\":{\"admin\":\"The address to check\"},\"returns\":{\"_0\":\"True if the given address is AssetListingAdmin, false otherwise\"}},\"isBridge(address)\":{\"params\":{\"bridge\":\"The address to check\"},\"returns\":{\"_0\":\"True if the given address is Bridge, false otherwise\"}},\"isEmergencyAdmin(address)\":{\"params\":{\"admin\":\"The address to check\"},\"returns\":{\"_0\":\"True if the given address is EmergencyAdmin, false otherwise\"}},\"isFlashBorrower(address)\":{\"params\":{\"borrower\":\"The address to check\"},\"returns\":{\"_0\":\"True if the given address is FlashBorrower, false otherwise\"}},\"isPoolAdmin(address)\":{\"params\":{\"admin\":\"The address to check\"},\"returns\":{\"_0\":\"True if the given address is PoolAdmin, false otherwise\"}},\"isRiskAdmin(address)\":{\"params\":{\"admin\":\"The address to check\"},\"returns\":{\"_0\":\"True if the given address is RiskAdmin, false otherwise\"}},\"removeAssetListingAdmin(address)\":{\"params\":{\"admin\":\"The address of the admin to remove\"}},\"removeBridge(address)\":{\"params\":{\"bridge\":\"The address of the bridge to remove\"}},\"removeEmergencyAdmin(address)\":{\"params\":{\"admin\":\"The address of the admin to remove\"}},\"removeFlashBorrower(address)\":{\"params\":{\"borrower\":\"The address of the FlashBorrower to remove\"}},\"removePoolAdmin(address)\":{\"params\":{\"admin\":\"The address of the admin to remove\"}},\"removeRiskAdmin(address)\":{\"params\":{\"admin\":\"The address of the admin to remove\"}},\"renounceRole(bytes32,address)\":{\"details\":\"Revokes `role` from the calling account. Roles are often managed via {grantRole} and {revokeRole}: this function's purpose is to provide a mechanism for accounts to lose their privileges if they are compromised (such as when a trusted device is misplaced). If the calling account had been granted `role`, emits a {RoleRevoked} event. Requirements: - the caller must be `account`.\"},\"revokeRole(bytes32,address)\":{\"details\":\"Revokes `role` from `account`. If `account` had been granted `role`, emits a {RoleRevoked} event. Requirements: - the caller must have ``role``'s admin role.\"},\"setRoleAdmin(bytes32,bytes32)\":{\"details\":\"By default the admin role for all roles is `DEFAULT_ADMIN_ROLE`.\",\"params\":{\"adminRole\":\"The admin role\",\"role\":\"The role to be managed by the admin role\"}},\"supportsInterface(bytes4)\":{\"details\":\"See {IERC165-supportsInterface}.\"}},\"stateVariables\":{\"ADDRESSES_PROVIDER\":{\"return\":\"The address of the PoolAddressesProvider\",\"returns\":{\"_0\":\"The address of the PoolAddressesProvider\"}},\"ASSET_LISTING_ADMIN_ROLE\":{\"return\":\"The id of the AssetListingAdmin role\",\"returns\":{\"_0\":\"The id of the AssetListingAdmin role\"}},\"BRIDGE_ROLE\":{\"return\":\"The id of the Bridge role\",\"returns\":{\"_0\":\"The id of the Bridge role\"}},\"EMERGENCY_ADMIN_ROLE\":{\"return\":\"The id of the EmergencyAdmin role\",\"returns\":{\"_0\":\"The id of the EmergencyAdmin role\"}},\"FLASH_BORROWER_ROLE\":{\"return\":\"The id of the FlashBorrower role\",\"returns\":{\"_0\":\"The id of the FlashBorrower role\"}},\"POOL_ADMIN_ROLE\":{\"return\":\"The id of the PoolAdmin role\",\"returns\":{\"_0\":\"The id of the PoolAdmin role\"}},\"RISK_ADMIN_ROLE\":{\"return\":\"The id of the RiskAdmin role\",\"returns\":{\"_0\":\"The id of the RiskAdmin role\"}}},\"title\":\"ACLManager\",\"version\":1},\"userdoc\":{\"kind\":\"user\",\"methods\":{\"ADDRESSES_PROVIDER()\":{\"notice\":\"Returns the contract address of the PoolAddressesProvider\"},\"ASSET_LISTING_ADMIN_ROLE()\":{\"notice\":\"Returns the identifier of the AssetListingAdmin role\"},\"BRIDGE_ROLE()\":{\"notice\":\"Returns the identifier of the Bridge role\"},\"EMERGENCY_ADMIN_ROLE()\":{\"notice\":\"Returns the identifier of the EmergencyAdmin role\"},\"FLASH_BORROWER_ROLE()\":{\"notice\":\"Returns the identifier of the FlashBorrower role\"},\"POOL_ADMIN_ROLE()\":{\"notice\":\"Returns the identifier of the PoolAdmin role\"},\"RISK_ADMIN_ROLE()\":{\"notice\":\"Returns the identifier of the RiskAdmin role\"},\"addAssetListingAdmin(address)\":{\"notice\":\"Adds a new admin as AssetListingAdmin\"},\"addBridge(address)\":{\"notice\":\"Adds a new address as Bridge\"},\"addEmergencyAdmin(address)\":{\"notice\":\"Adds a new admin as EmergencyAdmin\"},\"addFlashBorrower(address)\":{\"notice\":\"Adds a new address as FlashBorrower\"},\"addPoolAdmin(address)\":{\"notice\":\"Adds a new admin as PoolAdmin\"},\"addRiskAdmin(address)\":{\"notice\":\"Adds a new admin as RiskAdmin\"},\"isAssetListingAdmin(address)\":{\"notice\":\"Returns true if the address is AssetListingAdmin, false otherwise\"},\"isBridge(address)\":{\"notice\":\"Returns true if the address is Bridge, false otherwise\"},\"isEmergencyAdmin(address)\":{\"notice\":\"Returns true if the address is EmergencyAdmin, false otherwise\"},\"isFlashBorrower(address)\":{\"notice\":\"Returns true if the address is FlashBorrower, false otherwise\"},\"isPoolAdmin(address)\":{\"notice\":\"Returns true if the address is PoolAdmin, false otherwise\"},\"isRiskAdmin(address)\":{\"notice\":\"Returns true if the address is RiskAdmin, false otherwise\"},\"removeAssetListingAdmin(address)\":{\"notice\":\"Removes an admin as AssetListingAdmin\"},\"removeBridge(address)\":{\"notice\":\"Removes an address as Bridge\"},\"removeEmergencyAdmin(address)\":{\"notice\":\"Removes an admin as EmergencyAdmin\"},\"removeFlashBorrower(address)\":{\"notice\":\"Removes an address as FlashBorrower\"},\"removePoolAdmin(address)\":{\"notice\":\"Removes an admin as PoolAdmin\"},\"removeRiskAdmin(address)\":{\"notice\":\"Removes an admin as RiskAdmin\"},\"setRoleAdmin(bytes32,bytes32)\":{\"notice\":\"Set the role as admin of a specific role.\"}},\"notice\":\"Access Control List Manager. Main registry of system roles and permissions.\",\"version\":1}},\"settings\":{\"compilationTarget\":{\"contracts/dlend/core/protocol/configuration/ACLManager.sol\":\"ACLManager\"},\"evmVersion\":\"paris\",\"libraries\":{},\"metadata\":{\"bytecodeHash\":\"ipfs\",\"useLiteralContent\":true},\"optimizer\":{\"enabled\":true,\"runs\":200},\"remappings\":[]},\"sources\":{\"contracts/dlend/core/dependencies/openzeppelin/contracts/AccessControl.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\n/* \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 *\\n *    _____     ______   ______     __     __   __     __     ______   __  __       *\\n *   /\\\\  __-.  /\\\\__  _\\\\ /\\\\  == \\\\   /\\\\ \\\\   /\\\\ \\\"-.\\\\ \\\\   /\\\\ \\\\   /\\\\__  _\\\\ /\\\\ \\\\_\\\\ \\\\      *\\n *   \\\\ \\\\ \\\\/\\\\ \\\\ \\\\/_/\\\\ \\\\/ \\\\ \\\\  __<   \\\\ \\\\ \\\\  \\\\ \\\\ \\\\-.  \\\\  \\\\ \\\\ \\\\  \\\\/_/\\\\ \\\\/ \\\\ \\\\____ \\\\     *\\n *    \\\\ \\\\____-    \\\\ \\\\_\\\\  \\\\ \\\\_\\\\ \\\\_\\\\  \\\\ \\\\_\\\\  \\\\ \\\\_\\\\\\\\\\\"\\\\_\\\\  \\\\ \\\\_\\\\    \\\\ \\\\_\\\\  \\\\/\\\\_____\\\\    *\\n *     \\\\/____/     \\\\/_/   \\\\/_/ /_/   \\\\/_/   \\\\/_/ \\\\/_/   \\\\/_/     \\\\/_/   \\\\/_____/    *\\n *                                                                                  *\\n * \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 dtrinity.org \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 *\\n *                                                                                  *\\n *                                         \\u25b2                                        *\\n *                                        \\u25b2 \\u25b2                                       *\\n *                                                                                  *\\n * \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 *\\n * dTRINITY Protocol: https://github.com/dtrinity                                   *\\n * \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 */\\n\\npragma solidity ^0.8.20;\\n\\nimport \\\"./IAccessControl.sol\\\";\\nimport \\\"./Context.sol\\\";\\nimport \\\"./Strings.sol\\\";\\nimport \\\"./ERC165.sol\\\";\\n\\n/**\\n * @dev Contract module that allows children to implement role-based access\\n * control mechanisms. This is a lightweight version that doesn't allow enumerating role\\n * members except through off-chain means by accessing the contract event logs. Some\\n * applications may benefit from on-chain enumerability, for those cases see\\n * {AccessControlEnumerable}.\\n *\\n * Roles are referred to by their `bytes32` identifier. These should be exposed\\n * in the external API and be unique. The best way to achieve this is by\\n * using `public constant` hash digests:\\n *\\n * ```\\n * bytes32 public constant MY_ROLE = keccak256(\\\"MY_ROLE\\\");\\n * ```\\n *\\n * Roles can be used to represent a set of permissions. To restrict access to a\\n * function call, use {hasRole}:\\n *\\n * ```\\n * function foo() public {\\n *     require(hasRole(MY_ROLE, msg.sender));\\n *     ...\\n * }\\n * ```\\n *\\n * Roles can be granted and revoked dynamically via the {grantRole} and\\n * {revokeRole} functions. Each role has an associated admin role, and only\\n * accounts that have a role's admin role can call {grantRole} and {revokeRole}.\\n *\\n * By default, the admin role for all roles is `DEFAULT_ADMIN_ROLE`, which means\\n * that only accounts with this role will be able to grant or revoke other\\n * roles. More complex role relationships can be created by using\\n * {_setRoleAdmin}.\\n *\\n * WARNING: The `DEFAULT_ADMIN_ROLE` is also its own admin: it has permission to\\n * grant and revoke this role. Extra precautions should be taken to secure\\n * accounts that have been granted it.\\n */\\nabstract contract AccessControl is Context, IAccessControl, ERC165 {\\n    struct RoleData {\\n        mapping(address => bool) members;\\n        bytes32 adminRole;\\n    }\\n\\n    mapping(bytes32 => RoleData) private _roles;\\n\\n    bytes32 public constant DEFAULT_ADMIN_ROLE = 0x00;\\n\\n    /**\\n     * @dev Modifier that checks that an account has a specific role. Reverts\\n     * with a standardized message including the required role.\\n     *\\n     * The format of the revert reason is given by the following regular expression:\\n     *\\n     *  /^AccessControl: account (0x[0-9a-f]{40}) is missing role (0x[0-9a-f]{64})$/\\n     *\\n     * _Available since v4.1._\\n     */\\n    modifier onlyRole(bytes32 role) {\\n        _checkRole(role, _msgSender());\\n        _;\\n    }\\n\\n    /**\\n     * @dev See {IERC165-supportsInterface}.\\n     */\\n    function supportsInterface(\\n        bytes4 interfaceId\\n    ) public view virtual override returns (bool) {\\n        return\\n            interfaceId == type(IAccessControl).interfaceId ||\\n            super.supportsInterface(interfaceId);\\n    }\\n\\n    /**\\n     * @dev Returns `true` if `account` has been granted `role`.\\n     */\\n    function hasRole(\\n        bytes32 role,\\n        address account\\n    ) public view override returns (bool) {\\n        return _roles[role].members[account];\\n    }\\n\\n    /**\\n     * @dev Revert with a standard message if `account` is missing `role`.\\n     *\\n     * The format of the revert reason is given by the following regular expression:\\n     *\\n     *  /^AccessControl: account (0x[0-9a-f]{40}) is missing role (0x[0-9a-f]{64})$/\\n     */\\n    function _checkRole(bytes32 role, address account) internal view {\\n        if (!hasRole(role, account)) {\\n            revert(\\n                string(\\n                    abi.encodePacked(\\n                        \\\"AccessControl: account \\\",\\n                        Strings.toHexString(uint160(account), 20),\\n                        \\\" is missing role \\\",\\n                        Strings.toHexString(uint256(role), 32)\\n                    )\\n                )\\n            );\\n        }\\n    }\\n\\n    /**\\n     * @dev Returns the admin role that controls `role`. See {grantRole} and\\n     * {revokeRole}.\\n     *\\n     * To change a role's admin, use {_setRoleAdmin}.\\n     */\\n    function getRoleAdmin(bytes32 role) public view override returns (bytes32) {\\n        return _roles[role].adminRole;\\n    }\\n\\n    /**\\n     * @dev Grants `role` to `account`.\\n     *\\n     * If `account` had not been already granted `role`, emits a {RoleGranted}\\n     * event.\\n     *\\n     * Requirements:\\n     *\\n     * - the caller must have ``role``'s admin role.\\n     */\\n    function grantRole(\\n        bytes32 role,\\n        address account\\n    ) public virtual override onlyRole(getRoleAdmin(role)) {\\n        _grantRole(role, account);\\n    }\\n\\n    /**\\n     * @dev Revokes `role` from `account`.\\n     *\\n     * If `account` had been granted `role`, emits a {RoleRevoked} event.\\n     *\\n     * Requirements:\\n     *\\n     * - the caller must have ``role``'s admin role.\\n     */\\n    function revokeRole(\\n        bytes32 role,\\n        address account\\n    ) public virtual override onlyRole(getRoleAdmin(role)) {\\n        _revokeRole(role, account);\\n    }\\n\\n    /**\\n     * @dev Revokes `role` from the calling account.\\n     *\\n     * Roles are often managed via {grantRole} and {revokeRole}: this function's\\n     * purpose is to provide a mechanism for accounts to lose their privileges\\n     * if they are compromised (such as when a trusted device is misplaced).\\n     *\\n     * If the calling account had been granted `role`, emits a {RoleRevoked}\\n     * event.\\n     *\\n     * Requirements:\\n     *\\n     * - the caller must be `account`.\\n     */\\n    function renounceRole(\\n        bytes32 role,\\n        address account\\n    ) public virtual override {\\n        require(\\n            account == _msgSender(),\\n            \\\"AccessControl: can only renounce roles for self\\\"\\n        );\\n\\n        _revokeRole(role, account);\\n    }\\n\\n    /**\\n     * @dev Grants `role` to `account`.\\n     *\\n     * If `account` had not been already granted `role`, emits a {RoleGranted}\\n     * event. Note that unlike {grantRole}, this function doesn't perform any\\n     * checks on the calling account.\\n     *\\n     * [WARNING]\\n     * ====\\n     * This function should only be called from the constructor when setting\\n     * up the initial roles for the system.\\n     *\\n     * Using this function in any other way is effectively circumventing the admin\\n     * system imposed by {AccessControl}.\\n     * ====\\n     */\\n    function _setupRole(bytes32 role, address account) internal virtual {\\n        _grantRole(role, account);\\n    }\\n\\n    /**\\n     * @dev Sets `adminRole` as ``role``'s admin role.\\n     *\\n     * Emits a {RoleAdminChanged} event.\\n     */\\n    function _setRoleAdmin(bytes32 role, bytes32 adminRole) internal virtual {\\n        bytes32 previousAdminRole = getRoleAdmin(role);\\n        _roles[role].adminRole = adminRole;\\n        emit RoleAdminChanged(role, previousAdminRole, adminRole);\\n    }\\n\\n    function _grantRole(bytes32 role, address account) private {\\n        if (!hasRole(role, account)) {\\n            _roles[role].members[account] = true;\\n            emit RoleGranted(role, account, _msgSender());\\n        }\\n    }\\n\\n    function _revokeRole(bytes32 role, address account) private {\\n        if (hasRole(role, account)) {\\n            _roles[role].members[account] = false;\\n            emit RoleRevoked(role, account, _msgSender());\\n        }\\n    }\\n}\\n\",\"keccak256\":\"0xa139db2e709c5039dde4d422715777882c453ca16717cf511bb08551b3c5ec45\",\"license\":\"MIT\"},\"contracts/dlend/core/dependencies/openzeppelin/contracts/Context.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\n/* \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 *\\n *    _____     ______   ______     __     __   __     __     ______   __  __       *\\n *   /\\\\  __-.  /\\\\__  _\\\\ /\\\\  == \\\\   /\\\\ \\\\   /\\\\ \\\"-.\\\\ \\\\   /\\\\ \\\\   /\\\\__  _\\\\ /\\\\ \\\\_\\\\ \\\\      *\\n *   \\\\ \\\\ \\\\/\\\\ \\\\ \\\\/_/\\\\ \\\\/ \\\\ \\\\  __<   \\\\ \\\\ \\\\  \\\\ \\\\ \\\\-.  \\\\  \\\\ \\\\ \\\\  \\\\/_/\\\\ \\\\/ \\\\ \\\\____ \\\\     *\\n *    \\\\ \\\\____-    \\\\ \\\\_\\\\  \\\\ \\\\_\\\\ \\\\_\\\\  \\\\ \\\\_\\\\  \\\\ \\\\_\\\\\\\\\\\"\\\\_\\\\  \\\\ \\\\_\\\\    \\\\ \\\\_\\\\  \\\\/\\\\_____\\\\    *\\n *     \\\\/____/     \\\\/_/   \\\\/_/ /_/   \\\\/_/   \\\\/_/ \\\\/_/   \\\\/_/     \\\\/_/   \\\\/_____/    *\\n *                                                                                  *\\n * \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 dtrinity.org \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 *\\n *                                                                                  *\\n *                                         \\u25b2                                        *\\n *                                        \\u25b2 \\u25b2                                       *\\n *                                                                                  *\\n * \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 *\\n * dTRINITY Protocol: https://github.com/dtrinity                                   *\\n * \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 */\\n\\npragma solidity ^0.8.20;\\n\\n/*\\n * @dev Provides information about the current execution context, including the\\n * sender of the transaction and its data. While these are generally available\\n * via msg.sender and msg.data, they should not be accessed in such a direct\\n * manner, since when dealing with GSN meta-transactions the account sending and\\n * paying for execution may not be the actual sender (as far as an application\\n * is concerned).\\n *\\n * This contract is only required for intermediate, library-like contracts.\\n */\\nabstract contract Context {\\n    function _msgSender() internal view virtual returns (address payable) {\\n        return payable(msg.sender);\\n    }\\n\\n    function _msgData() internal view virtual returns (bytes memory) {\\n        this; // silence state mutability warning without generating bytecode - see https://github.com/ethereum/solidity/issues/2691\\n        return msg.data;\\n    }\\n}\\n\",\"keccak256\":\"0x9ef3ccc6bac1a64e04e2df68349e76a73a7c4d7f83a6f82dd012401823e93650\",\"license\":\"MIT\"},\"contracts/dlend/core/dependencies/openzeppelin/contracts/ERC165.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\n/* \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 *\\n *    _____     ______   ______     __     __   __     __     ______   __  __       *\\n *   /\\\\  __-.  /\\\\__  _\\\\ /\\\\  == \\\\   /\\\\ \\\\   /\\\\ \\\"-.\\\\ \\\\   /\\\\ \\\\   /\\\\__  _\\\\ /\\\\ \\\\_\\\\ \\\\      *\\n *   \\\\ \\\\ \\\\/\\\\ \\\\ \\\\/_/\\\\ \\\\/ \\\\ \\\\  __<   \\\\ \\\\ \\\\  \\\\ \\\\ \\\\-.  \\\\  \\\\ \\\\ \\\\  \\\\/_/\\\\ \\\\/ \\\\ \\\\____ \\\\     *\\n *    \\\\ \\\\____-    \\\\ \\\\_\\\\  \\\\ \\\\_\\\\ \\\\_\\\\  \\\\ \\\\_\\\\  \\\\ \\\\_\\\\\\\\\\\"\\\\_\\\\  \\\\ \\\\_\\\\    \\\\ \\\\_\\\\  \\\\/\\\\_____\\\\    *\\n *     \\\\/____/     \\\\/_/   \\\\/_/ /_/   \\\\/_/   \\\\/_/ \\\\/_/   \\\\/_/     \\\\/_/   \\\\/_____/    *\\n *                                                                                  *\\n * \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 dtrinity.org \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 *\\n *                                                                                  *\\n *                                         \\u25b2                                        *\\n *                                        \\u25b2 \\u25b2                                       *\\n *                                                                                  *\\n * \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 *\\n * dTRINITY Protocol: https://github.com/dtrinity                                   *\\n * \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 */\\n\\npragma solidity ^0.8.20;\\n\\nimport \\\"./IERC165.sol\\\";\\n\\n/**\\n * @dev Implementation of the {IERC165} interface.\\n *\\n * Contracts that want to implement ERC165 should inherit from this contract and override {supportsInterface} to check\\n * for the additional interface id that will be supported. For example:\\n *\\n * ```solidity\\n * function supportsInterface(bytes4 interfaceId) public view virtual override returns (bool) {\\n *     return interfaceId == type(MyInterface).interfaceId || super.supportsInterface(interfaceId);\\n * }\\n * ```\\n *\\n * Alternatively, {ERC165Storage} provides an easier to use but more expensive implementation.\\n */\\nabstract contract ERC165 is IERC165 {\\n    /**\\n     * @dev See {IERC165-supportsInterface}.\\n     */\\n    function supportsInterface(\\n        bytes4 interfaceId\\n    ) public view virtual override returns (bool) {\\n        return interfaceId == type(IERC165).interfaceId;\\n    }\\n}\\n\",\"keccak256\":\"0x68ab951a03e6d93ee717db25dc626a55ff593e46002dc1ce99edd073a8ebb148\",\"license\":\"MIT\"},\"contracts/dlend/core/dependencies/openzeppelin/contracts/IAccessControl.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\n/* \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 *\\n *    _____     ______   ______     __     __   __     __     ______   __  __       *\\n *   /\\\\  __-.  /\\\\__  _\\\\ /\\\\  == \\\\   /\\\\ \\\\   /\\\\ \\\"-.\\\\ \\\\   /\\\\ \\\\   /\\\\__  _\\\\ /\\\\ \\\\_\\\\ \\\\      *\\n *   \\\\ \\\\ \\\\/\\\\ \\\\ \\\\/_/\\\\ \\\\/ \\\\ \\\\  __<   \\\\ \\\\ \\\\  \\\\ \\\\ \\\\-.  \\\\  \\\\ \\\\ \\\\  \\\\/_/\\\\ \\\\/ \\\\ \\\\____ \\\\     *\\n *    \\\\ \\\\____-    \\\\ \\\\_\\\\  \\\\ \\\\_\\\\ \\\\_\\\\  \\\\ \\\\_\\\\  \\\\ \\\\_\\\\\\\\\\\"\\\\_\\\\  \\\\ \\\\_\\\\    \\\\ \\\\_\\\\  \\\\/\\\\_____\\\\    *\\n *     \\\\/____/     \\\\/_/   \\\\/_/ /_/   \\\\/_/   \\\\/_/ \\\\/_/   \\\\/_/     \\\\/_/   \\\\/_____/    *\\n *                                                                                  *\\n * \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 dtrinity.org \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 *\\n *                                                                                  *\\n *                                         \\u25b2                                        *\\n *                                        \\u25b2 \\u25b2                                       *\\n *                                                                                  *\\n * \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 *\\n * dTRINITY Protocol: https://github.com/dtrinity                                   *\\n * \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 */\\n\\npragma solidity ^0.8.20;\\n\\n/**\\n * @dev External interface of AccessControl declared to support ERC165 detection.\\n */\\ninterface IAccessControl {\\n    /**\\n     * @dev Emitted when `newAdminRole` is set as ``role``'s admin role, replacing `previousAdminRole`\\n     *\\n     * `DEFAULT_ADMIN_ROLE` is the starting admin for all roles, despite\\n     * {RoleAdminChanged} not being emitted signaling this.\\n     *\\n     * _Available since v3.1._\\n     */\\n    event RoleAdminChanged(\\n        bytes32 indexed role,\\n        bytes32 indexed previousAdminRole,\\n        bytes32 indexed newAdminRole\\n    );\\n\\n    /**\\n     * @dev Emitted when `account` is granted `role`.\\n     *\\n     * `sender` is the account that originated the contract call, an admin role\\n     * bearer except when using {AccessControl-_setupRole}.\\n     */\\n    event RoleGranted(\\n        bytes32 indexed role,\\n        address indexed account,\\n        address indexed sender\\n    );\\n\\n    /**\\n     * @dev Emitted when `account` is revoked `role`.\\n     *\\n     * `sender` is the account that originated the contract call:\\n     *   - if using `revokeRole`, it is the admin role bearer\\n     *   - if using `renounceRole`, it is the role bearer (i.e. `account`)\\n     */\\n    event RoleRevoked(\\n        bytes32 indexed role,\\n        address indexed account,\\n        address indexed sender\\n    );\\n\\n    /**\\n     * @dev Returns `true` if `account` has been granted `role`.\\n     */\\n    function hasRole(\\n        bytes32 role,\\n        address account\\n    ) external view returns (bool);\\n\\n    /**\\n     * @dev Returns the admin role that controls `role`. See {grantRole} and\\n     * {revokeRole}.\\n     *\\n     * To change a role's admin, use {AccessControl-_setRoleAdmin}.\\n     */\\n    function getRoleAdmin(bytes32 role) external view returns (bytes32);\\n\\n    /**\\n     * @dev Grants `role` to `account`.\\n     *\\n     * If `account` had not been already granted `role`, emits a {RoleGranted}\\n     * event.\\n     *\\n     * Requirements:\\n     *\\n     * - the caller must have ``role``'s admin role.\\n     */\\n    function grantRole(bytes32 role, address account) external;\\n\\n    /**\\n     * @dev Revokes `role` from `account`.\\n     *\\n     * If `account` had been granted `role`, emits a {RoleRevoked} event.\\n     *\\n     * Requirements:\\n     *\\n     * - the caller must have ``role``'s admin role.\\n     */\\n    function revokeRole(bytes32 role, address account) external;\\n\\n    /**\\n     * @dev Revokes `role` from the calling account.\\n     *\\n     * Roles are often managed via {grantRole} and {revokeRole}: this function's\\n     * purpose is to provide a mechanism for accounts to lose their privileges\\n     * if they are compromised (such as when a trusted device is misplaced).\\n     *\\n     * If the calling account had been granted `role`, emits a {RoleRevoked}\\n     * event.\\n     *\\n     * Requirements:\\n     *\\n     * - the caller must be `account`.\\n     */\\n    function renounceRole(bytes32 role, address account) external;\\n}\\n\",\"keccak256\":\"0x6a22e68c43f186feabfc1c4e3c1ae3af64c8fb55970e7051afc6eb0215cb33f2\",\"license\":\"MIT\"},\"contracts/dlend/core/dependencies/openzeppelin/contracts/IERC165.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\n/* \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 *\\n *    _____     ______   ______     __     __   __     __     ______   __  __       *\\n *   /\\\\  __-.  /\\\\__  _\\\\ /\\\\  == \\\\   /\\\\ \\\\   /\\\\ \\\"-.\\\\ \\\\   /\\\\ \\\\   /\\\\__  _\\\\ /\\\\ \\\\_\\\\ \\\\      *\\n *   \\\\ \\\\ \\\\/\\\\ \\\\ \\\\/_/\\\\ \\\\/ \\\\ \\\\  __<   \\\\ \\\\ \\\\  \\\\ \\\\ \\\\-.  \\\\  \\\\ \\\\ \\\\  \\\\/_/\\\\ \\\\/ \\\\ \\\\____ \\\\     *\\n *    \\\\ \\\\____-    \\\\ \\\\_\\\\  \\\\ \\\\_\\\\ \\\\_\\\\  \\\\ \\\\_\\\\  \\\\ \\\\_\\\\\\\\\\\"\\\\_\\\\  \\\\ \\\\_\\\\    \\\\ \\\\_\\\\  \\\\/\\\\_____\\\\    *\\n *     \\\\/____/     \\\\/_/   \\\\/_/ /_/   \\\\/_/   \\\\/_/ \\\\/_/   \\\\/_/     \\\\/_/   \\\\/_____/    *\\n *                                                                                  *\\n * \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 dtrinity.org \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 *\\n *                                                                                  *\\n *                                         \\u25b2                                        *\\n *                                        \\u25b2 \\u25b2                                       *\\n *                                                                                  *\\n * \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 *\\n * dTRINITY Protocol: https://github.com/dtrinity                                   *\\n * \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 */\\n\\npragma solidity ^0.8.20;\\n\\n/**\\n * @dev Interface of the ERC165 standard, as defined in the\\n * https://eips.ethereum.org/EIPS/eip-165[EIP].\\n *\\n * Implementers can declare support of contract interfaces, which can then be\\n * queried by others ({ERC165Checker}).\\n *\\n * For an implementation, see {ERC165}.\\n */\\ninterface IERC165 {\\n    /**\\n     * @dev Returns true if this contract implements the interface defined by\\n     * `interfaceId`. See the corresponding\\n     * https://eips.ethereum.org/EIPS/eip-165#how-interfaces-are-identified[EIP section]\\n     * to learn more about how these ids are created.\\n     *\\n     * This function call must use less than 30 000 gas.\\n     */\\n    function supportsInterface(bytes4 interfaceId) external view returns (bool);\\n}\\n\",\"keccak256\":\"0x03aa319bf7257c03130f11f6b88c02a9db2a2b2756be5b572ee6c0b6d02cb059\",\"license\":\"MIT\"},\"contracts/dlend/core/dependencies/openzeppelin/contracts/Strings.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\n/* \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 *\\n *    _____     ______   ______     __     __   __     __     ______   __  __       *\\n *   /\\\\  __-.  /\\\\__  _\\\\ /\\\\  == \\\\   /\\\\ \\\\   /\\\\ \\\"-.\\\\ \\\\   /\\\\ \\\\   /\\\\__  _\\\\ /\\\\ \\\\_\\\\ \\\\      *\\n *   \\\\ \\\\ \\\\/\\\\ \\\\ \\\\/_/\\\\ \\\\/ \\\\ \\\\  __<   \\\\ \\\\ \\\\  \\\\ \\\\ \\\\-.  \\\\  \\\\ \\\\ \\\\  \\\\/_/\\\\ \\\\/ \\\\ \\\\____ \\\\     *\\n *    \\\\ \\\\____-    \\\\ \\\\_\\\\  \\\\ \\\\_\\\\ \\\\_\\\\  \\\\ \\\\_\\\\  \\\\ \\\\_\\\\\\\\\\\"\\\\_\\\\  \\\\ \\\\_\\\\    \\\\ \\\\_\\\\  \\\\/\\\\_____\\\\    *\\n *     \\\\/____/     \\\\/_/   \\\\/_/ /_/   \\\\/_/   \\\\/_/ \\\\/_/   \\\\/_/     \\\\/_/   \\\\/_____/    *\\n *                                                                                  *\\n * \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 dtrinity.org \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 *\\n *                                                                                  *\\n *                                         \\u25b2                                        *\\n *                                        \\u25b2 \\u25b2                                       *\\n *                                                                                  *\\n * \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 *\\n * dTRINITY Protocol: https://github.com/dtrinity                                   *\\n * \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 */\\n\\npragma solidity ^0.8.20;\\n\\n/**\\n * @dev String operations.\\n */\\nlibrary Strings {\\n    bytes16 private constant _HEX_SYMBOLS = \\\"0123456789abcdef\\\";\\n\\n    /**\\n     * @dev Converts a `uint256` to its ASCII `string` decimal representation.\\n     */\\n    function toString(uint256 value) internal pure returns (string memory) {\\n        // Inspired by OraclizeAPI's implementation - MIT licence\\n        // https://github.com/oraclize/ethereum-api/blob/b42146b063c7d6ee1358846c198246239e9360e8/oraclizeAPI_0.4.25.sol\\n\\n        if (value == 0) {\\n            return \\\"0\\\";\\n        }\\n        uint256 temp = value;\\n        uint256 digits;\\n        while (temp != 0) {\\n            digits++;\\n            temp /= 10;\\n        }\\n        bytes memory buffer = new bytes(digits);\\n        while (value != 0) {\\n            digits -= 1;\\n            buffer[digits] = bytes1(uint8(48 + uint256(value % 10)));\\n            value /= 10;\\n        }\\n        return string(buffer);\\n    }\\n\\n    /**\\n     * @dev Converts a `uint256` to its ASCII `string` hexadecimal representation.\\n     */\\n    function toHexString(uint256 value) internal pure returns (string memory) {\\n        if (value == 0) {\\n            return \\\"0x00\\\";\\n        }\\n        uint256 temp = value;\\n        uint256 length = 0;\\n        while (temp != 0) {\\n            length++;\\n            temp >>= 8;\\n        }\\n        return toHexString(value, length);\\n    }\\n\\n    /**\\n     * @dev Converts a `uint256` to its ASCII `string` hexadecimal representation with fixed length.\\n     */\\n    function toHexString(\\n        uint256 value,\\n        uint256 length\\n    ) internal pure returns (string memory) {\\n        bytes memory buffer = new bytes(2 * length + 2);\\n        buffer[0] = \\\"0\\\";\\n        buffer[1] = \\\"x\\\";\\n        for (uint256 i = 2 * length + 1; i > 1; --i) {\\n            buffer[i] = _HEX_SYMBOLS[value & 0xf];\\n            value >>= 4;\\n        }\\n        require(value == 0, \\\"Strings: hex length insufficient\\\");\\n        return string(buffer);\\n    }\\n}\\n\",\"keccak256\":\"0xc57e244b2f633f4d50ae1685a290b14378123cbd8f2393a14254747c561f5050\",\"license\":\"MIT\"},\"contracts/dlend/core/interfaces/IACLManager.sol\":{\"content\":\"// SPDX-License-Identifier: AGPL-3.0\\n/* \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 *\\n *    _____     ______   ______     __     __   __     __     ______   __  __       *\\n *   /\\\\  __-.  /\\\\__  _\\\\ /\\\\  == \\\\   /\\\\ \\\\   /\\\\ \\\"-.\\\\ \\\\   /\\\\ \\\\   /\\\\__  _\\\\ /\\\\ \\\\_\\\\ \\\\      *\\n *   \\\\ \\\\ \\\\/\\\\ \\\\ \\\\/_/\\\\ \\\\/ \\\\ \\\\  __<   \\\\ \\\\ \\\\  \\\\ \\\\ \\\\-.  \\\\  \\\\ \\\\ \\\\  \\\\/_/\\\\ \\\\/ \\\\ \\\\____ \\\\     *\\n *    \\\\ \\\\____-    \\\\ \\\\_\\\\  \\\\ \\\\_\\\\ \\\\_\\\\  \\\\ \\\\_\\\\  \\\\ \\\\_\\\\\\\\\\\"\\\\_\\\\  \\\\ \\\\_\\\\    \\\\ \\\\_\\\\  \\\\/\\\\_____\\\\    *\\n *     \\\\/____/     \\\\/_/   \\\\/_/ /_/   \\\\/_/   \\\\/_/ \\\\/_/   \\\\/_/     \\\\/_/   \\\\/_____/    *\\n *                                                                                  *\\n * \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 dtrinity.org \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 *\\n *                                                                                  *\\n *                                         \\u25b2                                        *\\n *                                        \\u25b2 \\u25b2                                       *\\n *                                                                                  *\\n * \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 *\\n * dTRINITY Protocol: https://github.com/dtrinity                                   *\\n * \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 */\\n\\npragma solidity ^0.8.20;\\n\\nimport {IPoolAddressesProvider} from \\\"./IPoolAddressesProvider.sol\\\";\\n\\n/**\\n * @title IACLManager\\n * @author Aave\\n * @notice Defines the basic interface for the ACL Manager\\n */\\ninterface IACLManager {\\n    /**\\n     * @notice Returns the contract address of the PoolAddressesProvider\\n     * @return The address of the PoolAddressesProvider\\n     */\\n    function ADDRESSES_PROVIDER()\\n        external\\n        view\\n        returns (IPoolAddressesProvider);\\n\\n    /**\\n     * @notice Returns the identifier of the PoolAdmin role\\n     * @return The id of the PoolAdmin role\\n     */\\n    function POOL_ADMIN_ROLE() external view returns (bytes32);\\n\\n    /**\\n     * @notice Returns the identifier of the EmergencyAdmin role\\n     * @return The id of the EmergencyAdmin role\\n     */\\n    function EMERGENCY_ADMIN_ROLE() external view returns (bytes32);\\n\\n    /**\\n     * @notice Returns the identifier of the RiskAdmin role\\n     * @return The id of the RiskAdmin role\\n     */\\n    function RISK_ADMIN_ROLE() external view returns (bytes32);\\n\\n    /**\\n     * @notice Returns the identifier of the FlashBorrower role\\n     * @return The id of the FlashBorrower role\\n     */\\n    function FLASH_BORROWER_ROLE() external view returns (bytes32);\\n\\n    /**\\n     * @notice Returns the identifier of the Bridge role\\n     * @return The id of the Bridge role\\n     */\\n    function BRIDGE_ROLE() external view returns (bytes32);\\n\\n    /**\\n     * @notice Returns the identifier of the AssetListingAdmin role\\n     * @return The id of the AssetListingAdmin role\\n     */\\n    function ASSET_LISTING_ADMIN_ROLE() external view returns (bytes32);\\n\\n    /**\\n     * @notice Set the role as admin of a specific role.\\n     * @dev By default the admin role for all roles is `DEFAULT_ADMIN_ROLE`.\\n     * @param role The role to be managed by the admin role\\n     * @param adminRole The admin role\\n     */\\n    function setRoleAdmin(bytes32 role, bytes32 adminRole) external;\\n\\n    /**\\n     * @notice Adds a new admin as PoolAdmin\\n     * @param admin The address of the new admin\\n     */\\n    function addPoolAdmin(address admin) external;\\n\\n    /**\\n     * @notice Removes an admin as PoolAdmin\\n     * @param admin The address of the admin to remove\\n     */\\n    function removePoolAdmin(address admin) external;\\n\\n    /**\\n     * @notice Returns true if the address is PoolAdmin, false otherwise\\n     * @param admin The address to check\\n     * @return True if the given address is PoolAdmin, false otherwise\\n     */\\n    function isPoolAdmin(address admin) external view returns (bool);\\n\\n    /**\\n     * @notice Adds a new admin as EmergencyAdmin\\n     * @param admin The address of the new admin\\n     */\\n    function addEmergencyAdmin(address admin) external;\\n\\n    /**\\n     * @notice Removes an admin as EmergencyAdmin\\n     * @param admin The address of the admin to remove\\n     */\\n    function removeEmergencyAdmin(address admin) external;\\n\\n    /**\\n     * @notice Returns true if the address is EmergencyAdmin, false otherwise\\n     * @param admin The address to check\\n     * @return True if the given address is EmergencyAdmin, false otherwise\\n     */\\n    function isEmergencyAdmin(address admin) external view returns (bool);\\n\\n    /**\\n     * @notice Adds a new admin as RiskAdmin\\n     * @param admin The address of the new admin\\n     */\\n    function addRiskAdmin(address admin) external;\\n\\n    /**\\n     * @notice Removes an admin as RiskAdmin\\n     * @param admin The address of the admin to remove\\n     */\\n    function removeRiskAdmin(address admin) external;\\n\\n    /**\\n     * @notice Returns true if the address is RiskAdmin, false otherwise\\n     * @param admin The address to check\\n     * @return True if the given address is RiskAdmin, false otherwise\\n     */\\n    function isRiskAdmin(address admin) external view returns (bool);\\n\\n    /**\\n     * @notice Adds a new address as FlashBorrower\\n     * @param borrower The address of the new FlashBorrower\\n     */\\n    function addFlashBorrower(address borrower) external;\\n\\n    /**\\n     * @notice Removes an address as FlashBorrower\\n     * @param borrower The address of the FlashBorrower to remove\\n     */\\n    function removeFlashBorrower(address borrower) external;\\n\\n    /**\\n     * @notice Returns true if the address is FlashBorrower, false otherwise\\n     * @param borrower The address to check\\n     * @return True if the given address is FlashBorrower, false otherwise\\n     */\\n    function isFlashBorrower(address borrower) external view returns (bool);\\n\\n    /**\\n     * @notice Adds a new address as Bridge\\n     * @param bridge The address of the new Bridge\\n     */\\n    function addBridge(address bridge) external;\\n\\n    /**\\n     * @notice Removes an address as Bridge\\n     * @param bridge The address of the bridge to remove\\n     */\\n    function removeBridge(address bridge) external;\\n\\n    /**\\n     * @notice Returns true if the address is Bridge, false otherwise\\n     * @param bridge The address to check\\n     * @return True if the given address is Bridge, false otherwise\\n     */\\n    function isBridge(address bridge) external view returns (bool);\\n\\n    /**\\n     * @notice Adds a new admin as AssetListingAdmin\\n     * @param admin The address of the new admin\\n     */\\n    function addAssetListingAdmin(address admin) external;\\n\\n    /**\\n     * @notice Removes an admin as AssetListingAdmin\\n     * @param admin The address of the admin to remove\\n     */\\n    function removeAssetListingAdmin(address admin) external;\\n\\n    /**\\n     * @notice Returns true if the address is AssetListingAdmin, false otherwise\\n     * @param admin The address to check\\n     * @return True if the given address is AssetListingAdmin, false otherwise\\n     */\\n    function isAssetListingAdmin(address admin) external view returns (bool);\\n}\\n\",\"keccak256\":\"0xdc2705b8a4887183d5dc16b9f9ea9f8a5ac423f55d617db44faf8a84ff28fd90\",\"license\":\"AGPL-3.0\"},\"contracts/dlend/core/interfaces/IPoolAddressesProvider.sol\":{\"content\":\"// SPDX-License-Identifier: AGPL-3.0\\n/* \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 *\\n *    _____     ______   ______     __     __   __     __     ______   __  __       *\\n *   /\\\\  __-.  /\\\\__  _\\\\ /\\\\  == \\\\   /\\\\ \\\\   /\\\\ \\\"-.\\\\ \\\\   /\\\\ \\\\   /\\\\__  _\\\\ /\\\\ \\\\_\\\\ \\\\      *\\n *   \\\\ \\\\ \\\\/\\\\ \\\\ \\\\/_/\\\\ \\\\/ \\\\ \\\\  __<   \\\\ \\\\ \\\\  \\\\ \\\\ \\\\-.  \\\\  \\\\ \\\\ \\\\  \\\\/_/\\\\ \\\\/ \\\\ \\\\____ \\\\     *\\n *    \\\\ \\\\____-    \\\\ \\\\_\\\\  \\\\ \\\\_\\\\ \\\\_\\\\  \\\\ \\\\_\\\\  \\\\ \\\\_\\\\\\\\\\\"\\\\_\\\\  \\\\ \\\\_\\\\    \\\\ \\\\_\\\\  \\\\/\\\\_____\\\\    *\\n *     \\\\/____/     \\\\/_/   \\\\/_/ /_/   \\\\/_/   \\\\/_/ \\\\/_/   \\\\/_/     \\\\/_/   \\\\/_____/    *\\n *                                                                                  *\\n * \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 dtrinity.org \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 *\\n *                                                                                  *\\n *                                         \\u25b2                                        *\\n *                                        \\u25b2 \\u25b2                                       *\\n *                                                                                  *\\n * \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 *\\n * dTRINITY Protocol: https://github.com/dtrinity                                   *\\n * \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 */\\n\\npragma solidity ^0.8.20;\\n\\n/**\\n * @title IPoolAddressesProvider\\n * @author Aave\\n * @notice Defines the basic interface for a Pool Addresses Provider.\\n */\\ninterface IPoolAddressesProvider {\\n    /**\\n     * @dev Emitted when the market identifier is updated.\\n     * @param oldMarketId The old id of the market\\n     * @param newMarketId The new id of the market\\n     */\\n    event MarketIdSet(string indexed oldMarketId, string indexed newMarketId);\\n\\n    /**\\n     * @dev Emitted when the pool is updated.\\n     * @param oldAddress The old address of the Pool\\n     * @param newAddress The new address of the Pool\\n     */\\n    event PoolUpdated(address indexed oldAddress, address indexed newAddress);\\n\\n    /**\\n     * @dev Emitted when the pool configurator is updated.\\n     * @param oldAddress The old address of the PoolConfigurator\\n     * @param newAddress The new address of the PoolConfigurator\\n     */\\n    event PoolConfiguratorUpdated(\\n        address indexed oldAddress,\\n        address indexed newAddress\\n    );\\n\\n    /**\\n     * @dev Emitted when the price oracle is updated.\\n     * @param oldAddress The old address of the PriceOracle\\n     * @param newAddress The new address of the PriceOracle\\n     */\\n    event PriceOracleUpdated(\\n        address indexed oldAddress,\\n        address indexed newAddress\\n    );\\n\\n    /**\\n     * @dev Emitted when the ACL manager is updated.\\n     * @param oldAddress The old address of the ACLManager\\n     * @param newAddress The new address of the ACLManager\\n     */\\n    event ACLManagerUpdated(\\n        address indexed oldAddress,\\n        address indexed newAddress\\n    );\\n\\n    /**\\n     * @dev Emitted when the ACL admin is updated.\\n     * @param oldAddress The old address of the ACLAdmin\\n     * @param newAddress The new address of the ACLAdmin\\n     */\\n    event ACLAdminUpdated(\\n        address indexed oldAddress,\\n        address indexed newAddress\\n    );\\n\\n    /**\\n     * @dev Emitted when the price oracle sentinel is updated.\\n     * @param oldAddress The old address of the PriceOracleSentinel\\n     * @param newAddress The new address of the PriceOracleSentinel\\n     */\\n    event PriceOracleSentinelUpdated(\\n        address indexed oldAddress,\\n        address indexed newAddress\\n    );\\n\\n    /**\\n     * @dev Emitted when the pool data provider is updated.\\n     * @param oldAddress The old address of the PoolDataProvider\\n     * @param newAddress The new address of the PoolDataProvider\\n     */\\n    event PoolDataProviderUpdated(\\n        address indexed oldAddress,\\n        address indexed newAddress\\n    );\\n\\n    /**\\n     * @dev Emitted when a new proxy is created.\\n     * @param id The identifier of the proxy\\n     * @param proxyAddress The address of the created proxy contract\\n     * @param implementationAddress The address of the implementation contract\\n     */\\n    event ProxyCreated(\\n        bytes32 indexed id,\\n        address indexed proxyAddress,\\n        address indexed implementationAddress\\n    );\\n\\n    /**\\n     * @dev Emitted when a new non-proxied contract address is registered.\\n     * @param id The identifier of the contract\\n     * @param oldAddress The address of the old contract\\n     * @param newAddress The address of the new contract\\n     */\\n    event AddressSet(\\n        bytes32 indexed id,\\n        address indexed oldAddress,\\n        address indexed newAddress\\n    );\\n\\n    /**\\n     * @dev Emitted when the implementation of the proxy registered with id is updated\\n     * @param id The identifier of the contract\\n     * @param proxyAddress The address of the proxy contract\\n     * @param oldImplementationAddress The address of the old implementation contract\\n     * @param newImplementationAddress The address of the new implementation contract\\n     */\\n    event AddressSetAsProxy(\\n        bytes32 indexed id,\\n        address indexed proxyAddress,\\n        address oldImplementationAddress,\\n        address indexed newImplementationAddress\\n    );\\n\\n    /**\\n     * @notice Returns the id of the Aave market to which this contract points to.\\n     * @return The market id\\n     */\\n    function getMarketId() external view returns (string memory);\\n\\n    /**\\n     * @notice Associates an id with a specific PoolAddressesProvider.\\n     * @dev This can be used to create an onchain registry of PoolAddressesProviders to\\n     * identify and validate multiple Aave markets.\\n     * @param newMarketId The market id\\n     */\\n    function setMarketId(string calldata newMarketId) external;\\n\\n    /**\\n     * @notice Returns an address by its identifier.\\n     * @dev The returned address might be an EOA or a contract, potentially proxied\\n     * @dev It returns ZERO if there is no registered address with the given id\\n     * @param id The id\\n     * @return The address of the registered for the specified id\\n     */\\n    function getAddressFromID(bytes32 id) external view returns (address);\\n\\n    /**\\n     * @notice General function to update the implementation of a proxy registered with\\n     * certain `id`. If there is no proxy registered, it will instantiate one and\\n     * set as implementation the `newImplementationAddress`.\\n     * @dev IMPORTANT Use this function carefully, only for ids that don't have an explicit\\n     * setter function, in order to avoid unexpected consequences\\n     * @param id The id\\n     * @param newImplementationAddress The address of the new implementation\\n     */\\n    function setAddressAsProxy(\\n        bytes32 id,\\n        address newImplementationAddress\\n    ) external;\\n\\n    /**\\n     * @notice Sets an address for an id replacing the address saved in the addresses map.\\n     * @dev IMPORTANT Use this function carefully, as it will do a hard replacement\\n     * @param id The id\\n     * @param newAddress The address to set\\n     */\\n    function setAddress(bytes32 id, address newAddress) external;\\n\\n    /**\\n     * @notice Returns the address of the Pool proxy.\\n     * @return The Pool proxy address\\n     */\\n    function getPool() external view returns (address);\\n\\n    /**\\n     * @notice Updates the implementation of the Pool, or creates a proxy\\n     * setting the new `pool` implementation when the function is called for the first time.\\n     * @param newPoolImpl The new Pool implementation\\n     */\\n    function setPoolImpl(address newPoolImpl) external;\\n\\n    /**\\n     * @notice Returns the address of the PoolConfigurator proxy.\\n     * @return The PoolConfigurator proxy address\\n     */\\n    function getPoolConfigurator() external view returns (address);\\n\\n    /**\\n     * @notice Updates the implementation of the PoolConfigurator, or creates a proxy\\n     * setting the new `PoolConfigurator` implementation when the function is called for the first time.\\n     * @param newPoolConfiguratorImpl The new PoolConfigurator implementation\\n     */\\n    function setPoolConfiguratorImpl(address newPoolConfiguratorImpl) external;\\n\\n    /**\\n     * @notice Returns the address of the price oracle.\\n     * @return The address of the PriceOracle\\n     */\\n    function getPriceOracle() external view returns (address);\\n\\n    /**\\n     * @notice Updates the address of the price oracle.\\n     * @param newPriceOracle The address of the new PriceOracle\\n     */\\n    function setPriceOracle(address newPriceOracle) external;\\n\\n    /**\\n     * @notice Returns the address of the ACL manager.\\n     * @return The address of the ACLManager\\n     */\\n    function getACLManager() external view returns (address);\\n\\n    /**\\n     * @notice Updates the address of the ACL manager.\\n     * @param newAclManager The address of the new ACLManager\\n     */\\n    function setACLManager(address newAclManager) external;\\n\\n    /**\\n     * @notice Returns the address of the ACL admin.\\n     * @return The address of the ACL admin\\n     */\\n    function getACLAdmin() external view returns (address);\\n\\n    /**\\n     * @notice Updates the address of the ACL admin.\\n     * @param newAclAdmin The address of the new ACL admin\\n     */\\n    function setACLAdmin(address newAclAdmin) external;\\n\\n    /**\\n     * @notice Returns the address of the price oracle sentinel.\\n     * @return The address of the PriceOracleSentinel\\n     */\\n    function getPriceOracleSentinel() external view returns (address);\\n\\n    /**\\n     * @notice Updates the address of the price oracle sentinel.\\n     * @param newPriceOracleSentinel The address of the new PriceOracleSentinel\\n     */\\n    function setPriceOracleSentinel(address newPriceOracleSentinel) external;\\n\\n    /**\\n     * @notice Returns the address of the data provider.\\n     * @return The address of the DataProvider\\n     */\\n    function getPoolDataProvider() external view returns (address);\\n\\n    /**\\n     * @notice Updates the address of the data provider.\\n     * @param newDataProvider The address of the new DataProvider\\n     */\\n    function setPoolDataProvider(address newDataProvider) external;\\n}\\n\",\"keccak256\":\"0x351127e1f52bdabe039a4c4a977d595b063955047328cbf57853727ff767ccde\",\"license\":\"AGPL-3.0\"},\"contracts/dlend/core/protocol/configuration/ACLManager.sol\":{\"content\":\"// SPDX-License-Identifier: BUSL-1.1\\n/* \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 *\\n *    _____     ______   ______     __     __   __     __     ______   __  __       *\\n *   /\\\\  __-.  /\\\\__  _\\\\ /\\\\  == \\\\   /\\\\ \\\\   /\\\\ \\\"-.\\\\ \\\\   /\\\\ \\\\   /\\\\__  _\\\\ /\\\\ \\\\_\\\\ \\\\      *\\n *   \\\\ \\\\ \\\\/\\\\ \\\\ \\\\/_/\\\\ \\\\/ \\\\ \\\\  __<   \\\\ \\\\ \\\\  \\\\ \\\\ \\\\-.  \\\\  \\\\ \\\\ \\\\  \\\\/_/\\\\ \\\\/ \\\\ \\\\____ \\\\     *\\n *    \\\\ \\\\____-    \\\\ \\\\_\\\\  \\\\ \\\\_\\\\ \\\\_\\\\  \\\\ \\\\_\\\\  \\\\ \\\\_\\\\\\\\\\\"\\\\_\\\\  \\\\ \\\\_\\\\    \\\\ \\\\_\\\\  \\\\/\\\\_____\\\\    *\\n *     \\\\/____/     \\\\/_/   \\\\/_/ /_/   \\\\/_/   \\\\/_/ \\\\/_/   \\\\/_/     \\\\/_/   \\\\/_____/    *\\n *                                                                                  *\\n * \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 dtrinity.org \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 *\\n *                                                                                  *\\n *                                         \\u25b2                                        *\\n *                                        \\u25b2 \\u25b2                                       *\\n *                                                                                  *\\n * \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 *\\n * dTRINITY Protocol: https://github.com/dtrinity                                   *\\n * \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 */\\n\\npragma solidity ^0.8.20;\\n\\nimport {AccessControl} from \\\"../../dependencies/openzeppelin/contracts/AccessControl.sol\\\";\\nimport {IPoolAddressesProvider} from \\\"../../interfaces/IPoolAddressesProvider.sol\\\";\\nimport {IACLManager} from \\\"../../interfaces/IACLManager.sol\\\";\\nimport {Errors} from \\\"../libraries/helpers/Errors.sol\\\";\\n\\n/**\\n * @title ACLManager\\n * @author Aave\\n * @notice Access Control List Manager. Main registry of system roles and permissions.\\n */\\ncontract ACLManager is AccessControl, IACLManager {\\n    bytes32 public constant override POOL_ADMIN_ROLE = keccak256(\\\"POOL_ADMIN\\\");\\n    bytes32 public constant override EMERGENCY_ADMIN_ROLE =\\n        keccak256(\\\"EMERGENCY_ADMIN\\\");\\n    bytes32 public constant override RISK_ADMIN_ROLE = keccak256(\\\"RISK_ADMIN\\\");\\n    bytes32 public constant override FLASH_BORROWER_ROLE =\\n        keccak256(\\\"FLASH_BORROWER\\\");\\n    bytes32 public constant override BRIDGE_ROLE = keccak256(\\\"BRIDGE\\\");\\n    bytes32 public constant override ASSET_LISTING_ADMIN_ROLE =\\n        keccak256(\\\"ASSET_LISTING_ADMIN\\\");\\n\\n    IPoolAddressesProvider public immutable ADDRESSES_PROVIDER;\\n\\n    /**\\n     * @dev Constructor\\n     * @dev The ACL admin should be initialized at the addressesProvider beforehand\\n     * @param provider The address of the PoolAddressesProvider\\n     */\\n    constructor(IPoolAddressesProvider provider) {\\n        ADDRESSES_PROVIDER = provider;\\n        address aclAdmin = provider.getACLAdmin();\\n        require(aclAdmin != address(0), Errors.ACL_ADMIN_CANNOT_BE_ZERO);\\n        _setupRole(DEFAULT_ADMIN_ROLE, aclAdmin);\\n    }\\n\\n    /// @inheritdoc IACLManager\\n    function setRoleAdmin(\\n        bytes32 role,\\n        bytes32 adminRole\\n    ) external override onlyRole(DEFAULT_ADMIN_ROLE) {\\n        _setRoleAdmin(role, adminRole);\\n    }\\n\\n    /// @inheritdoc IACLManager\\n    function addPoolAdmin(address admin) external override {\\n        grantRole(POOL_ADMIN_ROLE, admin);\\n    }\\n\\n    /// @inheritdoc IACLManager\\n    function removePoolAdmin(address admin) external override {\\n        revokeRole(POOL_ADMIN_ROLE, admin);\\n    }\\n\\n    /// @inheritdoc IACLManager\\n    function isPoolAdmin(address admin) external view override returns (bool) {\\n        return hasRole(POOL_ADMIN_ROLE, admin);\\n    }\\n\\n    /// @inheritdoc IACLManager\\n    function addEmergencyAdmin(address admin) external override {\\n        grantRole(EMERGENCY_ADMIN_ROLE, admin);\\n    }\\n\\n    /// @inheritdoc IACLManager\\n    function removeEmergencyAdmin(address admin) external override {\\n        revokeRole(EMERGENCY_ADMIN_ROLE, admin);\\n    }\\n\\n    /// @inheritdoc IACLManager\\n    function isEmergencyAdmin(\\n        address admin\\n    ) external view override returns (bool) {\\n        return hasRole(EMERGENCY_ADMIN_ROLE, admin);\\n    }\\n\\n    /// @inheritdoc IACLManager\\n    function addRiskAdmin(address admin) external override {\\n        grantRole(RISK_ADMIN_ROLE, admin);\\n    }\\n\\n    /// @inheritdoc IACLManager\\n    function removeRiskAdmin(address admin) external override {\\n        revokeRole(RISK_ADMIN_ROLE, admin);\\n    }\\n\\n    /// @inheritdoc IACLManager\\n    function isRiskAdmin(address admin) external view override returns (bool) {\\n        return hasRole(RISK_ADMIN_ROLE, admin);\\n    }\\n\\n    /// @inheritdoc IACLManager\\n    function addFlashBorrower(address borrower) external override {\\n        grantRole(FLASH_BORROWER_ROLE, borrower);\\n    }\\n\\n    /// @inheritdoc IACLManager\\n    function removeFlashBorrower(address borrower) external override {\\n        revokeRole(FLASH_BORROWER_ROLE, borrower);\\n    }\\n\\n    /// @inheritdoc IACLManager\\n    function isFlashBorrower(\\n        address borrower\\n    ) external view override returns (bool) {\\n        return hasRole(FLASH_BORROWER_ROLE, borrower);\\n    }\\n\\n    /// @inheritdoc IACLManager\\n    function addBridge(address bridge) external override {\\n        grantRole(BRIDGE_ROLE, bridge);\\n    }\\n\\n    /// @inheritdoc IACLManager\\n    function removeBridge(address bridge) external override {\\n        revokeRole(BRIDGE_ROLE, bridge);\\n    }\\n\\n    /// @inheritdoc IACLManager\\n    function isBridge(address bridge) external view override returns (bool) {\\n        return hasRole(BRIDGE_ROLE, bridge);\\n    }\\n\\n    /// @inheritdoc IACLManager\\n    function addAssetListingAdmin(address admin) external override {\\n        grantRole(ASSET_LISTING_ADMIN_ROLE, admin);\\n    }\\n\\n    /// @inheritdoc IACLManager\\n    function removeAssetListingAdmin(address admin) external override {\\n        revokeRole(ASSET_LISTING_ADMIN_ROLE, admin);\\n    }\\n\\n    /// @inheritdoc IACLManager\\n    function isAssetListingAdmin(\\n        address admin\\n    ) external view override returns (bool) {\\n        return hasRole(ASSET_LISTING_ADMIN_ROLE, admin);\\n    }\\n}\\n\",\"keccak256\":\"0x294146c94f3a5546ad9885f1b7231edb705103c5cd606b1f77d7329401a0c34f\",\"license\":\"BUSL-1.1\"},\"contracts/dlend/core/protocol/libraries/helpers/Errors.sol\":{\"content\":\"// SPDX-License-Identifier: BUSL-1.1\\n/* \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 *\\n *    _____     ______   ______     __     __   __     __     ______   __  __       *\\n *   /\\\\  __-.  /\\\\__  _\\\\ /\\\\  == \\\\   /\\\\ \\\\   /\\\\ \\\"-.\\\\ \\\\   /\\\\ \\\\   /\\\\__  _\\\\ /\\\\ \\\\_\\\\ \\\\      *\\n *   \\\\ \\\\ \\\\/\\\\ \\\\ \\\\/_/\\\\ \\\\/ \\\\ \\\\  __<   \\\\ \\\\ \\\\  \\\\ \\\\ \\\\-.  \\\\  \\\\ \\\\ \\\\  \\\\/_/\\\\ \\\\/ \\\\ \\\\____ \\\\     *\\n *    \\\\ \\\\____-    \\\\ \\\\_\\\\  \\\\ \\\\_\\\\ \\\\_\\\\  \\\\ \\\\_\\\\  \\\\ \\\\_\\\\\\\\\\\"\\\\_\\\\  \\\\ \\\\_\\\\    \\\\ \\\\_\\\\  \\\\/\\\\_____\\\\    *\\n *     \\\\/____/     \\\\/_/   \\\\/_/ /_/   \\\\/_/   \\\\/_/ \\\\/_/   \\\\/_/     \\\\/_/   \\\\/_____/    *\\n *                                                                                  *\\n * \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 dtrinity.org \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 *\\n *                                                                                  *\\n *                                         \\u25b2                                        *\\n *                                        \\u25b2 \\u25b2                                       *\\n *                                                                                  *\\n * \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 *\\n * dTRINITY Protocol: https://github.com/dtrinity                                   *\\n * \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 */\\n\\npragma solidity ^0.8.20;\\n\\n/**\\n * @title Errors library\\n * @author Aave\\n * @notice Defines the error messages emitted by the different contracts of the Aave protocol\\n */\\nlibrary Errors {\\n    string public constant CALLER_NOT_POOL_ADMIN = \\\"1\\\"; // 'The caller of the function is not a pool admin'\\n    string public constant CALLER_NOT_EMERGENCY_ADMIN = \\\"2\\\"; // 'The caller of the function is not an emergency admin'\\n    string public constant CALLER_NOT_POOL_OR_EMERGENCY_ADMIN = \\\"3\\\"; // 'The caller of the function is not a pool or emergency admin'\\n    string public constant CALLER_NOT_RISK_OR_POOL_ADMIN = \\\"4\\\"; // 'The caller of the function is not a risk or pool admin'\\n    string public constant CALLER_NOT_ASSET_LISTING_OR_POOL_ADMIN = \\\"5\\\"; // 'The caller of the function is not an asset listing or pool admin'\\n    string public constant CALLER_NOT_BRIDGE = \\\"6\\\"; // 'The caller of the function is not a bridge'\\n    string public constant ADDRESSES_PROVIDER_NOT_REGISTERED = \\\"7\\\"; // 'Pool addresses provider is not registered'\\n    string public constant INVALID_ADDRESSES_PROVIDER_ID = \\\"8\\\"; // 'Invalid id for the pool addresses provider'\\n    string public constant NOT_CONTRACT = \\\"9\\\"; // 'Address is not a contract'\\n    string public constant CALLER_NOT_POOL_CONFIGURATOR = \\\"10\\\"; // 'The caller of the function is not the pool configurator'\\n    string public constant CALLER_NOT_ATOKEN = \\\"11\\\"; // 'The caller of the function is not an AToken'\\n    string public constant INVALID_ADDRESSES_PROVIDER = \\\"12\\\"; // 'The address of the pool addresses provider is invalid'\\n    string public constant INVALID_FLASHLOAN_EXECUTOR_RETURN = \\\"13\\\"; // 'Invalid return value of the flashloan executor function'\\n    string public constant RESERVE_ALREADY_ADDED = \\\"14\\\"; // 'Reserve has already been added to reserve list'\\n    string public constant NO_MORE_RESERVES_ALLOWED = \\\"15\\\"; // 'Maximum amount of reserves in the pool reached'\\n    string public constant EMODE_CATEGORY_RESERVED = \\\"16\\\"; // 'Zero eMode category is reserved for volatile heterogeneous assets'\\n    string public constant INVALID_EMODE_CATEGORY_ASSIGNMENT = \\\"17\\\"; // 'Invalid eMode category assignment to asset'\\n    string public constant RESERVE_LIQUIDITY_NOT_ZERO = \\\"18\\\"; // 'The liquidity of the reserve needs to be 0'\\n    string public constant FLASHLOAN_PREMIUM_INVALID = \\\"19\\\"; // 'Invalid flashloan premium'\\n    string public constant INVALID_RESERVE_PARAMS = \\\"20\\\"; // 'Invalid risk parameters for the reserve'\\n    string public constant INVALID_EMODE_CATEGORY_PARAMS = \\\"21\\\"; // 'Invalid risk parameters for the eMode category'\\n    string public constant BRIDGE_PROTOCOL_FEE_INVALID = \\\"22\\\"; // 'Invalid bridge protocol fee'\\n    string public constant CALLER_MUST_BE_POOL = \\\"23\\\"; // 'The caller of this function must be a pool'\\n    string public constant INVALID_MINT_AMOUNT = \\\"24\\\"; // 'Invalid amount to mint'\\n    string public constant INVALID_BURN_AMOUNT = \\\"25\\\"; // 'Invalid amount to burn'\\n    string public constant INVALID_AMOUNT = \\\"26\\\"; // 'Amount must be greater than 0'\\n    string public constant RESERVE_INACTIVE = \\\"27\\\"; // 'Action requires an active reserve'\\n    string public constant RESERVE_FROZEN = \\\"28\\\"; // 'Action cannot be performed because the reserve is frozen'\\n    string public constant RESERVE_PAUSED = \\\"29\\\"; // 'Action cannot be performed because the reserve is paused'\\n    string public constant BORROWING_NOT_ENABLED = \\\"30\\\"; // 'Borrowing is not enabled'\\n    string public constant STABLE_BORROWING_NOT_ENABLED = \\\"31\\\"; // 'Stable borrowing is not enabled'\\n    string public constant NOT_ENOUGH_AVAILABLE_USER_BALANCE = \\\"32\\\"; // 'User cannot withdraw more than the available balance'\\n    string public constant INVALID_INTEREST_RATE_MODE_SELECTED = \\\"33\\\"; // 'Invalid interest rate mode selected'\\n    string public constant COLLATERAL_BALANCE_IS_ZERO = \\\"34\\\"; // 'The collateral balance is 0'\\n    string public constant HEALTH_FACTOR_LOWER_THAN_LIQUIDATION_THRESHOLD =\\n        \\\"35\\\"; // 'Health factor is lesser than the liquidation threshold'\\n    string public constant COLLATERAL_CANNOT_COVER_NEW_BORROW = \\\"36\\\"; // 'There is not enough collateral to cover a new borrow'\\n    string public constant COLLATERAL_SAME_AS_BORROWING_CURRENCY = \\\"37\\\"; // 'Collateral is (mostly) the same currency that is being borrowed'\\n    string public constant AMOUNT_BIGGER_THAN_MAX_LOAN_SIZE_STABLE = \\\"38\\\"; // 'The requested amount is greater than the max loan size in stable rate mode'\\n    string public constant NO_DEBT_OF_SELECTED_TYPE = \\\"39\\\"; // 'For repayment of a specific type of debt, the user needs to have debt that type'\\n    string public constant NO_EXPLICIT_AMOUNT_TO_REPAY_ON_BEHALF = \\\"40\\\"; // 'To repay on behalf of a user an explicit amount to repay is needed'\\n    string public constant NO_OUTSTANDING_STABLE_DEBT = \\\"41\\\"; // 'User does not have outstanding stable rate debt on this reserve'\\n    string public constant NO_OUTSTANDING_VARIABLE_DEBT = \\\"42\\\"; // 'User does not have outstanding variable rate debt on this reserve'\\n    string public constant UNDERLYING_BALANCE_ZERO = \\\"43\\\"; // 'The underlying balance needs to be greater than 0'\\n    string public constant INTEREST_RATE_REBALANCE_CONDITIONS_NOT_MET = \\\"44\\\"; // 'Interest rate rebalance conditions were not met'\\n    string public constant HEALTH_FACTOR_NOT_BELOW_THRESHOLD = \\\"45\\\"; // 'Health factor is not below the threshold'\\n    string public constant COLLATERAL_CANNOT_BE_LIQUIDATED = \\\"46\\\"; // 'The collateral chosen cannot be liquidated'\\n    string public constant SPECIFIED_CURRENCY_NOT_BORROWED_BY_USER = \\\"47\\\"; // 'User did not borrow the specified currency'\\n    string public constant INCONSISTENT_FLASHLOAN_PARAMS = \\\"49\\\"; // 'Inconsistent flashloan parameters'\\n    string public constant BORROW_CAP_EXCEEDED = \\\"50\\\"; // 'Borrow cap is exceeded'\\n    string public constant SUPPLY_CAP_EXCEEDED = \\\"51\\\"; // 'Supply cap is exceeded'\\n    string public constant UNBACKED_MINT_CAP_EXCEEDED = \\\"52\\\"; // 'Unbacked mint cap is exceeded'\\n    string public constant DEBT_CEILING_EXCEEDED = \\\"53\\\"; // 'Debt ceiling is exceeded'\\n    string public constant UNDERLYING_CLAIMABLE_RIGHTS_NOT_ZERO = \\\"54\\\"; // 'Claimable rights over underlying not zero (aToken supply or accruedToTreasury)'\\n    string public constant STABLE_DEBT_NOT_ZERO = \\\"55\\\"; // 'Stable debt supply is not zero'\\n    string public constant VARIABLE_DEBT_SUPPLY_NOT_ZERO = \\\"56\\\"; // 'Variable debt supply is not zero'\\n    string public constant LTV_VALIDATION_FAILED = \\\"57\\\"; // 'Ltv validation failed'\\n    string public constant INCONSISTENT_EMODE_CATEGORY = \\\"58\\\"; // 'Inconsistent eMode category'\\n    string public constant PRICE_ORACLE_SENTINEL_CHECK_FAILED = \\\"59\\\"; // 'Price oracle sentinel validation failed'\\n    string public constant ASSET_NOT_BORROWABLE_IN_ISOLATION = \\\"60\\\"; // 'Asset is not borrowable in isolation mode'\\n    string public constant RESERVE_ALREADY_INITIALIZED = \\\"61\\\"; // 'Reserve has already been initialized'\\n    string public constant USER_IN_ISOLATION_MODE_OR_LTV_ZERO = \\\"62\\\"; // 'User is in isolation mode or ltv is zero'\\n    string public constant INVALID_LTV = \\\"63\\\"; // 'Invalid ltv parameter for the reserve'\\n    string public constant INVALID_LIQ_THRESHOLD = \\\"64\\\"; // 'Invalid liquidity threshold parameter for the reserve'\\n    string public constant INVALID_LIQ_BONUS = \\\"65\\\"; // 'Invalid liquidity bonus parameter for the reserve'\\n    string public constant INVALID_DECIMALS = \\\"66\\\"; // 'Invalid decimals parameter of the underlying asset of the reserve'\\n    string public constant INVALID_RESERVE_FACTOR = \\\"67\\\"; // 'Invalid reserve factor parameter for the reserve'\\n    string public constant INVALID_BORROW_CAP = \\\"68\\\"; // 'Invalid borrow cap for the reserve'\\n    string public constant INVALID_SUPPLY_CAP = \\\"69\\\"; // 'Invalid supply cap for the reserve'\\n    string public constant INVALID_LIQUIDATION_PROTOCOL_FEE = \\\"70\\\"; // 'Invalid liquidation protocol fee for the reserve'\\n    string public constant INVALID_EMODE_CATEGORY = \\\"71\\\"; // 'Invalid eMode category for the reserve'\\n    string public constant INVALID_UNBACKED_MINT_CAP = \\\"72\\\"; // 'Invalid unbacked mint cap for the reserve'\\n    string public constant INVALID_DEBT_CEILING = \\\"73\\\"; // 'Invalid debt ceiling for the reserve\\n    string public constant INVALID_RESERVE_INDEX = \\\"74\\\"; // 'Invalid reserve index'\\n    string public constant ACL_ADMIN_CANNOT_BE_ZERO = \\\"75\\\"; // 'ACL admin cannot be set to the zero address'\\n    string public constant INCONSISTENT_PARAMS_LENGTH = \\\"76\\\"; // 'Array parameters that should be equal length are not'\\n    string public constant ZERO_ADDRESS_NOT_VALID = \\\"77\\\"; // 'Zero address not valid'\\n    string public constant INVALID_EXPIRATION = \\\"78\\\"; // 'Invalid expiration'\\n    string public constant INVALID_SIGNATURE = \\\"79\\\"; // 'Invalid signature'\\n    string public constant OPERATION_NOT_SUPPORTED = \\\"80\\\"; // 'Operation not supported'\\n    string public constant DEBT_CEILING_NOT_ZERO = \\\"81\\\"; // 'Debt ceiling is not zero'\\n    string public constant ASSET_NOT_LISTED = \\\"82\\\"; // 'Asset is not listed'\\n    string public constant INVALID_OPTIMAL_USAGE_RATIO = \\\"83\\\"; // 'Invalid optimal usage ratio'\\n    string public constant INVALID_OPTIMAL_STABLE_TO_TOTAL_DEBT_RATIO = \\\"84\\\"; // 'Invalid optimal stable to total debt ratio'\\n    string public constant UNDERLYING_CANNOT_BE_RESCUED = \\\"85\\\"; // 'The underlying asset cannot be rescued'\\n    string public constant ADDRESSES_PROVIDER_ALREADY_ADDED = \\\"86\\\"; // 'Reserve has already been added to reserve list'\\n    string public constant POOL_ADDRESSES_DO_NOT_MATCH = \\\"87\\\"; // 'The token implementation pool address and the pool address provided by the initializing pool do not match'\\n    string public constant STABLE_BORROWING_ENABLED = \\\"88\\\"; // 'Stable borrowing is enabled'\\n    string public constant SILOED_BORROWING_VIOLATION = \\\"89\\\"; // 'User is trying to borrow multiple assets including a siloed one'\\n    string public constant RESERVE_DEBT_NOT_ZERO = \\\"90\\\"; // the total debt of the reserve needs to be 0\\n    string public constant FLASHLOAN_DISABLED = \\\"91\\\"; // FlashLoaning for this asset is disabled\\n}\\n\",\"keccak256\":\"0x61fd1ef22c6b7efdd802727883649132f7c558cfbe2c2a2ed29ce693ee4dfd62\",\"license\":\"BUSL-1.1\"}},\"version\":1}",
+  "bytecode": "0x60a06040523480156200001157600080fd5b5060405162001094380380620010948339810160408190526200003491620001e3565b806001600160a01b03166080816001600160a01b0316815250506000816001600160a01b0316630e67178c6040518163ffffffff1660e01b8152600401602060405180830381865afa1580156200008f573d6000803e3d6000fd5b505050506040513d601f19601f82011682018060405250810190620000b59190620001e3565b604080518082019091526002815261373560f01b60208201529091506001600160a01b038216620001045760405162461bcd60e51b8152600401620000fb91906200020a565b60405180910390fd5b50620001126000826200011a565b50506200025a565b6200012682826200012a565b5050565b6000828152602081815260408083206001600160a01b038516845290915290205460ff1662000126576000828152602081815260408083206001600160a01b03851684529091529020805460ff19166001179055620001863390565b6001600160a01b0316816001600160a01b0316837f2f8788117e7eff1d82e926ec794901d17c78024a50270940304540a733656f0d60405160405180910390a45050565b6001600160a01b0381168114620001e057600080fd5b50565b600060208284031215620001f657600080fd5b81516200020381620001ca565b9392505050565b600060208083528351808285015260005b8181101562000239578581018301518582016040015282016200021b565b506000604082860101526040601f19601f8301168501019250505092915050565b608051610e1e6200027660003960006102420152610e1e6000f3fe608060405234801561001057600080fd5b50600436106101fb5760003560e01c8063674b5e4d1161011a5780639a2b96f7116100ad578063b5bfddea1161007c578063b5bfddea14610472578063b8f6dba714610487578063d547741f1461049c578063f83695cb146104af578063fa50f297146104c257600080fd5b80639a2b96f7146104315780639ac9d80b14610444578063a217fddf14610457578063a21bce151461045f57600080fd5b80637a9a93f4116100e95780637a9a93f4146103e55780637be53ca1146103f857806391d148541461040b5780639712fdf81461041e57600080fd5b8063674b5e4d146103955780636e76fc8f146103a8578063726600ce146103bd57806378bb0a43146103d057600080fd5b80632500f2b6116101925780633c5a08e5116101615780633c5a08e5146103455780634f16b425146103585780635577b7a91461036d5780635b9a94e41461038257600080fd5b80632500f2b6146102f9578063253cf9801461030c5780632f2ff15d1461031f57806336568abe1461033257600080fd5b8063179efb09116101ce578063179efb091461028f5780631e4e0091146102a257806322650caf146102b5578063248a9ca3146102c857600080fd5b806301ffc9a71461020057806304df017d146102285780630542975c1461023d57806313ee32e01461027c575b600080fd5b61021361020e366004610b11565b6104d5565b60405190151581526020015b60405180910390f35b61023b610236366004610b57565b61050c565b005b6102647f000000000000000000000000000000000000000000000000000000000000000081565b6040516001600160a01b03909116815260200161021f565b61021361028a366004610b57565b610527565b61023b61029d366004610b57565b610541565b61023b6102b0366004610b72565b610559565b61023b6102c3366004610b57565b610574565b6102eb6102d6366004610b94565b60009081526020819052604090206001015490565b60405190815260200161021f565b610213610307366004610b57565b61058c565b61023b61031a366004610b57565b6105a6565b61023b61032d366004610bad565b6105be565b61023b610340366004610bad565b6105e4565b61023b610353366004610b57565b610667565b6102eb600080516020610d4983398151915281565b6102eb600080516020610dc983398151915281565b61023b610390366004610b57565b61067f565b6102136103a3366004610b57565b610697565b6102eb600080516020610da983398151915281565b6102136103cb366004610b57565b6106b1565b6102eb600080516020610d6983398151915281565b61023b6103f3366004610b57565b6106cb565b610213610406366004610b57565b6106e3565b610213610419366004610bad565b6106f9565b61023b61042c366004610b57565b610722565b61023b61043f366004610b57565b61073a565b61023b610452366004610b57565b610752565b6102eb600081565b61023b61046d366004610b57565b61076a565b6102eb600080516020610d8983398151915281565b6102eb600080516020610d2983398151915281565b61023b6104aa366004610bad565b61077e565b61023b6104bd366004610b57565b6107a4565b6102136104d0366004610b57565b6107bc565b60006001600160e01b03198216637965db0b60e01b148061050657506301ffc9a760e01b6001600160e01b03198316145b92915050565b610524600080516020610d898339815191528261077e565b50565b6000610506600080516020610d69833981519152836106f9565b610524600080516020610da9833981519152826105be565b600061056581336107d6565b61056f838361083a565b505050565b610524600080516020610d29833981519152826105be565b6000610506600080516020610da9833981519152836106f9565b610524600080516020610dc98339815191528261077e565b6000828152602081905260409020600101546105da81336107d6565b61056f8383610885565b6001600160a01b03811633146106595760405162461bcd60e51b815260206004820152602f60248201527f416363657373436f6e74726f6c3a2063616e206f6e6c792072656e6f756e636560448201526e103937b632b9903337b91039b2b63360891b60648201526084015b60405180910390fd5b6106638282610909565b5050565b610524600080516020610d498339815191528261077e565b610524600080516020610d49833981519152826105be565b6000610506600080516020610d49833981519152836106f9565b6000610506600080516020610d89833981519152836106f9565b610524600080516020610da98339815191528261077e565b6000610506600080516020610d29833981519152835b6000918252602082815260408084206001600160a01b0393909316845291905290205460ff1690565b610524600080516020610d89833981519152826105be565b610524600080516020610d69833981519152826105be565b610524600080516020610dc9833981519152826105be565b610524600080516020610d69833981519152825b60008281526020819052604090206001015461079a81336107d6565b61056f8383610909565b610524600080516020610d298339815191528261077e565b6000610506600080516020610dc9833981519152836106f9565b6107e082826106f9565b610663576107f8816001600160a01b0316601461096e565b61080383602061096e565b604051602001610814929190610bfd565b60408051601f198184030181529082905262461bcd60e51b825261065091600401610c72565b600082815260208190526040808220600101805490849055905190918391839186917fbd79b86ffe0ab8e8776151514217cd7cacd52c909f66475c3af44e129f0b00ff9190a4505050565b61088f82826106f9565b610663576000828152602081815260408083206001600160a01b03851684529091529020805460ff191660011790556108c53390565b6001600160a01b0316816001600160a01b0316837f2f8788117e7eff1d82e926ec794901d17c78024a50270940304540a733656f0d60405160405180910390a45050565b61091382826106f9565b15610663576000828152602081815260408083206001600160a01b0385168085529252808320805460ff1916905551339285917ff6391f5c32d9c69d2a47ea670b442974b53935d1edc7fd64eb21e047a839171b9190a45050565b6060600061097d836002610cbb565b610988906002610cd2565b67ffffffffffffffff8111156109a0576109a0610ce5565b6040519080825280601f01601f1916602001820160405280156109ca576020820181803683370190505b509050600360fc1b816000815181106109e5576109e5610cfb565b60200101906001600160f81b031916908160001a905350600f60fb1b81600181518110610a1457610a14610cfb565b60200101906001600160f81b031916908160001a9053506000610a38846002610cbb565b610a43906001610cd2565b90505b6001811115610abb576f181899199a1a9b1b9c1cb0b131b232b360811b85600f1660108110610a7757610a77610cfb565b1a60f81b828281518110610a8d57610a8d610cfb565b60200101906001600160f81b031916908160001a90535060049490941c93610ab481610d11565b9050610a46565b508315610b0a5760405162461bcd60e51b815260206004820181905260248201527f537472696e67733a20686578206c656e67746820696e73756666696369656e746044820152606401610650565b9392505050565b600060208284031215610b2357600080fd5b81356001600160e01b031981168114610b0a57600080fd5b80356001600160a01b0381168114610b5257600080fd5b919050565b600060208284031215610b6957600080fd5b610b0a82610b3b565b60008060408385031215610b8557600080fd5b50508035926020909101359150565b600060208284031215610ba657600080fd5b5035919050565b60008060408385031215610bc057600080fd5b82359150610bd060208401610b3b565b90509250929050565b60005b83811015610bf4578181015183820152602001610bdc565b50506000910152565b7f416363657373436f6e74726f6c3a206163636f756e7420000000000000000000815260008351610c35816017850160208801610bd9565b7001034b99036b4b9b9b4b733903937b6329607d1b6017918401918201528351610c66816028840160208801610bd9565b01602801949350505050565b6020815260008251806020840152610c91816040850160208701610bd9565b601f01601f19169190910160400192915050565b634e487b7160e01b600052601160045260246000fd5b808202811582820484141761050657610506610ca5565b8082018082111561050657610506610ca5565b634e487b7160e01b600052604160045260246000fd5b634e487b7160e01b600052603260045260246000fd5b600081610d2057610d20610ca5565b50600019019056fe12ad05bde78c5ab75238ce885307f96ecd482bb402ef831f99e7018a0f169b7b8aa855a911518ecfbe5bc3088c8f3dda7badf130faaf8ace33fdc33828e1816719c860a63258efbd0ecb7d55c626237bf5c2044c26c073390b74f0c13c85743308fb31c3e81624356c3314088aa971b73bcc82d22bc3e3b184b4593077ae32785c91514091af31f62f596a314af7d5be40146b2f2355969392f055e12e0982fb939b8dfb57ecef2aea54a93a15e86768b9d4089f1ba61c245e6ec980695f4ca4a2646970667358221220619e25a0f77a6d5c264e66e51568f01de2f96374029357b3a095d689ea7c4e9464736f6c63430008140033",
+  "deployedBytecode": "0x608060405234801561001057600080fd5b50600436106101fb5760003560e01c8063674b5e4d1161011a5780639a2b96f7116100ad578063b5bfddea1161007c578063b5bfddea14610472578063b8f6dba714610487578063d547741f1461049c578063f83695cb146104af578063fa50f297146104c257600080fd5b80639a2b96f7146104315780639ac9d80b14610444578063a217fddf14610457578063a21bce151461045f57600080fd5b80637a9a93f4116100e95780637a9a93f4146103e55780637be53ca1146103f857806391d148541461040b5780639712fdf81461041e57600080fd5b8063674b5e4d146103955780636e76fc8f146103a8578063726600ce146103bd57806378bb0a43146103d057600080fd5b80632500f2b6116101925780633c5a08e5116101615780633c5a08e5146103455780634f16b425146103585780635577b7a91461036d5780635b9a94e41461038257600080fd5b80632500f2b6146102f9578063253cf9801461030c5780632f2ff15d1461031f57806336568abe1461033257600080fd5b8063179efb09116101ce578063179efb091461028f5780631e4e0091146102a257806322650caf146102b5578063248a9ca3146102c857600080fd5b806301ffc9a71461020057806304df017d146102285780630542975c1461023d57806313ee32e01461027c575b600080fd5b61021361020e366004610b11565b6104d5565b60405190151581526020015b60405180910390f35b61023b610236366004610b57565b61050c565b005b6102647f000000000000000000000000000000000000000000000000000000000000000081565b6040516001600160a01b03909116815260200161021f565b61021361028a366004610b57565b610527565b61023b61029d366004610b57565b610541565b61023b6102b0366004610b72565b610559565b61023b6102c3366004610b57565b610574565b6102eb6102d6366004610b94565b60009081526020819052604090206001015490565b60405190815260200161021f565b610213610307366004610b57565b61058c565b61023b61031a366004610b57565b6105a6565b61023b61032d366004610bad565b6105be565b61023b610340366004610bad565b6105e4565b61023b610353366004610b57565b610667565b6102eb600080516020610d4983398151915281565b6102eb600080516020610dc983398151915281565b61023b610390366004610b57565b61067f565b6102136103a3366004610b57565b610697565b6102eb600080516020610da983398151915281565b6102136103cb366004610b57565b6106b1565b6102eb600080516020610d6983398151915281565b61023b6103f3366004610b57565b6106cb565b610213610406366004610b57565b6106e3565b610213610419366004610bad565b6106f9565b61023b61042c366004610b57565b610722565b61023b61043f366004610b57565b61073a565b61023b610452366004610b57565b610752565b6102eb600081565b61023b61046d366004610b57565b61076a565b6102eb600080516020610d8983398151915281565b6102eb600080516020610d2983398151915281565b61023b6104aa366004610bad565b61077e565b61023b6104bd366004610b57565b6107a4565b6102136104d0366004610b57565b6107bc565b60006001600160e01b03198216637965db0b60e01b148061050657506301ffc9a760e01b6001600160e01b03198316145b92915050565b610524600080516020610d898339815191528261077e565b50565b6000610506600080516020610d69833981519152836106f9565b610524600080516020610da9833981519152826105be565b600061056581336107d6565b61056f838361083a565b505050565b610524600080516020610d29833981519152826105be565b6000610506600080516020610da9833981519152836106f9565b610524600080516020610dc98339815191528261077e565b6000828152602081905260409020600101546105da81336107d6565b61056f8383610885565b6001600160a01b03811633146106595760405162461bcd60e51b815260206004820152602f60248201527f416363657373436f6e74726f6c3a2063616e206f6e6c792072656e6f756e636560448201526e103937b632b9903337b91039b2b63360891b60648201526084015b60405180910390fd5b6106638282610909565b5050565b610524600080516020610d498339815191528261077e565b610524600080516020610d49833981519152826105be565b6000610506600080516020610d49833981519152836106f9565b6000610506600080516020610d89833981519152836106f9565b610524600080516020610da98339815191528261077e565b6000610506600080516020610d29833981519152835b6000918252602082815260408084206001600160a01b0393909316845291905290205460ff1690565b610524600080516020610d89833981519152826105be565b610524600080516020610d69833981519152826105be565b610524600080516020610dc9833981519152826105be565b610524600080516020610d69833981519152825b60008281526020819052604090206001015461079a81336107d6565b61056f8383610909565b610524600080516020610d298339815191528261077e565b6000610506600080516020610dc9833981519152836106f9565b6107e082826106f9565b610663576107f8816001600160a01b0316601461096e565b61080383602061096e565b604051602001610814929190610bfd565b60408051601f198184030181529082905262461bcd60e51b825261065091600401610c72565b600082815260208190526040808220600101805490849055905190918391839186917fbd79b86ffe0ab8e8776151514217cd7cacd52c909f66475c3af44e129f0b00ff9190a4505050565b61088f82826106f9565b610663576000828152602081815260408083206001600160a01b03851684529091529020805460ff191660011790556108c53390565b6001600160a01b0316816001600160a01b0316837f2f8788117e7eff1d82e926ec794901d17c78024a50270940304540a733656f0d60405160405180910390a45050565b61091382826106f9565b15610663576000828152602081815260408083206001600160a01b0385168085529252808320805460ff1916905551339285917ff6391f5c32d9c69d2a47ea670b442974b53935d1edc7fd64eb21e047a839171b9190a45050565b6060600061097d836002610cbb565b610988906002610cd2565b67ffffffffffffffff8111156109a0576109a0610ce5565b6040519080825280601f01601f1916602001820160405280156109ca576020820181803683370190505b509050600360fc1b816000815181106109e5576109e5610cfb565b60200101906001600160f81b031916908160001a905350600f60fb1b81600181518110610a1457610a14610cfb565b60200101906001600160f81b031916908160001a9053506000610a38846002610cbb565b610a43906001610cd2565b90505b6001811115610abb576f181899199a1a9b1b9c1cb0b131b232b360811b85600f1660108110610a7757610a77610cfb565b1a60f81b828281518110610a8d57610a8d610cfb565b60200101906001600160f81b031916908160001a90535060049490941c93610ab481610d11565b9050610a46565b508315610b0a5760405162461bcd60e51b815260206004820181905260248201527f537472696e67733a20686578206c656e67746820696e73756666696369656e746044820152606401610650565b9392505050565b600060208284031215610b2357600080fd5b81356001600160e01b031981168114610b0a57600080fd5b80356001600160a01b0381168114610b5257600080fd5b919050565b600060208284031215610b6957600080fd5b610b0a82610b3b565b60008060408385031215610b8557600080fd5b50508035926020909101359150565b600060208284031215610ba657600080fd5b5035919050565b60008060408385031215610bc057600080fd5b82359150610bd060208401610b3b565b90509250929050565b60005b83811015610bf4578181015183820152602001610bdc565b50506000910152565b7f416363657373436f6e74726f6c3a206163636f756e7420000000000000000000815260008351610c35816017850160208801610bd9565b7001034b99036b4b9b9b4b733903937b6329607d1b6017918401918201528351610c66816028840160208801610bd9565b01602801949350505050565b6020815260008251806020840152610c91816040850160208701610bd9565b601f01601f19169190910160400192915050565b634e487b7160e01b600052601160045260246000fd5b808202811582820484141761050657610506610ca5565b8082018082111561050657610506610ca5565b634e487b7160e01b600052604160045260246000fd5b634e487b7160e01b600052603260045260246000fd5b600081610d2057610d20610ca5565b50600019019056fe12ad05bde78c5ab75238ce885307f96ecd482bb402ef831f99e7018a0f169b7b8aa855a911518ecfbe5bc3088c8f3dda7badf130faaf8ace33fdc33828e1816719c860a63258efbd0ecb7d55c626237bf5c2044c26c073390b74f0c13c85743308fb31c3e81624356c3314088aa971b73bcc82d22bc3e3b184b4593077ae32785c91514091af31f62f596a314af7d5be40146b2f2355969392f055e12e0982fb939b8dfb57ecef2aea54a93a15e86768b9d4089f1ba61c245e6ec980695f4ca4a2646970667358221220619e25a0f77a6d5c264e66e51568f01de2f96374029357b3a095d689ea7c4e9464736f6c63430008140033",
+  "devdoc": {
+    "author": "Aave",
+    "events": {
+      "RoleAdminChanged(bytes32,bytes32,bytes32)": {
+        "details": "Emitted when `newAdminRole` is set as ``role``'s admin role, replacing `previousAdminRole` `DEFAULT_ADMIN_ROLE` is the starting admin for all roles, despite {RoleAdminChanged} not being emitted signaling this. _Available since v3.1._"
+      },
+      "RoleGranted(bytes32,address,address)": {
+        "details": "Emitted when `account` is granted `role`. `sender` is the account that originated the contract call, an admin role bearer except when using {AccessControl-_setupRole}."
+      },
+      "RoleRevoked(bytes32,address,address)": {
+        "details": "Emitted when `account` is revoked `role`. `sender` is the account that originated the contract call:   - if using `revokeRole`, it is the admin role bearer   - if using `renounceRole`, it is the role bearer (i.e. `account`)"
+      }
+    },
+    "kind": "dev",
+    "methods": {
+      "addAssetListingAdmin(address)": {
+        "params": {
+          "admin": "The address of the new admin"
+        }
+      },
+      "addBridge(address)": {
+        "params": {
+          "bridge": "The address of the new Bridge"
+        }
+      },
+      "addEmergencyAdmin(address)": {
+        "params": {
+          "admin": "The address of the new admin"
+        }
+      },
+      "addFlashBorrower(address)": {
+        "params": {
+          "borrower": "The address of the new FlashBorrower"
+        }
+      },
+      "addPoolAdmin(address)": {
+        "params": {
+          "admin": "The address of the new admin"
+        }
+      },
+      "addRiskAdmin(address)": {
+        "params": {
+          "admin": "The address of the new admin"
+        }
+      },
+      "constructor": {
+        "details": "ConstructorThe ACL admin should be initialized at the addressesProvider beforehand",
+        "params": {
+          "provider": "The address of the PoolAddressesProvider"
+        }
+      },
+      "getRoleAdmin(bytes32)": {
+        "details": "Returns the admin role that controls `role`. See {grantRole} and {revokeRole}. To change a role's admin, use {_setRoleAdmin}."
+      },
+      "grantRole(bytes32,address)": {
+        "details": "Grants `role` to `account`. If `account` had not been already granted `role`, emits a {RoleGranted} event. Requirements: - the caller must have ``role``'s admin role."
+      },
+      "hasRole(bytes32,address)": {
+        "details": "Returns `true` if `account` has been granted `role`."
+      },
+      "isAssetListingAdmin(address)": {
+        "params": {
+          "admin": "The address to check"
+        },
+        "returns": {
+          "_0": "True if the given address is AssetListingAdmin, false otherwise"
+        }
+      },
+      "isBridge(address)": {
+        "params": {
+          "bridge": "The address to check"
+        },
+        "returns": {
+          "_0": "True if the given address is Bridge, false otherwise"
+        }
+      },
+      "isEmergencyAdmin(address)": {
+        "params": {
+          "admin": "The address to check"
+        },
+        "returns": {
+          "_0": "True if the given address is EmergencyAdmin, false otherwise"
+        }
+      },
+      "isFlashBorrower(address)": {
+        "params": {
+          "borrower": "The address to check"
+        },
+        "returns": {
+          "_0": "True if the given address is FlashBorrower, false otherwise"
+        }
+      },
+      "isPoolAdmin(address)": {
+        "params": {
+          "admin": "The address to check"
+        },
+        "returns": {
+          "_0": "True if the given address is PoolAdmin, false otherwise"
+        }
+      },
+      "isRiskAdmin(address)": {
+        "params": {
+          "admin": "The address to check"
+        },
+        "returns": {
+          "_0": "True if the given address is RiskAdmin, false otherwise"
+        }
+      },
+      "removeAssetListingAdmin(address)": {
+        "params": {
+          "admin": "The address of the admin to remove"
+        }
+      },
+      "removeBridge(address)": {
+        "params": {
+          "bridge": "The address of the bridge to remove"
+        }
+      },
+      "removeEmergencyAdmin(address)": {
+        "params": {
+          "admin": "The address of the admin to remove"
+        }
+      },
+      "removeFlashBorrower(address)": {
+        "params": {
+          "borrower": "The address of the FlashBorrower to remove"
+        }
+      },
+      "removePoolAdmin(address)": {
+        "params": {
+          "admin": "The address of the admin to remove"
+        }
+      },
+      "removeRiskAdmin(address)": {
+        "params": {
+          "admin": "The address of the admin to remove"
+        }
+      },
+      "renounceRole(bytes32,address)": {
+        "details": "Revokes `role` from the calling account. Roles are often managed via {grantRole} and {revokeRole}: this function's purpose is to provide a mechanism for accounts to lose their privileges if they are compromised (such as when a trusted device is misplaced). If the calling account had been granted `role`, emits a {RoleRevoked} event. Requirements: - the caller must be `account`."
+      },
+      "revokeRole(bytes32,address)": {
+        "details": "Revokes `role` from `account`. If `account` had been granted `role`, emits a {RoleRevoked} event. Requirements: - the caller must have ``role``'s admin role."
+      },
+      "setRoleAdmin(bytes32,bytes32)": {
+        "details": "By default the admin role for all roles is `DEFAULT_ADMIN_ROLE`.",
+        "params": {
+          "adminRole": "The admin role",
+          "role": "The role to be managed by the admin role"
+        }
+      },
+      "supportsInterface(bytes4)": {
+        "details": "See {IERC165-supportsInterface}."
+      }
+    },
+    "stateVariables": {
+      "ADDRESSES_PROVIDER": {
+        "return": "The address of the PoolAddressesProvider",
+        "returns": {
+          "_0": "The address of the PoolAddressesProvider"
+        }
+      },
+      "ASSET_LISTING_ADMIN_ROLE": {
+        "return": "The id of the AssetListingAdmin role",
+        "returns": {
+          "_0": "The id of the AssetListingAdmin role"
+        }
+      },
+      "BRIDGE_ROLE": {
+        "return": "The id of the Bridge role",
+        "returns": {
+          "_0": "The id of the Bridge role"
+        }
+      },
+      "EMERGENCY_ADMIN_ROLE": {
+        "return": "The id of the EmergencyAdmin role",
+        "returns": {
+          "_0": "The id of the EmergencyAdmin role"
+        }
+      },
+      "FLASH_BORROWER_ROLE": {
+        "return": "The id of the FlashBorrower role",
+        "returns": {
+          "_0": "The id of the FlashBorrower role"
+        }
+      },
+      "POOL_ADMIN_ROLE": {
+        "return": "The id of the PoolAdmin role",
+        "returns": {
+          "_0": "The id of the PoolAdmin role"
+        }
+      },
+      "RISK_ADMIN_ROLE": {
+        "return": "The id of the RiskAdmin role",
+        "returns": {
+          "_0": "The id of the RiskAdmin role"
+        }
+      }
+    },
+    "title": "ACLManager",
+    "version": 1
+  },
+  "userdoc": {
+    "kind": "user",
+    "methods": {
+      "ADDRESSES_PROVIDER()": {
+        "notice": "Returns the contract address of the PoolAddressesProvider"
+      },
+      "ASSET_LISTING_ADMIN_ROLE()": {
+        "notice": "Returns the identifier of the AssetListingAdmin role"
+      },
+      "BRIDGE_ROLE()": {
+        "notice": "Returns the identifier of the Bridge role"
+      },
+      "EMERGENCY_ADMIN_ROLE()": {
+        "notice": "Returns the identifier of the EmergencyAdmin role"
+      },
+      "FLASH_BORROWER_ROLE()": {
+        "notice": "Returns the identifier of the FlashBorrower role"
+      },
+      "POOL_ADMIN_ROLE()": {
+        "notice": "Returns the identifier of the PoolAdmin role"
+      },
+      "RISK_ADMIN_ROLE()": {
+        "notice": "Returns the identifier of the RiskAdmin role"
+      },
+      "addAssetListingAdmin(address)": {
+        "notice": "Adds a new admin as AssetListingAdmin"
+      },
+      "addBridge(address)": {
+        "notice": "Adds a new address as Bridge"
+      },
+      "addEmergencyAdmin(address)": {
+        "notice": "Adds a new admin as EmergencyAdmin"
+      },
+      "addFlashBorrower(address)": {
+        "notice": "Adds a new address as FlashBorrower"
+      },
+      "addPoolAdmin(address)": {
+        "notice": "Adds a new admin as PoolAdmin"
+      },
+      "addRiskAdmin(address)": {
+        "notice": "Adds a new admin as RiskAdmin"
+      },
+      "isAssetListingAdmin(address)": {
+        "notice": "Returns true if the address is AssetListingAdmin, false otherwise"
+      },
+      "isBridge(address)": {
+        "notice": "Returns true if the address is Bridge, false otherwise"
+      },
+      "isEmergencyAdmin(address)": {
+        "notice": "Returns true if the address is EmergencyAdmin, false otherwise"
+      },
+      "isFlashBorrower(address)": {
+        "notice": "Returns true if the address is FlashBorrower, false otherwise"
+      },
+      "isPoolAdmin(address)": {
+        "notice": "Returns true if the address is PoolAdmin, false otherwise"
+      },
+      "isRiskAdmin(address)": {
+        "notice": "Returns true if the address is RiskAdmin, false otherwise"
+      },
+      "removeAssetListingAdmin(address)": {
+        "notice": "Removes an admin as AssetListingAdmin"
+      },
+      "removeBridge(address)": {
+        "notice": "Removes an address as Bridge"
+      },
+      "removeEmergencyAdmin(address)": {
+        "notice": "Removes an admin as EmergencyAdmin"
+      },
+      "removeFlashBorrower(address)": {
+        "notice": "Removes an address as FlashBorrower"
+      },
+      "removePoolAdmin(address)": {
+        "notice": "Removes an admin as PoolAdmin"
+      },
+      "removeRiskAdmin(address)": {
+        "notice": "Removes an admin as RiskAdmin"
+      },
+      "setRoleAdmin(bytes32,bytes32)": {
+        "notice": "Set the role as admin of a specific role."
+      }
+    },
+    "notice": "Access Control List Manager. Main registry of system roles and permissions.",
+    "version": 1
+  },
+  "storageLayout": {
+    "storage": [
+      {
+        "astId": 4926,
+        "contract": "contracts/dlend/core/protocol/configuration/ACLManager.sol:ACLManager",
+        "label": "_roles",
+        "offset": 0,
+        "slot": "0",
+        "type": "t_mapping(t_bytes32,t_struct(RoleData)4921_storage)"
+      }
+    ],
+    "types": {
+      "t_address": {
+        "encoding": "inplace",
+        "label": "address",
+        "numberOfBytes": "20"
+      },
+      "t_bool": {
+        "encoding": "inplace",
+        "label": "bool",
+        "numberOfBytes": "1"
+      },
+      "t_bytes32": {
+        "encoding": "inplace",
+        "label": "bytes32",
+        "numberOfBytes": "32"
+      },
+      "t_mapping(t_address,t_bool)": {
+        "encoding": "mapping",
+        "key": "t_address",
+        "label": "mapping(address => bool)",
+        "numberOfBytes": "32",
+        "value": "t_bool"
+      },
+      "t_mapping(t_bytes32,t_struct(RoleData)4921_storage)": {
+        "encoding": "mapping",
+        "key": "t_bytes32",
+        "label": "mapping(bytes32 => struct AccessControl.RoleData)",
+        "numberOfBytes": "32",
+        "value": "t_struct(RoleData)4921_storage"
+      },
+      "t_struct(RoleData)4921_storage": {
+        "encoding": "inplace",
+        "label": "struct AccessControl.RoleData",
+        "members": [
+          {
+            "astId": 4918,
+            "contract": "contracts/dlend/core/protocol/configuration/ACLManager.sol:ACLManager",
+            "label": "members",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_mapping(t_address,t_bool)"
+          },
+          {
+            "astId": 4920,
+            "contract": "contracts/dlend/core/protocol/configuration/ACLManager.sol:ACLManager",
+            "label": "adminRole",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_bytes32"
+          }
+        ],
+        "numberOfBytes": "64"
+      }
+    }
+  }
+}

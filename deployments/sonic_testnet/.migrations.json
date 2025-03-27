@@ -21,5 +21,21 @@
   "dS:dS_Redeemer": 1742282789,
   "dS_HardPegOracleWrapper": 1742282794,
   "wS_HardPegOracleWrapper": 1742282797,
-  "ds-whitelist-collateral": 1742282806
+  "ds-whitelist-collateral": 1742282806,
+  "PoolAddressesProviderRegistry": 1743089276,
+  "LogicLibraries": 1743089305,
+  "Treasury": 1743089321,
+  "PoolAddressesProvider": 1743089336,
+  "L2PoolImplementations": 1743089346,
+  "PoolConfigurator": 1743089356,
+  "init_acl": 1743089369,
+  "deploy_oracles": 1743089373,
+  "init_oracles": 1743089375,
+  "init_pool": 1743089385,
+  "tokens_implementations": 1743089404,
+  "init_reserves": 1743089410,
+  "WrappedTokenGatewayV3": 1743089413,
+  "WalletBalanceProvider": 1743089416,
+  "UiPoolDataProviderV3": 1743089424,
+  "Incentives": 1743089440
 }
