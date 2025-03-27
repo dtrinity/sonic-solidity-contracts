@@ -210,6 +210,9 @@ export async function getConfig(
         },
       },
     },
+    dLend: {
+      providerID: 2, // Use 2 for testnet
+    },
   };
 }
 
@@ -220,5 +223,5 @@ export async function getConfig(
  * @returns An empty string if the value is undefined, otherwise the value itself
  */
 function emptyStringIfUndefined(value: string | undefined): string {
-  return value ?? "";
+  return value || "";
 }

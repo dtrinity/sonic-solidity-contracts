@@ -10,7 +10,7 @@ const MARKET_NAME = "dLEND";
 const LENDING_CORE_VERSION = "1.0.0";
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
-  const { lendingDeployer } = await hre.getNamedAccounts();
+  const { deployer } = await hre.getNamedAccounts();
   const marketID = `${hre.network.name}_dtrinity_market`;
   const config = await getConfig(hre);
 
@@ -20,8 +20,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const addressesProviderDeployment = await hre.deployments.deploy(
     POOL_ADDRESSES_PROVIDER_ID,
     {
-      from: lendingDeployer,
-      args: ["0", lendingDeployer],
+      from: deployer,
+      args: ["0", deployer],
       contract: "PoolAddressesProvider",
       autoMine: true,
       log: false,
@@ -32,7 +32,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const addressesProviderContract = await hre.ethers.getContractAt(
     "PoolAddressesProvider",
     addressesProviderDeployment.address,
-    await hre.ethers.getSigner(lendingDeployer)
+    await hre.ethers.getSigner(deployer)
   );
 
   // 2. Set the MarketId
@@ -49,14 +49,14 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const registryContract = await hre.ethers.getContractAt(
     "PoolAddressesProviderRegistry",
     (await hre.deployments.get("PoolAddressesProviderRegistry")).address,
-    await hre.ethers.getSigner(lendingDeployer)
+    await hre.ethers.getSigner(deployer)
   );
 
   console.log(`------------------------`);
-  console.log(`Registering market with ID: ${config.lending.providerID}`);
+  console.log(`Registering market with ID: ${config.dLend.providerID}`);
   const registerResponse = await registryContract.registerAddressesProvider(
     addressesProviderDeployment.address,
-    config.lending.providerID
+    config.dLend.providerID
   );
   const registerReceipt = await registerResponse.wait();
   console.log(`  - TxHash: ${registerReceipt?.hash}`);
@@ -67,7 +67,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const protocolDataProviderDeployment = await hre.deployments.deploy(
     POOL_DATA_PROVIDER_ID,
     {
-      from: lendingDeployer,
+      from: deployer,
       args: [addressesProviderDeployment.address],
       contract: "AaveProtocolDataProvider",
       autoMine: true,
@@ -101,13 +101,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 };
 
 // This script can only be run successfully once per market (the deployment on each network will be in a dedicated directory), core version
-func.id = `PoolAddressesProvider-${MARKET_NAME}:lending-core@${LENDING_CORE_VERSION}`;
-func.tags = ["lbp", "lbp-market", "lbp-provider"];
-func.dependencies = [
-  "before-deploy",
-  "lbp-core",
-  "lbp-periphery-pre",
-  "token-setup",
-];
+func.id = `PoolAddressesProvider`;
+func.tags = ["dlend", "dlend-market"];
+func.dependencies = ["dlend-core", "dlend-periphery-pre"];
 
 export default func;

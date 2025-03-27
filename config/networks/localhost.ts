@@ -27,7 +27,7 @@ export async function getConfig(
   const wSTokenDeployment = await _hre.deployments.getOrNull("wS");
   const wOSTokenDeployment = await _hre.deployments.getOrNull("wOS");
   const stSTokenDeployment = await _hre.deployments.getOrNull("stS");
-
+  const wETH9Deployment = await _hre.deployments.getOrNull("WETH9");
   // Get mock oracle deployments
   const mockOracleDeployments: Record<string, string> = {};
   const mockOracleDeploymentsAll = await _hre.deployments.all();
@@ -215,6 +215,11 @@ export async function getConfig(
         },
       },
     },
+    dLend: {
+      providerID: 1, // Use 1 for localhost
+      rateStrategies: [],
+      reservesConfig: {},
+    },
   };
 }
 
@@ -225,5 +230,5 @@ export async function getConfig(
  * @returns An empty string if the value is undefined, otherwise the value itself
  */
 function emptyStringIfUndefined(value: string | undefined): string {
-  return value ?? "";
+  return value || "";
 }

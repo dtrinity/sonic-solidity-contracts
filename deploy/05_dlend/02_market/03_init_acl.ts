@@ -1,13 +1,10 @@
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
-import { ZERO_BYTES_32 } from "../../../utils/lending/constants";
+import { ZERO_BYTES_32 } from "../../../typescript/dlend/constants";
 import {
   ACL_MANAGER_ID,
   POOL_ADDRESSES_PROVIDER_ID,
-} from "../../../utils/lending/deploy-ids";
-
-const LENDING_CORE_VERSION = "3.0.1";
-const MARKET_NAME = "Sonic Lending Market";
+} from "../../../typescript/deploy-ids";
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const [deployer, poolAdmin, aclAdmin, emergencyAdmin] =
@@ -125,7 +122,11 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 };
 
 func.id = "init_acl";
-func.tags = ["market", "acl"];
-func.dependencies = ["addresses-provider"];
+func.tags = ["dlend", "dlend-market"];
+func.dependencies = [
+  "dlend-core",
+  "dlend-periphery-pre",
+  "PoolAddressesProvider",
+];
 
 export default func;

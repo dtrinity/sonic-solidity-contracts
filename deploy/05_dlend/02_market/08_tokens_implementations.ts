@@ -9,8 +9,7 @@ import {
 } from "../../../typescript/deploy-ids";
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
-  const { lendingDeployer } = await hre.getNamedAccounts();
-  const deployer = await hre.ethers.getSigner(lendingDeployer);
+  const { deployer } = await hre.getNamedAccounts();
 
   const { address: addressesProviderAddress } = await hre.deployments.get(
     POOL_ADDRESSES_PROVIDER_ID
@@ -26,7 +25,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   // Deploy AToken implementation
   const aTokenDeployment = await hre.deployments.deploy(ATOKEN_IMPL_ID, {
     contract: "AToken",
-    from: deployer.address,
+    from: deployer,
     args: [poolAddress],
     log: true,
   });
@@ -73,7 +72,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     STABLE_DEBT_TOKEN_IMPL_ID,
     {
       contract: "StableDebtToken",
-      from: deployer.address,
+      from: deployer,
       args: [poolAddress],
       log: true,
     }
@@ -127,7 +126,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     VARIABLE_DEBT_TOKEN_IMPL_ID,
     {
       contract: "VariableDebtToken",
-      from: deployer.address,
+      from: deployer,
       args: [poolAddress],
       log: true,
     }
@@ -181,7 +180,12 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 };
 
 func.id = "tokens_implementations";
-func.tags = ["market", "tokens"];
-func.dependencies = ["addresses-provider", "pool"];
+func.tags = ["dlend", "dlend-market"];
+func.dependencies = [
+  "dlend-core",
+  "dlend-periphery-pre",
+  "PoolAddressesProvider",
+  "init_pool",
+];
 
 export default func;

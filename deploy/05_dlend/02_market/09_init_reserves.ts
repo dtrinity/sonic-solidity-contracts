@@ -10,7 +10,7 @@ import {
   VARIABLE_DEBT_TOKEN_IMPL_ID,
 } from "../../../typescript/deploy-ids";
 import { getConfig } from "../../../config/config";
-import { chunk } from "../../../utils/lending/utils";
+import { chunk } from "../../../typescript/dlend/helpers";
 
 interface IERC20Extended {
   name(): Promise<string>;
@@ -19,11 +19,11 @@ interface IERC20Extended {
 }
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
-  const { lendingDeployer } = await hre.getNamedAccounts();
-  const deployer = await hre.ethers.getSigner(lendingDeployer);
+  const { deployer } = await hre.getNamedAccounts();
+  const signer = await hre.ethers.getSigner(deployer);
 
   const config = await getConfig(hre);
-  const { rateStrategies, reservesConfig } = config.lending;
+  const { rateStrategies, reservesConfig } = config.dLend;
 
   const addressProviderDeployedResult = await hre.deployments.get(
     POOL_ADDRESSES_PROVIDER_ID
@@ -46,7 +46,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
     await hre.deployments.deploy(`ReserveStrategy-${strategy.name}`, {
       contract: "DefaultReserveInterestRateStrategy",
-      from: deployer.address,
+      from: deployer,
       args,
       log: true,
     });
@@ -71,7 +71,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const addressesProviderContract = await hre.ethers.getContractAt(
     "PoolAddressesProvider",
     addressProviderDeployedResult.address,
-    deployer
+    signer
   );
 
   const poolConfiguratorAddress =
@@ -79,7 +79,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const poolConfiguratorContract = await hre.ethers.getContractAt(
     "PoolConfigurator",
     poolConfiguratorAddress,
-    deployer
+    signer
   );
 
   // Initialize reserves
@@ -277,13 +277,13 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 };
 
 func.id = "init_reserves";
-func.tags = ["market", "reserves"];
+func.tags = ["dlend", "dlend-market"];
 func.dependencies = [
-  "addresses-provider",
-  "pool",
-  "pool-configurator",
-  "tokens",
-  "oracles",
+  "dlend-core",
+  "dlend-periphery-pre",
+  "PoolAddressesProvider",
+  "PoolConfigurator",
+  "tokens_implementations",
 ];
 
 export default func;

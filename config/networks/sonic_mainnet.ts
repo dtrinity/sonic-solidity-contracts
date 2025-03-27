@@ -15,11 +15,12 @@ export async function getConfig(
 ): Promise<Config> {
   const dUSDDeployment = await _hre.deployments.getOrNull("dUSD");
   const dSDeployment = await _hre.deployments.getOrNull("dS");
+  const wSAddress = "0x039e2fB66102314Ce7b64Ce5Ce3E5183bc94aD38";
   return {
     tokenAddresses: {
       dUSD: emptyStringIfUndefined(dUSDDeployment?.address),
       dS: emptyStringIfUndefined(dSDeployment?.address),
-      wS: "0x039e2fB66102314Ce7b64Ce5Ce3E5183bc94aD38",
+      wS: wSAddress,
     },
     dStables: {
       dUSD: {
@@ -42,6 +43,9 @@ export async function getConfig(
       },
       // TODO add one for wS
     },
+    dLend: {
+      providerID: 3, // Use 3 for mainnet
+    },
   };
 }
 
@@ -52,5 +56,5 @@ export async function getConfig(
  * @returns An empty string if the value is undefined, otherwise the value itself
  */
 function emptyStringIfUndefined(value: string | undefined): string {
-  return value ?? "";
+  return value || "";
 }

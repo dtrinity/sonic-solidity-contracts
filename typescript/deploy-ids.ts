@@ -32,6 +32,19 @@ export const DS_HARD_PEG_ORACLE_WRAPPER_ID = "dS_HardPegOracleWrapper";
 export const WS_HARD_PEG_ORACLE_WRAPPER_ID = "wS_HardPegOracleWrapper";
 
 // dLEND
-const TREASURY_PROXY_ID = "TreasuryProxy";
-const TREASURY_CONTROLLER_ID = "TreasuryController";
-const TREASURY_IMPL_ID = "TreasuryImpl";
+export const TREASURY_PROXY_ID = "TreasuryProxy";
+export const TREASURY_CONTROLLER_ID = "TreasuryController";
+export const TREASURY_IMPL_ID = "TreasuryImpl";
+
+// dLEND Market
+export const POOL_ADDRESSES_PROVIDER_ID = "PoolAddressesProvider";
+export const POOL_DATA_PROVIDER_ID = "PoolDataProvider";
+export const POOL_IMPL_ID = "PoolImpl";
+export const POOL_CONFIGURATOR_ID = "PoolConfigurator";
+export const ACL_MANAGER_ID = "ACLManager";
+export const PRICE_ORACLE_ID = "PriceOracle";
+export const PRICE_ORACLE_SENTINEL_ID = "PriceOracleSentinel";
+export const ATOKEN_IMPL_ID = "ATokenImpl";
+export const VARIABLE_DEBT_TOKEN_IMPL_ID = "VariableDebtTokenImpl";
+export const STABLE_DEBT_TOKEN_IMPL_ID = "StableDebtTokenImpl";
+export const RATE_STRATEGY_ID = "RateStrategy";

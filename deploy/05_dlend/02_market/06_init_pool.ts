@@ -11,8 +11,8 @@ const POOL_PROXY_ID = "PoolProxy";
 const POOL_CONFIGURATOR_PROXY_ID = "PoolConfiguratorProxy";
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
-  const { lendingDeployer } = await hre.getNamedAccounts();
-  const deployer = await hre.ethers.getSigner(lendingDeployer);
+  const { deployer } = await hre.getNamedAccounts();
+  const signer = await hre.ethers.getSigner(deployer);
 
   const proxyArtifact = await hre.deployments.getExtendedArtifact(
     "InitializableImmutableAdminUpgradeabilityProxy"
@@ -29,7 +29,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const addressesProviderInstance = await hre.ethers.getContractAt(
     "PoolAddressesProvider",
     addressesProviderAddress,
-    deployer
+    signer
   );
 
   const isPoolProxyPending =
@@ -102,7 +102,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const poolConfiguratorContract = await hre.ethers.getContractAt(
     "PoolConfigurator",
     poolConfiguratorProxyAddress,
-    deployer
+    signer
   );
 
   // Default flash loan premiums (can be updated later through governance)
@@ -153,7 +153,13 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 };
 
 func.id = "init_pool";
-func.tags = ["market", "pool"];
-func.dependencies = ["addresses-provider", "pool-impl", "pool-configurator"];
+func.tags = ["dlend", "dlend-market"];
+func.dependencies = [
+  "dlend-core",
+  "dlend-periphery-pre",
+  "PoolAddressesProvider",
+  "L2PoolImplementations",
+  "PoolConfigurator",
+];
 
 export default func;

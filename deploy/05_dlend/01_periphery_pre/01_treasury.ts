@@ -4,17 +4,16 @@ import {
   TREASURY_CONTROLLER_ID,
   TREASURY_IMPL_ID,
   TREASURY_PROXY_ID,
-} from "../../../utils/lending/deploy-ids";
+} from "../../../typescript/deploy-ids";
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
-  const { lendingDeployer, lendingTreasuryOwner } =
-    await hre.getNamedAccounts();
+  const { deployer, governanceMultisig } = await hre.getNamedAccounts();
 
   // Deploy Treasury proxy
   const treasuryProxyDeployment = await hre.deployments.deploy(
     TREASURY_PROXY_ID,
     {
-      from: lendingDeployer,
+      from: deployer,
       args: [],
       contract: "InitializableAdminUpgradeabilityProxy",
       autoMine: true,
@@ -26,8 +25,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const treasuryControllerDeployment = await hre.deployments.deploy(
     TREASURY_CONTROLLER_ID,
     {
-      from: lendingDeployer,
-      args: [lendingTreasuryOwner],
+      from: deployer,
+      args: [governanceMultisig],
       contract: "AaveEcosystemReserveController",
       autoMine: true,
       log: false,
@@ -38,7 +37,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const treasuryImplDeployment = await hre.deployments.deploy(
     TREASURY_IMPL_ID,
     {
-      from: lendingDeployer,
+      from: deployer,
       args: [],
       contract: "AaveEcosystemReserveV2",
       autoMine: true,
@@ -59,7 +58,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   // Claim the implementation contract
   const treasuryImplResponse =
-    await treasuryImplContract.initialize(lendingTreasuryOwner);
+    await treasuryImplContract.initialize(governanceMultisig);
   const treasuryImplReceipt = await treasuryImplResponse.wait();
   console.log(`  - TxHash: ${treasuryImplReceipt?.hash}`);
   console.log(`  - From: ${treasuryImplReceipt?.from}`);
@@ -82,7 +81,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   const initProxyResponse = await proxy["initialize(address,address,bytes)"](
     treasuryImplDeployment.address,
-    lendingTreasuryOwner,
+    governanceMultisig,
     initializePayload
   );
   const initProxyReceipt = await initProxyResponse.wait();
@@ -95,7 +94,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   return true;
 };
 
-func.tags = ["lbp", "lbp-periphery-pre", "lbp-TreasuryProxy"];
+func.tags = ["dlend", "dlend-periphery-pre"];
 func.dependencies = [];
 func.id = "Treasury";
 

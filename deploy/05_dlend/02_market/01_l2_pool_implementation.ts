@@ -6,7 +6,7 @@ import {
 } from "../../../typescript/deploy-ids";
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
-  const { lendingDeployer } = await hre.getNamedAccounts();
+  const { deployer } = await hre.getNamedAccounts();
 
   // Get the addresses provider address
   const { address: addressesProviderAddress } = await hre.deployments.get(
@@ -37,7 +37,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const calldataLogicDeployment = await hre.deployments.deploy(
     "CalldataLogic",
     {
-      from: lendingDeployer,
+      from: deployer,
       args: [],
       autoMine: true,
       log: false,
@@ -46,7 +46,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   // Deploy L2 supported Pool
   const poolDeployment = await hre.deployments.deploy(POOL_IMPL_ID, {
-    from: lendingDeployer,
+    from: deployer,
     args: [addressesProviderAddress],
     contract: "L2Pool",
     libraries: {
@@ -81,6 +81,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 };
 
 func.id = "L2PoolImplementations";
-func.tags = ["lbp", "lbp-market"];
+func.tags = ["dlend", "dlend-market"];
+func.dependencies = ["dlend-core", "dlend-periphery-pre"];
 
 export default func;

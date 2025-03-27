@@ -2,11 +2,11 @@ import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
-  const { lendingDeployer } = await hre.getNamedAccounts();
+  const { deployer } = await hre.getNamedAccounts();
 
   // Deploy SupplyLogic
   await hre.deployments.deploy("SupplyLogic", {
-    from: lendingDeployer,
+    from: deployer,
     args: [],
     contract: "SupplyLogic",
     autoMine: true,
@@ -15,7 +15,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   // Deploy BorrowLogic
   const borrowLogicDeployment = await hre.deployments.deploy("BorrowLogic", {
-    from: lendingDeployer,
+    from: deployer,
     args: [],
     contract: "BorrowLogic",
     autoMine: true,
@@ -24,7 +24,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   // Deploy LiquidationLogic
   await hre.deployments.deploy("LiquidationLogic", {
-    from: lendingDeployer,
+    from: deployer,
     args: [],
     contract: "LiquidationLogic",
     autoMine: true,
@@ -33,7 +33,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   // Deploy EModeLogic
   await hre.deployments.deploy("EModeLogic", {
-    from: lendingDeployer,
+    from: deployer,
     args: [],
     contract: "EModeLogic",
     autoMine: true,
@@ -42,7 +42,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   // Deploy BridgeLogic
   await hre.deployments.deploy("BridgeLogic", {
-    from: lendingDeployer,
+    from: deployer,
     args: [],
     contract: "BridgeLogic",
     autoMine: true,
@@ -51,7 +51,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   // Deploy ConfiguratorLogic
   await hre.deployments.deploy("ConfiguratorLogic", {
-    from: lendingDeployer,
+    from: deployer,
     args: [],
     contract: "ConfiguratorLogic",
     autoMine: true,
@@ -60,7 +60,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   // Deploy FlashLoanLogic with BorrowLogic dependency
   await hre.deployments.deploy("FlashLoanLogic", {
-    from: lendingDeployer,
+    from: deployer,
     args: [],
     contract: "FlashLoanLogic",
     autoMine: true,
@@ -72,7 +72,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   // Deploy PoolLogic
   await hre.deployments.deploy("PoolLogic", {
-    from: lendingDeployer,
+    from: deployer,
     args: [],
     contract: "PoolLogic",
     autoMine: true,
@@ -84,6 +84,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 };
 
 func.id = "LogicLibraries";
-func.tags = ["lbp", "lbp-core", "lbp-logic"];
+func.tags = ["dlend", "dlend-core"];
 
 export default func;

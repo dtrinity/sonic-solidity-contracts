@@ -6,7 +6,7 @@ import {
 } from "../../../typescript/deploy-ids";
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
-  const { lendingDeployer } = await hre.getNamedAccounts();
+  const { deployer } = await hre.getNamedAccounts();
 
   // Get addresses provider address
   const { address: addressesProviderAddress } = await hre.deployments.get(
@@ -21,7 +21,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const poolConfiguratorDeployment = await hre.deployments.deploy(
     POOL_CONFIGURATOR_ID,
     {
-      from: lendingDeployer,
+      from: deployer,
       args: [],
       contract: "PoolConfigurator",
       libraries: {
@@ -57,7 +57,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   // Deploy reserves setup helper
   await hre.deployments.deploy("ReservesSetupHelper", {
-    from: lendingDeployer,
+    from: deployer,
     args: [],
     contract: "ReservesSetupHelper",
     autoMine: true,
@@ -69,6 +69,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 };
 
 func.id = "PoolConfigurator";
-func.tags = ["lbp", "lbp-market"];
+func.tags = ["dlend", "dlend-market"];
+func.dependencies = ["dlend-core", "dlend-periphery-pre"];
 
 export default func;

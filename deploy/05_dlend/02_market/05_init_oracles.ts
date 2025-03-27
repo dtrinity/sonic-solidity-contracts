@@ -7,8 +7,8 @@ import {
 } from "../../../typescript/deploy-ids";
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
-  const { lendingDeployer } = await hre.getNamedAccounts();
-  const deployer = await hre.ethers.getSigner(lendingDeployer);
+  const { deployer } = await hre.getNamedAccounts();
+  const signer = await hre.ethers.getSigner(deployer);
 
   const addressesProviderDeployedResult = await hre.deployments.get(
     POOL_ADDRESSES_PROVIDER_ID
@@ -17,7 +17,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const addressesProviderContract = await hre.ethers.getContractAt(
     "PoolAddressesProvider",
     addressesProviderDeployedResult.address,
-    deployer
+    signer
   );
 
   // 1. Set price oracle
@@ -51,7 +51,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 };
 
 func.id = "init_oracles";
-func.tags = ["market", "oracle"];
-func.dependencies = ["addresses-provider", "deploy-oracles"];
+func.tags = ["dlend", "dlend-market"];
+func.dependencies = ["dlend-core", "dlend-periphery-pre", "deploy-oracles"];
 
 export default func;

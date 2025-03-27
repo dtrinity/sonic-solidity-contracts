@@ -9,8 +9,7 @@ import { USD_ORACLE_AGGREGATOR_ID } from "../../../typescript/deploy-ids";
 import { getConfig } from "../../../config/config";
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
-  const { lendingDeployer } = await hre.getNamedAccounts();
-  const deployer = await hre.ethers.getSigner(lendingDeployer);
+  const { deployer } = await hre.getNamedAccounts();
 
   // Get oracle aggregator address for fallback oracle
   const { address: oracleAggregatorAddress } = await hre.deployments.get(
@@ -62,7 +61,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   // Deploy AaveOracle
   const oracleDeployment = await hre.deployments.deploy(PRICE_ORACLE_ID, {
-    from: deployer.address,
+    from: deployer,
     args: [
       addressesProviderAddress,
       assets,
@@ -88,7 +87,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 };
 
 func.id = "deploy_oracles";
-func.tags = ["market", "oracle"];
-func.dependencies = ["addresses-provider", "oracle-aggregator"];
+func.tags = ["dlend", "dlend-market"];
+func.dependencies = ["dlend-core", "dlend-periphery-pre"];
 
 export default func;
