@@ -1,6 +1,7 @@
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
 import { ZeroAddress } from "ethers";
+import { POOL_ADDRESSES_PROVIDER_ID } from "../../../typescript/deploy-ids";
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployments, getNamedAccounts, ethers } = hre;
@@ -8,9 +9,9 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployer } = await getNamedAccounts();
 
   // Get AddressesProvider address
-  const addressesProvider = await deployments.get("AddressesProvider");
+  const addressesProvider = await deployments.get(POOL_ADDRESSES_PROVIDER_ID);
   const addressesProviderInstance = await ethers.getContractAt(
-    "AddressesProvider",
+    "PoolAddressesProvider",
     addressesProvider.address,
     await ethers.getSigner(deployer)
   );
@@ -134,7 +135,7 @@ func.dependencies = [
   "dlend-core",
   "dlend-periphery-pre",
   "dlend-market",
-  "AddressesProvider",
+  "PoolAddressesProvider",
 ];
 
 export default func;

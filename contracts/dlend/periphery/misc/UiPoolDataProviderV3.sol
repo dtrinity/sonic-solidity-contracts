@@ -30,7 +30,6 @@ import {WadRayMath} from "contracts/dlend/core/protocol/libraries/math/WadRayMat
 import {ReserveConfiguration} from "contracts/dlend/core/protocol/libraries/configuration/ReserveConfiguration.sol";
 import {UserConfiguration} from "contracts/dlend/core/protocol/libraries/configuration/UserConfiguration.sol";
 import {DataTypes} from "contracts/dlend/core/protocol/libraries/types/DataTypes.sol";
-import {IEACAggregatorProxy} from "./interfaces/IEACAggregatorProxy.sol";
 import {IERC20DetailedBytes} from "./interfaces/IERC20DetailedBytes.sol";
 import {IUiPoolDataProviderV3} from "./interfaces/IUiPoolDataProviderV3.sol";
 
@@ -39,20 +38,18 @@ contract UiPoolDataProviderV3 is IUiPoolDataProviderV3 {
     using ReserveConfiguration for DataTypes.ReserveConfigurationMap;
     using UserConfiguration for DataTypes.UserConfigurationMap;
 
-    IEACAggregatorProxy
-        public immutable networkBaseTokenPriceInUsdProxyAggregator;
-    IEACAggregatorProxy
-        public immutable marketReferenceCurrencyPriceInUsdProxyAggregator;
+    IAaveOracle public immutable networkBaseTokenPriceOracle;
+    IAaveOracle public immutable marketReferenceCurrencyPriceOracle;
     uint256 public constant ETH_CURRENCY_UNIT = 1 ether;
     address public constant MKR_ADDRESS =
         0x9f8F72aA9304c8B593d555F12eF6589cC3A579A2;
 
     constructor(
-        IEACAggregatorProxy _networkBaseTokenPriceInUsdProxyAggregator,
-        IEACAggregatorProxy _marketReferenceCurrencyPriceInUsdProxyAggregator
+        IAaveOracle _networkBaseTokenPriceOracle,
+        IAaveOracle _marketReferenceCurrencyPriceOracle
     ) {
-        networkBaseTokenPriceInUsdProxyAggregator = _networkBaseTokenPriceInUsdProxyAggregator;
-        marketReferenceCurrencyPriceInUsdProxyAggregator = _marketReferenceCurrencyPriceInUsdProxyAggregator;
+        networkBaseTokenPriceOracle = _networkBaseTokenPriceOracle;
+        marketReferenceCurrencyPriceOracle = _marketReferenceCurrencyPriceOracle;
     }
 
     function getReservesList(
@@ -259,12 +256,19 @@ contract UiPoolDataProviderV3 is IUiPoolDataProviderV3 {
         }
 
         BaseCurrencyInfo memory baseCurrencyInfo;
-        baseCurrencyInfo
-            .networkBaseTokenPriceInUsd = networkBaseTokenPriceInUsdProxyAggregator
-            .latestAnswer();
-        baseCurrencyInfo
-            .networkBaseTokenPriceDecimals = networkBaseTokenPriceInUsdProxyAggregator
-            .decimals();
+
+        // Get networkBaseToken price in USD
+        address baseCurrency = networkBaseTokenPriceOracle.BASE_CURRENCY();
+        uint256 baseCurrencyUnit = networkBaseTokenPriceOracle
+            .BASE_CURRENCY_UNIT();
+        baseCurrencyInfo.networkBaseTokenPriceInUsd = int256(
+            networkBaseTokenPriceOracle.getAssetPrice(
+                baseCurrency == address(0) ? address(0x0) : baseCurrency
+            )
+        );
+
+        // Set decimals (typically 8 for USD price feeds)
+        baseCurrencyInfo.networkBaseTokenPriceDecimals = 8;
 
         try oracle.BASE_CURRENCY_UNIT() returns (uint256 baseCurrencyUnit) {
             baseCurrencyInfo.marketReferenceCurrencyUnit = baseCurrencyUnit;
@@ -273,9 +277,13 @@ contract UiPoolDataProviderV3 is IUiPoolDataProviderV3 {
             );
         } catch (bytes memory /*lowLevelData*/) {
             baseCurrencyInfo.marketReferenceCurrencyUnit = ETH_CURRENCY_UNIT;
-            baseCurrencyInfo
-                .marketReferenceCurrencyPriceInUsd = marketReferenceCurrencyPriceInUsdProxyAggregator
-                .latestAnswer();
+
+            // Get marketReferenceCurrency price in USD
+            baseCurrencyInfo.marketReferenceCurrencyPriceInUsd = int256(
+                marketReferenceCurrencyPriceOracle.getAssetPrice(
+                    baseCurrency == address(0) ? address(0x0) : baseCurrency
+                )
+            );
         }
 
         return (reservesData, baseCurrencyInfo);
