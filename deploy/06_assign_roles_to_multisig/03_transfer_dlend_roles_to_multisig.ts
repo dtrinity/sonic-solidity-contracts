@@ -23,7 +23,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { governanceMultisig } = config.walletAddresses;
 
   console.log(
-    `Transferring dLEND roles to governance multisig: ${governanceMultisig}`
+    `\n🔄 Transferring dLEND roles to governance multisig: ${governanceMultisig}`
   );
 
   // Transfer ACL roles
@@ -34,6 +34,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     );
 
     if (aclManager && addressesProvider) {
+      console.log(`\n  📄 DLEND ACL ROLES`);
+
       const aclManagerContract = await ethers.getContractAt(
         "ACLManager",
         aclManager.address,
@@ -50,11 +52,11 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       if (currentAclAdmin.toLowerCase() !== governanceMultisig.toLowerCase()) {
         await addressesProviderContract.setACLAdmin(governanceMultisig);
         console.log(
-          `Set ACL admin on AddressesProvider to ${governanceMultisig}`
+          `    ➕ Set ACL admin on AddressesProvider to ${governanceMultisig}`
         );
       } else {
         console.log(
-          `ACL admin on AddressesProvider already set to ${governanceMultisig}`
+          `    ✓ ACL admin on AddressesProvider already set to ${governanceMultisig}`
         );
       }
 
@@ -71,11 +73,11 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
           governanceMultisig
         );
         console.log(
-          `Granted DEFAULT_ADMIN_ROLE in ACLManager to ${governanceMultisig}`
+          `    ➕ Granted DEFAULT_ADMIN_ROLE in ACLManager to ${governanceMultisig}`
         );
       } else {
         console.log(
-          `DEFAULT_ADMIN_ROLE in ACLManager already granted to ${governanceMultisig}`
+          `    ✓ DEFAULT_ADMIN_ROLE in ACLManager already granted to ${governanceMultisig}`
         );
       }
 
@@ -83,11 +85,11 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       if (!(await aclManagerContract.isPoolAdmin(governanceMultisig))) {
         await aclManagerContract.addPoolAdmin(governanceMultisig);
         console.log(
-          `Added PoolAdmin role in ACLManager to ${governanceMultisig}`
+          `    ➕ Added PoolAdmin role in ACLManager to ${governanceMultisig}`
         );
       } else {
         console.log(
-          `PoolAdmin role in ACLManager already granted to ${governanceMultisig}`
+          `    ✓ PoolAdmin role in ACLManager already granted to ${governanceMultisig}`
         );
       }
 
@@ -95,11 +97,11 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       if (!(await aclManagerContract.isEmergencyAdmin(governanceMultisig))) {
         await aclManagerContract.addEmergencyAdmin(governanceMultisig);
         console.log(
-          `Added EmergencyAdmin role in ACLManager to ${governanceMultisig}`
+          `    ➕ Added EmergencyAdmin role in ACLManager to ${governanceMultisig}`
         );
       } else {
         console.log(
-          `EmergencyAdmin role in ACLManager already granted to ${governanceMultisig}`
+          `    ✓ EmergencyAdmin role in ACLManager already granted to ${governanceMultisig}`
         );
       }
 
@@ -107,18 +109,24 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       // Remove non-admin roles first
       if (await aclManagerContract.isPoolAdmin(deployer)) {
         await aclManagerContract.removePoolAdmin(deployer);
-        console.log(`Removed PoolAdmin role from deployer in ACLManager`);
+        console.log(
+          `    ➖ Removed PoolAdmin role from deployer in ACLManager`
+        );
       }
 
       if (await aclManagerContract.isEmergencyAdmin(deployer)) {
         await aclManagerContract.removeEmergencyAdmin(deployer);
-        console.log(`Removed EmergencyAdmin role from deployer in ACLManager`);
+        console.log(
+          `    ➖ Removed EmergencyAdmin role from deployer in ACLManager`
+        );
       }
 
       // Revoke DEFAULT_ADMIN_ROLE last
       if (await aclManagerContract.hasRole(DEFAULT_ADMIN_ROLE, deployer)) {
         await aclManagerContract.revokeRole(DEFAULT_ADMIN_ROLE, deployer);
-        console.log(`Revoked DEFAULT_ADMIN_ROLE from deployer in ACLManager`);
+        console.log(
+          `    ➖ Revoked DEFAULT_ADMIN_ROLE from deployer in ACLManager`
+        );
       }
 
       // Transfer PoolAddressesProvider ownership
@@ -130,28 +138,30 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       ) {
         await addressesProviderContract.transferOwnership(governanceMultisig);
         console.log(
-          `Transferred PoolAddressesProvider ownership to ${governanceMultisig}`
+          `    ➕ Transferred PoolAddressesProvider ownership to ${governanceMultisig}`
         );
       } else {
         console.log(
-          `PoolAddressesProvider ownership already set to ${governanceMultisig}`
+          `    ✓ PoolAddressesProvider ownership already set to ${governanceMultisig}`
         );
       }
 
-      console.log(`Transferred dLEND ACL roles to ${governanceMultisig}`);
+      console.log(`    ✅ Completed dLEND ACL role transfers`);
     } else {
       console.log(
-        "ACLManager or AddressesProvider not deployed, skipping ACL role transfer"
+        `  ⚠️ ACLManager or AddressesProvider not deployed, skipping ACL role transfer`
       );
     }
   } catch (error) {
-    console.error(`Failed to transfer dLEND ACL roles: ${error}`);
+    console.error(`  ❌ Failed to transfer dLEND ACL roles: ${error}`);
   }
 
   // Transfer EmissionManager ownership
   try {
     const emissionManager = await deployments.getOrNull(EMISSION_MANAGER_ID);
     if (emissionManager) {
+      console.log(`\n  📄 EMISSION MANAGER ROLES`);
+
       const emissionManagerContract = await ethers.getContractAt(
         "EmissionManager",
         emissionManager.address,
@@ -162,21 +172,27 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       if (currentOwner.toLowerCase() !== governanceMultisig.toLowerCase()) {
         await emissionManagerContract.transferOwnership(governanceMultisig);
         console.log(
-          `Transferred EmissionManager ownership to ${governanceMultisig}`
+          `    ➕ Transferred EmissionManager ownership to ${governanceMultisig}`
         );
       } else {
         console.log(
-          `EmissionManager ownership already set to ${governanceMultisig}`
+          `    ✓ EmissionManager ownership already set to ${governanceMultisig}`
         );
       }
+
+      console.log(`    ✅ Completed EmissionManager ownership transfer`);
     } else {
-      console.log("EmissionManager not deployed, skipping ownership transfer");
+      console.log(
+        `  ⚠️ EmissionManager not deployed, skipping ownership transfer`
+      );
     }
   } catch (error) {
-    console.error(`Failed to transfer EmissionManager ownership: ${error}`);
+    console.error(
+      `  ❌ Failed to transfer EmissionManager ownership: ${error}`
+    );
   }
 
-  console.log(`🔑 ${__filename.split("/").slice(-2).join("/")}: ✅`);
+  console.log(`\n🔑 ${__filename.split("/").slice(-2).join("/")}: ✅ Done\n`);
 
   return true;
 };
