@@ -46,10 +46,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   }
 
   const poolAddressProviderAddress = await addressesProviderInstance.getPool();
-  hre.deployments.log(
-    "Deployed PoolAddressesProvider:",
-    poolAddressProviderAddress
-  );
 
   await hre.deployments.save(POOL_PROXY_ID, {
     ...proxyArtifact,
@@ -113,6 +109,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       flashLoanPremium.protocol
     );
   await updateFlashloanPremiumToProtocolResponse.wait();
+
+  console.log(`🏦 ${__filename.split("/").slice(-2).join("/")}: ✅`);
 
   return true;
 };

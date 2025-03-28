@@ -3,6 +3,8 @@ import { DeployFunction } from "hardhat-deploy/types";
 import {
   POOL_ADDRESSES_PROVIDER_ID,
   POOL_CONFIGURATOR_ID,
+  CONFIGURATOR_LOGIC_ID,
+  RESERVES_SETUP_HELPER_ID,
 } from "../../../typescript/deploy-ids";
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
@@ -14,8 +16,9 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   );
 
   // Get configurator logic library
-  const configuratorLogicDeployment =
-    await hre.deployments.get("ConfiguratorLogic");
+  const configuratorLogicDeployment = await hre.deployments.get(
+    CONFIGURATOR_LOGIC_ID
+  );
 
   // Deploy pool configurator implementation
   const poolConfiguratorDeployment = await hre.deployments.deploy(
@@ -32,37 +35,23 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     }
   );
 
-  console.log(`------------------------`);
-  console.log(`Initialize pool configurator implementation`);
-  console.log(
-    `  - Pool configurator implementation: ${poolConfiguratorDeployment.address}`
-  );
-  console.log(
-    `  - Address Provider                : ${addressesProviderAddress}`
-  );
-
   // Initialize implementation
   const poolConfig = await hre.ethers.getContractAt(
     "PoolConfigurator",
     poolConfiguratorDeployment.address
   );
-  const initPoolConfigResponse = await poolConfig.initialize(
-    addressesProviderAddress
-  );
-  const initPoolConfigReceipt = await initPoolConfigResponse.wait();
-  console.log(`  - TxHash  : ${initPoolConfigReceipt?.hash}`);
-  console.log(`  - From    : ${initPoolConfigReceipt?.from}`);
-  console.log(`  - GasUsed : ${initPoolConfigReceipt?.gasUsed.toString()}`);
-  console.log(`------------------------`);
+  await poolConfig.initialize(addressesProviderAddress);
 
   // Deploy reserves setup helper
-  await hre.deployments.deploy("ReservesSetupHelper", {
+  await hre.deployments.deploy(RESERVES_SETUP_HELPER_ID, {
     from: deployer,
     args: [],
     contract: "ReservesSetupHelper",
     autoMine: true,
     log: false,
   });
+
+  console.log(`🏦 ${__filename.split("/").slice(-2).join("/")}: ✅`);
 
   // Return true to indicate deployment success
   return true;

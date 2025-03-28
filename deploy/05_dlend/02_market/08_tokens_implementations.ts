@@ -35,11 +35,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     aTokenDeployment.address
   );
 
-  console.log(`------------------------`);
-  console.log(`Initialize AToken implementation`);
-  console.log(`  - AToken implementation: ${aTokenDeployment.address}`);
-  console.log(`  - Pool Address         : ${poolAddress}`);
-
   try {
     const initATokenResponse = await aTokenContract.initialize(
       poolAddress, // initializingPool
@@ -65,7 +60,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       throw Error(`Failed to initialize AToken implementation: ${error}`);
     }
   }
-  console.log(`------------------------`);
 
   // Deploy StableDebtToken implementation
   const stableDebtTokenDeployment = await hre.deployments.deploy(
@@ -83,13 +77,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     stableDebtTokenDeployment.address
   );
 
-  console.log(`------------------------`);
-  console.log(`Initialize StableDebtToken implementation`);
-  console.log(
-    `  - StableDebtToken implementation: ${stableDebtTokenDeployment.address}`
-  );
-  console.log(`  - Pool Address                  : ${poolAddress}`);
-
   try {
     const initStableDebtTokenResponse =
       await stableDebtTokenContract.initialize(
@@ -101,12 +88,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
         "STABLE_DEBT_TOKEN_IMPL", // debtTokenSymbol
         "0x00" // params
       );
-    const initStableDebtTokenReceipt = await initStableDebtTokenResponse.wait();
-    console.log(`  - TxHash  : ${initStableDebtTokenReceipt?.hash}`);
-    console.log(`  - From    : ${initStableDebtTokenReceipt?.from}`);
-    console.log(
-      `  - GasUsed : ${initStableDebtTokenReceipt?.gasUsed.toString()}`
-    );
   } catch (error: any) {
     // Contract instance has already been initialized
     if (
@@ -119,7 +100,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       );
     }
   }
-  console.log(`------------------------`);
 
   // Deploy VariableDebtToken implementation
   const variableDebtTokenDeployment = await hre.deployments.deploy(
@@ -137,13 +117,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     variableDebtTokenDeployment.address
   );
 
-  console.log(`------------------------`);
-  console.log(`Initialize VariableDebtToken implementation`);
-  console.log(
-    `  - VariableDebtToken implementation: ${variableDebtTokenDeployment.address}`
-  );
-  console.log(`  - Pool Address                    : ${poolAddress}`);
-
   try {
     const initVariableDebtTokenResponse =
       await variableDebtTokenContract.initialize(
@@ -155,13 +128,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
         "VARIABLE_DEBT_TOKEN_IMPL", // debtTokenSymbol
         "0x00" // params
       );
-    const initVariableDebtTokenReceipt =
-      await initVariableDebtTokenResponse.wait();
-    console.log(`  - TxHash  : ${initVariableDebtTokenReceipt?.hash}`);
-    console.log(`  - From    : ${initVariableDebtTokenReceipt?.from}`);
-    console.log(
-      `  - GasUsed : ${initVariableDebtTokenReceipt?.gasUsed.toString()}`
-    );
   } catch (error: any) {
     // Contract instance has already been initialized
     if (
@@ -174,7 +140,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       );
     }
   }
-  console.log(`------------------------`);
+
+  console.log(`🏦 ${__filename.split("/").slice(-2).join("/")}: ✅`);
 
   return true;
 };

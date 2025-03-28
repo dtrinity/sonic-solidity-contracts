@@ -35,8 +35,6 @@ export const WS_HARD_PEG_ORACLE_WRAPPER_ID = "wS_HardPegOracleWrapper";
 export const TREASURY_PROXY_ID = "TreasuryProxy";
 export const TREASURY_CONTROLLER_ID = "TreasuryController";
 export const TREASURY_IMPL_ID = "TreasuryImpl";
-
-// dLEND Market
 export const POOL_ADDRESSES_PROVIDER_ID = "PoolAddressesProvider";
 export const POOL_DATA_PROVIDER_ID = "PoolDataProvider";
 export const POOL_IMPL_ID = "PoolImpl";
@@ -50,3 +48,22 @@ export const STABLE_DEBT_TOKEN_IMPL_ID = "StableDebtTokenImpl";
 export const RATE_STRATEGY_ID = "RateStrategy";
 export const POOL_PROXY_ID = "PoolProxy";
 export const POOL_CONFIGURATOR_PROXY_ID = "PoolConfiguratorProxy";
+export const POOL_ADDRESS_PROVIDER_REGISTRY_ID =
+  "PoolAddressesProviderRegistry";
+export const SUPPLY_LOGIC_ID = "SupplyLogic";
+export const BORROW_LOGIC_ID = "BorrowLogic";
+export const LIQUIDATION_LOGIC_ID = "LiquidationLogic";
+export const EMODE_LOGIC_ID = "EModeLogic";
+export const BRIDGE_LOGIC_ID = "BridgeLogic";
+export const CONFIGURATOR_LOGIC_ID = "ConfiguratorLogic";
+export const FLASH_LOAN_LOGIC_ID = "FlashLoanLogic";
+export const POOL_LOGIC_ID = "PoolLogic";
+export const CALLDATA_LOGIC_ID = "CalldataLogic";
+export const RESERVES_SETUP_HELPER_ID = "ReservesSetupHelper";
+export const WALLET_BALANCE_PROVIDER_ID = "WalletBalanceProvider";
+export const UI_INCENTIVE_DATA_PROVIDER_ID = "UiIncentiveDataProviderV3";
+export const UI_POOL_DATA_PROVIDER_ID = "UiPoolDataProviderV3";
+export const EMISSION_MANAGER_ID = "EmissionManager";
+export const INCENTIVES_IMPL_ID = "RewardsController";
+export const INCENTIVES_PROXY_ID = "IncentivesProxy";
+export const PULL_REWARDS_TRANSFER_STRATEGY_ID = "PullRewardsTransferStrategy";

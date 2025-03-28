@@ -1,6 +1,7 @@
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
 import { getConfig } from "../../../config/config";
+import { POOL_PROXY_ID } from "../../../typescript/deploy-ids";
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployments, getNamedAccounts } = hre;
@@ -12,9 +13,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const wrappedNativeTokenAddress = config.tokenAddresses.wS;
 
   // Get pool address
-  const pool = await deployments.get("PoolProxy");
+  const pool = await deployments.get(POOL_PROXY_ID);
 
-  console.log("Deploying WrappedTokenGatewayV3...");
   const wrappedTokenGateway = await deploy("WrappedTokenGatewayV3", {
     from: deployer,
     args: [wrappedNativeTokenAddress, deployer, pool.address],
@@ -22,9 +22,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     waitConfirmations: 1,
   });
 
-  console.log(
-    `WrappedTokenGatewayV3 deployed at: ${wrappedTokenGateway.address}`
-  );
+  console.log(`🏦 ${__filename.split("/").slice(-2).join("/")}: ✅`);
+
   return true;
 };
 

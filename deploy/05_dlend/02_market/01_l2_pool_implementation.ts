@@ -3,6 +3,14 @@ import { DeployFunction } from "hardhat-deploy/types";
 import {
   POOL_ADDRESSES_PROVIDER_ID,
   POOL_IMPL_ID,
+  SUPPLY_LOGIC_ID,
+  BORROW_LOGIC_ID,
+  LIQUIDATION_LOGIC_ID,
+  EMODE_LOGIC_ID,
+  BRIDGE_LOGIC_ID,
+  FLASH_LOAN_LOGIC_ID,
+  POOL_LOGIC_ID,
+  CALLDATA_LOGIC_ID,
 } from "../../../typescript/deploy-ids";
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
@@ -14,14 +22,15 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   );
 
   // Get the pool libraries
-  const supplyLibraryDeployment = await hre.deployments.get("SupplyLogic");
-  const borrowLibraryDeployment = await hre.deployments.get("BorrowLogic");
+  const supplyLibraryDeployment = await hre.deployments.get(SUPPLY_LOGIC_ID);
+  const borrowLibraryDeployment = await hre.deployments.get(BORROW_LOGIC_ID);
   const liquidationLibraryDeployment =
-    await hre.deployments.get("LiquidationLogic");
-  const eModeLibraryDeployment = await hre.deployments.get("EModeLogic");
-  const bridgeLibraryDeployment = await hre.deployments.get("BridgeLogic");
-  const flashLoanLogicDeployment = await hre.deployments.get("FlashLoanLogic");
-  const poolLogicDeployment = await hre.deployments.get("PoolLogic");
+    await hre.deployments.get(LIQUIDATION_LOGIC_ID);
+  const eModeLibraryDeployment = await hre.deployments.get(EMODE_LOGIC_ID);
+  const bridgeLibraryDeployment = await hre.deployments.get(BRIDGE_LOGIC_ID);
+  const flashLoanLogicDeployment =
+    await hre.deployments.get(FLASH_LOAN_LOGIC_ID);
+  const poolLogicDeployment = await hre.deployments.get(POOL_LOGIC_ID);
 
   const commonLibraries = {
     LiquidationLogic: liquidationLibraryDeployment.address,
@@ -35,7 +44,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   // Deploy L2 libraries
   const calldataLogicDeployment = await hre.deployments.deploy(
-    "CalldataLogic",
+    CALLDATA_LOGIC_ID,
     {
       from: deployer,
       args: [],
@@ -57,24 +66,14 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     log: false,
   });
 
-  console.log(`------------------------`);
-  console.log(`Initialize L2 pool implementation`);
-  console.log(`  - Pool implementation: ${poolDeployment.address}`);
-  console.log(`  - Address Provider   : ${addressesProviderAddress}`);
-
   // Initialize implementation
   const poolContract = await hre.ethers.getContractAt(
     "Pool",
     poolDeployment.address
   );
-  const initPoolResponse = await poolContract.initialize(
-    addressesProviderAddress
-  );
-  const initPoolReceipt = await initPoolResponse.wait();
-  console.log(`  - TxHash  : ${initPoolReceipt?.hash}`);
-  console.log(`  - From    : ${initPoolReceipt?.from}`);
-  console.log(`  - GasUsed : ${initPoolReceipt?.gasUsed.toString()}`);
-  console.log(`------------------------`);
+  await poolContract.initialize(addressesProviderAddress);
+
+  console.log(`🏦 ${__filename.split("/").slice(-2).join("/")}: ✅`);
 
   // Return true to indicate deployment success
   return true;

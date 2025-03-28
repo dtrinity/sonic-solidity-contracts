@@ -75,13 +75,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     log: true,
   });
 
-  console.log(`------------------------`);
-  console.log(`Deployed AaveOracle`);
-  console.log(`  - Address: ${oracleDeployment.address}`);
-  console.log(`  - Assets count: ${assets.length}`);
-  console.log(`  - Sources count: ${sources.length}`);
-  console.log(`  - Fallback oracle: ${oracleAggregatorAddress}`);
-  console.log(`------------------------`);
+  console.log(`🏦 ${__filename.split("/").slice(-2).join("/")}: ✅`);
 
   return true;
 };

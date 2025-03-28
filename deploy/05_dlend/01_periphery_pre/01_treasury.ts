@@ -49,11 +49,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     }
   );
 
-  console.log(`-----------------`);
-  console.log(
-    `Initialize AaveEcosystemReserveV2 Impl at ${treasuryImplDeployment.address}`
-  );
-
   // Initialize implementation contract to prevent other calls
   const treasuryImplContract = await hre.ethers.getContractAt(
     "AaveEcosystemReserveV2",
@@ -61,18 +56,9 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   );
 
   // Claim the implementation contract
-  const treasuryImplResponse =
-    await treasuryImplContract.initialize(governanceMultisig);
-  const treasuryImplReceipt = await treasuryImplResponse.wait();
-  console.log(`  - TxHash: ${treasuryImplReceipt?.hash}`);
-  console.log(`  - From: ${treasuryImplReceipt?.from}`);
-  console.log(`  - GasUsed: ${treasuryImplReceipt?.gasUsed.toString()}`);
-  console.log(`-----------------`);
+  await treasuryImplContract.initialize(governanceMultisig);
 
   // Initialize proxy
-  console.log(
-    `Initialize Treasury InitializableAdminUpgradeabilityProxy at ${treasuryProxyDeployment.address}`
-  );
   const proxy = await hre.ethers.getContractAt(
     "InitializableAdminUpgradeabilityProxy",
     treasuryProxyDeployment.address
@@ -83,17 +69,13 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     [treasuryControllerDeployment.address]
   );
 
-  const initProxyResponse = await proxy["initialize(address,address,bytes)"](
+  await proxy["initialize(address,address,bytes)"](
     treasuryImplDeployment.address,
     governanceMultisig,
     initializePayload
   );
-  const initProxyReceipt = await initProxyResponse.wait();
-  console.log(`  - TxHash: ${initProxyReceipt?.hash}`);
-  console.log(`  - From: ${initProxyReceipt?.from}`);
-  console.log(`  - GasUsed: ${initProxyReceipt?.gasUsed.toString()}`);
-  console.log(`-----------------`);
 
+  console.log(`🏦 ${__filename.split("/").slice(-2).join("/")}: ✅`);
   // Return true to indicate deployment success
   return true;
 };

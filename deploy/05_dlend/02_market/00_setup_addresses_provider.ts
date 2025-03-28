@@ -6,9 +6,6 @@ import {
   POOL_DATA_PROVIDER_ID,
 } from "../../../typescript/deploy-ids";
 
-const MARKET_NAME = "dLEND";
-const LENDING_CORE_VERSION = "1.0.0";
-
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployer } = await hre.getNamedAccounts();
   const marketID = `${hre.network.name}_dtrinity_market`;
@@ -36,14 +33,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   );
 
   // 2. Set the MarketId
-  console.log(`------------------------`);
-  console.log(`Setting MarketId to: ${marketID}`);
-  const setMarketIdResponse =
-    await addressesProviderContract.setMarketId(marketID);
-  const setMarketIdReceipt = await setMarketIdResponse.wait();
-  console.log(`  - TxHash: ${setMarketIdReceipt?.hash}`);
-  console.log(`  - GasUsed: ${setMarketIdReceipt?.gasUsed.toString()}`);
-  console.log(`------------------------`);
+  await addressesProviderContract.setMarketId(marketID);
 
   // 3. Add AddressesProvider to Registry
   const registryContract = await hre.ethers.getContractAt(
@@ -52,16 +42,10 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     await hre.ethers.getSigner(deployer)
   );
 
-  console.log(`------------------------`);
-  console.log(`Registering market with ID: ${config.dLend.providerID}`);
-  const registerResponse = await registryContract.registerAddressesProvider(
+  await registryContract.registerAddressesProvider(
     addressesProviderDeployment.address,
     config.dLend.providerID
   );
-  const registerReceipt = await registerResponse.wait();
-  console.log(`  - TxHash: ${registerReceipt?.hash}`);
-  console.log(`  - GasUsed: ${registerReceipt?.gasUsed.toString()}`);
-  console.log(`------------------------`);
 
   // 4. Deploy AaveProtocolDataProvider getters contract
   const protocolDataProviderDeployment = await hre.deployments.deploy(
@@ -84,17 +68,12 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     currentProtocolDataProviderAddress.toLowerCase() !==
     protocolDataProviderDeployment.address.toLowerCase()
   ) {
-    console.log(`------------------------`);
-    console.log(`Setting PoolDataProvider`);
-    const setDataProviderResponse =
-      await addressesProviderContract.setPoolDataProvider(
-        protocolDataProviderDeployment.address
-      );
-    const setDataProviderReceipt = await setDataProviderResponse.wait();
-    console.log(`  - TxHash: ${setDataProviderReceipt?.hash}`);
-    console.log(`  - GasUsed: ${setDataProviderReceipt?.gasUsed.toString()}`);
-    console.log(`------------------------`);
+    await addressesProviderContract.setPoolDataProvider(
+      protocolDataProviderDeployment.address
+    );
   }
+
+  console.log(`🏦 ${__filename.split("/").slice(-2).join("/")}: ✅`);
 
   // Return true to indicate deployment success
   return true;

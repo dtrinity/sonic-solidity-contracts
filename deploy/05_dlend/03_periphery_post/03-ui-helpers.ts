@@ -1,8 +1,9 @@
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
 import {
-  POOL_ADDRESSES_PROVIDER_ID,
   PRICE_ORACLE_ID,
+  UI_INCENTIVE_DATA_PROVIDER_ID,
+  UI_POOL_DATA_PROVIDER_ID,
 } from "../../../typescript/deploy-ids";
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
@@ -14,28 +15,23 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const priceOracle = await deployments.get(PRICE_ORACLE_ID);
 
   // Deploy UiIncentiveDataProvider first
-  console.log("Deploying UiIncentiveDataProvider...");
-  const uiIncentiveDataProvider = await deploy("UiIncentiveDataProviderV3", {
+  const uiIncentiveDataProvider = await deploy(UI_INCENTIVE_DATA_PROVIDER_ID, {
     from: deployer,
     args: [], // No constructor arguments needed
     log: true,
     waitConfirmations: 1,
   });
 
-  console.log(
-    `UiIncentiveDataProvider deployed at: ${uiIncentiveDataProvider.address}`
-  );
-
   // Then deploy UiPoolDataProvider
-  console.log("Deploying UiPoolDataProvider...");
-  const uiPoolDataProvider = await deploy("UiPoolDataProviderV3", {
+  await deploy(UI_POOL_DATA_PROVIDER_ID, {
     from: deployer,
     args: [priceOracle.address, priceOracle.address], // Use the same oracle for both parameters
     log: true,
     waitConfirmations: 1,
   });
 
-  console.log(`UiPoolDataProvider deployed at: ${uiPoolDataProvider.address}`);
+  console.log(`🏦 ${__filename.split("/").slice(-2).join("/")}: ✅`);
+
   return true;
 };
 

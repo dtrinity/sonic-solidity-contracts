@@ -25,27 +25,15 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     .address;
   const currentPriceOracle = await addressesProviderContract.getPriceOracle();
 
-  console.log(`---------------`);
-  console.log(`Set PriceOracle`);
-  console.log(`  - PriceOracle     : ${priceOracleAddress}`);
-  console.log(
-    `  - AddressProvider : ${addressesProviderDeployedResult.address}`
-  );
-
   if (getAddress(priceOracleAddress) === getAddress(currentPriceOracle)) {
     console.log("[addresses-provider] Price oracle already set. Skipping tx.");
   } else {
     const setPriceOracleResponse =
       await addressesProviderContract.setPriceOracle(priceOracleAddress);
-    const setPriceOracleReceipt = await setPriceOracleResponse.wait();
-    console.log(`  - TxHash  : ${setPriceOracleReceipt?.hash}`);
-    console.log(`  - From    : ${setPriceOracleReceipt?.from}`);
-    console.log(`  - GasUsed : ${setPriceOracleReceipt?.gasUsed.toString()}`);
-    console.log(
-      `[Deployment] Added PriceOracle ${priceOracleAddress} to PoolAddressesProvider`
-    );
+    await setPriceOracleResponse.wait();
   }
-  console.log(`---------------`);
+
+  console.log(`🏦 ${__filename.split("/").slice(-2).join("/")}: ✅`);
 
   return true;
 };

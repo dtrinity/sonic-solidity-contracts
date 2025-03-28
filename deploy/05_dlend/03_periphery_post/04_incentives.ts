@@ -1,11 +1,17 @@
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
 import { ZeroAddress } from "ethers";
-import { POOL_ADDRESSES_PROVIDER_ID } from "../../../typescript/deploy-ids";
+import {
+  EMISSION_MANAGER_ID,
+  INCENTIVES_IMPL_ID,
+  INCENTIVES_PROXY_ID,
+  POOL_ADDRESSES_PROVIDER_ID,
+  PULL_REWARDS_TRANSFER_STRATEGY_ID,
+} from "../../../typescript/deploy-ids";
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployments, getNamedAccounts, ethers } = hre;
-  const { deploy, save, getExtendedArtifact, log } = deployments;
+  const { deploy, save, getExtendedArtifact } = deployments;
   const { deployer } = await getNamedAccounts();
 
   // Get AddressesProvider address
@@ -17,8 +23,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   );
 
   // Deploy EmissionManager
-  console.log("Deploying EmissionManager...");
-  const emissionManager = await deploy("EmissionManager", {
+  const emissionManager = await deploy(EMISSION_MANAGER_ID, {
     from: deployer,
     args: [deployer],
     log: true,
@@ -26,8 +31,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   });
 
   // Deploy Incentives Implementation (RewardsController)
-  console.log("Deploying Incentives Implementation...");
-  const incentivesImpl = await deploy("RewardsController", {
+  const incentivesImpl = await deploy(INCENTIVES_IMPL_ID, {
     from: deployer,
     args: [emissionManager.address],
     log: true,
@@ -42,7 +46,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   // Initialize the implementation
   try {
     await incentivesImplContract.initialize(ZeroAddress);
-    console.log("Incentives implementation initialized");
   } catch (error: any) {
     if (
       error?.message.includes("Contract instance has already been initialized")
@@ -64,7 +67,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     )) === ZeroAddress;
 
   if (isRewardsProxyPending) {
-    console.log("Setting rewards controller in AddressesProvider...");
     const proxyArtifact = await getExtendedArtifact(
       "InitializableImmutableAdminUpgradeabilityProxy"
     );
@@ -79,19 +81,15 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       incentivesControllerId
     );
 
-    await save("IncentivesProxy", {
+    await save(INCENTIVES_PROXY_ID, {
       ...proxyArtifact,
       address: proxyAddress,
     });
-
-    log(`Attached Rewards implementation and deployed proxy contract`);
-    log(`- Tx hash: ${setRewardsAsProxyTx.hash}`);
   }
 
   const incentivesProxyAddress = (
-    await deployments.getOrNull("IncentivesProxy")
+    await deployments.getOrNull(INCENTIVES_PROXY_ID)
   )?.address;
-  console.log(`IncentivesProxy deployed at: ${incentivesProxyAddress}`);
 
   // Initialize EmissionManager with the rewards controller address
   const emissionManagerContract = await ethers.getContractAt(
@@ -108,8 +106,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   }
 
   // Deploy Rewards Strategies
-  console.log("Deploying PullRewardsTransferStrategy...");
-  const pullRewardsStrategy = await deploy("PullRewardsTransferStrategy", {
+  await deploy(PULL_REWARDS_TRANSFER_STRATEGY_ID, {
     from: deployer,
     args: [
       incentivesProxyAddress,
@@ -120,11 +117,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     waitConfirmations: 1,
   });
 
-  // Transfer emission manager ownership if needed
-  // This should be uncommented when there's an actual address to transfer to
-  // await emissionManagerContract.transferOwnership(
-  //  configEmissionManagerAddress
-  // );
+  console.log(`🏦 ${__filename.split("/").slice(-2).join("/")}: ✅`);
 
   return true;
 };

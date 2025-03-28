@@ -1,11 +1,21 @@
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
+import {
+  SUPPLY_LOGIC_ID,
+  BORROW_LOGIC_ID,
+  LIQUIDATION_LOGIC_ID,
+  EMODE_LOGIC_ID,
+  BRIDGE_LOGIC_ID,
+  CONFIGURATOR_LOGIC_ID,
+  FLASH_LOAN_LOGIC_ID,
+  POOL_LOGIC_ID,
+} from "../../../typescript/deploy-ids";
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployer } = await hre.getNamedAccounts();
 
   // Deploy SupplyLogic
-  await hre.deployments.deploy("SupplyLogic", {
+  await hre.deployments.deploy(SUPPLY_LOGIC_ID, {
     from: deployer,
     args: [],
     contract: "SupplyLogic",
@@ -14,7 +24,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   });
 
   // Deploy BorrowLogic
-  const borrowLogicDeployment = await hre.deployments.deploy("BorrowLogic", {
+  const borrowLogicDeployment = await hre.deployments.deploy(BORROW_LOGIC_ID, {
     from: deployer,
     args: [],
     contract: "BorrowLogic",
@@ -23,7 +33,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   });
 
   // Deploy LiquidationLogic
-  await hre.deployments.deploy("LiquidationLogic", {
+  await hre.deployments.deploy(LIQUIDATION_LOGIC_ID, {
     from: deployer,
     args: [],
     contract: "LiquidationLogic",
@@ -32,7 +42,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   });
 
   // Deploy EModeLogic
-  await hre.deployments.deploy("EModeLogic", {
+  await hre.deployments.deploy(EMODE_LOGIC_ID, {
     from: deployer,
     args: [],
     contract: "EModeLogic",
@@ -41,7 +51,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   });
 
   // Deploy BridgeLogic
-  await hre.deployments.deploy("BridgeLogic", {
+  await hre.deployments.deploy(BRIDGE_LOGIC_ID, {
     from: deployer,
     args: [],
     contract: "BridgeLogic",
@@ -50,7 +60,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   });
 
   // Deploy ConfiguratorLogic
-  await hre.deployments.deploy("ConfiguratorLogic", {
+  await hre.deployments.deploy(CONFIGURATOR_LOGIC_ID, {
     from: deployer,
     args: [],
     contract: "ConfiguratorLogic",
@@ -59,7 +69,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   });
 
   // Deploy FlashLoanLogic with BorrowLogic dependency
-  await hre.deployments.deploy("FlashLoanLogic", {
+  await hre.deployments.deploy(FLASH_LOAN_LOGIC_ID, {
     from: deployer,
     args: [],
     contract: "FlashLoanLogic",
@@ -71,13 +81,15 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   });
 
   // Deploy PoolLogic
-  await hre.deployments.deploy("PoolLogic", {
+  await hre.deployments.deploy(POOL_LOGIC_ID, {
     from: deployer,
     args: [],
     contract: "PoolLogic",
     autoMine: true,
     log: false,
   });
+
+  console.log(`🏦 ${__filename.split("/").slice(-2).join("/")}: ✅`);
 
   // Return true to indicate deployment success
   return true;

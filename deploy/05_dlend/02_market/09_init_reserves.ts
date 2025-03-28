@@ -8,11 +8,10 @@ import {
   ATOKEN_IMPL_ID,
   STABLE_DEBT_TOKEN_IMPL_ID,
   VARIABLE_DEBT_TOKEN_IMPL_ID,
+  RESERVES_SETUP_HELPER_ID,
 } from "../../../typescript/deploy-ids";
 import { getConfig } from "../../../config/config";
 import { chunk } from "../../../typescript/dlend/helpers";
-
-const RESERVES_SETUP_HELPER_ID = "ReservesSetupHelper";
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployer } = await hre.getNamedAccounts();
@@ -182,10 +181,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const chunkedSymbols = chunk(reserveSymbols, initChunks);
   const chunkedInitInputParams = chunk(initInputParams, initChunks);
 
-  console.log(
-    `- Reserves initialization in ${chunkedInitInputParams.length} txs`
-  );
-
   for (
     let chunkIndex = 0;
     chunkIndex < chunkedInitInputParams.length;
@@ -194,10 +189,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     const tx = await poolConfiguratorContract.initReserves(
       chunkedInitInputParams[chunkIndex]
     );
-    console.log(
-      `  - Reserve ready for: ${chunkedSymbols[chunkIndex].join(", ")}`
-    );
-    console.log(`    * TxHash: ${tx.hash}`);
   }
 
   // Get reserves setup helper for configuration
@@ -208,19 +199,10 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   );
 
   // Add ReservesSetupHelper as a risk admin temporarily
-  console.log(`\n------------------------`);
-  console.log(`Add Risk Admin`);
   const reserveHelperAddress = await reservesSetupHelper.getAddress();
-  console.log(`  - ReservesSetupHelper: ${reserveHelperAddress}`);
-  const tx = await aclManager.addRiskAdmin(reserveHelperAddress);
-  const receipt = await tx.wait();
-  console.log(`  - TxHash : ${receipt?.hash}`);
-  console.log(`  - From   : ${receipt?.from}`);
-  console.log(`  - GasUsed: ${receipt?.gasUsed.toString()}`);
-  console.log(`------------------------`);
+  await aclManager.addRiskAdmin(reserveHelperAddress);
 
   // Configure reserves using the helper
-  console.log(`\nConfiguring reserves`);
   for (const [symbol, params] of Object.entries(reservesConfig)) {
     const tokenAddress =
       config.tokenAddresses[symbol as keyof typeof config.tokenAddresses];
@@ -228,8 +210,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       console.log(`- Skipping config of ${symbol} due missing token address`);
       continue;
     }
-
-    console.log(`- Configuring reserve ${symbol}`);
 
     const configInputParams = {
       asset: tokenAddress,
@@ -248,21 +228,10 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       poolConfiguratorAddress,
       [configInputParams]
     );
-    console.log(`  * TxHash: ${configTx.hash}`);
   }
 
   // Remove ReservesSetupHelper from risk admins
-  console.log(`\n------------------------`);
-  console.log(`Remove ReservesSetupHelper from risk admins`);
-  console.log(`  - ReservesSetupHelper : ${reserveHelperAddress}`);
-  console.log(`  - ACL Manager         : ${await aclManager.getAddress()}`);
-  const removeRiskAdminResponse =
-    await aclManager.removeRiskAdmin(reserveHelperAddress);
-  const removeRiskAdminReceipt = await removeRiskAdminResponse.wait();
-  console.log(`  - TxHash : ${removeRiskAdminReceipt?.hash}`);
-  console.log(`  - From   : ${removeRiskAdminReceipt?.from}`);
-  console.log(`  - GasUsed: ${removeRiskAdminReceipt?.gasUsed.toString()}`);
-  console.log(`------------------------`);
+  await aclManager.removeRiskAdmin(reserveHelperAddress);
 
   // Save pool tokens
   const dataProvider = await hre.deployments.get(POOL_DATA_PROVIDER_ID);
@@ -292,6 +261,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       address: tokenData.variableDebtTokenAddress,
     });
   }
+
+  console.log(`🏦 ${__filename.split("/").slice(-2).join("/")}: ✅`);
 
   return true;
 };
