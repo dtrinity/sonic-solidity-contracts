@@ -7,11 +7,19 @@ import {
   EMISSION_MANAGER_ID,
 } from "../../typescript/deploy-ids";
 import { getConfig } from "../../config/config";
+import { isLocalNetwork } from "../../typescript/hardhat/deploy";
 
 /**
  * Transfer all dLEND roles to the governance multisig
  */
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
+  if (isLocalNetwork(hre.network.name)) {
+    console.log(
+      `\n🔑 ${__filename.split("/").slice(-2).join("/")}: Skipping local network`
+    );
+    return true;
+  }
+
   const { deployments, getNamedAccounts, ethers } = hre;
   const { deployer } = await getNamedAccounts();
   const deployerSigner = await ethers.getSigner(deployer);

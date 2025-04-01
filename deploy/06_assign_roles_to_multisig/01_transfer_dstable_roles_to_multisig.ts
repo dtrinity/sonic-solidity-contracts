@@ -2,11 +2,19 @@ import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
 import { ZERO_BYTES_32 } from "../../typescript/dlend/constants";
 import { getConfig } from "../../config/config";
+import { isLocalNetwork } from "../../typescript/hardhat/deploy";
 
 /**
  * Transfer all dStable ecosystem roles (dUSD and dS) to the governance multisig
  */
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
+  if (isLocalNetwork(hre.network.name)) {
+    console.log(
+      `\n🔑 ${__filename.split("/").slice(-2).join("/")}: Skipping local network`
+    );
+    return true;
+  }
+
   const { getNamedAccounts, ethers } = hre;
   const { deployer } = await getNamedAccounts();
   const deployerSigner = await ethers.getSigner(deployer);
