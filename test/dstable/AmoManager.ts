@@ -96,11 +96,7 @@ async function runTestsForDStable(
 
       // Get dStable contract using symbol - we know this is always TestMintableERC20
       ({ contract: dstableContract, tokenInfo: dstableInfo } =
-        await getTokenContractForSymbol(
-          hre,
-          deployer,
-          config.symbol as "dUSD" | "dS"
-        ));
+        await getTokenContractForSymbol(hre, deployer, config.symbol));
 
       // Get the oracle aggregator based on the dStable configuration
       const oracleAggregatorAddress = (
