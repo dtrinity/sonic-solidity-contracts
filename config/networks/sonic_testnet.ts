@@ -1,6 +1,7 @@
 import { ZeroAddress } from "ethers";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 
+import { DS_TOKEN_ID, DUSD_TOKEN_ID } from "../../typescript/deploy-ids";
 import {
   ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT,
   ORACLE_AGGREGATOR_PRICE_DECIMALS,
@@ -19,8 +20,8 @@ export async function getConfig(
   _hre: HardhatRuntimeEnvironment,
 ): Promise<Config> {
   // Token info will only be populated after their deployment
-  const dUSDDeployment = await _hre.deployments.getOrNull("dUSD");
-  const dSDeployment = await _hre.deployments.getOrNull("dS");
+  const dUSDDeployment = await _hre.deployments.getOrNull(DUSD_TOKEN_ID);
+  const dSDeployment = await _hre.deployments.getOrNull(DS_TOKEN_ID);
   const USDCDeployment = await _hre.deployments.getOrNull("USDC");
   const USDSDeployment = await _hre.deployments.getOrNull("USDS");
   const sUSDSDeployment = await _hre.deployments.getOrNull("sUSDS");

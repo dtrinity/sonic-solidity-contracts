@@ -6,6 +6,7 @@ import {
   DS_AMO_MANAGER_ID,
   DS_COLLATERAL_VAULT_CONTRACT_ID,
   DS_ISSUER_CONTRACT_ID,
+  DS_TOKEN_ID,
   S_ORACLE_AGGREGATOR_ID,
 } from "../../typescript/deploy-ids";
 
@@ -58,11 +59,11 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   return true;
 };
 
-func.id = `dS:${DS_ISSUER_CONTRACT_ID}`;
+func.id = DS_ISSUER_CONTRACT_ID;
 func.tags = ["ds"];
 func.dependencies = [
   DS_COLLATERAL_VAULT_CONTRACT_ID,
-  "dS",
+  DS_TOKEN_ID,
   "s-oracle",
   DS_AMO_MANAGER_ID,
 ];

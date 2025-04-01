@@ -26,7 +26,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   return true;
 };
 
-func.id = `dS:${DS_COLLATERAL_VAULT_CONTRACT_ID}`;
+func.id = DS_COLLATERAL_VAULT_CONTRACT_ID;
 func.tags = ["ds"];
 func.dependencies = ["s-oracle"];
 

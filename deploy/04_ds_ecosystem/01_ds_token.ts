@@ -28,7 +28,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   return true;
 };
 
-func.id = `dS:${DS_TOKEN_ID}`;
+func.id = DS_TOKEN_ID;
 func.tags = ["ds"];
 
 export default func;

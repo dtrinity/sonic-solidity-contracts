@@ -5,6 +5,7 @@ import { getConfig } from "../../config/config";
 import {
   DUSD_COLLATERAL_VAULT_CONTRACT_ID,
   DUSD_REDEEMER_CONTRACT_ID,
+  DUSD_TOKEN_ID,
   USD_ORACLE_AGGREGATOR_ID,
 } from "../../typescript/deploy-ids";
 
@@ -49,8 +50,12 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   return true;
 };
 
-func.id = `dUSD:${DUSD_REDEEMER_CONTRACT_ID}`;
+func.id = DUSD_REDEEMER_CONTRACT_ID;
 func.tags = ["dusd"];
-func.dependencies = [DUSD_COLLATERAL_VAULT_CONTRACT_ID, "dUSD", "usd-oracle"];
+func.dependencies = [
+  DUSD_COLLATERAL_VAULT_CONTRACT_ID,
+  DUSD_TOKEN_ID,
+  "usd-oracle",
+];
 
 export default func;
