@@ -1,5 +1,6 @@
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
+
 import { WALLET_BALANCE_PROVIDER_ID } from "../../../typescript/deploy-ids";
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
@@ -7,7 +8,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deploy } = deployments;
   const { deployer } = await getNamedAccounts();
 
-  const walletBalanceProvider = await deploy(WALLET_BALANCE_PROVIDER_ID, {
+  const _walletBalanceProvider = await deploy(WALLET_BALANCE_PROVIDER_ID, {
     from: deployer,
     args: [],
     log: true,

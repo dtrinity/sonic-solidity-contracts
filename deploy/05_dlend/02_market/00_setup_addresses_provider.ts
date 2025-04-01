@@ -1,5 +1,6 @@
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
+
 import { getConfig } from "../../../config/config";
 import {
   POOL_ADDRESSES_PROVIDER_ID,
@@ -22,14 +23,14 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       contract: "PoolAddressesProvider",
       autoMine: true,
       log: false,
-    }
+    },
   );
 
   // Get contract instance
   const addressesProviderContract = await hre.ethers.getContractAt(
     "PoolAddressesProvider",
     addressesProviderDeployment.address,
-    await hre.ethers.getSigner(deployer)
+    await hre.ethers.getSigner(deployer),
   );
 
   // 2. Set the MarketId
@@ -39,12 +40,12 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const registryContract = await hre.ethers.getContractAt(
     "PoolAddressesProviderRegistry",
     (await hre.deployments.get("PoolAddressesProviderRegistry")).address,
-    await hre.ethers.getSigner(deployer)
+    await hre.ethers.getSigner(deployer),
   );
 
   await registryContract.registerAddressesProvider(
     addressesProviderDeployment.address,
-    config.dLend.providerID
+    config.dLend.providerID,
   );
 
   // 4. Deploy AaveProtocolDataProvider getters contract
@@ -56,7 +57,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       contract: "AaveProtocolDataProvider",
       autoMine: true,
       log: false,
-    }
+    },
   );
 
   // Get current protocol data provider address
@@ -69,7 +70,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     protocolDataProviderDeployment.address.toLowerCase()
   ) {
     await addressesProviderContract.setPoolDataProvider(
-      protocolDataProviderDeployment.address
+      protocolDataProviderDeployment.address,
     );
   }
 

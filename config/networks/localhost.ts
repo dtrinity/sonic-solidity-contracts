@@ -1,19 +1,21 @@
+import { ZeroAddress } from "ethers";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 
 import {
-  ORACLE_AGGREGATOR_PRICE_DECIMALS,
   ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT,
+  ORACLE_AGGREGATOR_PRICE_DECIMALS,
 } from "../../typescript/oracle_aggregator/constants";
-import { Config } from "../types";
-import { ZeroAddress } from "ethers";
-import { rateStrategyHighLiquidityStable } from "../dlend/interest-rate-strategies";
-import { rateStrategyMediumLiquidityVolatile } from "../dlend/interest-rate-strategies";
-import { rateStrategyHighLiquidityVolatile } from "../dlend/interest-rate-strategies";
-import { rateStrategyMediumLiquidityStable } from "../dlend/interest-rate-strategies";
+import {
+  rateStrategyHighLiquidityStable,
+  rateStrategyHighLiquidityVolatile,
+  rateStrategyMediumLiquidityStable,
+  rateStrategyMediumLiquidityVolatile,
+} from "../dlend/interest-rate-strategies";
 import {
   strategyDStable,
   strategyYieldBearingStablecoin,
 } from "../dlend/reserves-params";
+import { Config } from "../types";
 
 /**
  * Get the configuration for the network
@@ -22,7 +24,7 @@ import {
  * @returns The configuration for the network
  */
 export async function getConfig(
-  _hre: HardhatRuntimeEnvironment
+  _hre: HardhatRuntimeEnvironment,
 ): Promise<Config> {
   // Token info will only be populated after their deployment
   const dUSDDeployment = await _hre.deployments.getOrNull("dUSD");
@@ -35,12 +37,12 @@ export async function getConfig(
   const wSTokenDeployment = await _hre.deployments.getOrNull("wS");
   const wOSTokenDeployment = await _hre.deployments.getOrNull("wOS");
   const stSTokenDeployment = await _hre.deployments.getOrNull("stS");
-  const wETH9Deployment = await _hre.deployments.getOrNull("WETH9");
+
   // Get mock oracle deployments
   const mockOracleDeployments: Record<string, string> = {};
   const mockOracleDeploymentsAll = await _hre.deployments.all();
   // Get the named accounts
-  const { deployer, user1 } = await _hre.getNamedAccounts();
+  const { user1 } = await _hre.getNamedAccounts();
 
   for (const [name, deployment] of Object.entries(mockOracleDeploymentsAll)) {
     if (name.startsWith("MockAPI3OracleAlwaysAlive_")) {

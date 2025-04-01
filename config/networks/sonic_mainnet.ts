@@ -1,8 +1,8 @@
+import { ZeroAddress } from "ethers";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 
 import { ORACLE_AGGREGATOR_PRICE_DECIMALS } from "../../typescript/oracle_aggregator/constants";
 import { Config } from "../types";
-import { ZeroAddress } from "ethers";
 
 /**
  * Get the configuration for the network
@@ -11,7 +11,7 @@ import { ZeroAddress } from "ethers";
  * @returns The configuration for the network
  */
 export async function getConfig(
-  _hre: HardhatRuntimeEnvironment
+  _hre: HardhatRuntimeEnvironment,
 ): Promise<Config> {
   const dUSDDeployment = await _hre.deployments.getOrNull("dUSD");
   const dSDeployment = await _hre.deployments.getOrNull("dS");

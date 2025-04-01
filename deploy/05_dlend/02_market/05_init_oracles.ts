@@ -1,6 +1,7 @@
+import { getAddress } from "ethers";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
-import { getAddress } from "ethers";
+
 import {
   POOL_ADDRESSES_PROVIDER_ID,
   PRICE_ORACLE_ID,
@@ -11,13 +12,13 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const signer = await hre.ethers.getSigner(deployer);
 
   const addressesProviderDeployedResult = await hre.deployments.get(
-    POOL_ADDRESSES_PROVIDER_ID
+    POOL_ADDRESSES_PROVIDER_ID,
   );
 
   const addressesProviderContract = await hre.ethers.getContractAt(
     "PoolAddressesProvider",
     addressesProviderDeployedResult.address,
-    signer
+    signer,
   );
 
   // 1. Set price oracle

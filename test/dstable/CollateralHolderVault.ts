@@ -17,10 +17,6 @@ import {
   DS_CONFIG,
   DStableFixtureConfig,
 } from "./fixtures";
-import {
-  USD_ORACLE_AGGREGATOR_ID,
-  S_ORACLE_AGGREGATOR_ID,
-} from "../../typescript/deploy-ids";
 
 // Run tests for each dStable configuration
 const dstableConfigs: DStableFixtureConfig[] = [DUSD_CONFIG, DS_CONFIG];

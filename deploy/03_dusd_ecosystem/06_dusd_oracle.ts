@@ -26,27 +26,27 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   // Get OracleAggregator contract
   const { address: oracleAggregatorAddress } = await hre.deployments.get(
-    USD_ORACLE_AGGREGATOR_ID
+    USD_ORACLE_AGGREGATOR_ID,
   );
   const oracleAggregatorContract = await hre.ethers.getContractAt(
     "OracleAggregator",
     oracleAggregatorAddress,
-    await hre.ethers.getSigner(deployer)
+    await hre.ethers.getSigner(deployer),
   );
 
   // Get HardPegOracleWrapper contract
   const { address: hardPegOracleWrapperAddress } = await hre.deployments.get(
-    DUSD_HARD_PEG_ORACLE_WRAPPER_ID
+    DUSD_HARD_PEG_ORACLE_WRAPPER_ID,
   );
 
   // Set the HardPegOracleWrapper as the oracle for dUSD
   console.log(
     `Setting HardPegOracleWrapper for dUSD (${config.tokenAddresses.dUSD}) to`,
-    hardPegOracleWrapperAddress
+    hardPegOracleWrapperAddress,
   );
   await oracleAggregatorContract.setOracle(
     config.tokenAddresses.dUSD,
-    hardPegOracleWrapperAddress
+    hardPegOracleWrapperAddress,
   );
 
   console.log(`🔮 ${__filename.split("/").slice(-2).join("/")}: ✅`);

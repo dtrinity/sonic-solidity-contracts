@@ -1,5 +1,6 @@
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
+
 import {
   PRICE_ORACLE_ID,
   UI_INCENTIVE_DATA_PROVIDER_ID,
@@ -15,7 +16,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const priceOracle = await deployments.get(PRICE_ORACLE_ID);
 
   // Deploy UiIncentiveDataProvider first
-  const uiIncentiveDataProvider = await deploy(UI_INCENTIVE_DATA_PROVIDER_ID, {
+  const _uiIncentiveDataProvider = await deploy(UI_INCENTIVE_DATA_PROVIDER_ID, {
     from: deployer,
     args: [], // No constructor arguments needed
     log: true,

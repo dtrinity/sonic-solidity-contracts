@@ -1,3 +1,4 @@
+import { ZeroAddress } from "ethers";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 
 import {
@@ -5,7 +6,6 @@ import {
   ORACLE_AGGREGATOR_PRICE_DECIMALS,
 } from "../../typescript/oracle_aggregator/constants";
 import { Config } from "../types";
-import { ZeroAddress } from "ethers";
 
 const wSAddress = "0x039e2fB66102314Ce7b64Ce5Ce3E5183bc94aD38";
 
@@ -16,7 +16,7 @@ const wSAddress = "0x039e2fB66102314Ce7b64Ce5Ce3E5183bc94aD38";
  * @returns The configuration for the network
  */
 export async function getConfig(
-  _hre: HardhatRuntimeEnvironment
+  _hre: HardhatRuntimeEnvironment,
 ): Promise<Config> {
   // Token info will only be populated after their deployment
   const dUSDDeployment = await _hre.deployments.getOrNull("dUSD");

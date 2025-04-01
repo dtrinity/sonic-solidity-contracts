@@ -1,16 +1,17 @@
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
+
 import {
+  BORROW_LOGIC_ID,
+  BRIDGE_LOGIC_ID,
+  CALLDATA_LOGIC_ID,
+  EMODE_LOGIC_ID,
+  FLASH_LOAN_LOGIC_ID,
+  LIQUIDATION_LOGIC_ID,
   POOL_ADDRESSES_PROVIDER_ID,
   POOL_IMPL_ID,
-  SUPPLY_LOGIC_ID,
-  BORROW_LOGIC_ID,
-  LIQUIDATION_LOGIC_ID,
-  EMODE_LOGIC_ID,
-  BRIDGE_LOGIC_ID,
-  FLASH_LOAN_LOGIC_ID,
   POOL_LOGIC_ID,
-  CALLDATA_LOGIC_ID,
+  SUPPLY_LOGIC_ID,
 } from "../../../typescript/deploy-ids";
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
@@ -18,7 +19,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   // Get the addresses provider address
   const { address: addressesProviderAddress } = await hre.deployments.get(
-    POOL_ADDRESSES_PROVIDER_ID
+    POOL_ADDRESSES_PROVIDER_ID,
   );
 
   // Get the pool libraries
@@ -50,7 +51,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       args: [],
       autoMine: true,
       log: false,
-    }
+    },
   );
 
   // Deploy L2 supported Pool
@@ -69,7 +70,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   // Initialize implementation
   const poolContract = await hre.ethers.getContractAt(
     "Pool",
-    poolDeployment.address
+    poolDeployment.address,
   );
   await poolContract.initialize(addressesProviderAddress);
 

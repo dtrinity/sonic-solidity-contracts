@@ -1,14 +1,15 @@
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
+
 import {
-  SUPPLY_LOGIC_ID,
   BORROW_LOGIC_ID,
-  LIQUIDATION_LOGIC_ID,
-  EMODE_LOGIC_ID,
   BRIDGE_LOGIC_ID,
   CONFIGURATOR_LOGIC_ID,
+  EMODE_LOGIC_ID,
   FLASH_LOAN_LOGIC_ID,
+  LIQUIDATION_LOGIC_ID,
   POOL_LOGIC_ID,
+  SUPPLY_LOGIC_ID,
 } from "../../../typescript/deploy-ids";
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {

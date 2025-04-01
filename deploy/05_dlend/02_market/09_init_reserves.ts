@@ -1,16 +1,17 @@
+import { ZeroAddress } from "ethers";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
-import { ZeroAddress } from "ethers";
+
+import { getConfig } from "../../../config/config";
 import {
+  ATOKEN_IMPL_ID,
   POOL_ADDRESSES_PROVIDER_ID,
   POOL_DATA_PROVIDER_ID,
-  TREASURY_PROXY_ID,
-  ATOKEN_IMPL_ID,
-  STABLE_DEBT_TOKEN_IMPL_ID,
-  VARIABLE_DEBT_TOKEN_IMPL_ID,
   RESERVES_SETUP_HELPER_ID,
+  STABLE_DEBT_TOKEN_IMPL_ID,
+  TREASURY_PROXY_ID,
+  VARIABLE_DEBT_TOKEN_IMPL_ID,
 } from "../../../typescript/deploy-ids";
-import { getConfig } from "../../../config/config";
 import { chunk } from "../../../typescript/dlend/helpers";
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
@@ -21,7 +22,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { rateStrategies, reservesConfig } = config.dLend;
 
   const addressProviderDeployedResult = await hre.deployments.get(
-    POOL_ADDRESSES_PROVIDER_ID
+    POOL_ADDRESSES_PROVIDER_ID,
   );
 
   // Deploy Rate Strategies
@@ -66,7 +67,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const addressesProviderContract = await hre.ethers.getContractAt(
     "PoolAddressesProvider",
     addressProviderDeployedResult.address,
-    signer
+    signer,
   );
 
   // Add debug logs for roles
@@ -76,7 +77,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const aclManager = await hre.ethers.getContractAt(
     "ACLManager",
     aclManagerAddress,
-    signer
+    signer,
   );
 
   const deployerAddress = await signer.getAddress();
@@ -93,7 +94,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const poolConfiguratorContract = await hre.ethers.getContractAt(
     "PoolConfigurator",
     poolConfiguratorAddress,
-    signer
+    signer,
   );
 
   // Initialize reserves
@@ -126,17 +127,19 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   for (const [symbol, params] of Object.entries(reservesConfig)) {
     const tokenAddress =
       config.tokenAddresses[symbol as keyof typeof config.tokenAddresses];
+
     if (!tokenAddress) {
       console.log(
-        `- Skipping init of ${symbol} due token address is not set at markets config`
+        `- Skipping init of ${symbol} due token address is not set at markets config`,
       );
       continue;
     }
 
     const poolReserve = await poolContract.getReserveData(tokenAddress);
+
     if (poolReserve.aTokenAddress !== ZeroAddress) {
       console.log(
-        `- Skipping init of ${symbol} due reserve is already initialized`
+        `- Skipping init of ${symbol} due reserve is already initialized`,
       );
       continue;
     }
@@ -147,7 +150,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
     const tokenContract = await hre.ethers.getContractAt(
       "IERC20Detailed",
-      tokenAddress
+      tokenAddress,
     );
     const tokenName = await tokenContract.name();
     const tokenSymbol = await tokenContract.symbol();
@@ -178,7 +181,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   // Initialize reserves in chunks
   const initChunks = 3;
-  const chunkedSymbols = chunk(reserveSymbols, initChunks);
+  const _chunkedSymbols = chunk(reserveSymbols, initChunks);
   const chunkedInitInputParams = chunk(initInputParams, initChunks);
 
   for (
@@ -186,8 +189,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     chunkIndex < chunkedInitInputParams.length;
     chunkIndex++
   ) {
-    const tx = await poolConfiguratorContract.initReserves(
-      chunkedInitInputParams[chunkIndex]
+    const _tx = await poolConfiguratorContract.initReserves(
+      chunkedInitInputParams[chunkIndex],
     );
   }
 
@@ -195,7 +198,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const reservesSetupHelper = await hre.ethers.getContractAt(
     "ReservesSetupHelper",
     (await hre.deployments.get(RESERVES_SETUP_HELPER_ID)).address,
-    signer
+    signer,
   );
 
   // Add ReservesSetupHelper as a risk admin temporarily
@@ -206,6 +209,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   for (const [symbol, params] of Object.entries(reservesConfig)) {
     const tokenAddress =
       config.tokenAddresses[symbol as keyof typeof config.tokenAddresses];
+
     if (!tokenAddress) {
       console.log(`- Skipping config of ${symbol} due missing token address`);
       continue;
@@ -224,9 +228,9 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       flashLoanEnabled: true,
     };
 
-    const configTx = await reservesSetupHelper.configureReserves(
+    const _configTx = await reservesSetupHelper.configureReserves(
       poolConfiguratorAddress,
-      [configInputParams]
+      [configInputParams],
     );
   }
 
@@ -237,7 +241,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const dataProvider = await hre.deployments.get(POOL_DATA_PROVIDER_ID);
   const poolDataProviderContract = await hre.ethers.getContractAt(
     "AaveProtocolDataProvider",
-    dataProvider.address
+    dataProvider.address,
   );
 
   for (const [symbol, tokenAddress] of Object.entries(config.tokenAddresses)) {

@@ -1,11 +1,12 @@
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
+
+import { getConfig } from "../../../config/config";
 import {
   TREASURY_CONTROLLER_ID,
   TREASURY_IMPL_ID,
   TREASURY_PROXY_ID,
 } from "../../../typescript/deploy-ids";
-import { getConfig } from "../../../config/config";
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployer } = await hre.getNamedAccounts();
@@ -22,7 +23,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       contract: "InitializableAdminUpgradeabilityProxy",
       autoMine: true,
       log: false,
-    }
+    },
   );
 
   // Deploy Treasury Controller
@@ -34,7 +35,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       contract: "AaveEcosystemReserveController",
       autoMine: true,
       log: false,
-    }
+    },
   );
 
   // Deploy Treasury implementation
@@ -46,13 +47,13 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       contract: "AaveEcosystemReserveV2",
       autoMine: true,
       log: false,
-    }
+    },
   );
 
   // Initialize implementation contract to prevent other calls
   const treasuryImplContract = await hre.ethers.getContractAt(
     "AaveEcosystemReserveV2",
-    treasuryImplDeployment.address
+    treasuryImplDeployment.address,
   );
 
   // Claim the implementation contract
@@ -61,18 +62,18 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   // Initialize proxy
   const proxy = await hre.ethers.getContractAt(
     "InitializableAdminUpgradeabilityProxy",
-    treasuryProxyDeployment.address
+    treasuryProxyDeployment.address,
   );
 
   const initializePayload = treasuryImplContract.interface.encodeFunctionData(
     "initialize",
-    [treasuryControllerDeployment.address]
+    [treasuryControllerDeployment.address],
   );
 
   await proxy["initialize(address,address,bytes)"](
     treasuryImplDeployment.address,
     governanceMultisig,
-    initializePayload
+    initializePayload,
   );
 
   console.log(`🏦 ${__filename.split("/").slice(-2).join("/")}: ✅`);

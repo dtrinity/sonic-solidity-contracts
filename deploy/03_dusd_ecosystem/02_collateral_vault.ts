@@ -10,7 +10,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployer } = await hre.getNamedAccounts();
 
   const { address: oracleAggregatorAddress } = await hre.deployments.get(
-    USD_ORACLE_AGGREGATOR_ID
+    USD_ORACLE_AGGREGATOR_ID,
   );
 
   await hre.deployments.deploy(DUSD_COLLATERAL_VAULT_CONTRACT_ID, {

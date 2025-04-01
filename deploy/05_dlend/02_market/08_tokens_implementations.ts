@@ -1,23 +1,24 @@
+import { ZeroAddress } from "ethers";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
-import { ZeroAddress } from "ethers";
+
 import {
-  POOL_ADDRESSES_PROVIDER_ID,
   ATOKEN_IMPL_ID,
-  VARIABLE_DEBT_TOKEN_IMPL_ID,
+  POOL_ADDRESSES_PROVIDER_ID,
   STABLE_DEBT_TOKEN_IMPL_ID,
+  VARIABLE_DEBT_TOKEN_IMPL_ID,
 } from "../../../typescript/deploy-ids";
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployer } = await hre.getNamedAccounts();
 
   const { address: addressesProviderAddress } = await hre.deployments.get(
-    POOL_ADDRESSES_PROVIDER_ID
+    POOL_ADDRESSES_PROVIDER_ID,
   );
 
   const addressesProviderContract = await hre.ethers.getContractAt(
     "PoolAddressesProvider",
-    addressesProviderAddress
+    addressesProviderAddress,
   );
 
   const poolAddress = await addressesProviderContract.getPool();
@@ -32,7 +33,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   const aTokenContract = await hre.ethers.getContractAt(
     "AToken",
-    aTokenDeployment.address
+    aTokenDeployment.address,
   );
 
   try {
@@ -44,7 +45,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       0, // aTokenDecimals
       "ATOKEN_IMPL", // aTokenName
       "ATOKEN_IMPL", // aTokenSymbol
-      "0x00" // params
+      "0x00", // params
     );
     const initATokenReceipt = await initATokenResponse.wait();
     console.log(`  - TxHash  : ${initATokenReceipt?.hash}`);
@@ -69,16 +70,16 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       from: deployer,
       args: [poolAddress],
       log: true,
-    }
+    },
   );
 
   const stableDebtTokenContract = await hre.ethers.getContractAt(
     "StableDebtToken",
-    stableDebtTokenDeployment.address
+    stableDebtTokenDeployment.address,
   );
 
   try {
-    const initStableDebtTokenResponse =
+    const _initStableDebtTokenResponse =
       await stableDebtTokenContract.initialize(
         poolAddress, // initializingPool
         ZeroAddress, // underlyingAsset
@@ -86,7 +87,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
         0, // debtTokenDecimals
         "STABLE_DEBT_TOKEN_IMPL", // debtTokenName
         "STABLE_DEBT_TOKEN_IMPL", // debtTokenSymbol
-        "0x00" // params
+        "0x00", // params
       );
   } catch (error: any) {
     // Contract instance has already been initialized
@@ -96,7 +97,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       console.log(`  - Already initialized`);
     } else {
       throw Error(
-        `Failed to initialize StableDebtToken implementation: ${error}`
+        `Failed to initialize StableDebtToken implementation: ${error}`,
       );
     }
   }
@@ -109,16 +110,16 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       from: deployer,
       args: [poolAddress],
       log: true,
-    }
+    },
   );
 
   const variableDebtTokenContract = await hre.ethers.getContractAt(
     "VariableDebtToken",
-    variableDebtTokenDeployment.address
+    variableDebtTokenDeployment.address,
   );
 
   try {
-    const initVariableDebtTokenResponse =
+    const _initVariableDebtTokenResponse =
       await variableDebtTokenContract.initialize(
         poolAddress, // initializingPool
         ZeroAddress, // underlyingAsset
@@ -126,7 +127,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
         0, // debtTokenDecimals
         "VARIABLE_DEBT_TOKEN_IMPL", // debtTokenName
         "VARIABLE_DEBT_TOKEN_IMPL", // debtTokenSymbol
-        "0x00" // params
+        "0x00", // params
       );
   } catch (error: any) {
     // Contract instance has already been initialized
@@ -136,7 +137,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       console.log(`  - Already initialized`);
     } else {
       throw Error(
-        `Failed to initialize VariableDebtToken implementation: ${error}`
+        `Failed to initialize VariableDebtToken implementation: ${error}`,
       );
     }
   }

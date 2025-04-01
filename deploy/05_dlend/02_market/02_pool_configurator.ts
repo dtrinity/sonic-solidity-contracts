@@ -1,9 +1,10 @@
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
+
 import {
+  CONFIGURATOR_LOGIC_ID,
   POOL_ADDRESSES_PROVIDER_ID,
   POOL_CONFIGURATOR_ID,
-  CONFIGURATOR_LOGIC_ID,
   RESERVES_SETUP_HELPER_ID,
 } from "../../../typescript/deploy-ids";
 
@@ -12,12 +13,12 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   // Get addresses provider address
   const { address: addressesProviderAddress } = await hre.deployments.get(
-    POOL_ADDRESSES_PROVIDER_ID
+    POOL_ADDRESSES_PROVIDER_ID,
   );
 
   // Get configurator logic library
   const configuratorLogicDeployment = await hre.deployments.get(
-    CONFIGURATOR_LOGIC_ID
+    CONFIGURATOR_LOGIC_ID,
   );
 
   // Deploy pool configurator implementation
@@ -32,13 +33,13 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       },
       autoMine: true,
       log: false,
-    }
+    },
   );
 
   // Initialize implementation
   const poolConfig = await hre.ethers.getContractAt(
     "PoolConfigurator",
-    poolConfiguratorDeployment.address
+    poolConfiguratorDeployment.address,
   );
   await poolConfig.initialize(addressesProviderAddress);
 

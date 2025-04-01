@@ -11,6 +11,9 @@ export type DStableSymbol = (typeof DSTABLE_SYMBOLS)[number];
 
 /**
  * Check if a symbol is a dStable symbol
+ *
+ * @param symbol - The symbol to check
+ * @returns True if the symbol is a dStable symbol, false otherwise
  */
 function isDStableSymbol(symbol: string): symbol is DStableSymbol {
   return DSTABLE_SYMBOLS.includes(symbol as DStableSymbol);
@@ -27,7 +30,7 @@ function isDStableSymbol(symbol: string): symbol is DStableSymbol {
 export async function getTokenContractForSymbol(
   hre: HardhatRuntimeEnvironment,
   callerAddress: string,
-  symbol: DStableSymbol
+  symbol: DStableSymbol,
 ): Promise<{ contract: TestMintableERC20; tokenInfo: TokenInfo }>;
 
 /**
@@ -41,7 +44,7 @@ export async function getTokenContractForSymbol(
 export async function getTokenContractForSymbol(
   hre: HardhatRuntimeEnvironment,
   callerAddress: string,
-  symbol: string
+  symbol: string,
 ): Promise<{ contract: TestERC20; tokenInfo: TokenInfo }>;
 
 /**
@@ -54,7 +57,7 @@ export async function getTokenContractForSymbol(
 export async function getTokenContractForSymbol(
   hre: HardhatRuntimeEnvironment,
   callerAddress: string,
-  symbol: string
+  symbol: string,
 ): Promise<{ contract: TestERC20 | TestMintableERC20; tokenInfo: TokenInfo }> {
   const signer = await ethers.getSigner(callerAddress);
 
@@ -71,7 +74,7 @@ export async function getTokenContractForSymbol(
     const contract = await ethers.getContractAt(
       "TestMintableERC20",
       tokenaddress,
-      signer
+      signer,
     );
     return {
       contract,
@@ -81,7 +84,7 @@ export async function getTokenContractForSymbol(
     const contract = await ethers.getContractAt(
       "TestERC20",
       tokenaddress,
-      signer
+      signer,
     );
     return {
       contract,
@@ -109,7 +112,7 @@ const tokenInfoCache = new Map<string, TokenInfo>();
  */
 export async function fetchTokenInfo(
   hre: HardhatRuntimeEnvironment,
-  tokenAddress: string
+  tokenAddress: string,
 ): Promise<TokenInfo> {
   if (tokenInfoCache.has(tokenAddress)) {
     return tokenInfoCache.get(tokenAddress) as TokenInfo;
@@ -128,7 +131,7 @@ export async function fetchTokenInfo(
  */
 async function fetchTokenInfoImplementation(
   hre: HardhatRuntimeEnvironment,
-  tokenAddress: string
+  tokenAddress: string,
 ): Promise<TokenInfo> {
   const tokenContract = await hre.ethers.getContractAt(
     [
@@ -136,7 +139,7 @@ async function fetchTokenInfoImplementation(
       "function name() view returns (string)",
       "function decimals() view returns (uint8)",
     ],
-    tokenAddress
+    tokenAddress,
   );
 
   return {
@@ -158,7 +161,7 @@ async function fetchTokenInfoImplementation(
 export async function getTokenContractForAddress(
   hre: HardhatRuntimeEnvironment,
   callerAddress: string,
-  tokenAddress: string
+  tokenAddress: string,
 ): Promise<{ contract: TestERC20 | TestMintableERC20; tokenInfo: TokenInfo }> {
   const signer = await ethers.getSigner(callerAddress);
   const tokenInfo = await fetchTokenInfo(hre, tokenAddress);
@@ -167,7 +170,7 @@ export async function getTokenContractForAddress(
     const contract = await ethers.getContractAt(
       "TestMintableERC20",
       tokenAddress,
-      signer
+      signer,
     );
     return {
       contract,
@@ -177,7 +180,7 @@ export async function getTokenContractForAddress(
     const contract = await ethers.getContractAt(
       "TestERC20",
       tokenAddress,
-      signer
+      signer,
     );
     return {
       contract,

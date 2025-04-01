@@ -13,11 +13,11 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { tokenAddresses } = await getConfig(hre);
 
   const { address: collateralVaultAddress } = await hre.deployments.get(
-    DUSD_COLLATERAL_VAULT_CONTRACT_ID
+    DUSD_COLLATERAL_VAULT_CONTRACT_ID,
   );
 
   const { address: oracleAddress } = await hre.deployments.get(
-    USD_ORACLE_AGGREGATOR_ID
+    USD_ORACLE_AGGREGATOR_ID,
   );
 
   await hre.deployments.deploy(DUSD_AMO_MANAGER_ID, {

@@ -1,16 +1,20 @@
+import { Signer } from "ethers";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
-import { ZERO_BYTES_32 } from "../../typescript/dlend/constants";
+
 import { getConfig } from "../../config/config";
+import { ZERO_BYTES_32 } from "../../typescript/dlend/constants";
 import { isLocalNetwork } from "../../typescript/hardhat/deploy";
 
 /**
- * Transfer all dStable ecosystem roles (dUSD and dS) to the governance multisig
+ * Transfer dStable roles to governance multisig
+ *
+ * @param hre The Hardhat Runtime Environment for deployment
  */
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   if (isLocalNetwork(hre.network.name)) {
     console.log(
-      `\n🔑 ${__filename.split("/").slice(-2).join("/")}: Skipping local network`
+      `\n🔑 ${__filename.split("/").slice(-2).join("/")}: Skipping local network`,
     );
     return true;
   }
@@ -44,7 +48,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       tokenId,
       deployerSigner,
       governanceMultisig,
-      deployer
+      deployer,
     );
 
     // Transfer Issuer roles
@@ -53,7 +57,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       issuerContractId,
       deployerSigner,
       governanceMultisig,
-      deployer
+      deployer,
     );
 
     // Transfer Redeemer roles
@@ -62,7 +66,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       redeemerContractId,
       deployerSigner,
       governanceMultisig,
-      deployer
+      deployer,
     );
 
     // Transfer AmoManager roles
@@ -71,7 +75,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       amoManagerId,
       deployerSigner,
       governanceMultisig,
-      deployer
+      deployer,
     );
 
     // Transfer CollateralVault roles
@@ -80,7 +84,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       collateralVaultContractId,
       deployerSigner,
       governanceMultisig,
-      deployer
+      deployer,
     );
 
     console.log(`✅ Completed ${dStableName} role transfers`);
@@ -92,26 +96,34 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 };
 
 /**
- * Transfer token roles to governance multisig
+ * Transfer roles from deployer to governance multisig
+ *
+ * @param hre Hardhat Runtime Environment
+ * @param tokenId The ID of the token contract
+ * @param deployerSigner The signer for the deployer account
+ * @param governanceMultisig The address of the governance multisig
+ * @param deployer The address of the deployer account
+ * @returns Promise that resolves to true when all roles are transferred
  */
 async function transferTokenRoles(
   hre: HardhatRuntimeEnvironment,
   tokenId: string,
-  deployerSigner: any,
+  deployerSigner: Signer,
   governanceMultisig: string,
-  deployer: string
-) {
+  deployer: string,
+): Promise<boolean> {
   const { deployments, ethers } = hre;
 
   try {
     const tokenDeployment = await deployments.getOrNull(tokenId);
+
     if (tokenDeployment) {
       console.log(`\n  📄 TOKEN ROLES: ${tokenId}`);
 
       const tokenContract = await ethers.getContractAt(
         "ERC20StablecoinUpgradeable",
         tokenDeployment.address,
-        deployerSigner
+        deployerSigner,
       );
 
       // Get current admin role
@@ -124,11 +136,11 @@ async function transferTokenRoles(
       ) {
         await tokenContract.grantRole(DEFAULT_ADMIN_ROLE, governanceMultisig);
         console.log(
-          `    ➕ Granted DEFAULT_ADMIN_ROLE to ${governanceMultisig}`
+          `    ➕ Granted DEFAULT_ADMIN_ROLE to ${governanceMultisig}`,
         );
       } else {
         console.log(
-          `    ✓ DEFAULT_ADMIN_ROLE already granted to ${governanceMultisig}`
+          `    ✓ DEFAULT_ADMIN_ROLE already granted to ${governanceMultisig}`,
         );
       }
 
@@ -137,7 +149,7 @@ async function transferTokenRoles(
         console.log(`    ➕ Granted PAUSER_ROLE to ${governanceMultisig}`);
       } else {
         console.log(
-          `    ✓ PAUSER_ROLE already granted to ${governanceMultisig}`
+          `    ✓ PAUSER_ROLE already granted to ${governanceMultisig}`,
         );
       }
 
@@ -165,26 +177,34 @@ async function transferTokenRoles(
 }
 
 /**
- * Transfer Issuer roles to governance multisig
+ * Transfer roles from deployer to governance multisig for the issuer contract
+ *
+ * @param hre Hardhat Runtime Environment
+ * @param issuerContractId The ID of the issuer contract
+ * @param deployerSigner The signer for the deployer account
+ * @param governanceMultisig The address of the governance multisig
+ * @param deployer The address of the deployer account
+ * @returns Promise that resolves to true when all roles are transferred
  */
 async function transferIssuerRoles(
   hre: HardhatRuntimeEnvironment,
   issuerContractId: string,
-  deployerSigner: any,
+  deployerSigner: Signer,
   governanceMultisig: string,
-  deployer: string
-) {
+  deployer: string,
+): Promise<boolean> {
   const { deployments, ethers } = hre;
 
   try {
     const issuerDeployment = await deployments.getOrNull(issuerContractId);
+
     if (issuerDeployment) {
       console.log(`\n  📄 ISSUER ROLES: ${issuerContractId}`);
 
       const issuerContract = await ethers.getContractAt(
         "Issuer",
         issuerDeployment.address,
-        deployerSigner
+        deployerSigner,
       );
 
       // Get roles
@@ -199,11 +219,11 @@ async function transferIssuerRoles(
       ) {
         await issuerContract.grantRole(DEFAULT_ADMIN_ROLE, governanceMultisig);
         console.log(
-          `    ➕ Granted DEFAULT_ADMIN_ROLE to ${governanceMultisig}`
+          `    ➕ Granted DEFAULT_ADMIN_ROLE to ${governanceMultisig}`,
         );
       } else {
         console.log(
-          `    ✓ DEFAULT_ADMIN_ROLE already granted to ${governanceMultisig}`
+          `    ✓ DEFAULT_ADMIN_ROLE already granted to ${governanceMultisig}`,
         );
       }
 
@@ -214,26 +234,26 @@ async function transferIssuerRoles(
         console.log(`    ➕ Granted AMO_MANAGER_ROLE to ${governanceMultisig}`);
       } else {
         console.log(
-          `    ✓ AMO_MANAGER_ROLE already granted to ${governanceMultisig}`
+          `    ✓ AMO_MANAGER_ROLE already granted to ${governanceMultisig}`,
         );
       }
 
       if (
         !(await issuerContract.hasRole(
           INCENTIVES_MANAGER_ROLE,
-          governanceMultisig
+          governanceMultisig,
         ))
       ) {
         await issuerContract.grantRole(
           INCENTIVES_MANAGER_ROLE,
-          governanceMultisig
+          governanceMultisig,
         );
         console.log(
-          `    ➕ Granted INCENTIVES_MANAGER_ROLE to ${governanceMultisig}`
+          `    ➕ Granted INCENTIVES_MANAGER_ROLE to ${governanceMultisig}`,
         );
       } else {
         console.log(
-          `    ✓ INCENTIVES_MANAGER_ROLE already granted to ${governanceMultisig}`
+          `    ✓ INCENTIVES_MANAGER_ROLE already granted to ${governanceMultisig}`,
         );
       }
 
@@ -257,12 +277,12 @@ async function transferIssuerRoles(
       console.log(`    ✅ Completed Issuer role transfers`);
     } else {
       console.log(
-        `  ⚠️ ${issuerContractId} not deployed, skipping role transfer`
+        `  ⚠️ ${issuerContractId} not deployed, skipping role transfer`,
       );
     }
   } catch (error) {
     console.error(
-      `  ❌ Failed to transfer ${issuerContractId} roles: ${error}`
+      `  ❌ Failed to transfer ${issuerContractId} roles: ${error}`,
     );
   }
 
@@ -270,26 +290,34 @@ async function transferIssuerRoles(
 }
 
 /**
- * Transfer Redeemer roles to governance multisig
+ * Transfer roles from deployer to governance multisig for the redeemer contract
+ *
+ * @param hre Hardhat Runtime Environment
+ * @param redeemerContractId The ID of the redeemer contract
+ * @param deployerSigner The signer for the deployer account
+ * @param governanceMultisig The address of the governance multisig
+ * @param deployer The address of the deployer account
+ * @returns Promise that resolves to true when all roles are transferred
  */
 async function transferRedeemerRoles(
   hre: HardhatRuntimeEnvironment,
   redeemerContractId: string,
-  deployerSigner: any,
+  deployerSigner: Signer,
   governanceMultisig: string,
-  deployer: string
-) {
+  deployer: string,
+): Promise<boolean> {
   const { deployments, ethers } = hre;
 
   try {
     const redeemerDeployment = await deployments.getOrNull(redeemerContractId);
+
     if (redeemerDeployment) {
       console.log(`\n  📄 REDEEMER ROLES: ${redeemerContractId}`);
 
       const redeemerContract = await ethers.getContractAt(
         "Redeemer",
         redeemerDeployment.address,
-        deployerSigner
+        deployerSigner,
       );
 
       // Get roles
@@ -301,38 +329,38 @@ async function transferRedeemerRoles(
       if (
         !(await redeemerContract.hasRole(
           DEFAULT_ADMIN_ROLE,
-          governanceMultisig
+          governanceMultisig,
         ))
       ) {
         await redeemerContract.grantRole(
           DEFAULT_ADMIN_ROLE,
-          governanceMultisig
+          governanceMultisig,
         );
         console.log(
-          `    ➕ Granted DEFAULT_ADMIN_ROLE to ${governanceMultisig}`
+          `    ➕ Granted DEFAULT_ADMIN_ROLE to ${governanceMultisig}`,
         );
       } else {
         console.log(
-          `    ✓ DEFAULT_ADMIN_ROLE already granted to ${governanceMultisig}`
+          `    ✓ DEFAULT_ADMIN_ROLE already granted to ${governanceMultisig}`,
         );
       }
 
       if (
         !(await redeemerContract.hasRole(
           REDEMPTION_MANAGER_ROLE,
-          governanceMultisig
+          governanceMultisig,
         ))
       ) {
         await redeemerContract.grantRole(
           REDEMPTION_MANAGER_ROLE,
-          governanceMultisig
+          governanceMultisig,
         );
         console.log(
-          `    ➕ Granted REDEMPTION_MANAGER_ROLE to ${governanceMultisig}`
+          `    ➕ Granted REDEMPTION_MANAGER_ROLE to ${governanceMultisig}`,
         );
       } else {
         console.log(
-          `    ✓ REDEMPTION_MANAGER_ROLE already granted to ${governanceMultisig}`
+          `    ✓ REDEMPTION_MANAGER_ROLE already granted to ${governanceMultisig}`,
         );
       }
 
@@ -351,12 +379,12 @@ async function transferRedeemerRoles(
       console.log(`    ✅ Completed Redeemer role transfers`);
     } else {
       console.log(
-        `  ⚠️ ${redeemerContractId} not deployed, skipping role transfer`
+        `  ⚠️ ${redeemerContractId} not deployed, skipping role transfer`,
       );
     }
   } catch (error) {
     console.error(
-      `  ❌ Failed to transfer ${redeemerContractId} roles: ${error}`
+      `  ❌ Failed to transfer ${redeemerContractId} roles: ${error}`,
     );
   }
 
@@ -364,26 +392,34 @@ async function transferRedeemerRoles(
 }
 
 /**
- * Transfer AmoManager roles to governance multisig
+ * Transfer roles from deployer to governance multisig for the AMO manager contract
+ *
+ * @param hre Hardhat Runtime Environment
+ * @param amoManagerId The ID of the AMO manager contract
+ * @param deployerSigner The signer for the deployer account
+ * @param governanceMultisig The address of the governance multisig
+ * @param deployer The address of the deployer account
+ * @returns Promise that resolves to true when all roles are transferred
  */
 async function transferAmoManagerRoles(
   hre: HardhatRuntimeEnvironment,
   amoManagerId: string,
-  deployerSigner: any,
+  deployerSigner: Signer,
   governanceMultisig: string,
-  deployer: string
-) {
+  deployer: string,
+): Promise<boolean> {
   const { deployments, ethers } = hre;
 
   try {
     const amoManagerDeployment = await deployments.getOrNull(amoManagerId);
+
     if (amoManagerDeployment) {
       console.log(`\n  📄 AMO MANAGER ROLES: ${amoManagerId}`);
 
       const amoManagerContract = await ethers.getContractAt(
         "AmoManager",
         amoManagerDeployment.address,
-        deployerSigner
+        deployerSigner,
       );
 
       // Get roles
@@ -395,57 +431,57 @@ async function transferAmoManagerRoles(
       if (
         !(await amoManagerContract.hasRole(
           DEFAULT_ADMIN_ROLE,
-          governanceMultisig
+          governanceMultisig,
         ))
       ) {
         await amoManagerContract.grantRole(
           DEFAULT_ADMIN_ROLE,
-          governanceMultisig
+          governanceMultisig,
         );
         console.log(
-          `    ➕ Granted DEFAULT_ADMIN_ROLE to ${governanceMultisig}`
+          `    ➕ Granted DEFAULT_ADMIN_ROLE to ${governanceMultisig}`,
         );
       } else {
         console.log(
-          `    ✓ DEFAULT_ADMIN_ROLE already granted to ${governanceMultisig}`
+          `    ✓ DEFAULT_ADMIN_ROLE already granted to ${governanceMultisig}`,
         );
       }
 
       if (
         !(await amoManagerContract.hasRole(
           AMO_ALLOCATOR_ROLE,
-          governanceMultisig
+          governanceMultisig,
         ))
       ) {
         await amoManagerContract.grantRole(
           AMO_ALLOCATOR_ROLE,
-          governanceMultisig
+          governanceMultisig,
         );
         console.log(
-          `    ➕ Granted AMO_ALLOCATOR_ROLE to ${governanceMultisig}`
+          `    ➕ Granted AMO_ALLOCATOR_ROLE to ${governanceMultisig}`,
         );
       } else {
         console.log(
-          `    ✓ AMO_ALLOCATOR_ROLE already granted to ${governanceMultisig}`
+          `    ✓ AMO_ALLOCATOR_ROLE already granted to ${governanceMultisig}`,
         );
       }
 
       if (
         !(await amoManagerContract.hasRole(
           FEE_COLLECTOR_ROLE,
-          governanceMultisig
+          governanceMultisig,
         ))
       ) {
         await amoManagerContract.grantRole(
           FEE_COLLECTOR_ROLE,
-          governanceMultisig
+          governanceMultisig,
         );
         console.log(
-          `    ➕ Granted FEE_COLLECTOR_ROLE to ${governanceMultisig}`
+          `    ➕ Granted FEE_COLLECTOR_ROLE to ${governanceMultisig}`,
         );
       } else {
         console.log(
-          `    ✓ FEE_COLLECTOR_ROLE already granted to ${governanceMultisig}`
+          `    ✓ FEE_COLLECTOR_ROLE already granted to ${governanceMultisig}`,
         );
       }
 
@@ -478,30 +514,38 @@ async function transferAmoManagerRoles(
 }
 
 /**
- * Transfer CollateralVault roles to governance multisig
+ * Transfer roles from deployer to governance multisig for the collateral vault contract
+ *
+ * @param hre Hardhat Runtime Environment
+ * @param collateralVaultContractId The ID of the collateral vault contract
+ * @param deployerSigner The signer for the deployer account
+ * @param governanceMultisig The address of the governance multisig
+ * @param deployer The address of the deployer account
+ * @returns Promise that resolves to true when all roles are transferred
  */
 async function transferCollateralVaultRoles(
   hre: HardhatRuntimeEnvironment,
   collateralVaultContractId: string,
-  deployerSigner: any,
+  deployerSigner: Signer,
   governanceMultisig: string,
-  deployer: string
-) {
+  deployer: string,
+): Promise<boolean> {
   const { deployments, ethers } = hre;
 
   try {
     const collateralVaultDeployment = await deployments.getOrNull(
-      collateralVaultContractId
+      collateralVaultContractId,
     );
+
     if (collateralVaultDeployment) {
       console.log(
-        `\n  📄 COLLATERAL VAULT ROLES: ${collateralVaultContractId}`
+        `\n  📄 COLLATERAL VAULT ROLES: ${collateralVaultContractId}`,
       );
 
       const collateralVaultContract = await ethers.getContractAt(
         "CollateralHolderVault",
         collateralVaultDeployment.address,
-        deployerSigner
+        deployerSigner,
       );
 
       // Get roles
@@ -517,76 +561,76 @@ async function transferCollateralVaultRoles(
       if (
         !(await collateralVaultContract.hasRole(
           DEFAULT_ADMIN_ROLE,
-          governanceMultisig
+          governanceMultisig,
         ))
       ) {
         await collateralVaultContract.grantRole(
           DEFAULT_ADMIN_ROLE,
-          governanceMultisig
+          governanceMultisig,
         );
         console.log(
-          `    ➕ Granted DEFAULT_ADMIN_ROLE to ${governanceMultisig}`
+          `    ➕ Granted DEFAULT_ADMIN_ROLE to ${governanceMultisig}`,
         );
       } else {
         console.log(
-          `    ✓ DEFAULT_ADMIN_ROLE already granted to ${governanceMultisig}`
+          `    ✓ DEFAULT_ADMIN_ROLE already granted to ${governanceMultisig}`,
         );
       }
 
       if (
         !(await collateralVaultContract.hasRole(
           COLLATERAL_MANAGER_ROLE,
-          governanceMultisig
+          governanceMultisig,
         ))
       ) {
         await collateralVaultContract.grantRole(
           COLLATERAL_MANAGER_ROLE,
-          governanceMultisig
+          governanceMultisig,
         );
         console.log(
-          `    ➕ Granted COLLATERAL_MANAGER_ROLE to ${governanceMultisig}`
+          `    ➕ Granted COLLATERAL_MANAGER_ROLE to ${governanceMultisig}`,
         );
       } else {
         console.log(
-          `    ✓ COLLATERAL_MANAGER_ROLE already granted to ${governanceMultisig}`
+          `    ✓ COLLATERAL_MANAGER_ROLE already granted to ${governanceMultisig}`,
         );
       }
 
       if (
         !(await collateralVaultContract.hasRole(
           COLLATERAL_STRATEGY_ROLE,
-          governanceMultisig
+          governanceMultisig,
         ))
       ) {
         await collateralVaultContract.grantRole(
           COLLATERAL_STRATEGY_ROLE,
-          governanceMultisig
+          governanceMultisig,
         );
         console.log(
-          `    ➕ Granted COLLATERAL_STRATEGY_ROLE to ${governanceMultisig}`
+          `    ➕ Granted COLLATERAL_STRATEGY_ROLE to ${governanceMultisig}`,
         );
       } else {
         console.log(
-          `    ✓ COLLATERAL_STRATEGY_ROLE already granted to ${governanceMultisig}`
+          `    ✓ COLLATERAL_STRATEGY_ROLE already granted to ${governanceMultisig}`,
         );
       }
 
       if (
         !(await collateralVaultContract.hasRole(
           COLLATERAL_WITHDRAWER_ROLE,
-          governanceMultisig
+          governanceMultisig,
         ))
       ) {
         await collateralVaultContract.grantRole(
           COLLATERAL_WITHDRAWER_ROLE,
-          governanceMultisig
+          governanceMultisig,
         );
         console.log(
-          `    ➕ Granted COLLATERAL_WITHDRAWER_ROLE to ${governanceMultisig}`
+          `    ➕ Granted COLLATERAL_WITHDRAWER_ROLE to ${governanceMultisig}`,
         );
       } else {
         console.log(
-          `    ✓ COLLATERAL_WITHDRAWER_ROLE already granted to ${governanceMultisig}`
+          `    ✓ COLLATERAL_WITHDRAWER_ROLE already granted to ${governanceMultisig}`,
         );
       }
 
@@ -596,7 +640,7 @@ async function transferCollateralVaultRoles(
       ) {
         await collateralVaultContract.revokeRole(
           COLLATERAL_MANAGER_ROLE,
-          deployer
+          deployer,
         );
         console.log(`    ➖ Revoked COLLATERAL_MANAGER_ROLE from deployer`);
       }
@@ -604,12 +648,12 @@ async function transferCollateralVaultRoles(
       if (
         await collateralVaultContract.hasRole(
           COLLATERAL_STRATEGY_ROLE,
-          deployer
+          deployer,
         )
       ) {
         await collateralVaultContract.revokeRole(
           COLLATERAL_STRATEGY_ROLE,
-          deployer
+          deployer,
         );
         console.log(`    ➖ Revoked COLLATERAL_STRATEGY_ROLE from deployer`);
       }
@@ -617,12 +661,12 @@ async function transferCollateralVaultRoles(
       if (
         await collateralVaultContract.hasRole(
           COLLATERAL_WITHDRAWER_ROLE,
-          deployer
+          deployer,
         )
       ) {
         await collateralVaultContract.revokeRole(
           COLLATERAL_WITHDRAWER_ROLE,
-          deployer
+          deployer,
         );
         console.log(`    ➖ Revoked COLLATERAL_WITHDRAWER_ROLE from deployer`);
       }
@@ -636,12 +680,12 @@ async function transferCollateralVaultRoles(
       console.log(`    ✅ Completed Collateral Vault role transfers`);
     } else {
       console.log(
-        `  ⚠️ ${collateralVaultContractId} not deployed, skipping role transfer`
+        `  ⚠️ ${collateralVaultContractId} not deployed, skipping role transfer`,
       );
     }
   } catch (error) {
     console.error(
-      `  ❌ Failed to transfer ${collateralVaultContractId} roles: ${error}`
+      `  ❌ Failed to transfer ${collateralVaultContractId} roles: ${error}`,
     );
   }
 

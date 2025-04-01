@@ -1,7 +1,6 @@
 {
   "extends": "solhint:default",
   "rules": {
-    "max-line-length": ["error", 140]
-  },
-  "exclude": ["contracts/dlend/core/dependencies/**/*"]
+    "max-line-length": ["error", 180]
+  }
 }
