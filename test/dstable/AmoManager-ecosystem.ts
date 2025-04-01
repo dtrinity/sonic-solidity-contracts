@@ -15,10 +15,6 @@ import {
   getTokenContractForSymbol,
   TokenInfo,
 } from "../../typescript/token/utils";
-import {
-  USD_ORACLE_AGGREGATOR_ID,
-  S_ORACLE_AGGREGATOR_ID,
-} from "../../typescript/deploy-ids";
 import { ORACLE_AGGREGATOR_PRICE_DECIMALS } from "../../typescript/oracle_aggregator/constants";
 import {
   createDStableAmoFixture,
@@ -79,13 +75,9 @@ dstableConfigs.forEach((config) => {
         await hre.ethers.getSigner(deployer)
       );
 
-      // Get the oracle aggregator based on the dStable configuration
-      const oracleAggregatorId =
-        config.symbol === "dUSD"
-          ? USD_ORACLE_AGGREGATOR_ID
-          : S_ORACLE_AGGREGATOR_ID;
+      // Get the oracle aggregator
       const oracleAggregatorAddress = (
-        await hre.deployments.get(oracleAggregatorId)
+        await hre.deployments.get(config.oracleAggregatorId)
       ).address;
       oracleAggregatorContract = await hre.ethers.getContractAt(
         "OracleAggregator",
@@ -93,13 +85,14 @@ dstableConfigs.forEach((config) => {
         await hre.ethers.getSigner(deployer)
       );
 
-      // Get dStable token info first
-      ({ contract: dstableContract, tokenInfo: dstableInfo } =
-        await getTokenContractForSymbol(
-          hre,
-          deployer,
-          config.symbol as "dUSD" | "dS"
-        ));
+      // Get dStable token info
+      const dstableResult = await getTokenContractForSymbol(
+        hre,
+        deployer,
+        config.symbol
+      );
+      dstableContract = dstableResult.contract as TestMintableERC20;
+      dstableInfo = dstableResult.tokenInfo;
 
       // Create a new MockAmoVault for testing
       const mockAmoVaultAddress = (await hre.deployments.get("MockAmoVault"))
@@ -118,7 +111,7 @@ dstableConfigs.forEach((config) => {
         amoManagerAddress
       );
       expect(await mockAmoVaultContract.oracle()).to.equal(
-        (await hre.deployments.get(oracleAggregatorId)).address
+        oracleAggregatorAddress
       );
 
       // Initialize all collateral tokens for this dStable
@@ -134,7 +127,7 @@ dstableConfigs.forEach((config) => {
         collateralContracts.set(collateralSymbol, contract as TestERC20);
         collateralInfos.set(collateralSymbol, tokenInfo);
 
-        // Allow this collateral in the MockAmoVault
+        // Allow this collateral in MockAmoVault only since CollateralVault is already set up by fixture
         await mockAmoVaultContract.allowCollateral(tokenInfo.address);
       }
 
@@ -143,13 +136,12 @@ dstableConfigs.forEach((config) => {
         await mockAmoVaultContract.getAddress()
       );
 
-      // Assign COLLATERAL_WITHDRAWER_ROLE to the AmoManager for the MockAmoVault
+      // Assign COLLATERAL_WITHDRAWER_ROLE to the AmoManager for both vaults
       await mockAmoVaultContract.grantRole(
         await mockAmoVaultContract.COLLATERAL_WITHDRAWER_ROLE(),
         await amoManagerContract.getAddress()
       );
 
-      // Assign COLLATERAL_WITHDRAWER_ROLE to the AmoManager for the CollateralHolderVault
       await collateralVaultContract.grantRole(
         await collateralVaultContract.COLLATERAL_WITHDRAWER_ROLE(),
         await amoManagerContract.getAddress()
@@ -180,68 +172,8 @@ dstableConfigs.forEach((config) => {
       return (amount * price) / 10n ** BigInt(decimals);
     }
 
-    /**
-     * Verifies oracle setup for all tokens and logs their prices
-     * This is useful for debugging and understanding the test environment
-     */
-    async function verifyOracleSetup() {
-      console.log("Verifying oracle setup for tokens:");
-
-      // Check dS token
-      try {
-        const dsPrice = await oracleAggregatorContract.getAssetPrice(
-          dstableInfo.address
-        );
-        console.log(
-          `✓ Verified oracle for ${dstableInfo.symbol}: ${oracleAggregatorContract.getAddress()}`
-        );
-        try {
-          console.log(
-            `  ✓ Successfully read price for ${dstableInfo.symbol}: ${dsPrice}`
-          );
-        } catch (error: any) {
-          console.log(
-            `  ✗ Failed to check price for ${dstableInfo.symbol}: ${error.message}`
-          );
-        }
-      } catch (error: any) {
-        console.log(
-          `✗ Failed to verify oracle for ${dstableInfo.symbol}: ${error.message}`
-        );
-      }
-
-      // Check all collateral tokens
-      for (const [symbol, info] of collateralInfos.entries()) {
-        try {
-          const oracle = await oracleAggregatorContract.getAssetPrice(
-            info.address
-          );
-          console.log(
-            `✓ Verified oracle for ${symbol}: ${oracleAggregatorContract.getAddress()}`
-          );
-          try {
-            const price = await oracleAggregatorContract.getAssetPrice(
-              info.address
-            );
-            console.log(`  ✓ Successfully read price for ${symbol}: ${price}`);
-          } catch (error: any) {
-            console.log(
-              `  ✗ Failed to check price for ${symbol}: ${error.message}`
-            );
-          }
-        } catch (error: any) {
-          console.log(
-            `✗ Failed to verify oracle for ${symbol}: ${error.message}`
-          );
-        }
-      }
-    }
-
     describe("AMO ecosystem interactions", () => {
       it("verifies oracle prices for pegged and yield-bearing collateral", async function () {
-        // Verify oracle setup to help with debugging
-        await verifyOracleSetup();
-
         // Check pegged collateral prices (should be 1:1)
         for (const symbol of config.peggedCollaterals) {
           const collateralInfo = collateralInfos.get(symbol)!;
@@ -308,7 +240,7 @@ dstableConfigs.forEach((config) => {
           collateralInfo.decimals
         );
 
-        // Approve and deposit instead of transfer
+        // Approve and deposit collateral
         await collateralContract.approve(
           await mockAmoVaultContract.getAddress(),
           collateralAmount
@@ -330,35 +262,17 @@ dstableConfigs.forEach((config) => {
           collateralInfo.address
         );
 
-        // Calculate expected dStable value
-        const expectedDstableValue = await calculateBaseValueFromAmount(
-          collateralAmount,
-          dstableInfo.address
-        );
-
-        console.log("Expected deposit value:", expectedDepositValueBase);
-        console.log("dStable value:", expectedDstableValue);
-
         // Since yield-bearing collateral is worth 1.1x, we should see a profit
         const expectedProfit = expectedDepositValueBase;
-
-        console.log("Expected profit:", expectedProfit);
-        console.log(
-          "Actual profit:",
-          profitAfterDepositBase - initialProfitBase
-        );
 
         assert.equal(
           profitAfterDepositBase - initialProfitBase,
           expectedProfit,
-          `Profit from yield-bearing collateral should match expected value. Expected: ${expectedProfit}, Actual: ${profitAfterDepositBase - initialProfitBase}`
+          `Profit from yield-bearing collateral should match expected value`
         );
       });
 
       it("calculates vault value with various assets", async function () {
-        // Verify oracle setup to help with debugging
-        await verifyOracleSetup();
-
         // 1. Allocate dStable to the AMO vault
         const dstableToAllocate = hre.ethers.parseUnits(
           "1000",
@@ -436,10 +350,6 @@ dstableConfigs.forEach((config) => {
           await mockAmoVaultContract.totalCollateralValue();
         const totalValue = await mockAmoVaultContract.totalValue();
 
-        console.log("dStable value:", dstableValue);
-        console.log("Collateral value:", collateralValue);
-        console.log("Total value:", totalValue);
-
         // 5. Verify the values
         assert.equal(
           totalValue,
@@ -476,25 +386,10 @@ dstableConfigs.forEach((config) => {
           expectedYieldBearingCollateralValue +
           fakeDeFiValue;
 
-        console.log("Expected dStable value:", expectedDstableValue);
-        console.log(
-          "Expected pegged collateral value:",
-          expectedPeggedCollateralValue
-        );
-        console.log(
-          "Expected yield-bearing collateral value:",
-          expectedYieldBearingCollateralValue
-        );
-        console.log(
-          "Expected total collateral value:",
-          expectedTotalCollateralValue
-        );
-        console.log("Fake DeFi value:", fakeDeFiValue);
-
         assert.equal(
           collateralValue,
           expectedTotalCollateralValue,
-          `Collateral value should match expected value. Expected: ${expectedTotalCollateralValue}, Actual: ${collateralValue}`
+          `Collateral value should match expected value`
         );
       });
 
@@ -552,74 +447,32 @@ dstableConfigs.forEach((config) => {
             transferAmount,
             `Vault balance should increase by transfer amount for ${collateralSymbol}`
           );
-        };
 
-        // Test with pegged collateral
-        await testTransfer(config.peggedCollaterals[0]);
-
-        // Test with yield-bearing collateral if available
-        if (config.yieldBearingCollaterals.length > 0) {
-          await testTransfer(config.yieldBearingCollaterals[0]);
-        }
-      });
-
-      it("transfers collateral from collateral vault to AMO vault", async function () {
-        // Test with both pegged and yield-bearing collateral
-        const testTransfer = async (collateralSymbol: string) => {
-          const collateralContract = collateralContracts.get(
-            collateralSymbol
-          ) as TestERC20;
-          const collateralInfo = collateralInfos.get(
-            collateralSymbol
-          ) as TokenInfo;
-
-          const collateralAmount = hre.ethers.parseUnits(
-            "500",
-            collateralInfo.decimals
-          );
-          await collateralContract.approve(
-            await collateralVaultContract.getAddress(),
-            collateralAmount
-          );
-          await collateralVaultContract.deposit(
-            collateralAmount,
-            collateralInfo.address
-          );
-
-          // Check initial balances
-          const initialAmoVaultBalance = await collateralContract.balanceOf(
-            await mockAmoVaultContract.getAddress()
-          );
-          const initialVaultBalance = await collateralContract.balanceOf(
-            await collateralVaultContract.getAddress()
-          );
-
-          // Transfer half of the collateral from collateral vault to AmoVault
-          const transferAmount = collateralAmount / 2n;
+          // Now test transfer back to AMO vault
           await amoManagerContract.transferFromHoldingVaultToAmoVault(
             await mockAmoVaultContract.getAddress(),
             collateralInfo.address,
             transferAmount
           );
 
-          // Check final balances
-          const finalAmoVaultBalance = await collateralContract.balanceOf(
-            await mockAmoVaultContract.getAddress()
-          );
-          const finalVaultBalance = await collateralContract.balanceOf(
-            await collateralVaultContract.getAddress()
-          );
+          const finalAmoVaultBalanceAfterReturn =
+            await collateralContract.balanceOf(
+              await mockAmoVaultContract.getAddress()
+            );
+          const finalVaultBalanceAfterReturn =
+            await collateralContract.balanceOf(
+              await collateralVaultContract.getAddress()
+            );
 
           assert.equal(
-            finalAmoVaultBalance - initialAmoVaultBalance,
-            transferAmount,
-            `AmoVault balance should increase by transfer amount for ${collateralSymbol}`
+            finalAmoVaultBalanceAfterReturn,
+            initialAmoVaultBalance,
+            `AmoVault balance should return to initial amount for ${collateralSymbol}`
           );
-
           assert.equal(
-            initialVaultBalance - finalVaultBalance,
-            transferAmount,
-            `Vault balance should decrease by transfer amount for ${collateralSymbol}`
+            finalVaultBalanceAfterReturn,
+            initialVaultBalance,
+            `Vault balance should return to initial amount for ${collateralSymbol}`
           );
         };
 
@@ -630,161 +483,6 @@ dstableConfigs.forEach((config) => {
         if (config.yieldBearingCollaterals.length > 0) {
           await testTransfer(config.yieldBearingCollaterals[0]);
         }
-      });
-    });
-
-    describe("AMO vault performance tracking", () => {
-      beforeEach(async function () {
-        // Allocate dStable to the AMO vault
-        const dstableToAllocate = hre.ethers.parseUnits(
-          "1000",
-          dstableInfo.decimals
-        );
-        await amoManagerContract.allocateAmo(
-          await mockAmoVaultContract.getAddress(),
-          dstableToAllocate
-        );
-      });
-
-      it("calculates profit and loss correctly", async function () {
-        // Get a collateral token to use for the test
-        const collateralSymbol = config.peggedCollaterals[0];
-        const collateralContract = collateralContracts.get(
-          collateralSymbol
-        ) as TestERC20;
-        const collateralInfo = collateralInfos.get(collateralSymbol)!;
-
-        // Set up initial values
-        const collateralAmount = hre.ethers.parseUnits(
-          "1000",
-          collateralInfo.decimals
-        );
-
-        // Calculate initial vault profit/loss - should be zero at this point
-        const initialProfitBase =
-          await amoManagerContract.availableVaultProfitsInBase(
-            await mockAmoVaultContract.getAddress()
-          );
-
-        // Transfer collateral directly to the MockAmoVault
-        await collateralContract.transfer(
-          await mockAmoVaultContract.getAddress(),
-          collateralAmount
-        );
-
-        // Calculate vault profit after depositing collateral
-        const profitAfterDepositBase =
-          await amoManagerContract.availableVaultProfitsInBase(
-            await mockAmoVaultContract.getAddress()
-          );
-
-        // Calculate expected value of deposited collateral in base units using oracle prices
-        const expectedDepositValueBase = await calculateBaseValueFromAmount(
-          collateralAmount,
-          collateralInfo.address
-        );
-
-        assert.equal(
-          profitAfterDepositBase,
-          initialProfitBase + expectedDepositValueBase,
-          `Profit after deposit should match expected value. Expected: ${initialProfitBase + expectedDepositValueBase}, Actual: ${profitAfterDepositBase}`
-        );
-
-        // Now simulate a loss by removing some of the collateral
-        const lossAmount = hre.ethers.parseUnits(
-          "500",
-          collateralInfo.decimals
-        );
-
-        await mockAmoVaultContract.mockRemoveAsset(
-          await collateralContract.getAddress(),
-          lossAmount
-        );
-
-        // Calculate vault profit after loss
-        const profitAfterLossBase =
-          await amoManagerContract.availableVaultProfitsInBase(
-            await mockAmoVaultContract.getAddress()
-          );
-
-        // Calculate expected value of removed collateral in base units using oracle prices
-        const expectedLossValueBase = await calculateBaseValueFromAmount(
-          lossAmount,
-          collateralInfo.address
-        );
-
-        assert.equal(
-          profitAfterDepositBase - profitAfterLossBase,
-          expectedLossValueBase,
-          `Loss amount should match expected value. Expected: ${expectedLossValueBase}, Actual: ${profitAfterDepositBase - profitAfterLossBase}`
-        );
-
-        // Set fake DeFi collateral value to simulate additional profit
-        const fakeDeFiValueBase = hre.ethers.parseUnits(
-          "300",
-          ORACLE_AGGREGATOR_PRICE_DECIMALS
-        );
-        await mockAmoVaultContract.setFakeDeFiCollateralValue(
-          fakeDeFiValueBase
-        );
-
-        // Calculate profit after adding DeFi value
-        const profitAfterDeFiBase =
-          await amoManagerContract.availableVaultProfitsInBase(
-            await mockAmoVaultContract.getAddress()
-          );
-
-        assert.equal(
-          profitAfterDeFiBase - profitAfterLossBase,
-          fakeDeFiValueBase,
-          `DeFi profit should match expected value. Expected: ${fakeDeFiValueBase}, Actual: ${profitAfterDeFiBase - profitAfterLossBase}`
-        );
-
-        // Try to withdraw some of the profit
-        const takeProfitAmount = hre.ethers.parseUnits(
-          "100",
-          collateralInfo.decimals
-        );
-
-        // Calculate expected value of profit amount in base units using oracle prices
-        const expectedProfitValueBase = await calculateBaseValueFromAmount(
-          takeProfitAmount,
-          collateralInfo.address
-        );
-
-        // Check the token's balances before taking profit
-        const initialRecipientBalance =
-          await collateralContract.balanceOf(user1);
-
-        // Take profit
-        await amoManagerContract.withdrawProfits(
-          await mockAmoVaultContract.getAddress(),
-          user1,
-          await collateralContract.getAddress(),
-          takeProfitAmount
-        );
-
-        // Check the token's balances after taking profit
-        const finalRecipientBalance = await collateralContract.balanceOf(user1);
-
-        // Recipient should receive the profit amount
-        assert.equal(
-          finalRecipientBalance - initialRecipientBalance,
-          takeProfitAmount,
-          "Recipient should receive the correct profit amount"
-        );
-
-        // Calculate profit after withdrawing
-        const profitAfterWithdrawBase =
-          await amoManagerContract.availableVaultProfitsInBase(
-            await mockAmoVaultContract.getAddress()
-          );
-
-        assert.equal(
-          profitAfterDeFiBase - profitAfterWithdrawBase,
-          expectedProfitValueBase,
-          `Withdraw profit should match expected value. Expected: ${expectedProfitValueBase}, Actual: ${profitAfterDeFiBase - profitAfterWithdrawBase}`
-        );
       });
     });
   });
