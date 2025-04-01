@@ -6,12 +6,20 @@ import {
   AmoManager,
   Issuer,
   TestMintableERC20,
+  TestERC20,
   OracleAggregator,
+  CollateralVault,
+  AmoVault,
+  MockAmoVault,
 } from "../../typechain-types";
-import { TokenInfo } from "../../typescript/token/utils";
-import { getTokenContractForSymbol } from "../../typescript/token/utils";
 import {
-  createDStableFixture,
+  TokenInfo,
+  getTokenContractForAddress,
+  getTokenContractForSymbol,
+  DSTABLE_SYMBOLS,
+} from "../../typescript/token/utils";
+import {
+  createDStableAmoFixture,
   DUSD_CONFIG,
   DS_CONFIG,
   DStableFixtureConfig,
@@ -20,23 +28,50 @@ import {
   USD_ORACLE_AGGREGATOR_ID,
   S_ORACLE_AGGREGATOR_ID,
 } from "../../typescript/deploy-ids";
+import { getConfig } from "../../config/config";
 
 // Run tests for each dStable configuration
 const dstableConfigs: DStableFixtureConfig[] = [DUSD_CONFIG, DS_CONFIG];
 
-dstableConfigs.forEach((config) => {
+describe("AmoManager", () => {
+  let deployer: Address;
+  let user1: Address;
+  let user2: Address;
+
+  before(async () => {
+    ({ deployer, user1, user2 } = await getNamedAccounts());
+  });
+
+  // Run tests for each dStable configuration
+  dstableConfigs.forEach((config) => {
+    runTestsForDStable(config, { deployer, user1, user2 });
+  });
+});
+
+async function runTestsForDStable(
+  config: DStableFixtureConfig,
+  {
+    deployer,
+    user1,
+    user2,
+  }: { deployer: Address; user1: Address; user2: Address }
+) {
   describe(`AmoManager for ${config.symbol}`, () => {
     let amoManagerContract: AmoManager;
     let issuerContract: Issuer;
     let dstableContract: TestMintableERC20;
     let dstableInfo: TokenInfo;
     let oracleAggregatorContract: OracleAggregator;
-    let deployer: Address;
-    let user1: Address;
-    let user2: Address;
+    let collateralVaultContract: CollateralVault;
+    let mockAmoVault: MockAmoVault;
+    let amoAllocatorRole: string;
+    let feeCollectorRole: string;
+    let defaultAdminRole: string;
+    let mockCollateralTokens: Map<string, TestERC20 | TestMintableERC20>;
+    let mockCollateralInfos: Map<string, TokenInfo>;
 
     // Set up fixture for this specific dStable configuration
-    const fixture = createDStableFixture(config);
+    const fixture = createDStableAmoFixture(config);
 
     beforeEach(async function () {
       await fixture();
@@ -59,6 +94,7 @@ dstableConfigs.forEach((config) => {
         await hre.ethers.getSigner(deployer)
       );
 
+      // Get dStable contract using symbol - we know this is always TestMintableERC20
       ({ contract: dstableContract, tokenInfo: dstableInfo } =
         await getTokenContractForSymbol(
           hre,
@@ -80,58 +116,147 @@ dstableConfigs.forEach((config) => {
         await hre.ethers.getSigner(deployer)
       );
 
+      // Get the deployed MockAmoVault
+      const mockAmoVaultAddress = (await hre.deployments.get("MockAmoVault"))
+        .address;
+      mockAmoVault = await hre.ethers.getContractAt(
+        "MockAmoVault",
+        mockAmoVaultAddress,
+        await hre.ethers.getSigner(deployer)
+      );
+
+      // Get the collateral vault
+      collateralVaultContract = await hre.ethers.getContractAt(
+        "CollateralVault",
+        await amoManagerContract.collateralHolderVault(),
+        await hre.ethers.getSigner(deployer)
+      );
+
+      // Get roles
+      amoAllocatorRole = await amoManagerContract.AMO_ALLOCATOR_ROLE();
+      feeCollectorRole = await amoManagerContract.FEE_COLLECTOR_ROLE();
+      defaultAdminRole = await amoManagerContract.DEFAULT_ADMIN_ROLE();
+
+      // Initialize mock collateral tokens based on dStable type
+      mockCollateralTokens = new Map();
+      mockCollateralInfos = new Map();
+
+      // Get the network config to access mock token info
+      const networkConfig = await getConfig(hre);
+
+      // Get collateral list from config
+      const collateralAddresses =
+        networkConfig.dStables[config.symbol].collaterals;
+
+      // Get the first non-zero collateral address
+      const firstCollateralAddress = collateralAddresses.find(
+        (addr) => addr !== hre.ethers.ZeroAddress
+      );
+      if (!firstCollateralAddress) {
+        throw new Error("No valid collateral address found");
+      }
+
+      // Get the token contract and info directly using the address
+      const { contract, tokenInfo } = await getTokenContractForAddress(
+        hre,
+        deployer,
+        firstCollateralAddress
+      );
+
+      mockCollateralTokens.set(tokenInfo.symbol, contract);
+      mockCollateralInfos.set(tokenInfo.symbol, tokenInfo);
+
       // Mint some dStable to the AmoManager for testing
       const initialAmoSupply = hre.ethers.parseUnits(
         "10000",
         dstableInfo.decimals
       );
       await issuerContract.increaseAmoSupply(initialAmoSupply);
+
+      // Ensure the MockAmoVault has the necessary roles
+      const collateralWithdrawerRole =
+        await mockAmoVault.COLLATERAL_WITHDRAWER_ROLE();
+      if (
+        !(await mockAmoVault.hasRole(
+          collateralWithdrawerRole,
+          amoManagerAddress
+        ))
+      ) {
+        await mockAmoVault.grantRole(
+          collateralWithdrawerRole,
+          amoManagerAddress
+        );
+      }
+
+      // Grant necessary roles to AmoManager for collateral management
+      if (
+        !(await collateralVaultContract.hasRole(
+          collateralWithdrawerRole,
+          await amoManagerContract.getAddress()
+        ))
+      ) {
+        await collateralVaultContract.grantRole(
+          collateralWithdrawerRole,
+          await amoManagerContract.getAddress()
+        );
+      }
+
+      // Ensure vault is in correct state at start
+      const amoVault = await mockAmoVault.getAddress();
+      await ensureVaultDisabled(amoVault);
+
+      // Allow collateral in the MockAmoVault
+      await mockAmoVault.allowCollateral(await contract.getAddress());
     });
 
-    /**
-     * Calculates the expected base value of a token amount based on oracle prices
-     * @param amount - The amount of token
-     * @param tokenAddress - The address of the token
-     * @returns The base value of the token amount
-     */
-    async function calculateBaseValueFromAmount(
-      amount: bigint,
-      tokenAddress: Address
-    ): Promise<bigint> {
-      const price = await oracleAggregatorContract.getAssetPrice(tokenAddress);
-      const decimals = await (
-        await hre.ethers.getContractAt("TestMintableERC20", tokenAddress)
-      ).decimals();
-      return (amount * price) / 10n ** BigInt(decimals);
+    // Helper function to ensure vault is disabled
+    async function ensureVaultDisabled(vault: Address) {
+      if (await amoManagerContract.isAmoActive(vault)) {
+        await amoManagerContract.disableAmoVault(vault);
+      }
     }
 
-    /**
-     * Calculates the expected token amount from a base value based on oracle prices
-     * @param baseValue - The base value
-     * @param tokenAddress - The address of the token
-     * @returns The token amount equivalent to the base value
-     */
-    async function calculateAmountFromBaseValue(
-      baseValue: bigint,
-      tokenAddress: Address
-    ): Promise<bigint> {
-      const price = await oracleAggregatorContract.getAssetPrice(tokenAddress);
-      const decimals = await (
-        await hre.ethers.getContractAt("TestMintableERC20", tokenAddress)
-      ).decimals();
-      return (baseValue * 10n ** BigInt(decimals)) / price;
+    // Helper function to ensure vault is enabled
+    async function ensureVaultEnabled(vault: Address) {
+      if (!(await amoManagerContract.isAmoActive(vault))) {
+        await amoManagerContract.enableAmoVault(vault);
+      }
     }
+
+    describe("Role-based access control", () => {
+      it("should have correct role assignments after deployment", async function () {
+        expect(await amoManagerContract.hasRole(defaultAdminRole, deployer)).to
+          .be.true;
+        expect(await amoManagerContract.hasRole(amoAllocatorRole, deployer)).to
+          .be.true;
+        expect(await amoManagerContract.hasRole(feeCollectorRole, deployer)).to
+          .be.true;
+      });
+
+      it("should prevent unauthorized users from accessing restricted functions", async function () {
+        const unauthorizedSigner = await hre.ethers.getSigner(user2);
+        const amount = hre.ethers.parseUnits("100", dstableInfo.decimals);
+
+        await expect(
+          amoManagerContract
+            .connect(unauthorizedSigner)
+            .allocateAmo(await mockAmoVault.getAddress(), amount)
+        ).to.be.revertedWithCustomError(
+          amoManagerContract,
+          "AccessControlUnauthorizedAccount"
+        );
+      });
+    });
 
     describe("AMO allocation", () => {
       it("allocates AMO tokens to an active vault", async function () {
-        const amoVault = user1;
+        const amoVault = await mockAmoVault.getAddress();
         const allocateAmount = hre.ethers.parseUnits(
           "1000",
           dstableInfo.decimals
         );
 
-        // Enable the AMO vault
-        await amoManagerContract.enableAmoVault(amoVault);
+        await ensureVaultEnabled(amoVault);
 
         const initialAmoSupply = await amoManagerContract.totalAmoSupply();
         const initialVaultBalance = await dstableContract.balanceOf(amoVault);
@@ -154,11 +279,13 @@ dstableConfigs.forEach((config) => {
       });
 
       it("cannot allocate to an inactive vault", async function () {
-        const inactiveVault = user2;
+        const inactiveVault = await mockAmoVault.getAddress();
         const allocateAmount = hre.ethers.parseUnits(
           "1000",
           dstableInfo.decimals
         );
+
+        await ensureVaultDisabled(inactiveVault);
 
         await expect(
           amoManagerContract.allocateAmo(inactiveVault, allocateAmount)
@@ -166,9 +293,8 @@ dstableConfigs.forEach((config) => {
       });
 
       it("cannot allocate more than unallocated supply", async function () {
-        const amoVault = user1;
-        // Enable the AMO vault
-        await amoManagerContract.enableAmoVault(amoVault);
+        const amoVault = await mockAmoVault.getAddress();
+        await ensureVaultEnabled(amoVault);
 
         // Get the total unallocated supply
         const totalAmoSupply = await amoManagerContract.totalAmoSupply();
@@ -176,7 +302,7 @@ dstableConfigs.forEach((config) => {
         const allocateAmount = totalAmoSupply + 1n;
 
         await expect(amoManagerContract.allocateAmo(amoVault, allocateAmount))
-          .to.be.reverted; // Expect any revert, not a specific custom error
+          .to.be.reverted;
       });
     });
 
@@ -185,20 +311,34 @@ dstableConfigs.forEach((config) => {
       let allocateAmount: bigint;
 
       beforeEach(async function () {
-        amoVault = user1;
+        amoVault = await mockAmoVault.getAddress();
         allocateAmount = hre.ethers.parseUnits("1000", dstableInfo.decimals);
 
-        // Enable the AMO vault and allocate tokens
-        await amoManagerContract.enableAmoVault(amoVault);
+        await ensureVaultEnabled(amoVault);
         await amoManagerContract.allocateAmo(amoVault, allocateAmount);
       });
 
       it("deallocates AMO tokens from an active vault", async function () {
         const deallocateAmount = allocateAmount; // Deallocate all
 
+        // Impersonate the AMO vault
+        await hre.network.provider.request({
+          method: "hardhat_impersonateAccount",
+          params: [amoVault],
+        });
+
+        // Fund the AMO vault with some ETH for gas
+        await hre.network.provider.send("hardhat_setBalance", [
+          amoVault,
+          "0x1000000000000000000",
+        ]);
+
+        // Get the impersonated signer
+        const amoVaultSigner = await hre.ethers.getSigner(amoVault);
+
         // Approve the AMO Manager to transfer tokens from the vault
         await dstableContract
-          .connect(await hre.ethers.getSigner(amoVault))
+          .connect(amoVaultSigner)
           .approve(await amoManagerContract.getAddress(), deallocateAmount);
 
         const initialVaultBalance = await dstableContract.balanceOf(amoVault);
@@ -212,6 +352,12 @@ dstableConfigs.forEach((config) => {
         const finalAmoManagerBalance = await dstableContract.balanceOf(
           await amoManagerContract.getAddress()
         );
+
+        // Stop impersonating
+        await hre.network.provider.request({
+          method: "hardhat_stopImpersonatingAccount",
+          params: [amoVault],
+        });
 
         assert.equal(
           initialVaultBalance - finalVaultBalance,
@@ -228,20 +374,42 @@ dstableConfigs.forEach((config) => {
       it("cannot deallocate more than allocated to vault", async function () {
         const deallocateAmount = allocateAmount + 1n; // More than allocated
 
+        // Impersonate the AMO vault
+        await hre.network.provider.request({
+          method: "hardhat_impersonateAccount",
+          params: [amoVault],
+        });
+
+        // Fund the AMO vault with some ETH for gas
+        await hre.network.provider.send("hardhat_setBalance", [
+          amoVault,
+          "0x1000000000000000000",
+        ]);
+
+        // Get the impersonated signer
+        const amoVaultSigner = await hre.ethers.getSigner(amoVault);
+
         // Approve the AMO Manager to transfer tokens from the vault
         await dstableContract
-          .connect(await hre.ethers.getSigner(amoVault))
+          .connect(amoVaultSigner)
           .approve(await amoManagerContract.getAddress(), deallocateAmount);
 
         await expect(
           amoManagerContract.deallocateAmo(amoVault, deallocateAmount)
-        ).to.be.reverted; // Expect any revert, not a specific custom error
+        ).to.be.reverted;
+
+        // Stop impersonating
+        await hre.network.provider.request({
+          method: "hardhat_stopImpersonatingAccount",
+          params: [amoVault],
+        });
       });
     });
 
     describe("AMO vault management", () => {
       it("enables an AMO vault", async function () {
-        const vault = user1;
+        const vault = await mockAmoVault.getAddress();
+        await ensureVaultDisabled(vault);
 
         // Check if vault is initially inactive
         await expect(
@@ -263,10 +431,8 @@ dstableConfigs.forEach((config) => {
       });
 
       it("disables an AMO vault", async function () {
-        const vault = user1;
-
-        // First enable the vault
-        await amoManagerContract.enableAmoVault(vault);
+        const vault = await mockAmoVault.getAddress();
+        await ensureVaultEnabled(vault);
 
         // Should be able to allocate to the vault
         const allocateAmount = hre.ethers.parseUnits("1", dstableInfo.decimals);
@@ -278,6 +444,27 @@ dstableConfigs.forEach((config) => {
         // Try to allocate more to the disabled vault
         await expect(
           amoManagerContract.allocateAmo(vault, allocateAmount)
+        ).to.be.revertedWithCustomError(amoManagerContract, "InactiveAmoVault");
+      });
+
+      it("cannot enable an already enabled vault", async function () {
+        const vault = await mockAmoVault.getAddress();
+        await ensureVaultEnabled(vault);
+
+        await expect(
+          amoManagerContract.enableAmoVault(vault)
+        ).to.be.revertedWithCustomError(
+          amoManagerContract,
+          "AmoVaultAlreadyEnabled"
+        );
+      });
+
+      it("cannot disable an already disabled vault", async function () {
+        const vault = await mockAmoVault.getAddress();
+        await ensureVaultDisabled(vault);
+
+        await expect(
+          amoManagerContract.disableAmoVault(vault)
         ).to.be.revertedWithCustomError(amoManagerContract, "InactiveAmoVault");
       });
     });
@@ -305,32 +492,308 @@ dstableConfigs.forEach((config) => {
           "dStable total supply should decrease by burn amount"
         );
       });
+
+      it("cannot decrease AMO supply more than available", async function () {
+        const totalAmoSupply = await amoManagerContract.totalAmoSupply();
+        const burnAmount = totalAmoSupply + 1n;
+
+        await expect(amoManagerContract.decreaseAmoSupply(burnAmount)).to.be
+          .reverted;
+      });
+    });
+
+    describe("Collateral Management", () => {
+      let testCollateralToken: TestERC20;
+      let testCollateralInfo: TokenInfo;
+
+      beforeEach(async function () {
+        // Get the network config to access mock token info
+        const networkConfig = await getConfig(hre);
+
+        // Get collateral list from config
+        const collateralAddresses =
+          networkConfig.dStables[config.symbol].collaterals;
+
+        // Get the first non-zero collateral address
+        const firstCollateralAddress = collateralAddresses.find(
+          (addr) => addr !== hre.ethers.ZeroAddress
+        );
+        if (!firstCollateralAddress) {
+          throw new Error("No valid collateral address found");
+        }
+
+        // Get the token contract and info directly using the address
+        const { contract, tokenInfo } = await getTokenContractForAddress(
+          hre,
+          deployer,
+          firstCollateralAddress
+        );
+
+        testCollateralInfo = tokenInfo;
+        testCollateralToken = contract;
+
+        // Ensure the token is initialized
+        if (!testCollateralToken || !testCollateralInfo) {
+          throw new Error("Failed to initialize test collateral token");
+        }
+
+        // Ensure vault is in correct state at start
+        const amoVault = await mockAmoVault.getAddress();
+        await ensureVaultDisabled(amoVault);
+      });
+
+      it("transfers collateral from AMO vault to holding vault", async function () {
+        const amoVault = await mockAmoVault.getAddress();
+        const collateralAmount = hre.ethers.parseUnits(
+          "100",
+          testCollateralInfo.decimals
+        );
+
+        await ensureVaultEnabled(amoVault);
+
+        // Transfer collateral to the AMO vault from deployer
+        await testCollateralToken.transfer(amoVault, collateralAmount);
+
+        const initialHoldingVaultBalance = await testCollateralToken.balanceOf(
+          await collateralVaultContract.getAddress()
+        );
+
+        await amoManagerContract.transferFromAmoVaultToHoldingVault(
+          amoVault,
+          await testCollateralToken.getAddress(),
+          collateralAmount
+        );
+
+        const finalHoldingVaultBalance = await testCollateralToken.balanceOf(
+          await collateralVaultContract.getAddress()
+        );
+
+        expect(finalHoldingVaultBalance - initialHoldingVaultBalance).to.equal(
+          collateralAmount
+        );
+      });
+
+      it("transfers collateral from holding vault to AMO vault", async function () {
+        const amoVault = await mockAmoVault.getAddress();
+        const collateralAmount = hre.ethers.parseUnits(
+          "100",
+          testCollateralInfo.decimals
+        );
+
+        await ensureVaultEnabled(amoVault);
+
+        // Transfer collateral to the holding vault
+        await testCollateralToken.transfer(
+          await collateralVaultContract.getAddress(),
+          collateralAmount
+        );
+
+        const initialAmoVaultBalance =
+          await testCollateralToken.balanceOf(amoVault);
+
+        await amoManagerContract.transferFromHoldingVaultToAmoVault(
+          amoVault,
+          await testCollateralToken.getAddress(),
+          collateralAmount
+        );
+
+        const finalAmoVaultBalance =
+          await testCollateralToken.balanceOf(amoVault);
+
+        expect(finalAmoVaultBalance - initialAmoVaultBalance).to.equal(
+          collateralAmount
+        );
+      });
+
+      it("cannot transfer dStable as collateral", async function () {
+        const amoVault = await mockAmoVault.getAddress();
+        const amount = hre.ethers.parseUnits("100", dstableInfo.decimals);
+
+        await expect(
+          amoManagerContract.transferFromAmoVaultToHoldingVault(
+            amoVault,
+            await dstableContract.getAddress(),
+            amount
+          )
+        ).to.be.revertedWithCustomError(
+          amoManagerContract,
+          "CannotTransferDStable"
+        );
+
+        await expect(
+          amoManagerContract.transferFromHoldingVaultToAmoVault(
+            amoVault,
+            await dstableContract.getAddress(),
+            amount
+          )
+        ).to.be.revertedWithCustomError(
+          amoManagerContract,
+          "CannotTransferDStable"
+        );
+      });
+    });
+
+    describe("Profit Management", () => {
+      let testCollateralToken: TestERC20;
+      let testCollateralInfo: TokenInfo;
+
+      beforeEach(async function () {
+        // Get the network config to access mock token info
+        const networkConfig = await getConfig(hre);
+
+        // Get collateral list from config
+        const collateralAddresses =
+          networkConfig.dStables[config.symbol].collaterals;
+
+        // Get the first non-zero collateral address
+        const firstCollateralAddress = collateralAddresses.find(
+          (addr) => addr !== hre.ethers.ZeroAddress
+        );
+        if (!firstCollateralAddress) {
+          throw new Error("No valid collateral address found");
+        }
+
+        // Get the token contract and info directly using the address
+        const { contract, tokenInfo } = await getTokenContractForAddress(
+          hre,
+          deployer,
+          firstCollateralAddress
+        );
+
+        testCollateralInfo = tokenInfo;
+        testCollateralToken = contract;
+
+        // Ensure the token is initialized
+        if (!testCollateralToken || !testCollateralInfo) {
+          throw new Error("Failed to initialize test collateral token");
+        }
+
+        // Ensure vault is in correct state at start
+        const amoVault = await mockAmoVault.getAddress();
+        await ensureVaultDisabled(amoVault);
+      });
+
+      it("calculates available vault profits correctly", async function () {
+        const amoVault = await mockAmoVault.getAddress();
+        const allocateAmount = hre.ethers.parseUnits(
+          "1000",
+          dstableInfo.decimals
+        );
+
+        // Enable and allocate to the vault
+        await ensureVaultEnabled(amoVault);
+        await amoManagerContract.allocateAmo(amoVault, allocateAmount);
+
+        // Add some profit to the vault (through collateral)
+        const profitAmount = hre.ethers.parseUnits(
+          "100",
+          testCollateralInfo.decimals
+        );
+        await testCollateralToken.transfer(amoVault, profitAmount);
+
+        const availableProfit =
+          await amoManagerContract.availableVaultProfitsInBase(amoVault);
+
+        expect(availableProfit).to.be.gt(0);
+      });
+
+      it("withdraws profits from AMO vault", async function () {
+        const amoVault = await mockAmoVault.getAddress();
+        const recipient = user1;
+
+        // First allocate some dStable to establish a baseline
+        const allocateAmount = hre.ethers.parseUnits(
+          "1000",
+          dstableInfo.decimals
+        );
+
+        // Enable vault and allocate dStable
+        await ensureVaultEnabled(amoVault);
+        await amoManagerContract.allocateAmo(amoVault, allocateAmount);
+
+        // Add profit through collateral
+        const profitAmount = hre.ethers.parseUnits(
+          "100",
+          testCollateralInfo.decimals
+        );
+        await testCollateralToken.transfer(amoVault, profitAmount);
+
+        const initialRecipientBalance =
+          await testCollateralToken.balanceOf(recipient);
+
+        // Try to withdraw profits
+        await amoManagerContract.withdrawProfits(
+          mockAmoVault,
+          recipient,
+          await testCollateralToken.getAddress(),
+          profitAmount
+        );
+
+        const finalRecipientBalance =
+          await testCollateralToken.balanceOf(recipient);
+
+        expect(finalRecipientBalance - initialRecipientBalance).to.equal(
+          profitAmount
+        );
+      });
+
+      it("cannot withdraw more than available profits", async function () {
+        const amoVault = await mockAmoVault.getAddress();
+        const recipient = user1;
+
+        // First allocate some dStable to establish a baseline
+        const allocateAmount = hre.ethers.parseUnits(
+          "1000",
+          dstableInfo.decimals
+        );
+
+        // Enable vault and allocate dStable
+        await ensureVaultEnabled(amoVault);
+        await amoManagerContract.allocateAmo(amoVault, allocateAmount);
+
+        const availableAmount = hre.ethers.parseUnits(
+          "100",
+          testCollateralInfo.decimals
+        );
+        const withdrawAmount = availableAmount + 1n;
+
+        // Add some collateral as profit
+        await testCollateralToken.transfer(amoVault, availableAmount);
+
+        await expect(
+          amoManagerContract.withdrawProfits(
+            mockAmoVault,
+            recipient,
+            await testCollateralToken.getAddress(),
+            withdrawAmount
+          )
+        ).to.be.revertedWithCustomError(
+          amoManagerContract,
+          "InsufficientProfits"
+        );
+      });
     });
 
     describe("Base value conversion", () => {
       it("converts base value to dStable amount correctly", async function () {
         const baseValue = hre.ethers.parseUnits("1000", 8); // 8 decimals for base value
-
-        // Calculate expected dStable amount using oracle prices
-        const expectedDstableAmount = await calculateAmountFromBaseValue(
-          baseValue,
-          dstableInfo.address
-        );
-
-        const actualDstableAmount =
+        const dstableAmount =
           await amoManagerContract.baseValueToDstableAmount(baseValue);
 
-        // Allow for a small rounding error due to fixed-point math
+        // Convert back to base value
+        const convertedBaseValue =
+          await amoManagerContract.dstableAmountToBaseValue(dstableAmount);
+
+        // Allow for small rounding errors
         const difference =
-          actualDstableAmount > expectedDstableAmount
-            ? actualDstableAmount - expectedDstableAmount
-            : expectedDstableAmount - actualDstableAmount;
+          convertedBaseValue > baseValue
+            ? convertedBaseValue - baseValue
+            : baseValue - convertedBaseValue;
+        const acceptableError = (baseValue * 1n) / 100n; // 1% error margin
 
-        const acceptableError = (expectedDstableAmount * 1n) / 100n; // 1% error margin
-
-        assert.isTrue(
-          difference <= acceptableError,
-          `dStable amount difference (${difference}) exceeds acceptable error (${acceptableError}). Expected: ${expectedDstableAmount}, Actual: ${actualDstableAmount}`
+        expect(difference).to.be.lte(
+          acceptableError,
+          "Base value conversion should be within acceptable error margin"
         );
       });
 
@@ -339,29 +802,51 @@ dstableConfigs.forEach((config) => {
           "1000",
           dstableInfo.decimals
         );
-
-        // Calculate expected base value using oracle prices
-        const expectedBaseValue = await calculateBaseValueFromAmount(
-          dstableAmount,
-          dstableInfo.address
-        );
-
-        const actualBaseValue =
+        const baseValue =
           await amoManagerContract.dstableAmountToBaseValue(dstableAmount);
 
-        // Allow for a small rounding error due to fixed-point math
+        // Convert back to dStable amount
+        const convertedDstableAmount =
+          await amoManagerContract.baseValueToDstableAmount(baseValue);
+
+        // Allow for small rounding errors
         const difference =
-          actualBaseValue > expectedBaseValue
-            ? actualBaseValue - expectedBaseValue
-            : expectedBaseValue - actualBaseValue;
+          convertedDstableAmount > dstableAmount
+            ? convertedDstableAmount - dstableAmount
+            : dstableAmount - convertedDstableAmount;
+        const acceptableError = (dstableAmount * 1n) / 100n; // 1% error margin
 
-        const acceptableError = (expectedBaseValue * 1n) / 100n; // 1% error margin
+        expect(difference).to.be.lte(
+          acceptableError,
+          "dStable amount conversion should be within acceptable error margin"
+        );
+      });
+    });
 
-        assert.isTrue(
-          difference <= acceptableError,
-          `Base value difference (${difference}) exceeds acceptable error (${acceptableError}). Expected: ${expectedBaseValue}, Actual: ${actualBaseValue}`
+    describe("Admin functions", () => {
+      it("allows admin to set collateral vault", async function () {
+        const newCollateralVault = user1;
+
+        await amoManagerContract.setCollateralVault(newCollateralVault);
+
+        expect(await amoManagerContract.collateralHolderVault()).to.equal(
+          newCollateralVault
+        );
+      });
+
+      it("prevents non-admin from setting collateral vault", async function () {
+        const newCollateralVault = user1;
+        const nonAdmin = await hre.ethers.getSigner(user2);
+
+        await expect(
+          amoManagerContract
+            .connect(nonAdmin)
+            .setCollateralVault(newCollateralVault)
+        ).to.be.revertedWithCustomError(
+          amoManagerContract,
+          "AccessControlUnauthorizedAccount"
         );
       });
     });
   });
-});
+}
