@@ -83,6 +83,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
 func.tags = ["dlend", "dlend-periphery-pre"];
 func.dependencies = [];
-func.id = "Treasury";
+func.id = "dLend:Treasury";
 
 export default func;

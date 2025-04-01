@@ -39,7 +39,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   return true;
 };
 
-func.id = "init_oracles";
+func.id = "dLend:init_oracles";
 func.tags = ["dlend", "dlend-market"];
 func.dependencies = ["dlend-core", "dlend-periphery-pre", "deploy-oracles"];
 

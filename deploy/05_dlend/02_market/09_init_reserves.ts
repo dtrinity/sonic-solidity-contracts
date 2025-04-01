@@ -271,7 +271,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   return true;
 };
 
-func.id = "init_reserves";
+func.id = "dLend:init_reserves";
 func.tags = ["dlend", "dlend-market"];
 func.dependencies = [
   "dlend-core",

@@ -21,6 +21,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 };
 
 func.tags = ["dlend", "dlend-periphery-post"];
-func.id = "WalletBalanceProvider";
+func.id = "dLend:WalletBalanceProvider";
 
 export default func;

@@ -73,7 +73,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   return true;
 };
 
-func.id = "init_acl";
+func.id = "dLend:init_acl";
 func.tags = ["dlend", "dlend-market"];
 func.dependencies = [
   "dlend-core",

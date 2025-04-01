@@ -30,6 +30,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
 func.tags = ["dlend", "dlend-periphery-post"];
 func.dependencies = ["dlend-core", "dlend-periphery-pre"];
-func.id = "WrappedTokenGatewayV3";
+func.id = "dLend:WrappedTokenGatewayV3";
 
 export default func;

@@ -96,7 +96,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   return true;
 };
 
-func.id = "LogicLibraries";
+func.id = "dLend:LogicLibraries";
 func.tags = ["dlend", "dlend-core"];
 
 export default func;

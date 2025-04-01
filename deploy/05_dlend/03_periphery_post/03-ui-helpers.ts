@@ -38,6 +38,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
 func.tags = ["dlend", "dlend-periphery-post"];
 func.dependencies = ["PoolAddressesProvider", "deploy_oracles"];
-func.id = "UiPoolDataProviderV3";
+func.id = "dLend:UiPoolDataProviderV3";
 
 export default func;

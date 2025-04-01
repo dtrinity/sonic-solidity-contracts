@@ -21,7 +21,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   return true;
 };
 
-func.id = "PoolAddressesProviderRegistry";
+func.id = "dLend:PoolAddressesProviderRegistry";
 func.tags = ["dlend", "dlend-core"];
 
 export default func;

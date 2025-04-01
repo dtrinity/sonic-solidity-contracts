@@ -123,7 +123,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   return true;
 };
 
-func.id = `Incentives`;
+func.id = "dLend:Incentives";
 func.tags = ["dlend", "dlend-periphery-post"];
 func.dependencies = [
   "dlend-core",

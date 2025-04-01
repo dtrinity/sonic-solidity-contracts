@@ -58,7 +58,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   return true;
 };
 
-func.id = "PoolConfigurator";
+func.id = "dLend:PoolConfigurator";
 func.tags = ["dlend", "dlend-market"];
 func.dependencies = ["dlend-core", "dlend-periphery-pre"];
 
