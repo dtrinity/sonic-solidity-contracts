@@ -4,15 +4,7 @@ import { dLendFixture } from "./fixtures";
 import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 import { DLendFixtureResult } from "./fixtures";
 import { POOL_ADDRESSES_PROVIDER_ID } from "../../typescript/deploy-ids";
-import {
-  ACLManager,
-  Pool,
-  PoolAddressesProvider,
-  PoolConfigurator,
-  IPoolDataProvider,
-  TestERC20,
-  ERC20StablecoinUpgradeable,
-} from "../../typechain-types";
+import { Pool } from "../../typechain-types";
 
 describe("dLEND Pool", () => {
   // Test fixture and common variables

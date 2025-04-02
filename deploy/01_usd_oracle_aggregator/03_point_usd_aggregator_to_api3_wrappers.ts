@@ -14,29 +14,29 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   // Get USD OracleAggregator contract
   const oracleAggregatorDeployment = await hre.deployments.get(
-    USD_ORACLE_AGGREGATOR_ID
+    USD_ORACLE_AGGREGATOR_ID,
   );
   const oracleAggregator = await hre.ethers.getContractAt(
     "OracleAggregator",
-    oracleAggregatorDeployment.address
+    oracleAggregatorDeployment.address,
   );
 
   // Get API3Wrapper for plain feeds
   const api3WrapperDeployment = await hre.deployments.get(
-    USD_API3_ORACLE_WRAPPER_ID
+    USD_API3_ORACLE_WRAPPER_ID,
   );
   const api3WrapperAddress = api3WrapperDeployment.address;
 
   // Get API3WrapperWithThresholding for feeds with thresholding
   const api3WrapperWithThresholdingDeployment = await hre.deployments.get(
-    USD_API3_WRAPPER_WITH_THRESHOLDING_ID
+    USD_API3_WRAPPER_WITH_THRESHOLDING_ID,
   );
   const api3WrapperWithThresholdingAddress =
     api3WrapperWithThresholdingDeployment.address;
 
   // Get API3CompositeWrapperWithThresholding for composite feeds
   const api3CompositeWrapperDeployment = await hre.deployments.get(
-    USD_API3_COMPOSITE_WRAPPER_WITH_THRESHOLDING_ID
+    USD_API3_COMPOSITE_WRAPPER_WITH_THRESHOLDING_ID,
   );
   const api3CompositeWrapperAddress = api3CompositeWrapperDeployment.address;
 
@@ -47,7 +47,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   for (const [assetAddress, _source] of Object.entries(plainFeeds)) {
     await oracleAggregator.setOracle(assetAddress, api3WrapperAddress);
     console.log(
-      `Set plain API3 wrapper for asset ${assetAddress} to ${api3WrapperAddress}`
+      `Set plain API3 wrapper for asset ${assetAddress} to ${api3WrapperAddress}`,
     );
   }
 
@@ -59,10 +59,10 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   for (const [assetAddress, _config] of Object.entries(thresholdFeeds)) {
     await oracleAggregator.setOracle(
       assetAddress,
-      api3WrapperWithThresholdingAddress
+      api3WrapperWithThresholdingAddress,
     );
     console.log(
-      `Set API3 wrapper with thresholding for asset ${assetAddress} to ${api3WrapperWithThresholdingAddress}`
+      `Set API3 wrapper with thresholding for asset ${assetAddress} to ${api3WrapperWithThresholdingAddress}`,
     );
   }
 
@@ -84,10 +84,10 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
     await oracleAggregator.setOracle(
       typedFeedConfig.feedAsset,
-      api3CompositeWrapperAddress
+      api3CompositeWrapperAddress,
     );
     console.log(
-      `Set composite API3 wrapper for asset ${typedFeedConfig.feedAsset} to ${api3CompositeWrapperAddress}`
+      `Set composite API3 wrapper for asset ${typedFeedConfig.feedAsset} to ${api3CompositeWrapperAddress}`,
     );
   }
 
