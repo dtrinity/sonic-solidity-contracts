@@ -37,5 +37,7 @@
   "WrappedTokenGatewayV3": 1743089413,
   "WalletBalanceProvider": 1743089416,
   "UiPoolDataProviderV3": 1743089424,
-  "Incentives": 1743089440
+  "Incentives": 1743089440,
+  "dLend:PoolAddressesProviderRegistry": 1743566888,
+  "dLend:LogicLibraries": 1743566894
 }

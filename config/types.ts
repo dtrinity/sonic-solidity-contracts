@@ -35,6 +35,8 @@ export interface TokenAddresses {
   readonly wS: string;
   readonly dUSD: string;
   readonly dS: string;
+  readonly stS: string;
+  readonly sfrxUSD: string;
 }
 
 export interface WalletAddresses {
