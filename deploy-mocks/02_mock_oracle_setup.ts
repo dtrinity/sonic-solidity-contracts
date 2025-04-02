@@ -35,7 +35,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     { name: "frxUSD_USD", symbol: "frxUSD", price: "1" },
     { name: "USDC_USD", symbol: "USDC", price: "1" },
     { name: "USDS_USD", symbol: "USDS", price: "1" },
-    { name: "wS_USD", symbol: "wS", price: "1.1" },
+    { name: "wS_USD", symbol: "wS", price: "4.2" },
 
     // Vault feeds
     { name: "sfrxUSD_frxUSD", symbol: "sfrxUSD", price: "1.1" },

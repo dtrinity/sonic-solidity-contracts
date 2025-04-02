@@ -14,6 +14,7 @@ import {
   ERC20StablecoinUpgradeable,
   Issuer,
   OracleAggregator,
+  IAaveOracle,
 } from "../../typechain-types";
 import {
   POOL_PROXY_ID,
@@ -39,6 +40,9 @@ export interface DLendFixtureResult {
     aTokens: { [asset: string]: AToken };
     stableDebtTokens: { [asset: string]: StableDebtToken };
     variableDebtTokens: { [asset: string]: VariableDebtToken };
+    poolAddressesProvider: PoolAddressesProvider;
+    priceOracle: IAaveOracle;
+    poolConfigurator: PoolConfigurator;
   };
   assets: {
     [asset: string]: {
@@ -238,6 +242,28 @@ async function setupDLendFixture(): Promise<DLendFixtureResult> {
     expectedDsAmount
   );
 
+  // Get additional required contracts
+  const { address: addressesProviderAddress } = await deployments.get(
+    "PoolAddressesProvider"
+  );
+  const poolAddressesProvider = await hre.ethers.getContractAt(
+    "PoolAddressesProvider",
+    addressesProviderAddress
+  );
+
+  const priceOracleAddress = await poolAddressesProvider.getPriceOracle();
+  const priceOracle = await hre.ethers.getContractAt(
+    "IAaveOracle",
+    priceOracleAddress
+  );
+
+  const poolConfiguratorAddress =
+    await poolAddressesProvider.getPoolConfigurator();
+  const poolConfigurator = await hre.ethers.getContractAt(
+    "PoolConfigurator",
+    poolConfiguratorAddress
+  );
+
   return {
     contracts: {
       pool,
@@ -245,6 +271,9 @@ async function setupDLendFixture(): Promise<DLendFixtureResult> {
       aTokens,
       stableDebtTokens,
       variableDebtTokens,
+      poolAddressesProvider,
+      priceOracle,
+      poolConfigurator,
     },
     assets,
     dStables: {

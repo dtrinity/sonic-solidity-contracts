@@ -38,18 +38,13 @@ contract UiPoolDataProviderV3 is IUiPoolDataProviderV3 {
     using ReserveConfiguration for DataTypes.ReserveConfigurationMap;
     using UserConfiguration for DataTypes.UserConfigurationMap;
 
-    IAaveOracle public immutable networkBaseTokenPriceOracle;
-    IAaveOracle public immutable marketReferenceCurrencyPriceOracle;
+    IAaveOracle public immutable priceOracle;
+    address public immutable wethAddress;
     uint256 public constant ETH_CURRENCY_UNIT = 1 ether;
-    address public constant MKR_ADDRESS =
-        0x9f8F72aA9304c8B593d555F12eF6589cC3A579A2;
 
-    constructor(
-        IAaveOracle _networkBaseTokenPriceOracle,
-        IAaveOracle _marketReferenceCurrencyPriceOracle
-    ) {
-        networkBaseTokenPriceOracle = _networkBaseTokenPriceOracle;
-        marketReferenceCurrencyPriceOracle = _marketReferenceCurrencyPriceOracle;
+    constructor(IAaveOracle _priceOracle, address _wethAddress) {
+        priceOracle = _priceOracle;
+        wethAddress = _wethAddress;
     }
 
     function getReservesList(
@@ -104,6 +99,7 @@ contract UiPoolDataProviderV3 is IUiPoolDataProviderV3 {
             //address of the interest rate strategy
             reserveData.interestRateStrategyAddress = baseData
                 .interestRateStrategyAddress;
+
             reserveData.priceInMarketReferenceCurrency = oracle.getAssetPrice(
                 reserveData.underlyingAsset
             );
@@ -124,21 +120,10 @@ contract UiPoolDataProviderV3 is IUiPoolDataProviderV3 {
                 reserveData.variableDebtTokenAddress
             ).scaledTotalSupply();
 
-            // Due we take the symbol from underlying token we need a special case for $MKR as symbol() returns bytes32
-            if (address(reserveData.underlyingAsset) == address(MKR_ADDRESS)) {
-                bytes32 symbol = IERC20DetailedBytes(
-                    reserveData.underlyingAsset
-                ).symbol();
-                bytes32 name = IERC20DetailedBytes(reserveData.underlyingAsset)
-                    .name();
-                reserveData.symbol = bytes32ToString(symbol);
-                reserveData.name = bytes32ToString(name);
-            } else {
-                reserveData.symbol = IERC20Detailed(reserveData.underlyingAsset)
-                    .symbol();
-                reserveData.name = IERC20Detailed(reserveData.underlyingAsset)
-                    .name();
-            }
+            reserveData.symbol = IERC20Detailed(reserveData.underlyingAsset)
+                .symbol();
+            reserveData.name = IERC20Detailed(reserveData.underlyingAsset)
+                .name();
 
             //stores the reserve configuration
             DataTypes.ReserveConfigurationMap
@@ -257,14 +242,9 @@ contract UiPoolDataProviderV3 is IUiPoolDataProviderV3 {
 
         BaseCurrencyInfo memory baseCurrencyInfo;
 
-        // Get networkBaseToken price in USD
-        address baseCurrency = networkBaseTokenPriceOracle.BASE_CURRENCY();
-        uint256 baseCurrencyUnit = networkBaseTokenPriceOracle
-            .BASE_CURRENCY_UNIT();
+        // Get networkBaseToken (the gas token) price in USD
         baseCurrencyInfo.networkBaseTokenPriceInUsd = int256(
-            networkBaseTokenPriceOracle.getAssetPrice(
-                baseCurrency == address(0) ? address(0x0) : baseCurrency
-            )
+            priceOracle.getAssetPrice(wethAddress)
         );
 
         // Set decimals (typically 8 for USD price feeds)
@@ -275,14 +255,12 @@ contract UiPoolDataProviderV3 is IUiPoolDataProviderV3 {
             baseCurrencyInfo.marketReferenceCurrencyPriceInUsd = int256(
                 baseCurrencyUnit
             );
-        } catch (bytes memory /*lowLevelData*/) {
+        } catch {
             baseCurrencyInfo.marketReferenceCurrencyUnit = ETH_CURRENCY_UNIT;
 
-            // Get marketReferenceCurrency price in USD
+            // Get marketReferenceCurrency price in USD (same as networkBaseToken price since they're the same)
             baseCurrencyInfo.marketReferenceCurrencyPriceInUsd = int256(
-                marketReferenceCurrencyPriceOracle.getAssetPrice(
-                    baseCurrency == address(0) ? address(0x0) : baseCurrency
-                )
+                priceOracle.getAssetPrice(wethAddress)
             );
         }
 
