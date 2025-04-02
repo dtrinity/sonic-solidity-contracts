@@ -65,22 +65,13 @@ export interface DLendFixtureResult {
 async function setupDLendFixture(): Promise<DLendFixtureResult> {
   // Deploy all contracts
   await deployments.fixture(); // Start from a fresh deployment
-  // Ensure all necessary setup scripts run, including oracle configurations
-  await deployments.fixture([
-    "local-setup",
-    "dlend",
-    "dlend-prepare",
-    "oracles",
-    "usd-oracle", // Ensure USD oracle pointing runs
-  ]);
+  await deployments.fixture(["local-setup", "dlend"]);
 
   const { deployer } = await hre.getNamedAccounts();
 
   // Get dStable token addresses first
   const { address: dUsdAddress } = await deployments.get(DUSD_TOKEN_ID);
   const { address: dSAddress } = await deployments.get(DS_TOKEN_ID);
-  console.log("dUSD address:", dUsdAddress);
-  console.log("dS address:", dSAddress);
 
   // Get the Pool contract
   const { address: poolAddress } = await deployments.get(POOL_PROXY_ID);
@@ -97,7 +88,6 @@ async function setupDLendFixture(): Promise<DLendFixtureResult> {
 
   // Get all reserves
   const reservesList = await pool.getReservesList();
-  console.log("Available reserves:", reservesList);
 
   // Initialize result objects
   const aTokens: { [asset: string]: AToken } = {};
@@ -118,12 +108,6 @@ async function setupDLendFixture(): Promise<DLendFixtureResult> {
     } catch (e) {
       symbol = "unknown";
     }
-
-    console.log(`Reserve ${asset} (${symbol}):`, {
-      borrowingEnabled: config.borrowingEnabled,
-      ltv: config.ltv.toString(),
-      liquidationThreshold: config.liquidationThreshold.toString(),
-    });
 
     // Get token contracts
     aTokens[asset] = await hre.ethers.getContractAt(
@@ -155,10 +139,12 @@ async function setupDLendFixture(): Promise<DLendFixtureResult> {
 
   // Ensure dStables are in the reserves
   if (!reservesList.includes(dUsdAddress)) {
-    console.warn("dUSD not found in reserves:", dUsdAddress);
+    throw new Error(
+      `dUSD (${dUsdAddress}) not found in reserves: ${reservesList}`
+    );
   }
   if (!reservesList.includes(dSAddress)) {
-    console.warn("dS not found in reserves:", dSAddress);
+    throw new Error(`dS (${dSAddress}) not found in reserves: ${reservesList}`);
   }
 
   // Mint dUSD and dS through their respective Issuers
@@ -209,9 +195,6 @@ async function setupDLendFixture(): Promise<DLendFixtureResult> {
 
   // Supply some initial dUSD liquidity from deployer
   const initialDusdLiquidity = expectedDusdAmount / 2n; // Supply half of the minted amount
-  console.log(
-    `Supplying initial dUSD liquidity: ${ethers.formatUnits(initialDusdLiquidity, dUsdInfo.decimals)} dUSD`
-  );
   await dUsdToken.approve(poolAddress, initialDusdLiquidity);
   await pool.supply(dUsdAddress, initialDusdLiquidity, deployer, 0);
 
