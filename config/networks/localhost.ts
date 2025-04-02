@@ -25,7 +25,7 @@ import { Config } from "../types";
  * @returns The configuration for the network
  */
 export async function getConfig(
-  _hre: HardhatRuntimeEnvironment,
+  _hre: HardhatRuntimeEnvironment
 ): Promise<Config> {
   // Token info will only be populated after their deployment
   const dUSDDeployment = await _hre.deployments.getOrNull(DUSD_TOKEN_ID);
@@ -143,6 +143,7 @@ export async function getConfig(
           // No thresholding, passthrough raw prices
           plainApi3OracleWrappers: {
             [wSTokenDeployment?.address || ""]: mockOracleDeployments["wS_USD"],
+            [dSDeployment?.address || ""]: mockOracleDeployments["wS_USD"], // Peg dS to S
           },
           // Threshold the stablecoins
           api3OracleWrappersWithThresholding: {
@@ -192,7 +193,6 @@ export async function getConfig(
                   },
                 }
               : {}),
-
             // sfrxUSD composite feed (sfrxUSD/frxUSD * frxUSD/USD)
             ...(sfrxUSDDeployment?.address &&
             mockOracleDeployments["sfrxUSD_frxUSD"] &&

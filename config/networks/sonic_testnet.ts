@@ -17,7 +17,7 @@ const wSAddress = "0x039e2fB66102314Ce7b64Ce5Ce3E5183bc94aD38";
  * @returns The configuration for the network
  */
 export async function getConfig(
-  _hre: HardhatRuntimeEnvironment,
+  _hre: HardhatRuntimeEnvironment
 ): Promise<Config> {
   // Token info will only be populated after their deployment
   const dUSDDeployment = await _hre.deployments.getOrNull(DUSD_TOKEN_ID);
@@ -124,7 +124,10 @@ export async function getConfig(
         baseCurrency: ZeroAddress, // Note that USD is represented by the zero address, per Aave's convention
         api3OracleAssets: {
           // No thresholding, passthrough raw prices
-          plainApi3OracleWrappers: {},
+          plainApi3OracleWrappers: {
+            [wSAddress]: mockOracleDeployments["wS_USD"],
+            [dSDeployment?.address || ""]: mockOracleDeployments["wS_USD"], // Peg dS to S
+          },
           // Threshold the stablecoins
           api3OracleWrappersWithThresholding: {
             ...(USDCDeployment?.address && mockOracleDeployments["USDC_USD"]
@@ -173,7 +176,6 @@ export async function getConfig(
                   },
                 }
               : {}),
-
             // sfrxUSD composite feed (sfrxUSD/frxUSD * frxUSD/USD)
             ...(sfrxUSDDeployment?.address &&
             mockOracleDeployments["sfrxUSD_frxUSD"] &&
@@ -187,6 +189,34 @@ export async function getConfig(
                     fixedPriceInBase1: 0n,
                     lowerThresholdInBase2: ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT, // Threshold for frxUSD/USD
                     fixedPriceInBase2: ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT,
+                  },
+                }
+              : {}),
+            // Used by dLEND, and thus need USD feed
+            ...(stSTokenDeployment?.address
+              ? {
+                  [stSTokenDeployment.address]: {
+                    feedAsset: stSTokenDeployment.address,
+                    proxy1: mockOracleDeployments["stS_S"],
+                    proxy2: mockOracleDeployments["wS_USD"],
+                    lowerThresholdInBase1: 0n,
+                    fixedPriceInBase1: 0n,
+                    lowerThresholdInBase2: 0n,
+                    fixedPriceInBase2: 0n,
+                  },
+                }
+              : {}),
+            // Used by dLEND, and thus need USD feed
+            ...(wOSTokenDeployment?.address
+              ? {
+                  [wOSTokenDeployment.address]: {
+                    feedAsset: wOSTokenDeployment.address,
+                    proxy1: mockOracleDeployments["wOS_S"],
+                    proxy2: mockOracleDeployments["wS_USD"],
+                    lowerThresholdInBase1: 0n,
+                    fixedPriceInBase1: 0n,
+                    lowerThresholdInBase2: 0n,
+                    fixedPriceInBase2: 0n,
                   },
                 }
               : {}),

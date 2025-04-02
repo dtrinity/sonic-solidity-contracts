@@ -12,7 +12,7 @@ import { Config } from "../types";
  * @returns The configuration for the network
  */
 export async function getConfig(
-  _hre: HardhatRuntimeEnvironment,
+  _hre: HardhatRuntimeEnvironment
 ): Promise<Config> {
   const dUSDDeployment = await _hre.deployments.getOrNull(DUSD_TOKEN_ID);
   const dSDeployment = await _hre.deployments.getOrNull(DS_TOKEN_ID);
@@ -42,6 +42,7 @@ export async function getConfig(
         hardDStablePeg: 10n ** BigInt(ORACLE_AGGREGATOR_PRICE_DECIMALS),
         priceDecimals: ORACLE_AGGREGATOR_PRICE_DECIMALS,
         api3OracleAssets: {
+          // TODO don't forget to add ALL the dLEND markets, even the S ones!
           plainApi3OracleWrappers: {},
           api3OracleWrappersWithThresholding: {},
           compositeApi3OracleWrappersWithThresholding: {},
