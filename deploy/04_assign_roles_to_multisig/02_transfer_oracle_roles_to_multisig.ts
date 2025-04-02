@@ -8,7 +8,7 @@ import {
   USD_ORACLE_AGGREGATOR_ID,
 } from "../../typescript/deploy-ids";
 import { ZERO_BYTES_32 } from "../../typescript/dlend/constants";
-import { isLocalNetwork } from "../../typescript/hardhat/deploy";
+import { isMainnet } from "../../typescript/hardhat/deploy";
 
 /**
  * Transfer oracle roles to governance multisig
@@ -16,9 +16,9 @@ import { isLocalNetwork } from "../../typescript/hardhat/deploy";
  * @param hre The Hardhat Runtime Environment for deployment
  */
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
-  if (isLocalNetwork(hre.network.name)) {
+  if (!isMainnet(hre.network.name)) {
     console.log(
-      `\n🔑 ${__filename.split("/").slice(-2).join("/")}: Skipping local network`,
+      `\n🔑 ${__filename.split("/").slice(-2).join("/")}: Skipping non-mainnet network`
     );
     return true;
   }
@@ -40,7 +40,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     "USD",
     deployerSigner,
     governanceMultisig,
-    deployer,
+    deployer
   );
 
   // Transfer roles for S oracle aggregator
@@ -50,7 +50,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     "S",
     deployerSigner,
     governanceMultisig,
-    deployer,
+    deployer
   );
 
   console.log(`\n🔑 ${__filename.split("/").slice(-2).join("/")}: ✅ Done\n`);
@@ -75,7 +75,7 @@ async function transferOracleAggregatorRoles(
   oracleType: string,
   deployerSigner: Signer,
   governanceMultisig: string,
-  deployer: string,
+  deployer: string
 ): Promise<boolean> {
   const { deployments, ethers } = hre;
 
@@ -85,13 +85,13 @@ async function transferOracleAggregatorRoles(
 
     if (oracleAggregatorDeployment) {
       console.log(
-        `\n  📄 ORACLE AGGREGATOR ROLES: ${oracleType} Oracle Aggregator`,
+        `\n  📄 ORACLE AGGREGATOR ROLES: ${oracleType} Oracle Aggregator`
       );
 
       const oracleAggregator = await ethers.getContractAt(
         "OracleAggregator",
         oracleAggregatorDeployment.address,
-        deployerSigner,
+        deployerSigner
       );
 
       // Get roles
@@ -102,19 +102,19 @@ async function transferOracleAggregatorRoles(
       if (
         !(await oracleAggregator.hasRole(
           DEFAULT_ADMIN_ROLE,
-          governanceMultisig,
+          governanceMultisig
         ))
       ) {
         await oracleAggregator.grantRole(
           DEFAULT_ADMIN_ROLE,
-          governanceMultisig,
+          governanceMultisig
         );
         console.log(
-          `    ➕ Granted DEFAULT_ADMIN_ROLE to ${governanceMultisig}`,
+          `    ➕ Granted DEFAULT_ADMIN_ROLE to ${governanceMultisig}`
         );
       } else {
         console.log(
-          `    ✓ DEFAULT_ADMIN_ROLE already granted to ${governanceMultisig}`,
+          `    ✓ DEFAULT_ADMIN_ROLE already granted to ${governanceMultisig}`
         );
       }
 
@@ -122,19 +122,19 @@ async function transferOracleAggregatorRoles(
       if (
         !(await oracleAggregator.hasRole(
           ORACLE_MANAGER_ROLE,
-          governanceMultisig,
+          governanceMultisig
         ))
       ) {
         await oracleAggregator.grantRole(
           ORACLE_MANAGER_ROLE,
-          governanceMultisig,
+          governanceMultisig
         );
         console.log(
-          `    ➕ Granted ORACLE_MANAGER_ROLE to ${governanceMultisig}`,
+          `    ➕ Granted ORACLE_MANAGER_ROLE to ${governanceMultisig}`
         );
       } else {
         console.log(
-          `    ✓ ORACLE_MANAGER_ROLE already granted to ${governanceMultisig}`,
+          `    ✓ ORACLE_MANAGER_ROLE already granted to ${governanceMultisig}`
         );
       }
 
@@ -153,12 +153,12 @@ async function transferOracleAggregatorRoles(
       console.log(`    ✅ Completed Oracle Aggregator role transfers`);
     } else {
       console.log(
-        `  ⚠️ ${oracleType} Oracle Aggregator not deployed, skipping role transfer`,
+        `  ⚠️ ${oracleType} Oracle Aggregator not deployed, skipping role transfer`
       );
     }
   } catch (error) {
     console.error(
-      `  ❌ Failed to transfer ${oracleType} Oracle Aggregator roles: ${error}`,
+      `  ❌ Failed to transfer ${oracleType} Oracle Aggregator roles: ${error}`
     );
   }
 

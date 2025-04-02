@@ -1,0 +1,39 @@
+{
+  "language": "Solidity",
+  "sources": {
+    "contracts/oracle_aggregator/interface/api3/IProxy.sol": {
+      "content": "// SPDX-License-Identifier: MIT\n/* ———————————————————————————————————————————————————————————————————————————————— *\n *    _____     ______   ______     __     __   __     __     ______   __  __       *\n *   /\\  __-.  /\\__  _\\ /\\  == \\   /\\ \\   /\\ \"-.\\ \\   /\\ \\   /\\__  _\\ /\\ \\_\\ \\      *\n *   \\ \\ \\/\\ \\ \\/_/\\ \\/ \\ \\  __<   \\ \\ \\  \\ \\ \\-.  \\  \\ \\ \\  \\/_/\\ \\/ \\ \\____ \\     *\n *    \\ \\____-    \\ \\_\\  \\ \\_\\ \\_\\  \\ \\_\\  \\ \\_\\\\\"\\_\\  \\ \\_\\    \\ \\_\\  \\/\\_____\\    *\n *     \\/____/     \\/_/   \\/_/ /_/   \\/_/   \\/_/ \\/_/   \\/_/     \\/_/   \\/_____/    *\n *                                                                                  *\n * ————————————————————————————————— dtrinity.org ————————————————————————————————— *\n *                                                                                  *\n *                                         ▲                                        *\n *                                        ▲ ▲                                       *\n *                                                                                  *\n * ———————————————————————————————————————————————————————————————————————————————— *\n * dTRINITY Protocol: https://github.com/dtrinity                                   *\n * ———————————————————————————————————————————————————————————————————————————————— */\n\npragma solidity ^0.8.20;\n\n/// @dev See DapiProxy.sol for comments about usage\ninterface IProxy {\n    function read() external view returns (int224 value, uint32 timestamp);\n\n    function api3ServerV1() external view returns (address);\n}\n"
+    },
+    "contracts/testing/oracle/MockAPI3OracleAlwaysAlive.sol": {
+      "content": "// SPDX-License-Identifier: MIT\n/* ———————————————————————————————————————————————————————————————————————————————— *\n *    _____     ______   ______     __     __   __     __     ______   __  __       *\n *   /\\  __-.  /\\__  _\\ /\\  == \\   /\\ \\   /\\ \"-.\\ \\   /\\ \\   /\\__  _\\ /\\ \\_\\ \\      *\n *   \\ \\ \\/\\ \\ \\/_/\\ \\/ \\ \\  __<   \\ \\ \\  \\ \\ \\-.  \\  \\ \\ \\  \\/_/\\ \\/ \\ \\____ \\     *\n *    \\ \\____-    \\ \\_\\  \\ \\_\\ \\_\\  \\ \\_\\  \\ \\_\\\\\"\\_\\  \\ \\_\\    \\ \\_\\  \\/\\_____\\    *\n *     \\/____/     \\/_/   \\/_/ /_/   \\/_/   \\/_/ \\/_/   \\/_/     \\/_/   \\/_____/    *\n *                                                                                  *\n * ————————————————————————————————— dtrinity.org ————————————————————————————————— *\n *                                                                                  *\n *                                         ▲                                        *\n *                                        ▲ ▲                                       *\n *                                                                                  *\n * ———————————————————————————————————————————————————————————————————————————————— *\n * dTRINITY Protocol: https://github.com/dtrinity                                   *\n * ———————————————————————————————————————————————————————————————————————————————— */\n\npragma solidity ^0.8.20;\n\nimport {IProxy} from \"../../oracle_aggregator/interface/api3/IProxy.sol\";\n\ncontract MockAPI3OracleAlwaysAlive is IProxy {\n    int224 private mockPrice;\n    address private immutable api3ServerV1Address;\n\n    constructor(address _api3ServerV1Address) {\n        api3ServerV1Address = _api3ServerV1Address;\n    }\n\n    function setMock(int224 _price) external {\n        mockPrice = _price;\n    }\n\n    function read()\n        external\n        view\n        override\n        returns (int224 value, uint32 timestamp)\n    {\n        return (mockPrice, uint32(block.timestamp));\n    }\n\n    function api3ServerV1() external view override returns (address) {\n        return api3ServerV1Address;\n    }\n}\n"
+    }
+  },
+  "settings": {
+    "optimizer": {
+      "enabled": true,
+      "runs": 200
+    },
+    "evmVersion": "paris",
+    "outputSelection": {
+      "*": {
+        "*": [
+          "abi",
+          "evm.bytecode",
+          "evm.deployedBytecode",
+          "evm.methodIdentifiers",
+          "metadata",
+          "devdoc",
+          "userdoc",
+          "storageLayout",
+          "evm.gasEstimates"
+        ],
+        "": [
+          "ast"
+        ]
+      }
+    },
+    "metadata": {
+      "useLiteralContent": true
+    }
+  }
+}

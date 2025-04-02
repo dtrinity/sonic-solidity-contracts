@@ -2,7 +2,7 @@ import { ZeroAddress } from "ethers";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
 
-import { isMainnet } from "../typescript/hardhat/deploy";
+import { isMainnet, isSonicTestnet } from "../typescript/hardhat/deploy";
 import { getTokenContractForSymbol } from "../typescript/token/utils";
 
 // Define the oracle feed structure
@@ -50,45 +50,49 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   // Deploy individual MockAPI3OracleAlwaysAlive instances for each feed
   for (const feed of oracleFeeds) {
-    try {
-      const { tokenInfo } = await getTokenContractForSymbol(
-        hre,
-        deployer,
-        feed.symbol
-      );
-
-      // Deploy a MockAPI3OracleAlwaysAlive for this feed
-      // Use the new naming convention: MockAPI3OracleAlwaysAlive_TOKEN_QUOTE
-      const mockOracleName = `MockAPI3OracleAlwaysAlive_${feed.name}`;
-      const mockOracle = await hre.deployments.deploy(mockOracleName, {
-        from: deployer,
-        args: [mockAPI3ServerV1.address],
-        contract: "MockAPI3OracleAlwaysAlive",
-        autoMine: true,
-        log: false,
-      });
-
-      // Get the deployed mock oracle contract
-      const mockOracleContract = await hre.ethers.getContractAt(
-        "MockAPI3OracleAlwaysAlive",
-        mockOracle.address,
-        signer
-      );
-
-      // Convert price to int224 format expected by API3
-      const priceInWei = hre.ethers.parseUnits(feed.price, 18); // API3 uses 18 decimals
-      await mockOracleContract.setMock(priceInWei);
-
-      // Store the deployment for config
-      mockOracleDeployments[tokenInfo.address] = mockOracle.address;
-      mockOracleNameToAddress[feed.name] = mockOracle.address;
-
+    // Skip wS_USD feed on sonic_testnet as it's handled in the next script
+    if (isSonicTestnet(hre.network.name) && feed.name === "wS_USD") {
       console.log(
-        `Deployed ${mockOracleName} at ${mockOracle.address} with price ${feed.price}`
+        `Skipping ${feed.name} deployment on sonic_testnet, handled by 03_mock_wS_oracle_setup.ts`
       );
-    } catch (error) {
-      console.log(`Token ${feed.symbol} not found, skipping`);
+      continue;
     }
+
+    const { tokenInfo } = await getTokenContractForSymbol(
+      hre,
+      deployer,
+      feed.symbol
+    );
+
+    // Deploy a MockAPI3OracleAlwaysAlive for this feed
+    // Use the new naming convention: MockAPI3OracleAlwaysAlive_TOKEN_QUOTE
+    const mockOracleName = `MockAPI3OracleAlwaysAlive_${feed.name}`;
+    const mockOracle = await hre.deployments.deploy(mockOracleName, {
+      from: deployer,
+      args: [mockAPI3ServerV1.address],
+      contract: "MockAPI3OracleAlwaysAlive",
+      autoMine: true,
+      log: false,
+    });
+
+    // Get the deployed mock oracle contract
+    const mockOracleContract = await hre.ethers.getContractAt(
+      "MockAPI3OracleAlwaysAlive",
+      mockOracle.address,
+      signer
+    );
+
+    // Convert price to int224 format expected by API3
+    const priceInWei = hre.ethers.parseUnits(feed.price, 18); // API3 uses 18 decimals
+    await mockOracleContract.setMock(priceInWei);
+
+    // Store the deployment for config
+    mockOracleDeployments[tokenInfo.address] = mockOracle.address;
+    mockOracleNameToAddress[feed.name] = mockOracle.address;
+
+    console.log(
+      `Deployed ${mockOracleName} at ${mockOracle.address} with price ${feed.price}`
+    );
   }
 
   // Store the mock oracle deployments in a JSON file for the config to use
