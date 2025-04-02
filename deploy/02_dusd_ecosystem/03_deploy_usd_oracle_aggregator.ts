@@ -2,10 +2,7 @@ import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
 
 import { getConfig } from "../../config/config";
-import {
-  DUSD_TOKEN_ID,
-  USD_ORACLE_AGGREGATOR_ID,
-} from "../../typescript/deploy-ids";
+import { USD_ORACLE_AGGREGATOR_ID } from "../../typescript/deploy-ids";
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployer } = await hre.getNamedAccounts();
