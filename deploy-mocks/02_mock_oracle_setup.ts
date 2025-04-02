@@ -6,11 +6,26 @@ import { isMainnet } from "../typescript/hardhat/deploy";
 import { getTokenContractForSymbol } from "../typescript/token/utils";
 
 // Define the oracle feed structure
-interface OracleFeedConfig {
+export interface OracleFeedConfig {
   name: string; // Name of the oracle feed (e.g., "USDC/USD")
   symbol: string; // Token symbol
   price: string; // Default price
 }
+
+// Export the feeds array
+export const oracleFeeds: OracleFeedConfig[] = [
+  // USD price feeds
+  { name: "frxUSD_USD", symbol: "frxUSD", price: "1" },
+  { name: "USDC_USD", symbol: "USDC", price: "1" },
+  { name: "USDS_USD", symbol: "USDS", price: "1" },
+  { name: "wS_USD", symbol: "wS", price: "4.2" },
+
+  // Vault feeds
+  { name: "sfrxUSD_frxUSD", symbol: "sfrxUSD", price: "1.1" },
+  { name: "sUSDS_USDS", symbol: "sUSDS", price: "1.1" },
+  { name: "stS_S", symbol: "stS", price: "1.1" },
+  { name: "wOS_S", symbol: "wOS", price: "1.1" },
+];
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployer } = await hre.getNamedAccounts();
@@ -28,21 +43,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     autoMine: true,
     log: false,
   });
-
-  // Define oracle feeds with their names and prices
-  const oracleFeeds: OracleFeedConfig[] = [
-    // USD price feeds
-    { name: "frxUSD_USD", symbol: "frxUSD", price: "1" },
-    { name: "USDC_USD", symbol: "USDC", price: "1" },
-    { name: "USDS_USD", symbol: "USDS", price: "1" },
-    { name: "wS_USD", symbol: "wS", price: "4.2" },
-
-    // Vault feeds
-    { name: "sfrxUSD_frxUSD", symbol: "sfrxUSD", price: "1.1" },
-    { name: "sUSDS_USDS", symbol: "sUSDS", price: "1.1" },
-    { name: "stS_S", symbol: "stS", price: "1.1" },
-    { name: "wOS_S", symbol: "wOS", price: "1.1" },
-  ];
 
   // Track deployed mock oracles for each asset
   const mockOracleDeployments: Record<string, string> = {};
