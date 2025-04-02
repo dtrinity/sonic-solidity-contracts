@@ -209,16 +209,13 @@ export async function getConfig(
                   },
                 }
               : {}),
-            // Add stS and wOS entries here to ensure the main USD Oracle Aggregator
-            // is pointed to the composite wrapper for them. The actual feed logic
-            // is configured in 05_dlend/.../01_setup_composite_usd_feeds.ts.
-            // Placeholder values are sufficient for pointing.
+            // Used by dLEND, and thus need USD feed
             ...(stSTokenDeployment?.address
               ? {
                   [stSTokenDeployment.address]: {
                     feedAsset: stSTokenDeployment.address,
-                    proxy1: ZeroAddress, // Placeholder
-                    proxy2: ZeroAddress, // Placeholder
+                    proxy1: mockOracleDeployments["stS_S"],
+                    proxy2: mockOracleDeployments["wS_USD"],
                     lowerThresholdInBase1: 0n,
                     fixedPriceInBase1: 0n,
                     lowerThresholdInBase2: 0n,
@@ -226,12 +223,13 @@ export async function getConfig(
                   },
                 }
               : {}),
+            // Used by dLEND, and thus need USD feed
             ...(wOSTokenDeployment?.address
               ? {
                   [wOSTokenDeployment.address]: {
                     feedAsset: wOSTokenDeployment.address,
-                    proxy1: ZeroAddress, // Placeholder
-                    proxy2: ZeroAddress, // Placeholder
+                    proxy1: mockOracleDeployments["wOS_S"],
+                    proxy2: mockOracleDeployments["wS_USD"],
                     lowerThresholdInBase1: 0n,
                     fixedPriceInBase1: 0n,
                     lowerThresholdInBase2: 0n,

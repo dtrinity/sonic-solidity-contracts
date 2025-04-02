@@ -46,7 +46,6 @@ describe("dLEND Pool", () => {
 
     // Get reserves
     const reservesList = await pool.getReservesList();
-    console.log("Available reserves:", reservesList);
 
     // Get contract instances and configuration for each reserve
     for (const asset of reservesList) {
@@ -69,13 +68,6 @@ describe("dLEND Pool", () => {
         liquidationThreshold: config.liquidationThreshold,
         symbol,
       };
-
-      // Log reserve configuration
-      console.log(`Reserve ${asset} (${symbol}):`, {
-        borrowingEnabled: config.borrowingEnabled,
-        ltv: config.ltv.toString(),
-        liquidationThreshold: config.liquidationThreshold.toString(),
-      });
     }
 
     // Find a dStable asset and a collateral asset
@@ -96,29 +88,6 @@ describe("dLEND Pool", () => {
       );
     }
 
-    // Log detailed information about our selected assets
-    console.log("\nSelected Assets Configuration:");
-    console.log("dStable Asset:", {
-      address: dStableAsset,
-      config: {
-        ...fixture.assets[dStableAsset],
-        ltv: fixture.assets[dStableAsset].ltv.toString(),
-        liquidationThreshold:
-          fixture.assets[dStableAsset].liquidationThreshold.toString(),
-      },
-      reserveData: await pool.getReserveData(dStableAsset),
-    });
-    console.log("Collateral Asset:", {
-      address: collateralAsset,
-      config: {
-        ...fixture.assets[collateralAsset],
-        ltv: fixture.assets[collateralAsset].ltv.toString(),
-        liquidationThreshold:
-          fixture.assets[collateralAsset].liquidationThreshold.toString(),
-      },
-      reserveData: await pool.getReserveData(collateralAsset),
-    });
-
     // Log reserve configuration for both assets
     const dStableConfig =
       await fixture.contracts.dataProvider.getReserveConfigurationData(
@@ -129,23 +98,8 @@ describe("dLEND Pool", () => {
         collateralAsset
       );
 
-    console.log("\nReserve Configurations:");
-    console.log("dStable Config:", {
-      ltv: dStableConfig.ltv.toString(),
-      liquidationThreshold: dStableConfig.liquidationThreshold.toString(),
-      borrowingEnabled: dStableConfig.borrowingEnabled,
-      isActive: dStableConfig.isActive,
-      isFrozen: dStableConfig.isFrozen,
-    });
-    console.log("Collateral Config:", {
-      ltv: collateralConfig.ltv.toString(),
-      liquidationThreshold: collateralConfig.liquidationThreshold.toString(),
-      borrowingEnabled: collateralConfig.borrowingEnabled,
-      isActive: collateralConfig.isActive,
-      isFrozen: collateralConfig.isFrozen,
-    });
-
-    console.log("\nToken Balances:");
+    // Transfer tokens from deployer to user
+    const testAmount = ethers.parseUnits("1000", 18); // Transfer 1000 tokens for testing
     const collateralToken = await hre.ethers.getContractAt(
       "TestERC20",
       collateralAsset
@@ -154,19 +108,6 @@ describe("dLEND Pool", () => {
       "ERC20StablecoinUpgradeable",
       dStableAsset
     );
-    console.log("Deployer balances:", {
-      collateral: (
-        await collateralToken.balanceOf(deployer.address)
-      ).toString(),
-      dStable: (await dStableToken.balanceOf(deployer.address)).toString(),
-    });
-    console.log("User balances:", {
-      collateral: (await collateralToken.balanceOf(user.address)).toString(),
-      dStable: (await dStableToken.balanceOf(user.address)).toString(),
-    });
-
-    // Transfer tokens from deployer to user
-    const testAmount = ethers.parseUnits("1000", 18); // Transfer 1000 tokens for testing
     await collateralToken.transfer(user.address, testAmount);
     await dStableToken.transfer(user.address, testAmount);
   });
@@ -178,13 +119,7 @@ describe("dLEND Pool", () => {
         await fixture.contracts.dataProvider.getReserveConfigurationData(
           collateralAsset
         );
-      console.log("Reserve configuration:", {
-        ltv: config.ltv.toString(),
-        liquidationThreshold: config.liquidationThreshold.toString(),
-        borrowingEnabled: config.borrowingEnabled,
-        isActive: config.isActive,
-        isFrozen: config.isFrozen,
-      });
+
       // For collateral assets, LTV should be > 0
       expect(config.ltv).to.not.equal(
         BigInt(0),
