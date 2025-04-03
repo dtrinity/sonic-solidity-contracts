@@ -151,8 +151,7 @@ async function setupDLendFixture(): Promise<DLendFixtureResult> {
     throw new Error(`dS (${dSAddress}) not found in reserves: ${reservesList}`);
   }
 
-  // Mint dUSD and dS through their respective Issuers
-  // First mint dUSD
+  // Mint dUSD
   const dusdIssuerAddress = (await hre.deployments.get(DUSD_ISSUER_CONTRACT_ID))
     .address;
   const dusdIssuer = await hre.ethers.getContractAt(
@@ -174,7 +173,7 @@ async function setupDLendFixture(): Promise<DLendFixtureResult> {
 
   // Mint dUSD
   const usdCollateralAmount = ethers.parseUnits(
-    "10000",
+    "1000000",
     usdCollateralInfo.decimals
   );
   const usdCollateralPrice = await usdOracle.getAssetPrice(
@@ -202,6 +201,16 @@ async function setupDLendFixture(): Promise<DLendFixtureResult> {
   await dUsdToken.approve(poolAddress, initialDusdLiquidity);
   await pool.supply(dUsdAddress, initialDusdLiquidity, deployer, 0);
 
+  // Supply some initial collateral liquidity (sfrxUSD) from deployer
+  const initialUsdCollateralLiquidity = usdCollateralAmount / 10n; // Supply 10% of deployer's balance
+  await usdCollateralToken.approve(poolAddress, initialUsdCollateralLiquidity);
+  await pool.supply(
+    usdCollateralInfo.address,
+    initialUsdCollateralLiquidity,
+    deployer,
+    0
+  );
+
   // Then mint dS
   const dsIssuerAddress = (await hre.deployments.get(DS_ISSUER_CONTRACT_ID))
     .address;
@@ -221,7 +230,7 @@ async function setupDLendFixture(): Promise<DLendFixtureResult> {
 
   // Mint dS
   const sCollateralAmount = ethers.parseUnits(
-    "10000",
+    "1000000",
     sCollateralInfo.decimals
   );
   const sCollateralPrice = await sOracle.getAssetPrice(sCollateralInfo.address);
@@ -240,6 +249,21 @@ async function setupDLendFixture(): Promise<DLendFixtureResult> {
     sCollateralAmount,
     sCollateralInfo.address,
     expectedDsAmount
+  );
+
+  // Supply some initial dS liquidity from deployer
+  const initialDsLiquidity = expectedDsAmount / 2n; // Supply half of the minted amount
+  await dSToken.approve(poolAddress, initialDsLiquidity);
+  await pool.supply(dSAddress, initialDsLiquidity, deployer, 0);
+
+  // Supply some initial collateral liquidity (stS) from deployer
+  const initialSCollateralLiquidity = sCollateralAmount / 10n; // Supply 10% of deployer's balance
+  await sCollateralToken.approve(poolAddress, initialSCollateralLiquidity);
+  await pool.supply(
+    sCollateralInfo.address,
+    initialSCollateralLiquidity,
+    deployer,
+    0
   );
 
   // Get additional required contracts
