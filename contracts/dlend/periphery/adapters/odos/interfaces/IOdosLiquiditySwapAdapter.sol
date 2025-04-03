@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: AGPL-3.0
+// SPDX-License-Identifier: MIT
 /* ———————————————————————————————————————————————————————————————————————————————— *
  *    _____     ______   ______     __     __   __     __     ______   __  __       *
  *   /\  __-.  /\__  _\ /\  == \   /\ \   /\ "-.\ \   /\ \   /\__  _\ /\ \_\ \      *
@@ -17,23 +17,31 @@
 
 pragma solidity ^0.8.20;
 
-interface IEACAggregatorProxy {
-    function decimals() external view returns (uint8);
+import {IBaseOdosAdapter} from "./IBaseOdosAdapter.sol";
 
-    function latestAnswer() external view returns (int256);
+/**
+ * @title IOdosLiquiditySwapAdapter
+ * @notice Defines the basic interface for CurveLiquiditySwapAdapter
+ * @dev Implement this interface to provide functionality of swapping one collateral asset to another collateral asset
+ **/
+interface IOdosLiquiditySwapAdapter is IBaseOdosAdapter {
+    struct LiquiditySwapParams {
+        address collateralAsset; // the asset to swap collateral from
+        uint256 collateralAmountToSwap; // the amount of asset to swap from
+        address newCollateralAsset; // the asset to swap collateral to
+        uint256 newCollateralAmount; // the minimum amount of new collateral asset to receive
+        address user; // the address of user
+        bool withFlashLoan; // true if flashloan is needed to swap collateral, otherwise false
+        bytes swapData; // the encoded swap data for Odos
+    }
 
-    function latestTimestamp() external view returns (uint256);
-
-    function latestRound() external view returns (uint256);
-
-    function getAnswer(uint256 roundId) external view returns (int256);
-
-    function getTimestamp(uint256 roundId) external view returns (uint256);
-
-    event AnswerUpdated(
-        int256 indexed current,
-        uint256 indexed roundId,
-        uint256 timestamp
-    );
-    event NewRound(uint256 indexed roundId, address indexed startedBy);
+    /**
+     * @notice Swaps liquidity(collateral) from one asset to another
+     * @param liquiditySwapParams struct describing the liquidity swap
+     * @param collateralATokenPermit optional permit for collateral aToken
+     */
+    function swapLiquidity(
+        LiquiditySwapParams memory liquiditySwapParams,
+        PermitInput memory collateralATokenPermit
+    ) external;
 }

@@ -17,23 +17,53 @@
 
 pragma solidity ^0.8.20;
 
-interface IEACAggregatorProxy {
-    function decimals() external view returns (uint8);
+import {IBaseOdosAdapter} from "./IBaseOdosAdapter.sol";
 
-    function latestAnswer() external view returns (int256);
-
-    function latestTimestamp() external view returns (uint256);
-
-    function latestRound() external view returns (uint256);
-
-    function getAnswer(uint256 roundId) external view returns (int256);
-
-    function getTimestamp(uint256 roundId) external view returns (uint256);
-
-    event AnswerUpdated(
-        int256 indexed current,
-        uint256 indexed roundId,
-        uint256 timestamp
+/**
+ * @title IOdosRepayAdapter
+ * @notice Interface for the OdosRepayAdapter
+ */
+interface IOdosRepayAdapter is IBaseOdosAdapter {
+    /**
+     * @dev Custom error for insufficient amount to repay
+     * @param amountReceived The amount received from the swap
+     * @param amountToRepay The amount needed to repay
+     */
+    error InsufficientAmountToRepay(
+        uint256 amountReceived,
+        uint256 amountToRepay
     );
-    event NewRound(uint256 indexed roundId, address indexed startedBy);
+
+    /**
+     * @dev Struct for repay parameters
+     * @param collateralAsset The address of the collateral asset
+     * @param collateralAmount The amount of collateral to swap
+     * @param debtAsset The address of the debt asset
+     * @param repayAmount The amount of debt to repay
+     * @param rateMode The rate mode of the debt (1 = stable, 2 = variable)
+     * @param user The address of the user
+     * @param minAmountToReceive The minimum amount to receive from the swap
+     * @param swapData The encoded swap data for Odos
+     */
+    struct RepayParams {
+        address collateralAsset;
+        uint256 collateralAmount;
+        address debtAsset;
+        uint256 repayAmount;
+        uint256 rateMode;
+        address user;
+        uint256 minAmountToReceive;
+        bytes swapData;
+    }
+
+    /**
+     * @dev Swaps collateral for another asset and uses that asset to repay a debt
+     * @param repayParams The parameters of the repay
+     * @param permitInput The parameters of the permit signature, to approve collateral aToken
+     * @return uint256 The amount repaid
+     */
+    function swapAndRepay(
+        RepayParams memory repayParams,
+        PermitInput memory permitInput
+    ) external returns (uint256);
 }
