@@ -51,10 +51,6 @@ interface IOdosRouterV2 {
         bytes signature;
     }
 
-    event OwnershipTransferred(
-        address indexed previousOwner,
-        address indexed newOwner
-    );
     event Swap(
         address sender,
         uint256 inputAmount,
@@ -64,6 +60,7 @@ interface IOdosRouterV2 {
         int256 slippage,
         uint32 referralCode
     );
+
     event SwapMulti(
         address sender,
         uint256[] amountsIn,
