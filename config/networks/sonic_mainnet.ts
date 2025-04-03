@@ -12,7 +12,7 @@ import { Config } from "../types";
  * @returns The configuration for the network
  */
 export async function getConfig(
-  _hre: HardhatRuntimeEnvironment,
+  _hre: HardhatRuntimeEnvironment
 ): Promise<Config> {
   const dUSDDeployment = await _hre.deployments.getOrNull(DUSD_TOKEN_ID);
   const dSDeployment = await _hre.deployments.getOrNull(DS_TOKEN_ID);
@@ -58,6 +58,9 @@ export async function getConfig(
       },
       rateStrategies: [],
       reservesConfig: {},
+    },
+    odos: {
+      router: "", // TODO fill in
     },
   };
 }

@@ -13,6 +13,9 @@ export interface Config {
     [key: string]: DStableConfig;
   };
   readonly dLend: DLendConfig;
+  readonly odos?: {
+    readonly router: string;
+  };
 }
 
 // Configuration for mocking infrastructure on local and test networks

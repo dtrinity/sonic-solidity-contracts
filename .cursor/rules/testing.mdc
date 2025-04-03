@@ -1,9 +1,10 @@
 ---
 description: When creating new logic, modifying existing logic, or working on tests
 globs: test/*
+alwaysApply: false
 ---
 # Always
-- Check that the Solidity contract has a corresopnding test file, and that the tests are up to date with latest changes
+- Check that the Solidity contract has a corresponding test file, and that the tests are up to date with latest changes
 - Prefer to write unit tests first
 - Ensure that tests cover both functionality and security considerations
 - You can lint first with `make lint`
