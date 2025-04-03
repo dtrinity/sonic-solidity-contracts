@@ -51,7 +51,11 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
 // Set deployment tags and dependencies
 func.tags = ["dlend", "dlend-periphery", "dlend-odos-adapters"];
-func.dependencies = [POOL_ADDRESSES_PROVIDER_ID, POOL_PROXY_ID];
+func.dependencies = [
+  POOL_ADDRESSES_PROVIDER_ID,
+  POOL_PROXY_ID,
+  "mock_odos_router_setup",
+];
 func.id = `dLend:OdosAdapters`;
 
 export default func;
