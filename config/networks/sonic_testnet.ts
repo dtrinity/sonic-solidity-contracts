@@ -7,6 +7,12 @@ import {
   ORACLE_AGGREGATOR_PRICE_DECIMALS,
 } from "../../typescript/oracle_aggregator/constants";
 import { Config } from "../types";
+import { rateStrategyMediumLiquidityStable } from "../dlend/interest-rate-strategies";
+import { rateStrategyHighLiquidityStable } from "../dlend/interest-rate-strategies";
+import { rateStrategyMediumLiquidityVolatile } from "../dlend/interest-rate-strategies";
+import { rateStrategyHighLiquidityVolatile } from "../dlend/interest-rate-strategies";
+import { strategyYieldBearingStablecoin } from "../dlend/reserves-params";
+import { strategyDStable } from "../dlend/reserves-params";
 
 const wSAddress = "0x039e2fB66102314Ce7b64Ce5Ce3E5183bc94aD38";
 
@@ -256,8 +262,18 @@ export async function getConfig(
         total: 0.0005e4, // 0.05%
         protocol: 0.0004e4, // 0.04%
       },
-      rateStrategies: [],
-      reservesConfig: {},
+      rateStrategies: [
+        rateStrategyHighLiquidityVolatile,
+        rateStrategyMediumLiquidityVolatile,
+        rateStrategyHighLiquidityStable,
+        rateStrategyMediumLiquidityStable,
+      ],
+      reservesConfig: {
+        dUSD: strategyDStable,
+        dS: strategyDStable,
+        stS: strategyYieldBearingStablecoin,
+        sfrxUSD: strategyYieldBearingStablecoin,
+      },
     },
     odos: {
       router: odosRouterDeployment?.address || "",
