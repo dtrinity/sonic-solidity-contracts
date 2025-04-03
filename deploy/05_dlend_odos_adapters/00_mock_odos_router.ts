@@ -93,6 +93,9 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     console.log(
       `Set exchange rate for ${rate.baseToken}/${rate.quoteToken} = ${rate.rate}`
     );
+    console.log(
+      `Set inverse exchange rate for ${rate.quoteToken}/${rate.baseToken} = ${inverseRate}`
+    );
   }
 
   // Get all mock tokens and deposit 5% to the router
