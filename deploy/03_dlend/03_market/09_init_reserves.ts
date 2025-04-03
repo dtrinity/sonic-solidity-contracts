@@ -22,7 +22,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { rateStrategies, reservesConfig } = config.dLend;
 
   const addressProviderDeployedResult = await hre.deployments.get(
-    POOL_ADDRESSES_PROVIDER_ID,
+    POOL_ADDRESSES_PROVIDER_ID
   );
 
   // Deploy Rate Strategies
@@ -67,7 +67,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const addressesProviderContract = await hre.ethers.getContractAt(
     "PoolAddressesProvider",
     addressProviderDeployedResult.address,
-    signer,
+    signer
   );
 
   // Add debug logs for roles
@@ -77,24 +77,15 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const aclManager = await hre.ethers.getContractAt(
     "ACLManager",
     aclManagerAddress,
-    signer,
+    signer
   );
-
-  const deployerAddress = await signer.getAddress();
-  console.log("Deployer address:", deployerAddress);
-
-  const isPoolAdmin = await aclManager.isPoolAdmin(deployerAddress);
-  console.log("Is deployer pool admin?", isPoolAdmin);
-
-  const isRiskAdmin = await aclManager.isRiskAdmin(deployerAddress);
-  console.log("Is deployer risk admin?", isRiskAdmin);
 
   const poolConfiguratorAddress =
     await addressesProviderContract.getPoolConfigurator();
   const poolConfiguratorContract = await hre.ethers.getContractAt(
     "PoolConfigurator",
     poolConfiguratorAddress,
-    signer,
+    signer
   );
 
   // Initialize reserves
@@ -130,7 +121,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
     if (!tokenAddress) {
       console.log(
-        `- Skipping init of ${symbol} due token address is not set at markets config`,
+        `- Skipping init of ${symbol} due token address is not set at markets config`
       );
       continue;
     }
@@ -139,7 +130,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
     if (poolReserve.aTokenAddress !== ZeroAddress) {
       console.log(
-        `- Skipping init of ${symbol} due reserve is already initialized`,
+        `- Skipping init of ${symbol} due reserve is already initialized`
       );
       continue;
     }
@@ -150,7 +141,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
     const tokenContract = await hre.ethers.getContractAt(
       "IERC20Detailed",
-      tokenAddress,
+      tokenAddress
     );
     const tokenName = await tokenContract.name();
     const tokenSymbol = await tokenContract.symbol();
@@ -190,7 +181,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     chunkIndex++
   ) {
     const _tx = await poolConfiguratorContract.initReserves(
-      chunkedInitInputParams[chunkIndex],
+      chunkedInitInputParams[chunkIndex]
     );
   }
 
@@ -198,7 +189,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const reservesSetupHelper = await hre.ethers.getContractAt(
     "ReservesSetupHelper",
     (await hre.deployments.get(RESERVES_SETUP_HELPER_ID)).address,
-    signer,
+    signer
   );
 
   // Add ReservesSetupHelper as a risk admin temporarily
@@ -230,7 +221,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
     const _configTx = await reservesSetupHelper.configureReserves(
       poolConfiguratorAddress,
-      [configInputParams],
+      [configInputParams]
     );
   }
 
@@ -241,7 +232,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const dataProvider = await hre.deployments.get(POOL_DATA_PROVIDER_ID);
   const poolDataProviderContract = await hre.ethers.getContractAt(
     "AaveProtocolDataProvider",
-    dataProvider.address,
+    dataProvider.address
   );
 
   for (const [symbol, tokenAddress] of Object.entries(config.tokenAddresses)) {
@@ -264,6 +255,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       abi: (await hre.deployments.get(VARIABLE_DEBT_TOKEN_IMPL_ID)).abi,
       address: tokenData.variableDebtTokenAddress,
     });
+
+    console.log(`Configured dLEND reserve: ${symbol}`);
   }
 
   console.log(`🏦 ${__filename.split("/").slice(-2).join("/")}: ✅`);
