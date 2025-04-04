@@ -85,6 +85,23 @@ describe("dLEND Pool", () => {
       );
     }
 
+    // Supply the dStable asset to the pool to ensure there's enough liquidity for borrowing
+    // This is needed because the borrowing tests fail due to arithmetic overflow when there's not enough liquidity
+    const dStableToken = await hre.ethers.getContractAt(
+      "TestERC20",
+      dStableAsset
+    );
+    const dStableSupplyAmount = ethers.parseUnits("1000", 18); // Supply a reasonable amount
+
+    // Approve and supply the dStable to the pool
+    await dStableToken.approve(await pool.getAddress(), dStableSupplyAmount);
+    await pool.supply(
+      dStableAsset,
+      dStableSupplyAmount,
+      deployerSigner.address,
+      0
+    );
+
     // Log reserve configuration for both assets
     const dStableConfig =
       await fixture.contracts.dataProvider.getReserveConfigurationData(
