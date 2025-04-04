@@ -36,6 +36,9 @@ contract AaveOracle is IAaveOracle {
     address public immutable override BASE_CURRENCY;
     uint256 public immutable override BASE_CURRENCY_UNIT;
 
+    // Scaling factor to convert between oracle decimals and target decimals (8)
+    uint256 private immutable SCALING_FACTOR;
+
     /**
      * @dev Only asset listing or pool admin can call functions marked by this modifier.
      */
@@ -53,9 +56,17 @@ contract AaveOracle is IAaveOracle {
         ADDRESSES_PROVIDER = provider;
         _oracleAggregator = IPriceOracleGetter(oracleAggregator);
 
-        // Use the base currency and unit from OracleAggregator
+        // Use the base currency from OracleAggregator but standardize to 8 decimals
         BASE_CURRENCY = _oracleAggregator.BASE_CURRENCY();
-        BASE_CURRENCY_UNIT = _oracleAggregator.BASE_CURRENCY_UNIT();
+        BASE_CURRENCY_UNIT = 1e8;
+
+        // Calculate scaling factor as ratio between oracle unit and our target unit
+        uint256 oracleUnit = _oracleAggregator.BASE_CURRENCY_UNIT();
+        require(
+            oracleUnit >= BASE_CURRENCY_UNIT,
+            "AaveOracle: oracle decimals too low"
+        );
+        SCALING_FACTOR = oracleUnit / BASE_CURRENCY_UNIT;
 
         emit BaseCurrencySet(BASE_CURRENCY, BASE_CURRENCY_UNIT);
     }
@@ -79,7 +90,9 @@ contract AaveOracle is IAaveOracle {
     function getAssetPrice(
         address asset
     ) public view override returns (uint256) {
-        return _oracleAggregator.getAssetPrice(asset);
+        uint256 price = _oracleAggregator.getAssetPrice(asset);
+        // Convert from oracle decimals to 8 decimals
+        return price / SCALING_FACTOR;
     }
 
     /// @inheritdoc IAaveOracle
