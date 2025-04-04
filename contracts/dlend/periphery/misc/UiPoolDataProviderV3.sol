@@ -247,8 +247,8 @@ contract UiPoolDataProviderV3 is IUiPoolDataProviderV3 {
             priceOracle.getAssetPrice(wethAddress)
         );
 
-        // Set decimals (typically 8 for USD price feeds)
-        baseCurrencyInfo.networkBaseTokenPriceDecimals = 8;
+        // Set decimals (our oracles use 18 decimals for standardization)
+        baseCurrencyInfo.networkBaseTokenPriceDecimals = 18;
 
         try oracle.BASE_CURRENCY_UNIT() returns (uint256 baseCurrencyUnit) {
             baseCurrencyInfo.marketReferenceCurrencyUnit = baseCurrencyUnit;
