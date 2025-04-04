@@ -54,6 +54,21 @@ describe("dLEND UiPoolDataProviderV3", () => {
     if (!dStableAsset || !collateralAsset) {
       throw new Error("Could not find required test assets in fixture");
     }
+
+    // Supply the dStable asset to the pool from the deployer to ensure liquidity for borrowing
+    const dStableToken = await hre.ethers.getContractAt(
+      "TestERC20",
+      dStableAsset
+    );
+    const dStableSupplyAmount = ethers.parseUnits("10000", 18); // Supply a large amount
+
+    // Approve and supply the dStable to the pool
+    await dStableToken
+      .connect(deployerSigner)
+      .approve(await fixture.contracts.pool.getAddress(), dStableSupplyAmount);
+    await fixture.contracts.pool
+      .connect(deployerSigner)
+      .supply(dStableAsset, dStableSupplyAmount, deployerSigner.address, 0);
   });
 
   describe("getReservesList", () => {
@@ -85,9 +100,7 @@ describe("dLEND UiPoolDataProviderV3", () => {
       const [_, baseCurrencyInfo] =
         await uiPoolDataProvider.getReservesData(addressesProvider);
 
-      expect(baseCurrencyInfo.marketReferenceCurrencyUnit).to.equal(
-        ethers.parseEther("1")
-      );
+      expect(baseCurrencyInfo.marketReferenceCurrencyUnit).to.equal(10 ** 8);
       expect(baseCurrencyInfo.marketReferenceCurrencyPriceInUsd).to.not.equal(
         0
       );

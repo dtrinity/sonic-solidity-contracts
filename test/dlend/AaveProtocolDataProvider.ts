@@ -27,18 +27,28 @@ describe("dLEND AaveProtocolDataProvider", () => {
     dStableAsset = fixture.dStables.dUSD; // Using dUSD for testing
 
     // Find a non-dStable collateral asset
-    for (const [asset, config] of Object.entries(fixture.assets)) {
-      if (config.ltv !== BigInt(0)) {
-        collateralAsset = asset;
-        break;
-      }
-    }
+    collateralAsset = Object.keys(fixture.assets).find(
+      (asset) => fixture.assets[asset].ltv !== BigInt(0)
+    )!;
 
     if (!dStableAsset || !collateralAsset) {
       throw new Error(
         "Could not find required test assets in fixture: need dStable and collateral"
       );
     }
+
+    // Supply the dStable asset from deployer to ensure initial liquidity is present for testing
+    const dStableToken = await hre.ethers.getContractAt(
+      "TestERC20",
+      dStableAsset
+    );
+    const dStableSupplyAmount = ethers.parseUnits("1000", 18);
+    await dStableToken
+      .connect(deployerSigner)
+      .approve(await fixture.contracts.pool.getAddress(), dStableSupplyAmount);
+    await fixture.contracts.pool
+      .connect(deployerSigner)
+      .supply(dStableAsset, dStableSupplyAmount, deployerSigner.address, 0);
   });
 
   describe("Reserve Configuration Data (`getReserveConfigurationData`)", () => {
