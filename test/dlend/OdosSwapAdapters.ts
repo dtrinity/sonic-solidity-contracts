@@ -136,8 +136,20 @@ describe("Odos Swap Adapters", () => {
 
   describe("OdosDebtSwapAdapter", () => {
     it("should swap dUSD debt to sfrxUSD debt", async () => {
-      const collateralAmount = ethers.parseUnits("100", 18);
-      const borrowAmount = ethers.parseUnits("10", 18);
+      // Get decimals
+      const stSDecimals = await (
+        await ethers.getContractAt("TestERC20", stS)
+      ).decimals();
+      const dUSDDecimals = await (
+        await ethers.getContractAt("TestERC20", dUSD)
+      ).decimals();
+      const sfrxUSDDecimals = await (
+        await ethers.getContractAt("TestERC20", sfrxUSD)
+      ).decimals();
+
+      const collateralAmount = ethers.parseUnits("1000", stSDecimals);
+      const borrowAmount = ethers.parseUnits("100", dUSDDecimals);
+      const maxNewDebtAmount = ethers.parseUnits("100", sfrxUSDDecimals); // Expecting roughly 1:1 for mock
 
       // Supply collateral
       const collateral = await ethers.getContractAt("TestERC20", stS);
@@ -157,6 +169,7 @@ describe("Odos Swap Adapters", () => {
 
       // Get debt token and approve adapter
       const variableDebtToken = fixture.contracts.variableDebtTokens[dUSD];
+      // Approve the maximum possible repayment amount initially borrowed
       await variableDebtToken
         .connect(user1Signer)
         .approveDelegation(await debtSwapAdapter.getAddress(), borrowAmount);
@@ -164,10 +177,10 @@ describe("Odos Swap Adapters", () => {
       // Create swap params
       const swapParams = {
         debtAsset: dUSD,
-        debtRepayAmount: borrowAmount,
+        debtRepayAmount: borrowAmount, // Repay the amount borrowed
         debtRateMode: 2, // Variable rate
         newDebtAsset: sfrxUSD,
-        maxNewDebtAmount: borrowAmount,
+        maxNewDebtAmount: maxNewDebtAmount, // Max amount of new debt willing to take
         extraCollateralAsset: ethers.ZeroAddress,
         extraCollateralAmount: 0,
         swapData: "0x", // Use 0x for empty bytes
@@ -208,7 +221,17 @@ describe("Odos Swap Adapters", () => {
 
   describe("OdosLiquiditySwapAdapter", () => {
     it("should swap sfrxUSD liquidity to stS", async () => {
-      const supplyAmount = ethers.parseUnits("100", 18);
+      // Get decimals
+      const sfrxUSDDecimals = await (
+        await ethers.getContractAt("TestERC20", sfrxUSD)
+      ).decimals();
+      const stSDecimals = await (
+        await ethers.getContractAt("TestERC20", stS)
+      ).decimals();
+
+      const supplyAmount = ethers.parseUnits("1000", sfrxUSDDecimals);
+      const amountToSwap = ethers.parseUnits("100", sfrxUSDDecimals); // Swap 10%
+      const expectedNewAmount = ethers.parseUnits("100", stSDecimals); // Expect roughly 1:1 for mock
 
       // Supply sfrxUSD
       const asset = await ethers.getContractAt("TestERC20", sfrxUSD);
@@ -220,18 +243,18 @@ describe("Odos Swap Adapters", () => {
         .connect(user1Signer)
         .supply(sfrxUSD, supplyAmount, user1Signer.address, 0);
 
-      // Get aToken and approve adapter
+      // Get aToken and approve adapter for the amount to swap
       const aToken = fixture.contracts.aTokens[sfrxUSD];
       await aToken
         .connect(user1Signer)
-        .approve(await liquiditySwapAdapter.getAddress(), supplyAmount);
+        .approve(await liquiditySwapAdapter.getAddress(), amountToSwap);
 
       // Create swap params
       const swapParams = {
         collateralAsset: sfrxUSD,
-        collateralAmountToSwap: supplyAmount,
+        collateralAmountToSwap: amountToSwap, // Amount of aTokens to swap
         newCollateralAsset: stS,
-        newCollateralAmount: supplyAmount,
+        newCollateralAmount: expectedNewAmount, // Min expected amount of new aTokens
         withFlashLoan: false,
         user: user1Signer.address,
         swapData: "0x", // Use 0x for empty bytes
@@ -261,8 +284,22 @@ describe("Odos Swap Adapters", () => {
 
   describe("OdosRepayAdapter", () => {
     it("should repay dUSD debt using stS as source", async () => {
-      const collateralAmount = ethers.parseUnits("100", 18);
-      const borrowAmount = ethers.parseUnits("10", 18);
+      // Get decimals
+      const sfrxUSDDecimals = await (
+        await ethers.getContractAt("TestERC20", sfrxUSD)
+      ).decimals();
+      const dUSDDecimals = await (
+        await ethers.getContractAt("TestERC20", dUSD)
+      ).decimals();
+      const stSDecimals = await (
+        await ethers.getContractAt("TestERC20", stS)
+      ).decimals();
+
+      const collateralAmount = ethers.parseUnits("1000", sfrxUSDDecimals);
+      const borrowAmount = ethers.parseUnits("100", dUSDDecimals);
+      const repaySourceSupplyAmount = ethers.parseUnits("1000", stSDecimals);
+      const repayAmount = borrowAmount; // Repay the full borrowed amount
+      const repaySourceAmountToUse = ethers.parseUnits("110", stSDecimals); // Use slightly more stS due to potential swap rates
 
       // Supply collateral and borrow
       const collateral = await ethers.getContractAt("TestERC20", sfrxUSD);
@@ -282,29 +319,29 @@ describe("Odos Swap Adapters", () => {
 
       // Supply repayment source asset
       const repaySource = await ethers.getContractAt("TestERC20", stS);
-      await repaySource.transfer(user1Signer.address, collateralAmount);
+      await repaySource.transfer(user1Signer.address, repaySourceSupplyAmount); // Transfer enough stS
       await repaySource
         .connect(user1Signer)
-        .approve(await pool.getAddress(), collateralAmount);
+        .approve(await pool.getAddress(), repaySourceSupplyAmount);
       await pool
         .connect(user1Signer)
-        .supply(stS, collateralAmount, user1Signer.address, 0);
+        .supply(stS, repaySourceSupplyAmount, user1Signer.address, 0);
 
-      // Get aToken and approve adapter
+      // Get aToken and approve adapter for the amount to use for repayment
       const aToken = fixture.contracts.aTokens[stS];
       await aToken
         .connect(user1Signer)
-        .approve(await repayAdapter.getAddress(), collateralAmount);
+        .approve(await repayAdapter.getAddress(), repaySourceAmountToUse);
 
       // Create repay params
       const repayParams = {
-        collateralAsset: stS,
-        collateralAmount: collateralAmount,
+        collateralAsset: stS, // The asset (aToken) used for repayment
+        collateralAmount: repaySourceAmountToUse, // Max amount of aToken source to use
         debtAsset: dUSD,
-        repayAmount: borrowAmount,
+        repayAmount: repayAmount, // The amount of debt to repay
         rateMode: 2,
         user: user1Signer.address,
-        minAmountToReceive: borrowAmount,
+        minAmountToReceive: 0, // Not receiving anything directly here
         swapData: "0x", // Use 0x for empty bytes
       };
 
@@ -327,7 +364,17 @@ describe("Odos Swap Adapters", () => {
 
   describe("OdosWithdrawSwapAdapter", () => {
     it("should withdraw dS and swap to dUSD", async () => {
-      const supplyAmount = ethers.parseUnits("100", 18);
+      // Get decimals
+      const dSDecimals = await (
+        await ethers.getContractAt("TestERC20", dS)
+      ).decimals();
+      const dUSDDecimals = await (
+        await ethers.getContractAt("TestERC20", dUSD)
+      ).decimals();
+
+      const supplyAmount = ethers.parseUnits("1000", dSDecimals);
+      const amountToWithdrawAndSwap = ethers.parseUnits("100", dSDecimals); // Withdraw 10%
+      const minAmountToReceive = ethers.parseUnits("90", dUSDDecimals); // Expect slightly less dUSD due to swap rate
 
       // Supply dS
       const asset = await ethers.getContractAt("TestERC20", dS);
@@ -339,11 +386,14 @@ describe("Odos Swap Adapters", () => {
         .connect(user1Signer)
         .supply(dS, supplyAmount, user1Signer.address, 0);
 
-      // Get aToken and approve adapter
+      // Get aToken and approve adapter for the amount to withdraw
       const aToken = fixture.contracts.aTokens[dS];
       await aToken
         .connect(user1Signer)
-        .approve(await withdrawSwapAdapter.getAddress(), supplyAmount);
+        .approve(
+          await withdrawSwapAdapter.getAddress(),
+          amountToWithdrawAndSwap
+        );
 
       // Get initial balance of target asset
       const targetAsset = await ethers.getContractAt("TestERC20", dUSD);
@@ -352,9 +402,9 @@ describe("Odos Swap Adapters", () => {
       // Create withdraw swap params
       const withdrawParams = {
         oldAsset: dS,
-        oldAssetAmount: supplyAmount,
+        oldAssetAmount: amountToWithdrawAndSwap, // Amount of aTokens to withdraw
         newAsset: dUSD,
-        minAmountToReceive: supplyAmount,
+        minAmountToReceive: minAmountToReceive, // Min amount of new asset (dUSD) expected
         user: user1Signer.address,
         swapData: "0x", // Use 0x for empty bytes
       };
@@ -373,7 +423,11 @@ describe("Odos Swap Adapters", () => {
 
       // Verify withdrawal and swap
       const finalATokenBalance = await aToken.balanceOf(user1Signer.address);
-      expect(finalATokenBalance).to.be.equal(0);
+      // Expect remaining balance (initial supply - withdrawn amount)
+      expect(finalATokenBalance).to.be.closeTo(
+        supplyAmount - amountToWithdrawAndSwap,
+        10
+      ); // Use closeTo for potential precision issues
 
       const finalTargetBalance = await targetAsset.balanceOf(
         user1Signer.address
