@@ -20,7 +20,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   // Get deployed addresses
   const { address: providerAddress } = await hre.deployments.get(
-    POOL_ADDRESSES_PROVIDER_ID
+    POOL_ADDRESSES_PROVIDER_ID,
   );
   const { address: poolAddress } = await hre.deployments.get(POOL_PROXY_ID);
 

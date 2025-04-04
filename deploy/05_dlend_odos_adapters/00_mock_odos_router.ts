@@ -1,8 +1,9 @@
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
+
 import { getConfig } from "../../config/config";
+import { OdosRouterV2Mock, TestERC20 } from "../../typechain-types";
 import { isMainnet } from "../../typescript/hardhat/deploy";
-import { TestERC20, OdosRouterV2Mock } from "../../typechain-types";
 
 // Exchange rate configuration based on oracle feed prices
 interface ExchangeRateConfig {
@@ -63,7 +64,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   // Get router contract instance
   const router = (await hre.ethers.getContractAt(
     "OdosRouterV2Mock",
-    deployed.address
+    deployed.address,
   )) as OdosRouterV2Mock;
 
   // Set exchange rates
@@ -79,7 +80,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     await router.setExchangeRate(
       baseDeployment.address,
       quoteDeployment.address,
-      rateInWei
+      rateInWei,
     );
 
     // Also set the inverse rate
@@ -87,27 +88,27 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     await router.setExchangeRate(
       quoteDeployment.address,
       baseDeployment.address,
-      inverseRate
+      inverseRate,
     );
 
     console.log(
-      `Set exchange rate for ${rate.baseToken}/${rate.quoteToken} = ${rate.rate}`
+      `Set exchange rate for ${rate.baseToken}/${rate.quoteToken} = ${rate.rate}`,
     );
     console.log(
-      `Set inverse exchange rate for ${rate.quoteToken}/${rate.baseToken} = ${inverseRate}`
+      `Set inverse exchange rate for ${rate.quoteToken}/${rate.baseToken} = ${inverseRate}`,
     );
   }
 
   // Get all mock tokens and deposit 5% to the router
   if (config.MOCK_ONLY?.tokens) {
     for (const [symbol, _tokenConfig] of Object.entries(
-      config.MOCK_ONLY.tokens
+      config.MOCK_ONLY.tokens,
     )) {
       // Get the deployed token contract
       const tokenDeployment = await hre.deployments.get(symbol);
       const token = (await hre.ethers.getContractAt(
         "TestERC20",
-        tokenDeployment.address
+        tokenDeployment.address,
       )) as TestERC20;
 
       // Calculate 5% of total supply
@@ -118,7 +119,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       await token.transfer(deployed.address, amountToDeposit);
 
       console.log(
-        `Deposited ${amountToDeposit.toString()} ${symbol} to OdosRouterV2Mock`
+        `Deposited ${amountToDeposit.toString()} ${symbol} to OdosRouterV2Mock`,
       );
     }
   }

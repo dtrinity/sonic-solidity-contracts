@@ -6,13 +6,17 @@ import {
   ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT,
   ORACLE_AGGREGATOR_PRICE_DECIMALS,
 } from "../../typescript/oracle_aggregator/constants";
+import {
+  rateStrategyHighLiquidityStable,
+  rateStrategyHighLiquidityVolatile,
+  rateStrategyMediumLiquidityStable,
+  rateStrategyMediumLiquidityVolatile,
+} from "../dlend/interest-rate-strategies";
+import {
+  strategyDStable,
+  strategyYieldBearingStablecoin,
+} from "../dlend/reserves-params";
 import { Config } from "../types";
-import { rateStrategyMediumLiquidityStable } from "../dlend/interest-rate-strategies";
-import { rateStrategyHighLiquidityStable } from "../dlend/interest-rate-strategies";
-import { rateStrategyMediumLiquidityVolatile } from "../dlend/interest-rate-strategies";
-import { rateStrategyHighLiquidityVolatile } from "../dlend/interest-rate-strategies";
-import { strategyYieldBearingStablecoin } from "../dlend/reserves-params";
-import { strategyDStable } from "../dlend/reserves-params";
 
 const wSAddress = "0x039e2fB66102314Ce7b64Ce5Ce3E5183bc94aD38";
 
@@ -23,7 +27,7 @@ const wSAddress = "0x039e2fB66102314Ce7b64Ce5Ce3E5183bc94aD38";
  * @returns The configuration for the network
  */
 export async function getConfig(
-  _hre: HardhatRuntimeEnvironment
+  _hre: HardhatRuntimeEnvironment,
 ): Promise<Config> {
   // Token info will only be populated after their deployment
   const dUSDDeployment = await _hre.deployments.getOrNull(DUSD_TOKEN_ID);
