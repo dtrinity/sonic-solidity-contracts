@@ -146,4 +146,44 @@ describe("ERC20StablecoinUpgradeable", () => {
       assert.equal(balance, transferAmount);
     });
   });
+
+  describe("Name and Symbol Update Functionality", () => {
+    const DEFAULT_ADMIN_ROLE =
+      "0x0000000000000000000000000000000000000000000000000000000000000000";
+    const newName = "New Token Name";
+    const newSymbol = "NTN";
+
+    it("should allow DEFAULT_ADMIN_ROLE to update name and symbol", async function () {
+      // Update name as admin (deployer)
+      await stablecoinContract.setNameAndSymbol(newName, newSymbol);
+
+      // Verify name was updated
+      const updatedName = await stablecoinContract.name();
+      assert.equal(updatedName, newName);
+
+      // Verify symbol was updated
+      const updatedSymbol = await stablecoinContract.symbol();
+      assert.equal(updatedSymbol, newSymbol);
+    });
+
+    it("should prevent non-admin from updating name and symbol", async function () {
+      // Attempt to update name as non-admin
+      await expect(
+        stablecoinContract
+          .connect(await hre.ethers.getSigner(user1))
+          .setNameAndSymbol(newName, newSymbol)
+      ).to.be.revertedWithCustomError(
+        stablecoinContract,
+        "AccessControlUnauthorizedAccount"
+      );
+
+      // Verify name was not updated
+      const name = await stablecoinContract.name();
+      assert.equal(name, "dTRINITY USD");
+
+      // Verify symbol was not updated
+      const symbol = await stablecoinContract.symbol();
+      assert.equal(symbol, "dUSD");
+    });
+  });
 });

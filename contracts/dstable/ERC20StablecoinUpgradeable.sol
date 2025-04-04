@@ -21,21 +21,27 @@ contract ERC20StablecoinUpgradeable is
     bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
 
+    string private _name;
+    string private _symbol;
+
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
         _disableInitializers();
     }
 
     function initialize(
-        string memory name,
-        string memory symbol
+        string memory initialName,
+        string memory initialSymbol
     ) public initializer {
-        __ERC20_init(name, symbol);
+        __ERC20_init(initialName, initialSymbol);
         __ERC20Burnable_init();
         __Pausable_init();
         __AccessControl_init();
-        __ERC20Permit_init(name);
+        __ERC20Permit_init(initialName);
         __ERC20FlashMint_init();
+
+        _name = initialName;
+        _symbol = initialSymbol;
 
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _grantRole(PAUSER_ROLE, msg.sender);
@@ -56,6 +62,32 @@ contract ERC20StablecoinUpgradeable is
 
     function mint(address to, uint256 amount) public onlyRole(MINTER_ROLE) {
         _mint(to, amount);
+    }
+
+    /**
+     * @dev Updates the token name
+     * @param newName The new name to set
+     */
+    function setNameAndSymbol(
+        string memory newName,
+        string memory newSymbol
+    ) public onlyRole(DEFAULT_ADMIN_ROLE) {
+        _name = newName;
+        _symbol = newSymbol;
+    }
+
+    /**
+     * @dev Returns the name of the token
+     */
+    function name() public view virtual override returns (string memory) {
+        return _name;
+    }
+
+    /**
+     * @dev Returns the symbol of the token
+     */
+    function symbol() public view virtual override returns (string memory) {
+        return _symbol;
     }
 
     function _update(
