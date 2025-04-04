@@ -38,6 +38,7 @@ describe("Odos Swap Adapters", () => {
     // Load the fixture
     fixture = await dLendFixture();
     pool = fixture.contracts.pool;
+    const dataProvider = fixture.contracts.dataProvider;
 
     // Get adapters from deployments
     debtSwapAdapter = await hre.ethers.getContractAt(
@@ -73,6 +74,64 @@ describe("Odos Swap Adapters", () => {
     if (!dUSD || !dS || !sfrxUSD || !stS) {
       throw new Error("Could not find required test assets");
     }
+
+    // --- Add initial supply logic ---
+    console.log("\n supplying initial liquidity...");
+    const assetsToSupply = [dUSD, dS, sfrxUSD, stS];
+    const poolAddress = await pool.getAddress();
+
+    for (const assetAddress of assetsToSupply) {
+      try {
+        const tokenContract = await hre.ethers.getContractAt(
+          "TestERC20",
+          assetAddress
+        );
+        const tokenDecimals = await tokenContract.decimals();
+        const [supplyCapUnits /* borrowCap */] =
+          await dataProvider.getReserveCaps(assetAddress);
+
+        if (supplyCapUnits > 0) {
+          // Supply cap is in asset units, convert to wei
+          const supplyCapWei = ethers.parseUnits(
+            supplyCapUnits.toString(),
+            tokenDecimals
+          );
+          const amountToSupplyWei = supplyCapWei / 2n; // 50% of cap
+
+          // Ensure deployer has enough balance (fixture should provide this)
+          const deployerBalance = await tokenContract.balanceOf(
+            deployerSigner.address
+          );
+          if (deployerBalance < amountToSupplyWei) {
+            console.warn(
+              `WARN: Deployer balance (${deployerBalance}) insufficient to supply 50% of cap (${amountToSupplyWei}) for ${assetAddress}. Skipping initial supply.`
+            );
+            continue;
+          }
+
+          await tokenContract
+            .connect(deployerSigner)
+            .approve(poolAddress, amountToSupplyWei);
+          await pool
+            .connect(deployerSigner)
+            .supply(assetAddress, amountToSupplyWei, deployerSigner.address, 0);
+          console.log(
+            ` Supplied ${ethers.formatUnits(amountToSupplyWei, tokenDecimals)} (50% of cap) of asset ${assetAddress}`
+          );
+        } else {
+          console.log(
+            ` Supply cap is 0 for ${assetAddress}, skipping initial supply.`
+          );
+        }
+      } catch (error: any) {
+        console.error(
+          ` Error supplying initial liquidity for ${assetAddress}: ${error.message}`
+        );
+        // Optionally re-throw or handle specific errors
+      }
+    }
+    console.log(" Initial liquidity supplied.\n");
+    // --- End initial supply logic ---
   });
 
   describe("OdosDebtSwapAdapter", () => {
@@ -111,7 +170,7 @@ describe("Odos Swap Adapters", () => {
         maxNewDebtAmount: borrowAmount,
         extraCollateralAsset: ethers.ZeroAddress,
         extraCollateralAmount: 0,
-        swapData: "0x", // Mock router doesn't use this
+        swapData: "0x", // Use 0x for empty bytes
       };
 
       // Execute debt swap
@@ -122,16 +181,16 @@ describe("Odos Swap Adapters", () => {
           value: 0,
           deadline: 0,
           v: 0,
-          r: "0x",
-          s: "0x",
+          r: "0x0",
+          s: "0x0",
         },
         {
           aToken: ethers.ZeroAddress,
           value: 0,
           deadline: 0,
           v: 0,
-          r: "0x",
-          s: "0x",
+          r: "0x0",
+          s: "0x0",
         }
       );
 
@@ -175,7 +234,7 @@ describe("Odos Swap Adapters", () => {
         newCollateralAmount: supplyAmount,
         withFlashLoan: false,
         user: user1Signer.address,
-        swapData: "0x", // Mock router doesn't use this
+        swapData: "0x", // Use 0x for empty bytes
       };
 
       // Execute liquidity swap
@@ -186,8 +245,8 @@ describe("Odos Swap Adapters", () => {
           value: 0,
           deadline: 0,
           v: 0,
-          r: "0x",
-          s: "0x",
+          r: hre.ethers.ZeroHash,
+          s: hre.ethers.ZeroHash,
         });
 
       // Verify liquidity was swapped
@@ -246,7 +305,7 @@ describe("Odos Swap Adapters", () => {
         rateMode: 2,
         user: user1Signer.address,
         minAmountToReceive: borrowAmount,
-        swapData: "0x", // Mock router doesn't use this
+        swapData: "0x", // Use 0x for empty bytes
       };
 
       // Execute repay
@@ -255,8 +314,8 @@ describe("Odos Swap Adapters", () => {
         value: 0,
         deadline: 0,
         v: 0,
-        r: "0x",
-        s: "0x",
+        r: hre.ethers.ZeroHash,
+        s: hre.ethers.ZeroHash,
       });
 
       // Verify debt was repaid
@@ -297,7 +356,7 @@ describe("Odos Swap Adapters", () => {
         newAsset: dUSD,
         minAmountToReceive: supplyAmount,
         user: user1Signer.address,
-        swapData: "0x", // Mock router doesn't use this
+        swapData: "0x", // Use 0x for empty bytes
       };
 
       // Execute withdraw and swap
@@ -308,8 +367,8 @@ describe("Odos Swap Adapters", () => {
           value: 0,
           deadline: 0,
           v: 0,
-          r: "0x",
-          s: "0x",
+          r: hre.ethers.ZeroHash,
+          s: hre.ethers.ZeroHash,
         });
 
       // Verify withdrawal and swap

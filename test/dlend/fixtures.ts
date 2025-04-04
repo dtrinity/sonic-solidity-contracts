@@ -90,6 +90,28 @@ async function setupDLendFixture(): Promise<DLendFixtureResult> {
     dataProviderAddress
   );
 
+  // Get additional required contracts *early*
+  const { address: addressesProviderAddress } = await deployments.get(
+    "PoolAddressesProvider"
+  );
+  const poolAddressesProvider = await hre.ethers.getContractAt(
+    "PoolAddressesProvider",
+    addressesProviderAddress
+  );
+
+  const priceOracleAddress = await poolAddressesProvider.getPriceOracle();
+  const priceOracle = await hre.ethers.getContractAt(
+    "IAaveOracle",
+    priceOracleAddress
+  );
+
+  const poolConfiguratorAddress =
+    await poolAddressesProvider.getPoolConfigurator();
+  const poolConfigurator = await hre.ethers.getContractAt(
+    "PoolConfigurator",
+    poolConfiguratorAddress
+  );
+
   // Get all reserves
   const reservesList = await pool.getReservesList();
 
@@ -186,6 +208,8 @@ async function setupDLendFixture(): Promise<DLendFixtureResult> {
   const expectedDusdAmount =
     (usdBaseValue * BigInt(10 ** dUsdInfo.decimals)) / dUsdPrice;
 
+  // Mint dUSD - deployer now holds this
+  // Note: Approval is for the Issuer, not the Pool
   await usdCollateralToken.approve(
     await dusdIssuer.getAddress(),
     usdCollateralAmount
@@ -194,21 +218,6 @@ async function setupDLendFixture(): Promise<DLendFixtureResult> {
     usdCollateralAmount,
     usdCollateralInfo.address,
     expectedDusdAmount
-  );
-
-  // Supply some initial dUSD liquidity from deployer
-  const initialDusdLiquidity = expectedDusdAmount / 2n; // Supply half of the minted amount
-  await dUsdToken.approve(poolAddress, initialDusdLiquidity);
-  await pool.supply(dUsdAddress, initialDusdLiquidity, deployer, 0);
-
-  // Supply some initial collateral liquidity (sfrxUSD) from deployer
-  const initialUsdCollateralLiquidity = usdCollateralAmount / 10n; // Supply 10% of deployer's balance
-  await usdCollateralToken.approve(poolAddress, initialUsdCollateralLiquidity);
-  await pool.supply(
-    usdCollateralInfo.address,
-    initialUsdCollateralLiquidity,
-    deployer,
-    0
   );
 
   // Then mint dS
@@ -241,6 +250,8 @@ async function setupDLendFixture(): Promise<DLendFixtureResult> {
   const expectedDsAmount =
     (sBaseValue * BigInt(10 ** dSInfo.decimals)) / dSPrice;
 
+  // Mint dS - deployer now holds this
+  // Note: Approval is for the Issuer, not the Pool
   await sCollateralToken.approve(
     await dsIssuer.getAddress(),
     sCollateralAmount
@@ -249,43 +260,6 @@ async function setupDLendFixture(): Promise<DLendFixtureResult> {
     sCollateralAmount,
     sCollateralInfo.address,
     expectedDsAmount
-  );
-
-  // Supply some initial dS liquidity from deployer
-  const initialDsLiquidity = expectedDsAmount / 2n; // Supply half of the minted amount
-  await dSToken.approve(poolAddress, initialDsLiquidity);
-  await pool.supply(dSAddress, initialDsLiquidity, deployer, 0);
-
-  // Supply some initial collateral liquidity (stS) from deployer
-  const initialSCollateralLiquidity = sCollateralAmount / 10n; // Supply 10% of deployer's balance
-  await sCollateralToken.approve(poolAddress, initialSCollateralLiquidity);
-  await pool.supply(
-    sCollateralInfo.address,
-    initialSCollateralLiquidity,
-    deployer,
-    0
-  );
-
-  // Get additional required contracts
-  const { address: addressesProviderAddress } = await deployments.get(
-    "PoolAddressesProvider"
-  );
-  const poolAddressesProvider = await hre.ethers.getContractAt(
-    "PoolAddressesProvider",
-    addressesProviderAddress
-  );
-
-  const priceOracleAddress = await poolAddressesProvider.getPriceOracle();
-  const priceOracle = await hre.ethers.getContractAt(
-    "IAaveOracle",
-    priceOracleAddress
-  );
-
-  const poolConfiguratorAddress =
-    await poolAddressesProvider.getPoolConfigurator();
-  const poolConfigurator = await hre.ethers.getContractAt(
-    "PoolConfigurator",
-    poolConfiguratorAddress
   );
 
   return {
