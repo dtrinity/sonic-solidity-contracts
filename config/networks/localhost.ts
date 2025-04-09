@@ -25,7 +25,7 @@ import { Config } from "../types";
  * @returns The configuration for the network
  */
 export async function getConfig(
-  _hre: HardhatRuntimeEnvironment,
+  _hre: HardhatRuntimeEnvironment
 ): Promise<Config> {
   // Token info will only be populated after their deployment
   const dUSDDeployment = await _hre.deployments.getOrNull(DUSD_TOKEN_ID);
@@ -42,10 +42,6 @@ export async function getConfig(
   // Get mock oracle deployments
   const mockOracleDeployments: Record<string, string> = {};
   const mockOracleDeploymentsAll = await _hre.deployments.all();
-
-  // Deployed mocks
-  const odosRouterDeployment =
-    await _hre.deployments.getOrNull("OdosRouterV2Mock");
 
   // Get the named accounts
   const { user1 } = await _hre.getNamedAccounts();
@@ -290,7 +286,7 @@ export async function getConfig(
       },
     },
     odos: {
-      router: odosRouterDeployment?.address || "",
+      router: "", // Odos doesn't work on localhost
     },
   };
 }
