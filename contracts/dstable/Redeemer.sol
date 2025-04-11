@@ -19,7 +19,6 @@ pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/access/AccessControl.sol";
 
-import "contracts/common/DTrinityOracleConstants.sol";
 import "contracts/common/IMintableERC20.sol";
 import "./CollateralVault.sol";
 import "./OracleAware.sol";
@@ -53,7 +52,7 @@ contract Redeemer is AccessControl, OracleAware {
         address _collateralVault,
         address _dstable,
         IPriceOracleGetter _oracle
-    ) OracleAware(_oracle, DTrinityOracleConstants.ORACLE_BASE_CURRENCY_UNIT) {
+    ) OracleAware(_oracle, _oracle.BASE_CURRENCY_UNIT()) {
         collateralVault = CollateralVault(_collateralVault);
         dstable = IMintableERC20(_dstable);
         dstableDecimals = dstable.decimals();

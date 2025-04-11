@@ -22,7 +22,6 @@ import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
-import "contracts/common/DTrinityOracleConstants.sol";
 import "contracts/common/IAaveOracle.sol";
 import "./OracleAware.sol";
 
@@ -68,7 +67,7 @@ abstract contract CollateralVault is AccessControl, OracleAware {
      */
     constructor(
         IPriceOracleGetter oracle
-    ) OracleAware(oracle, DTrinityOracleConstants.ORACLE_BASE_CURRENCY_UNIT) {
+    ) OracleAware(oracle, oracle.BASE_CURRENCY_UNIT()) {
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender); // This is the super admin
         grantRole(COLLATERAL_MANAGER_ROLE, msg.sender);
         grantRole(COLLATERAL_WITHDRAWER_ROLE, msg.sender);

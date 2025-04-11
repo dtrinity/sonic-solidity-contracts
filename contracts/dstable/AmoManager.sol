@@ -77,7 +77,7 @@ contract AmoManager is AccessControl, OracleAware {
         address _dstable,
         address _collateralHolderVault,
         IPriceOracleGetter _oracle
-    ) OracleAware(_oracle, DTrinityOracleConstants.ORACLE_BASE_CURRENCY_UNIT) {
+    ) OracleAware(_oracle, _oracle.BASE_CURRENCY_UNIT()) {
         dstable = IMintableERC20(_dstable);
         collateralHolderVault = CollateralVault(_collateralHolderVault);
 

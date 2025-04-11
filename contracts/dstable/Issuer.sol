@@ -77,7 +77,7 @@ contract Issuer is AccessControl, OracleAware {
         address _dstable,
         IPriceOracleGetter oracle,
         address _amoManager
-    ) OracleAware(oracle, DTrinityOracleConstants.ORACLE_BASE_CURRENCY_UNIT) {
+    ) OracleAware(oracle, oracle.BASE_CURRENCY_UNIT()) {
         collateralVault = CollateralVault(_collateralVault);
         dstable = IMintableERC20(_dstable);
         dstableDecimals = dstable.decimals();
