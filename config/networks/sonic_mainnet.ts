@@ -104,7 +104,7 @@ export async function getConfig(
       },
     },
     odos: {
-      router: "", // TODO fill in
+      router: "0xaC041Df48dF9791B0654f1Dbbf2CC8450C5f2e9D", // OdosRouterV2
     },
   };
 }
