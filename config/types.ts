@@ -35,11 +35,10 @@ export interface DStableConfig {
 }
 
 export interface TokenAddresses {
-  readonly wS: string;
-  readonly dUSD: string;
-  readonly dS: string;
-  readonly stS: string;
-  readonly sfrxUSD: string;
+  readonly wS: string; // Required by dLEND and dS
+  readonly dUSD: string; // Required by dUSD
+  readonly dS: string; // Required by dS
+  [key: string]: string; // Any network-specific token addresses
 }
 
 export interface WalletAddresses {
