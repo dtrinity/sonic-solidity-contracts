@@ -16,7 +16,7 @@ export interface OracleFeedConfig {
 export type OracleProvider = "API3" | "REDSTONE";
 
 // Export the feeds array
-export const oracleFeeds: OracleFeedConfig[] = [
+export const api3Feeds: OracleFeedConfig[] = [
   // USD price feeds
   { name: "frxUSD_USD", symbol: "frxUSD", price: "1" },
   { name: "USDC_USD", symbol: "USDC", price: "1" },
@@ -32,8 +32,9 @@ export const oracleFeeds: OracleFeedConfig[] = [
 
 // Redstone oracle feeds
 export const redstoneFeeds: OracleFeedConfig[] = [
-  // Initial Redstone feeds
-  { name: "ETH_USD", symbol: "ETH", price: "1357.9" },
+  // scUSD feeds
+  { name: "scUSD_USD", symbol: "scUSD", price: "1" },
+  { name: "wstkscUSD_scUSD", symbol: "wstkscUSD", price: "1.15" },
 ];
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
@@ -58,7 +59,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const mockOracleNameToProvider: Record<string, OracleProvider> = {};
 
   // Deploy individual MockAPI3OracleAlwaysAlive instances for each feed
-  for (const feed of oracleFeeds) {
+  for (const feed of api3Feeds) {
     // Skip wS_USD feed on sonic_testnet as it's handled in the next script
     if (isSonicTestnet(hre.network.name) && feed.name === "wS_USD") {
       console.log(

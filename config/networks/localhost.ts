@@ -39,9 +39,10 @@ export async function getConfig(
   const wSTokenDeployment = await _hre.deployments.getOrNull("wS");
   const wOSTokenDeployment = await _hre.deployments.getOrNull("wOS");
   const stSTokenDeployment = await _hre.deployments.getOrNull("stS");
+  const scUSDDeployment = await _hre.deployments.getOrNull("scUSD");
+  const wstkscUSDDeployment = await _hre.deployments.getOrNull("wstkscUSD");
 
   // Get mock oracle deployments
-  const mockOracleDeployments: Record<string, string> = {};
   const mockOracleNameToAddress: Record<string, string> = {};
   const mockOracleNameToProvider: Record<string, OracleProvider> = {};
   const mockOracleDeploymentsAll = await _hre.deployments.all();
@@ -52,8 +53,6 @@ export async function getConfig(
   for (const [name, deployment] of Object.entries(mockOracleDeploymentsAll)) {
     if (name === "MockOracleNameToAddress") {
       Object.assign(mockOracleNameToAddress, deployment.linkedData);
-    } else if (name === "MockOracleDeployments") {
-      Object.assign(mockOracleDeployments, deployment.linkedData);
     } else if (name === "MockOracleNameToProvider") {
       Object.assign(mockOracleNameToProvider, deployment.linkedData);
     }
@@ -107,6 +106,18 @@ export async function getConfig(
         stS: {
           name: "Staked S",
           address: stSTokenDeployment?.address,
+          decimals: 18,
+          initialSupply: 1e6,
+        },
+        scUSD: {
+          name: "Sonic USD",
+          address: scUSDDeployment?.address,
+          decimals: 18,
+          initialSupply: 1e6,
+        },
+        wstkscUSD: {
+          name: "Wrapped Staked Sonic USD",
+          address: wstkscUSDDeployment?.address,
           decimals: 18,
           initialSupply: 1e6,
         },
@@ -248,12 +259,28 @@ export async function getConfig(
           },
         },
         redstoneOracleAssets: {
-          // Add Redstone oracle assets configuration
           plainRedstoneOracleWrappers: {
-            ETH: mockOracleNameToAddress["ETH_USD"],
+            [wstkscUSDDeployment?.address || ""]:
+              mockOracleNameToAddress["wstkscUSD_scUSD"],
           },
-          redstoneOracleWrappersWithThresholding: {},
-          compositeRedstoneOracleWrappersWithThresholding: {},
+          redstoneOracleWrappersWithThresholding: {
+            [scUSDDeployment?.address || ""]: {
+              feed: mockOracleNameToAddress["scUSD_USD"],
+              lowerThreshold: ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT,
+              fixedPrice: ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT,
+            },
+          },
+          compositeRedstoneOracleWrappersWithThresholding: {
+            [wstkscUSDDeployment?.address || ""]: {
+              feedAsset: wstkscUSDDeployment?.address || "",
+              feed1: mockOracleNameToAddress["wstkscUSD_scUSD"],
+              feed2: mockOracleNameToAddress["scUSD_USD"],
+              lowerThresholdInBase1: 0n,
+              fixedPriceInBase1: 0n,
+              lowerThresholdInBase2: ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT,
+              fixedPriceInBase2: ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT,
+            },
+          },
         },
       },
       S: {

@@ -17,53 +17,58 @@
 
 pragma solidity ^0.8.20;
 
-import "../interface/chainlink/IChainlinkWrapper.sol";
-import "../interface/chainlink/IPriceFeed.sol";
+import "./RedstoneChainlinkWrapper.sol";
+import "./ThresholdingUtils.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 
-/**
- * @title RedstoneChainlinkWrapper
- * @dev Implementation of IChainlinkWrapper for Redstone oracle feeds that follow Chainlink AggregatorV3Interface
- */
-contract RedstoneChainlinkWrapper is IChainlinkWrapper {
-    mapping(address => IPriceFeed) public assetToFeed;
+contract RedstoneChainlinkWrapperWithThresholding is
+    RedstoneChainlinkWrapper,
+    ThresholdingUtils
+{
+    /* State */
+    mapping(address => ThresholdConfig) public assetThresholds;
+
+    /* Events */
+    event ThresholdConfigSet(
+        address indexed asset,
+        uint256 lowerThresholdInBase,
+        uint256 fixedPriceInBase
+    );
+    event ThresholdConfigRemoved(address indexed asset);
 
     constructor(
         address baseCurrency,
         uint256 _baseCurrencyUnit
-    ) IChainlinkWrapper(baseCurrency, _baseCurrencyUnit) {}
+    ) RedstoneChainlinkWrapper(baseCurrency, _baseCurrencyUnit) {}
 
     function getPriceInfo(
         address asset
-    ) public view virtual override returns (uint256 price, bool isAlive) {
-        IPriceFeed feed = assetToFeed[asset];
-        if (address(feed) == address(0)) {
-            revert FeedNotSet(asset);
+    ) public view override returns (uint256 price, bool isAlive) {
+        (price, isAlive) = super.getPriceInfo(asset);
+        if (isAlive) {
+            ThresholdConfig memory config = assetThresholds[asset];
+            if (config.lowerThresholdInBase > 0) {
+                price = _applyThreshold(price, config);
+            }
         }
-
-        (, int256 answer, , uint256 updatedAt, ) = feed.latestRoundData();
-
-        // Validate the oracle data
-        if (answer <= 0) {
-            revert InvalidPrice();
-        }
-
-        price = uint256(answer);
-        isAlive =
-            updatedAt + CHAINLINK_HEARTBEAT + heartbeatStaleTimeLimit >
-            block.timestamp;
-
-        price = _convertToBaseCurrencyUnit(price);
     }
 
-    /**
-     * @notice Sets the price feed for an asset
-     * @param asset The address of the asset
-     * @param feed The address of the Redstone Chainlink-compatible price feed
-     */
-    function setFeed(
+    function setThresholdConfig(
         address asset,
-        address feed
+        uint256 lowerThresholdInBase,
+        uint256 fixedPriceInBase
     ) external onlyRole(ORACLE_MANAGER_ROLE) {
-        assetToFeed[asset] = IPriceFeed(feed);
+        assetThresholds[asset] = ThresholdConfig({
+            lowerThresholdInBase: lowerThresholdInBase,
+            fixedPriceInBase: fixedPriceInBase
+        });
+        emit ThresholdConfigSet(asset, lowerThresholdInBase, fixedPriceInBase);
+    }
+
+    function removeThresholdConfig(
+        address asset
+    ) external onlyRole(ORACLE_MANAGER_ROLE) {
+        delete assetThresholds[asset];
+        emit ThresholdConfigRemoved(asset);
     }
 }
