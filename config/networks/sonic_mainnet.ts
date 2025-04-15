@@ -12,7 +12,7 @@ import { Config } from "../types";
  * @returns The configuration for the network
  */
 export async function getConfig(
-  _hre: HardhatRuntimeEnvironment,
+  _hre: HardhatRuntimeEnvironment
 ): Promise<Config> {
   const dUSDDeployment = await _hre.deployments.getOrNull(DUSD_TOKEN_ID);
   const dSDeployment = await _hre.deployments.getOrNull(DS_TOKEN_ID);
@@ -47,8 +47,33 @@ export async function getConfig(
           api3OracleWrappersWithThresholding: {},
           compositeApi3OracleWrappersWithThresholding: {},
         },
+        redstoneOracleAssets: {
+          plainRedstoneOracleWrappers: {},
+          redstoneOracleWrappersWithThresholding: {},
+          compositeRedstoneOracleWrappersWithThresholding: {},
+        },
       },
-      // TODO add one for wS
+      S: {
+        hardDStablePeg: 10n ** BigInt(ORACLE_AGGREGATOR_PRICE_DECIMALS),
+        priceDecimals: ORACLE_AGGREGATOR_PRICE_DECIMALS,
+        baseCurrency: wSAddress,
+        api3OracleAssets: {
+          plainApi3OracleWrappers: {},
+          api3OracleWrappersWithThresholding: {},
+          compositeApi3OracleWrappersWithThresholding: {},
+        },
+        redstoneOracleAssets: {
+          plainRedstoneOracleWrappers: {
+            // Add Redstone feeds here when available
+          },
+          redstoneOracleWrappersWithThresholding: {
+            // Add Redstone feeds with thresholding here when available
+          },
+          compositeRedstoneOracleWrappersWithThresholding: {
+            // Add composite Redstone feeds here when available
+          },
+        },
+      },
     },
     dLend: {
       providerID: 1, // Arbitrary as long as we don't repeat

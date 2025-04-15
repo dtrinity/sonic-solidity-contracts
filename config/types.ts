@@ -73,7 +73,7 @@ export interface OracleAggregatorConfig {
       };
     };
   };
-  readonly redstoneOracleAssets?: {
+  readonly redstoneOracleAssets: {
     plainRedstoneOracleWrappers: {
       [key: string]: string;
     };

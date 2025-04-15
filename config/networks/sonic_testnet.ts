@@ -27,7 +27,7 @@ const wSAddress = "0x039e2fB66102314Ce7b64Ce5Ce3E5183bc94aD38";
  * @returns The configuration for the network
  */
 export async function getConfig(
-  _hre: HardhatRuntimeEnvironment,
+  _hre: HardhatRuntimeEnvironment
 ): Promise<Config> {
   // Token info will only be populated after their deployment
   const dUSDDeployment = await _hre.deployments.getOrNull(DUSD_TOKEN_ID);
@@ -232,6 +232,11 @@ export async function getConfig(
               : {}),
           },
         },
+        redstoneOracleAssets: {
+          plainRedstoneOracleWrappers: {},
+          redstoneOracleWrappersWithThresholding: {},
+          compositeRedstoneOracleWrappersWithThresholding: {},
+        },
       },
       S: {
         hardDStablePeg: 10n ** 18n, // wS has 18 decimals
@@ -253,6 +258,17 @@ export async function getConfig(
           },
           api3OracleWrappersWithThresholding: {},
           compositeApi3OracleWrappersWithThresholding: {},
+        },
+        redstoneOracleAssets: {
+          plainRedstoneOracleWrappers: {
+            // Add Redstone feeds here when available
+          },
+          redstoneOracleWrappersWithThresholding: {
+            // Add Redstone feeds with thresholding here when available
+          },
+          compositeRedstoneOracleWrappersWithThresholding: {
+            // Add composite Redstone feeds here when available
+          },
         },
       },
     },

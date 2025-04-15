@@ -26,7 +26,7 @@ import { Config } from "../types";
  * @returns The configuration for the network
  */
 export async function getConfig(
-  _hre: HardhatRuntimeEnvironment,
+  _hre: HardhatRuntimeEnvironment
 ): Promise<Config> {
   // Token info will only be populated after their deployment
   const dUSDDeployment = await _hre.deployments.getOrNull(DUSD_TOKEN_ID);
@@ -307,6 +307,11 @@ export async function getConfig(
           compositeApi3OracleWrappersWithThresholding: {
             // Entries removed from here, as they belong in the USD config section
           },
+        },
+        redstoneOracleAssets: {
+          plainRedstoneOracleWrappers: {},
+          redstoneOracleWrappersWithThresholding: {},
+          compositeRedstoneOracleWrappersWithThresholding: {},
         },
       },
     },
