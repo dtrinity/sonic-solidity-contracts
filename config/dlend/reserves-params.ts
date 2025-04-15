@@ -7,7 +7,7 @@ import {
 import { eContractid, IReserveParams } from "./types";
 
 // Explainer: https://docs.aave.com/developers/guides/governance-guide/asset-listing
-export const strategyDStable: IReserveParams = {
+const baseDStableConfig: IReserveParams = {
   strategy: rateStrategyHighLiquidityStable,
   // CAUTION: If LTV is > 0, people may loop and dillute other borrowers
   baseLTVAsCollateral: "0", // 0 Don't allow dStable as collateral to prevent subsidy syphoning
@@ -17,14 +17,26 @@ export const strategyDStable: IReserveParams = {
   borrowingEnabled: true,
   stableBorrowRateEnabled: false, // No stable rates due to vulnerability
   flashLoanEnabled: true,
-  reserveDecimals: "6",
+  reserveDecimals: "18",
   aTokenImpl: eContractid.AToken,
   reserveFactor: "1000", // 1000 bps = 10%
-  supplyCap: "400000", // these are decimal units, not raw on-chain integer values
+  supplyCap: "0", // these are decimal units, not raw on-chain integer values
   borrowCap: "0",
   debtCeiling: "0",
   borrowableIsolation: false,
 };
+
+export const strategyDUSD: IReserveParams = {
+  ...baseDStableConfig,
+  supplyCap: "2500000", // Specific to dUSD
+};
+
+export const strategyDS: IReserveParams = {
+  ...baseDStableConfig,
+  supplyCap: "5000000", // Specific to dS
+};
+
+export const strategyDStable: IReserveParams = baseDStableConfig;
 
 export const strategyWETH: IReserveParams = {
   strategy: rateStrategyHighLiquidityVolatile,

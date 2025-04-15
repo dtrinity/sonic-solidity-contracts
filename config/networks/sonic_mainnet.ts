@@ -8,7 +8,11 @@ import { rateStrategyMediumLiquidityStable } from "../dlend/interest-rate-strate
 import { rateStrategyMediumLiquidityVolatile } from "../dlend/interest-rate-strategies";
 import { rateStrategyHighLiquidityVolatile } from "../dlend/interest-rate-strategies";
 import { rateStrategyHighLiquidityStable } from "../dlend/interest-rate-strategies";
-import { strategyDStable } from "../dlend/reserves-params";
+import {
+  strategyDS,
+  strategyDStable,
+  strategyDUSD,
+} from "../dlend/reserves-params";
 import { strategyYieldBearingStablecoin } from "../dlend/reserves-params";
 
 /**
@@ -43,7 +47,7 @@ export async function getConfig(
       scUSD: scUSDAddress,
     },
     walletAddresses: {
-      governanceMultisig: "0xE83c188a7BE46B90715C757A06cF917175f30262",
+      governanceMultisig: "0xE83c188a7BE46B90715C757A06cF917175f30262", // Created via Safe
     },
     dStables: {
       dUSD: {
@@ -96,8 +100,8 @@ export async function getConfig(
         rateStrategyMediumLiquidityStable,
       ],
       reservesConfig: {
-        dUSD: strategyDStable,
-        dS: strategyDStable,
+        dUSD: strategyDUSD,
+        dS: strategyDS,
         stS: strategyYieldBearingStablecoin,
         sfrxUSD: strategyYieldBearingStablecoin,
         wstkscUSD: strategyYieldBearingStablecoin,
