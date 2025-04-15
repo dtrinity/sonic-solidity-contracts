@@ -73,6 +73,29 @@ export interface OracleAggregatorConfig {
       };
     };
   };
+  readonly redstoneOracleAssets?: {
+    plainRedstoneOracleWrappers: {
+      [key: string]: string;
+    };
+    redstoneOracleWrappersWithThresholding: {
+      [key: string]: {
+        feed: string;
+        lowerThreshold: bigint;
+        fixedPrice: bigint;
+      };
+    };
+    compositeRedstoneOracleWrappersWithThresholding: {
+      [key: string]: {
+        feedAsset: string;
+        feed1: string;
+        feed2: string;
+        lowerThresholdInBase1: bigint;
+        fixedPriceInBase1: bigint;
+        lowerThresholdInBase2: bigint;
+        fixedPriceInBase2: bigint;
+      };
+    };
+  };
 }
 
 export interface IInterestRateStrategyParams {

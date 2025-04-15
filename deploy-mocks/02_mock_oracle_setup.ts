@@ -12,6 +12,9 @@ export interface OracleFeedConfig {
   price: string; // Default price
 }
 
+// Define oracle providers
+export type OracleProvider = "API3" | "REDSTONE";
+
 // Export the feeds array
 export const oracleFeeds: OracleFeedConfig[] = [
   // USD price feeds
@@ -25,6 +28,12 @@ export const oracleFeeds: OracleFeedConfig[] = [
   { name: "sUSDS_USDS", symbol: "sUSDS", price: "1.1" },
   { name: "stS_S", symbol: "stS", price: "1.1" },
   { name: "wOS_S", symbol: "wOS", price: "1.1" },
+];
+
+// Redstone oracle feeds
+export const redstoneFeeds: OracleFeedConfig[] = [
+  // Initial Redstone feeds
+  { name: "ETH_USD", symbol: "ETH", price: "1357.9" },
 ];
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
@@ -44,9 +53,9 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     log: false,
   });
 
-  // Track deployed mock oracles for each asset
-  const mockOracleDeployments: Record<string, string> = {};
+  // Track deployed mock oracles
   const mockOracleNameToAddress: Record<string, string> = {};
+  const mockOracleNameToProvider: Record<string, OracleProvider> = {};
 
   // Deploy individual MockAPI3OracleAlwaysAlive instances for each feed
   for (const feed of oracleFeeds) {
@@ -65,7 +74,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     );
 
     // Deploy a MockAPI3OracleAlwaysAlive for this feed
-    // Use the new naming convention: MockAPI3OracleAlwaysAlive_TOKEN_QUOTE
     const mockOracleName = `MockAPI3OracleAlwaysAlive_${feed.name}`;
     const mockOracle = await hre.deployments.deploy(mockOracleName, {
       from: deployer,
@@ -87,26 +95,56 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     await mockOracleContract.setMock(priceInWei);
 
     // Store the deployment for config
-    mockOracleDeployments[tokenInfo.address] = mockOracle.address;
     mockOracleNameToAddress[feed.name] = mockOracle.address;
+    mockOracleNameToProvider[feed.name] = "API3";
 
     console.log(
       `Deployed ${mockOracleName} at ${mockOracle.address} with price ${feed.price}`
     );
   }
 
-  // Store the mock oracle deployments in a JSON file for the config to use
-  await hre.deployments.save("MockOracleDeployments", {
-    address: ZeroAddress, // Not a real contract, just storing data
-    abi: [],
-    linkedData: mockOracleDeployments,
-  });
+  // Deploy individual MockRedstoneChainlinkOracleAlwaysAlive instances for each Redstone feed
+  for (const feed of redstoneFeeds) {
+    const mockOracleName = `MockRedstoneChainlinkOracleAlwaysAlive_${feed.name}`;
+    const mockOracle = await hre.deployments.deploy(mockOracleName, {
+      from: deployer,
+      args: [],
+      contract: "MockRedstoneChainlinkOracleAlwaysAlive",
+      autoMine: true,
+      log: false,
+    });
 
-  // Store the mock oracle name to address mapping for easier reference
+    // Get the deployed mock oracle contract
+    const mockOracleContract = await hre.ethers.getContractAt(
+      "MockRedstoneChainlinkOracleAlwaysAlive",
+      mockOracle.address,
+      signer
+    );
+
+    // Convert price to int256 format expected by Redstone (8 decimals)
+    const priceInWei = hre.ethers.parseUnits(feed.price, 8); // Redstone uses 8 decimals
+    await mockOracleContract.setMock(priceInWei);
+
+    // Store the deployment for config
+    mockOracleNameToAddress[feed.name] = mockOracle.address;
+    mockOracleNameToProvider[feed.name] = "REDSTONE";
+
+    console.log(
+      `Deployed ${mockOracleName} at ${mockOracle.address} with price ${feed.price}`
+    );
+  }
+
+  // Store the mock oracle deployments in JSON files for the config to use
   await hre.deployments.save("MockOracleNameToAddress", {
-    address: ZeroAddress, // Not a real contract, just storing data
+    address: ZeroAddress,
     abi: [],
     linkedData: mockOracleNameToAddress,
+  });
+
+  await hre.deployments.save("MockOracleNameToProvider", {
+    address: ZeroAddress,
+    abi: [],
+    linkedData: mockOracleNameToProvider,
   });
 
   console.log(`🔮 ${__filename.split("/").slice(-2).join("/")}: ✅`);
