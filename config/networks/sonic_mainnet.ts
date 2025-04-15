@@ -8,12 +8,12 @@ import { rateStrategyMediumLiquidityStable } from "../dlend/interest-rate-strate
 import { rateStrategyMediumLiquidityVolatile } from "../dlend/interest-rate-strategies";
 import { rateStrategyHighLiquidityVolatile } from "../dlend/interest-rate-strategies";
 import { rateStrategyHighLiquidityStable } from "../dlend/interest-rate-strategies";
+import { strategyDS, strategyDUSD } from "../dlend/reserves-params";
 import {
-  strategyDS,
-  strategyDStable,
-  strategyDUSD,
+  strategyStS,
+  strategySfrxUSD,
+  strategyWstkscUSD,
 } from "../dlend/reserves-params";
-import { strategyYieldBearingStablecoin } from "../dlend/reserves-params";
 
 /**
  * Get the configuration for the network
@@ -102,9 +102,9 @@ export async function getConfig(
       reservesConfig: {
         dUSD: strategyDUSD,
         dS: strategyDS,
-        stS: strategyYieldBearingStablecoin,
-        sfrxUSD: strategyYieldBearingStablecoin,
-        wstkscUSD: strategyYieldBearingStablecoin,
+        stS: strategyStS,
+        sfrxUSD: strategySfrxUSD,
+        wstkscUSD: strategyWstkscUSD,
       },
     },
     odos: {
