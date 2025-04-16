@@ -56,6 +56,11 @@ async function runTestsForCurrency(
       api3WrapperWithThresholding =
         fixtureResult.contracts.api3WrapperWithThresholding;
 
+      // Skip suite if no relevant assets configured for this wrapper type
+      if (Object.keys(fixtureResult.assets.api3ThresholdAssets).length === 0) {
+        this.skip();
+      }
+
       // Set the base currency for use in tests
       this.baseCurrency = currency;
 
@@ -219,6 +224,7 @@ async function runTestsForCurrency(
         const thresholdAssets = Object.keys(
           fixtureResult.assets.api3ThresholdAssets
         );
+        // NOTE: We keep the skip check here because the test specifically picks the first asset
         if (thresholdAssets.length === 0) {
           this.skip(); // Skip if no threshold assets are configured
         }

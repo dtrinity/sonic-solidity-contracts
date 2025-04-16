@@ -55,6 +55,11 @@ async function runTestsForCurrency(
       // Get contract instances from the fixture
       api3Wrapper = fixtureResult.contracts.api3Wrapper;
 
+      // Skip suite if no relevant assets configured for this wrapper type
+      if (Object.keys(fixtureResult.assets.api3PlainAssets).length === 0) {
+        this.skip();
+      }
+
       // Set the base currency for use in tests
       this.baseCurrency = currency;
 
@@ -86,6 +91,10 @@ async function runTestsForCurrency(
 
     describe("Asset pricing", () => {
       it("should correctly price assets with configured proxies", async function () {
+        // NOTE: Keep this check as it iterates directly
+        if (Object.keys(fixtureResult.assets.api3PlainAssets).length === 0) {
+          this.skip();
+        }
         // Test pricing for plain assets
         for (const [address, _asset] of Object.entries(
           fixtureResult.assets.api3PlainAssets
@@ -121,10 +130,13 @@ async function runTestsForCurrency(
       });
 
       it("should handle stale prices correctly", async function () {
+        // NOTE: Keep this check as it uses getRandomItemFromList
+        const plainAssets = Object.keys(fixtureResult.assets.api3PlainAssets);
+        if (plainAssets.length === 0) {
+          this.skip();
+        }
         // Get a random test asset
-        const testAsset = getRandomItemFromList(
-          Object.keys(fixtureResult.assets.api3PlainAssets)
-        );
+        const testAsset = getRandomItemFromList(plainAssets);
 
         // Deploy a new MockAPI3Oracle that can be set to stale
         const MockAPI3OracleFactory =
