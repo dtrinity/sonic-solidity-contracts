@@ -39,7 +39,7 @@ export async function getConfig(
   const sfrxUSDDeployment = await _hre.deployments.getOrNull("sfrxUSD");
   const wOSTokenDeployment = await _hre.deployments.getOrNull("wOS");
   const stSTokenDeployment = await _hre.deployments.getOrNull("stS");
-
+  const wstkscUSDDeployment = await _hre.deployments.getOrNull("wstkscUSD");
   // Get mock oracle deployments
   const mockOracleDeployments: Record<string, string> = {};
   const mockOracleDeploymentsAll = await _hre.deployments.all();
@@ -92,8 +92,14 @@ export async function getConfig(
           initialSupply: 1e6,
         },
         stS: {
-          name: "Staked S",
+          name: "Beets Staked S",
           address: stSTokenDeployment?.address,
+          decimals: 18,
+          initialSupply: 1e6,
+        },
+        wstkscUSD: {
+          name: "Wrapped Staked Sonic USD",
+          address: wstkscUSDDeployment?.address,
           decimals: 18,
           initialSupply: 1e6,
         },
@@ -289,6 +295,7 @@ export async function getConfig(
         dS: strategyDStable,
         stS: strategyYieldBearingStablecoin,
         sfrxUSD: strategyYieldBearingStablecoin,
+        wstkscUSD: strategyYieldBearingStablecoin,
       },
     },
     odos: {
