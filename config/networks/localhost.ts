@@ -1,7 +1,6 @@
 import { ZeroAddress } from "ethers";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 
-import { OracleProvider } from "../../deploy-mocks/02_mock_oracle_setup";
 import { DS_TOKEN_ID, DUSD_TOKEN_ID } from "../../typescript/deploy-ids";
 import {
   ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT,
@@ -26,7 +25,7 @@ import { Config } from "../types";
  * @returns The configuration for the network
  */
 export async function getConfig(
-  _hre: HardhatRuntimeEnvironment
+  _hre: HardhatRuntimeEnvironment,
 ): Promise<Config> {
   // Token info will only be populated after their deployment
   const dUSDDeployment = await _hre.deployments.getOrNull(DUSD_TOKEN_ID);
@@ -45,20 +44,20 @@ export async function getConfig(
 
   // Get mock oracle deployments
   const mockOracleNameToAddress: Record<string, string> = {};
-  const mockOracleNameToProvider: Record<string, OracleProvider> = {};
 
   // REFACTOR: Load addresses directly using getOrNull
   const mockOracleAddressesDeployment = await _hre.deployments.getOrNull(
-    "MockOracleNameToAddress"
+    "MockOracleNameToAddress",
   );
+
   if (mockOracleAddressesDeployment?.linkedData) {
     Object.assign(
       mockOracleNameToAddress,
-      mockOracleAddressesDeployment.linkedData
+      mockOracleAddressesDeployment.linkedData,
     );
   } else {
     console.warn(
-      "WARN: MockOracleNameToAddress deployment not found or has no linkedData. Oracle addresses might be incomplete."
+      "WARN: MockOracleNameToAddress deployment not found or has no linkedData. Oracle addresses might be incomplete.",
     );
   }
 

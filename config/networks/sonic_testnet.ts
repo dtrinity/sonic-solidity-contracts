@@ -27,7 +27,7 @@ const wSAddress = "0x039e2fB66102314Ce7b64Ce5Ce3E5183bc94aD38";
  * @returns The configuration for the network
  */
 export async function getConfig(
-  _hre: HardhatRuntimeEnvironment
+  _hre: HardhatRuntimeEnvironment,
 ): Promise<Config> {
   // Token info will only be populated after their deployment
   const dUSDDeployment = await _hre.deployments.getOrNull(DUSD_TOKEN_ID);
@@ -43,16 +43,17 @@ export async function getConfig(
   // Get mock oracle deployments
   const mockOracleNameToAddress: Record<string, string> = {};
   const mockOracleAddressesDeployment = await _hre.deployments.getOrNull(
-    "MockOracleNameToAddress"
+    "MockOracleNameToAddress",
   );
+
   if (mockOracleAddressesDeployment?.linkedData) {
     Object.assign(
       mockOracleNameToAddress,
-      mockOracleAddressesDeployment.linkedData
+      mockOracleAddressesDeployment.linkedData,
     );
   } else {
     console.warn(
-      "WARN: MockOracleNameToAddress deployment not found or has no linkedData. Oracle configuration might be incomplete."
+      "WARN: MockOracleNameToAddress deployment not found or has no linkedData. Oracle configuration might be incomplete.",
     );
   }
 
