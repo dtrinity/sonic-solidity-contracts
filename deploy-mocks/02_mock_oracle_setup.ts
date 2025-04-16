@@ -59,14 +59,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   // Deploy individual MockRedstoneChainlinkOracleAlwaysAlive instances for each Redstone feed
   for (const feed of redstoneFeeds) {
-    // Skip wS_USD feed on sonic_testnet as it's handled in the next script
-    if (isSonicTestnet(hre.network.name) && feed.name === "wS_USD") {
-      console.log(
-        `Skipping ${feed.name} deployment on sonic_testnet, handled by 03_mock_wS_oracle_setup.ts`
-      );
-      continue;
-    }
-
     const mockOracleName = `MockRedstoneChainlinkOracleAlwaysAlive_${feed.name}`;
     const mockOracle = await hre.deployments.deploy(mockOracleName, {
       from: deployer,
