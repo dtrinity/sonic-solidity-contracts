@@ -65,6 +65,7 @@ export interface OracleAggregatorFixtureResult {
     redstoneChainlinkCompositeWrapperWithThresholding: RedstoneChainlinkCompositeWrapperWithThresholding;
   };
   assets: {
+    allAssets: string[];
     // API3 Assets
     api3PlainAssets: { [address: string]: { address: string; proxy: string } };
     api3ThresholdAssets: {
@@ -342,6 +343,14 @@ export const createOracleAggregatorFixture = (
         };
       }
 
+      const allAssets = Object.keys(api3PlainAssets).concat(
+        Object.keys(api3ThresholdAssets),
+        Object.keys(api3CompositeAssets),
+        Object.keys(redstonePlainAssets),
+        Object.keys(redstoneThresholdAssets),
+        Object.keys(redstoneCompositeAssets)
+      );
+
       return {
         config,
         contracts: {
@@ -355,6 +364,7 @@ export const createOracleAggregatorFixture = (
           redstoneChainlinkCompositeWrapperWithThresholding,
         },
         assets: {
+          allAssets,
           // API3 Assets
           api3PlainAssets,
           api3ThresholdAssets,
@@ -456,27 +466,15 @@ export function logAvailableOracles(mockOracles: {
 }
 
 /**
- * Helper function to get a random test asset from the available assets
- * @param fixtureResult The fixture result containing the assets
- * @returns A randomly selected asset address
- * @throws Error if no assets are available
+ * Helper function to get a random item from a list
+ * @param list The list to get a random item from
+ * @returns A randomly selected item from the list
+ * @throws Error if the list is empty
  */
-export function getRandomTestAsset(
-  fixtureResult: OracleAggregatorFixtureResult
-): string {
-  const allAssets = [
-    ...Object.keys(fixtureResult.assets.api3PlainAssets),
-    ...Object.keys(fixtureResult.assets.api3ThresholdAssets),
-    ...Object.keys(fixtureResult.assets.api3CompositeAssets),
-    ...Object.keys(fixtureResult.assets.redstonePlainAssets),
-    ...Object.keys(fixtureResult.assets.redstoneThresholdAssets),
-    ...Object.keys(fixtureResult.assets.redstoneCompositeAssets),
-  ];
-
-  if (allAssets.length === 0) {
-    throw new Error("No assets configured in the fixture");
+export function getRandomItemFromList(list: string[]): string {
+  if (list.length === 0) {
+    throw new Error("List is empty");
   }
-
-  const randomIndex = Math.floor(Math.random() * allAssets.length);
-  return allAssets[randomIndex];
+  const randomIndex = Math.floor(Math.random() * list.length);
+  return list[randomIndex];
 }

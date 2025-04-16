@@ -4,7 +4,7 @@ import { Address } from "hardhat-deploy/types";
 import {
   getOracleAggregatorFixture,
   OracleAggregatorFixtureResult,
-  getRandomTestAsset,
+  getRandomItemFromList,
 } from "./fixtures";
 import { getConfig } from "../../config/config";
 import { RedstoneChainlinkWrapper } from "../../typechain-types";
@@ -125,7 +125,9 @@ async function runTestsForCurrency(
 
       it("should handle stale prices correctly", async function () {
         // Get a random test asset
-        const testAsset = getRandomTestAsset(fixtureResult);
+        const testAsset = getRandomItemFromList(
+          Object.keys(fixtureResult.assets.redstonePlainAssets)
+        );
 
         // Deploy a new MockChainlinkFeed that can be set to stale
         const mockFeed = await ethers.deployContract("MockChainlinkFeed", [

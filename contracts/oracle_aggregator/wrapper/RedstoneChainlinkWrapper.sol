@@ -17,20 +17,20 @@
 
 pragma solidity ^0.8.20;
 
-import "../interface/chainlink/IChainlinkWrapper.sol";
+import "../interface/chainlink/BaseChainlinkWrapper.sol";
 import "../interface/chainlink/IPriceFeed.sol";
 
 /**
  * @title RedstoneChainlinkWrapper
- * @dev Implementation of IChainlinkWrapper for Redstone oracle feeds that follow Chainlink AggregatorV3Interface
+ * @dev Implementation of BaseChainlinkWrapper for Redstone oracle feeds that follow Chainlink AggregatorV3Interface
  */
-contract RedstoneChainlinkWrapper is IChainlinkWrapper {
+contract RedstoneChainlinkWrapper is BaseChainlinkWrapper {
     mapping(address => IPriceFeed) public assetToFeed;
 
     constructor(
         address baseCurrency,
         uint256 _baseCurrencyUnit
-    ) IChainlinkWrapper(baseCurrency, _baseCurrencyUnit) {}
+    ) BaseChainlinkWrapper(baseCurrency, _baseCurrencyUnit) {}
 
     function getPriceInfo(
         address asset

@@ -17,17 +17,17 @@
 
 pragma solidity ^0.8.20;
 
-import "../interface/chainlink/IChainlinkWrapper.sol";
+import "../interface/chainlink/BaseChainlinkWrapper.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import {IPriceFeed} from "../interface/chainlink/IPriceFeed.sol";
 import "./ThresholdingUtils.sol";
 
 /**
  * @title RedstoneChainlinkCompositeWrapperWithThresholding
- * @dev Implementation of IChainlinkWrapper for composite Redstone oracles with thresholding
+ * @dev Implementation of BaseChainlinkWrapper for composite Redstone oracles with thresholding
  */
 contract RedstoneChainlinkCompositeWrapperWithThresholding is
-    IChainlinkWrapper,
+    BaseChainlinkWrapper,
     ThresholdingUtils
 {
     /* Core state */
@@ -64,7 +64,7 @@ contract RedstoneChainlinkCompositeWrapperWithThresholding is
     constructor(
         address baseCurrency,
         uint256 _baseCurrencyUnit
-    ) IChainlinkWrapper(baseCurrency, _baseCurrencyUnit) {
+    ) BaseChainlinkWrapper(baseCurrency, _baseCurrencyUnit) {
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _grantRole(ORACLE_MANAGER_ROLE, msg.sender);
     }

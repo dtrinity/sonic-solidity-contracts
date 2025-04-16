@@ -4,7 +4,7 @@ import { Address } from "hardhat-deploy/types";
 import {
   getOracleAggregatorFixture,
   OracleAggregatorFixtureResult,
-  getRandomTestAsset,
+  getRandomItemFromList,
 } from "./fixtures";
 import { getConfig } from "../../config/config";
 import {
@@ -90,7 +90,9 @@ async function runTestsForCurrency(
     describe("Asset pricing with thresholding", () => {
       it("should return original price when no threshold is set", async function () {
         // Get a random test asset (could be any type)
-        const testAsset = getRandomTestAsset(fixtureResult);
+        const testAsset = getRandomItemFromList(
+          Object.keys(fixtureResult.assets.api3ThresholdAssets)
+        );
 
         // Get price info
         const { price: actualPrice, isAlive } =
@@ -271,7 +273,9 @@ async function runTestsForCurrency(
     describe("Threshold configuration management", () => {
       it("should allow setting and removing threshold config", async function () {
         // Get a random test asset (any type is fine here)
-        const testAsset = getRandomTestAsset(fixtureResult);
+        const testAsset = getRandomItemFromList(
+          Object.keys(fixtureResult.assets.api3ThresholdAssets)
+        );
 
         // Set threshold configuration
         const lowerThreshold = ethers.parseUnits(
@@ -315,7 +319,9 @@ async function runTestsForCurrency(
 
       it("should revert when non-ORACLE_MANAGER tries to set threshold config", async function () {
         // Get a random test asset
-        const testAsset = getRandomTestAsset(fixtureResult);
+        const testAsset = getRandomItemFromList(
+          Object.keys(fixtureResult.assets.api3ThresholdAssets)
+        );
 
         const lowerThreshold = ethers.parseUnits(
           "0.99",
@@ -344,7 +350,9 @@ async function runTestsForCurrency(
 
       it("should revert when non-ORACLE_MANAGER tries to remove threshold config", async function () {
         // Get a random test asset
-        const testAsset = getRandomTestAsset(fixtureResult);
+        const testAsset = getRandomItemFromList(
+          Object.keys(fixtureResult.assets.api3ThresholdAssets)
+        );
 
         const unauthorizedSigner = await ethers.getSigner(user2);
         const oracleManagerRole =

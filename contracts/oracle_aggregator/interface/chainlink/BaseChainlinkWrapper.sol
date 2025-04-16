@@ -21,11 +21,11 @@ import "../IOracleWrapper.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 
 /**
- * @title IChainlinkWrapper
+ * @title BaseChainlinkWrapper
  * @dev Abstract contract that implements the IOracleWrapper interface for Chainlink-style oracles
  * Provides common functionality for all Chainlink-compatible oracle wrappers
  */
-abstract contract IChainlinkWrapper is IOracleWrapper, AccessControl {
+abstract contract BaseChainlinkWrapper is IOracleWrapper, AccessControl {
     /* Core state */
 
     uint256 public constant CHAINLINK_BASE_CURRENCY_UNIT = 10 ** 8; // Chainlink uses 8 decimals

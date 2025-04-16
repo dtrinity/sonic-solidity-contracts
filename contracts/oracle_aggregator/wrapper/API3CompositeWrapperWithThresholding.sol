@@ -17,7 +17,7 @@
 
 pragma solidity ^0.8.20;
 
-import "../interface/api3/IAPI3Wrapper.sol";
+import "../interface/api3/BaseAPI3Wrapper.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import {IProxy} from "../interface/api3/IProxy.sol";
 import "./ThresholdingUtils.sol";
@@ -27,7 +27,7 @@ import "./ThresholdingUtils.sol";
  * @dev Implementation of IAPI3Wrapper for composite API3 oracles with thresholding
  */
 contract API3CompositeWrapperWithThresholding is
-    IAPI3Wrapper,
+    BaseAPI3Wrapper,
     ThresholdingUtils
 {
     /* Core state */
@@ -68,7 +68,7 @@ contract API3CompositeWrapperWithThresholding is
     constructor(
         address baseCurrency,
         uint256 _baseCurrencyUnit
-    ) IAPI3Wrapper(baseCurrency, _baseCurrencyUnit) {
+    ) BaseAPI3Wrapper(baseCurrency, _baseCurrencyUnit) {
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _grantRole(ORACLE_MANAGER_ROLE, msg.sender);
     }

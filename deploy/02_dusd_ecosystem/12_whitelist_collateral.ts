@@ -14,22 +14,22 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   // Get the CollateralVault contract
   const { address: collateralVaultAddress } = await hre.deployments.get(
-    DUSD_COLLATERAL_VAULT_CONTRACT_ID,
+    DUSD_COLLATERAL_VAULT_CONTRACT_ID
   );
   const collateralVault = await hre.ethers.getContractAt(
     "CollateralHolderVault",
     collateralVaultAddress,
-    await hre.ethers.getSigner(deployer),
+    await hre.ethers.getSigner(deployer)
   );
 
   // Get the OracleAggregator contract
   const { address: oracleAggregatorAddress } = await hre.deployments.get(
-    USD_ORACLE_AGGREGATOR_ID,
+    USD_ORACLE_AGGREGATOR_ID
   );
   const oracleAggregator = await hre.ethers.getContractAt(
     "OracleAggregator",
     oracleAggregatorAddress,
-    await hre.ethers.getSigner(deployer),
+    await hre.ethers.getSigner(deployer)
   );
 
   // Get collateral addresses from config
@@ -64,12 +64,12 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     try {
       // Check if the token is already whitelisted
       const isAlreadyWhitelisted = await collateralVault.isCollateralSupported(
-        token.address,
+        token.address
       );
 
       if (isAlreadyWhitelisted) {
         console.log(
-          `ℹ️ ${token.address} is already whitelisted as collateral. Skipping.`,
+          `ℹ️ ${token.address} is already whitelisted as collateral. Skipping.`
         );
         continue;
       }
@@ -81,9 +81,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       throw new Error(`Error whitelisting ${token.address}: ${error}`);
     }
   }
-
-  // List all supported collateral after whitelisting
-  const _finalCollateralList = await collateralVault.listCollateral();
 
   console.log(`🔮 ${__filename.split("/").slice(-2).join("/")}: ✅`);
   // Return true to indicate deployment success

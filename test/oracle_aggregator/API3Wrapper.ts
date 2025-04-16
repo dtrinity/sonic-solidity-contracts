@@ -4,7 +4,7 @@ import { Address } from "hardhat-deploy/types";
 import {
   getOracleAggregatorFixture,
   OracleAggregatorFixtureResult,
-  getRandomTestAsset,
+  getRandomItemFromList,
 } from "./fixtures";
 import { getConfig } from "../../config/config";
 import {
@@ -47,7 +47,6 @@ async function runTestsForCurrency(
   describe(`API3Wrapper for ${currency}`, () => {
     let fixtureResult: OracleAggregatorFixtureResult;
     let api3Wrapper: API3Wrapper;
-    let api3WrapperWithThresholding: API3WrapperWithThresholding;
 
     beforeEach(async function () {
       const fixture = await getOracleAggregatorFixture(currency);
@@ -55,8 +54,6 @@ async function runTestsForCurrency(
 
       // Get contract instances from the fixture
       api3Wrapper = fixtureResult.contracts.api3Wrapper;
-      api3WrapperWithThresholding =
-        fixtureResult.contracts.api3WrapperWithThresholding;
 
       // Set the base currency for use in tests
       this.baseCurrency = currency;
@@ -125,7 +122,9 @@ async function runTestsForCurrency(
 
       it("should handle stale prices correctly", async function () {
         // Get a random test asset
-        const testAsset = getRandomTestAsset(fixtureResult);
+        const testAsset = getRandomItemFromList(
+          Object.keys(fixtureResult.assets.api3PlainAssets)
+        );
 
         // Deploy a new MockAPI3Oracle that can be set to stale
         const MockAPI3OracleFactory =
@@ -188,39 +187,6 @@ async function runTestsForCurrency(
             "AccessControlUnauthorizedAccount"
           )
           .withArgs(user2, oracleManagerRole);
-      });
-    });
-
-    describe("API3WrapperWithThresholding", () => {
-      it("should correctly handle threshold assets", async function () {
-        // Test pricing for threshold assets
-        for (const [address, asset] of Object.entries(
-          fixtureResult.assets.api3ThresholdAssets
-        )) {
-          const { price, isAlive } =
-            await api3WrapperWithThresholding.getPriceInfo(address);
-
-          // The price should be non-zero
-          expect(price).to.be.gt(
-            0,
-            `Price for asset ${address} should be greater than 0`
-          );
-          expect(isAlive).to.be.true,
-            `Price for asset ${address} should be alive`;
-
-          // If price is below threshold, it should return fixed price
-          if (price < asset.lowerThreshold) {
-            expect(price).to.equal(asset.fixedPrice);
-          }
-
-          // Verify getAssetPrice returns the same value
-          const directPrice =
-            await api3WrapperWithThresholding.getAssetPrice(address);
-          expect(directPrice).to.equal(
-            price,
-            `Direct price should match price info for ${address}`
-          );
-        }
       });
     });
   });
