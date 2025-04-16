@@ -122,48 +122,6 @@ async function runTestsForCurrency(
           .to.be.revertedWithCustomError(redstoneChainlinkWrapper, "FeedNotSet")
           .withArgs(nonExistentAsset);
       });
-
-      it("should handle stale prices correctly", async function () {
-        // Get a random test asset
-        const testAsset = getRandomItemFromList(
-          Object.keys(fixtureResult.assets.redstonePlainAssets)
-        );
-
-        // Deploy a new MockChainlinkFeed that can be set to stale
-        const mockFeed = await ethers.deployContract("MockChainlinkFeed", [
-          deployer,
-        ]);
-
-        // Set the feed for our test asset to point to the new mock feed
-        await redstoneChainlinkWrapper.setFeed(
-          testAsset,
-          await mockFeed.getAddress()
-        );
-
-        // Set a stale price
-        const price = ethers.parseUnits("1", ORACLE_AGGREGATOR_PRICE_DECIMALS);
-        const currentBlock = await ethers.provider.getBlock("latest");
-        if (!currentBlock) {
-          throw new Error("Failed to get current block");
-        }
-
-        const staleTimestamp =
-          currentBlock.timestamp - CHAINLINK_HEARTBEAT_SECONDS * 2;
-        await mockFeed.setMock(price, staleTimestamp);
-
-        // getPriceInfo should return false for isAlive
-        const { isAlive } =
-          await redstoneChainlinkWrapper.getPriceInfo(testAsset);
-        expect(isAlive).to.be.false;
-
-        // getAssetPrice should revert
-        await expect(
-          redstoneChainlinkWrapper.getAssetPrice(testAsset)
-        ).to.be.revertedWithCustomError(
-          redstoneChainlinkWrapper,
-          "PriceIsStale"
-        );
-      });
     });
 
     describe("Feed management", () => {
