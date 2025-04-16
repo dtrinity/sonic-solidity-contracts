@@ -109,6 +109,9 @@ export async function getConfig(
       dUSD: emptyStringIfUndefined(dUSDDeployment?.address),
       dS: emptyStringIfUndefined(dSDeployment?.address),
       wS: wSAddress,
+      sfrxUSD: emptyStringIfUndefined(sfrxUSDDeployment?.address), // Used by dLEND
+      stS: emptyStringIfUndefined(stSTokenDeployment?.address), // Used by dLEND
+      wstkscUSD: emptyStringIfUndefined(wstkscUSDDeployment?.address), // Used by dLEND
     },
     walletAddresses: {
       governanceMultisig: "0xd2f775Ff2cD41bfe43C7A8c016eD10393553fe44", // Actually just the testnet deployer address

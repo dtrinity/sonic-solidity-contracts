@@ -38,6 +38,7 @@ export interface TokenAddresses {
   readonly wS: string;
   readonly dUSD: string;
   readonly dS: string;
+  readonly [key: string]: string; // dLEND assets must be defined as well
 }
 
 export interface WalletAddresses {
