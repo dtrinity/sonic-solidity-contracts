@@ -26,7 +26,7 @@ import { Config } from "../types";
  * @returns The configuration for the network
  */
 export async function getConfig(
-  _hre: HardhatRuntimeEnvironment,
+  _hre: HardhatRuntimeEnvironment
 ): Promise<Config> {
   // Token info will only be populated after their deployment
   const dUSDDeployment = await _hre.deployments.getOrNull(DUSD_TOKEN_ID);
@@ -46,18 +46,24 @@ export async function getConfig(
   // Get mock oracle deployments
   const mockOracleNameToAddress: Record<string, string> = {};
   const mockOracleNameToProvider: Record<string, OracleProvider> = {};
-  const mockOracleDeploymentsAll = await _hre.deployments.all();
+
+  // REFACTOR: Load addresses directly using getOrNull
+  const mockOracleAddressesDeployment = await _hre.deployments.getOrNull(
+    "MockOracleNameToAddress"
+  );
+  if (mockOracleAddressesDeployment?.linkedData) {
+    Object.assign(
+      mockOracleNameToAddress,
+      mockOracleAddressesDeployment.linkedData
+    );
+  } else {
+    console.warn(
+      "WARN: MockOracleNameToAddress deployment not found or has no linkedData. Oracle addresses might be incomplete."
+    );
+  }
 
   // Get the named accounts
   const { user1 } = await _hre.getNamedAccounts();
-
-  for (const [name, deployment] of Object.entries(mockOracleDeploymentsAll)) {
-    if (name === "MockOracleNameToAddress") {
-      Object.assign(mockOracleNameToAddress, deployment.linkedData);
-    } else if (name === "MockOracleNameToProvider") {
-      Object.assign(mockOracleNameToProvider, deployment.linkedData);
-    }
-  }
 
   return {
     MOCK_ONLY: {

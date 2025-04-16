@@ -27,7 +27,7 @@ const wSAddress = "0x039e2fB66102314Ce7b64Ce5Ce3E5183bc94aD38";
  * @returns The configuration for the network
  */
 export async function getConfig(
-  _hre: HardhatRuntimeEnvironment,
+  _hre: HardhatRuntimeEnvironment
 ): Promise<Config> {
   // Token info will only be populated after their deployment
   const dUSDDeployment = await _hre.deployments.getOrNull(DUSD_TOKEN_ID);
@@ -41,15 +41,19 @@ export async function getConfig(
   const stSTokenDeployment = await _hre.deployments.getOrNull("stS");
   const wstkscUSDDeployment = await _hre.deployments.getOrNull("wstkscUSD");
   // Get mock oracle deployments
-  const mockOracleDeployments: Record<string, string> = {};
-  const mockOracleDeploymentsAll = await _hre.deployments.all();
-
-  for (const [name, deployment] of Object.entries(mockOracleDeploymentsAll)) {
-    if (name.startsWith("MockAPI3OracleAlwaysAlive_")) {
-      // Extract the feed name from the deployment name
-      const feedName = name.replace("MockAPI3OracleAlwaysAlive_", "");
-      mockOracleDeployments[feedName] = deployment.address;
-    }
+  const mockOracleNameToAddress: Record<string, string> = {};
+  const mockOracleAddressesDeployment = await _hre.deployments.getOrNull(
+    "MockOracleNameToAddress"
+  );
+  if (mockOracleAddressesDeployment?.linkedData) {
+    Object.assign(
+      mockOracleNameToAddress,
+      mockOracleAddressesDeployment.linkedData
+    );
+  } else {
+    console.warn(
+      "WARN: MockOracleNameToAddress deployment not found or has no linkedData. Oracle configuration might be incomplete."
+    );
   }
 
   return {
@@ -148,33 +152,34 @@ export async function getConfig(
         redstoneOracleAssets: {
           // Moved from API3
           plainRedstoneOracleWrappers: {
-            [wSAddress]: mockOracleDeployments["wS_USD"],
-            [dSDeployment?.address || ""]: mockOracleDeployments["wS_USD"], // Peg dS to S
+            [wSAddress]: mockOracleNameToAddress["wS_USD"],
+            [dSDeployment?.address || ""]: mockOracleNameToAddress["wS_USD"], // Peg dS to S
           },
           // Moved from API3
           redstoneOracleWrappersWithThresholding: {
-            ...(USDCDeployment?.address && mockOracleDeployments["USDC_USD"]
+            ...(USDCDeployment?.address && mockOracleNameToAddress["USDC_USD"]
               ? {
                   [USDCDeployment.address]: {
-                    feed: mockOracleDeployments["USDC_USD"], // Changed from proxy
+                    feed: mockOracleNameToAddress["USDC_USD"], // Changed from proxy
                     lowerThreshold: ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT,
                     fixedPrice: ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT,
                   },
                 }
               : {}),
-            ...(USDSDeployment?.address && mockOracleDeployments["USDS_USD"]
+            ...(USDSDeployment?.address && mockOracleNameToAddress["USDS_USD"]
               ? {
                   [USDSDeployment.address]: {
-                    feed: mockOracleDeployments["USDS_USD"], // Changed from proxy
+                    feed: mockOracleNameToAddress["USDS_USD"], // Changed from proxy
                     lowerThreshold: ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT,
                     fixedPrice: ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT,
                   },
                 }
               : {}),
-            ...(frxUSDDeployment?.address && mockOracleDeployments["frxUSD_USD"]
+            ...(frxUSDDeployment?.address &&
+            mockOracleNameToAddress["frxUSD_USD"]
               ? {
                   [frxUSDDeployment.address]: {
-                    feed: mockOracleDeployments["frxUSD_USD"], // Changed from proxy
+                    feed: mockOracleNameToAddress["frxUSD_USD"], // Changed from proxy
                     lowerThreshold: ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT,
                     fixedPrice: ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT,
                   },
@@ -185,13 +190,13 @@ export async function getConfig(
           compositeRedstoneOracleWrappersWithThresholding: {
             // sUSDS composite feed (sUSDS/USDS * USDS/USD)
             ...(sUSDSDeployment?.address &&
-            mockOracleDeployments["sUSDS_USDS"] &&
-            mockOracleDeployments["USDS_USD"]
+            mockOracleNameToAddress["sUSDS_USDS"] &&
+            mockOracleNameToAddress["USDS_USD"]
               ? {
                   [sUSDSDeployment.address]: {
                     feedAsset: sUSDSDeployment.address,
-                    feed1: mockOracleDeployments["sUSDS_USDS"], // Changed from proxy1
-                    feed2: mockOracleDeployments["USDS_USD"], // Changed from proxy2
+                    feed1: mockOracleNameToAddress["sUSDS_USDS"], // Changed from proxy1
+                    feed2: mockOracleNameToAddress["USDS_USD"], // Changed from proxy2
                     lowerThresholdInBase1: 0n, // No threshold for sUSDS/USDS
                     fixedPriceInBase1: 0n,
                     lowerThresholdInBase2: ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT, // Threshold for USDS/USD
@@ -201,13 +206,13 @@ export async function getConfig(
               : {}),
             // sfrxUSD composite feed (sfrxUSD/frxUSD * frxUSD/USD)
             ...(sfrxUSDDeployment?.address &&
-            mockOracleDeployments["sfrxUSD_frxUSD"] &&
-            mockOracleDeployments["frxUSD_USD"]
+            mockOracleNameToAddress["sfrxUSD_frxUSD"] &&
+            mockOracleNameToAddress["frxUSD_USD"]
               ? {
                   [sfrxUSDDeployment.address]: {
                     feedAsset: sfrxUSDDeployment.address,
-                    feed1: mockOracleDeployments["sfrxUSD_frxUSD"], // Changed from proxy1
-                    feed2: mockOracleDeployments["frxUSD_USD"], // Changed from proxy2
+                    feed1: mockOracleNameToAddress["sfrxUSD_frxUSD"], // Changed from proxy1
+                    feed2: mockOracleNameToAddress["frxUSD_USD"], // Changed from proxy2
                     lowerThresholdInBase1: 0n, // No threshold for sfrxUSD/frxUSD
                     fixedPriceInBase1: 0n,
                     lowerThresholdInBase2: ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT, // Threshold for frxUSD/USD
@@ -220,8 +225,8 @@ export async function getConfig(
               ? {
                   [stSTokenDeployment.address]: {
                     feedAsset: stSTokenDeployment.address,
-                    feed1: mockOracleDeployments["stS_S"], // Changed from proxy1
-                    feed2: mockOracleDeployments["wS_USD"], // Changed from proxy2
+                    feed1: mockOracleNameToAddress["stS_S"], // Changed from proxy1
+                    feed2: mockOracleNameToAddress["wS_USD"], // Changed from proxy2
                     lowerThresholdInBase1: 0n,
                     fixedPriceInBase1: 0n,
                     lowerThresholdInBase2: 0n,
@@ -234,8 +239,8 @@ export async function getConfig(
               ? {
                   [wOSTokenDeployment.address]: {
                     feedAsset: wOSTokenDeployment.address,
-                    feed1: mockOracleDeployments["wOS_S"], // Changed from proxy1
-                    feed2: mockOracleDeployments["wS_USD"], // Changed from proxy2
+                    feed1: mockOracleNameToAddress["wOS_S"], // Changed from proxy1
+                    feed2: mockOracleNameToAddress["wS_USD"], // Changed from proxy2
                     lowerThresholdInBase1: 0n,
                     fixedPriceInBase1: 0n,
                     lowerThresholdInBase2: 0n,
@@ -259,14 +264,16 @@ export async function getConfig(
         redstoneOracleAssets: {
           // Moved from API3
           plainRedstoneOracleWrappers: {
-            ...(wOSTokenDeployment?.address && mockOracleDeployments["wOS_S"]
+            ...(wOSTokenDeployment?.address && mockOracleNameToAddress["wOS_S"]
               ? {
-                  [wOSTokenDeployment.address]: mockOracleDeployments["wOS_S"],
+                  [wOSTokenDeployment.address]:
+                    mockOracleNameToAddress["wOS_S"],
                 }
               : {}),
-            ...(stSTokenDeployment?.address && mockOracleDeployments["stS_S"]
+            ...(stSTokenDeployment?.address && mockOracleNameToAddress["stS_S"]
               ? {
-                  [stSTokenDeployment.address]: mockOracleDeployments["stS_S"],
+                  [stSTokenDeployment.address]:
+                    mockOracleNameToAddress["stS_S"],
                 }
               : {}),
             // Add Redstone feeds here when available
