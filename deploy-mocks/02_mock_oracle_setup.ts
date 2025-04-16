@@ -26,15 +26,21 @@ export const api3Feeds: OracleFeedConfig[] = [
   // Vault feeds
   { name: "sfrxUSD_frxUSD", symbol: "sfrxUSD", price: "1.1" },
   { name: "sUSDS_USDS", symbol: "sUSDS", price: "1.1" },
+  { name: "sBTC_wBTC", symbol: "sBTC", price: "1.1" },
 
   // S feeds
   { name: "stS_S", symbol: "stS", price: "1.1" },
+  { name: "tBTC_S", symbol: "tBTC", price: "12000" },
+
+  // BTC feeds (added)
+  { name: "wBTC_USD", symbol: "wBTC", price: "50000" },
 ];
 
 // Redstone oracle feeds
 export const redstoneFeeds: OracleFeedConfig[] = [
   // USD feeds
   { name: "scUSD_USD", symbol: "scUSD", price: "1" },
+  { name: "rBTC_USD", symbol: "rBTC", price: "50000" },
 
   // Vault feeds
   { name: "wstkscUSD_scUSD", symbol: "wstkscUSD", price: "1.15" },
@@ -42,6 +48,7 @@ export const redstoneFeeds: OracleFeedConfig[] = [
 
   // S feeds
   { name: "OS_S", symbol: "OS", price: "1.0" }, // OS relative to S (assumed 1:1 for mock)
+  { name: "rBTC_S", symbol: "rBTC", price: "11904" },
 ];
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {

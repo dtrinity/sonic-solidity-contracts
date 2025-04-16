@@ -85,10 +85,12 @@ async function runTestsForCurrency(
 
     describe("Asset pricing", () => {
       it("should correctly price assets with configured feeds", async function () {
-        // Test pricing for plain assets
+        // Test pricing for plain assets configured for Redstone
         for (const [address, _asset] of Object.entries(
-          fixtureResult.assets.plainAssets
+          fixtureResult.assets.redstonePlainAssets
         )) {
+          // Check if the asset actually has a feed configured (safeguard)
+          const feed = await redstoneChainlinkWrapper.assetToFeed(address);
           const { price, isAlive } =
             await redstoneChainlinkWrapper.getPriceInfo(address);
 

@@ -90,7 +90,7 @@ async function runTestsForCurrency(
     describe("Asset pricing with composite thresholding", () => {
       it("should correctly price composite assets", async function () {
         for (const [address, asset] of Object.entries(
-          fixtureResult.assets.compositeAssets
+          fixtureResult.assets.redstoneCompositeAssets
         )) {
           const { price, isAlive } =
             await redstoneChainlinkCompositeWrapperWithThresholding.getPriceInfo(

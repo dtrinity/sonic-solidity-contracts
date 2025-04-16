@@ -22,8 +22,6 @@ export async function getConfig(
       dUSD: emptyStringIfUndefined(dUSDDeployment?.address),
       dS: emptyStringIfUndefined(dSDeployment?.address),
       wS: wSAddress,
-      stS: "",
-      sfrxUSD: "",
     },
     walletAddresses: {
       governanceMultisig: "", // TODO fill out

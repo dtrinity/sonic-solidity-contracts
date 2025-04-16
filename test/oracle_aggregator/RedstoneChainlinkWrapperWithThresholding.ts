@@ -88,7 +88,7 @@ async function runTestsForCurrency(
 
     describe("Asset pricing with thresholding", () => {
       it("should return original price when no threshold is set", async function () {
-        // Get a random test asset
+        // Get a random test asset (any type is fine here)
         const testAsset = getRandomTestAsset(fixtureResult);
 
         // Deploy a new MockChainlinkFeed for testing
@@ -133,68 +133,133 @@ async function runTestsForCurrency(
       });
 
       it("should return fixed price when price is above threshold", async function () {
-        // Get a random test asset
-        const testAsset = getRandomTestAsset(fixtureResult);
+        // Iterate over assets specifically configured with Redstone thresholds
+        for (const [testAsset, assetData] of Object.entries(
+          fixtureResult.assets.redstoneThresholdAssets
+        )) {
+          // Deploy a new MockChainlinkFeed for testing
+          const mockFeed = await ethers.deployContract("MockChainlinkFeed", [
+            deployer,
+          ]);
 
-        // Deploy a new MockChainlinkFeed for testing
-        const mockFeed = await ethers.deployContract("MockChainlinkFeed", [
-          deployer,
-        ]);
+          // Set the feed for our test asset
+          await redstoneChainlinkWrapperWithThresholding.setFeed(
+            testAsset,
+            await mockFeed.getAddress()
+          );
 
-        // Set the feed for our test asset
-        await redstoneChainlinkWrapperWithThresholding.setFeed(
-          testAsset,
-          await mockFeed.getAddress()
-        );
+          // Use the threshold config from the fixture
+          await redstoneChainlinkWrapperWithThresholding.setThresholdConfig(
+            testAsset,
+            assetData.lowerThreshold,
+            assetData.fixedPrice
+          );
 
-        // Set threshold configuration
-        const lowerThreshold = ethers.parseUnits(
-          "0.99",
-          ORACLE_AGGREGATOR_PRICE_DECIMALS
-        );
-        const fixedPrice = ethers.parseUnits(
-          "1.00",
-          ORACLE_AGGREGATOR_PRICE_DECIMALS
-        );
-        await redstoneChainlinkWrapperWithThresholding.setThresholdConfig(
-          testAsset,
-          lowerThreshold,
-          fixedPrice
-        );
+          // Set a price above threshold (e.g., fixed price + 1%)
+          const priceAboveThreshold =
+            assetData.fixedPrice + assetData.fixedPrice / 100n;
+          const currentBlock = await ethers.provider.getBlock("latest");
+          if (!currentBlock) {
+            throw new Error("Failed to get current block");
+          }
 
-        // Set a price above threshold
-        const priceAboveThreshold = ethers.parseUnits(
-          "1.02",
-          ORACLE_AGGREGATOR_PRICE_DECIMALS
-        );
-        const currentBlock = await ethers.provider.getBlock("latest");
-        if (!currentBlock) {
-          throw new Error("Failed to get current block");
+          await mockFeed.setMock(priceAboveThreshold, currentBlock.timestamp);
+
+          // Get price info
+          const { price: actualPrice, isAlive } =
+            await redstoneChainlinkWrapperWithThresholding.getPriceInfo(
+              testAsset
+            );
+
+          // Verify price (should be the fixed price) and status
+          expect(actualPrice).to.equal(
+            assetData.fixedPrice,
+            `Asset: ${testAsset}`
+          );
+          expect(isAlive).to.be.true;
+
+          // Verify getAssetPrice returns the same value
+          const directPrice =
+            await redstoneChainlinkWrapperWithThresholding.getAssetPrice(
+              testAsset
+            );
+          expect(directPrice).to.equal(
+            assetData.fixedPrice,
+            `Asset: ${testAsset}`
+          );
         }
+      });
 
-        await mockFeed.setMock(priceAboveThreshold, currentBlock.timestamp);
+      // Add test for price below threshold (missing)
+      it("should return original price when price is below threshold", async function () {
+        // Iterate over assets specifically configured with Redstone thresholds
+        for (const [testAsset, assetData] of Object.entries(
+          fixtureResult.assets.redstoneThresholdAssets
+        )) {
+          // Deploy a new MockChainlinkFeed for testing
+          const mockFeed = await ethers.deployContract("MockChainlinkFeed", [
+            deployer,
+          ]);
 
-        // Get price info
-        const { price: actualPrice, isAlive } =
-          await redstoneChainlinkWrapperWithThresholding.getPriceInfo(
-            testAsset
+          // Set the feed for our test asset
+          await redstoneChainlinkWrapperWithThresholding.setFeed(
+            testAsset,
+            await mockFeed.getAddress()
           );
 
-        // Verify price and status
-        expect(actualPrice).to.equal(fixedPrice);
-        expect(isAlive).to.be.true;
-
-        // Verify getAssetPrice returns the same value
-        const directPrice =
-          await redstoneChainlinkWrapperWithThresholding.getAssetPrice(
-            testAsset
+          // Use the threshold config from the fixture
+          await redstoneChainlinkWrapperWithThresholding.setThresholdConfig(
+            testAsset,
+            assetData.lowerThreshold,
+            assetData.fixedPrice
           );
-        expect(directPrice).to.equal(fixedPrice);
+
+          // Set a price below threshold (e.g., threshold - 1%)
+          const priceBelowThreshold =
+            assetData.lowerThreshold - assetData.lowerThreshold / 100n;
+          const currentBlock = await ethers.provider.getBlock("latest");
+          if (!currentBlock) {
+            throw new Error("Failed to get current block");
+          }
+
+          await mockFeed.setMock(priceBelowThreshold, currentBlock.timestamp);
+
+          // Get price info
+          const { price: actualPrice, isAlive } =
+            await redstoneChainlinkWrapperWithThresholding.getPriceInfo(
+              testAsset
+            );
+
+          // Verify price (should be the original price) and status
+          expect(actualPrice).to.equal(
+            priceBelowThreshold,
+            `Asset: ${testAsset}`
+          );
+          expect(isAlive).to.be.true;
+
+          // Verify getAssetPrice returns the same value
+          const directPrice =
+            await redstoneChainlinkWrapperWithThresholding.getAssetPrice(
+              testAsset
+            );
+          expect(directPrice).to.equal(
+            priceBelowThreshold,
+            `Asset: ${testAsset}`
+          );
+        }
       });
 
       it("should handle stale prices correctly", async function () {
-        // Get a random test asset
-        const testAsset = getRandomTestAsset(fixtureResult);
+        // Get a Redstone threshold asset (if available)
+        const thresholdAssets = Object.keys(
+          fixtureResult.assets.redstoneThresholdAssets
+        );
+        if (thresholdAssets.length === 0) {
+          this.skip(); // Skip if no Redstone threshold assets are configured
+        }
+        const testAsset = thresholdAssets[0]; // Pick the first one
+        const assetData =
+          fixtureResult.assets.redstoneThresholdAssets[testAsset];
 
         // Deploy a new MockChainlinkFeed for testing
         const mockFeed = await ethers.deployContract("MockChainlinkFeed", [
@@ -207,26 +272,16 @@ async function runTestsForCurrency(
           await mockFeed.getAddress()
         );
 
-        // Set threshold configuration
-        const lowerThreshold = ethers.parseUnits(
-          "0.99",
-          ORACLE_AGGREGATOR_PRICE_DECIMALS
-        );
-        const fixedPrice = ethers.parseUnits(
-          "1.00",
-          ORACLE_AGGREGATOR_PRICE_DECIMALS
-        );
+        // Use the threshold config from the fixture
         await redstoneChainlinkWrapperWithThresholding.setThresholdConfig(
           testAsset,
-          lowerThreshold,
-          fixedPrice
+          assetData.lowerThreshold,
+          assetData.fixedPrice
         );
 
-        // Set a stale price
-        const price = ethers.parseUnits(
-          "0.98",
-          ORACLE_AGGREGATOR_PRICE_DECIMALS
-        );
+        // Set a stale price (below threshold)
+        const price =
+          assetData.lowerThreshold - assetData.lowerThreshold / 100n;
         const currentBlock = await ethers.provider.getBlock("latest");
         if (!currentBlock) {
           throw new Error("Failed to get current block");
@@ -255,7 +310,7 @@ async function runTestsForCurrency(
 
     describe("Threshold configuration management", () => {
       it("should allow setting and removing threshold config", async function () {
-        // Get a random test asset
+        // Get a random test asset (any type is fine here)
         const testAsset = getRandomTestAsset(fixtureResult);
 
         // Set threshold configuration

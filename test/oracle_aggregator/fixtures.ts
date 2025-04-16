@@ -65,13 +65,9 @@ export interface OracleAggregatorFixtureResult {
     redstoneChainlinkCompositeWrapperWithThresholding: RedstoneChainlinkCompositeWrapperWithThresholding;
   };
   assets: {
-    plainAssets: {
-      [address: string]: {
-        address: string;
-        proxy: string;
-      };
-    };
-    thresholdAssets: {
+    // API3 Assets
+    api3PlainAssets: { [address: string]: { address: string; proxy: string } };
+    api3ThresholdAssets: {
       [address: string]: {
         address: string;
         proxy: string;
@@ -79,12 +75,36 @@ export interface OracleAggregatorFixtureResult {
         fixedPrice: bigint;
       };
     };
-    compositeAssets: {
+    api3CompositeAssets: {
       [address: string]: {
         address: string;
         feedAsset: string;
         proxy1: string;
         proxy2: string;
+        lowerThresholdInBase1: bigint;
+        fixedPriceInBase1: bigint;
+        lowerThresholdInBase2: bigint;
+        fixedPriceInBase2: bigint;
+      };
+    };
+    // Redstone Assets
+    redstonePlainAssets: {
+      [address: string]: { address: string; feed: string };
+    };
+    redstoneThresholdAssets: {
+      [address: string]: {
+        address: string;
+        feed: string;
+        lowerThreshold: bigint;
+        fixedPrice: bigint;
+      };
+    };
+    redstoneCompositeAssets: {
+      [address: string]: {
+        address: string;
+        feedAsset: string;
+        feed1: string;
+        feed2: string;
         lowerThresholdInBase1: bigint;
         fixedPriceInBase1: bigint;
         lowerThresholdInBase2: bigint;
@@ -195,11 +215,11 @@ export const createOracleAggregatorFixture = (
         }
       }
 
-      // Group assets by their oracle type
-      const plainAssets: {
+      // Group API3 assets by their oracle type
+      const api3PlainAssets: {
         [address: string]: { address: string; proxy: string };
       } = {};
-      const thresholdAssets: {
+      const api3ThresholdAssets: {
         [address: string]: {
           address: string;
           proxy: string;
@@ -207,7 +227,7 @@ export const createOracleAggregatorFixture = (
           fixedPrice: bigint;
         };
       } = {};
-      const compositeAssets: {
+      const api3CompositeAssets: {
         [address: string]: {
           address: string;
           feedAsset: string;
@@ -220,21 +240,21 @@ export const createOracleAggregatorFixture = (
         };
       } = {};
 
-      // Populate plain assets
+      // Populate API3 plain assets
       for (const [address, proxy] of Object.entries(
         config.api3OracleAssets.plainApi3OracleWrappers
       )) {
-        plainAssets[address] = {
+        api3PlainAssets[address] = {
           address,
           proxy,
         };
       }
 
-      // Populate threshold assets
+      // Populate API3 threshold assets
       for (const [address, data] of Object.entries(
         config.api3OracleAssets.api3OracleWrappersWithThresholding
       )) {
-        thresholdAssets[address] = {
+        api3ThresholdAssets[address] = {
           address,
           proxy: data.proxy,
           lowerThreshold: data.lowerThreshold,
@@ -242,15 +262,79 @@ export const createOracleAggregatorFixture = (
         };
       }
 
-      // Populate composite assets
+      // Populate API3 composite assets
       for (const [address, data] of Object.entries(
         config.api3OracleAssets.compositeApi3OracleWrappersWithThresholding
       )) {
-        compositeAssets[address] = {
+        api3CompositeAssets[address] = {
           address,
           feedAsset: data.feedAsset,
           proxy1: data.proxy1,
           proxy2: data.proxy2,
+          lowerThresholdInBase1: data.lowerThresholdInBase1,
+          fixedPriceInBase1: data.fixedPriceInBase1,
+          lowerThresholdInBase2: data.lowerThresholdInBase2,
+          fixedPriceInBase2: data.fixedPriceInBase2,
+        };
+      }
+
+      // Group Redstone assets by their oracle type
+      const redstonePlainAssets: {
+        [address: string]: { address: string; feed: string };
+      } = {};
+      const redstoneThresholdAssets: {
+        [address: string]: {
+          address: string;
+          feed: string;
+          lowerThreshold: bigint;
+          fixedPrice: bigint;
+        };
+      } = {};
+      const redstoneCompositeAssets: {
+        [address: string]: {
+          address: string;
+          feedAsset: string;
+          feed1: string;
+          feed2: string;
+          lowerThresholdInBase1: bigint;
+          fixedPriceInBase1: bigint;
+          lowerThresholdInBase2: bigint;
+          fixedPriceInBase2: bigint;
+        };
+      } = {};
+
+      // Populate Redstone plain assets
+      for (const [address, feed] of Object.entries(
+        config.redstoneOracleAssets.plainRedstoneOracleWrappers
+      )) {
+        redstonePlainAssets[address] = {
+          address,
+          feed,
+        };
+      }
+
+      // Populate Redstone threshold assets
+      for (const [address, data] of Object.entries(
+        config.redstoneOracleAssets.redstoneOracleWrappersWithThresholding
+      )) {
+        redstoneThresholdAssets[address] = {
+          address,
+          feed: data.feed,
+          lowerThreshold: data.lowerThreshold,
+          fixedPrice: data.fixedPrice,
+        };
+      }
+
+      // Populate Redstone composite assets
+      for (const [address, data] of Object.entries(
+        config.redstoneOracleAssets
+          .compositeRedstoneOracleWrappersWithThresholding
+      )) {
+        redstoneCompositeAssets[address] = {
+          address,
+          feedAsset: data.feedAsset,
+          feed1: data.feed1,
+          feed2: data.feed2,
           lowerThresholdInBase1: data.lowerThresholdInBase1,
           fixedPriceInBase1: data.fixedPriceInBase1,
           lowerThresholdInBase2: data.lowerThresholdInBase2,
@@ -271,9 +355,14 @@ export const createOracleAggregatorFixture = (
           redstoneChainlinkCompositeWrapperWithThresholding,
         },
         assets: {
-          plainAssets,
-          thresholdAssets,
-          compositeAssets,
+          // API3 Assets
+          api3PlainAssets,
+          api3ThresholdAssets,
+          api3CompositeAssets,
+          // Redstone Assets
+          redstonePlainAssets,
+          redstoneThresholdAssets,
+          redstoneCompositeAssets,
         },
         mockOracles,
       };
@@ -376,9 +465,12 @@ export function getRandomTestAsset(
   fixtureResult: OracleAggregatorFixtureResult
 ): string {
   const allAssets = [
-    ...Object.keys(fixtureResult.assets.plainAssets),
-    ...Object.keys(fixtureResult.assets.thresholdAssets),
-    ...Object.keys(fixtureResult.assets.compositeAssets),
+    ...Object.keys(fixtureResult.assets.api3PlainAssets),
+    ...Object.keys(fixtureResult.assets.api3ThresholdAssets),
+    ...Object.keys(fixtureResult.assets.api3CompositeAssets),
+    ...Object.keys(fixtureResult.assets.redstonePlainAssets),
+    ...Object.keys(fixtureResult.assets.redstoneThresholdAssets),
+    ...Object.keys(fixtureResult.assets.redstoneCompositeAssets),
   ];
 
   if (allAssets.length === 0) {

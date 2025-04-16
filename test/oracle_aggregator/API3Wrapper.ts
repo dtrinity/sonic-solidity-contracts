@@ -91,7 +91,7 @@ async function runTestsForCurrency(
       it("should correctly price assets with configured proxies", async function () {
         // Test pricing for plain assets
         for (const [address, _asset] of Object.entries(
-          fixtureResult.assets.plainAssets
+          fixtureResult.assets.api3PlainAssets
         )) {
           const { price, isAlive } = await api3Wrapper.getPriceInfo(address);
 
@@ -195,7 +195,7 @@ async function runTestsForCurrency(
       it("should correctly handle threshold assets", async function () {
         // Test pricing for threshold assets
         for (const [address, asset] of Object.entries(
-          fixtureResult.assets.thresholdAssets
+          fixtureResult.assets.api3ThresholdAssets
         )) {
           const { price, isAlive } =
             await api3WrapperWithThresholding.getPriceInfo(address);

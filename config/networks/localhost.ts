@@ -42,6 +42,10 @@ export async function getConfig(
   const stSTokenDeployment = await _hre.deployments.getOrNull("stS");
   const scUSDDeployment = await _hre.deployments.getOrNull("scUSD");
   const wstkscUSDDeployment = await _hre.deployments.getOrNull("wstkscUSD");
+  const wBTCDeployment = await _hre.deployments.getOrNull("wBTC");
+  const sBTCDeployment = await _hre.deployments.getOrNull("sBTC");
+  const rBTCDeployment = await _hre.deployments.getOrNull("rBTC");
+  const tBTCDeployment = await _hre.deployments.getOrNull("tBTC");
 
   // Get mock oracle deployments
   const mockOracleNameToAddress: Record<string, string> = {};
@@ -128,14 +132,37 @@ export async function getConfig(
           decimals: 18,
           initialSupply: 1e6,
         },
+        // Added BTC mock tokens
+        wBTC: {
+          name: "Wrapped Bitcoin",
+          address: wBTCDeployment?.address,
+          decimals: 8, // Standard BTC decimals
+          initialSupply: 100, // 100 wBTC
+        },
+        sBTC: {
+          name: "Staked Bitcoin",
+          address: sBTCDeployment?.address,
+          decimals: 8,
+          initialSupply: 100,
+        },
+        rBTC: {
+          name: "Redstone Bitcoin",
+          address: rBTCDeployment?.address,
+          decimals: 8,
+          initialSupply: 100,
+        },
+        tBTC: {
+          name: "Thresholded Bitcoin",
+          address: tBTCDeployment?.address,
+          decimals: 18, // Needs 18 decimals for S peg
+          initialSupply: 1e6,
+        },
       },
     },
     tokenAddresses: {
       dUSD: emptyStringIfUndefined(dUSDDeployment?.address),
       dS: emptyStringIfUndefined(dSDeployment?.address),
       wS: emptyStringIfUndefined(wSTokenDeployment?.address),
-      stS: emptyStringIfUndefined(stSTokenDeployment?.address),
-      sfrxUSD: emptyStringIfUndefined(sfrxUSDDeployment?.address),
     },
     walletAddresses: {
       governanceMultisig: user1,
@@ -160,7 +187,7 @@ export async function getConfig(
     },
     oracleAggregators: {
       USD: {
-        hardDStablePeg: 10n ** BigInt(ORACLE_AGGREGATOR_PRICE_DECIMALS),
+        hardDStablePeg: 1n * ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT,
         priceDecimals: ORACLE_AGGREGATOR_PRICE_DECIMALS,
         baseCurrency: ZeroAddress,
         api3OracleAssets: {
@@ -169,6 +196,8 @@ export async function getConfig(
             [wSTokenDeployment?.address || ""]:
               mockOracleNameToAddress["wS_USD"],
             [dSDeployment?.address || ""]: mockOracleNameToAddress["wS_USD"], // Peg dS to S
+            [wBTCDeployment?.address || ""]:
+              mockOracleNameToAddress["wBTC_USD"], // Added wBTC/USD
           },
           // Threshold the stablecoins
           api3OracleWrappersWithThresholding: {
@@ -249,12 +278,30 @@ export async function getConfig(
                   },
                 }
               : {}),
+            // sBTC composite feed (sBTC/wBTC * wBTC/USD)
+            ...(sBTCDeployment?.address &&
+            mockOracleNameToAddress["sBTC_wBTC"] &&
+            mockOracleNameToAddress["wBTC_USD"]
+              ? {
+                  [sBTCDeployment.address]: {
+                    feedAsset: sBTCDeployment.address,
+                    proxy1: mockOracleNameToAddress["sBTC_wBTC"],
+                    proxy2: mockOracleNameToAddress["wBTC_USD"],
+                    lowerThresholdInBase1: 0n, // No threshold on sBTC/wBTC
+                    fixedPriceInBase1: 0n,
+                    lowerThresholdInBase2: 0n, // No threshold on wBTC/USD
+                    fixedPriceInBase2: 0n,
+                  },
+                }
+              : {}),
           },
         },
         redstoneOracleAssets: {
           plainRedstoneOracleWrappers: {
             [wstkscUSDDeployment?.address || ""]:
               mockOracleNameToAddress["wstkscUSD_scUSD"],
+            [rBTCDeployment?.address || ""]:
+              mockOracleNameToAddress["rBTC_USD"], // Added rBTC/USD
           },
           redstoneOracleWrappersWithThresholding: {
             [scUSDDeployment?.address || ""]: {
@@ -277,8 +324,8 @@ export async function getConfig(
         },
       },
       S: {
-        hardDStablePeg: 10n ** 18n, // wS has 18 decimals
-        priceDecimals: 18, // wS has 18 decimals
+        hardDStablePeg: 1n * ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT,
+        priceDecimals: ORACLE_AGGREGATOR_PRICE_DECIMALS,
         baseCurrency: wSTokenDeployment?.address || ZeroAddress, // Base currency is S
         api3OracleAssets: {
           // No thresholding, passthrough raw prices
@@ -286,8 +333,18 @@ export async function getConfig(
             [stSTokenDeployment?.address || ""]:
               mockOracleNameToAddress["stS_S"], // stS/S feed used here
           },
-          // Thresholding - Empty
-          api3OracleWrappersWithThresholding: {},
+          // Thresholding - Added tBTC/S feed
+          api3OracleWrappersWithThresholding: {
+            ...(tBTCDeployment?.address && mockOracleNameToAddress["tBTC_S"]
+              ? {
+                  [tBTCDeployment.address]: {
+                    proxy: mockOracleNameToAddress["tBTC_S"],
+                    lowerThreshold: 11000n * 10n ** 18n, // Example threshold below 12000 S price
+                    fixedPrice: 0n, // No fixed price
+                  },
+                }
+              : {}),
+          },
           // Composite API3 oracle wrappers for wOS - REMOVED FROM HERE
           compositeApi3OracleWrappersWithThresholding: {
             // wOS composite feed configuration removed

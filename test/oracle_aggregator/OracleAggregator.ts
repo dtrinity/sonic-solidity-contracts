@@ -179,9 +179,12 @@ async function runTestsForCurrency(
       it("should correctly price assets with configured oracles", async function () {
         // Test pricing for all asset types
         const allAssets = {
-          ...fixtureResult.assets.plainAssets,
-          ...fixtureResult.assets.thresholdAssets,
-          ...fixtureResult.assets.compositeAssets,
+          ...fixtureResult.assets.api3PlainAssets,
+          ...fixtureResult.assets.api3ThresholdAssets,
+          ...fixtureResult.assets.api3CompositeAssets,
+          ...fixtureResult.assets.redstonePlainAssets,
+          ...fixtureResult.assets.redstoneThresholdAssets,
+          ...fixtureResult.assets.redstoneCompositeAssets,
         };
 
         for (const [address, _asset] of Object.entries(allAssets)) {
