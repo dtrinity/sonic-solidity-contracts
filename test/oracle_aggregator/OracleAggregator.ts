@@ -125,9 +125,7 @@ async function runTestsForCurrency(
 
       it("should revert when setting oracle with wrong decimals", async function () {
         // Get a random test asset
-        const testAsset = getRandomItemFromList(
-          Object.keys(fixtureResult.assets.allAssets)
-        );
+        const testAsset = getRandomItemFromList(fixtureResult.assets.allAssets);
 
         // Deploy a MockOracleAggregator with wrong decimals
         const MockOracleAggregatorFactory = await hre.ethers.getContractFactory(
@@ -179,17 +177,7 @@ async function runTestsForCurrency(
 
     describe("Asset pricing", () => {
       it("should correctly price assets with configured oracles", async function () {
-        // Test pricing for all asset types
-        const allAssets = {
-          ...fixtureResult.assets.api3PlainAssets,
-          ...fixtureResult.assets.api3ThresholdAssets,
-          ...fixtureResult.assets.api3CompositeAssets,
-          ...fixtureResult.assets.redstonePlainAssets,
-          ...fixtureResult.assets.redstoneThresholdAssets,
-          ...fixtureResult.assets.redstoneCompositeAssets,
-        };
-
-        for (const [address, _asset] of Object.entries(allAssets)) {
+        for (const address of fixtureResult.assets.allAssets) {
           const price = await oracleAggregator.getAssetPrice(address);
 
           // The price should be non-zero
