@@ -74,10 +74,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       feedConfig.fixedPrice
     );
     console.log(
-      `Set Redstone feed with thresholding for asset ${assetAddress}:`,
-      `\n  - Feed: ${feedConfig.feed}`,
-      `\n  - Lower threshold: ${feedConfig.lowerThreshold}`,
-      `\n  - Fixed price: ${feedConfig.fixedPrice}`
+      `Set Redstone feed with thresholding for asset ${assetAddress}`
     );
   }
 
@@ -113,15 +110,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       feedConfig.lowerThresholdInBase2,
       feedConfig.fixedPriceInBase2
     );
-    console.log(
-      `Set composite Redstone feed for asset ${assetAddress} with:`,
-      `\n  - Feed1: ${feedConfig.feed1}`,
-      `\n  - Feed2: ${feedConfig.feed2}`,
-      `\n  - Lower threshold in base1: ${feedConfig.lowerThresholdInBase1}`,
-      `\n  - Fixed price in base1: ${feedConfig.fixedPriceInBase1}`,
-      `\n  - Lower threshold in base2: ${feedConfig.lowerThresholdInBase2}`,
-      `\n  - Fixed price in base2: ${feedConfig.fixedPriceInBase2}`
-    );
+    console.log(`Set composite Redstone feed for asset ${assetAddress}`);
   }
 
   console.log(`🔮 ${__filename.split("/").slice(-2).join("/")}: ✅`);

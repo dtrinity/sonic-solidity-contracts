@@ -11,6 +11,12 @@ import {
   S_API3_WRAPPER_WITH_THRESHOLDING_ID,
   S_API3_COMPOSITE_WRAPPER_WITH_THRESHOLDING_ID,
   DS_HARD_PEG_ORACLE_WRAPPER_ID,
+  USD_REDSTONE_ORACLE_WRAPPER_ID,
+  USD_REDSTONE_WRAPPER_WITH_THRESHOLDING_ID,
+  USD_REDSTONE_COMPOSITE_WRAPPER_WITH_THRESHOLDING_ID,
+  S_REDSTONE_ORACLE_WRAPPER_ID,
+  S_REDSTONE_WRAPPER_WITH_THRESHOLDING_ID,
+  S_REDSTONE_COMPOSITE_WRAPPER_WITH_THRESHOLDING_ID,
 } from "../../typescript/deploy-ids";
 import {
   OracleAggregator,
@@ -18,6 +24,9 @@ import {
   API3WrapperWithThresholding,
   API3CompositeWrapperWithThresholding,
   HardPegOracleWrapper,
+  RedstoneChainlinkWrapper,
+  RedstoneChainlinkWrapperWithThresholding,
+  RedstoneChainlinkCompositeWrapperWithThresholding,
 } from "../../typechain-types";
 import { getConfig } from "../../config/config";
 import { OracleAggregatorConfig } from "../../config/types";
@@ -34,6 +43,9 @@ export interface OracleAggregatorFixtureConfig extends OracleAggregatorConfig {
     api3WrapperWithThresholding: string;
     api3CompositeWrapperWithThresholding: string;
     hardPegWrapper: string;
+    redstoneChainlinkWrapper: string;
+    redstoneChainlinkWrapperWithThresholding: string;
+    redstoneChainlinkCompositeWrapperWithThresholding: string;
   };
 }
 
@@ -48,6 +60,9 @@ export interface OracleAggregatorFixtureResult {
     api3WrapperWithThresholding: API3WrapperWithThresholding;
     api3CompositeWrapperWithThresholding: API3CompositeWrapperWithThresholding;
     hardPegWrapper?: HardPegOracleWrapper;
+    redstoneChainlinkWrapper: RedstoneChainlinkWrapper;
+    redstoneChainlinkWrapperWithThresholding: RedstoneChainlinkWrapperWithThresholding;
+    redstoneChainlinkCompositeWrapperWithThresholding: RedstoneChainlinkCompositeWrapperWithThresholding;
   };
   assets: {
     plainAssets: {
@@ -140,6 +155,35 @@ export const createOracleAggregatorFixture = (
         hardPegWrapperAddress
       );
 
+      // Get Redstone wrapper instances
+      const { address: redstoneChainlinkWrapperAddress } =
+        await deployments.get(config.wrapperIds.redstoneChainlinkWrapper);
+      const redstoneChainlinkWrapper = await ethers.getContractAt(
+        "RedstoneChainlinkWrapper",
+        redstoneChainlinkWrapperAddress
+      );
+
+      const { address: redstoneChainlinkWrapperWithThresholdingAddress } =
+        await deployments.get(
+          config.wrapperIds.redstoneChainlinkWrapperWithThresholding
+        );
+      const redstoneChainlinkWrapperWithThresholding =
+        await ethers.getContractAt(
+          "RedstoneChainlinkWrapperWithThresholding",
+          redstoneChainlinkWrapperWithThresholdingAddress
+        );
+
+      const {
+        address: redstoneChainlinkCompositeWrapperWithThresholdingAddress,
+      } = await deployments.get(
+        config.wrapperIds.redstoneChainlinkCompositeWrapperWithThresholding
+      );
+      const redstoneChainlinkCompositeWrapperWithThresholding =
+        await ethers.getContractAt(
+          "RedstoneChainlinkCompositeWrapperWithThresholding",
+          redstoneChainlinkCompositeWrapperWithThresholdingAddress
+        );
+
       // Find the mock oracle deployments
       const mockOracles: { [feedName: string]: string } = {};
       const allDeployments = await deployments.all();
@@ -222,6 +266,9 @@ export const createOracleAggregatorFixture = (
           api3WrapperWithThresholding,
           api3CompositeWrapperWithThresholding,
           hardPegWrapper,
+          redstoneChainlinkWrapper,
+          redstoneChainlinkWrapperWithThresholding,
+          redstoneChainlinkCompositeWrapperWithThresholding,
         },
         assets: {
           plainAssets,
@@ -240,20 +287,19 @@ export const createOracleAggregatorFixture = (
  * @returns The fixture for the specified currency
  */
 export const getOracleAggregatorFixture = async (currency: string) => {
-  const networkConfig = await getConfig(hre);
-  const oracleConfig = networkConfig.oracleAggregators[currency];
+  const config = await getConfig(hre);
+  const oracleAggregatorConfig = config.oracleAggregators[currency];
 
-  if (!oracleConfig) {
+  if (!oracleAggregatorConfig) {
     throw new Error(
-      `No oracle aggregator configuration found for currency: ${currency}`
+      `No oracle aggregator config found for currency ${currency}`
     );
   }
 
-  // Map the network config to our fixture config
   const fixtureConfig: OracleAggregatorFixtureConfig = {
-    ...oracleConfig,
+    ...oracleAggregatorConfig,
     currency,
-    deploymentTag: `${currency.toLowerCase()}-oracle`,
+    deploymentTag: currency === "USD" ? "dusd-ecosystem" : "ds-ecosystem",
     oracleAggregatorId:
       currency === "USD" ? USD_ORACLE_AGGREGATOR_ID : S_ORACLE_AGGREGATOR_ID,
     wrapperIds: {
@@ -273,6 +319,18 @@ export const getOracleAggregatorFixture = async (currency: string) => {
         currency === "USD"
           ? DUSD_HARD_PEG_ORACLE_WRAPPER_ID
           : DS_HARD_PEG_ORACLE_WRAPPER_ID,
+      redstoneChainlinkWrapper:
+        currency === "USD"
+          ? USD_REDSTONE_ORACLE_WRAPPER_ID
+          : S_REDSTONE_ORACLE_WRAPPER_ID,
+      redstoneChainlinkWrapperWithThresholding:
+        currency === "USD"
+          ? USD_REDSTONE_WRAPPER_WITH_THRESHOLDING_ID
+          : S_REDSTONE_WRAPPER_WITH_THRESHOLDING_ID,
+      redstoneChainlinkCompositeWrapperWithThresholding:
+        currency === "USD"
+          ? USD_REDSTONE_COMPOSITE_WRAPPER_WITH_THRESHOLDING_ID
+          : S_REDSTONE_COMPOSITE_WRAPPER_WITH_THRESHOLDING_ID,
     },
   };
 
