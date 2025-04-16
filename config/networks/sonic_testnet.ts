@@ -153,7 +153,7 @@ export async function getConfig(
           // Moved from API3
           plainRedstoneOracleWrappers: {
             [wSAddress]: mockOracleNameToAddress["wS_USD"],
-            [dSDeployment?.address || ""]: mockOracleNameToAddress["wS_USD"], // Peg dS to S
+            [dSDeployment?.address || ""]: mockOracleNameToAddress["wS_USD"],
           },
           // Moved from API3
           redstoneOracleWrappersWithThresholding: {
@@ -217,6 +217,20 @@ export async function getConfig(
                     fixedPriceInBase1: 0n,
                     lowerThresholdInBase2: ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT, // Threshold for frxUSD/USD
                     fixedPriceInBase2: ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT,
+                  },
+                }
+              : {}),
+            ...(wstkscUSDDeployment?.address &&
+            mockOracleNameToAddress["wstkscUSD_USD"]
+              ? {
+                  [wstkscUSDDeployment.address]: {
+                    feedAsset: wstkscUSDDeployment.address,
+                    feed1: mockOracleNameToAddress["wstkscUSD_scUSD"], // Changed from proxy1
+                    feed2: mockOracleNameToAddress["scUSD_USD"], // Changed from proxy2
+                    lowerThresholdInBase1: 0n,
+                    fixedPriceInBase1: 0n,
+                    lowerThresholdInBase2: 0n,
+                    fixedPriceInBase2: 0n,
                   },
                 }
               : {}),

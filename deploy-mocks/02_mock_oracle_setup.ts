@@ -34,6 +34,7 @@ export const redstoneFeeds: OracleFeedConfig[] = [
   // S feeds
   { name: "stS_S", symbol: "stS", price: "1.1" },
   { name: "OS_S", symbol: "OS", price: "1.0" }, // Moved from original redstoneFeeds
+  { name: "wOS_S", symbol: "wOS", price: "1.1" }, // Required for S aggregator plain wrapper on testnet
 ];
 
 // Redstone oracle feeds - This array is now merged into redstoneFeeds above
