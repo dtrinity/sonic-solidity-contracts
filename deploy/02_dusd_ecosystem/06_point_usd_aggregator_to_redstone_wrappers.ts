@@ -3,10 +3,10 @@ import { DeployFunction } from "hardhat-deploy/types";
 
 import { getConfig } from "../../config/config";
 import {
+  USD_ORACLE_AGGREGATOR_ID,
+  USD_REDSTONE_COMPOSITE_WRAPPER_WITH_THRESHOLDING_ID,
   USD_REDSTONE_ORACLE_WRAPPER_ID,
   USD_REDSTONE_WRAPPER_WITH_THRESHOLDING_ID,
-  USD_REDSTONE_COMPOSITE_WRAPPER_WITH_THRESHOLDING_ID,
-  USD_ORACLE_AGGREGATOR_ID,
 } from "../../typescript/deploy-ids";
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
@@ -14,29 +14,29 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   // Get USD OracleAggregator contract
   const oracleAggregatorDeployment = await hre.deployments.get(
-    USD_ORACLE_AGGREGATOR_ID
+    USD_ORACLE_AGGREGATOR_ID,
   );
   const oracleAggregator = await hre.ethers.getContractAt(
     "OracleAggregator",
-    oracleAggregatorDeployment.address
+    oracleAggregatorDeployment.address,
   );
 
   // Get USD RedstoneChainlinkWrapper for plain feeds
   const redstoneWrapperDeployment = await hre.deployments.get(
-    USD_REDSTONE_ORACLE_WRAPPER_ID
+    USD_REDSTONE_ORACLE_WRAPPER_ID,
   );
   const redstoneWrapperAddress = redstoneWrapperDeployment.address;
 
   // Get USD RedstoneChainlinkWrapperWithThresholding for feeds with thresholding
   const redstoneWrapperWithThresholdingDeployment = await hre.deployments.get(
-    USD_REDSTONE_WRAPPER_WITH_THRESHOLDING_ID
+    USD_REDSTONE_WRAPPER_WITH_THRESHOLDING_ID,
   );
   const redstoneWrapperWithThresholdingAddress =
     redstoneWrapperWithThresholdingDeployment.address;
 
   // Get USD RedstoneChainlinkCompositeWrapperWithThresholding for composite feeds
   const redstoneCompositeWrapperDeployment = await hre.deployments.get(
-    USD_REDSTONE_COMPOSITE_WRAPPER_WITH_THRESHOLDING_ID
+    USD_REDSTONE_COMPOSITE_WRAPPER_WITH_THRESHOLDING_ID,
   );
   const redstoneCompositeWrapperAddress =
     redstoneCompositeWrapperDeployment.address;
@@ -49,7 +49,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   for (const [assetAddress, _feed] of Object.entries(plainFeeds)) {
     await oracleAggregator.setOracle(assetAddress, redstoneWrapperAddress);
     console.log(
-      `Set plain Redstone wrapper for asset ${assetAddress} to ${redstoneWrapperAddress}`
+      `Set plain Redstone wrapper for asset ${assetAddress} to ${redstoneWrapperAddress}`,
     );
   }
 
@@ -61,10 +61,10 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   for (const [assetAddress, _config] of Object.entries(thresholdFeeds)) {
     await oracleAggregator.setOracle(
       assetAddress,
-      redstoneWrapperWithThresholdingAddress
+      redstoneWrapperWithThresholdingAddress,
     );
     console.log(
-      `Set Redstone wrapper with thresholding for asset ${assetAddress} to ${redstoneWrapperWithThresholdingAddress}`
+      `Set Redstone wrapper with thresholding for asset ${assetAddress} to ${redstoneWrapperWithThresholdingAddress}`,
     );
   }
 
@@ -76,10 +76,10 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   for (const [_assetAddress, feedConfig] of Object.entries(compositeFeeds)) {
     await oracleAggregator.setOracle(
       feedConfig.feedAsset,
-      redstoneCompositeWrapperAddress
+      redstoneCompositeWrapperAddress,
     );
     console.log(
-      `Set composite Redstone wrapper for asset ${feedConfig.feedAsset} to ${redstoneCompositeWrapperAddress}`
+      `Set composite Redstone wrapper for asset ${feedConfig.feedAsset} to ${redstoneCompositeWrapperAddress}`,
     );
   }
 

@@ -3,9 +3,9 @@ import { DeployFunction } from "hardhat-deploy/types";
 
 import { getConfig } from "../../config/config";
 import {
+  USD_REDSTONE_COMPOSITE_WRAPPER_WITH_THRESHOLDING_ID,
   USD_REDSTONE_ORACLE_WRAPPER_ID,
   USD_REDSTONE_WRAPPER_WITH_THRESHOLDING_ID,
-  USD_REDSTONE_COMPOSITE_WRAPPER_WITH_THRESHOLDING_ID,
 } from "../../typescript/deploy-ids";
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
@@ -25,12 +25,12 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       contract: "RedstoneChainlinkWrapper",
       autoMine: true,
       log: false,
-    }
+    },
   );
 
   const redstoneWrapper = await hre.ethers.getContractAt(
     "RedstoneChainlinkWrapper",
-    redstoneWrapperDeployment.address
+    redstoneWrapperDeployment.address,
   );
 
   // Set feeds for plain oracle feeds
@@ -59,22 +59,22 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   const redstoneWrapperWithThresholding = await hre.ethers.getContractAt(
     "RedstoneChainlinkWrapperWithThresholding",
-    redstoneWrapperWithThresholdingDeployment.address
+    redstoneWrapperWithThresholdingDeployment.address,
   );
 
   // Set feeds and thresholds for feeds with thresholding
   for (const [assetAddress, feedConfig] of Object.entries(thresholdFeeds)) {
     await redstoneWrapperWithThresholding.setFeed(
       assetAddress,
-      feedConfig.feed
+      feedConfig.feed,
     );
     await redstoneWrapperWithThresholding.setThresholdConfig(
       assetAddress,
       feedConfig.lowerThreshold,
-      feedConfig.fixedPrice
+      feedConfig.fixedPrice,
     );
     console.log(
-      `Set Redstone feed with thresholding for asset ${assetAddress}`
+      `Set Redstone feed with thresholding for asset ${assetAddress}`,
     );
   }
 
@@ -91,12 +91,12 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       contract: "RedstoneChainlinkCompositeWrapperWithThresholding",
       autoMine: true,
       log: false,
-    }
+    },
   );
 
   const redstoneCompositeWrapper = await hre.ethers.getContractAt(
     "RedstoneChainlinkCompositeWrapperWithThresholding",
-    redstoneCompositeWrapperDeployment.address
+    redstoneCompositeWrapperDeployment.address,
   );
 
   // Add composite feeds
@@ -108,7 +108,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       feedConfig.lowerThresholdInBase1,
       feedConfig.fixedPriceInBase1,
       feedConfig.lowerThresholdInBase2,
-      feedConfig.fixedPriceInBase2
+      feedConfig.fixedPriceInBase2,
     );
     console.log(`Set composite Redstone feed for asset ${assetAddress}`);
   }
