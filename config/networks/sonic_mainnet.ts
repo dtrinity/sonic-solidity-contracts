@@ -97,28 +97,28 @@ export async function getConfig(
               feedAsset: sfrxUSDAddress,
               feed1: "0xebE443E20ADf302B59419648c4dbA0c7299cf1A2", // sfrxUSD/frxUSD Redstone Fundamental feed
               feed2: "0xC3346631E0A9720582fB9CAbdBEA22BC2F57741b", // frxUSD/USD Redstone price feed
-              lowerThresholdInBase1: ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT,
-              fixedPriceInBase1: ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT,
-              lowerThresholdInBase2: ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT,
+              lowerThresholdInBase1: 0n, // No thresholding
+              fixedPriceInBase1: 0n,
+              lowerThresholdInBase2: ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT, // Only threshold frxUSD/USD
               fixedPriceInBase2: ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT,
             },
             [scUSDAddress]: {
               feedAsset: scUSDAddress,
               feed1: "0xb81131B6368b3F0a83af09dB4E39Ac23DA96C2Db", // scUSD/USDC Redstone Fundamental feed
               feed2: "0x3587a73AA02519335A8a6053a97657BECe0bC2Cc", // USDC/USD Redstone price feed
-              lowerThresholdInBase1: ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT,
-              fixedPriceInBase1: ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT,
-              lowerThresholdInBase2: ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT,
+              lowerThresholdInBase1: 0n, // No thresholding
+              fixedPriceInBase1: 0n,
+              lowerThresholdInBase2: ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT, // Only threshold scUSD/USD
               fixedPriceInBase2: ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT,
             },
             [stSAddress]: {
               feedAsset: stSAddress,
               feed1: "0x65d0F14f7809CdC4f90c3978c753C4671b6B815b", // stS/S Redstone Fundamental feed
               feed2: "0xa8a94Da411425634e3Ed6C331a32ab4fd774aa43", // S/USD Redstone price feed
-              lowerThresholdInBase1: ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT,
-              fixedPriceInBase1: ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT,
-              lowerThresholdInBase2: ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT,
-              fixedPriceInBase2: ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT,
+              lowerThresholdInBase1: 0n, // No thresholding
+              fixedPriceInBase1: 0n,
+              lowerThresholdInBase2: 0n, // Do not threshold S/USD
+              fixedPriceInBase2: 0n,
             },
             // [wstkscUSDAddress]: {},
           },
