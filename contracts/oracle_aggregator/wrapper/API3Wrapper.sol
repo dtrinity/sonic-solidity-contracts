@@ -18,13 +18,13 @@
 pragma solidity ^0.8.20;
 
 import {IProxy} from "../interface/api3/IProxy.sol";
-import "../interface/api3/IAPI3Wrapper.sol";
+import "../interface/api3/BaseAPI3Wrapper.sol";
 
 /**
  * @title API3Wrapper
  * @dev Implementation of IAPI3Wrapper for standard API3 oracles
  */
-contract API3Wrapper is IAPI3Wrapper {
+contract API3Wrapper is BaseAPI3Wrapper {
     mapping(address => IProxy) public assetToProxy;
 
     error ProxyNotSet(address asset);
@@ -32,7 +32,7 @@ contract API3Wrapper is IAPI3Wrapper {
     constructor(
         address baseCurrency,
         uint256 _baseCurrencyUnit
-    ) IAPI3Wrapper(baseCurrency, _baseCurrencyUnit) {}
+    ) BaseAPI3Wrapper(baseCurrency, _baseCurrencyUnit) {}
 
     function getPriceInfo(
         address asset

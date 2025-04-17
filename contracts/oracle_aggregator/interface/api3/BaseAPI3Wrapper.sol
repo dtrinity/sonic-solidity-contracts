@@ -21,11 +21,11 @@ import "../IOracleWrapper.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 
 /**
- * @title IAPI3Wrapper
+ * @title BaseAPI3Wrapper
  * @dev Abstract contract that implements the IOracleWrapper interface for API3 oracles
  * Provides common functionality for all API3 oracle wrappers
  */
-abstract contract IAPI3Wrapper is IOracleWrapper, AccessControl {
+abstract contract BaseAPI3Wrapper is IOracleWrapper, AccessControl {
     /* Core state */
 
     uint256 public constant API3_BASE_CURRENCY_UNIT = 10 ** 18;

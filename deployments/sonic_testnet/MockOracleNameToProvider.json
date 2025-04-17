@@ -1,0 +1,19 @@
+{
+  "address": "0x0000000000000000000000000000000000000000",
+  "abi": [],
+  "numDeployments": 1,
+  "linkedData": {
+    "frxUSD_USD": "REDSTONE",
+    "USDC_USD": "REDSTONE",
+    "USDS_USD": "REDSTONE",
+    "wS_USD": "REDSTONE",
+    "scUSD_USD": "REDSTONE",
+    "sfrxUSD_frxUSD": "REDSTONE",
+    "sUSDS_USDS": "REDSTONE",
+    "wstkscUSD_scUSD": "REDSTONE",
+    "wOS_OS": "REDSTONE",
+    "stS_S": "REDSTONE",
+    "OS_S": "REDSTONE",
+    "wOS_S": "REDSTONE"
+  }
+}

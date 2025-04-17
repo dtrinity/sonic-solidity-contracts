@@ -82,12 +82,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       typedFeedConfig.lowerThreshold,
       typedFeedConfig.fixedPrice,
     );
-    console.log(
-      `Set API3 proxy with thresholding for asset ${assetAddress}:`,
-      `\n  - Proxy: ${typedFeedConfig.proxy}`,
-      `\n  - Lower threshold: ${typedFeedConfig.lowerThreshold}`,
-      `\n  - Fixed price: ${typedFeedConfig.fixedPrice}`,
-    );
+    console.log(`Set API3 proxy with thresholding for asset ${assetAddress}:`);
   }
 
   // Deploy API3CompositeWrapperWithThresholding for composite feeds
@@ -132,15 +127,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       typedFeedConfig.lowerThresholdInBase2,
       typedFeedConfig.fixedPriceInBase2,
     );
-    console.log(
-      `Set composite API3 feed for asset ${assetAddress} with:`,
-      `\n  - Proxy1: ${typedFeedConfig.proxy1}`,
-      `\n  - Proxy2: ${typedFeedConfig.proxy2}`,
-      `\n  - Lower threshold in base1: ${typedFeedConfig.lowerThresholdInBase1}`,
-      `\n  - Fixed price in base1: ${typedFeedConfig.fixedPriceInBase1}`,
-      `\n  - Lower threshold in base2: ${typedFeedConfig.lowerThresholdInBase2}`,
-      `\n  - Fixed price in base2: ${typedFeedConfig.fixedPriceInBase2}`,
-    );
+    console.log(`Set composite API3 feed for asset ${assetAddress}`);
   }
 
   console.log(`🔮 ${__filename.split("/").slice(-2).join("/")}: ✅`);

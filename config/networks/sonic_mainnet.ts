@@ -84,8 +84,33 @@ export async function getConfig(
           // TODO add stS/S feed
           // TODO add stS/USD feed
         },
+        redstoneOracleAssets: {
+          plainRedstoneOracleWrappers: {},
+          redstoneOracleWrappersWithThresholding: {},
+          compositeRedstoneOracleWrappersWithThresholding: {},
+        },
       },
-      // TODO add one for wS
+      S: {
+        hardDStablePeg: 10n ** BigInt(ORACLE_AGGREGATOR_PRICE_DECIMALS),
+        priceDecimals: ORACLE_AGGREGATOR_PRICE_DECIMALS,
+        baseCurrency: wSAddress,
+        api3OracleAssets: {
+          plainApi3OracleWrappers: {},
+          api3OracleWrappersWithThresholding: {},
+          compositeApi3OracleWrappersWithThresholding: {},
+        },
+        redstoneOracleAssets: {
+          plainRedstoneOracleWrappers: {
+            // Add Redstone feeds here when available
+          },
+          redstoneOracleWrappersWithThresholding: {
+            // Add Redstone feeds with thresholding here when available
+          },
+          compositeRedstoneOracleWrappersWithThresholding: {
+            // Add composite Redstone feeds here when available
+          },
+        },
+      },
     },
     dLend: {
       providerID: 1, // Arbitrary as long as we don't repeat

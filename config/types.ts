@@ -35,10 +35,10 @@ export interface DStableConfig {
 }
 
 export interface TokenAddresses {
-  readonly wS: string; // Required by dLEND and dS
-  readonly dUSD: string; // Required by dUSD
-  readonly dS: string; // Required by dS
-  [key: string]: string; // Any network-specific token addresses
+  readonly wS: string;
+  readonly dUSD: string;
+  readonly dS: string;
+  readonly [key: string]: string; // dLEND assets must be defined as well
 }
 
 export interface WalletAddresses {
@@ -65,6 +65,29 @@ export interface OracleAggregatorConfig {
         feedAsset: string;
         proxy1: string;
         proxy2: string;
+        lowerThresholdInBase1: bigint;
+        fixedPriceInBase1: bigint;
+        lowerThresholdInBase2: bigint;
+        fixedPriceInBase2: bigint;
+      };
+    };
+  };
+  readonly redstoneOracleAssets: {
+    plainRedstoneOracleWrappers: {
+      [key: string]: string;
+    };
+    redstoneOracleWrappersWithThresholding: {
+      [key: string]: {
+        feed: string;
+        lowerThreshold: bigint;
+        fixedPrice: bigint;
+      };
+    };
+    compositeRedstoneOracleWrappersWithThresholding: {
+      [key: string]: {
+        feedAsset: string;
+        feed1: string;
+        feed2: string;
         lowerThresholdInBase1: bigint;
         fixedPriceInBase1: bigint;
         lowerThresholdInBase2: bigint;

@@ -4,7 +4,7 @@ import { Address } from "hardhat-deploy/types";
 import {
   getOracleAggregatorFixture,
   OracleAggregatorFixtureResult,
-  getRandomTestAsset,
+  getRandomItemFromList,
 } from "./fixtures";
 import { getConfig } from "../../config/config";
 import { OracleAggregator, MockOracleAggregator } from "../../typechain-types";
@@ -94,7 +94,7 @@ async function runTestsForCurrency(
         );
 
         // Get a random test asset
-        const testAsset = getRandomTestAsset(fixtureResult);
+        const testAsset = getRandomItemFromList(fixtureResult.assets.allAssets);
 
         // Set a mock price for the test asset
         const mockPrice = ethers.parseEther("1.5");
@@ -125,7 +125,7 @@ async function runTestsForCurrency(
 
       it("should revert when setting oracle with wrong decimals", async function () {
         // Get a random test asset
-        const testAsset = getRandomTestAsset(fixtureResult);
+        const testAsset = getRandomItemFromList(fixtureResult.assets.allAssets);
 
         // Deploy a MockOracleAggregator with wrong decimals
         const MockOracleAggregatorFactory = await hre.ethers.getContractFactory(
@@ -156,7 +156,7 @@ async function runTestsForCurrency(
 
       it("should only allow oracle manager to set oracles", async function () {
         // Get a random test asset
-        const testAsset = getRandomTestAsset(fixtureResult);
+        const testAsset = getRandomItemFromList(fixtureResult.assets.allAssets);
 
         // Deploy a mock oracle for testing
         const MockAPI3OracleFactory =
@@ -177,14 +177,7 @@ async function runTestsForCurrency(
 
     describe("Asset pricing", () => {
       it("should correctly price assets with configured oracles", async function () {
-        // Test pricing for all asset types
-        const allAssets = {
-          ...fixtureResult.assets.plainAssets,
-          ...fixtureResult.assets.thresholdAssets,
-          ...fixtureResult.assets.compositeAssets,
-        };
-
-        for (const [address, _asset] of Object.entries(allAssets)) {
+        for (const address of fixtureResult.assets.allAssets) {
           const price = await oracleAggregator.getAssetPrice(address);
 
           // The price should be non-zero

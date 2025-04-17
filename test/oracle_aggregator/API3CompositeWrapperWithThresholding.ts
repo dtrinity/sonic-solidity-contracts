@@ -4,7 +4,7 @@ import { Address } from "hardhat-deploy/types";
 import {
   getOracleAggregatorFixture,
   OracleAggregatorFixtureResult,
-  getRandomTestAsset,
+  getRandomItemFromList,
 } from "./fixtures";
 import { getConfig } from "../../config/config";
 import {
@@ -56,6 +56,11 @@ async function runTestsForCurrency(
       api3CompositeWrapperWithThresholding =
         fixtureResult.contracts.api3CompositeWrapperWithThresholding;
 
+      // Skip suite if no relevant assets configured for this wrapper type
+      if (Object.keys(fixtureResult.assets.api3CompositeAssets).length === 0) {
+        this.skip();
+      }
+
       // Set the base currency for use in tests
       this.baseCurrency = currency;
 
@@ -91,8 +96,14 @@ async function runTestsForCurrency(
 
     describe("Asset pricing with composite thresholding", () => {
       it("should correctly price composite assets", async function () {
+        // NOTE: Keep this check as it iterates directly
+        if (
+          Object.keys(fixtureResult.assets.api3CompositeAssets).length === 0
+        ) {
+          this.skip();
+        }
         for (const [address, asset] of Object.entries(
-          fixtureResult.assets.compositeAssets
+          fixtureResult.assets.api3CompositeAssets
         )) {
           const { price, isAlive } =
             await api3CompositeWrapperWithThresholding.getPriceInfo(address);
@@ -107,7 +118,14 @@ async function runTestsForCurrency(
       });
 
       it("should handle thresholding for both primary and secondary prices", async function () {
-        const testAsset = getRandomTestAsset(fixtureResult);
+        // NOTE: Keep this check as it uses getRandomItemFromList
+        const compositeAssets = Object.keys(
+          fixtureResult.assets.api3CompositeAssets
+        );
+        if (compositeAssets.length === 0) {
+          this.skip();
+        }
+        const testAsset = getRandomItemFromList(compositeAssets);
 
         // Deploy mock oracles for testing
         const MockAPI3OracleFactory =
@@ -187,7 +205,14 @@ async function runTestsForCurrency(
       });
 
       it("should handle stale prices correctly", async function () {
-        const testAsset = getRandomTestAsset(fixtureResult);
+        // NOTE: Keep this check as it uses getRandomItemFromList
+        const compositeAssets = Object.keys(
+          fixtureResult.assets.api3CompositeAssets
+        );
+        if (compositeAssets.length === 0) {
+          this.skip();
+        }
+        const testAsset = getRandomItemFromList(compositeAssets);
 
         // Deploy mock oracles for testing
         const MockAPI3OracleFactory =
@@ -253,7 +278,14 @@ async function runTestsForCurrency(
 
     describe("Feed management", () => {
       it("should allow adding and removing composite feeds", async function () {
-        const testAsset = getRandomTestAsset(fixtureResult);
+        // NOTE: Keep this check as it uses getRandomItemFromList
+        const compositeAssets = Object.keys(
+          fixtureResult.assets.api3CompositeAssets
+        );
+        if (compositeAssets.length === 0) {
+          this.skip();
+        }
+        const testAsset = getRandomItemFromList(compositeAssets);
         const proxy1 = "0x2345678901234567890123456789012345678901";
         const proxy2 = "0x3456789012345678901234567890123456789012";
         const lowerThreshold1 = ethers.parseUnits(
@@ -325,7 +357,14 @@ async function runTestsForCurrency(
       });
 
       it("should revert when non-ORACLE_MANAGER tries to manage feeds", async function () {
-        const testAsset = getRandomTestAsset(fixtureResult);
+        // NOTE: Keep this check as it uses getRandomItemFromList
+        const compositeAssets = Object.keys(
+          fixtureResult.assets.api3CompositeAssets
+        );
+        if (compositeAssets.length === 0) {
+          this.skip();
+        }
+        const testAsset = getRandomItemFromList(compositeAssets);
         const proxy1 = "0x2345678901234567890123456789012345678901";
         const proxy2 = "0x3456789012345678901234567890123456789012";
 

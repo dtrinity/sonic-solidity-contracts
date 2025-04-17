@@ -5,6 +5,11 @@ export const USD_API3_WRAPPER_WITH_THRESHOLDING_ID =
   "USD_API3WrapperWithThresholding";
 export const USD_API3_COMPOSITE_WRAPPER_WITH_THRESHOLDING_ID =
   "USD_API3CompositeWrapperWithThresholding";
+export const USD_REDSTONE_ORACLE_WRAPPER_ID = "USD_RedstoneChainlinkWrapper";
+export const USD_REDSTONE_WRAPPER_WITH_THRESHOLDING_ID =
+  "USD_RedstoneChainlinkWrapperWithThresholding";
+export const USD_REDSTONE_COMPOSITE_WRAPPER_WITH_THRESHOLDING_ID =
+  "USD_RedstoneChainlinkCompositeWrapperWithThresholding";
 
 // S Oracles
 export const S_ORACLE_AGGREGATOR_ID = "S_OracleAggregator";
@@ -13,6 +18,11 @@ export const S_API3_WRAPPER_WITH_THRESHOLDING_ID =
   "S_API3WrapperWithThresholding";
 export const S_API3_COMPOSITE_WRAPPER_WITH_THRESHOLDING_ID =
   "S_API3CompositeWrapperWithThresholding";
+export const S_REDSTONE_ORACLE_WRAPPER_ID = "S_RedstoneWrapper";
+export const S_REDSTONE_WRAPPER_WITH_THRESHOLDING_ID =
+  "S_RedstoneWrapperWithThresholding";
+export const S_REDSTONE_COMPOSITE_WRAPPER_WITH_THRESHOLDING_ID =
+  "S_RedstoneCompositeWrapperWithThresholding";
 
 // dUSD
 export const DUSD_TOKEN_ID = "dUSD";

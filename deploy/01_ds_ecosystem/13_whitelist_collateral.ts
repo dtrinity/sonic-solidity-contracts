@@ -4,8 +4,8 @@ import { DeployFunction } from "hardhat-deploy/types";
 
 import { getConfig } from "../../config/config";
 import {
-  DUSD_COLLATERAL_VAULT_CONTRACT_ID,
-  USD_ORACLE_AGGREGATOR_ID,
+  DS_COLLATERAL_VAULT_CONTRACT_ID,
+  S_ORACLE_AGGREGATOR_ID,
 } from "../../typescript/deploy-ids";
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
@@ -14,7 +14,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   // Get the CollateralVault contract
   const { address: collateralVaultAddress } = await hre.deployments.get(
-    DUSD_COLLATERAL_VAULT_CONTRACT_ID,
+    DS_COLLATERAL_VAULT_CONTRACT_ID,
   );
   const collateralVault = await hre.ethers.getContractAt(
     "CollateralHolderVault",
@@ -24,7 +24,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   // Get the OracleAggregator contract
   const { address: oracleAggregatorAddress } = await hre.deployments.get(
-    USD_ORACLE_AGGREGATOR_ID,
+    S_ORACLE_AGGREGATOR_ID,
   );
   const oracleAggregator = await hre.ethers.getContractAt(
     "OracleAggregator",
@@ -33,7 +33,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   );
 
   // Get collateral addresses from config
-  const collateralAddresses = config.dStables.dUSD.collaterals;
+  const collateralAddresses = config.dStables?.dS?.collaterals || [];
 
   // Array of tokens to whitelist with defined addresses
   interface TokenInfo {
@@ -50,7 +50,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   }
 
   // Sanity check: Verify that the oracle can provide a price for each asset
-
   for (const token of tokensToWhitelist) {
     const price = await oracleAggregator.getAssetPrice(token.address);
 
@@ -82,16 +81,17 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     }
   }
 
-  // List all supported collateral after whitelisting
-  const _finalCollateralList = await collateralVault.listCollateral();
-
   console.log(`🔮 ${__filename.split("/").slice(-2).join("/")}: ✅`);
   // Return true to indicate deployment success
   return true;
 };
 
-func.tags = ["dusd"];
-func.dependencies = ["dusd-collateral-vault", "usd-oracle"];
-func.id = "dusd-whitelist-collateral";
+func.tags = ["ds"];
+func.dependencies = [
+  "ds-collateral-vault",
+  "s-oracle",
+  "wS_HardPegOracleWrapper",
+];
+func.id = "ds-whitelist-collateral";
 
 export default func;
