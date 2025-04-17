@@ -1,0 +1,956 @@
+{
+  "address": "0x84e04FE42F0c3509412f5d1A60c17dDe6AF30f27",
+  "abi": [
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "baseCurrency",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_baseCurrencyUnit",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "constructor"
+    },
+    {
+      "inputs": [],
+      "name": "AccessControlBadConfirmation",
+      "type": "error"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "account",
+          "type": "address"
+        },
+        {
+          "internalType": "bytes32",
+          "name": "neededRole",
+          "type": "bytes32"
+        }
+      ],
+      "name": "AccessControlUnauthorizedAccount",
+      "type": "error"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "asset",
+          "type": "address"
+        }
+      ],
+      "name": "FeedNotSet",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "InvalidPrice",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "PriceIsStale",
+      "type": "error"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "asset",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "feed1",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "feed2",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "lowerThresholdInBase1",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "fixedPriceInBase1",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "lowerThresholdInBase2",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "fixedPriceInBase2",
+          "type": "uint256"
+        }
+      ],
+      "name": "CompositeFeedAdded",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "asset",
+          "type": "address"
+        }
+      ],
+      "name": "CompositeFeedRemoved",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "asset",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "lowerThresholdInBase1",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "fixedPriceInBase1",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "lowerThresholdInBase2",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "fixedPriceInBase2",
+          "type": "uint256"
+        }
+      ],
+      "name": "CompositeFeedUpdated",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "bytes32",
+          "name": "role",
+          "type": "bytes32"
+        },
+        {
+          "indexed": true,
+          "internalType": "bytes32",
+          "name": "previousAdminRole",
+          "type": "bytes32"
+        },
+        {
+          "indexed": true,
+          "internalType": "bytes32",
+          "name": "newAdminRole",
+          "type": "bytes32"
+        }
+      ],
+      "name": "RoleAdminChanged",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "bytes32",
+          "name": "role",
+          "type": "bytes32"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "account",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "sender",
+          "type": "address"
+        }
+      ],
+      "name": "RoleGranted",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "bytes32",
+          "name": "role",
+          "type": "bytes32"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "account",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "sender",
+          "type": "address"
+        }
+      ],
+      "name": "RoleRevoked",
+      "type": "event"
+    },
+    {
+      "inputs": [],
+      "name": "BASE_CURRENCY",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "BASE_CURRENCY_UNIT",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "CHAINLINK_BASE_CURRENCY_UNIT",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "CHAINLINK_HEARTBEAT",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "DEFAULT_ADMIN_ROLE",
+      "outputs": [
+        {
+          "internalType": "bytes32",
+          "name": "",
+          "type": "bytes32"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "ORACLE_MANAGER_ROLE",
+      "outputs": [
+        {
+          "internalType": "bytes32",
+          "name": "",
+          "type": "bytes32"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "asset",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "feed1",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "feed2",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "lowerThresholdInBase1",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "fixedPriceInBase1",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "lowerThresholdInBase2",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "fixedPriceInBase2",
+          "type": "uint256"
+        }
+      ],
+      "name": "addCompositeFeed",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "name": "compositeFeeds",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "feed1",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "feed2",
+          "type": "address"
+        },
+        {
+          "components": [
+            {
+              "internalType": "uint256",
+              "name": "lowerThresholdInBase",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "fixedPriceInBase",
+              "type": "uint256"
+            }
+          ],
+          "internalType": "struct ThresholdingUtils.ThresholdConfig",
+          "name": "primaryThreshold",
+          "type": "tuple"
+        },
+        {
+          "components": [
+            {
+              "internalType": "uint256",
+              "name": "lowerThresholdInBase",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "fixedPriceInBase",
+              "type": "uint256"
+            }
+          ],
+          "internalType": "struct ThresholdingUtils.ThresholdConfig",
+          "name": "secondaryThreshold",
+          "type": "tuple"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "asset",
+          "type": "address"
+        }
+      ],
+      "name": "getAssetPrice",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "asset",
+          "type": "address"
+        }
+      ],
+      "name": "getPriceInfo",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "price",
+          "type": "uint256"
+        },
+        {
+          "internalType": "bool",
+          "name": "isAlive",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "role",
+          "type": "bytes32"
+        }
+      ],
+      "name": "getRoleAdmin",
+      "outputs": [
+        {
+          "internalType": "bytes32",
+          "name": "",
+          "type": "bytes32"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "role",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "address",
+          "name": "account",
+          "type": "address"
+        }
+      ],
+      "name": "grantRole",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "role",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "address",
+          "name": "account",
+          "type": "address"
+        }
+      ],
+      "name": "hasRole",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "heartbeatStaleTimeLimit",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "asset",
+          "type": "address"
+        }
+      ],
+      "name": "removeCompositeFeed",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "role",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "address",
+          "name": "callerConfirmation",
+          "type": "address"
+        }
+      ],
+      "name": "renounceRole",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "role",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "address",
+          "name": "account",
+          "type": "address"
+        }
+      ],
+      "name": "revokeRole",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "_newHeartbeatStaleTimeLimit",
+          "type": "uint256"
+        }
+      ],
+      "name": "setHeartbeatStaleTimeLimit",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes4",
+          "name": "interfaceId",
+          "type": "bytes4"
+        }
+      ],
+      "name": "supportsInterface",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "asset",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "lowerThresholdInBase1",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "fixedPriceInBase1",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "lowerThresholdInBase2",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "fixedPriceInBase2",
+          "type": "uint256"
+        }
+      ],
+      "name": "updateCompositeFeed",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    }
+  ],
+  "transactionHash": "0x289c58e1d9f5631396b7f53ee506999f32b7493f364738d944a59091f6b4d0b4",
+  "receipt": {
+    "to": null,
+    "from": "0x0f5e3D9AEe7Ab5fDa909Af1ef147D98a7f4B3022",
+    "contractAddress": "0x84e04FE42F0c3509412f5d1A60c17dDe6AF30f27",
+    "transactionIndex": 1,
+    "gasUsed": "935198",
+    "logsBloom": "0x00000004000000000000000040000000000000000000000000000000000000000000000000000000000000000000000000000000000400300000000000000000000400000000000000000000000000000000000000000000000000000000000000000000020000000000000000000800000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000001000000000000000000000000000000020000100000000000000000000000100000000000020000001000000000000000000000000000000000000000000000000000000000000",
+    "blockHash": "0xe96b4c418a03d5e81069a0261d90d242bc8caa5271a06b50480f6fa84185e417",
+    "transactionHash": "0x289c58e1d9f5631396b7f53ee506999f32b7493f364738d944a59091f6b4d0b4",
+    "logs": [
+      {
+        "transactionIndex": 1,
+        "blockNumber": 20721316,
+        "transactionHash": "0x289c58e1d9f5631396b7f53ee506999f32b7493f364738d944a59091f6b4d0b4",
+        "address": "0x84e04FE42F0c3509412f5d1A60c17dDe6AF30f27",
+        "topics": [
+          "0x2f8788117e7eff1d82e926ec794901d17c78024a50270940304540a733656f0d",
+          "0x0000000000000000000000000000000000000000000000000000000000000000",
+          "0x0000000000000000000000000f5e3d9aee7ab5fda909af1ef147d98a7f4b3022",
+          "0x0000000000000000000000000f5e3d9aee7ab5fda909af1ef147d98a7f4b3022"
+        ],
+        "data": "0x",
+        "logIndex": 10,
+        "blockHash": "0xe96b4c418a03d5e81069a0261d90d242bc8caa5271a06b50480f6fa84185e417"
+      },
+      {
+        "transactionIndex": 1,
+        "blockNumber": 20721316,
+        "transactionHash": "0x289c58e1d9f5631396b7f53ee506999f32b7493f364738d944a59091f6b4d0b4",
+        "address": "0x84e04FE42F0c3509412f5d1A60c17dDe6AF30f27",
+        "topics": [
+          "0x2f8788117e7eff1d82e926ec794901d17c78024a50270940304540a733656f0d",
+          "0xced6982f480260bdd8ad5cb18ff2854f0306d78d904ad6cc107e8f3a0f526c18",
+          "0x0000000000000000000000000f5e3d9aee7ab5fda909af1ef147d98a7f4b3022",
+          "0x0000000000000000000000000f5e3d9aee7ab5fda909af1ef147d98a7f4b3022"
+        ],
+        "data": "0x",
+        "logIndex": 11,
+        "blockHash": "0xe96b4c418a03d5e81069a0261d90d242bc8caa5271a06b50480f6fa84185e417"
+      }
+    ],
+    "blockNumber": 20721316,
+    "cumulativeGasUsed": "1225263",
+    "status": 1,
+    "byzantium": true
+  },
+  "args": [
+    "0x039e2fB66102314Ce7b64Ce5Ce3E5183bc94aD38",
+    "1000000000000000000"
+  ],
+  "numDeployments": 1,
+  "solcInputHash": "360307f1d9fce1a5f46b9919f975a70d",
+  "metadata": "{\"compiler\":{\"version\":\"0.8.20+commit.a1b79de6\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"inputs\":[{\"internalType\":\"address\",\"name\":\"baseCurrency\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"_baseCurrencyUnit\",\"type\":\"uint256\"}],\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"inputs\":[],\"name\":\"AccessControlBadConfirmation\",\"type\":\"error\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"},{\"internalType\":\"bytes32\",\"name\":\"neededRole\",\"type\":\"bytes32\"}],\"name\":\"AccessControlUnauthorizedAccount\",\"type\":\"error\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"asset\",\"type\":\"address\"}],\"name\":\"FeedNotSet\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"InvalidPrice\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"PriceIsStale\",\"type\":\"error\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"asset\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"address\",\"name\":\"feed1\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"address\",\"name\":\"feed2\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"lowerThresholdInBase1\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"fixedPriceInBase1\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"lowerThresholdInBase2\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"fixedPriceInBase2\",\"type\":\"uint256\"}],\"name\":\"CompositeFeedAdded\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"asset\",\"type\":\"address\"}],\"name\":\"CompositeFeedRemoved\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"asset\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"lowerThresholdInBase1\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"fixedPriceInBase1\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"lowerThresholdInBase2\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"fixedPriceInBase2\",\"type\":\"uint256\"}],\"name\":\"CompositeFeedUpdated\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"bytes32\",\"name\":\"role\",\"type\":\"bytes32\"},{\"indexed\":true,\"internalType\":\"bytes32\",\"name\":\"previousAdminRole\",\"type\":\"bytes32\"},{\"indexed\":true,\"internalType\":\"bytes32\",\"name\":\"newAdminRole\",\"type\":\"bytes32\"}],\"name\":\"RoleAdminChanged\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"bytes32\",\"name\":\"role\",\"type\":\"bytes32\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"sender\",\"type\":\"address\"}],\"name\":\"RoleGranted\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"bytes32\",\"name\":\"role\",\"type\":\"bytes32\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"sender\",\"type\":\"address\"}],\"name\":\"RoleRevoked\",\"type\":\"event\"},{\"inputs\":[],\"name\":\"BASE_CURRENCY\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"BASE_CURRENCY_UNIT\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"CHAINLINK_BASE_CURRENCY_UNIT\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"CHAINLINK_HEARTBEAT\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"DEFAULT_ADMIN_ROLE\",\"outputs\":[{\"internalType\":\"bytes32\",\"name\":\"\",\"type\":\"bytes32\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"ORACLE_MANAGER_ROLE\",\"outputs\":[{\"internalType\":\"bytes32\",\"name\":\"\",\"type\":\"bytes32\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"asset\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"feed1\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"feed2\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"lowerThresholdInBase1\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"fixedPriceInBase1\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"lowerThresholdInBase2\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"fixedPriceInBase2\",\"type\":\"uint256\"}],\"name\":\"addCompositeFeed\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"name\":\"compositeFeeds\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"feed1\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"feed2\",\"type\":\"address\"},{\"components\":[{\"internalType\":\"uint256\",\"name\":\"lowerThresholdInBase\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"fixedPriceInBase\",\"type\":\"uint256\"}],\"internalType\":\"struct ThresholdingUtils.ThresholdConfig\",\"name\":\"primaryThreshold\",\"type\":\"tuple\"},{\"components\":[{\"internalType\":\"uint256\",\"name\":\"lowerThresholdInBase\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"fixedPriceInBase\",\"type\":\"uint256\"}],\"internalType\":\"struct ThresholdingUtils.ThresholdConfig\",\"name\":\"secondaryThreshold\",\"type\":\"tuple\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"asset\",\"type\":\"address\"}],\"name\":\"getAssetPrice\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"asset\",\"type\":\"address\"}],\"name\":\"getPriceInfo\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"price\",\"type\":\"uint256\"},{\"internalType\":\"bool\",\"name\":\"isAlive\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"role\",\"type\":\"bytes32\"}],\"name\":\"getRoleAdmin\",\"outputs\":[{\"internalType\":\"bytes32\",\"name\":\"\",\"type\":\"bytes32\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"role\",\"type\":\"bytes32\"},{\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"}],\"name\":\"grantRole\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"role\",\"type\":\"bytes32\"},{\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"}],\"name\":\"hasRole\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"heartbeatStaleTimeLimit\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"asset\",\"type\":\"address\"}],\"name\":\"removeCompositeFeed\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"role\",\"type\":\"bytes32\"},{\"internalType\":\"address\",\"name\":\"callerConfirmation\",\"type\":\"address\"}],\"name\":\"renounceRole\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"role\",\"type\":\"bytes32\"},{\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"}],\"name\":\"revokeRole\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_newHeartbeatStaleTimeLimit\",\"type\":\"uint256\"}],\"name\":\"setHeartbeatStaleTimeLimit\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes4\",\"name\":\"interfaceId\",\"type\":\"bytes4\"}],\"name\":\"supportsInterface\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"asset\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"lowerThresholdInBase1\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"fixedPriceInBase1\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"lowerThresholdInBase2\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"fixedPriceInBase2\",\"type\":\"uint256\"}],\"name\":\"updateCompositeFeed\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}],\"devdoc\":{\"details\":\"Implementation of BaseChainlinkWrapper for composite Redstone oracles with thresholding\",\"errors\":{\"AccessControlBadConfirmation()\":[{\"details\":\"The caller of a function is not the expected one. NOTE: Don't confuse with {AccessControlUnauthorizedAccount}.\"}],\"AccessControlUnauthorizedAccount(address,bytes32)\":[{\"details\":\"The `account` is missing a role.\"}]},\"events\":{\"RoleAdminChanged(bytes32,bytes32,bytes32)\":{\"details\":\"Emitted when `newAdminRole` is set as ``role``'s admin role, replacing `previousAdminRole` `DEFAULT_ADMIN_ROLE` is the starting admin for all roles, despite {RoleAdminChanged} not being emitted signaling this.\"},\"RoleGranted(bytes32,address,address)\":{\"details\":\"Emitted when `account` is granted `role`. `sender` is the account that originated the contract call. This account bears the admin role (for the granted role). Expected in cases where the role was granted using the internal {AccessControl-_grantRole}.\"},\"RoleRevoked(bytes32,address,address)\":{\"details\":\"Emitted when `account` is revoked `role`. `sender` is the account that originated the contract call:   - if using `revokeRole`, it is the admin role bearer   - if using `renounceRole`, it is the role bearer (i.e. `account`)\"}},\"kind\":\"dev\",\"methods\":{\"BASE_CURRENCY()\":{\"returns\":{\"_0\":\"Returns the base currency address\"}},\"getAssetPrice(address)\":{\"params\":{\"asset\":\"The address of the asset to get the price for\"},\"returns\":{\"_0\":\"The current price of the asset\"}},\"getPriceInfo(address)\":{\"params\":{\"asset\":\"The address of the asset to get the price for\"},\"returns\":{\"isAlive\":\"Whether the price feed is considered active/valid\",\"price\":\"The price of the asset in base currency units\"}},\"getRoleAdmin(bytes32)\":{\"details\":\"Returns the admin role that controls `role`. See {grantRole} and {revokeRole}. To change a role's admin, use {_setRoleAdmin}.\"},\"grantRole(bytes32,address)\":{\"details\":\"Grants `role` to `account`. If `account` had not been already granted `role`, emits a {RoleGranted} event. Requirements: - the caller must have ``role``'s admin role. May emit a {RoleGranted} event.\"},\"hasRole(bytes32,address)\":{\"details\":\"Returns `true` if `account` has been granted `role`.\"},\"renounceRole(bytes32,address)\":{\"details\":\"Revokes `role` from the calling account. Roles are often managed via {grantRole} and {revokeRole}: this function's purpose is to provide a mechanism for accounts to lose their privileges if they are compromised (such as when a trusted device is misplaced). If the calling account had been revoked `role`, emits a {RoleRevoked} event. Requirements: - the caller must be `callerConfirmation`. May emit a {RoleRevoked} event.\"},\"revokeRole(bytes32,address)\":{\"details\":\"Revokes `role` from `account`. If `account` had been granted `role`, emits a {RoleRevoked} event. Requirements: - the caller must have ``role``'s admin role. May emit a {RoleRevoked} event.\"},\"setHeartbeatStaleTimeLimit(uint256)\":{\"params\":{\"_newHeartbeatStaleTimeLimit\":\"The new heartbeat stale time limit\"}},\"supportsInterface(bytes4)\":{\"details\":\"See {IERC165-supportsInterface}.\"}},\"title\":\"RedstoneChainlinkCompositeWrapperWithThresholding\",\"version\":1},\"userdoc\":{\"kind\":\"user\",\"methods\":{\"BASE_CURRENCY()\":{\"notice\":\"Returns the base currency address\"},\"BASE_CURRENCY_UNIT()\":{\"notice\":\"Returns the base currency unit\"},\"getAssetPrice(address)\":{\"notice\":\"Gets the current price of an asset\"},\"getPriceInfo(address)\":{\"notice\":\"Gets the price information for an asset\"},\"setHeartbeatStaleTimeLimit(uint256)\":{\"notice\":\"Sets the heartbeat stale time limit\"}},\"version\":1}},\"settings\":{\"compilationTarget\":{\"contracts/oracle_aggregator/wrapper/RedstoneChainlinkCompositeWrapperWithThresholding.sol\":\"RedstoneChainlinkCompositeWrapperWithThresholding\"},\"evmVersion\":\"paris\",\"libraries\":{},\"metadata\":{\"bytecodeHash\":\"ipfs\",\"useLiteralContent\":true},\"optimizer\":{\"enabled\":true,\"runs\":200},\"remappings\":[]},\"sources\":{\"@openzeppelin/contracts/access/AccessControl.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\n// OpenZeppelin Contracts (last updated v5.0.0) (access/AccessControl.sol)\\n\\npragma solidity ^0.8.20;\\n\\nimport {IAccessControl} from \\\"./IAccessControl.sol\\\";\\nimport {Context} from \\\"../utils/Context.sol\\\";\\nimport {ERC165} from \\\"../utils/introspection/ERC165.sol\\\";\\n\\n/**\\n * @dev Contract module that allows children to implement role-based access\\n * control mechanisms. This is a lightweight version that doesn't allow enumerating role\\n * members except through off-chain means by accessing the contract event logs. Some\\n * applications may benefit from on-chain enumerability, for those cases see\\n * {AccessControlEnumerable}.\\n *\\n * Roles are referred to by their `bytes32` identifier. These should be exposed\\n * in the external API and be unique. The best way to achieve this is by\\n * using `public constant` hash digests:\\n *\\n * ```solidity\\n * bytes32 public constant MY_ROLE = keccak256(\\\"MY_ROLE\\\");\\n * ```\\n *\\n * Roles can be used to represent a set of permissions. To restrict access to a\\n * function call, use {hasRole}:\\n *\\n * ```solidity\\n * function foo() public {\\n *     require(hasRole(MY_ROLE, msg.sender));\\n *     ...\\n * }\\n * ```\\n *\\n * Roles can be granted and revoked dynamically via the {grantRole} and\\n * {revokeRole} functions. Each role has an associated admin role, and only\\n * accounts that have a role's admin role can call {grantRole} and {revokeRole}.\\n *\\n * By default, the admin role for all roles is `DEFAULT_ADMIN_ROLE`, which means\\n * that only accounts with this role will be able to grant or revoke other\\n * roles. More complex role relationships can be created by using\\n * {_setRoleAdmin}.\\n *\\n * WARNING: The `DEFAULT_ADMIN_ROLE` is also its own admin: it has permission to\\n * grant and revoke this role. Extra precautions should be taken to secure\\n * accounts that have been granted it. We recommend using {AccessControlDefaultAdminRules}\\n * to enforce additional security measures for this role.\\n */\\nabstract contract AccessControl is Context, IAccessControl, ERC165 {\\n    struct RoleData {\\n        mapping(address account => bool) hasRole;\\n        bytes32 adminRole;\\n    }\\n\\n    mapping(bytes32 role => RoleData) private _roles;\\n\\n    bytes32 public constant DEFAULT_ADMIN_ROLE = 0x00;\\n\\n    /**\\n     * @dev Modifier that checks that an account has a specific role. Reverts\\n     * with an {AccessControlUnauthorizedAccount} error including the required role.\\n     */\\n    modifier onlyRole(bytes32 role) {\\n        _checkRole(role);\\n        _;\\n    }\\n\\n    /**\\n     * @dev See {IERC165-supportsInterface}.\\n     */\\n    function supportsInterface(bytes4 interfaceId) public view virtual override returns (bool) {\\n        return interfaceId == type(IAccessControl).interfaceId || super.supportsInterface(interfaceId);\\n    }\\n\\n    /**\\n     * @dev Returns `true` if `account` has been granted `role`.\\n     */\\n    function hasRole(bytes32 role, address account) public view virtual returns (bool) {\\n        return _roles[role].hasRole[account];\\n    }\\n\\n    /**\\n     * @dev Reverts with an {AccessControlUnauthorizedAccount} error if `_msgSender()`\\n     * is missing `role`. Overriding this function changes the behavior of the {onlyRole} modifier.\\n     */\\n    function _checkRole(bytes32 role) internal view virtual {\\n        _checkRole(role, _msgSender());\\n    }\\n\\n    /**\\n     * @dev Reverts with an {AccessControlUnauthorizedAccount} error if `account`\\n     * is missing `role`.\\n     */\\n    function _checkRole(bytes32 role, address account) internal view virtual {\\n        if (!hasRole(role, account)) {\\n            revert AccessControlUnauthorizedAccount(account, role);\\n        }\\n    }\\n\\n    /**\\n     * @dev Returns the admin role that controls `role`. See {grantRole} and\\n     * {revokeRole}.\\n     *\\n     * To change a role's admin, use {_setRoleAdmin}.\\n     */\\n    function getRoleAdmin(bytes32 role) public view virtual returns (bytes32) {\\n        return _roles[role].adminRole;\\n    }\\n\\n    /**\\n     * @dev Grants `role` to `account`.\\n     *\\n     * If `account` had not been already granted `role`, emits a {RoleGranted}\\n     * event.\\n     *\\n     * Requirements:\\n     *\\n     * - the caller must have ``role``'s admin role.\\n     *\\n     * May emit a {RoleGranted} event.\\n     */\\n    function grantRole(bytes32 role, address account) public virtual onlyRole(getRoleAdmin(role)) {\\n        _grantRole(role, account);\\n    }\\n\\n    /**\\n     * @dev Revokes `role` from `account`.\\n     *\\n     * If `account` had been granted `role`, emits a {RoleRevoked} event.\\n     *\\n     * Requirements:\\n     *\\n     * - the caller must have ``role``'s admin role.\\n     *\\n     * May emit a {RoleRevoked} event.\\n     */\\n    function revokeRole(bytes32 role, address account) public virtual onlyRole(getRoleAdmin(role)) {\\n        _revokeRole(role, account);\\n    }\\n\\n    /**\\n     * @dev Revokes `role` from the calling account.\\n     *\\n     * Roles are often managed via {grantRole} and {revokeRole}: this function's\\n     * purpose is to provide a mechanism for accounts to lose their privileges\\n     * if they are compromised (such as when a trusted device is misplaced).\\n     *\\n     * If the calling account had been revoked `role`, emits a {RoleRevoked}\\n     * event.\\n     *\\n     * Requirements:\\n     *\\n     * - the caller must be `callerConfirmation`.\\n     *\\n     * May emit a {RoleRevoked} event.\\n     */\\n    function renounceRole(bytes32 role, address callerConfirmation) public virtual {\\n        if (callerConfirmation != _msgSender()) {\\n            revert AccessControlBadConfirmation();\\n        }\\n\\n        _revokeRole(role, callerConfirmation);\\n    }\\n\\n    /**\\n     * @dev Sets `adminRole` as ``role``'s admin role.\\n     *\\n     * Emits a {RoleAdminChanged} event.\\n     */\\n    function _setRoleAdmin(bytes32 role, bytes32 adminRole) internal virtual {\\n        bytes32 previousAdminRole = getRoleAdmin(role);\\n        _roles[role].adminRole = adminRole;\\n        emit RoleAdminChanged(role, previousAdminRole, adminRole);\\n    }\\n\\n    /**\\n     * @dev Attempts to grant `role` to `account` and returns a boolean indicating if `role` was granted.\\n     *\\n     * Internal function without access restriction.\\n     *\\n     * May emit a {RoleGranted} event.\\n     */\\n    function _grantRole(bytes32 role, address account) internal virtual returns (bool) {\\n        if (!hasRole(role, account)) {\\n            _roles[role].hasRole[account] = true;\\n            emit RoleGranted(role, account, _msgSender());\\n            return true;\\n        } else {\\n            return false;\\n        }\\n    }\\n\\n    /**\\n     * @dev Attempts to revoke `role` to `account` and returns a boolean indicating if `role` was revoked.\\n     *\\n     * Internal function without access restriction.\\n     *\\n     * May emit a {RoleRevoked} event.\\n     */\\n    function _revokeRole(bytes32 role, address account) internal virtual returns (bool) {\\n        if (hasRole(role, account)) {\\n            _roles[role].hasRole[account] = false;\\n            emit RoleRevoked(role, account, _msgSender());\\n            return true;\\n        } else {\\n            return false;\\n        }\\n    }\\n}\\n\",\"keccak256\":\"0xa0e92d42942f4f57c5be50568dac11e9d00c93efcb458026e18d2d9b9b2e7308\",\"license\":\"MIT\"},\"@openzeppelin/contracts/access/IAccessControl.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\n// OpenZeppelin Contracts (last updated v5.1.0) (access/IAccessControl.sol)\\n\\npragma solidity ^0.8.20;\\n\\n/**\\n * @dev External interface of AccessControl declared to support ERC-165 detection.\\n */\\ninterface IAccessControl {\\n    /**\\n     * @dev The `account` is missing a role.\\n     */\\n    error AccessControlUnauthorizedAccount(address account, bytes32 neededRole);\\n\\n    /**\\n     * @dev The caller of a function is not the expected one.\\n     *\\n     * NOTE: Don't confuse with {AccessControlUnauthorizedAccount}.\\n     */\\n    error AccessControlBadConfirmation();\\n\\n    /**\\n     * @dev Emitted when `newAdminRole` is set as ``role``'s admin role, replacing `previousAdminRole`\\n     *\\n     * `DEFAULT_ADMIN_ROLE` is the starting admin for all roles, despite\\n     * {RoleAdminChanged} not being emitted signaling this.\\n     */\\n    event RoleAdminChanged(bytes32 indexed role, bytes32 indexed previousAdminRole, bytes32 indexed newAdminRole);\\n\\n    /**\\n     * @dev Emitted when `account` is granted `role`.\\n     *\\n     * `sender` is the account that originated the contract call. This account bears the admin role (for the granted role).\\n     * Expected in cases where the role was granted using the internal {AccessControl-_grantRole}.\\n     */\\n    event RoleGranted(bytes32 indexed role, address indexed account, address indexed sender);\\n\\n    /**\\n     * @dev Emitted when `account` is revoked `role`.\\n     *\\n     * `sender` is the account that originated the contract call:\\n     *   - if using `revokeRole`, it is the admin role bearer\\n     *   - if using `renounceRole`, it is the role bearer (i.e. `account`)\\n     */\\n    event RoleRevoked(bytes32 indexed role, address indexed account, address indexed sender);\\n\\n    /**\\n     * @dev Returns `true` if `account` has been granted `role`.\\n     */\\n    function hasRole(bytes32 role, address account) external view returns (bool);\\n\\n    /**\\n     * @dev Returns the admin role that controls `role`. See {grantRole} and\\n     * {revokeRole}.\\n     *\\n     * To change a role's admin, use {AccessControl-_setRoleAdmin}.\\n     */\\n    function getRoleAdmin(bytes32 role) external view returns (bytes32);\\n\\n    /**\\n     * @dev Grants `role` to `account`.\\n     *\\n     * If `account` had not been already granted `role`, emits a {RoleGranted}\\n     * event.\\n     *\\n     * Requirements:\\n     *\\n     * - the caller must have ``role``'s admin role.\\n     */\\n    function grantRole(bytes32 role, address account) external;\\n\\n    /**\\n     * @dev Revokes `role` from `account`.\\n     *\\n     * If `account` had been granted `role`, emits a {RoleRevoked} event.\\n     *\\n     * Requirements:\\n     *\\n     * - the caller must have ``role``'s admin role.\\n     */\\n    function revokeRole(bytes32 role, address account) external;\\n\\n    /**\\n     * @dev Revokes `role` from the calling account.\\n     *\\n     * Roles are often managed via {grantRole} and {revokeRole}: this function's\\n     * purpose is to provide a mechanism for accounts to lose their privileges\\n     * if they are compromised (such as when a trusted device is misplaced).\\n     *\\n     * If the calling account had been granted `role`, emits a {RoleRevoked}\\n     * event.\\n     *\\n     * Requirements:\\n     *\\n     * - the caller must be `callerConfirmation`.\\n     */\\n    function renounceRole(bytes32 role, address callerConfirmation) external;\\n}\\n\",\"keccak256\":\"0xc1c2a7f1563b77050dc6d507db9f4ada5d042c1f6a9ddbffdc49c77cdc0a1606\",\"license\":\"MIT\"},\"@openzeppelin/contracts/utils/Context.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\n// OpenZeppelin Contracts (last updated v5.0.1) (utils/Context.sol)\\n\\npragma solidity ^0.8.20;\\n\\n/**\\n * @dev Provides information about the current execution context, including the\\n * sender of the transaction and its data. While these are generally available\\n * via msg.sender and msg.data, they should not be accessed in such a direct\\n * manner, since when dealing with meta-transactions the account sending and\\n * paying for execution may not be the actual sender (as far as an application\\n * is concerned).\\n *\\n * This contract is only required for intermediate, library-like contracts.\\n */\\nabstract contract Context {\\n    function _msgSender() internal view virtual returns (address) {\\n        return msg.sender;\\n    }\\n\\n    function _msgData() internal view virtual returns (bytes calldata) {\\n        return msg.data;\\n    }\\n\\n    function _contextSuffixLength() internal view virtual returns (uint256) {\\n        return 0;\\n    }\\n}\\n\",\"keccak256\":\"0x493033a8d1b176a037b2cc6a04dad01a5c157722049bbecf632ca876224dd4b2\",\"license\":\"MIT\"},\"@openzeppelin/contracts/utils/introspection/ERC165.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\n// OpenZeppelin Contracts (last updated v5.1.0) (utils/introspection/ERC165.sol)\\n\\npragma solidity ^0.8.20;\\n\\nimport {IERC165} from \\\"./IERC165.sol\\\";\\n\\n/**\\n * @dev Implementation of the {IERC165} interface.\\n *\\n * Contracts that want to implement ERC-165 should inherit from this contract and override {supportsInterface} to check\\n * for the additional interface id that will be supported. For example:\\n *\\n * ```solidity\\n * function supportsInterface(bytes4 interfaceId) public view virtual override returns (bool) {\\n *     return interfaceId == type(MyInterface).interfaceId || super.supportsInterface(interfaceId);\\n * }\\n * ```\\n */\\nabstract contract ERC165 is IERC165 {\\n    /**\\n     * @dev See {IERC165-supportsInterface}.\\n     */\\n    function supportsInterface(bytes4 interfaceId) public view virtual returns (bool) {\\n        return interfaceId == type(IERC165).interfaceId;\\n    }\\n}\\n\",\"keccak256\":\"0xddce8e17e3d3f9ed818b4f4c4478a8262aab8b11ed322f1bf5ed705bb4bd97fa\",\"license\":\"MIT\"},\"@openzeppelin/contracts/utils/introspection/IERC165.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\n// OpenZeppelin Contracts (last updated v5.1.0) (utils/introspection/IERC165.sol)\\n\\npragma solidity ^0.8.20;\\n\\n/**\\n * @dev Interface of the ERC-165 standard, as defined in the\\n * https://eips.ethereum.org/EIPS/eip-165[ERC].\\n *\\n * Implementers can declare support of contract interfaces, which can then be\\n * queried by others ({ERC165Checker}).\\n *\\n * For an implementation, see {ERC165}.\\n */\\ninterface IERC165 {\\n    /**\\n     * @dev Returns true if this contract implements the interface defined by\\n     * `interfaceId`. See the corresponding\\n     * https://eips.ethereum.org/EIPS/eip-165#how-interfaces-are-identified[ERC section]\\n     * to learn more about how these ids are created.\\n     *\\n     * This function call must use less than 30 000 gas.\\n     */\\n    function supportsInterface(bytes4 interfaceId) external view returns (bool);\\n}\\n\",\"keccak256\":\"0x79796192ec90263f21b464d5bc90b777a525971d3de8232be80d9c4f9fb353b8\",\"license\":\"MIT\"},\"contracts/oracle_aggregator/interface/IOracleWrapper.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\n/* \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 *\\n *    _____     ______   ______     __     __   __     __     ______   __  __       *\\n *   /\\\\  __-.  /\\\\__  _\\\\ /\\\\  == \\\\   /\\\\ \\\\   /\\\\ \\\"-.\\\\ \\\\   /\\\\ \\\\   /\\\\__  _\\\\ /\\\\ \\\\_\\\\ \\\\      *\\n *   \\\\ \\\\ \\\\/\\\\ \\\\ \\\\/_/\\\\ \\\\/ \\\\ \\\\  __<   \\\\ \\\\ \\\\  \\\\ \\\\ \\\\-.  \\\\  \\\\ \\\\ \\\\  \\\\/_/\\\\ \\\\/ \\\\ \\\\____ \\\\     *\\n *    \\\\ \\\\____-    \\\\ \\\\_\\\\  \\\\ \\\\_\\\\ \\\\_\\\\  \\\\ \\\\_\\\\  \\\\ \\\\_\\\\\\\\\\\"\\\\_\\\\  \\\\ \\\\_\\\\    \\\\ \\\\_\\\\  \\\\/\\\\_____\\\\    *\\n *     \\\\/____/     \\\\/_/   \\\\/_/ /_/   \\\\/_/   \\\\/_/ \\\\/_/   \\\\/_/     \\\\/_/   \\\\/_____/    *\\n *                                                                                  *\\n * \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 dtrinity.org \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 *\\n *                                                                                  *\\n *                                         \\u25b2                                        *\\n *                                        \\u25b2 \\u25b2                                       *\\n *                                                                                  *\\n * \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 *\\n * dTRINITY Protocol: https://github.com/dtrinity                                   *\\n * \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 */\\n\\npragma solidity ^0.8.20;\\n\\n/**\\n * @dev Interface for the individual oracle wrappers, to unify interface between Redstone and API3 for example\\n */\\ninterface IOracleWrapper {\\n    /**\\n     * @notice Returns the base currency address\\n     * @dev Address 0x0 is commonly used for USD, but can be any token address based on the implementation.\\n     * @return Returns the base currency address.\\n     */\\n    function BASE_CURRENCY() external view returns (address);\\n\\n    /**\\n     * @notice Returns the base currency unit\\n     * @dev Represents the decimal precision of the base currency (e.g., 1e8 for USD, 1e18 for ETH).\\n     * @return Returns the base currency unit.\\n     */\\n    function BASE_CURRENCY_UNIT() external view returns (uint256);\\n\\n    /**\\n     * @notice Returns the asset price in the base currency\\n     * @param asset The address of the asset\\n     * @return The price of the asset\\n     */\\n    function getAssetPrice(address asset) external view returns (uint256);\\n\\n    /**\\n     * @notice Returns the price and alive status of an asset\\n     * @param asset The address of the asset\\n     * @return price The price of the asset\\n     * @return isAlive The alive status of the asset\\n     */\\n    function getPriceInfo(\\n        address asset\\n    ) external view returns (uint256 price, bool isAlive);\\n}\\n\",\"keccak256\":\"0x2380e6baabbf9e14b8103829d508cb48bf6187ac3644d970dbcb5699795fff8e\",\"license\":\"MIT\"},\"contracts/oracle_aggregator/interface/chainlink/BaseChainlinkWrapper.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\n/* \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 *\\n *    _____     ______   ______     __     __   __     __     ______   __  __       *\\n *   /\\\\  __-.  /\\\\__  _\\\\ /\\\\  == \\\\   /\\\\ \\\\   /\\\\ \\\"-.\\\\ \\\\   /\\\\ \\\\   /\\\\__  _\\\\ /\\\\ \\\\_\\\\ \\\\      *\\n *   \\\\ \\\\ \\\\/\\\\ \\\\ \\\\/_/\\\\ \\\\/ \\\\ \\\\  __<   \\\\ \\\\ \\\\  \\\\ \\\\ \\\\-.  \\\\  \\\\ \\\\ \\\\  \\\\/_/\\\\ \\\\/ \\\\ \\\\____ \\\\     *\\n *    \\\\ \\\\____-    \\\\ \\\\_\\\\  \\\\ \\\\_\\\\ \\\\_\\\\  \\\\ \\\\_\\\\  \\\\ \\\\_\\\\\\\\\\\"\\\\_\\\\  \\\\ \\\\_\\\\    \\\\ \\\\_\\\\  \\\\/\\\\_____\\\\    *\\n *     \\\\/____/     \\\\/_/   \\\\/_/ /_/   \\\\/_/   \\\\/_/ \\\\/_/   \\\\/_/     \\\\/_/   \\\\/_____/    *\\n *                                                                                  *\\n * \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 dtrinity.org \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 *\\n *                                                                                  *\\n *                                         \\u25b2                                        *\\n *                                        \\u25b2 \\u25b2                                       *\\n *                                                                                  *\\n * \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 *\\n * dTRINITY Protocol: https://github.com/dtrinity                                   *\\n * \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 */\\n\\npragma solidity ^0.8.20;\\n\\nimport \\\"../IOracleWrapper.sol\\\";\\nimport \\\"@openzeppelin/contracts/access/AccessControl.sol\\\";\\n\\n/**\\n * @title BaseChainlinkWrapper\\n * @dev Abstract contract that implements the IOracleWrapper interface for Chainlink-style oracles\\n * Provides common functionality for all Chainlink-compatible oracle wrappers\\n */\\nabstract contract BaseChainlinkWrapper is IOracleWrapper, AccessControl {\\n    /* Core state */\\n\\n    uint256 public constant CHAINLINK_BASE_CURRENCY_UNIT = 10 ** 8; // Chainlink uses 8 decimals\\n    uint256 public constant CHAINLINK_HEARTBEAT = 24 hours;\\n    address private immutable _baseCurrency;\\n    uint256 public immutable BASE_CURRENCY_UNIT;\\n    uint256 public heartbeatStaleTimeLimit = 30 minutes;\\n\\n    /* Roles */\\n\\n    bytes32 public constant ORACLE_MANAGER_ROLE =\\n        keccak256(\\\"ORACLE_MANAGER_ROLE\\\");\\n\\n    /* Errors */\\n\\n    error PriceIsStale();\\n    error InvalidPrice();\\n    error FeedNotSet(address asset);\\n\\n    /**\\n     * @dev Constructor that sets the base currency and base currency unit\\n     * @param baseCurrency The address of the base currency (zero address for USD)\\n     * @param _baseCurrencyUnit The decimal precision of the base currency (e.g., 1e8 for USD)\\n     */\\n    constructor(address baseCurrency, uint256 _baseCurrencyUnit) {\\n        _baseCurrency = baseCurrency;\\n        BASE_CURRENCY_UNIT = _baseCurrencyUnit;\\n        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);\\n        _grantRole(ORACLE_MANAGER_ROLE, msg.sender);\\n    }\\n\\n    /**\\n     * @notice Returns the base currency address\\n     * @return Returns the base currency address\\n     */\\n    function BASE_CURRENCY() external view override returns (address) {\\n        return _baseCurrency;\\n    }\\n\\n    /**\\n     * @notice Gets the price information for an asset\\n     * @param asset The address of the asset to get the price for\\n     * @return price The price of the asset in base currency units\\n     * @return isAlive Whether the price feed is considered active/valid\\n     */\\n    function getPriceInfo(\\n        address asset\\n    ) public view virtual override returns (uint256 price, bool isAlive);\\n\\n    /**\\n     * @notice Gets the current price of an asset\\n     * @param asset The address of the asset to get the price for\\n     * @return The current price of the asset\\n     */\\n    function getAssetPrice(\\n        address asset\\n    ) external view virtual override returns (uint256) {\\n        (uint256 price, bool isAlive) = getPriceInfo(asset);\\n        if (!isAlive) {\\n            revert PriceIsStale();\\n        }\\n        return price;\\n    }\\n\\n    /**\\n     * @dev Converts a price from Chainlink decimals to base currency decimals\\n     * @param price The price in Chainlink decimals\\n     * @return The price in base currency decimals\\n     */\\n    function _convertToBaseCurrencyUnit(\\n        uint256 price\\n    ) internal view returns (uint256) {\\n        return (price * BASE_CURRENCY_UNIT) / CHAINLINK_BASE_CURRENCY_UNIT;\\n    }\\n\\n    /**\\n     * @notice Sets the heartbeat stale time limit\\n     * @param _newHeartbeatStaleTimeLimit The new heartbeat stale time limit\\n     */\\n    function setHeartbeatStaleTimeLimit(\\n        uint256 _newHeartbeatStaleTimeLimit\\n    ) external onlyRole(ORACLE_MANAGER_ROLE) {\\n        heartbeatStaleTimeLimit = _newHeartbeatStaleTimeLimit;\\n    }\\n}\\n\",\"keccak256\":\"0x9f87a52f32608f40564038d55990a9ee30e3dad5ce2507e8d45d16b282e627d1\",\"license\":\"MIT\"},\"contracts/oracle_aggregator/interface/chainlink/IPriceFeed.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\n/* \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 *\\n *    _____     ______   ______     __     __   __     __     ______   __  __       *\\n *   /\\\\  __-.  /\\\\__  _\\\\ /\\\\  == \\\\   /\\\\ \\\\   /\\\\ \\\"-.\\\\ \\\\   /\\\\ \\\\   /\\\\__  _\\\\ /\\\\ \\\\_\\\\ \\\\      *\\n *   \\\\ \\\\ \\\\/\\\\ \\\\ \\\\/_/\\\\ \\\\/ \\\\ \\\\  __<   \\\\ \\\\ \\\\  \\\\ \\\\ \\\\-.  \\\\  \\\\ \\\\ \\\\  \\\\/_/\\\\ \\\\/ \\\\ \\\\____ \\\\     *\\n *    \\\\ \\\\____-    \\\\ \\\\_\\\\  \\\\ \\\\_\\\\ \\\\_\\\\  \\\\ \\\\_\\\\  \\\\ \\\\_\\\\\\\\\\\"\\\\_\\\\  \\\\ \\\\_\\\\    \\\\ \\\\_\\\\  \\\\/\\\\_____\\\\    *\\n *     \\\\/____/     \\\\/_/   \\\\/_/ /_/   \\\\/_/   \\\\/_/ \\\\/_/   \\\\/_/     \\\\/_/   \\\\/_____/    *\\n *                                                                                  *\\n * \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 dtrinity.org \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 *\\n *                                                                                  *\\n *                                         \\u25b2                                        *\\n *                                        \\u25b2 \\u25b2                                       *\\n *                                                                                  *\\n * \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 *\\n * dTRINITY Protocol: https://github.com/dtrinity                                   *\\n * \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 */\\n\\npragma solidity ^0.8.20;\\n\\ninterface IPriceFeed {\\n    function latestRoundData()\\n        external\\n        view\\n        returns (\\n            uint80 roundId,\\n            int256 answer,\\n            uint256 startedAt,\\n            uint256 updatedAt,\\n            uint80 answeredInRound\\n        );\\n}\\n\",\"keccak256\":\"0xc34fc4191e736839198b872518f5a835915c7ee56b5bf7b29ed6d169efcfdbb8\",\"license\":\"MIT\"},\"contracts/oracle_aggregator/wrapper/RedstoneChainlinkCompositeWrapperWithThresholding.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\n/* \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 *\\n *    _____     ______   ______     __     __   __     __     ______   __  __       *\\n *   /\\\\  __-.  /\\\\__  _\\\\ /\\\\  == \\\\   /\\\\ \\\\   /\\\\ \\\"-.\\\\ \\\\   /\\\\ \\\\   /\\\\__  _\\\\ /\\\\ \\\\_\\\\ \\\\      *\\n *   \\\\ \\\\ \\\\/\\\\ \\\\ \\\\/_/\\\\ \\\\/ \\\\ \\\\  __<   \\\\ \\\\ \\\\  \\\\ \\\\ \\\\-.  \\\\  \\\\ \\\\ \\\\  \\\\/_/\\\\ \\\\/ \\\\ \\\\____ \\\\     *\\n *    \\\\ \\\\____-    \\\\ \\\\_\\\\  \\\\ \\\\_\\\\ \\\\_\\\\  \\\\ \\\\_\\\\  \\\\ \\\\_\\\\\\\\\\\"\\\\_\\\\  \\\\ \\\\_\\\\    \\\\ \\\\_\\\\  \\\\/\\\\_____\\\\    *\\n *     \\\\/____/     \\\\/_/   \\\\/_/ /_/   \\\\/_/   \\\\/_/ \\\\/_/   \\\\/_/     \\\\/_/   \\\\/_____/    *\\n *                                                                                  *\\n * \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 dtrinity.org \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 *\\n *                                                                                  *\\n *                                         \\u25b2                                        *\\n *                                        \\u25b2 \\u25b2                                       *\\n *                                                                                  *\\n * \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 *\\n * dTRINITY Protocol: https://github.com/dtrinity                                   *\\n * \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 */\\n\\npragma solidity ^0.8.20;\\n\\nimport \\\"../interface/chainlink/BaseChainlinkWrapper.sol\\\";\\nimport \\\"@openzeppelin/contracts/access/AccessControl.sol\\\";\\nimport {IPriceFeed} from \\\"../interface/chainlink/IPriceFeed.sol\\\";\\nimport \\\"./ThresholdingUtils.sol\\\";\\n\\n/**\\n * @title RedstoneChainlinkCompositeWrapperWithThresholding\\n * @dev Implementation of BaseChainlinkWrapper for composite Redstone oracles with thresholding\\n */\\ncontract RedstoneChainlinkCompositeWrapperWithThresholding is\\n    BaseChainlinkWrapper,\\n    ThresholdingUtils\\n{\\n    /* Core state */\\n\\n    struct CompositeFeed {\\n        address feed1;\\n        address feed2;\\n        ThresholdConfig primaryThreshold; // Primary price source threshold config\\n        ThresholdConfig secondaryThreshold; // Secondary price source threshold config\\n    }\\n\\n    mapping(address => CompositeFeed) public compositeFeeds;\\n\\n    /* Events */\\n\\n    event CompositeFeedAdded(\\n        address indexed asset,\\n        address feed1,\\n        address feed2,\\n        uint256 lowerThresholdInBase1,\\n        uint256 fixedPriceInBase1,\\n        uint256 lowerThresholdInBase2,\\n        uint256 fixedPriceInBase2\\n    );\\n    event CompositeFeedRemoved(address indexed asset);\\n    event CompositeFeedUpdated(\\n        address indexed asset,\\n        uint256 lowerThresholdInBase1,\\n        uint256 fixedPriceInBase1,\\n        uint256 lowerThresholdInBase2,\\n        uint256 fixedPriceInBase2\\n    );\\n\\n    constructor(\\n        address baseCurrency,\\n        uint256 _baseCurrencyUnit\\n    ) BaseChainlinkWrapper(baseCurrency, _baseCurrencyUnit) {\\n        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);\\n        _grantRole(ORACLE_MANAGER_ROLE, msg.sender);\\n    }\\n\\n    function addCompositeFeed(\\n        address asset,\\n        address feed1,\\n        address feed2,\\n        uint256 lowerThresholdInBase1,\\n        uint256 fixedPriceInBase1,\\n        uint256 lowerThresholdInBase2,\\n        uint256 fixedPriceInBase2\\n    ) external onlyRole(ORACLE_MANAGER_ROLE) {\\n        compositeFeeds[asset] = CompositeFeed({\\n            feed1: feed1,\\n            feed2: feed2,\\n            primaryThreshold: ThresholdConfig({\\n                lowerThresholdInBase: lowerThresholdInBase1,\\n                fixedPriceInBase: fixedPriceInBase1\\n            }),\\n            secondaryThreshold: ThresholdConfig({\\n                lowerThresholdInBase: lowerThresholdInBase2,\\n                fixedPriceInBase: fixedPriceInBase2\\n            })\\n        });\\n        emit CompositeFeedAdded(\\n            asset,\\n            feed1,\\n            feed2,\\n            lowerThresholdInBase1,\\n            fixedPriceInBase1,\\n            lowerThresholdInBase2,\\n            fixedPriceInBase2\\n        );\\n    }\\n\\n    function removeCompositeFeed(\\n        address asset\\n    ) external onlyRole(ORACLE_MANAGER_ROLE) {\\n        delete compositeFeeds[asset];\\n        emit CompositeFeedRemoved(asset);\\n    }\\n\\n    function updateCompositeFeed(\\n        address asset,\\n        uint256 lowerThresholdInBase1,\\n        uint256 fixedPriceInBase1,\\n        uint256 lowerThresholdInBase2,\\n        uint256 fixedPriceInBase2\\n    ) external onlyRole(ORACLE_MANAGER_ROLE) {\\n        CompositeFeed storage feed = compositeFeeds[asset];\\n        if (feed.feed1 == address(0) || feed.feed2 == address(0)) {\\n            revert FeedNotSet(asset);\\n        }\\n        feed.primaryThreshold.lowerThresholdInBase = lowerThresholdInBase1;\\n        feed.primaryThreshold.fixedPriceInBase = fixedPriceInBase1;\\n        feed.secondaryThreshold.lowerThresholdInBase = lowerThresholdInBase2;\\n        feed.secondaryThreshold.fixedPriceInBase = fixedPriceInBase2;\\n        emit CompositeFeedUpdated(\\n            asset,\\n            lowerThresholdInBase1,\\n            fixedPriceInBase1,\\n            lowerThresholdInBase2,\\n            fixedPriceInBase2\\n        );\\n    }\\n\\n    function getPriceInfo(\\n        address asset\\n    ) public view override returns (uint256 price, bool isAlive) {\\n        CompositeFeed memory feed = compositeFeeds[asset];\\n        if (feed.feed1 == address(0) || feed.feed2 == address(0)) {\\n            revert FeedNotSet(asset);\\n        }\\n\\n        (, int256 answer1, , uint256 updatedAt1, ) = IPriceFeed(feed.feed1)\\n            .latestRoundData();\\n\\n        (, int256 answer2, , uint256 updatedAt2, ) = IPriceFeed(feed.feed2)\\n            .latestRoundData();\\n\\n        uint256 chainlinkPrice1 = answer1 > 0 ? uint256(answer1) : 0;\\n        uint256 chainlinkPrice2 = answer2 > 0 ? uint256(answer2) : 0;\\n\\n        // Convert both prices to BASE_CURRENCY_UNIT first\\n        uint256 priceInBase1 = _convertToBaseCurrencyUnit(chainlinkPrice1);\\n        uint256 priceInBase2 = _convertToBaseCurrencyUnit(chainlinkPrice2);\\n\\n        // Apply thresholding to prices in BASE_CURRENCY_UNIT if specified\\n        if (feed.primaryThreshold.lowerThresholdInBase > 0) {\\n            priceInBase1 = _applyThreshold(priceInBase1, feed.primaryThreshold);\\n        }\\n        if (feed.secondaryThreshold.lowerThresholdInBase > 0) {\\n            priceInBase2 = _applyThreshold(\\n                priceInBase2,\\n                feed.secondaryThreshold\\n            );\\n        }\\n\\n        price = (priceInBase1 * priceInBase2) / BASE_CURRENCY_UNIT;\\n        isAlive =\\n            price > 0 &&\\n            updatedAt1 + CHAINLINK_HEARTBEAT + heartbeatStaleTimeLimit >\\n            block.timestamp &&\\n            updatedAt2 + CHAINLINK_HEARTBEAT + heartbeatStaleTimeLimit >\\n            block.timestamp;\\n    }\\n\\n    function getAssetPrice(\\n        address asset\\n    ) external view override returns (uint256) {\\n        (uint256 price, bool isAlive) = getPriceInfo(asset);\\n        if (!isAlive) {\\n            revert PriceIsStale();\\n        }\\n        return price;\\n    }\\n}\\n\",\"keccak256\":\"0xf56ed0616a91964069eac0659ac6713cda387f53310ea1c4bd3249beeee19a4a\",\"license\":\"MIT\"},\"contracts/oracle_aggregator/wrapper/ThresholdingUtils.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\n/* \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 *\\n *    _____     ______   ______     __     __   __     __     ______   __  __       *\\n *   /\\\\  __-.  /\\\\__  _\\\\ /\\\\  == \\\\   /\\\\ \\\\   /\\\\ \\\"-.\\\\ \\\\   /\\\\ \\\\   /\\\\__  _\\\\ /\\\\ \\\\_\\\\ \\\\      *\\n *   \\\\ \\\\ \\\\/\\\\ \\\\ \\\\/_/\\\\ \\\\/ \\\\ \\\\  __<   \\\\ \\\\ \\\\  \\\\ \\\\ \\\\-.  \\\\  \\\\ \\\\ \\\\  \\\\/_/\\\\ \\\\/ \\\\ \\\\____ \\\\     *\\n *    \\\\ \\\\____-    \\\\ \\\\_\\\\  \\\\ \\\\_\\\\ \\\\_\\\\  \\\\ \\\\_\\\\  \\\\ \\\\_\\\\\\\\\\\"\\\\_\\\\  \\\\ \\\\_\\\\    \\\\ \\\\_\\\\  \\\\/\\\\_____\\\\    *\\n *     \\\\/____/     \\\\/_/   \\\\/_/ /_/   \\\\/_/   \\\\/_/ \\\\/_/   \\\\/_/     \\\\/_/   \\\\/_____/    *\\n *                                                                                  *\\n * \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 dtrinity.org \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 *\\n *                                                                                  *\\n *                                         \\u25b2                                        *\\n *                                        \\u25b2 \\u25b2                                       *\\n *                                                                                  *\\n * \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 *\\n * dTRINITY Protocol: https://github.com/dtrinity                                   *\\n * \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 */\\n\\npragma solidity ^0.8.20;\\n\\nabstract contract ThresholdingUtils {\\n    /* Types */\\n    struct ThresholdConfig {\\n        /// @notice The minimum price after which thresholding is applied. Not a price cap, but a trigger point.\\n        /// @dev If lowerThresholdInBase == fixedPriceInBase: Acts as an upper threshold\\n        /// @dev If lowerThresholdInBase < fixedPriceInBase: Acts as \\\"price rounding up\\\" (e.g. if USDC > 0.997 then round to 1)\\n        /// @dev If lowerThresholdInBase > fixedPriceInBase: Acts as \\\"price rounding down\\\" (e.g. if USDC > 1.003 then round to 1)\\n        uint256 lowerThresholdInBase;\\n        uint256 fixedPriceInBase;\\n    }\\n\\n    /**\\n     * @notice Apply threshold to a price value\\n     * @param priceInBase The price to check against threshold\\n     * @param thresholdConfig The threshold configuration\\n     * @return The original price or fixed price based on threshold\\n     */\\n    function _applyThreshold(\\n        uint256 priceInBase,\\n        ThresholdConfig memory thresholdConfig\\n    ) internal pure returns (uint256) {\\n        if (priceInBase > thresholdConfig.lowerThresholdInBase) {\\n            return thresholdConfig.fixedPriceInBase;\\n        }\\n        return priceInBase;\\n    }\\n}\\n\",\"keccak256\":\"0x2c3bb0f98af6761a8de5660cd7c9516880936bf5bfb1070b2065ab958476bb00\",\"license\":\"MIT\"}},\"version\":1}",
+  "bytecode": "0x60c06040526107086001553480156200001757600080fd5b5060405162001075380380620010758339810160408190526200003a916200015d565b6001600160a01b03821660805260a081905281816200005b600033620000ae565b50620000776000805160206200105583398151915233620000ae565b506200008991506000905033620000ae565b50620000a56000805160206200105583398151915233620000ae565b50505062000199565b6000828152602081815260408083206001600160a01b038516845290915281205460ff1662000153576000838152602081815260408083206001600160a01b03861684529091529020805460ff191660011790556200010a3390565b6001600160a01b0316826001600160a01b0316847f2f8788117e7eff1d82e926ec794901d17c78024a50270940304540a733656f0d60405160405180910390a450600162000157565b5060005b92915050565b600080604083850312156200017157600080fd5b82516001600160a01b03811681146200018957600080fd5b6020939093015192949293505050565b60805160a051610e88620001cd600039600081816101e6015281816107a90152610b3c015260006102c30152610e886000f3fe608060405234801561001057600080fd5b506004361061012c5760003560e01c806391d14854116100ad578063c5efe27c11610071578063c5efe27c14610290578063d547741f146102a3578063e19f4700146102b6578063eae06eec146102ed578063f99256d5146102f857600080fd5b806391d14854146102435780639a999d4514610256578063a217fddf14610260578063b3596f0714610268578063bfc69e1c1461027b57600080fd5b806336568abe116100f457806336568abe146101bb578063519ffff1146101ce5780638c89b64f146101e15780638edbf436146102085780638f5997151461023057600080fd5b806301ffc9a71461013157806304dea65114610159578063248a9ca31461016e5780632ecac6fc1461019f5780632f2ff15d146101a8575b600080fd5b61014461013f366004610bc6565b610374565b60405190151581526020015b60405180910390f35b61016c610167366004610c13565b6103ab565b005b61019161017c366004610c55565b60009081526020819052604090206001015490565b604051908152602001610150565b61019160015481565b61016c6101b6366004610c6e565b61049e565b61016c6101c9366004610c6e565b6104c9565b61016c6101dc366004610c9a565b610501565b6101917f000000000000000000000000000000000000000000000000000000000000000081565b61021b610216366004610c9a565b610594565b60408051928352901515602083015201610150565b61016c61023e366004610cb5565b61083c565b610144610251366004610c6e565b610983565b6101916201518081565b610191600081565b610191610276366004610c9a565b6109ac565b610191600080516020610e3383398151915281565b61016c61029e366004610c55565b6109e3565b61016c6102b1366004610c6e565b610a01565b6040516001600160a01b037f0000000000000000000000000000000000000000000000000000000000000000168152602001610150565b6101916305f5e10081565b610364610306366004610c9a565b6002602081815260009283526040928390208054600182015485518087018752948301548552600383015485850152855180870190965260048301548652600590920154928501929092526001600160a01b03918216939116919084565b6040516101509493929190610d1d565b60006001600160e01b03198216637965db0b60e01b14806103a557506301ffc9a760e01b6001600160e01b03198316145b92915050565b600080516020610e338339815191526103c381610a26565b6001600160a01b038087166000908152600260205260409020805490911615806103f8575060018101546001600160a01b0316155b1561042657604051630dcaf86b60e01b81526001600160a01b03881660048201526024015b60405180910390fd5b600281018690556003810185905560048101849055600581018390556040805187815260208101879052908101859052606081018490526001600160a01b038816907fbdebb389cb3e5b0a7c038b900aeea5b6e265e74efd0de50488c3574a4d7861d59060800160405180910390a250505050505050565b6000828152602081905260409020600101546104b981610a26565b6104c38383610a33565b50505050565b6001600160a01b03811633146104f25760405163334bd91960e11b815260040160405180910390fd5b6104fc8282610ac5565b505050565b600080516020610e3383398151915261051981610a26565b6001600160a01b038216600081815260026020819052604080832080546001600160a01b03199081168255600182018054909116905591820183905560038201839055600482018390556005909101829055517fdabc58d0456c50872fa82879bc9ce7f6a455b4372db632857a62de4abd0996919190a25050565b6001600160a01b03808216600090815260026020818152604080842081516080810183528154871681526001820154871681850152825180840184529482015485526003820154858501528083019490945281518083019092526004810154825260050154918101919091526060820152805191928392161580610623575060208101516001600160a01b0316155b1561064c57604051630dcaf86b60e01b81526001600160a01b038516600482015260240161041d565b60008082600001516001600160a01b031663feaf968c6040518163ffffffff1660e01b815260040160a060405180830381865afa158015610691573d6000803e3d6000fd5b505050506040513d601f19601f820116820180604052508101906106b59190610d80565b5093505092505060008084602001516001600160a01b031663feaf968c6040518163ffffffff1660e01b815260040160a060405180830381865afa158015610701573d6000803e3d6000fd5b505050506040513d601f19601f820116820180604052508101906107259190610d80565b50935050925050600080851361073c57600061073e565b845b90506000808413610750576000610752565b835b9050600061075f83610b30565b9050600061076c83610b30565b60408a0151519091501561078b57610788828a60400151610b6b565b91505b606089015151156107a7576107a4818a60600151610b6b565b90505b7f00000000000000000000000000000000000000000000000000000000000000006107d28284610de6565b6107dc9190610dfd565b9a5060008b118015610807575060015442906107fb620151808a610e1f565b6108059190610e1f565b115b801561082c575060015442906108206201518088610e1f565b61082a9190610e1f565b115b9950505050505050505050915091565b600080516020610e3383398151915261085481610a26565b604080516080810182526001600160a01b03808a1682528881166020808401918252845180860186528a81528082018a905284860190815285518087018752898152808301899052606086019081528e85166000818152600280865290899020975188549088166001600160a01b03199182161789559551600189018054919098169616959095179095559051805193860193909355918101516003850155905180516004850155015160059092019190915590517f8af3f37e726b4aaf30de76bd00359c9166bf6b9a01e457c3d4557df631227eed90610971908a908a908a908a908a908a906001600160a01b03968716815294909516602085015260408401929092526060830152608082015260a081019190915260c00190565b60405180910390a25050505050505050565b6000918252602082815260408084206001600160a01b0393909316845291905290205460ff1690565b60008060006109ba84610594565b91509150806109dc576040516342bc305b60e11b815260040160405180910390fd5b5092915050565b600080516020610e338339815191526109fb81610a26565b50600155565b600082815260208190526040902060010154610a1c81610a26565b6104c38383610ac5565b610a308133610b89565b50565b6000610a3f8383610983565b610abd576000838152602081815260408083206001600160a01b03861684529091529020805460ff19166001179055610a753390565b6001600160a01b0316826001600160a01b0316847f2f8788117e7eff1d82e926ec794901d17c78024a50270940304540a733656f0d60405160405180910390a45060016103a5565b5060006103a5565b6000610ad18383610983565b15610abd576000838152602081815260408083206001600160a01b0386168085529252808320805460ff1916905551339286917ff6391f5c32d9c69d2a47ea670b442974b53935d1edc7fd64eb21e047a839171b9190a45060016103a5565b60006305f5e100610b617f000000000000000000000000000000000000000000000000000000000000000084610de6565b6103a59190610dfd565b8051600090831115610b82575060208101516103a5565b5090919050565b610b938282610983565b610bc25760405163e2517d3f60e01b81526001600160a01b03821660048201526024810183905260440161041d565b5050565b600060208284031215610bd857600080fd5b81356001600160e01b031981168114610bf057600080fd5b9392505050565b80356001600160a01b0381168114610c0e57600080fd5b919050565b600080600080600060a08688031215610c2b57600080fd5b610c3486610bf7565b97602087013597506040870135966060810135965060800135945092505050565b600060208284031215610c6757600080fd5b5035919050565b60008060408385031215610c8157600080fd5b82359150610c9160208401610bf7565b90509250929050565b600060208284031215610cac57600080fd5b610bf082610bf7565b600080600080600080600060e0888a031215610cd057600080fd5b610cd988610bf7565b9650610ce760208901610bf7565b9550610cf560408901610bf7565b969995985095966060810135965060808101359560a0820135955060c0909101359350915050565b6001600160a01b0385811682528416602082015260c08101610d4c604083018580518252602090810151910152565b82516080830152602083015160a083015295945050505050565b805169ffffffffffffffffffff81168114610c0e57600080fd5b600080600080600060a08688031215610d9857600080fd5b610da186610d66565b9450602086015193506040860151925060608601519150610dc460808701610d66565b90509295509295909350565b634e487b7160e01b600052601160045260246000fd5b80820281158282048414176103a5576103a5610dd0565b600082610e1a57634e487b7160e01b600052601260045260246000fd5b500490565b808201808211156103a5576103a5610dd056feced6982f480260bdd8ad5cb18ff2854f0306d78d904ad6cc107e8f3a0f526c18a2646970667358221220a4bc79b273a05b4ebe5bfde249aef3a6a147f3985550bba18d0cce90c0e5b5e164736f6c63430008140033ced6982f480260bdd8ad5cb18ff2854f0306d78d904ad6cc107e8f3a0f526c18",
+  "deployedBytecode": "0x608060405234801561001057600080fd5b506004361061012c5760003560e01c806391d14854116100ad578063c5efe27c11610071578063c5efe27c14610290578063d547741f146102a3578063e19f4700146102b6578063eae06eec146102ed578063f99256d5146102f857600080fd5b806391d14854146102435780639a999d4514610256578063a217fddf14610260578063b3596f0714610268578063bfc69e1c1461027b57600080fd5b806336568abe116100f457806336568abe146101bb578063519ffff1146101ce5780638c89b64f146101e15780638edbf436146102085780638f5997151461023057600080fd5b806301ffc9a71461013157806304dea65114610159578063248a9ca31461016e5780632ecac6fc1461019f5780632f2ff15d146101a8575b600080fd5b61014461013f366004610bc6565b610374565b60405190151581526020015b60405180910390f35b61016c610167366004610c13565b6103ab565b005b61019161017c366004610c55565b60009081526020819052604090206001015490565b604051908152602001610150565b61019160015481565b61016c6101b6366004610c6e565b61049e565b61016c6101c9366004610c6e565b6104c9565b61016c6101dc366004610c9a565b610501565b6101917f000000000000000000000000000000000000000000000000000000000000000081565b61021b610216366004610c9a565b610594565b60408051928352901515602083015201610150565b61016c61023e366004610cb5565b61083c565b610144610251366004610c6e565b610983565b6101916201518081565b610191600081565b610191610276366004610c9a565b6109ac565b610191600080516020610e3383398151915281565b61016c61029e366004610c55565b6109e3565b61016c6102b1366004610c6e565b610a01565b6040516001600160a01b037f0000000000000000000000000000000000000000000000000000000000000000168152602001610150565b6101916305f5e10081565b610364610306366004610c9a565b6002602081815260009283526040928390208054600182015485518087018752948301548552600383015485850152855180870190965260048301548652600590920154928501929092526001600160a01b03918216939116919084565b6040516101509493929190610d1d565b60006001600160e01b03198216637965db0b60e01b14806103a557506301ffc9a760e01b6001600160e01b03198316145b92915050565b600080516020610e338339815191526103c381610a26565b6001600160a01b038087166000908152600260205260409020805490911615806103f8575060018101546001600160a01b0316155b1561042657604051630dcaf86b60e01b81526001600160a01b03881660048201526024015b60405180910390fd5b600281018690556003810185905560048101849055600581018390556040805187815260208101879052908101859052606081018490526001600160a01b038816907fbdebb389cb3e5b0a7c038b900aeea5b6e265e74efd0de50488c3574a4d7861d59060800160405180910390a250505050505050565b6000828152602081905260409020600101546104b981610a26565b6104c38383610a33565b50505050565b6001600160a01b03811633146104f25760405163334bd91960e11b815260040160405180910390fd5b6104fc8282610ac5565b505050565b600080516020610e3383398151915261051981610a26565b6001600160a01b038216600081815260026020819052604080832080546001600160a01b03199081168255600182018054909116905591820183905560038201839055600482018390556005909101829055517fdabc58d0456c50872fa82879bc9ce7f6a455b4372db632857a62de4abd0996919190a25050565b6001600160a01b03808216600090815260026020818152604080842081516080810183528154871681526001820154871681850152825180840184529482015485526003820154858501528083019490945281518083019092526004810154825260050154918101919091526060820152805191928392161580610623575060208101516001600160a01b0316155b1561064c57604051630dcaf86b60e01b81526001600160a01b038516600482015260240161041d565b60008082600001516001600160a01b031663feaf968c6040518163ffffffff1660e01b815260040160a060405180830381865afa158015610691573d6000803e3d6000fd5b505050506040513d601f19601f820116820180604052508101906106b59190610d80565b5093505092505060008084602001516001600160a01b031663feaf968c6040518163ffffffff1660e01b815260040160a060405180830381865afa158015610701573d6000803e3d6000fd5b505050506040513d601f19601f820116820180604052508101906107259190610d80565b50935050925050600080851361073c57600061073e565b845b90506000808413610750576000610752565b835b9050600061075f83610b30565b9050600061076c83610b30565b60408a0151519091501561078b57610788828a60400151610b6b565b91505b606089015151156107a7576107a4818a60600151610b6b565b90505b7f00000000000000000000000000000000000000000000000000000000000000006107d28284610de6565b6107dc9190610dfd565b9a5060008b118015610807575060015442906107fb620151808a610e1f565b6108059190610e1f565b115b801561082c575060015442906108206201518088610e1f565b61082a9190610e1f565b115b9950505050505050505050915091565b600080516020610e3383398151915261085481610a26565b604080516080810182526001600160a01b03808a1682528881166020808401918252845180860186528a81528082018a905284860190815285518087018752898152808301899052606086019081528e85166000818152600280865290899020975188549088166001600160a01b03199182161789559551600189018054919098169616959095179095559051805193860193909355918101516003850155905180516004850155015160059092019190915590517f8af3f37e726b4aaf30de76bd00359c9166bf6b9a01e457c3d4557df631227eed90610971908a908a908a908a908a908a906001600160a01b03968716815294909516602085015260408401929092526060830152608082015260a081019190915260c00190565b60405180910390a25050505050505050565b6000918252602082815260408084206001600160a01b0393909316845291905290205460ff1690565b60008060006109ba84610594565b91509150806109dc576040516342bc305b60e11b815260040160405180910390fd5b5092915050565b600080516020610e338339815191526109fb81610a26565b50600155565b600082815260208190526040902060010154610a1c81610a26565b6104c38383610ac5565b610a308133610b89565b50565b6000610a3f8383610983565b610abd576000838152602081815260408083206001600160a01b03861684529091529020805460ff19166001179055610a753390565b6001600160a01b0316826001600160a01b0316847f2f8788117e7eff1d82e926ec794901d17c78024a50270940304540a733656f0d60405160405180910390a45060016103a5565b5060006103a5565b6000610ad18383610983565b15610abd576000838152602081815260408083206001600160a01b0386168085529252808320805460ff1916905551339286917ff6391f5c32d9c69d2a47ea670b442974b53935d1edc7fd64eb21e047a839171b9190a45060016103a5565b60006305f5e100610b617f000000000000000000000000000000000000000000000000000000000000000084610de6565b6103a59190610dfd565b8051600090831115610b82575060208101516103a5565b5090919050565b610b938282610983565b610bc25760405163e2517d3f60e01b81526001600160a01b03821660048201526024810183905260440161041d565b5050565b600060208284031215610bd857600080fd5b81356001600160e01b031981168114610bf057600080fd5b9392505050565b80356001600160a01b0381168114610c0e57600080fd5b919050565b600080600080600060a08688031215610c2b57600080fd5b610c3486610bf7565b97602087013597506040870135966060810135965060800135945092505050565b600060208284031215610c6757600080fd5b5035919050565b60008060408385031215610c8157600080fd5b82359150610c9160208401610bf7565b90509250929050565b600060208284031215610cac57600080fd5b610bf082610bf7565b600080600080600080600060e0888a031215610cd057600080fd5b610cd988610bf7565b9650610ce760208901610bf7565b9550610cf560408901610bf7565b969995985095966060810135965060808101359560a0820135955060c0909101359350915050565b6001600160a01b0385811682528416602082015260c08101610d4c604083018580518252602090810151910152565b82516080830152602083015160a083015295945050505050565b805169ffffffffffffffffffff81168114610c0e57600080fd5b600080600080600060a08688031215610d9857600080fd5b610da186610d66565b9450602086015193506040860151925060608601519150610dc460808701610d66565b90509295509295909350565b634e487b7160e01b600052601160045260246000fd5b80820281158282048414176103a5576103a5610dd0565b600082610e1a57634e487b7160e01b600052601260045260246000fd5b500490565b808201808211156103a5576103a5610dd056feced6982f480260bdd8ad5cb18ff2854f0306d78d904ad6cc107e8f3a0f526c18a2646970667358221220a4bc79b273a05b4ebe5bfde249aef3a6a147f3985550bba18d0cce90c0e5b5e164736f6c63430008140033",
+  "devdoc": {
+    "details": "Implementation of BaseChainlinkWrapper for composite Redstone oracles with thresholding",
+    "errors": {
+      "AccessControlBadConfirmation()": [
+        {
+          "details": "The caller of a function is not the expected one. NOTE: Don't confuse with {AccessControlUnauthorizedAccount}."
+        }
+      ],
+      "AccessControlUnauthorizedAccount(address,bytes32)": [
+        {
+          "details": "The `account` is missing a role."
+        }
+      ]
+    },
+    "events": {
+      "RoleAdminChanged(bytes32,bytes32,bytes32)": {
+        "details": "Emitted when `newAdminRole` is set as ``role``'s admin role, replacing `previousAdminRole` `DEFAULT_ADMIN_ROLE` is the starting admin for all roles, despite {RoleAdminChanged} not being emitted signaling this."
+      },
+      "RoleGranted(bytes32,address,address)": {
+        "details": "Emitted when `account` is granted `role`. `sender` is the account that originated the contract call. This account bears the admin role (for the granted role). Expected in cases where the role was granted using the internal {AccessControl-_grantRole}."
+      },
+      "RoleRevoked(bytes32,address,address)": {
+        "details": "Emitted when `account` is revoked `role`. `sender` is the account that originated the contract call:   - if using `revokeRole`, it is the admin role bearer   - if using `renounceRole`, it is the role bearer (i.e. `account`)"
+      }
+    },
+    "kind": "dev",
+    "methods": {
+      "BASE_CURRENCY()": {
+        "returns": {
+          "_0": "Returns the base currency address"
+        }
+      },
+      "getAssetPrice(address)": {
+        "params": {
+          "asset": "The address of the asset to get the price for"
+        },
+        "returns": {
+          "_0": "The current price of the asset"
+        }
+      },
+      "getPriceInfo(address)": {
+        "params": {
+          "asset": "The address of the asset to get the price for"
+        },
+        "returns": {
+          "isAlive": "Whether the price feed is considered active/valid",
+          "price": "The price of the asset in base currency units"
+        }
+      },
+      "getRoleAdmin(bytes32)": {
+        "details": "Returns the admin role that controls `role`. See {grantRole} and {revokeRole}. To change a role's admin, use {_setRoleAdmin}."
+      },
+      "grantRole(bytes32,address)": {
+        "details": "Grants `role` to `account`. If `account` had not been already granted `role`, emits a {RoleGranted} event. Requirements: - the caller must have ``role``'s admin role. May emit a {RoleGranted} event."
+      },
+      "hasRole(bytes32,address)": {
+        "details": "Returns `true` if `account` has been granted `role`."
+      },
+      "renounceRole(bytes32,address)": {
+        "details": "Revokes `role` from the calling account. Roles are often managed via {grantRole} and {revokeRole}: this function's purpose is to provide a mechanism for accounts to lose their privileges if they are compromised (such as when a trusted device is misplaced). If the calling account had been revoked `role`, emits a {RoleRevoked} event. Requirements: - the caller must be `callerConfirmation`. May emit a {RoleRevoked} event."
+      },
+      "revokeRole(bytes32,address)": {
+        "details": "Revokes `role` from `account`. If `account` had been granted `role`, emits a {RoleRevoked} event. Requirements: - the caller must have ``role``'s admin role. May emit a {RoleRevoked} event."
+      },
+      "setHeartbeatStaleTimeLimit(uint256)": {
+        "params": {
+          "_newHeartbeatStaleTimeLimit": "The new heartbeat stale time limit"
+        }
+      },
+      "supportsInterface(bytes4)": {
+        "details": "See {IERC165-supportsInterface}."
+      }
+    },
+    "title": "RedstoneChainlinkCompositeWrapperWithThresholding",
+    "version": 1
+  },
+  "userdoc": {
+    "kind": "user",
+    "methods": {
+      "BASE_CURRENCY()": {
+        "notice": "Returns the base currency address"
+      },
+      "BASE_CURRENCY_UNIT()": {
+        "notice": "Returns the base currency unit"
+      },
+      "getAssetPrice(address)": {
+        "notice": "Gets the current price of an asset"
+      },
+      "getPriceInfo(address)": {
+        "notice": "Gets the price information for an asset"
+      },
+      "setHeartbeatStaleTimeLimit(uint256)": {
+        "notice": "Sets the heartbeat stale time limit"
+      }
+    },
+    "version": 1
+  },
+  "storageLayout": {
+    "storage": [
+      {
+        "astId": 26,
+        "contract": "contracts/oracle_aggregator/wrapper/RedstoneChainlinkCompositeWrapperWithThresholding.sol:RedstoneChainlinkCompositeWrapperWithThresholding",
+        "label": "_roles",
+        "offset": 0,
+        "slot": "0",
+        "type": "t_mapping(t_bytes32,t_struct(RoleData)21_storage)"
+      },
+      {
+        "astId": 801,
+        "contract": "contracts/oracle_aggregator/wrapper/RedstoneChainlinkCompositeWrapperWithThresholding.sol:RedstoneChainlinkCompositeWrapperWithThresholding",
+        "label": "heartbeatStaleTimeLimit",
+        "offset": 0,
+        "slot": "1",
+        "type": "t_uint256"
+      },
+      {
+        "astId": 1652,
+        "contract": "contracts/oracle_aggregator/wrapper/RedstoneChainlinkCompositeWrapperWithThresholding.sol:RedstoneChainlinkCompositeWrapperWithThresholding",
+        "label": "compositeFeeds",
+        "offset": 0,
+        "slot": "2",
+        "type": "t_mapping(t_address,t_struct(CompositeFeed)1647_storage)"
+      }
+    ],
+    "types": {
+      "t_address": {
+        "encoding": "inplace",
+        "label": "address",
+        "numberOfBytes": "20"
+      },
+      "t_bool": {
+        "encoding": "inplace",
+        "label": "bool",
+        "numberOfBytes": "1"
+      },
+      "t_bytes32": {
+        "encoding": "inplace",
+        "label": "bytes32",
+        "numberOfBytes": "32"
+      },
+      "t_mapping(t_address,t_bool)": {
+        "encoding": "mapping",
+        "key": "t_address",
+        "label": "mapping(address => bool)",
+        "numberOfBytes": "32",
+        "value": "t_bool"
+      },
+      "t_mapping(t_address,t_struct(CompositeFeed)1647_storage)": {
+        "encoding": "mapping",
+        "key": "t_address",
+        "label": "mapping(address => struct RedstoneChainlinkCompositeWrapperWithThresholding.CompositeFeed)",
+        "numberOfBytes": "32",
+        "value": "t_struct(CompositeFeed)1647_storage"
+      },
+      "t_mapping(t_bytes32,t_struct(RoleData)21_storage)": {
+        "encoding": "mapping",
+        "key": "t_bytes32",
+        "label": "mapping(bytes32 => struct AccessControl.RoleData)",
+        "numberOfBytes": "32",
+        "value": "t_struct(RoleData)21_storage"
+      },
+      "t_struct(CompositeFeed)1647_storage": {
+        "encoding": "inplace",
+        "label": "struct RedstoneChainlinkCompositeWrapperWithThresholding.CompositeFeed",
+        "members": [
+          {
+            "astId": 1638,
+            "contract": "contracts/oracle_aggregator/wrapper/RedstoneChainlinkCompositeWrapperWithThresholding.sol:RedstoneChainlinkCompositeWrapperWithThresholding",
+            "label": "feed1",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_address"
+          },
+          {
+            "astId": 1640,
+            "contract": "contracts/oracle_aggregator/wrapper/RedstoneChainlinkCompositeWrapperWithThresholding.sol:RedstoneChainlinkCompositeWrapperWithThresholding",
+            "label": "feed2",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_address"
+          },
+          {
+            "astId": 1643,
+            "contract": "contracts/oracle_aggregator/wrapper/RedstoneChainlinkCompositeWrapperWithThresholding.sol:RedstoneChainlinkCompositeWrapperWithThresholding",
+            "label": "primaryThreshold",
+            "offset": 0,
+            "slot": "2",
+            "type": "t_struct(ThresholdConfig)2300_storage"
+          },
+          {
+            "astId": 1646,
+            "contract": "contracts/oracle_aggregator/wrapper/RedstoneChainlinkCompositeWrapperWithThresholding.sol:RedstoneChainlinkCompositeWrapperWithThresholding",
+            "label": "secondaryThreshold",
+            "offset": 0,
+            "slot": "4",
+            "type": "t_struct(ThresholdConfig)2300_storage"
+          }
+        ],
+        "numberOfBytes": "192"
+      },
+      "t_struct(RoleData)21_storage": {
+        "encoding": "inplace",
+        "label": "struct AccessControl.RoleData",
+        "members": [
+          {
+            "astId": 18,
+            "contract": "contracts/oracle_aggregator/wrapper/RedstoneChainlinkCompositeWrapperWithThresholding.sol:RedstoneChainlinkCompositeWrapperWithThresholding",
+            "label": "hasRole",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_mapping(t_address,t_bool)"
+          },
+          {
+            "astId": 20,
+            "contract": "contracts/oracle_aggregator/wrapper/RedstoneChainlinkCompositeWrapperWithThresholding.sol:RedstoneChainlinkCompositeWrapperWithThresholding",
+            "label": "adminRole",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_bytes32"
+          }
+        ],
+        "numberOfBytes": "64"
+      },
+      "t_struct(ThresholdConfig)2300_storage": {
+        "encoding": "inplace",
+        "label": "struct ThresholdingUtils.ThresholdConfig",
+        "members": [
+          {
+            "astId": 2297,
+            "contract": "contracts/oracle_aggregator/wrapper/RedstoneChainlinkCompositeWrapperWithThresholding.sol:RedstoneChainlinkCompositeWrapperWithThresholding",
+            "label": "lowerThresholdInBase",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_uint256"
+          },
+          {
+            "astId": 2299,
+            "contract": "contracts/oracle_aggregator/wrapper/RedstoneChainlinkCompositeWrapperWithThresholding.sol:RedstoneChainlinkCompositeWrapperWithThresholding",
+            "label": "fixedPriceInBase",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_uint256"
+          }
+        ],
+        "numberOfBytes": "64"
+      },
+      "t_uint256": {
+        "encoding": "inplace",
+        "label": "uint256",
+        "numberOfBytes": "32"
+      }
+    }
+  }
+}
