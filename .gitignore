@@ -22,3 +22,5 @@ ignition/deployments/chain-31337
 # Certora
 certora # python virtual environment
 .certora_internal
+
+.DS_Store

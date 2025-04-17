@@ -1,0 +1,31 @@
+# Node modules
+node_modules/
+
+# Hardhat artifacts
+artifacts/
+cache/
+typechain-types/
+
+# Deployments
+deployments/
+
+# Environment variables
+.env
+.env.local
+
+# Log files
+*.log
+
+# Build artifacts
+dist/
+build/
+
+# IDE files
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db 
