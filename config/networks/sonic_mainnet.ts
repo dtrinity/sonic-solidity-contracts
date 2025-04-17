@@ -2,7 +2,10 @@ import { ZeroAddress } from "ethers";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 
 import { DS_TOKEN_ID, DUSD_TOKEN_ID } from "../../typescript/deploy-ids";
-import { ORACLE_AGGREGATOR_PRICE_DECIMALS } from "../../typescript/oracle_aggregator/constants";
+import {
+  ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT,
+  ORACLE_AGGREGATOR_PRICE_DECIMALS,
+} from "../../typescript/oracle_aggregator/constants";
 import { Config } from "../types";
 import { rateStrategyMediumLiquidityStable } from "../dlend/interest-rate-strategies";
 import { rateStrategyMediumLiquidityVolatile } from "../dlend/interest-rate-strategies";
@@ -12,7 +15,7 @@ import { strategyDS, strategyDUSD } from "../dlend/reserves-params";
 import {
   strategyStS,
   strategySfrxUSD,
-  strategyWstkscUSD,
+  // strategyWstkscUSD,
 } from "../dlend/reserves-params";
 
 /**
@@ -54,7 +57,7 @@ export async function getConfig(
         collaterals: [
           frxUSDAddress,
           sfrxUSDAddress,
-          wstkscUSDAddress,
+          // wstkscUSDAddress,
           USDCeAddress,
           scUSDAddress,
         ],
@@ -69,25 +72,56 @@ export async function getConfig(
         hardDStablePeg: 10n ** BigInt(ORACLE_AGGREGATOR_PRICE_DECIMALS),
         priceDecimals: ORACLE_AGGREGATOR_PRICE_DECIMALS,
         api3OracleAssets: {
-          // TODO don't forget to add ALL the dLEND markets, even the S ones!
           plainApi3OracleWrappers: {
             [wSAddress]: "0xAf9647E1F86406BC38F42FE630E9Fa8CBcd59B19", // S/USD dTRINITY OEV
-            [stSAddress]: "", // S/USD dTRINITY OEV
-            [frxUSDAddress]: "", // S/USD dTRINITY OEV
-            [sfrxUSDAddress]: "", // S/USD dTRINITY OEV
-            [wstkscUSDAddress]: "", // S/USD dTRINITY OEV
-            [USDCeAddress]: "", // S/USD dTRINITY OEV
-            [scUSDAddress]: "", // S/USD dTRINITY OEV
           },
           api3OracleWrappersWithThresholding: {},
           compositeApi3OracleWrappersWithThresholding: {},
-          // TODO add stS/S feed
-          // TODO add stS/USD feed
         },
         redstoneOracleAssets: {
           plainRedstoneOracleWrappers: {},
-          redstoneOracleWrappersWithThresholding: {},
-          compositeRedstoneOracleWrappersWithThresholding: {},
+          redstoneOracleWrappersWithThresholding: {
+            [frxUSDAddress]: {
+              feed: "0xC3346631E0A9720582fB9CAbdBEA22BC2F57741b", // frxUSD/USD Redstone price feed
+              lowerThreshold: ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT,
+              fixedPrice: ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT,
+            },
+            [USDCeAddress]: {
+              feed: "0x3587a73AA02519335A8a6053a97657BECe0bC2Cc", // USDC/USD Redstone price feed
+              lowerThreshold: ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT,
+              fixedPrice: ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT,
+            },
+          },
+          compositeRedstoneOracleWrappersWithThresholding: {
+            [sfrxUSDAddress]: {
+              feedAsset: sfrxUSDAddress,
+              feed1: "0xebE443E20ADf302B59419648c4dbA0c7299cf1A2", // sfrxUSD/frxUSD Redstone Fundamental feed
+              feed2: "0xC3346631E0A9720582fB9CAbdBEA22BC2F57741b", // frxUSD/USD Redstone price feed
+              lowerThresholdInBase1: ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT,
+              fixedPriceInBase1: ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT,
+              lowerThresholdInBase2: ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT,
+              fixedPriceInBase2: ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT,
+            },
+            [scUSDAddress]: {
+              feedAsset: scUSDAddress,
+              feed1: "0xb81131B6368b3F0a83af09dB4E39Ac23DA96C2Db", // scUSD/USDC Redstone Fundamental feed
+              feed2: "0x3587a73AA02519335A8a6053a97657BECe0bC2Cc", // USDC/USD Redstone price feed
+              lowerThresholdInBase1: ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT,
+              fixedPriceInBase1: ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT,
+              lowerThresholdInBase2: ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT,
+              fixedPriceInBase2: ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT,
+            },
+            [stSAddress]: {
+              feedAsset: stSAddress,
+              feed1: "0x65d0F14f7809CdC4f90c3978c753C4671b6B815b", // stS/S Redstone Fundamental feed
+              feed2: "0xa8a94Da411425634e3Ed6C331a32ab4fd774aa43", // S/USD Redstone price feed
+              lowerThresholdInBase1: ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT,
+              fixedPriceInBase1: ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT,
+              lowerThresholdInBase2: ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT,
+              fixedPriceInBase2: ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT,
+            },
+            // [wstkscUSDAddress]: {},
+          },
         },
       },
       S: {
@@ -101,14 +135,10 @@ export async function getConfig(
         },
         redstoneOracleAssets: {
           plainRedstoneOracleWrappers: {
-            // Add Redstone feeds here when available
+            [stSAddress]: "0x65d0F14f7809CdC4f90c3978c753C4671b6B815b", // stS/S Redstone Fundamental feed
           },
-          redstoneOracleWrappersWithThresholding: {
-            // Add Redstone feeds with thresholding here when available
-          },
-          compositeRedstoneOracleWrappersWithThresholding: {
-            // Add composite Redstone feeds here when available
-          },
+          redstoneOracleWrappersWithThresholding: {},
+          compositeRedstoneOracleWrappersWithThresholding: {},
         },
       },
     },
@@ -129,7 +159,7 @@ export async function getConfig(
         dS: strategyDS,
         stS: strategyStS,
         sfrxUSD: strategySfrxUSD,
-        wstkscUSD: strategyWstkscUSD,
+        // wstkscUSD: strategyWstkscUSD, No Redstone feed available
       },
     },
     odos: {
