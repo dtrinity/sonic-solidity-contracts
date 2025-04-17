@@ -41,7 +41,12 @@ const config: HardhatUserConfig = {
       saveDeployments: true,
       accounts: getEnvPrivateKeys("sonic_testnet"),
     },
-    // NOTE: When setting up mainnet, DO NOT DEPLOY mocks
+    sonic_mainnet: {
+      url: `https://rpc.soniclabs.com`,
+      deploy: ["deploy"], // NOTE: DO NOT DEPLOY mocks
+      saveDeployments: true,
+      accounts: getEnvPrivateKeys("sonic_mainnet"),
+    },
     /* eslint-enable camelcase -- Re-enabling camelcase rule after network definitions */
   },
   namedAccounts: getStandardNamedAccounts(),
