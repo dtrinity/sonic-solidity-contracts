@@ -6,17 +6,20 @@ import {
   ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT,
   ORACLE_AGGREGATOR_PRICE_DECIMALS,
 } from "../../typescript/oracle_aggregator/constants";
-import { Config } from "../types";
-import { rateStrategyMediumLiquidityStable } from "../dlend/interest-rate-strategies";
-import { rateStrategyMediumLiquidityVolatile } from "../dlend/interest-rate-strategies";
-import { rateStrategyHighLiquidityVolatile } from "../dlend/interest-rate-strategies";
-import { rateStrategyHighLiquidityStable } from "../dlend/interest-rate-strategies";
-import { strategyDS, strategyDUSD } from "../dlend/reserves-params";
 import {
-  strategyStS,
+  rateStrategyHighLiquidityStable,
+  rateStrategyHighLiquidityVolatile,
+  rateStrategyMediumLiquidityStable,
+  rateStrategyMediumLiquidityVolatile,
+} from "../dlend/interest-rate-strategies";
+import {
+  strategyDS,
+  strategyDUSD,
   strategySfrxUSD,
+  strategyStS,
   // strategyWstkscUSD,
 } from "../dlend/reserves-params";
+import { Config } from "../types";
 
 /**
  * Get the configuration for the network
@@ -25,7 +28,7 @@ import {
  * @returns The configuration for the network
  */
 export async function getConfig(
-  _hre: HardhatRuntimeEnvironment
+  _hre: HardhatRuntimeEnvironment,
 ): Promise<Config> {
   const dUSDDeployment = await _hre.deployments.getOrNull(DUSD_TOKEN_ID);
   const dSDeployment = await _hre.deployments.getOrNull(DS_TOKEN_ID);
@@ -74,6 +77,8 @@ export async function getConfig(
         api3OracleAssets: {
           plainApi3OracleWrappers: {
             [wSAddress]: "0xAf9647E1F86406BC38F42FE630E9Fa8CBcd59B19", // S/USD dTRINITY OEV
+            [dSDeployment?.address || ""]:
+              "0xAf9647E1F86406BC38F42FE630E9Fa8CBcd59B19", // S/USD dTRINITY OEV
           },
           api3OracleWrappersWithThresholding: {},
           compositeApi3OracleWrappersWithThresholding: {},
