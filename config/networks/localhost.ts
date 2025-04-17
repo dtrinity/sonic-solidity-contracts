@@ -25,7 +25,7 @@ import { Config } from "../types";
  * @returns The configuration for the network
  */
 export async function getConfig(
-  _hre: HardhatRuntimeEnvironment,
+  _hre: HardhatRuntimeEnvironment
 ): Promise<Config> {
   // Token info will only be populated after their deployment
   const dUSDDeployment = await _hre.deployments.getOrNull(DUSD_TOKEN_ID);
@@ -47,17 +47,17 @@ export async function getConfig(
 
   // REFACTOR: Load addresses directly using getOrNull
   const mockOracleAddressesDeployment = await _hre.deployments.getOrNull(
-    "MockOracleNameToAddress",
+    "MockOracleNameToAddress"
   );
 
   if (mockOracleAddressesDeployment?.linkedData) {
     Object.assign(
       mockOracleNameToAddress,
-      mockOracleAddressesDeployment.linkedData,
+      mockOracleAddressesDeployment.linkedData
     );
   } else {
     console.warn(
-      "WARN: MockOracleNameToAddress deployment not found or has no linkedData. Oracle addresses might be incomplete.",
+      "WARN: MockOracleNameToAddress deployment not found or has no linkedData. Oracle addresses might be incomplete."
     );
   }
 
@@ -178,8 +178,6 @@ export async function getConfig(
             [wSTokenDeployment?.address || ""]:
               mockOracleNameToAddress["wS_USD"],
             [dSDeployment?.address || ""]: mockOracleNameToAddress["wS_USD"], // Peg dS to S
-            [wstkscUSDDeployment?.address || ""]:
-              mockOracleNameToAddress["wstkscUSD_scUSD"],
           },
           redstoneOracleWrappersWithThresholding: {
             ...(USDCDeployment?.address && mockOracleNameToAddress["USDC_USD"]
@@ -242,11 +240,41 @@ export async function getConfig(
                   },
                 }
               : {}),
+            ...(wstkscUSDDeployment?.address &&
+            mockOracleNameToAddress["wstkscUSD_scUSD"] &&
+            mockOracleNameToAddress["scUSD_USD"]
+              ? {
+                  [wstkscUSDDeployment.address]: {
+                    feedAsset: wstkscUSDDeployment.address,
+                    feed1: mockOracleNameToAddress["wstkscUSD_scUSD"],
+                    feed2: mockOracleNameToAddress["scUSD_USD"],
+                    lowerThresholdInBase1: 0n,
+                    fixedPriceInBase1: 0n,
+                    lowerThresholdInBase2: 0n,
+                    fixedPriceInBase2: 0n,
+                  },
+                }
+              : {}),
             ...(stSTokenDeployment?.address
               ? {
                   [stSTokenDeployment.address]: {
                     feedAsset: stSTokenDeployment.address,
                     feed1: mockOracleNameToAddress["stS_S"],
+                    feed2: mockOracleNameToAddress["wS_USD"],
+                    lowerThresholdInBase1: 0n,
+                    fixedPriceInBase1: 0n,
+                    lowerThresholdInBase2: 0n,
+                    fixedPriceInBase2: 0n,
+                  },
+                }
+              : {}),
+            ...(wOSTokenDeployment?.address &&
+            mockOracleNameToAddress["wOS_S"] &&
+            mockOracleNameToAddress["wS_USD"]
+              ? {
+                  [wOSTokenDeployment.address]: {
+                    feedAsset: wOSTokenDeployment.address,
+                    feed1: mockOracleNameToAddress["wOS_S"],
                     feed2: mockOracleNameToAddress["wS_USD"],
                     lowerThresholdInBase1: 0n,
                     fixedPriceInBase1: 0n,
@@ -320,6 +348,7 @@ export async function getConfig(
         dS: strategyDStable,
         stS: strategyYieldBearingStablecoin,
         sfrxUSD: strategyYieldBearingStablecoin,
+        wstkscUSD: strategyYieldBearingStablecoin,
       },
     },
     odos: {
