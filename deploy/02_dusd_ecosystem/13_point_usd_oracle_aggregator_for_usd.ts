@@ -16,25 +16,25 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   // Point the base currency (USD) price feed to the dUSD HardPegOracleWrapper
   const { address: oracleAggregatorAddress } = await hre.deployments.get(
-    USD_ORACLE_AGGREGATOR_ID
+    USD_ORACLE_AGGREGATOR_ID,
   );
   const oracleAggregator = await hre.ethers.getContractAt(
     "OracleAggregator",
     oracleAggregatorAddress,
-    await hre.ethers.getSigner(deployer)
+    await hre.ethers.getSigner(deployer),
   );
 
   const { address: hardPegAddress } = await hre.deployments.get(
-    DUSD_HARD_PEG_ORACLE_WRAPPER_ID
+    DUSD_HARD_PEG_ORACLE_WRAPPER_ID,
   );
 
   console.log(
     `Setting HardPegOracleWrapper for base currency (${config.oracleAggregators.USD.baseCurrency}) to`,
-    hardPegAddress
+    hardPegAddress,
   );
   await oracleAggregator.setOracle(
     config.oracleAggregators.USD.baseCurrency,
-    hardPegAddress
+    hardPegAddress,
   );
 
   console.log(`🔮 ${__filename.split("/").slice(-2).join("/")}: ✅`);

@@ -28,7 +28,7 @@ import { Config } from "../types";
  * @returns The configuration for the network
  */
 export async function getConfig(
-  _hre: HardhatRuntimeEnvironment
+  _hre: HardhatRuntimeEnvironment,
 ): Promise<Config> {
   // Token info will only be populated after their deployment
   const dUSDDeployment = await _hre.deployments.getOrNull(DUSD_TOKEN_ID);
@@ -50,17 +50,17 @@ export async function getConfig(
 
   // REFACTOR: Load addresses directly using getOrNull
   const mockOracleAddressesDeployment = await _hre.deployments.getOrNull(
-    "MockOracleNameToAddress"
+    "MockOracleNameToAddress",
   );
 
   if (mockOracleAddressesDeployment?.linkedData) {
     Object.assign(
       mockOracleNameToAddress,
-      mockOracleAddressesDeployment.linkedData
+      mockOracleAddressesDeployment.linkedData,
     );
   } else {
     console.warn(
-      "WARN: MockOracleNameToAddress deployment not found or has no linkedData. Oracle addresses might be incomplete."
+      "WARN: MockOracleNameToAddress deployment not found or has no linkedData. Oracle addresses might be incomplete.",
     );
   }
 
