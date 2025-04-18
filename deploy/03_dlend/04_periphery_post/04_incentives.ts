@@ -9,18 +9,20 @@ import {
   POOL_ADDRESSES_PROVIDER_ID,
   PULL_REWARDS_TRANSFER_STRATEGY_ID,
 } from "../../../typescript/deploy-ids";
+import { getConfig } from "../../../config/config";
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployments, getNamedAccounts, ethers } = hre;
   const { deploy, save, getExtendedArtifact } = deployments;
   const { deployer } = await getNamedAccounts();
+  const config = await getConfig(hre);
 
   // Get AddressesProvider address
   const addressesProvider = await deployments.get(POOL_ADDRESSES_PROVIDER_ID);
   const addressesProviderInstance = await ethers.getContractAt(
     "PoolAddressesProvider",
     addressesProvider.address,
-    await ethers.getSigner(deployer),
+    await ethers.getSigner(deployer)
   );
 
   // Deploy EmissionManager
@@ -41,7 +43,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   const incentivesImplContract = await ethers.getContractAt(
     "RewardsController",
-    incentivesImpl.address,
+    incentivesImpl.address
   );
 
   // Initialize the implementation
@@ -59,27 +61,27 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   // The Rewards Controller must be set at AddressesProvider with id keccak256("INCENTIVES_CONTROLLER")
   const incentivesControllerId = ethers.keccak256(
-    ethers.toUtf8Bytes("INCENTIVES_CONTROLLER"),
+    ethers.toUtf8Bytes("INCENTIVES_CONTROLLER")
   );
 
   const isRewardsProxyPending =
     (await addressesProviderInstance.getAddressFromID(
-      incentivesControllerId,
+      incentivesControllerId
     )) === ZeroAddress;
 
   if (isRewardsProxyPending) {
     const proxyArtifact = await getExtendedArtifact(
-      "InitializableImmutableAdminUpgradeabilityProxy",
+      "InitializableImmutableAdminUpgradeabilityProxy"
     );
 
     const _setRewardsAsProxyTx =
       await addressesProviderInstance.setAddressAsProxy(
         incentivesControllerId,
-        incentivesImpl.address,
+        incentivesImpl.address
       );
 
     const proxyAddress = await addressesProviderInstance.getAddressFromID(
-      incentivesControllerId,
+      incentivesControllerId
     );
 
     await save(INCENTIVES_PROXY_ID, {
@@ -95,14 +97,14 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   // Initialize EmissionManager with the rewards controller address
   const emissionManagerContract = await ethers.getContractAt(
     "EmissionManager",
-    emissionManager.address,
+    emissionManager.address
   );
 
   if (incentivesProxyAddress) {
     await emissionManagerContract.setRewardsController(incentivesProxyAddress);
   } else {
     console.log(
-      "Warning: IncentivesProxy address is undefined, skipping setRewardsController",
+      "Warning: IncentivesProxy address is undefined, skipping setRewardsController"
     );
   }
 
@@ -111,8 +113,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     from: deployer,
     args: [
       incentivesProxyAddress,
-      deployer, // This should be replaced with the actual emission manager address from config
-      deployer, // This should be replaced with the actual incentives vault address from config
+      config.walletAddresses.governanceMultisig, // This is the REWARDS_ADMIN
+      config.walletAddresses.incentivesVault, // This is where we pull the rewards from
     ],
     log: true,
     waitConfirmations: 1,

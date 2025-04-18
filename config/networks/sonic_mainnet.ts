@@ -28,7 +28,7 @@ import { Config } from "../types";
  * @returns The configuration for the network
  */
 export async function getConfig(
-  _hre: HardhatRuntimeEnvironment,
+  _hre: HardhatRuntimeEnvironment
 ): Promise<Config> {
   const dUSDDeployment = await _hre.deployments.getOrNull(DUSD_TOKEN_ID);
   const dSDeployment = await _hre.deployments.getOrNull(DS_TOKEN_ID);
@@ -54,6 +54,7 @@ export async function getConfig(
     },
     walletAddresses: {
       governanceMultisig: "0xE83c188a7BE46B90715C757A06cF917175f30262", // Created via Safe
+      incentivesVault: "0x4B4B5cC616be4cd1947B93f2304d36b3e80D3ef6", // TODO: Add incentives vault address
     },
     dStables: {
       dUSD: {

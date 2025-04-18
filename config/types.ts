@@ -43,6 +43,7 @@ export interface TokenAddresses {
 
 export interface WalletAddresses {
   readonly governanceMultisig: string;
+  readonly incentivesVault: string;
 }
 
 export interface OracleAggregatorConfig {
