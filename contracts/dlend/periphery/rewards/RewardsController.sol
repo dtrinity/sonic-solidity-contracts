@@ -41,6 +41,8 @@ contract RewardsController is
 {
     using SafeCast for uint256;
 
+    // Increment this value when deploying a new implementation
+    // Current testnet implementation: 4
     uint256 public constant REVISION = 1;
 
     // This mapping allows whitelisted addresses to claim on behalf of others
