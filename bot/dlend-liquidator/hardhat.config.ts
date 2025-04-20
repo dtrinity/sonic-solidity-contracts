@@ -36,6 +36,7 @@ const config: HardhatUserConfig = {
       saveDeployments: true,
       accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
     },
+
   },
   namedAccounts: {
     deployer: {

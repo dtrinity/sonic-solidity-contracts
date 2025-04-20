@@ -15,15 +15,13 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const config = await getConfig(hre);
 
   if (!config.liquidatorBotOdos) {
-    console.log("Liquidator bot Odos config is not found");
-    return false;
+    throw new Error("Liquidator bot Odos config is not found");
   }
 
   const routerAddress = config.liquidatorBotOdos.odosRouter;
 
   if (!routerAddress) {
-    console.log("Odos router address is not found");
-    return false;
+    throw new Error("Odos router address is not found");
   }
 
   // Get the deployments directory for the current network
@@ -36,15 +34,13 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   // Check if the directory exists
   if (!fs.existsSync(deploymentPath)) {
-    console.log(`Deployment directory for network ${network} not found`);
-    return false;
+    throw new Error(`Deployment directory for PoolAddressesProvider not found on path ${deploymentPath}`);
   }
 
   // Get the PoolAddressesProvider from deployments
   const poolAddressesProviderPath = path.join(deploymentPath, "PoolAddressesProvider.json");
   if (!fs.existsSync(poolAddressesProviderPath)) {
-    console.log("PoolAddressesProvider deployment not found");
-    return false;
+    throw new Error(`PoolAddressesProvider deployment not found on path ${poolAddressesProviderPath}`);
   }
 
   const poolAddressesProviderDeployment = JSON.parse(

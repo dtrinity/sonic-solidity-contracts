@@ -2,7 +2,7 @@
 ## Deployment ##
 ################
 
-deploy: ## Deploy the contracts
-	@yarn hardhat deploy
+deploy.sonic_mainnet: ## Deploy the contracts
+	@yarn hardhat deploy --network sonic_mainnet
 
-.PHONY: deploy
+.PHONY: deploy.sonic_mainnet

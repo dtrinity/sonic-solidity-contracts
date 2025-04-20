@@ -22,4 +22,4 @@ export async function getConfig(
     default:
       throw new Error(`Unknown network: ${hre.network.name}`);
   }
-} 
+}

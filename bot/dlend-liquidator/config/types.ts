@@ -1,18 +1,5 @@
-import { Addressable, BigNumberish } from "ethers";
-
 export interface Config {
-  readonly lending: LendingConfig;
   readonly liquidatorBotOdos?: LiquidatorBotOdosConfig;
-}
-
-export interface LendingConfig {
-  readonly providerID: number;
-  // Mapping from token symbol to asset address
-  readonly reserveAssetAddresses: { [tokenSymbol: string]: string } | undefined;
-  readonly flashLoanPremium: {
-    readonly total: number;
-    readonly protocol: number;
-  };
 }
 
 export interface LiquidatorBotConfig {
