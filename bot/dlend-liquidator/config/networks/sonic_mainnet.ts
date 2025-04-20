@@ -7,7 +7,7 @@ export async function getConfig(
 ): Promise<Config> {
   // Replace these with actual contract addresses from Sonic mainnet
   const dUSDAddress = "0x53a6aBb52B2F968fA80dF6A894e4f1b1020DA975"; // Replace with actual dUSD address
-  const odosRouterAddress = "0x4E3288c9ca110bCC82bf38F09A7b425c095d92Bf"; // Odos router on Sonic
+  const odosRouterAddress = "0xaC041Df48dF9791B0654f1Dbbf2CC8450C5f2e9D"; // Odos router on Sonic
   
   return {
     liquidatorBotOdos: {
