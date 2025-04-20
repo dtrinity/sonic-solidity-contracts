@@ -13,8 +13,11 @@ import {
   rateStrategyMediumLiquidityVolatile,
 } from "../dlend/interest-rate-strategies";
 import {
-  strategyDStable,
-  strategyYieldBearingStablecoin,
+  strategyDS,
+  strategyDUSD,
+  strategySfrxUSD,
+  strategyStS,
+  strategyWstkscUSD,
 } from "../dlend/reserves-params";
 import { Config } from "../types";
 
@@ -141,9 +144,11 @@ export async function getConfig(
       wS: emptyStringIfUndefined(wSTokenDeployment?.address),
       sfrxUSD: emptyStringIfUndefined(sfrxUSDDeployment?.address), // Used by dLEND
       stS: emptyStringIfUndefined(stSTokenDeployment?.address), // Used by dLEND
+      wstkscUSD: emptyStringIfUndefined(wstkscUSDDeployment?.address), // Used by dLEND
     },
     walletAddresses: {
       governanceMultisig: user1,
+      incentivesVault: user1,
     },
     dStables: {
       dUSD: {
@@ -178,8 +183,6 @@ export async function getConfig(
             [wSTokenDeployment?.address || ""]:
               mockOracleNameToAddress["wS_USD"],
             [dSDeployment?.address || ""]: mockOracleNameToAddress["wS_USD"], // Peg dS to S
-            [wstkscUSDDeployment?.address || ""]:
-              mockOracleNameToAddress["wstkscUSD_scUSD"],
           },
           redstoneOracleWrappersWithThresholding: {
             ...(USDCDeployment?.address && mockOracleNameToAddress["USDC_USD"]
@@ -242,11 +245,41 @@ export async function getConfig(
                   },
                 }
               : {}),
+            ...(wstkscUSDDeployment?.address &&
+            mockOracleNameToAddress["wstkscUSD_scUSD"] &&
+            mockOracleNameToAddress["scUSD_USD"]
+              ? {
+                  [wstkscUSDDeployment.address]: {
+                    feedAsset: wstkscUSDDeployment.address,
+                    feed1: mockOracleNameToAddress["wstkscUSD_scUSD"],
+                    feed2: mockOracleNameToAddress["scUSD_USD"],
+                    lowerThresholdInBase1: 0n,
+                    fixedPriceInBase1: 0n,
+                    lowerThresholdInBase2: 0n,
+                    fixedPriceInBase2: 0n,
+                  },
+                }
+              : {}),
             ...(stSTokenDeployment?.address
               ? {
                   [stSTokenDeployment.address]: {
                     feedAsset: stSTokenDeployment.address,
                     feed1: mockOracleNameToAddress["stS_S"],
+                    feed2: mockOracleNameToAddress["wS_USD"],
+                    lowerThresholdInBase1: 0n,
+                    fixedPriceInBase1: 0n,
+                    lowerThresholdInBase2: 0n,
+                    fixedPriceInBase2: 0n,
+                  },
+                }
+              : {}),
+            ...(wOSTokenDeployment?.address &&
+            mockOracleNameToAddress["wOS_S"] &&
+            mockOracleNameToAddress["wS_USD"]
+              ? {
+                  [wOSTokenDeployment.address]: {
+                    feedAsset: wOSTokenDeployment.address,
+                    feed1: mockOracleNameToAddress["wOS_S"],
                     feed2: mockOracleNameToAddress["wS_USD"],
                     lowerThresholdInBase1: 0n,
                     fixedPriceInBase1: 0n,
@@ -316,10 +349,11 @@ export async function getConfig(
         rateStrategyMediumLiquidityStable,
       ],
       reservesConfig: {
-        dUSD: strategyDStable,
-        dS: strategyDStable,
-        stS: strategyYieldBearingStablecoin,
-        sfrxUSD: strategyYieldBearingStablecoin,
+        dUSD: strategyDUSD,
+        dS: strategyDS,
+        stS: strategyStS,
+        sfrxUSD: strategySfrxUSD,
+        wstkscUSD: strategyWstkscUSD,
       },
     },
     odos: {

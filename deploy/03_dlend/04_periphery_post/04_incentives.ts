@@ -2,6 +2,7 @@ import { ZeroAddress } from "ethers";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
 
+import { getConfig } from "../../../config/config";
 import {
   EMISSION_MANAGER_ID,
   INCENTIVES_IMPL_ID,
@@ -14,6 +15,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployments, getNamedAccounts, ethers } = hre;
   const { deploy, save, getExtendedArtifact } = deployments;
   const { deployer } = await getNamedAccounts();
+  const config = await getConfig(hre);
 
   // Get AddressesProvider address
   const addressesProvider = await deployments.get(POOL_ADDRESSES_PROVIDER_ID);
@@ -111,8 +113,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     from: deployer,
     args: [
       incentivesProxyAddress,
-      deployer, // This should be replaced with the actual emission manager address from config
-      deployer, // This should be replaced with the actual incentives vault address from config
+      config.walletAddresses.governanceMultisig, // This is the REWARDS_ADMIN
+      config.walletAddresses.incentivesVault, // This is where we pull the rewards from
     ],
     log: true,
     waitConfirmations: 1,

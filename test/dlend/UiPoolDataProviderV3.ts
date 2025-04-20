@@ -77,7 +77,7 @@ describe("dLEND UiPoolDataProviderV3", () => {
         await uiPoolDataProvider.getReservesList(addressesProvider);
       const fixtureAssets = Object.keys(fixture.assets);
 
-      expect(reservesList).to.have.lengthOf(4);
+      expect(reservesList).to.have.lengthOf(fixtureAssets.length);
       for (const asset of reservesList) {
         expect(fixtureAssets).to.include(asset);
       }

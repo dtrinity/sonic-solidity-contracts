@@ -13,8 +13,10 @@ import {
   rateStrategyMediumLiquidityVolatile,
 } from "../dlend/interest-rate-strategies";
 import {
-  strategyDStable,
-  strategyYieldBearingStablecoin,
+  strategyDS,
+  strategySfrxUSD,
+  strategyStS,
+  strategyWstkscUSD,
 } from "../dlend/reserves-params";
 import { Config } from "../types";
 
@@ -120,6 +122,7 @@ export async function getConfig(
     },
     walletAddresses: {
       governanceMultisig: "0xd2f775Ff2cD41bfe43C7A8c016eD10393553fe44", // Actually just the testnet deployer address
+      incentivesVault: "0xd2f775Ff2cD41bfe43C7A8c016eD10393553fe44", // Actually just the testnet deployer address
     },
     dStables: {
       dUSD: {
@@ -222,12 +225,13 @@ export async function getConfig(
                 }
               : {}),
             ...(wstkscUSDDeployment?.address &&
-            mockOracleNameToAddress["wstkscUSD_USD"]
+            mockOracleNameToAddress["wstkscUSD_scUSD"] &&
+            mockOracleNameToAddress["scUSD_USD"]
               ? {
                   [wstkscUSDDeployment.address]: {
                     feedAsset: wstkscUSDDeployment.address,
-                    feed1: mockOracleNameToAddress["wstkscUSD_scUSD"], // Changed from proxy1
-                    feed2: mockOracleNameToAddress["scUSD_USD"], // Changed from proxy2
+                    feed1: mockOracleNameToAddress["wstkscUSD_scUSD"],
+                    feed2: mockOracleNameToAddress["scUSD_USD"],
                     lowerThresholdInBase1: 0n,
                     fixedPriceInBase1: 0n,
                     lowerThresholdInBase2: 0n,
@@ -317,11 +321,11 @@ export async function getConfig(
         rateStrategyMediumLiquidityStable,
       ],
       reservesConfig: {
-        dUSD: strategyDStable,
-        dS: strategyDStable,
-        stS: strategyYieldBearingStablecoin,
-        sfrxUSD: strategyYieldBearingStablecoin,
-        wstkscUSD: strategyYieldBearingStablecoin,
+        dUSD: strategyDS,
+        dS: strategyDS,
+        stS: strategyStS,
+        sfrxUSD: strategySfrxUSD,
+        wstkscUSD: strategyWstkscUSD,
       },
     },
     odos: {

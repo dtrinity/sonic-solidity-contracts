@@ -202,7 +202,9 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       config.tokenAddresses[symbol as keyof typeof config.tokenAddresses];
 
     if (!tokenAddress) {
-      console.log(`- Skipping config of ${symbol} due missing token address`);
+      console.log(
+        `- Skipping config of ${symbol} due to missing token address`,
+      );
       continue;
     }
 
@@ -235,7 +237,10 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     dataProvider.address,
   );
 
-  for (const [symbol, tokenAddress] of Object.entries(config.tokenAddresses)) {
+  // Set up reserves for the defined reserves in dLend.reservesConfig
+  for (const symbol of Object.keys(config.dLend.reservesConfig)) {
+    const tokenAddress =
+      config.tokenAddresses[symbol as keyof typeof config.tokenAddresses];
     if (!tokenAddress) continue;
 
     const tokenData =
