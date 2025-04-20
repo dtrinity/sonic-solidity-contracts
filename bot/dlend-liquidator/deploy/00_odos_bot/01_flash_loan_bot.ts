@@ -50,7 +50,10 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   // Initialize the PoolAddressesProvider contract
   const addressProviderContract = await hre.ethers.getContractAt(
-    "PoolAddressesProvider",
+    [
+      "function getPool() public view returns (address)",
+      "function getPoolDataProvider() public view returns (address)",
+    ],
     lendingPoolAddressesProviderAddress,
     await hre.ethers.getSigner(liquidatorBotDeployer),
   );

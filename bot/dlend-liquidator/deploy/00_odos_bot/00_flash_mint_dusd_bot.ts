@@ -50,7 +50,10 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   // Initialize the PoolAddressesProvider contract
   const addressProviderContract = await hre.ethers.getContractAt(
-    "PoolAddressesProvider",
+    [
+      "function getPool() public view returns (address)",
+      "function getPoolDataProvider() public view returns (address)",
+    ],
     lendingPoolAddressesProviderAddress,
     await hre.ethers.getSigner(liquidatorBotDeployer),
   );
@@ -61,18 +64,21 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   // Get the Pool Data Provider
   const poolDataProviderAddress = await addressProviderContract.getPoolDataProvider();
   const poolDataProviderContract = await hre.ethers.getContractAt(
-    "AaveProtocolDataProvider",
+    [
+      "function getReserveTokensAddresses(address) public view returns (address, address, address)",
+    ],
     poolDataProviderAddress,
     await hre.ethers.getSigner(liquidatorBotDeployer),
   );
 
   // Get the AToken of the flash minter (quote token)
-  const tokenData = await poolDataProviderContract.getReserveTokensAddresses(
+  // All returns: { aTokenAddress, variableDebtTokenAddress, stableDebtTokenAddress }
+  const [aTokenAddress, _variableDebtTokenAddress, _stableDebtTokenAddress] = await poolDataProviderContract.getReserveTokensAddresses(
     config.liquidatorBotOdos.flashMinter
   );
-  const aTokenAddress = tokenData.aTokenAddress;
 
   // Deploy the flash mint liquidator bot
+  console.log("Deploying flash mint liquidator bot");
   await hre.deployments.deploy(FLASH_MINT_LIQUIDATOR_ODOS_ID, {
     from: liquidatorBotDeployer,
     args: [
@@ -89,6 +95,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   });
 
   // Configure the deployed contract
+  console.log("Configuring deployed contract");
   const flashMintLiquidatorBotDeployedResult = await hre.deployments.get(
     FLASH_MINT_LIQUIDATOR_ODOS_ID,
   );
