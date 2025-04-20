@@ -17,10 +17,10 @@
 
 pragma solidity 0.8.20;
 
-import "@rari-capital/solmate/src/utils/SafeTransferLib.sol";
+import {SafeERC20, ERC20} from "../libraries/SafeERC20.sol";
 
 contract SharedLiquidator {
-    using SafeTransferLib for ERC20;
+    using SafeERC20 for ERC20;
 
     event Withdrawn(
         address indexed sender,

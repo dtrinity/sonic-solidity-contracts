@@ -19,6 +19,7 @@ pragma solidity 0.8.20;
 
 import "../interface/IWETH.sol";
 import "../interface/aave-v3/aave/ILendingPoolAddressesProvider.sol";
+import {ILendingPool} from "../interface/aave-v3/aave/ILendingPool.sol";
 import "../interface/aave-v3/aave/IPriceOracleGetter.sol";
 import "../interface/aave-v3/IAToken.sol";
 import "../interface/aave-v3/ILiquidator.sol";
@@ -29,19 +30,16 @@ import "../interface/aave-v3/libraries/DataTypes.sol";
 import "../libraries/PercentageMath.sol";
 
 import "../interface/aave-v3/aave/ILendingPool.sol";
+import {SharedLiquidator, SafeERC20} from "../common/SharedLiquidator.sol";
 
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-import "../common/SharedLiquidator.sol";
-import "@openzeppelin/contracts/interfaces/IERC4626.sol";
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "@rari-capital/solmate/src/utils/SafeTransferLib.sol";
 
 abstract contract FlashLoanLiquidatorAaveBase is
     ReentrancyGuard,
     SharedLiquidator,
     IFlashLoanSimpleReceiver
 {
-    using SafeTransferLib for ERC20;
+    using SafeERC20 for ERC20;
     using ReserveConfiguration for DataTypes.ReserveConfigurationMap;
     using PercentageMath for uint256;
 
@@ -258,19 +256,6 @@ abstract contract FlashLoanLiquidatorAaveBase is
         address _poolToken
     ) internal view returns (ERC20 underlying_) {
         underlying_ = ERC20(IAToken(_poolToken).UNDERLYING_ASSET_ADDRESS());
-    }
-
-    function redeemERC4626Token(
-        address _collateralERC4626Token,
-        uint256 _amount,
-        address _recipient
-    ) public returns (uint256) {
-        return
-            IERC4626(_collateralERC4626Token).redeem(
-                _amount,
-                _recipient,
-                _recipient
-            );
     }
 
     /**

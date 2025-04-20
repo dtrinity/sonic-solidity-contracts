@@ -2,9 +2,10 @@ import "@typechain/hardhat";
 import "@nomicfoundation/hardhat-ethers";
 import "@nomicfoundation/hardhat-chai-matchers";
 import "@nomicfoundation/hardhat-toolbox";
-import "@nomicfoundation/hardhat-verify";
 import "hardhat-deploy";
 import "dotenv/config";
+// Import hardhat-verify last to avoid task redefinition issues
+import "@nomicfoundation/hardhat-verify";
 
 import { HardhatUserConfig } from "hardhat/config";
 
@@ -43,6 +44,9 @@ const config: HardhatUserConfig = {
     liquidatorBot: {
       default: 1,
     },
+    liquidatorBotDeployer: {
+      default: 0, // Use the deployer address for the liquidator bot deployment
+    }
   },
   paths: {
     sources: "./contracts",
@@ -54,6 +58,13 @@ const config: HardhatUserConfig = {
   },
   gasReporter: {
     enabled: false, // Enable this when testing new complex functions
+  },
+  // Configure etherscan (verification) separately to avoid conflicts
+  etherscan: {
+    apiKey: {
+      // For non-Ethereum networks, the API key is often a placeholder
+      sonic_mainnet: "sonic",
+    },
   },
 };
 

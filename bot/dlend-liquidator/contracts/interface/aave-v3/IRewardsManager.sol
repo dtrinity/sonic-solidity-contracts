@@ -17,7 +17,7 @@
 
 pragma solidity ^0.8.0;
 
-import "./../../../lending/core/interfaces/IAaveIncentivesController.sol";
+import "./aave/IAaveIncentivesController.sol";
 
 interface IRewardsManager {
     function initialize(address _morpho) external;

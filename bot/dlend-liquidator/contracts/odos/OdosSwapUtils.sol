@@ -2,14 +2,13 @@
 pragma solidity ^0.8.20;
 
 import "./interface/IOdosRouterV2.sol";
-import "@rari-capital/solmate/src/utils/SafeTransferLib.sol";
-
+import {SafeERC20, ERC20} from "../libraries/SafeERC20.sol";
 /**
  * @title OdosSwapUtils
  * @notice Library for handling Odos swaps in liquidator contracts
  */
 library OdosSwapUtils {
-    using SafeTransferLib for ERC20;
+    using SafeERC20 for ERC20;
 
     /// @notice Custom error for failed swap with no revert reason
     error SwapFailed();
@@ -31,7 +30,7 @@ library OdosSwapUtils {
         uint256 exactOut,
         bytes memory swapData
     ) internal returns (uint256) {
-        ERC20(inputToken).approve(address(router), maxIn);
+        ERC20(inputToken).safeApprove(address(router), maxIn);
 
         (bool success, bytes memory result) = address(router).call(swapData);
         if (!success) {

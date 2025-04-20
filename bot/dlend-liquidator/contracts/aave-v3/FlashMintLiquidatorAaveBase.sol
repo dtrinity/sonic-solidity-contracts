@@ -31,15 +31,14 @@ import "../libraries/PercentageMath.sol";
 import "../interface/aave-v3/aave/ILendingPool.sol";
 
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-import "../common/SharedLiquidator.sol";
-import {ERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
+import {SharedLiquidator, SafeERC20} from "../common/SharedLiquidator.sol";
 
 abstract contract FlashMintLiquidatorAaveBase is
     ReentrancyGuard,
     SharedLiquidator,
     IERC3156FlashBorrower
 {
-    using SafeTransferLib for ERC20;
+    using SafeERC20 for ERC20;
     using ReserveConfiguration for DataTypes.ReserveConfigurationMap;
     using PercentageMath for uint256;
 
@@ -143,19 +142,6 @@ abstract contract FlashMintLiquidatorAaveBase is
             seized_,
             false
         );
-    }
-
-    function redeemERC4626Token(
-        address _collateralERC4626Token,
-        uint256 _amount,
-        address _recipient
-    ) public returns (uint256) {
-        return
-            ERC4626(_collateralERC4626Token).redeem(
-                _amount,
-                _recipient,
-                _recipient
-            );
     }
 
     function _liquidateWithFlashLoan(

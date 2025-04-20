@@ -4,12 +4,11 @@ pragma solidity 0.8.20;
 import "../odos/interface/IOdosRouterV2.sol";
 import "../odos/OdosSwapUtils.sol";
 import "./FlashLoanLiquidatorAaveBorrowRepayBase.sol";
-import "@rari-capital/solmate/src/utils/SafeTransferLib.sol";
 
 contract FlashLoanLiquidatorAaveBorrowRepayOdos is
     FlashLoanLiquidatorAaveBorrowRepayBase
 {
-    using SafeTransferLib for ERC20;
+    using SafeERC20 for ERC20;
     IOdosRouterV2 public immutable odosRouter;
 
     error InsufficientOutputAfterSwap(uint256 expected, uint256 actual);

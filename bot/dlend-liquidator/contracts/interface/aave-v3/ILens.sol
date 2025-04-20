@@ -18,6 +18,7 @@
 pragma solidity ^0.8.0;
 
 import "./aave/ILendingPool.sol";
+import "./aave/ILendingPoolAddressesProvider.sol";
 import "./libraries/Types.sol";
 import "./aave/IPriceOracleGetter.sol";
 import "./aave/ILendingPool.sol";

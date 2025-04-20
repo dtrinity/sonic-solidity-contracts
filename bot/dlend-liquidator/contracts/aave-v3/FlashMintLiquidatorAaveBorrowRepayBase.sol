@@ -19,11 +19,13 @@ pragma solidity 0.8.20;
 
 import "./FlashMintLiquidatorAaveBase.sol";
 import {Constants} from "../shared/Constants.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {ERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 
 abstract contract FlashMintLiquidatorAaveBorrowRepayBase is
-    FlashMintLiquidatorAaveBase
+    FlashMintLiquidatorAaveBase, Ownable
 {
-    using SafeTransferLib for ERC20;
+    using SafeERC20 for ERC20;
     using PercentageMath for uint256;
 
     uint256 public slippageTolerance; // in basis points units
@@ -46,6 +48,7 @@ abstract contract FlashMintLiquidatorAaveBorrowRepayBase is
             _addressesProvider,
             _aDUSD
         )
+        Ownable(msg.sender)
     {
         slippageTolerance = _slippageTolerance;
         emit SlippageToleranceSet(_slippageTolerance);
@@ -218,6 +221,19 @@ abstract contract FlashMintLiquidatorAaveBorrowRepayBase is
             seized,
             true
         );
+    }
+
+    function redeemERC4626Token(
+        address _collateralERC4626Token,
+        uint256 _amount,
+        address _recipient
+    ) public returns (uint256) {
+        return
+            ERC4626(_collateralERC4626Token).redeem(
+                _amount,
+                _recipient,
+                _recipient
+            );
     }
 
     function getActualCollateralToken(
