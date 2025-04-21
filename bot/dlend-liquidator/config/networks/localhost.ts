@@ -5,19 +5,6 @@ export async function getConfig(
   hre: HardhatRuntimeEnvironment
 ): Promise<Config> {
   return {
-    lending: {
-      providerID: 1,
-      reserveAssetAddresses: {
-        // Sample addresses - to be replaced with actual addresses
-        WETH: "0x00000000000000000000000000000000000000E1",
-        USDC: "0x00000000000000000000000000000000000000E2",
-        dUSD: "0x00000000000000000000000000000000000000E3",
-      },
-      flashLoanPremium: {
-        total: 9,
-        protocol: 0,
-      },
-    },
     liquidatorBotOdos: {
       flashMinter: "0x00000000000000000000000000000000000000F1",
       dUSDAddress: "0x00000000000000000000000000000000000000E3", 
