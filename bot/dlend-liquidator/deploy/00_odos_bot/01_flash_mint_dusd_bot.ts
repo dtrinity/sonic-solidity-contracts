@@ -86,12 +86,13 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       assertNotEmpty(lendingPoolAddressesProviderAddress),
       assertNotEmpty(poolAddress),
       assertNotEmpty(aTokenAddress),
-      config.liquidatorBotOdos.slippageTolerance,
+      BigInt(config.liquidatorBotOdos.slippageTolerance),
       assertNotEmpty(routerAddress),
     ],
+    libraries: undefined,
     contract: "FlashMintLiquidatorAaveBorrowRepayOdos",
     autoMine: true,
-    log: true,
+    log: false,
   });
 
   // Configure the deployed contract
