@@ -20,7 +20,7 @@
 pragma solidity ^0.8.20;
 
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import {Address} from "./Address.sol";
+import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 
 /**
  * @title SafeERC20
@@ -129,8 +129,7 @@ library SafeERC20 {
         // the target address contains contract code and also asserts for success in the low-level call.
 
         bytes memory returndata = address(token).functionCall(
-            data,
-            "SafeERC20: low-level call failed"
+            data
         );
         if (returndata.length > 0) {
             // Return data is optional
