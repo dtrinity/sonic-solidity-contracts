@@ -21,17 +21,16 @@ const config: HardhatUserConfig = {
   },
   networks: {
     hardhat: {
-      deploy: ["deploy-mocks", "deploy"],
+      deploy: ["deploy"],
       allowUnlimitedContractSize: true,
       saveDeployments: false, // allow testing without needing to remove the previous deployments
     },
     localhost: {
-      deploy: ["deploy-mocks", "deploy"],
+      deploy: ["deploy"],
       saveDeployments: true,
     },
     sonic_mainnet: {
-      // Documentation: https://docs.soniclabs.com/sonic/build-on-sonic/getting-started
-      url: `https://rpc.sonic.soniclabs.com`,
+      url: `https://rpc.soniclabs.com`,
       deploy: ["deploy"],
       saveDeployments: true,
       accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
@@ -43,7 +42,7 @@ const config: HardhatUserConfig = {
       default: 0,
     },
     liquidatorBot: {
-      default: 1,
+      default: 0,
     },
     liquidatorBotDeployer: {
       default: 0, // Use the deployer address for the liquidator bot deployment
