@@ -1,7 +1,6 @@
 {
-  "extends": "solhint:recommended",
+  "extends": "solhint:default",
   "rules": {
-    "quotes": ["error", "double"],
-    "indent": ["error", 4]
+    "max-line-length": ["error", 180]
   }
-} 
+}

@@ -235,6 +235,7 @@ abstract contract FlashMintLiquidatorAaveBase is
         //         loanToValue +
         //         1e18; // for rounding errors of supply/borrow on aave
         // }
+
     }
 
     function _encodeData(

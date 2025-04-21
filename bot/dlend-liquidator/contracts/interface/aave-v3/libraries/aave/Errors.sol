@@ -71,7 +71,8 @@ library Errors {
     string public constant NOT_ENOUGH_AVAILABLE_USER_BALANCE = "32"; // 'User cannot withdraw more than the available balance'
     string public constant INVALID_INTEREST_RATE_MODE_SELECTED = "33"; // 'Invalid interest rate mode selected'
     string public constant COLLATERAL_BALANCE_IS_ZERO = "34"; // 'The collateral balance is 0'
-    string public constant HEALTH_FACTOR_LOWER_THAN_LIQUIDATION_THRESHOLD = "35"; // 'Health factor is lesser than the liquidation threshold'
+    string public constant HEALTH_FACTOR_LOWER_THAN_LIQUIDATION_THRESHOLD =
+        "35"; // 'Health factor is lesser than the liquidation threshold'
     string public constant COLLATERAL_CANNOT_COVER_NEW_BORROW = "36"; // 'There is not enough collateral to cover a new borrow'
     string public constant COLLATERAL_SAME_AS_BORROWING_CURRENCY = "37"; // 'Collateral is (mostly) the same currency that is being borrowed'
     string public constant AMOUNT_BIGGER_THAN_MAX_LOAN_SIZE_STABLE = "38"; // 'The requested amount is greater than the max loan size in stable rate mode'
@@ -129,10 +130,12 @@ library Errors {
     string public constant RESERVE_DEBT_NOT_ZERO = "90"; // the total debt of the reserve needs to be 0
     string public constant FLASHLOAN_DISABLED = "91"; // FlashLoaning for this asset is disabled
     string public constant RC_INVALID_LTV = "RC_INVALID_LTV";
-    string public constant RC_INVALID_LIQ_THRESHOLD = "RC_INVALID_LIQ_THRESHOLD";
+    string public constant RC_INVALID_LIQ_THRESHOLD =
+        "RC_INVALID_LIQ_THRESHOLD";
     string public constant RC_INVALID_LIQ_BONUS = "RC_INVALID_LIQ_BONUS";
     string public constant RC_INVALID_DECIMALS = "RC_INVALID_DECIMALS";
-    string public constant RC_INVALID_RESERVE_FACTOR = "RC_INVALID_RESERVE_FACTOR";
+    string public constant RC_INVALID_RESERVE_FACTOR =
+        "RC_INVALID_RESERVE_FACTOR";
 
     enum CollateralManagerErrors {
         NO_ERROR,

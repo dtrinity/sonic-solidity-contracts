@@ -23,7 +23,8 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {ERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 
 abstract contract FlashMintLiquidatorAaveBorrowRepayBase is
-    FlashMintLiquidatorAaveBase, Ownable
+    FlashMintLiquidatorAaveBase,
+    Ownable
 {
     using SafeERC20 for ERC20;
     using PercentageMath for uint256;

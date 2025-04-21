@@ -17,6 +17,8 @@
 
 pragma solidity ^0.8.0;
 
+/* solhint-disable max-line-length */
+
 /// @title Types.
 /// @author Morpho Labs.
 /// @custom:contact security@morpho.xyz
@@ -101,3 +103,4 @@ library Types {
         uint256 underlyingPrice;
     }
 }
+/* solhint-enable max-line-length */
