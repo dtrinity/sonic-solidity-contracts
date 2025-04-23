@@ -1,15 +1,12 @@
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
-import path from "path";
-import fs from "fs";
-import { getConfig } from "../../config/config";
 
-// Define deployment IDs
-const FLASH_MINT_LIQUIDATOR_ODOS_ID = "FlashMintLiquidatorOdos";
+import { getConfig } from "../../config/config";
+import { FLASH_MINT_DUSD_LIQUIDATOR_ODOS_ID } from "../../config/deploy-ids";
+import { getPoolAddressesProviderAddressFromParent } from "../../typescript/dlend_helpers/pool";
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployer } = await hre.getNamedAccounts();
-  const network = hre.network.name;
 
   const config = await getConfig(hre);
 
@@ -23,29 +20,9 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     throw new Error("Odos router address is not found");
   }
 
-  // Get the deployments directory for the current network
-  const deploymentPath = path.join(
-    "..",
-    "..",
-    "deployments",
-    network
-  );
-
-  // Check if the directory exists
-  if (!fs.existsSync(deploymentPath)) {
-    throw new Error(`Deployment directory for PoolAddressesProvider not found on path ${deploymentPath}`);
-  }
-
-  // Get the PoolAddressesProvider from deployments
-  const poolAddressesProviderPath = path.join(deploymentPath, "PoolAddressesProvider.json");
-  if (!fs.existsSync(poolAddressesProviderPath)) {
-    throw new Error(`PoolAddressesProvider deployment not found on path ${poolAddressesProviderPath}`);
-  }
-
-  const poolAddressesProviderDeployment = JSON.parse(
-    fs.readFileSync(poolAddressesProviderPath, "utf8")
-  );
-  const lendingPoolAddressesProviderAddress = poolAddressesProviderDeployment.address;
+  // Get the PoolAddressesProvider address from the parent deployment
+  const lendingPoolAddressesProviderAddress =
+    await getPoolAddressesProviderAddressFromParent(hre);
 
   // Initialize the PoolAddressesProvider contract
   const addressProviderContract = await hre.ethers.getContractAt(
@@ -61,7 +38,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const poolAddress = await addressProviderContract.getPool();
 
   // Get the Pool Data Provider
-  const poolDataProviderAddress = await addressProviderContract.getPoolDataProvider();
+  const poolDataProviderAddress =
+    await addressProviderContract.getPoolDataProvider();
   const poolDataProviderContract = await hre.ethers.getContractAt(
     [
       "function getReserveTokensAddresses(address) public view returns (address, address, address)",
@@ -72,13 +50,14 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   // Get the AToken of the flash minter (quote token)
   // All returns: { aTokenAddress, variableDebtTokenAddress, stableDebtTokenAddress }
-  const [aTokenAddress, _variableDebtTokenAddress, _stableDebtTokenAddress] = await poolDataProviderContract.getReserveTokensAddresses(
-    config.liquidatorBotOdos.flashMinter
-  );
+  const [aTokenAddress, _variableDebtTokenAddress, _stableDebtTokenAddress] =
+    await poolDataProviderContract.getReserveTokensAddresses(
+      config.liquidatorBotOdos.flashMinter,
+    );
 
   // Deploy the flash mint liquidator bot
   console.log("Deploying flash mint liquidator bot");
-  await hre.deployments.deploy(FLASH_MINT_LIQUIDATOR_ODOS_ID, {
+  await hre.deployments.deploy(FLASH_MINT_DUSD_LIQUIDATOR_ODOS_ID, {
     from: deployer,
     args: [
       assertNotEmpty(config.liquidatorBotOdos.flashMinter),
@@ -97,7 +76,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   // Configure the deployed contract
   console.log("Configuring deployed contract");
   const flashMintLiquidatorBotDeployedResult = await hre.deployments.get(
-    FLASH_MINT_LIQUIDATOR_ODOS_ID,
+    FLASH_MINT_DUSD_LIQUIDATOR_ODOS_ID,
   );
   const flashMintLiquidatorBotContract = await hre.ethers.getContractAt(
     "FlashMintLiquidatorAaveBorrowRepayOdos",
@@ -106,9 +85,9 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   );
 
   // Set proxy contracts if they exist in config
-  if (config.liquidatorBotOdos?.proxyContractMap) {
+  if (config.tokenProxyContractMap) {
     for (const [token, proxyContract] of Object.entries(
-      config.liquidatorBotOdos.proxyContractMap,
+      config.tokenProxyContractMap,
     )) {
       await flashMintLiquidatorBotContract.setProxyContract(
         token,
@@ -117,7 +96,9 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     }
   }
 
-  console.log(`🤖 Deployed Flash Mint Liquidator Bot at ${flashMintLiquidatorBotDeployedResult.address}`);
+  console.log(
+    `🤖 Deployed Flash Mint Liquidator Bot at ${flashMintLiquidatorBotDeployedResult.address}`,
+  );
 
   // Return true to indicate the success of the script
   return true;
@@ -146,6 +127,6 @@ function assertNotEmpty(value: string | undefined): string {
 
 func.tags = ["liquidator-bot"];
 func.dependencies = [];
-func.id = FLASH_MINT_LIQUIDATOR_ODOS_ID;
+func.id = FLASH_MINT_DUSD_LIQUIDATOR_ODOS_ID;
 
-export default func; 
+export default func;

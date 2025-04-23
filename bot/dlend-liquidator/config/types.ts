@@ -1,4 +1,13 @@
 export interface Config {
+  readonly parentDeploymentPaths: {
+    poolAddressesProvider: string;
+    poolDataProvider: string;
+    aaveOracle: string;
+  };
+  // Mapping from token address to the proxy contract address
+  readonly tokenProxyContractMap: {
+    [tokenAddress: string]: string;
+  };
   readonly liquidatorBotOdos?: LiquidatorBotOdosConfig;
 }
 
@@ -15,10 +24,6 @@ export interface LiquidatorBotConfig {
     url: string;
     batchSize: number;
   };
-  // Mapping from token address to the proxy contract address
-  readonly proxyContractMap: {
-    [tokenAddress: string]: string;
-  };
   // Mapping from token address to whether it requires unstaking
   readonly isUnstakeTokens: {
     [tokenAddress: string]: boolean;
@@ -28,4 +33,4 @@ export interface LiquidatorBotConfig {
 export interface LiquidatorBotOdosConfig extends LiquidatorBotConfig {
   readonly odosRouter: string;
   readonly odosApiUrl: string;
-} 
+}

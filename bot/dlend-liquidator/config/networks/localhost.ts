@@ -1,13 +1,47 @@
-import { HardhatRuntimeEnvironment } from "hardhat/types";
+import path from "path";
+
 import { Config } from "../types";
 
-export async function getConfig(
-  hre: HardhatRuntimeEnvironment
-): Promise<Config> {
+/**
+ * Get the config for the localhost network
+ *
+ * @returns The config for the localhost network
+ */
+export async function getConfig(): Promise<Config> {
   return {
+    parentDeploymentPaths: {
+      poolAddressesProvider: path.join(
+        __dirname,
+        "..",
+        "..",
+        "..",
+        "deployments",
+        "localhost",
+        "PoolAddressesProvider.json",
+      ),
+      poolDataProvider: path.join(
+        __dirname,
+        "..",
+        "..",
+        "..",
+        "deployments",
+        "localhost",
+        "PoolDataProvider.json",
+      ),
+      aaveOracle: path.join(
+        __dirname,
+        "..",
+        "..",
+        "..",
+        "deployments",
+        "localhost",
+        "PriceOracle.json",
+      ),
+    },
+    tokenProxyContractMap: {}, // No proxy contract on localhost
     liquidatorBotOdos: {
       flashMinter: "0x00000000000000000000000000000000000000F1",
-      dUSDAddress: "0x00000000000000000000000000000000000000E3", 
+      dUSDAddress: "0x00000000000000000000000000000000000000E3",
       slippageTolerance: 100, // 1% (in basis points)
       healthFactorThreshold: 100000000000000000, // 0.1 in Wei
       healthFactorBatchSize: 10,
@@ -18,10 +52,9 @@ export async function getConfig(
         url: "http://localhost:8000/subgraphs/name/dtrinity/dlending",
         batchSize: 1000,
       },
-      proxyContractMap: {},
       isUnstakeTokens: {},
       odosRouter: "0x00000000000000000000000000000000000000F2",
       odosApiUrl: "https://api.odos.xyz",
     },
   };
-} 
+}

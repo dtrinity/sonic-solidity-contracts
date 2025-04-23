@@ -15,10 +15,10 @@ export async function getConfig(
 ): Promise<Config> {
   switch (hre.network.name) {
     case "sonic_mainnet":
-      return getSonicMainnetConfig(hre);
+      return getSonicMainnetConfig();
     case "hardhat":
     case "localhost":
-      return getLocalhostConfig(hre);
+      return getLocalhostConfig();
     default:
       throw new Error(`Unknown network: ${hre.network.name}`);
   }

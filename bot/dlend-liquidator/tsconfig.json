@@ -8,6 +8,6 @@
     "forceConsistentCasingInFileNames": true,
     "outDir": "./dist"
   },
-  "include": ["./scripts", "./test", "./deploy"],
+  "include": ["./scripts", "./test", "./deploy", "./typescript"],
   "files": ["./hardhat.config.ts"]
-} 
+}
