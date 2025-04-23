@@ -25,3 +25,15 @@ lint.solidity: ## Run the solidity linter
 
 lint.typescript: ## Run the typescript linter
 	@yarn eslint . --fix
+
+########################
+## Running the bot ##
+########################
+
+run.%:
+	@yarn hardhat run \
+		--network $* \
+		typescript/odos_bot/run.ts
+
+run.sonic_mainnet:
+run.sonic_testnet:
