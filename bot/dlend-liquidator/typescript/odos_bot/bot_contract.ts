@@ -18,6 +18,10 @@ import {
 export async function getOdosFlashMintDUSDLiquidatorBotContract(
   callerAddress: string,
 ): Promise<FlashMintLiquidatorAaveBorrowRepayOdos> {
+  if (!callerAddress) {
+    throw new Error("Caller address is not provided");
+  }
+
   const signer = await hre.ethers.getSigner(callerAddress);
 
   const liquidatorBotDeployment = await hre.deployments.get(
@@ -48,6 +52,10 @@ export async function getOdosFlashMintDUSDLiquidatorBotContract(
 export async function getOdosFlashLoanLiquidatorBotContract(
   callerAddress: string,
 ): Promise<FlashLoanLiquidatorAaveBorrowRepayOdos> {
+  if (!callerAddress) {
+    throw new Error("Caller address is not provided");
+  }
+
   const signer = await hre.ethers.getSigner(callerAddress);
 
   const liquidatorBotDeployment = await hre.deployments.get(

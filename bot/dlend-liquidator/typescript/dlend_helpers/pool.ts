@@ -47,8 +47,8 @@ export async function getPoolAddressesProviderAddressFromParent(
  * @returns - The Lending pool contract's address
  */
 export async function getPoolContractAddress(): Promise<string> {
-  const { lendingDeployer } = await hre.getNamedAccounts();
-  const signer = await hre.ethers.getSigner(lendingDeployer);
+  const { deployer } = await hre.getNamedAccounts();
+  const signer = await hre.ethers.getSigner(deployer);
 
   const addressProviderAddress =
     await getPoolAddressesProviderAddressFromParent(hre);

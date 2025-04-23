@@ -32,7 +32,7 @@ export async function getUserReserveInfo(
   userAddress: string,
   reserveAddress: string,
 ): Promise<UserReserveInfo> {
-  const { liquidatorBotDeployer } = await hre.getNamedAccounts();
+  const { deployer } = await hre.getNamedAccounts();
   const [
     totalSupply,
     totalDebt,
@@ -42,7 +42,7 @@ export async function getUserReserveInfo(
   ] = await Promise.all([
     getUserSupplyBalance(reserveAddress, userAddress),
     getUserDebtBalance(reserveAddress, userAddress),
-    getOraclePrice(liquidatorBotDeployer, reserveAddress),
+    getOraclePrice(deployer, reserveAddress),
     fetchTokenInfo(hre, reserveAddress),
     getReserveConfigurationData(reserveAddress),
   ]);

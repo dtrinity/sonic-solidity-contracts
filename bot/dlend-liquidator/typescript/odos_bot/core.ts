@@ -56,11 +56,11 @@ export async function runOdosBot(index: number): Promise<void> {
     throw new Error("Liquidator bot Odos config is not found");
   }
 
-  const { liquidatorBotDeployer } = await hre.getNamedAccounts();
+  const { deployer } = await hre.getNamedAccounts();
   const flashMintLiquidatorBotContract =
-    await getOdosFlashMintDUSDLiquidatorBotContract(liquidatorBotDeployer);
+    await getOdosFlashMintDUSDLiquidatorBotContract(deployer);
   const flashLoanLiquidatorBotContract =
-    await getOdosFlashLoanLiquidatorBotContract(liquidatorBotDeployer);
+    await getOdosFlashLoanLiquidatorBotContract(deployer);
 
   let allUserAddresses = await getAllLendingUserAddresses();
 
@@ -94,7 +94,7 @@ export async function runOdosBot(index: number): Promise<void> {
       await runBotBatch(
         index,
         batchUserAddresses,
-        liquidatorBotDeployer,
+        deployer,
         flashMintLiquidatorBotContract,
         flashLoanLiquidatorBotContract,
         config.liquidatorBotOdos.healthFactorBatchSize,
@@ -125,7 +125,7 @@ export async function runOdosBot(index: number): Promise<void> {
  *
  * @param index - The index of the run
  * @param allUserAddresses - The addresses of the users to liquidate
- * @param liquidatorBotDeployer - The address of the liquidator bot deployer
+ * @param deployer - The address of the liquidator bot deployer
  * @param flashMintLiquidatorBotContract - The flash mint liquidator bot contract
  * @param flashLoanLiquidatorBotContract - The flash loan liquidator bot contract
  * @param healthFactorBatchSize - The size of the health factor batch
@@ -135,7 +135,7 @@ export async function runOdosBot(index: number): Promise<void> {
 export async function runBotBatch(
   index: number,
   allUserAddresses: string[],
-  liquidatorBotDeployer: string,
+  deployer: string,
   flashMintLiquidatorBotContract: FlashMintLiquidatorAaveBorrowRepayOdos,
   flashLoanLiquidatorBotContract: FlashLoanLiquidatorAaveBorrowRepayOdos,
   healthFactorBatchSize: number,
@@ -157,6 +157,10 @@ export async function runBotBatch(
     healthFactorBatchSize,
     async (userAddress: string) => {
       try {
+        if (!userAddress) {
+          throw new Error("User address is not provided");
+        }
+
         const res = await getUserHealthFactor(userAddress);
         await new Promise((resolve) => setTimeout(resolve, 1000));
         return res;
@@ -264,7 +268,7 @@ export async function runBotBatch(
 
           const txHash = await performOdosLiquidationDefault(
             liquidationParams.userAddress,
-            liquidatorBotDeployer,
+            deployer,
             liquidationParams.debtToken.reserveTokenInfo.address,
             liquidationParams.collateralToken.reserveTokenInfo.address,
             liquidationParams.toLiquidateAmount.toBigInt(),

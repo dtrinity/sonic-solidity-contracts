@@ -228,12 +228,12 @@ export async function getUserLiquidationParams(userAddress: string): Promise<{
     .filter((b) => b.liquidationBonus.gt(0))
     .sort((a, b) => (a.totalSupply.gt(b.totalSupply) ? -1 : 1));
 
-  const { liquidatorBotDeployer } = await hre.getNamedAccounts();
+  const { deployer } = await hre.getNamedAccounts();
   const maxLiquidationAmount = await getMaxLiquidationAmount(
     collateralMarket.reserveTokenInfo,
     debtMarket.reserveTokenInfo,
     userAddress,
-    liquidatorBotDeployer,
+    deployer,
   );
 
   return {
