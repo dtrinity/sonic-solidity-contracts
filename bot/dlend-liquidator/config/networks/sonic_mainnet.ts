@@ -57,7 +57,7 @@ export async function getConfig(): Promise<Config> {
       profitableThresholdInUSD: 0.001,
       liquidatingBatchSize: 200,
       graphConfig: {
-        url: "https://graph-node.dtrinity.org/subgraphs/name/stablyio-aave-v3-messari-mainnet",
+        url: "http://35.83.220.110/subgraphs/name/dtrinity-aave-sonic/", // TODO: Replace with actual subgraph URL
         batchSize: 1000,
       },
       isUnstakeTokens: {
