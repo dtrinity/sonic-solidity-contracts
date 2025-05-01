@@ -80,3 +80,8 @@ export const PULL_REWARDS_TRANSFER_STRATEGY_ID = "PullRewardsTransferStrategy";
 
 // dLOOP
 export const DLOOP_CORE_DLEND_ID = "DLoopCoreDLend";
+
+/* dLOOP Periphery */
+export const DLOOP_PERIPHERY_ODOS_DEPOSITOR_ID = "DLoopDepositorOdos";
+export const DLOOP_PERIPHERY_ODOS_WITHDRAWER_ID = "DLoopWithdrawerOdos";
+export const DLOOP_PERIPHERY_ODOS_SWAP_LOGIC_ID = "OdosSwapLogic";
