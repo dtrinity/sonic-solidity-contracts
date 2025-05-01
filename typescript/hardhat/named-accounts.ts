@@ -11,10 +11,16 @@ export function getEnvPrivateKeys(network: string): string[] {
 
   switch (network) {
     case "sonic_testnet":
-      pks = [getPrivateKeyFromMnemonic(`testnet_deployer`)];
+      pks = [
+        getPrivateKeyFromMnemonic(`testnet_deployer`),
+        getPrivateKeyFromEnv(`testnet_deployer`),
+      ];
       break;
     case "sonic_mainnet":
-      pks = [getPrivateKeyFromMnemonic(`mainnet_deployer`)];
+      pks = [
+        getPrivateKeyFromMnemonic(`mainnet_deployer`),
+        getPrivateKeyFromEnv(`mainnet_deployer`),
+      ];
       break;
     default:
       throw new Error(`Unsupported network: ${network}`);
