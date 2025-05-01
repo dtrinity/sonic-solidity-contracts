@@ -16,6 +16,16 @@ export interface Config {
   readonly odos?: {
     readonly router: string;
   };
+  readonly dLoop: {
+    readonly dUSDAddress: string;
+    readonly coreVaults: { [vaultName: string]: DLoopCoreConfig };
+    readonly depositors: {
+      odos: DLoopDepositorOdosConfig;
+    };
+    readonly withdrawers: {
+      odos: DLoopWithdrawerOdosConfig;
+    };
+  };
 }
 
 // Configuration for mocking infrastructure on local and test networks
@@ -32,6 +42,27 @@ export interface MockConfig {
 
 export interface DStableConfig {
   readonly collaterals: Address[];
+}
+
+export interface DLoopCoreConfig {
+  readonly venue: "dlend";
+  readonly name: string;
+  readonly symbol: string;
+  readonly underlyingAsset: string;
+  readonly dStable: string;
+  readonly targetLeverageBps: number;
+  readonly lowerBoundTargetLeverageBps: number;
+  readonly upperBoundTargetLeverageBps: number;
+  readonly maxSubsidyBps: number;
+  readonly extraParams: { [key: string]: any }; // Add more params here
+}
+
+export interface DLoopDepositorOdosConfig {
+  readonly router: string;
+}
+
+export interface DLoopWithdrawerOdosConfig {
+  readonly router: string;
 }
 
 export interface TokenAddresses {

@@ -77,3 +77,6 @@ export const EMISSION_MANAGER_ID = "EmissionManager";
 export const INCENTIVES_IMPL_ID = "RewardsController";
 export const INCENTIVES_PROXY_ID = "IncentivesProxy";
 export const PULL_REWARDS_TRANSFER_STRATEGY_ID = "PullRewardsTransferStrategy";
+
+// dLOOP
+export const DLOOP_CORE_DLEND_ID = "DLoopCoreDLend";
