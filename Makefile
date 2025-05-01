@@ -49,6 +49,13 @@ test.hardhat: ## Run the hardhat tests
 deploy: ## Deploy the contracts
 	@yarn hardhat deploy
 
+deploy.dloop:
+	@if [ -z "$(network)" ]; then \
+		yarn hardhat deploy --tags dloop; \
+	else \
+		yarn hardhat deploy --tags dloop --network $(network); \
+	fi
+
 ####################
 ## Block explorer ##
 ####################

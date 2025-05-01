@@ -1,6 +1,7 @@
 import { ZeroAddress } from "ethers";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 
+import { ONE_PERCENT_BPS } from "../../typescript/common/bps_constants";
 import { DS_TOKEN_ID, DUSD_TOKEN_ID } from "../../typescript/deploy-ids";
 import {
   ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT,
@@ -40,6 +41,8 @@ export async function getConfig(
   const USDCeAddress = "0x29219dd400f2Bf60E5a23d13Be72B486D4038894";
   const scUSDAddress = "0xd3DCe716f3eF535C5Ff8d041c1A41C3bd89b97aE";
 
+  const odoRouterV2Address = "0xaC041Df48dF9791B0654f1Dbbf2CC8450C5f2e9D"; // OdoRouterV2
+
   return {
     tokenAddresses: {
       dUSD: emptyStringIfUndefined(dUSDDeployment?.address),
@@ -68,6 +71,33 @@ export async function getConfig(
       },
       dS: {
         collaterals: [wSAddress, stSAddress],
+      },
+    },
+    dLoop: {
+      dUSDAddress: dUSDDeployment?.address || "",
+      coreVaults: {
+        "3x_sFRAX_dUSD": {
+          venue: "dlend",
+          name: "Leveraged sFRAX-dUSD Vault",
+          symbol: "FRAX-dUSD-3x",
+          underlyingAsset: sfrxUSDAddress,
+          dStable: dUSDDeployment?.address || "",
+          targetLeverageBps: 300 * ONE_PERCENT_BPS, // 300% leverage, meaning 3x leverage
+          lowerBoundTargetLeverageBps: 200 * ONE_PERCENT_BPS, // 200% leverage, meaning 2x leverage
+          upperBoundTargetLeverageBps: 400 * ONE_PERCENT_BPS, // 400% leverage, meaning 4x leverage
+          maxSubsidyBps: 2 * ONE_PERCENT_BPS, // 2% subsidy
+          extraParams: {},
+        },
+      },
+      depositors: {
+        odos: {
+          router: odoRouterV2Address,
+        },
+      },
+      withdrawers: {
+        odos: {
+          router: odoRouterV2Address,
+        },
       },
     },
     oracleAggregators: {
@@ -169,7 +199,7 @@ export async function getConfig(
       },
     },
     odos: {
-      router: "0xaC041Df48dF9791B0654f1Dbbf2CC8450C5f2e9D", // OdosRouterV2
+      router: odoRouterV2Address,
     },
   };
 }
