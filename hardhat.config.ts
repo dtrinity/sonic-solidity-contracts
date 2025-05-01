@@ -21,6 +21,7 @@ const config: HardhatUserConfig = {
         enabled: true,
         runs: 200,
       },
+      viaIR: true,
     },
   },
   /* eslint-disable camelcase -- Network names follow specific naming conventions that require snake_case */
