@@ -29,11 +29,8 @@ async function deployDLoopCoreDLend(
   const { address: lendingPoolAddressesProviderAddress } =
     await hre.deployments.get(POOL_ADDRESSES_PROVIDER_ID);
 
-  // Get the underlying token symbol using minimal ABI
-  const minimalERC20ABI = ["function symbol() view returns (string)"];
-
   const underlyingTokenContract = await hre.ethers.getContractAt(
-    minimalERC20ABI,
+    ["function symbol() view returns (string)"],
     vaultInfo.underlyingAsset,
     await hre.ethers.getSigner(dloopDeployer),
   );
