@@ -44,8 +44,8 @@
   "transfer_oracle_roles_to_multisig": 1744902867,
   "dLend:OdosAdapters": 1744902885,
   "transfer_dlend_roles_to_multisig": 1744902902,
-  "DLoopCoreDLend": 1746095024,
-  "OdosSwapLogic": 1746095029,
-  "DLoopDepositorOdos": 1746095033,
-  "DLoopWithdrawerOdos": 1746095038
+  "DLoopCoreDLend": 1746099334,
+  "OdosSwapLogic": 1746099339,
+  "DLoopDepositorOdos": 1746099343,
+  "DLoopWithdrawerOdos": 1746099347
 }

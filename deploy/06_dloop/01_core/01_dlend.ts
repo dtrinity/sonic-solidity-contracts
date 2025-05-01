@@ -16,7 +16,6 @@ import {
  * @param dloopDeployer - The address of the deployer
  * @param dUSDAddress - The dUSD token address
  * @param vaultInfo - The vault information
- * @param vaultName - The vault name
  * @returns True if the deployment is successful
  */
 async function deployDLoopCoreDLend(
@@ -24,7 +23,6 @@ async function deployDLoopCoreDLend(
   dloopDeployer: string,
   dUSDAddress: string,
   vaultInfo: DLoopCoreConfig,
-  vaultName: string,
 ): Promise<boolean> {
   const { address: lendingPoolAddressesProviderAddress } =
     await hre.deployments.get(POOL_ADDRESSES_PROVIDER_ID);
@@ -40,7 +38,9 @@ async function deployDLoopCoreDLend(
     throw new Error("The underlying token symbol is empty");
   }
 
-  await hre.deployments.deploy(vaultName, {
+  const deploymentName = `${DLOOP_CORE_DLEND_ID}-${vaultInfo.symbol}`;
+
+  await hre.deployments.deploy(deploymentName, {
     from: dloopDeployer,
     contract: "DLoopCoreDLend",
     args: [
@@ -99,13 +99,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
     switch (vaultInfo.venue) {
       case "dlend":
-        await deployDLoopCoreDLend(
-          hre,
-          dloopDeployer,
-          dUSDAddress,
-          vaultInfo,
-          vaultKey,
-        );
+        await deployDLoopCoreDLend(hre, dloopDeployer, dUSDAddress, vaultInfo);
         break;
       default:
         throw new Error(`Unsupported core vault venue: ${vaultInfo.venue}`);
