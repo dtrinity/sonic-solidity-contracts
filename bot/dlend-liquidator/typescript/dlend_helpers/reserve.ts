@@ -165,21 +165,22 @@ export async function getUserSupplyBalance(
   assetAddress: string,
   userAddress: string,
 ): Promise<BigNumber> {
+  const { deployer } = await hre.getNamedAccounts();
+
   const { aTokenAddress } =
     await getReserveTokensAddressesFromAddress(assetAddress);
   const poolAddress = await getPoolContractAddress();
-
   const aTokenContract = await hre.ethers.getContractAt(
     ["function scaledBalanceOf(address user) public view returns (uint256)"],
     aTokenAddress,
-    await hre.ethers.getSigner(userAddress),
+    await hre.ethers.getSigner(deployer),
   );
   const poolContract = await hre.ethers.getContractAt(
     [
       "function getReserveNormalizedIncome(address asset) public view returns (uint256)",
     ],
     poolAddress,
-    await hre.ethers.getSigner(userAddress),
+    await hre.ethers.getSigner(deployer),
   );
 
   const [normalizedIncome, scaleBalance] = await Promise.all([
@@ -202,22 +203,23 @@ export async function getUserDebtBalance(
   assetAddress: string,
   userAddress: string,
 ): Promise<BigNumber> {
+  const { deployer } = await hre.getNamedAccounts();
+
   const { stableDebtTokenAddress, variableDebtTokenAddress } =
     await getReserveTokensAddressesFromAddress(assetAddress);
   const poolAddress = await getPoolContractAddress();
-
   const poolContract = await hre.ethers.getContractAt(
     [
       "function getReserveNormalizedVariableDebt(address asset) public view returns (uint256)",
     ],
     poolAddress,
-    await hre.ethers.getSigner(userAddress),
+    await hre.ethers.getSigner(deployer),
   );
 
   const variableDebtTokenContract = await hre.ethers.getContractAt(
     ["function scaledBalanceOf(address user) public view returns (uint256)"],
     variableDebtTokenAddress,
-    await hre.ethers.getSigner(userAddress),
+    await hre.ethers.getSigner(deployer),
   );
 
   const userVariableDebt = await (async (): Promise<bigint> => {
