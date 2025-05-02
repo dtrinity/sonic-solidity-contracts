@@ -1,5 +1,4 @@
 import { BigNumberish } from "ethers";
-import fs from "fs";
 import hre from "hardhat";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 
@@ -15,19 +14,13 @@ export async function getAaveOracleAddressFromParent(
   hre: HardhatRuntimeEnvironment,
 ): Promise<string> {
   const config = await getConfig(hre);
-  const oraclePath = config.parentDeploymentPaths?.aaveOracle;
+  const oracleAddress = config.parentDeploymentAddresses?.aaveOracle;
 
-  if (!oraclePath) {
-    throw new Error("Oracle path not found");
-  }
-
-  const oracleDeployment = JSON.parse(fs.readFileSync(oraclePath, "utf8"));
-
-  if (!oracleDeployment.address) {
+  if (!oracleAddress) {
     throw new Error("Oracle address not found");
   }
 
-  return oracleDeployment.address;
+  return oracleAddress;
 }
 
 /**

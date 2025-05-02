@@ -1,5 +1,3 @@
-import path from "path";
-
 import { ONE_PERCENT_BPS } from "../constants";
 import { Config } from "../types";
 
@@ -13,34 +11,11 @@ export async function getConfig(): Promise<Config> {
   const dUSDAddress = "0x53a6aBb52B2F968fA80dF6A894e4f1b1020DA975"; // Replace with actual dUSD address
   const odosRouterAddress = "0xaC041Df48dF9791B0654f1Dbbf2CC8450C5f2e9D"; // Odos router on Sonic
 
-  // Default path to the deployments directory in the sonic-dtrinity-repo
-  // in case no SONIC_DTRINITY_REPO_PATH is provided
-  const sonicDtrinityRepoDeploymentsPath = path.join(
-    __dirname,
-    "..",
-    "..",
-    "..",
-    "..",
-    "deployments",
-  );
-
   return {
-    parentDeploymentPaths: {
-      poolAddressesProvider: path.join(
-        sonicDtrinityRepoDeploymentsPath,
-        "sonic_mainnet",
-        "PoolAddressesProvider.json",
-      ),
-      poolDataProvider: path.join(
-        sonicDtrinityRepoDeploymentsPath,
-        "sonic_mainnet",
-        "PoolDataProvider.json",
-      ),
-      aaveOracle: path.join(
-        sonicDtrinityRepoDeploymentsPath,
-        "sonic_mainnet",
-        "PriceOracle.json",
-      ),
+    parentDeploymentAddresses: {
+      poolAddressesProvider: "0x1f8d8a3575d049aA0C195AA947483738811bAdcb",
+      poolDataProvider: "0xB245F8321E7A4938DEf8bDb2D5E2E16481268c42",
+      aaveOracle: "0x4EF3aa6aF9174e01C893aa4cD7F26E23c69B7b83", // PriceOracle
     },
     tokenProxyContractMap: {}, // No proxy contract on Sonic mainnet
     liquidatorBotOdos: {

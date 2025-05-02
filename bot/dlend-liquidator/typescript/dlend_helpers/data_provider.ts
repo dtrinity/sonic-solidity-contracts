@@ -1,4 +1,3 @@
-import fs from "fs";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 
 import { getConfig } from "../../config/config";
@@ -15,25 +14,12 @@ export async function getAaveProtocolDataProviderAddressFromParent(
   // Contract in parent is deployments/sonic_mainnet/PoolDataProvider.json
 
   const config = await getConfig(hre);
-  const poolDataProviderPath = config.parentDeploymentPaths?.poolDataProvider;
+  const poolDataProviderAddress =
+    config.parentDeploymentAddresses?.poolDataProvider;
 
-  if (!poolDataProviderPath) {
+  if (!poolDataProviderAddress) {
     throw new Error("Deployment path for PoolDataProvider not found");
   }
 
-  if (!fs.existsSync(poolDataProviderPath)) {
-    throw new Error(
-      `PoolDataProvider deployment not found on path ${poolDataProviderPath}`,
-    );
-  }
-
-  const poolDataProviderDeployment = JSON.parse(
-    fs.readFileSync(poolDataProviderPath, "utf8"),
-  );
-
-  if (!poolDataProviderDeployment.address) {
-    throw new Error("PoolDataProvider address is not found");
-  }
-
-  return poolDataProviderDeployment.address;
+  return poolDataProviderAddress;
 }

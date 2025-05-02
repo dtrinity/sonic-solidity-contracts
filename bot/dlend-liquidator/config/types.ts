@@ -1,5 +1,5 @@
 export interface Config {
-  readonly parentDeploymentPaths: {
+  readonly parentDeploymentAddresses: {
     poolAddressesProvider: string;
     poolDataProvider: string;
     aaveOracle: string;

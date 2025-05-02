@@ -1,4 +1,3 @@
-import fs from "fs";
 import hre from "hardhat";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 
@@ -15,29 +14,14 @@ export async function getPoolAddressesProviderAddressFromParent(
 ): Promise<string> {
   const config = await getConfig(hre);
 
-  const poolAddressesProviderPath =
-    config.parentDeploymentPaths?.poolAddressesProvider;
+  const poolAddressesProviderAddress =
+    config.parentDeploymentAddresses?.poolAddressesProvider;
 
-  if (!poolAddressesProviderPath) {
-    throw new Error("Deployment path for PoolAddressesProvider not found");
+  if (!poolAddressesProviderAddress) {
+    throw new Error("PoolAddressesProvider address not found");
   }
 
-  // Check if the directory exists
-  if (!fs.existsSync(poolAddressesProviderPath)) {
-    throw new Error(
-      `Deployment for PoolAddressesProvider not found on path ${poolAddressesProviderPath}`,
-    );
-  }
-
-  const poolAddressesProviderDeployment = JSON.parse(
-    fs.readFileSync(poolAddressesProviderPath, "utf8"),
-  );
-
-  if (!poolAddressesProviderDeployment.address) {
-    throw new Error("PoolAddressesProvider address is not found");
-  }
-
-  return poolAddressesProviderDeployment.address;
+  return poolAddressesProviderAddress;
 }
 
 /**

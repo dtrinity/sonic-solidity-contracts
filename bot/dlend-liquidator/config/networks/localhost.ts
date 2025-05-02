@@ -1,5 +1,3 @@
-import path from "path";
-
 import { Config } from "../types";
 
 /**
@@ -9,37 +7,10 @@ import { Config } from "../types";
  */
 export async function getConfig(): Promise<Config> {
   return {
-    parentDeploymentPaths: {
-      poolAddressesProvider: path.join(
-        __dirname,
-        "..",
-        "..",
-        "..",
-        "..",
-        "deployments",
-        "localhost",
-        "PoolAddressesProvider.json",
-      ),
-      poolDataProvider: path.join(
-        __dirname,
-        "..",
-        "..",
-        "..",
-        "..",
-        "deployments",
-        "localhost",
-        "PoolDataProvider.json",
-      ),
-      aaveOracle: path.join(
-        __dirname,
-        "..",
-        "..",
-        "..",
-        "..",
-        "deployments",
-        "localhost",
-        "PriceOracle.json",
-      ),
+    parentDeploymentAddresses: {
+      poolAddressesProvider: "<need-to-be-filled>",
+      poolDataProvider: "<need-to-be-filled>",
+      aaveOracle: "<need-to-be-filled>",
     },
     tokenProxyContractMap: {}, // No proxy contract on localhost
     liquidatorBotOdos: {
