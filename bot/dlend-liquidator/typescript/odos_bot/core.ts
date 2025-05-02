@@ -1,4 +1,5 @@
 import { BigNumber } from "@ethersproject/bignumber";
+import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 import dotenv from "dotenv";
 import { ethers } from "ethers";
 import hre from "hardhat";
@@ -20,6 +21,7 @@ import {
   UserStateLog,
 } from "../dlend_helpers/user";
 import { OdosClient } from "../odos/client";
+import { QuoteResponse } from "../odos/types";
 import { getERC4626UnderlyingAsset } from "../token/erc4626";
 import { fetchTokenInfo } from "../token/info";
 import {
@@ -404,7 +406,7 @@ export async function performOdosLiquidationDefault(
     console.log("Unstake collateral token:", unstakeCollateralToken);
   }
 
-  const { quote, collateralToken } = await getOdosSwapQuote(
+  const { quote } = await getOdosSwapQuote(
     collateralTokenAddress,
     borrowTokenAddress,
     repayAmount,
@@ -434,7 +436,6 @@ export async function performOdosLiquidationDefault(
     return await executeFlashMintLiquidation(
       flashMintLiquidatorBotContract,
       quote,
-      collateralToken,
       odosRouter,
       signer,
       odosClient,
@@ -450,7 +451,6 @@ export async function performOdosLiquidationDefault(
     return await executeFlashLoanLiquidation(
       flashLoanLiquidatorBotContract,
       quote,
-      collateralToken,
       odosRouter,
       signer,
       odosClient,
@@ -464,7 +464,6 @@ export async function performOdosLiquidationDefault(
  *
  * @param flashMintLiquidatorBotContract - The flash mint liquidator bot contract
  * @param quote - The quote
- * @param collateralToken - The collateral token
  * @param odosRouter - The Odos router
  * @param signer - The signer
  * @param odosClient - The Odos client
@@ -480,10 +479,9 @@ export async function performOdosLiquidationDefault(
  */
 async function executeFlashMintLiquidation(
   flashMintLiquidatorBotContract: FlashMintLiquidatorAaveBorrowRepayOdos,
-  quote: any,
-  collateralToken: any,
+  quote: QuoteResponse,
   odosRouter: string,
-  signer: any,
+  signer: HardhatEthersSigner,
   odosClient: OdosClient,
   params: {
     borrowerAccountAddress: string;
@@ -496,7 +494,6 @@ async function executeFlashMintLiquidation(
   },
 ): Promise<string> {
   const assembledQuote = await getAssembledQuote(
-    collateralToken,
     odosRouter,
     signer,
     odosClient,
@@ -536,7 +533,6 @@ async function executeFlashMintLiquidation(
  *
  * @param flashLoanLiquidatorBotContract - The flash loan liquidator bot contract
  * @param quote - The quote
- * @param collateralToken - The collateral token
  * @param odosRouter - The Odos router
  * @param signer - The signer
  * @param odosClient - The Odos client
@@ -552,10 +548,9 @@ async function executeFlashMintLiquidation(
  */
 async function executeFlashLoanLiquidation(
   flashLoanLiquidatorBotContract: FlashLoanLiquidatorAaveBorrowRepayOdos,
-  quote: any,
-  collateralToken: any,
+  quote: QuoteResponse,
   odosRouter: string,
-  signer: any,
+  signer: HardhatEthersSigner,
   odosClient: OdosClient,
   params: {
     borrowerAccountAddress: string;
@@ -568,7 +563,6 @@ async function executeFlashLoanLiquidation(
   },
 ): Promise<string> {
   const assembledQuote = await getAssembledQuote(
-    collateralToken,
     odosRouter,
     signer,
     odosClient,

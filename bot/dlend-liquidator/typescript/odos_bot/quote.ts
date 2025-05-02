@@ -1,6 +1,8 @@
+import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 import hre from "hardhat";
 
 import { OdosClient } from "../odos/client";
+import { QuoteResponse } from "../odos/types";
 import { getERC4626UnderlyingAsset } from "../token/erc4626";
 
 /**
@@ -13,7 +15,7 @@ import { getERC4626UnderlyingAsset } from "../token/erc4626";
  * @param chainId - The chain ID
  * @param odosClient - The Odos client
  * @param isUnstakeToken - Whether the collateral token needs to be unstaked
- * @returns The quote and the collateral token
+ * @returns The quote
  */
 export async function getOdosSwapQuote(
   collateralTokenAddress: string,
@@ -23,7 +25,7 @@ export async function getOdosSwapQuote(
   chainId: number,
   odosClient: OdosClient,
   isUnstakeToken: boolean,
-): Promise<{ quote: any; collateralToken: any }> {
+): Promise<{ quote: QuoteResponse }> {
   const collateralToken = await hre.ethers.getContractAt(
     ["function decimals() view returns (uint8)"],
     collateralTokenAddress,
@@ -81,13 +83,12 @@ export async function getOdosSwapQuote(
   };
 
   const quote = await odosClient.getQuote(quoteRequest);
-  return { quote, collateralToken };
+  return { quote };
 }
 
 /**
  * Get assembled quote from Odos with required approvals
  *
- * @param collateralToken - The collateral token
  * @param odosRouter - The Odos router
  * @param signer - The signer
  * @param odosClient - The Odos client
@@ -95,24 +96,31 @@ export async function getOdosSwapQuote(
  * @param params - The parameters
  * @param params.chainId - The chain ID
  * @param params.liquidatorAccountAddress - The address of the liquidator
+ * @param params.collateralTokenAddress - The address of the collateral token
  * @param receiverAddress - The address of the receiver
  * @returns The assembled quote
  */
 export async function getAssembledQuote(
-  collateralToken: any,
   odosRouter: string,
-  signer: any,
+  signer: HardhatEthersSigner,
   odosClient: OdosClient,
-  quote: any,
+  quote: QuoteResponse,
   params: {
     chainId: number;
     liquidatorAccountAddress: string;
+    collateralTokenAddress: string;
   },
   receiverAddress: string,
 ): Promise<any> {
-  const approveRouterTx = await collateralToken
-    .connect(signer)
-    .approve(odosRouter, quote.inAmounts[0]);
+  const collateralToken = await hre.ethers.getContractAt(
+    ["function approve(address spender, uint256 amount) public returns (bool)"],
+    params.collateralTokenAddress,
+    signer,
+  );
+  const approveRouterTx = await collateralToken.approve(
+    odosRouter,
+    quote.inAmounts[0],
+  );
   await approveRouterTx.wait();
 
   const assembleRequest = {
@@ -124,9 +132,10 @@ export async function getAssembledQuote(
   };
   const assembled = await odosClient.assembleTransaction(assembleRequest);
 
-  const approveSwapperTx = await collateralToken
-    .connect(signer)
-    .approve(receiverAddress, quote.inAmounts[0]);
+  const approveSwapperTx = await collateralToken.approve(
+    receiverAddress,
+    quote.inAmounts[0],
+  );
   await approveSwapperTx.wait();
 
   return assembled;
