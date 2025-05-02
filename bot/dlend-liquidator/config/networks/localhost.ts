@@ -11,6 +11,7 @@ export async function getConfig(): Promise<Config> {
       poolAddressesProvider: "<need-to-be-filled>",
       poolDataProvider: "<need-to-be-filled>",
       aaveOracle: "<need-to-be-filled>",
+      liquidationLogic: "<need-to-be-filled>",
     },
     tokenProxyContractMap: {}, // No proxy contract on localhost
     liquidatorBotOdos: {

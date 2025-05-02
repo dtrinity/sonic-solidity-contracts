@@ -16,6 +16,7 @@ export async function getConfig(): Promise<Config> {
       poolAddressesProvider: "0x1f8d8a3575d049aA0C195AA947483738811bAdcb",
       poolDataProvider: "0xB245F8321E7A4938DEf8bDb2D5E2E16481268c42",
       aaveOracle: "0x4EF3aa6aF9174e01C893aa4cD7F26E23c69B7b83", // PriceOracle
+      liquidationLogic: "0x19C6B5924306BAF5ee549Cd7b56b37736Cf7Dc48", // LiquidationLogic
     },
     tokenProxyContractMap: {}, // No proxy contract on Sonic mainnet
     liquidatorBotOdos: {

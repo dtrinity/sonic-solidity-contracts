@@ -3,6 +3,7 @@ export interface Config {
     poolAddressesProvider: string;
     poolDataProvider: string;
     aaveOracle: string;
+    liquidationLogic: string;
   };
   // Mapping from token address to the proxy contract address
   readonly tokenProxyContractMap: {

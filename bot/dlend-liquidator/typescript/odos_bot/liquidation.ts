@@ -23,11 +23,17 @@ import { TokenInfo } from "../token/info";
  * @returns - The close factor hard fork threshold (ie. 0.951234 means 95.1234%)
  */
 export async function getCloseFactorHFThreshold(): Promise<number> {
-  const liquidationLibraryDeployedResult =
-    await hre.deployments.get("LiquidationLogic");
+  const config = await getConfig(hre);
+
+  if (!config.parentDeploymentAddresses.liquidationLogic) {
+    throw new Error(
+      "Liquidation logic address is not found at config.parentDeploymentAddresses.liquidationLogic",
+    );
+  }
+
   const liquidationLogicContract = await hre.ethers.getContractAt(
     ["function CLOSE_FACTOR_HF_THRESHOLD() external view returns (uint256)"],
-    liquidationLibraryDeployedResult.address,
+    config.parentDeploymentAddresses.liquidationLogic,
   );
   const closeFactorHFThresholdRaw =
     await liquidationLogicContract.CLOSE_FACTOR_HF_THRESHOLD();
