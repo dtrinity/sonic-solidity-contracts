@@ -71,29 +71,29 @@ export async function getReserveTokensAddressesFromAddress(
   underlyingTokenAddress: string,
 ): Promise<{
   aTokenAddress: string;
-  variableDebtTokenAddress: string;
   stableDebtTokenAddress: string;
+  variableDebtTokenAddress: string;
 }> {
   const dataProviderAddress =
     await getAaveProtocolDataProviderAddressFromParent(hre);
   const dataProviderContract = await hre.ethers.getContractAt(
     [
-      "function getReserveTokensAddresses(address asset) external view returns (address aTokenAddress, address variableDebtTokenAddress, address stableDebtTokenAddress)",
+      "function getReserveTokensAddresses(address asset) external view returns (address aTokenAddress, address stableDebtTokenAddress, address variableDebtTokenAddress)",
     ],
     dataProviderAddress,
   );
 
   const borrowTokenInfo = await fetchTokenInfo(hre, underlyingTokenAddress);
 
-  const { aTokenAddress, variableDebtTokenAddress, stableDebtTokenAddress } =
+  const { aTokenAddress, stableDebtTokenAddress, variableDebtTokenAddress } =
     await dataProviderContract.getReserveTokensAddresses(
       borrowTokenInfo.address,
     );
 
   return {
     aTokenAddress,
-    variableDebtTokenAddress,
     stableDebtTokenAddress,
+    variableDebtTokenAddress,
   };
 }
 
