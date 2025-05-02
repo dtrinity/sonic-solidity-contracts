@@ -40,6 +40,14 @@ const config: HardhatUserConfig = {
       default: 0,
     },
   },
+  paths: {
+    sources: "./contracts",
+    tests: "./test",
+    cache: "./cache",
+    artifacts: "./artifacts",
+    deployments: "./deployments",
+    deploy: "./deploy",
+  },
 };
 /* eslint-enable camelcase -- Network names follow specific naming conventions that require snake_case */
 
