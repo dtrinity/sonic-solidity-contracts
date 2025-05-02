@@ -11,4 +11,4 @@ fi
 
 yarn hardhat run \
   --network $1 \
-  /usr/src/scripts/liquidator-bot/$2\_bot/run.ts
+  /usr/src/typescript/$2\_bot/run.ts

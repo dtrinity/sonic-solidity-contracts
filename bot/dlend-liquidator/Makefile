@@ -73,6 +73,7 @@ docker.build:
 docker.build.arm64: platform:=linux/arm64
 docker.build.arm64: docker.build
 
+docker.run: container_name=${IMAGE_NAME}-$(network)-$(dex)
 docker.run:
 	@if [ "$(network)" = "" ]; then \
 		echo "Must provide 'network' argument"; \
@@ -87,6 +88,7 @@ docker.run:
 		exit 1; \
 	fi
 	@mkdir -p ./state
+	@docker rm -f ${container_name} || true
 	@echo "Running liquidator bot docker image..."
 	@docker run \
 		-d \
@@ -95,7 +97,7 @@ docker.run:
 		--memory 768m \
 		--restart unless-stopped \
 		--platform $(platform) \
-		--name ${IMAGE_NAME}-$(network)-$(dex) \
+		--name ${container_name} \
 		${IMAGE_NAME}-$(platform):latest $(network) $(dex)
 
 docker.run.odos.mainnet.arm64: network=sonic_mainnet

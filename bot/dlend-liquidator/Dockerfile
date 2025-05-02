@@ -37,7 +37,7 @@ RUN yarn hardhat compile
 COPY config/ /usr/src/config/
 COPY scripts/sh/docker-entrypoint.sh /usr/src/scripts/docker-entrypoint.sh
 # COPY scripts/liquidator-bot/docker-entrypoint-slack-bot.sh /usr/src/scripts/docker-entrypoint-slack-bot.sh
-COPY typescript/odos_bot /usr/src/scripts/liquidator-bot/odos_bot
+COPY typescript /usr/src/typescript
 
 # Default entrypoint
 ENTRYPOINT [ "sh", "/usr/src/scripts/docker-entrypoint.sh" ]

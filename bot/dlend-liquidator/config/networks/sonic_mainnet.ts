@@ -13,35 +13,31 @@ export async function getConfig(): Promise<Config> {
   const dUSDAddress = "0x53a6aBb52B2F968fA80dF6A894e4f1b1020DA975"; // Replace with actual dUSD address
   const odosRouterAddress = "0xaC041Df48dF9791B0654f1Dbbf2CC8450C5f2e9D"; // Odos router on Sonic
 
+  // Default path to the deployments directory in the sonic-dtrinity-repo
+  // in case no SONIC_DTRINITY_REPO_PATH is provided
+  const sonicDtrinityRepoDeploymentsPath = path.join(
+    __dirname,
+    "..",
+    "..",
+    "..",
+    "..",
+    "deployments",
+  );
+
   return {
     parentDeploymentPaths: {
       poolAddressesProvider: path.join(
-        __dirname,
-        "..",
-        "..",
-        "..",
-        "..",
-        "deployments",
+        sonicDtrinityRepoDeploymentsPath,
         "sonic_mainnet",
         "PoolAddressesProvider.json",
       ),
       poolDataProvider: path.join(
-        __dirname,
-        "..",
-        "..",
-        "..",
-        "..",
-        "deployments",
+        sonicDtrinityRepoDeploymentsPath,
         "sonic_mainnet",
         "PoolDataProvider.json",
       ),
       aaveOracle: path.join(
-        __dirname,
-        "..",
-        "..",
-        "..",
-        "..",
-        "deployments",
+        sonicDtrinityRepoDeploymentsPath,
         "sonic_mainnet",
         "PriceOracle.json",
       ),
