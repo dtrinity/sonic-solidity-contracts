@@ -20,17 +20,17 @@ export async function getSlackClient(): Promise<{
     return slackInfo;
   }
 
-  const SLACK_TOKEN = process.env.LIQUIDATOR_BOT_SLACK_BOT_TOKEN;
-  const SLACK_CHANNEL = process.env.LIQUIDATOR_BOT_SLACK_CHANNEL_ID;
+  const slackBotToken = process.env.SONIC_MAINNET_SLACK_BOT_TOKEN;
+  const slackChannelId = process.env.SONIC_MAINNET_SLACK_CHANNEL_ID;
 
-  if (!SLACK_TOKEN || !SLACK_CHANNEL) {
+  if (!slackBotToken || !slackChannelId) {
     throw new Error(
-      "LIQUIDATOR_BOT_SLACK_BOT_TOKEN and LIQUIDATOR_BOT_SLACK_CHANNEL_ID must be set in environment variables",
+      "SONIC_MAINNET_SLACK_BOT_TOKEN and SONIC_MAINNET_SLACK_CHANNEL_ID must be set in environment variables",
     );
   }
 
-  const client = new WebClient(SLACK_TOKEN);
-  return { client, channel: SLACK_CHANNEL };
+  const client = new WebClient(slackBotToken);
+  return { client, channel: slackChannelId };
 }
 
 /**
