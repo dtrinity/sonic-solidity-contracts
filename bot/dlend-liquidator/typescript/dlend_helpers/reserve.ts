@@ -170,12 +170,14 @@ export async function getUserSupplyBalance(
   const poolAddress = await getPoolContractAddress();
 
   const aTokenContract = await hre.ethers.getContractAt(
-    "AToken",
+    ["function scaledBalanceOf(address user) public view returns (uint256)"],
     aTokenAddress,
     await hre.ethers.getSigner(userAddress),
   );
   const poolContract = await hre.ethers.getContractAt(
-    "Pool",
+    [
+      "function getReserveNormalizedIncome(address asset) public view returns (uint256)",
+    ],
     poolAddress,
     await hre.ethers.getSigner(userAddress),
   );
@@ -205,13 +207,15 @@ export async function getUserDebtBalance(
   const poolAddress = await getPoolContractAddress();
 
   const poolContract = await hre.ethers.getContractAt(
-    "Pool",
+    [
+      "function getReserveNormalizedVariableDebt(address asset) public view returns (uint256)",
+    ],
     poolAddress,
     await hre.ethers.getSigner(userAddress),
   );
 
   const variableDebtTokenContract = await hre.ethers.getContractAt(
-    "VariableDebtToken",
+    ["function scaledBalanceOf(address user) public view returns (uint256)"],
     variableDebtTokenAddress,
     await hre.ethers.getSigner(userAddress),
   );
@@ -229,7 +233,7 @@ export async function getUserDebtBalance(
   })();
 
   const stableDebtTokenContract = await hre.ethers.getContractAt(
-    "StableDebtToken",
+    ["function balanceOf(address user) public view returns (uint256)"],
     stableDebtTokenAddress,
     await hre.ethers.getSigner(userAddress),
   );
