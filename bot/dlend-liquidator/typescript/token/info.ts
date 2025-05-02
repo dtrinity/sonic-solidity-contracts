@@ -40,7 +40,7 @@ async function fetchTokenInfoImplementation(
   hre: HardhatRuntimeEnvironment,
   tokenAddress: string,
 ): Promise<TokenInfo> {
-  const { dexDeployer } = await hre.getNamedAccounts();
+  const { deployer } = await hre.getNamedAccounts();
 
   const tokenContract = new hre.ethers.Contract(
     tokenAddress,
@@ -50,7 +50,7 @@ async function fetchTokenInfoImplementation(
       "function name() view returns (string)",
       "function decimals() view returns (uint8)",
     ],
-    await hre.ethers.getSigner(dexDeployer), // It is required to have a signer to call the contract
+    await hre.ethers.getSigner(deployer), // It is required to have a signer to call the contract
   );
 
   return {
