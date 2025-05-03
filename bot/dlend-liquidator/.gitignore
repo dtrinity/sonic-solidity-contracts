@@ -24,3 +24,6 @@ certora # python virtual environment
 
 # Bot data
 state
+
+# Docker dump
+.tmp
