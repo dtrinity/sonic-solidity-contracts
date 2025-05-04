@@ -3,12 +3,12 @@ import { DeployFunction } from "hardhat-deploy/types";
 
 import { getConfig } from "../../config/config";
 import { USD_REDSTONE_COMPOSITE_WRAPPER_WITH_THRESHOLDING_ID } from "../../typescript/deploy-ids";
+import { isMainnet } from "../../typescript/dlend/helpers";
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
-  // Skip this deployment on non-mainnet networks
-  if (hre.network.name !== "sonic_mainnet") {
-    console.log("Skipping wstkscUSD oracle setup on non-mainnet network");
-    return true;
+  if (!isMainnet(hre)) {
+    console.log("Skipping: This deployment is only for mainnet");
+    return false;
   }
 
   const { deployer } = await hre.getNamedAccounts();

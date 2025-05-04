@@ -17,6 +17,7 @@ import {
   strategyDUSD,
   strategySfrxUSD,
   strategyStS,
+  strategyWstkscUSD,
   // strategyWstkscUSD,
 } from "../dlend/reserves-params";
 import { Config } from "../types";
@@ -173,7 +174,7 @@ export async function getConfig(
         dS: strategyDS,
         stS: strategyStS,
         sfrxUSD: strategySfrxUSD,
-        // wstkscUSD: strategyWstkscUSD, No Redstone feed available
+        wstkscUSD: strategyWstkscUSD,
       },
     },
     odos: {
