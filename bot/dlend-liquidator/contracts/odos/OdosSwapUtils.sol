@@ -30,7 +30,7 @@ library OdosSwapUtils {
         uint256 exactOut,
         bytes memory swapData
     ) internal returns (uint256) {
-        ERC20(inputToken).safeApprove(address(router), maxIn);
+        ERC20(inputToken).safeIncreaseAllowance(address(router), maxIn);
 
         (bool success, bytes memory result) = address(router).call(swapData);
         if (!success) {

@@ -168,6 +168,12 @@ docker.load-image:
 ## Bot deployment ##
 ####################
 
+deploy-local.bot.sonic_mainnet: docker.build.arm64
+deploy-local.bot.sonic_mainnet: docker.run.odos.mainnet.arm64
+
+deploy-local.bot.sonic_testnet: docker.build.arm64
+deploy-local.bot.sonic_testnet: docker.run.odos.testnet.arm64
+
 deploy-remote.bot: container_name=${IMAGE_NAME}-$(network)-$(dex)
 deploy-remote.bot: state_dir_name=$(network)-$(dex)
 deploy-remote.bot:

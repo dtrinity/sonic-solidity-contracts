@@ -115,7 +115,7 @@ abstract contract FlashMintLiquidatorAaveBase is
         uint256 balanceBefore = _liquidateParams.collateralUnderlying.balanceOf(
             address(this)
         );
-        _liquidateParams.borrowedUnderlying.safeApprove(
+        _liquidateParams.borrowedUnderlying.safeIncreaseAllowance(
             address(liquidateLender),
             _liquidateParams.toRepay
         );
@@ -154,7 +154,7 @@ abstract contract FlashMintLiquidatorAaveBase is
             _flashLoanParams.toLiquidate
         );
 
-        dusd.safeApprove(
+        dusd.safeIncreaseAllowance(
             address(flashMinter),
             dusdToFlashLoan +
                 flashMinter.flashFee(address(dusd), dusdToFlashLoan)
