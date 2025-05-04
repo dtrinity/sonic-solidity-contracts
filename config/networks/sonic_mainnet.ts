@@ -126,7 +126,15 @@ export async function getConfig(
               lowerThresholdInBase2: 0n, // Do not threshold S/USD
               fixedPriceInBase2: 0n,
             },
-            // [wstkscUSDAddress]: {},
+            [wstkscUSDAddress]: {
+              feedAsset: wstkscUSDAddress,
+              feed1: "0xe5bd703E6C4C7679e10D429D87EF4550a9fA6fF4", // wstkscUSD/stkscUSD Chainlink price feed
+              feed2: "0xACE5e348a341a740004304c2c228Af1A4581920F", // scUSD/USD Chainlink price feed
+              lowerThresholdInBase1: 0n, // No thresholding
+              fixedPriceInBase1: 0n,
+              lowerThresholdInBase2: ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT, // Only threshold scUSD/USD
+              fixedPriceInBase2: ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT,
+            },
           },
         },
       },
