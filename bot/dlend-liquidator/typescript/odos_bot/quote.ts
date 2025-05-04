@@ -1,6 +1,8 @@
+import { BigNumber } from "@ethersproject/bignumber";
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 import hre from "hardhat";
 
+import { approveAllowanceIfNeeded } from "../common/erc20";
 import { OdosClient } from "../odos/client";
 import { QuoteResponse } from "../odos/types";
 import { getERC4626UnderlyingAsset } from "../token/erc4626";
@@ -112,16 +114,12 @@ export async function getAssembledQuote(
   },
   receiverAddress: string,
 ): Promise<any> {
-  const collateralToken = await hre.ethers.getContractAt(
-    ["function approve(address spender, uint256 amount) public returns (bool)"],
+  await approveAllowanceIfNeeded(
     params.collateralTokenAddress,
+    odosRouter,
+    BigNumber.from(quote.inAmounts[0]),
     signer,
   );
-  const approveRouterTx = await collateralToken.approve(
-    odosRouter,
-    quote.inAmounts[0],
-  );
-  await approveRouterTx.wait();
 
   const assembleRequest = {
     chainId: params.chainId,
@@ -132,11 +130,12 @@ export async function getAssembledQuote(
   };
   const assembled = await odosClient.assembleTransaction(assembleRequest);
 
-  const approveSwapperTx = await collateralToken.approve(
+  await approveAllowanceIfNeeded(
+    params.collateralTokenAddress,
     receiverAddress,
-    quote.inAmounts[0],
+    BigNumber.from(quote.inAmounts[0]),
+    signer,
   );
-  await approveSwapperTx.wait();
 
   return assembled;
 }
