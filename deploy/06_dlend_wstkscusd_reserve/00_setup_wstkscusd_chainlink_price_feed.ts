@@ -1,36 +1,37 @@
+import { ZeroAddress } from "ethers";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
 
 import { getConfig } from "../../config/config";
-import { USD_REDSTONE_COMPOSITE_WRAPPER_WITH_THRESHOLDING_ID } from "../../typescript/deploy-ids";
-import { isMainnet } from "../../typescript/dlend/helpers";
+import {
+  USD_ORACLE_AGGREGATOR_ID,
+  USD_REDSTONE_COMPOSITE_WRAPPER_WITH_THRESHOLDING_ID,
+} from "../../typescript/deploy-ids";
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
-  if (!isMainnet(hre)) {
-    console.log("Skipping: This deployment is only for mainnet");
-    return false;
-  }
-
   const { deployer } = await hre.getNamedAccounts();
   const config = await getConfig(hre);
-  const assetAddresses = [config.tokenAddresses.wstkscUSD];
-  const allCompositeFeeds =
-    config.oracleAggregators.USD.redstoneOracleAssets
-      ?.compositeRedstoneOracleWrappersWithThresholding || {};
+  const wstkscUSDAddress = config.tokenAddresses.wstkscUSD;
 
-  const filteredCompositeFeeds = Object.keys(allCompositeFeeds)
-    .filter((asset) => assetAddresses.includes(asset))
-    .reduce(
-      (obj, key) => {
-        obj[key] = allCompositeFeeds[key];
-        return obj;
-      },
-      {} as typeof allCompositeFeeds,
-    );
-
-  if (Object.keys(filteredCompositeFeeds).length === 0) {
-    throw new Error("No target composite feeds found");
+  if (!wstkscUSDAddress) {
+    console.log("wstkscUSD address not found in config. Skipping...");
+    return true;
   }
+  const deployerSigner = await hre.ethers.getSigner(deployer);
+  const oracleAggregatorDeployment = await hre.deployments.get(
+    USD_ORACLE_AGGREGATOR_ID,
+  );
+
+  if (!oracleAggregatorDeployment) {
+    console.log("USD OracleAggregator deployment not found. Skipping...");
+    return true;
+  }
+
+  const oracleAggregator = await hre.ethers.getContractAt(
+    "OracleAggregator",
+    oracleAggregatorDeployment.address,
+    deployerSigner,
+  );
 
   const { address: redstoneCompositeWrapperAddress } =
     await hre.deployments.get(
@@ -38,22 +39,46 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     );
 
   if (!redstoneCompositeWrapperAddress) {
-    throw new Error(
-      "RedstoneChainlinkCompositeWrapperWithThresholding artifact not found",
+    console.log(
+      "RedstoneChainlinkCompositeWrapperWithThresholding artifact not found. Skipping...",
     );
+    return true;
   }
 
-  const deployerSigner = await hre.ethers.getSigner(deployer);
   const redstoneCompositeWrapper = await hre.ethers.getContractAt(
     "RedstoneChainlinkCompositeWrapperWithThresholding",
     redstoneCompositeWrapperAddress,
     deployerSigner,
   );
 
-  // Add composite feeds
-  for (const [assetAddress, feedConfig] of Object.entries(
-    filteredCompositeFeeds,
-  )) {
+  const existingFeed =
+    await redstoneCompositeWrapper.compositeFeeds(wstkscUSDAddress);
+
+  if (existingFeed.feed1 !== ZeroAddress) {
+    console.log(
+      `- Composite feed for wstkscUSD (${wstkscUSDAddress}) already configured. Skipping setup.`,
+    );
+    return true;
+  }
+  console.log(
+    `- Composite feed for wstkscUSD not found. Proceeding with setup...`,
+  );
+
+  const allCompositeFeeds =
+    config.oracleAggregators.USD.redstoneOracleAssets
+      ?.compositeRedstoneOracleWrappersWithThresholding || {};
+
+  const feedConfig = allCompositeFeeds[wstkscUSDAddress];
+
+  if (!feedConfig) {
+    console.log(
+      `Configuration for wstkscUSD not found in compositeRedstoneOracleWrappersWithThresholding. Skipping...`,
+    );
+    return true;
+  }
+
+  console.log(`- Adding composite feed for wstkscUSD (${wstkscUSDAddress})...`);
+  try {
     await redstoneCompositeWrapper.addCompositeFeed(
       feedConfig.feedAsset,
       feedConfig.feed1,
@@ -63,11 +88,26 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       feedConfig.lowerThresholdInBase2,
       feedConfig.fixedPriceInBase2,
     );
-    console.log(`Set composite Redstone feed for asset ${assetAddress}`);
+    console.log(`- Set composite Redstone feed for asset ${wstkscUSDAddress}`);
+  } catch (error) {
+    console.error(`❌ Error adding composite feed for wstkscUSD:`, error);
+    return false;
+  }
+
+  try {
+    await oracleAggregator.setOracle(
+      feedConfig.feedAsset,
+      redstoneCompositeWrapperAddress,
+    );
+    console.log(
+      `Set composite Redstone wrapper for asset ${feedConfig.feedAsset} to ${redstoneCompositeWrapperAddress}`,
+    );
+  } catch (error) {
+    console.error(`❌ Error setting oracle for wstkscUSD:`, error);
+    return false;
   }
 
   console.log(`🔮 ${__filename.split("/").slice(-2).join("/")}: ✅`);
-  // Return true to indicate deployment success
   return true;
 };
 
@@ -78,7 +118,7 @@ func.tags = [
   "usd-redstone-oracle-wrapper",
   "wstkscusd-chainlink-composite-feed",
 ];
-func.dependencies = [];
+func.dependencies = [USD_REDSTONE_COMPOSITE_WRAPPER_WITH_THRESHOLDING_ID];
 func.id = "setup-wstkscusd-for-usd-redstone-composite-oracle-wrapper";
 
 export default func;

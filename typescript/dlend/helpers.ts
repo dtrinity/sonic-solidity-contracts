@@ -133,7 +133,7 @@ export async function setupInitialReserves(
     : Object.keys(reservesConfig);
 
   if (targetReserveSymbols.length === 0) {
-    console.log("No reserves specified or found in config to set up.");
+    console.log("No reserves specified or found in config to set up. Skipping...");
     return;
   }
 
@@ -402,14 +402,4 @@ export async function setupInitialReserves(
   }
   console.log("- Saving addresses complete.");
   console.log(`--- Finished Setting up Reserves ---`);
-}
-
-/**
- * Checks if the current network is the mainnet ("sonic_mainnet").
- *
- * @param hre - Hardhat Runtime Environment
- * @returns True if the network is mainnet, false otherwise.
- */
-export function isMainnet(hre: HardhatRuntimeEnvironment): boolean {
-  return hre.network.name === "sonic_mainnet";
 }

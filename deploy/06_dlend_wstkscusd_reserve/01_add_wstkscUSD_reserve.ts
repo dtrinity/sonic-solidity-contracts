@@ -1,19 +1,11 @@
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
 
-import {
-  isMainnet,
-  setupInitialReserves,
-} from "../../typescript/dlend/helpers";
+import { setupInitialReserves } from "../../typescript/dlend/helpers";
 
 const reserveSymbol = "wstkscUSD";
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
-  if (!isMainnet(hre)) {
-    console.log("Skipping: This deployment is only for mainnet");
-    return false;
-  }
-
   console.log(`Starting setup for ${reserveSymbol} reserve using helper...`);
 
   try {
