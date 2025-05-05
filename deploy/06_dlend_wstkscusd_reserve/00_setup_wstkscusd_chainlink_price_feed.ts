@@ -28,8 +28,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       {} as typeof allCompositeFeeds,
     );
 
-  console.log("filteredCompositeFeeds", filteredCompositeFeeds);
-
   if (Object.keys(filteredCompositeFeeds).length === 0) {
     throw new Error("No target composite feeds found");
   }
