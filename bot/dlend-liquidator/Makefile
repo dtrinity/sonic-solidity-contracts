@@ -14,11 +14,34 @@ compile:
 ## Contract deployment ##
 #########################
 
-deploy.contracts.sonic_testnet:
-	@yarn hardhat deploy --network sonic_testnet
+deploy.contracts.sonic_mainnet: network=sonic_mainnet
+deploy.contracts.sonic_mainnet: deploy.contracts
 
-deploy.contracts.sonic_mainnet:
-	@yarn hardhat deploy --network sonic_mainnet 
+deploy.contracts.sonic_mainnet.reset: reset=true
+deploy.contracts.sonic_mainnet.reset: deployment_keywords=FlashLoanLiquidator,FlashMintDusdLiquidator
+deploy.contracts.sonic_mainnet.reset: deploy.contracts.sonic_mainnet
+
+deploy.contracts.sonic_testnet: network=sonic_testnet
+deploy.contracts.sonic_testnet: deploy.contracts
+
+deploy.contracts.sonic_testnet.reset: reset=true
+deploy.contracts.sonic_testnet.reset: deployment_keywords=FlashLoanLiquidator,FlashMintDusdLiquidator
+deploy.contracts.sonic_testnet.reset: deploy.contracts.sonic_testnet
+
+deploy.contracts:
+	@if [ "$(network)" = "" ]; then \
+		echo "Must provide 'network' argument"; \
+		exit 1; \
+	fi
+	@if [ "$(deployment_keywords)" = "" ]; then \
+		echo "Must provide 'deployment_keywords' argument"; \
+		exit 1; \
+	fi
+	@if [ "$(reset)" = "true" ]; then \
+		echo "Resetting deployments for $(network)"; \
+		./scripts/sh/clean-deployments.sh $(deployment_keywords) $(network); \
+	fi
+	@yarn hardhat deploy --network $(network)
 
 #############
 ## Linting ##
