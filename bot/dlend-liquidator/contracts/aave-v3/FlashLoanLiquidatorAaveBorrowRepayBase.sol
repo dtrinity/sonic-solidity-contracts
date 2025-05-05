@@ -238,7 +238,7 @@ abstract contract FlashLoanLiquidatorAaveBorrowRepayBase is
                 );
             }
         }
-        ERC20(_flashLoanParams.borrowedUnderlying).safeIncreaseAllowance(
+        ERC20(_flashLoanParams.borrowedUnderlying).forceApprove(
             address(flashLoanLender),
             _flashLoanParams.toLiquidate + _premium
         );

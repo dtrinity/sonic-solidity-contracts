@@ -113,7 +113,7 @@ abstract contract FlashLoanLiquidatorAaveBase is
         uint256 balanceBefore = _liquidateParams.collateralUnderlying.balanceOf(
             address(this)
         );
-        _liquidateParams.borrowedUnderlying.safeIncreaseAllowance(
+        _liquidateParams.borrowedUnderlying.forceApprove(
             address(liquidateLender),
             _liquidateParams.toRepay
         );
