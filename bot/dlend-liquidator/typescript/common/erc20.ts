@@ -9,14 +9,14 @@ import hre from "hardhat";
  * @param erc20TokenAddress - The address of the ERC20 token
  * @param spender - The address of the spender
  * @param amount - The amount of the allowance
- * @param signer - The signer
+ * @param ownerSigner - The signer
  * @returns The transaction receipt or null if the allowance is already approved
  */
 export async function approveAllowanceIfNeeded(
   erc20TokenAddress: string,
   spender: string,
   amount: BigNumber,
-  signer: HardhatEthersSigner,
+  ownerSigner: HardhatEthersSigner,
 ): Promise<TransactionReceipt | null> {
   const tokenContract = await hre.ethers.getContractAt(
     [
@@ -24,18 +24,18 @@ export async function approveAllowanceIfNeeded(
       "function allowance(address owner, address spender) public view returns (uint256)",
     ],
     erc20TokenAddress,
-    signer,
+    ownerSigner,
   );
 
   // Get the required allowance to be approved
-  const allowance = await tokenContract.allowance(
-    await tokenContract.owner(),
+  const allowance: bigint = await tokenContract.allowance(
+    await ownerSigner.getAddress(),
     spender,
   );
 
   // If the allowance is less than the amount, approve the amount
-  if (allowance.lt(amount)) {
-    const approveTx = await tokenContract.approve(spender, amount);
+  if (allowance < amount.toBigInt()) {
+    const approveTx = await tokenContract.approve(spender, amount.toBigInt());
     return await approveTx.wait();
   }
 
