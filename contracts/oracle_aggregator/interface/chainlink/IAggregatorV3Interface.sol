@@ -17,43 +17,37 @@
 
 pragma solidity ^0.8.20;
 
-import {IPriceFeed} from "../../oracle_aggregator/interface/chainlink/IPriceFeed.sol";
+interface AggregatorV3Interface {
+    function decimals() external view returns (uint8);
 
-contract MockRedstoneChainlinkOracleAlwaysAlive is IPriceFeed {
-    int256 private mockPrice;
-    uint80 private mockRoundId;
+    function description() external view returns (string memory);
 
-    constructor() {
-        mockRoundId = 1;
-    }
+    function version() external view returns (uint256);
 
-    function decimals() external pure override returns (uint8) {
-        return 8;
-    }
-
-    function setMock(int256 _price) external {
-        mockPrice = _price;
-        mockRoundId++;
-    }
-
-    function latestRoundData()
+    // getRoundData and latestRoundData should both raise "No data present"
+    // if they do not have data to report, instead of returning unset values
+    // which could be misinterpreted as actual reported values.
+    function getRoundData(
+        uint80 _roundId
+    )
         external
         view
-        override
         returns (
             uint80 roundId,
             int256 answer,
             uint256 startedAt,
             uint256 updatedAt,
             uint80 answeredInRound
-        )
-    {
-        return (
-            mockRoundId,
-            mockPrice,
-            block.timestamp,
-            block.timestamp,
-            mockRoundId
         );
-    }
+
+    function latestRoundData()
+        external
+        view
+        returns (
+            uint80 roundId,
+            int256 answer,
+            uint256 startedAt,
+            uint256 updatedAt,
+            uint80 answeredInRound
+        );
 }
