@@ -1,7 +1,7 @@
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
 
-import { setupInitialReserves } from "../../typescript/dlend/helpers";
+import { setupInitialReserves } from "../../typescript/dlend";
 
 const reserveSymbol = "wstkscUSD";
 

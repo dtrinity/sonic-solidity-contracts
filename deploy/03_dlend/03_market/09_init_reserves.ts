@@ -3,7 +3,7 @@ import { DeployFunction } from "hardhat-deploy/types";
 
 import { getConfig } from "../../../config/config";
 import { POOL_ADDRESSES_PROVIDER_ID } from "../../../typescript/deploy-ids";
-import { setupInitialReserves } from "../../../typescript/dlend/helpers";
+import { setupInitialReserves } from "../../../typescript/dlend";
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployer } = await hre.getNamedAccounts();

@@ -74,6 +74,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   }
 
   console.log(`- Adding composite feed for wstkscUSD (${wstkscUSDAddress})...`);
+
   try {
     await redstoneCompositeWrapper.addCompositeFeed(
       feedConfig.feedAsset,
