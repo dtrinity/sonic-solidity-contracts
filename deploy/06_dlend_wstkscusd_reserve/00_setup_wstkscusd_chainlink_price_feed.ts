@@ -14,8 +14,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const wstkscUSDAddress = config.tokenAddresses.wstkscUSD;
 
   if (!wstkscUSDAddress) {
-    console.log("wstkscUSD address not found in config. Skipping...");
-    return true;
+    throw new Error("wstkscUSD address not found in config");
   }
   const deployerSigner = await hre.ethers.getSigner(deployer);
   const oracleAggregatorDeployment = await hre.deployments.get(
@@ -23,8 +22,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   );
 
   if (!oracleAggregatorDeployment) {
-    console.log("USD OracleAggregator deployment not found. Skipping...");
-    return true;
+    throw new Error("USD OracleAggregator deployment not found");
   }
 
   const oracleAggregator = await hre.ethers.getContractAt(
@@ -39,10 +37,9 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     );
 
   if (!redstoneCompositeWrapperAddress) {
-    console.log(
-      "RedstoneChainlinkCompositeWrapperWithThresholding artifact not found. Skipping...",
+    throw new Error(
+      "RedstoneChainlinkCompositeWrapperWithThresholding artifact not found",
     );
-    return true;
   }
 
   const redstoneCompositeWrapper = await hre.ethers.getContractAt(
@@ -71,10 +68,9 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const feedConfig = allCompositeFeeds[wstkscUSDAddress];
 
   if (!feedConfig) {
-    console.log(
-      `Configuration for wstkscUSD not found in compositeRedstoneOracleWrappersWithThresholding. Skipping...`,
+    throw new Error(
+      `Configuration for wstkscUSD not found in compositeRedstoneOracleWrappersWithThresholding`,
     );
-    return true;
   }
 
   console.log(`- Adding composite feed for wstkscUSD (${wstkscUSDAddress})...`);
