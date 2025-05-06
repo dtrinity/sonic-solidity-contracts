@@ -46,5 +46,6 @@
   "transfer_dlend_roles_to_multisig": 1744902902,
   "setup-wstkscusd-for-usd-redstone-composite-oracle-wrapper": 1746520589,
   "point-usd-oracle-aggregator-for-usd": 1746520591,
-  "add-wstkscUSD-reserve": 1746522820
+  "add-wstkscUSD-reserve": 1746522820,
+  "ChainlinkDecimalConverter_wstkscUSD": 1746529362
 }

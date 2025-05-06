@@ -77,3 +77,7 @@ export const EMISSION_MANAGER_ID = "EmissionManager";
 export const INCENTIVES_IMPL_ID = "RewardsController";
 export const INCENTIVES_PROXY_ID = "IncentivesProxy";
 export const PULL_REWARDS_TRANSFER_STRATEGY_ID = "PullRewardsTransferStrategy";
+
+// Chainlink Oracle Converters
+export const CHAINLINK_DECIMAL_CONVERTER_WSTKSCUSD_ID =
+  "ChainlinkDecimalConverter_wstkscUSD";
