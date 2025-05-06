@@ -287,10 +287,10 @@ export async function runBotBatch(
             `• Profit: $${Number(userState.profitInUSD).toFixed(2)}\n` +
             `• Collateral Token: ${userState.collateralToken?.symbol}\n` +
             `• Debt Token: ${userState.debtToken?.symbol}\n` +
-            `• Liquidated Amount: ${ethers.formatUnits(
+            `• Repaid Amount: ${ethers.formatUnits(
               userState.toLiquidateAmount,
               liquidationParams.debtToken.reserveTokenInfo.decimals,
-            )}\n` +
+            )} ${liquidationParams.debtToken.reserveTokenInfo.symbol}\n` +
             `• Transaction Hash: ${txHash}`;
 
           await sendSlackMessage(successMessage);
