@@ -43,5 +43,8 @@
   "transfer_dstable_roles_to_multisig": 1744902851,
   "transfer_oracle_roles_to_multisig": 1744902867,
   "dLend:OdosAdapters": 1744902885,
-  "transfer_dlend_roles_to_multisig": 1744902902
+  "transfer_dlend_roles_to_multisig": 1744902902,
+  "setup-wstkscusd-for-usd-redstone-composite-oracle-wrapper": 1746520589,
+  "point-usd-oracle-aggregator-for-usd": 1746520591,
+  "add-wstkscUSD-reserve": 1746522820
 }
