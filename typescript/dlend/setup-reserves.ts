@@ -190,15 +190,30 @@ export async function setupInitialReserves(
     console.log("- No new reserves require initialization.");
   }
 
-  // --- Configure ONLY NEWLY Initialized Reserves ---
-  console.log("- Preparing configuration parameters for new reserves...");
+  // --- Configure Reserves ---
+  console.log("- Preparing configuration parameters for target reserves...");
   const configInputParams: any[] = [];
 
-  // Iterate only over symbols initialized in this run
-  for (const symbol of symbolsToInitialize) {
+  // Iterate over all target symbols for this run
+  for (const symbol of targetReserveSymbols) {
     const params = reservesConfig[symbol];
+    if (!params) {
+      console.warn(`- Skipping configuration for ${symbol}: No configuration found.`);
+      continue;
+    }
     const tokenAddress =
       config.tokenAddresses[symbol as keyof typeof config.tokenAddresses];
+    if (!tokenAddress) {
+      console.warn(`- Skipping configuration for ${symbol}: Token address not found in config.`);
+      continue;
+    }
+
+    // Check if the reserve actually exists in the pool (it should if initialized)
+    const reserveData = await poolContract.getReserveData(tokenAddress);
+    if (reserveData.aTokenAddress === ZeroAddress) {
+      console.warn(`- Skipping configuration for ${symbol}: Reserve not actually initialized in the pool.`);
+      continue;
+    }
 
     configInputParams.push({
       asset: tokenAddress,
@@ -212,12 +227,12 @@ export async function setupInitialReserves(
       borrowingEnabled: params.borrowingEnabled,
       flashLoanEnabled: true,
     });
-    console.log(`  - Prepared config params for NEW reserve ${symbol}`);
+    console.log(`  - Prepared config params for reserve ${symbol}`);
   }
 
   if (configInputParams.length > 0) {
     console.log(
-      `- Configuring ${configInputParams.length} NEWLY INITIALIZED reserves via ReservesSetupHelper...`,
+      `- Configuring ${configInputParams.length} reserves via ReservesSetupHelper...`,
     );
     const reserveHelperAddress = await reservesSetupHelperContract.getAddress();
     let riskAdminGranted = false;
@@ -245,9 +260,9 @@ export async function setupInitialReserves(
         await aclManager.removeRiskAdmin(reserveHelperAddress);
       }
     }
-    console.log("- Configuration of new reserves complete.");
+    console.log("- Configuration of targeted reserves complete.");
   } else {
-    console.log("- No newly initialized reserves require configuration.");
+    console.log("- No target reserves require configuration (or were eligible).");
   }
 
   // --- Save Token Addresses (for all targeted reserves) ---
