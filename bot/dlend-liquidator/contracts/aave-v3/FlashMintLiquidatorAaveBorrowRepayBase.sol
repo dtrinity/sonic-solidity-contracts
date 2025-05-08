@@ -202,8 +202,8 @@ abstract contract FlashMintLiquidatorAaveBorrowRepayBase is
             );
             uint256 maxIn = (((actualCollateralAmount *
                 10 ** ERC20(actualCollateralToken).decimals() *
-                oracle.getAssetPrice(_flashLoanParams.borrowedUnderlying)) /
                 oracle.getAssetPrice(actualCollateralToken) /
+                oracle.getAssetPrice(_flashLoanParams.borrowedUnderlying)) /
                 10 ** liquidateParams.borrowedUnderlying.decimals()) *
                 (Constants.ONE_HUNDRED_PERCENT_BPS + slippageTolerance)) /
                 Constants.ONE_HUNDRED_PERCENT_BPS;
