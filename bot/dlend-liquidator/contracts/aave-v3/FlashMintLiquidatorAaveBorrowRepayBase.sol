@@ -32,7 +32,7 @@ abstract contract FlashMintLiquidatorAaveBorrowRepayBase is
     uint256 public slippageTolerance; // in basis points units
 
     event SlippageToleranceSet(uint256 newTolerance);
-    error NotSupportingNonDUSD(address borrowedToken, string symbol);
+    error NotSupportingNonDSTABLE(address borrowedToken, string symbol);
 
     mapping(address => address) private proxyContractMap;
 
@@ -40,14 +40,14 @@ abstract contract FlashMintLiquidatorAaveBorrowRepayBase is
         IERC3156FlashLender _flashMinter,
         ILendingPoolAddressesProvider _addressesProvider,
         ILendingPool _liquidateLender,
-        IAToken _aDUSD,
+        IAToken _aDSTABLE,
         uint256 _slippageTolerance
     )
         FlashMintLiquidatorAaveBase(
             _flashMinter,
             _liquidateLender,
             _addressesProvider,
-            _aDUSD
+            _aDSTABLE
         )
         Ownable(msg.sender)
     {
@@ -146,8 +146,8 @@ abstract contract FlashMintLiquidatorAaveBorrowRepayBase is
     function _flashLoanInternal(
         FlashLoanParams memory _flashLoanParams
     ) internal {
-        if (_flashLoanParams.borrowedUnderlying != address(dusd)) {
-            revert NotSupportingNonDUSD(
+        if (_flashLoanParams.borrowedUnderlying != address(dstable)) {
+            revert NotSupportingNonDSTABLE(
                 _flashLoanParams.borrowedUnderlying,
                 ERC20(_flashLoanParams.borrowedUnderlying).symbol()
             );

@@ -13,8 +13,10 @@ export interface Config {
 }
 
 export interface LiquidatorBotConfig {
-  readonly flashMinter: string;
-  readonly dUSDAddress: string;
+  readonly flashMinters: {
+    dUSD: string;
+    dS: string;
+  };
   readonly slippageTolerance: number;
   readonly healthFactorThreshold: number;
   readonly healthFactorBatchSize: number;

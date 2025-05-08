@@ -3,10 +3,6 @@ import hre from "hardhat";
 import { getConfig } from "../../config/config";
 import { printLog } from "../common/log";
 import { getUserHealthFactor } from "../dlend_helpers/user";
-import {
-  getOdosFlashLoanLiquidatorBotContract,
-  getOdosFlashMintDUSDLiquidatorBotContract,
-} from "./bot_contract";
 import { runBotBatch } from "./core";
 
 /**
@@ -23,10 +19,6 @@ async function main(): Promise<void> {
 
   const index = 1;
   const { deployer } = await hre.getNamedAccounts();
-  const flashMintLiquidatorBotContract =
-    await getOdosFlashMintDUSDLiquidatorBotContract(deployer);
-  const flashLoanLiquidatorBotContract =
-    await getOdosFlashLoanLiquidatorBotContract(deployer);
 
   printLog(index, "Printing health factors of the users to liquidate");
 
@@ -47,8 +39,6 @@ async function main(): Promise<void> {
     index,
     userAddresses,
     deployer,
-    flashMintLiquidatorBotContract,
-    flashLoanLiquidatorBotContract,
     config.liquidatorBotOdos.healthFactorBatchSize,
     config.liquidatorBotOdos.healthFactorThreshold,
     config.liquidatorBotOdos.profitableThresholdInUSD,

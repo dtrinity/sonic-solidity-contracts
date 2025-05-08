@@ -18,7 +18,7 @@ contract FlashMintLiquidatorAaveBorrowRepayOdos is
         IERC3156FlashLender _flashMinter,
         ILendingPoolAddressesProvider _addressesProvider,
         ILendingPool _liquidateLender,
-        IAToken _aDUSD,
+        IAToken _aDSTABLE,
         uint256 _slippageTolerance,
         IOdosRouterV2 _odosRouter
     )
@@ -26,7 +26,7 @@ contract FlashMintLiquidatorAaveBorrowRepayOdos is
             _flashMinter,
             _addressesProvider,
             _liquidateLender,
-            _aDUSD,
+            _aDSTABLE,
             _slippageTolerance
         )
     {
