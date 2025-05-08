@@ -87,11 +87,8 @@ abstract contract FlashMintLiquidatorAaveBorrowRepayBase is
         uint256 _repayAmount,
         bool _stakeTokens,
         bool _isUnstakeCollateralToken,
-        bytes memory _swapData,
-        uint256 _debugBreakPoint
+        bytes memory _swapData
     ) external nonReentrant {
-        debugBreakPoint = _debugBreakPoint;
-
         LiquidateParams memory liquidateParams = LiquidateParams(
             _getUnderlying(_poolTokenCollateralAddress),
             _getUnderlying(_poolTokenBorrowedAddress),
