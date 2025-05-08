@@ -32,6 +32,8 @@ import "../interface/aave-v3/aave/ILendingPool.sol";
 
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {SharedLiquidator, SafeERC20} from "../common/SharedLiquidator.sol";
+import {BreakPointHelper} from "../debugging/BreakPointHelper.sol";
+import {Converter} from "../debugging/Converter.sol";
 
 abstract contract FlashMintLiquidatorAaveBase is
     ReentrancyGuard,
@@ -41,6 +43,7 @@ abstract contract FlashMintLiquidatorAaveBase is
     using SafeERC20 for ERC20;
     using ReserveConfiguration for DataTypes.ReserveConfigurationMap;
     using PercentageMath for uint256;
+    using BreakPointHelper for uint256;
 
     struct FlashLoanParams {
         address collateralUnderlying;
@@ -95,6 +98,8 @@ abstract contract FlashMintLiquidatorAaveBase is
     ERC20 public immutable dstable;
     uint256 public immutable DSTABLE_DECIMALS;
 
+    uint256 public debugBreakPoint = 0;
+
     constructor(
         IERC3156FlashLender _flashMinter,
         ILendingPool _liquidateLender,
@@ -119,6 +124,22 @@ abstract contract FlashMintLiquidatorAaveBase is
             address(liquidateLender),
             _liquidateParams.toRepay
         );
+        // debugBreakPoint.checkBreakpointWithMessage(
+        //     3000,
+        //     string.concat(
+        //         "LiquidateParams",
+        //         ": \n_liquidateParams.poolTokenCollateral: ",
+        //         Converter.addressToString(address(_liquidateParams.poolTokenCollateral)),
+        //         ", \n_liquidateParams.poolTokenBorrowed: ",
+        //         Converter.addressToString(address(_liquidateParams.poolTokenBorrowed)),
+        //         ", \n_liquidateParams.borrower: ",
+        //         Converter.addressToString(_liquidateParams.borrower),
+        //         ", \n_liquidateParams.toRepay: ",
+        //         Converter.uintToString(_liquidateParams.toRepay),
+        //         ", \n_liquidateParams.collateralUnderlying: ",
+        //         Converter.addressToString(address(_liquidateParams.collateralUnderlying))
+        //     )
+        // );
         liquidateLender.liquidationCall(
             address(
                 _getUnderlying(address(_liquidateParams.poolTokenCollateral))
