@@ -193,7 +193,7 @@ export async function runBotBatch(
   for (const userInfo of liquidatableUserInfos) {
     const userState: UserStateLog = {
       healthFactor: userInfo.healthFactor.toString(),
-      toLiquidateAmount: "",
+      toRepayAmount: "",
       collateralToken: undefined,
       debtToken: undefined,
       lastTrial: Date.now(),
@@ -214,8 +214,7 @@ export async function runBotBatch(
         userInfo.userAddress,
       );
 
-      userState.toLiquidateAmount =
-        liquidationParams.toLiquidateAmount.toString();
+      userState.toRepayAmount = liquidationParams.toRepayAmount.toString();
       userState.collateralToken = {
         address: liquidationParams.collateralToken.reserveTokenInfo.address,
         symbol: liquidationParams.collateralToken.reserveTokenInfo.symbol,
@@ -225,16 +224,16 @@ export async function runBotBatch(
         symbol: liquidationParams.debtToken.reserveTokenInfo.symbol,
       };
 
-      if (liquidationParams.toLiquidateAmount.isZero()) {
+      if (liquidationParams.toRepayAmount.isZero()) {
         printLog(
           index,
-          `User ${userInfo.userAddress} has 0 debt to liquidate, skipping`,
+          `User ${userInfo.userAddress} has 0 debt to repay, skipping`,
         );
         notProfitableUserMemory.put(userInfo.userAddress);
 
         userState.success = false;
-        userState.error = "No debt to liquidate";
-        userState.errorMessage = "No debt to liquidate";
+        userState.error = "No debt to repay";
+        userState.errorMessage = "No debt to repay";
       } else {
         const liquidationProfitInUSD = await getLiquidationProfitInUSD(
           liquidationParams.debtToken.reserveTokenInfo,
@@ -242,7 +241,7 @@ export async function runBotBatch(
             rawValue: BigNumber.from(liquidationParams.debtToken.priceInUSD),
             decimals: liquidationParams.debtToken.priceDecimals,
           },
-          liquidationParams.toLiquidateAmount.toBigInt(),
+          liquidationParams.toRepayAmount.toBigInt(),
         );
 
         userState.profitInUSD = liquidationProfitInUSD.toString();
@@ -263,7 +262,7 @@ export async function runBotBatch(
             deployer,
             liquidationParams.debtToken.reserveTokenInfo.address,
             liquidationParams.collateralToken.reserveTokenInfo.address,
-            liquidationParams.toLiquidateAmount.toBigInt(),
+            liquidationParams.toRepayAmount.toBigInt(),
           );
 
           userState.success = true;
@@ -276,7 +275,7 @@ export async function runBotBatch(
             `• Collateral Token: ${userState.collateralToken?.symbol}\n` +
             `• Debt Token: ${userState.debtToken?.symbol}\n` +
             `• Repaid Amount: ${ethers.formatUnits(
-              userState.toLiquidateAmount,
+              userState.toRepayAmount,
               liquidationParams.debtToken.reserveTokenInfo.decimals,
             )} ${liquidationParams.debtToken.reserveTokenInfo.symbol}\n` +
             `• Transaction Hash: ${txHash}`;

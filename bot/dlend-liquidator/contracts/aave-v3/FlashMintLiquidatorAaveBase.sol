@@ -49,7 +49,7 @@ abstract contract FlashMintLiquidatorAaveBase is
         address poolTokenBorrowed;
         address liquidator;
         address borrower;
-        uint256 toLiquidate;
+        uint256 toRepay;
         bool isUnstakeCollateralToken;
         bytes swapData;
     }
@@ -151,7 +151,7 @@ abstract contract FlashMintLiquidatorAaveBase is
 
         uint256 dstableToFlashLoan = _getDSTABLEToFlashloan(
             _flashLoanParams.borrowedUnderlying,
-            _flashLoanParams.toLiquidate
+            _flashLoanParams.toRepay
         );
 
         dstable.forceApprove(
@@ -248,7 +248,7 @@ abstract contract FlashMintLiquidatorAaveBase is
             _flashLoanParams.poolTokenBorrowed,
             _flashLoanParams.liquidator,
             _flashLoanParams.borrower,
-            _flashLoanParams.toLiquidate,
+            _flashLoanParams.toRepay,
             _flashLoanParams.isUnstakeCollateralToken,
             _flashLoanParams.swapData
         );
@@ -289,7 +289,7 @@ abstract contract FlashMintLiquidatorAaveBase is
             ,
             _flashLoanParams.liquidator,
             _flashLoanParams.borrower,
-            _flashLoanParams.toLiquidate,
+            _flashLoanParams.toRepay,
             _flashLoanParams.isUnstakeCollateralToken,
             _flashLoanParams.swapData
         ) = abi.decode(

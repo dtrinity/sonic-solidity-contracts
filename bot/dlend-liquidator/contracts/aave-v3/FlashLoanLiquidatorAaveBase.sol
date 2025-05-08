@@ -50,7 +50,7 @@ abstract contract FlashLoanLiquidatorAaveBase is
         address poolTokenBorrowed;
         address liquidator;
         address borrower;
-        uint256 toLiquidate;
+        uint256 toRepay;
         bool isUnstakeCollateralToken;
         bytes swapData;
     }
@@ -159,7 +159,7 @@ abstract contract FlashLoanLiquidatorAaveBase is
         // The liquidation is done in the callback at executeOperation()
         // - contracts/lending_liquidator/aave-v3/FlashLoanLiquidatorAaveBorrowRepayUniswapV3.sol
         // - The flashLoanSimple() of the minter will call the executeOperation() function of the receiver (FlashLoanSimpleReceiver)
-        uint256 borrowedTokenToFlashLoan = _flashLoanParams.toLiquidate;
+        uint256 borrowedTokenToFlashLoan = _flashLoanParams.toRepay;
         flashLoanLender.flashLoanSimple(
             address(this),
             _flashLoanParams.borrowedUnderlying,
@@ -192,7 +192,7 @@ abstract contract FlashLoanLiquidatorAaveBase is
             _flashLoanParams.poolTokenBorrowed,
             _flashLoanParams.liquidator,
             _flashLoanParams.borrower,
-            _flashLoanParams.toLiquidate,
+            _flashLoanParams.toRepay,
             _flashLoanParams.isUnstakeCollateralToken,
             _flashLoanParams.swapData
         );
@@ -233,7 +233,7 @@ abstract contract FlashLoanLiquidatorAaveBase is
             ,
             _flashLoanParams.liquidator,
             _flashLoanParams.borrower,
-            _flashLoanParams.toLiquidate,
+            _flashLoanParams.toRepay,
             _flashLoanParams.isUnstakeCollateralToken,
             _flashLoanParams.swapData
         ) = abi.decode(

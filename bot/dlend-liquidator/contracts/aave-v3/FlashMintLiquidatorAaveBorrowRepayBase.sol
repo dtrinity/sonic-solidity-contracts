@@ -105,10 +105,10 @@ abstract contract FlashMintLiquidatorAaveBorrowRepayBase is
         if (
             liquidateParams.borrowedUnderlying.balanceOf(address(this)) >=
             _repayAmount
-        )
+        ) {
             // we can liquidate without flash loan by using the contract balance
             seized = _liquidateInternal(liquidateParams);
-        else {
+        } else {
             FlashLoanParams memory params = FlashLoanParams(
                 address(liquidateParams.collateralUnderlying),
                 address(liquidateParams.borrowedUnderlying),
@@ -160,7 +160,7 @@ abstract contract FlashMintLiquidatorAaveBorrowRepayBase is
             IAToken(_flashLoanParams.poolTokenBorrowed),
             _flashLoanParams.liquidator,
             _flashLoanParams.borrower,
-            _flashLoanParams.toLiquidate,
+            _flashLoanParams.toRepay,
             _flashLoanParams.isUnstakeCollateralToken
         );
         uint256 seized = _liquidateInternal(liquidateParams);
@@ -209,7 +209,7 @@ abstract contract FlashMintLiquidatorAaveBorrowRepayBase is
                 actualCollateralToken,
                 _flashLoanParams.borrowedUnderlying,
                 _flashLoanParams.swapData,
-                _flashLoanParams.toLiquidate,
+                _flashLoanParams.toRepay,
                 maxIn
             );
         }
@@ -218,7 +218,7 @@ abstract contract FlashMintLiquidatorAaveBorrowRepayBase is
             _flashLoanParams.borrower,
             _flashLoanParams.poolTokenBorrowed,
             _flashLoanParams.poolTokenCollateral,
-            _flashLoanParams.toLiquidate,
+            _flashLoanParams.toRepay,
             seized,
             true
         );
