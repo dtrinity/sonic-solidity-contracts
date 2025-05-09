@@ -197,21 +197,30 @@ export async function setupInitialReserves(
   // Iterate over all target symbols for this run
   for (const symbol of targetReserveSymbols) {
     const params = reservesConfig[symbol];
+
     if (!params) {
-      console.warn(`- Skipping configuration for ${symbol}: No configuration found.`);
+      console.warn(
+        `- Skipping configuration for ${symbol}: No configuration found.`,
+      );
       continue;
     }
     const tokenAddress =
       config.tokenAddresses[symbol as keyof typeof config.tokenAddresses];
+
     if (!tokenAddress) {
-      console.warn(`- Skipping configuration for ${symbol}: Token address not found in config.`);
+      console.warn(
+        `- Skipping configuration for ${symbol}: Token address not found in config.`,
+      );
       continue;
     }
 
     // Check if the reserve actually exists in the pool (it should if initialized)
     const reserveData = await poolContract.getReserveData(tokenAddress);
+
     if (reserveData.aTokenAddress === ZeroAddress) {
-      console.warn(`- Skipping configuration for ${symbol}: Reserve not actually initialized in the pool.`);
+      console.warn(
+        `- Skipping configuration for ${symbol}: Reserve not actually initialized in the pool.`,
+      );
       continue;
     }
 
@@ -262,7 +271,9 @@ export async function setupInitialReserves(
     }
     console.log("- Configuration of targeted reserves complete.");
   } else {
-    console.log("- No target reserves require configuration (or were eligible).");
+    console.log(
+      "- No target reserves require configuration (or were eligible).",
+    );
   }
 
   // --- Save Token Addresses (for all targeted reserves) ---

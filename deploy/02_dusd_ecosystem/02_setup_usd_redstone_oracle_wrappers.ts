@@ -9,17 +9,25 @@ import {
 } from "../../typescript/deploy-ids";
 
 // Helper function to perform sanity checks on oracle wrappers
+/**
+ * Performs sanity checks on oracle wrapper feeds by verifying normalized prices are within a reasonable range.
+ *
+ * @param wrapper The oracle wrapper contract instance.
+ * @param feeds A record mapping asset addresses to feed configurations.
+ * @param baseCurrencyUnit The base currency unit for price calculations.
+ * @param wrapperName The name of the wrapper for logging purposes.
+ */
 async function performOracleSanityChecks(
   wrapper: any,
   feeds: Record<string, any>,
   baseCurrencyUnit: bigint,
   wrapperName: string
-) {
+): Promise<void> {
   for (const [assetAddress] of Object.entries(feeds)) {
     try {
-      // Redstone wrappers use getAssetPrice for getting the price
       const price = await wrapper.getAssetPrice(assetAddress);
       const normalizedPrice = Number(price) / Number(baseCurrencyUnit);
+
       if (normalizedPrice < 0.01 || normalizedPrice > 1e6) {
         console.error(
           `Sanity check failed for asset ${assetAddress} in ${wrapperName}: Normalized price ${normalizedPrice} is outside the range [0.9, 2]`
@@ -44,7 +52,9 @@ async function performOracleSanityChecks(
   }
 }
 
-const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
+const func: DeployFunction = async function (
+  hre: HardhatRuntimeEnvironment
+): Promise<boolean> {
   const { deployer } = await hre.getNamedAccounts();
 
   const config = await getConfig(hre);
