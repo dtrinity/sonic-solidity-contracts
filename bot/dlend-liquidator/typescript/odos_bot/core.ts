@@ -253,6 +253,18 @@ export async function runBotBatch(
             index,
             `Liquidating user ${userInfo.userAddress} with health factor ${userInfo.healthFactor}`,
           );
+          printLog(
+            index,
+            ` - Debt token: ${liquidationParams.debtToken.reserveTokenInfo.symbol}`,
+          );
+          printLog(
+            index,
+            ` - Collateral token: ${liquidationParams.collateralToken.reserveTokenInfo.symbol}`,
+          );
+          printLog(
+            index,
+            ` - To repay: ${liquidationParams.toRepayAmount.toString()}`,
+          );
 
           userState.lastTrial = Date.now();
           userState.success = false;

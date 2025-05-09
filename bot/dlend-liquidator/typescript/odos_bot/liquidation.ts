@@ -11,6 +11,7 @@ import {
   getUserDebtBalance,
   getUserReserveInfo,
   getUserSupplyBalance,
+  isCollateralEnabled,
   UserReserveInfo,
 } from "../dlend_helpers/reserve";
 import { getUserHealthFactor } from "../dlend_helpers/user";
@@ -227,8 +228,12 @@ export async function getUserLiquidationParams(userAddress: string): Promise<{
     a.totalDebt.gt(b.totalDebt) ? -1 : 1,
   );
 
+  const collateralEnabledChecks = await Promise.all(
+    reserveInfos.map((r) => isCollateralEnabled(r.reserveAddress)),
+  );
+
   const availableCollateralMarkets = reserveInfos.filter(
-    (r) => r.usageAsCollateralEnabled,
+    (_, index) => collateralEnabledChecks[index],
   );
   const [collateralMarket] = availableCollateralMarkets
     .filter((b) => b.liquidationBonus.gt(0))
