@@ -12,8 +12,8 @@ const baseDStableConfig: IReserveParams = {
   // CAUTION: If LTV is > 0, people may loop and dillute other borrowers
   baseLTVAsCollateral: "0", // 0 Don't allow dStable as collateral to prevent subsidy syphoning
   liquidationThreshold: "0", // Set to 0% because some helper contracts rely on this to determine if collateral is enabled
-  liquidationBonus: "10500", // 10500 bps = 105%, amount over 100% is the fee portion
-  liquidationProtocolFee: "7000", // 7000 bps = 70%
+  liquidationBonus: "0", // Must be 0% if liquidationThreshold is 0%
+  liquidationProtocolFee: "0",
   borrowingEnabled: true,
   stableBorrowRateEnabled: false, // No stable rates due to vulnerability
   flashLoanEnabled: true,
