@@ -16,7 +16,7 @@ async function main() {
   const deployerSigner: Signer = await ethers.getSigner(deployer);
 
   console.log(
-    `\nScanning roles for deployer: ${deployer} on network: ${network.name}`
+    `\nScanning roles and ownership for deployer: ${deployer} on network: ${network.name}`
   );
 
   const config = await getConfig(hre);
@@ -59,6 +59,12 @@ async function main() {
     address: string;
     abi: AbiItem[];
     roles: { name: string; hash: string }[];
+  }[] = [];
+
+  const contractsWithPotentialOwnership: {
+    name: string;
+    address: string;
+    abi: AbiItem[];
   }[] = [];
 
   // Read deployment artifacts directly from the directory
@@ -159,6 +165,33 @@ async function main() {
         //   `  Skipping ${contractName}: No hasRole function found in ABI.` // Removed debug log
         // );
       }
+
+      // Check if the contract is Ownable by looking for owner() and transferOwnership(address)
+      const ownerFunction = abi.find(
+        (item) =>
+          item.type === "function" &&
+          item.name === "owner" &&
+          item.inputs?.length === 0 &&
+          item.outputs?.length === 1 &&
+          item.outputs[0].type === "address"
+      );
+
+      const transferOwnershipFunction = abi.find(
+        (item) =>
+          item.type === "function" &&
+          item.name === "transferOwnership" &&
+          item.inputs?.length === 1 &&
+          item.inputs[0].type === "address"
+      );
+
+      if (ownerFunction && transferOwnershipFunction) {
+        console.log(`  Contract ${contractName} appears to be Ownable.`);
+        contractsWithPotentialOwnership.push({
+          name: contractName,
+          address: contractAddress,
+          abi,
+        });
+      }
     } catch (error) {
       console.error(
         `Error reading or processing artifact file ${filename}:`,
@@ -168,7 +201,7 @@ async function main() {
   }
 
   console.log(
-    `\nScan complete. Found potential roles in ${contractsWithPotentialRoles.length} contracts.`
+    `\nScan complete. Found potential roles in ${contractsWithPotentialRoles.length} contracts and potential ownership in ${contractsWithPotentialOwnership.length} contracts.`
   );
 
   const deployerRoles: {
@@ -178,7 +211,13 @@ async function main() {
     roles: { name: string; hash: string }[];
   }[] = [];
 
-  console.log("\nChecking deployer's roles...");
+  const deployerOwnedContracts: {
+    name: string;
+    address: string;
+    abi: AbiItem[];
+  }[] = [];
+
+  console.log("\nChecking deployer's roles and ownership...");
 
   for (const contractInfo of contractsWithPotentialRoles) {
     const {
@@ -229,10 +268,41 @@ async function main() {
     }
   }
 
-  console.log("\n--- Summary of Deployer's Roles ---");
-  if (deployerRoles.length === 0) {
-    console.log("Deployer holds no identifiable roles on deployed contracts.");
+  for (const contractInfo of contractsWithPotentialOwnership) {
+    const { name: contractName, address: contractAddress, abi } = contractInfo;
+
+    try {
+      console.log(
+        `  Checking ownership for ${contractName} at ${contractAddress}`
+      );
+      const contract = await ethers.getContractAt(
+        abi,
+        contractAddress,
+        deployerSigner
+      );
+
+      const currentOwner = await contract.owner();
+
+      if (currentOwner.toLowerCase() === deployer.toLowerCase()) {
+        deployerOwnedContracts.push(contractInfo);
+        console.log(`  - Deployer IS the owner of ${contractName}`);
+      } else {
+        console.log(
+          `  - Deployer is NOT the owner of ${contractName}. Current owner: ${currentOwner}`
+        );
+      }
+    } catch (error) {
+      console.error(`Error checking ownership for ${contractName}:`, error);
+    }
+  }
+
+  console.log("\n--- Summary of Deployer's Roles and Ownership ---");
+  if (deployerRoles.length === 0 && deployerOwnedContracts.length === 0) {
+    console.log(
+      "Deployer holds no identifiable roles or ownership on deployed contracts."
+    );
   } else {
+    console.log("Contracts with Roles Held by Deployer:");
     for (const contractInfo of deployerRoles) {
       console.log(
         `Contract: ${contractInfo.contractName} (${contractInfo.contractAddress})`
@@ -243,8 +313,15 @@ async function main() {
     }
   }
 
-  if (deployerRoles.length === 0) {
-    console.log("\nNo roles to transfer. Exiting.");
+  if (deployerOwnedContracts.length > 0) {
+    console.log("Ownable Contracts Owned by Deployer:");
+    for (const contractInfo of deployerOwnedContracts) {
+      console.log(`Contract: ${contractInfo.name} (${contractInfo.address})`);
+    }
+  }
+
+  if (deployerRoles.length === 0 && deployerOwnedContracts.length === 0) {
+    console.log("\nNo roles or ownership to transfer. Exiting.");
     return true;
   }
 
@@ -255,7 +332,7 @@ async function main() {
   });
 
   const question =
-    "\nDo you want to transfer the listed roles to the governance multisig? (yes/no): ";
+    "\nDo you want to transfer the listed roles and ownership to the governance multisig? (yes/no): ";
 
   const answer = await new Promise<string>((resolve) => {
     rl.question(question, resolve);
@@ -264,12 +341,13 @@ async function main() {
   rl.close();
 
   if (answer.toLowerCase() !== "yes") {
-    console.log("\nRole transfer cancelled by user. Exiting.");
+    console.log("\nRole and ownership transfer cancelled by user. Exiting.");
     return true;
   }
 
-  console.log("\nTransferring roles...");
+  console.log("\nTransferring roles and ownership...");
 
+  // Transfer AccessControl roles
   for (const contractInfo of deployerRoles) {
     const { contractName, contractAddress, abi, roles } = contractInfo;
 
@@ -314,7 +392,38 @@ async function main() {
     }
   }
 
-  console.log("\nRole transfer process completed.");
+  // Transfer Ownable ownership
+  for (const contractInfo of deployerOwnedContracts) {
+    const { name: contractName, address: contractAddress, abi } = contractInfo;
+
+    try {
+      console.log(`  - Transferring ownership of ${contractName}...`);
+      const contract = await ethers.getContractAt(
+        abi,
+        contractAddress,
+        deployerSigner
+      );
+      try {
+        const transferTx = await contract.transferOwnership(governanceMultisig);
+        await transferTx.wait();
+        console.log(
+          `    Transferred ownership of ${contractName} to ${governanceMultisig} (Tx: ${transferTx.hash})`
+        );
+      } catch (error) {
+        console.error(
+          `    Error transferring ownership of ${contractName}:`,
+          error
+        );
+      }
+    } catch (error) {
+      console.error(
+        `Error interacting with contract ${contractName} for ownership transfer:`,
+        error
+      );
+    }
+  }
+
+  console.log("\nRole and ownership transfer process completed.");
 
   return true;
 }
