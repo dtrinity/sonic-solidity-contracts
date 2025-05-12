@@ -388,6 +388,7 @@ async function main() {
           `  - Transferring DEFAULT_ADMIN_ROLE on ${contractName}...`
         );
         try {
+          // CRITICAL: Grant the admin role to the new admin *before* revoking it from the old one.
           // Grant role to multisig
           const grantTx = await contract.grantRole(
             adminRole.hash,
@@ -396,6 +397,20 @@ async function main() {
           await grantTx.wait();
           console.log(
             `    Granted ${adminRole.name} to ${governanceMultisig} (Tx: ${grantTx.hash})`
+          );
+
+          // Safety check: Verify the multisig now has the admin role before revoking.
+          const hasRoleCheck = await contract.hasRole(
+            adminRole.hash,
+            governanceMultisig
+          );
+          if (!hasRoleCheck) {
+            throw new Error(
+              `Verification failed: Governance multisig ${governanceMultisig} does NOT have role ${adminRole.name} on ${contractName} after grant attempt.`
+            );
+          }
+          console.log(
+            `      Verification successful: Multisig now has role ${adminRole.name}.`
           );
 
           // Revoke role from deployer
