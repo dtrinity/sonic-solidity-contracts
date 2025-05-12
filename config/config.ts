@@ -12,7 +12,7 @@ import { Config } from "./types";
  * @returns The configuration for the network
  */
 export async function getConfig(
-  hre: HardhatRuntimeEnvironment
+  hre: HardhatRuntimeEnvironment,
 ): Promise<Config> {
   switch (hre.network.name) {
     case "sonic_testnet":
