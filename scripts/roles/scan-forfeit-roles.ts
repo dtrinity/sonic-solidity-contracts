@@ -1,6 +1,4 @@
 import { Signer } from "ethers";
-import { HardhatRuntimeEnvironment } from "hardhat/types";
-// import { DeployFunction } from "hardhat-deploy/types";
 import * as fs from "fs";
 import * as path from "path";
 import * as readline from "readline";
@@ -8,7 +6,6 @@ import * as readline from "readline";
 import { getConfig } from "../../config/config";
 import { AbiItem } from "web3-utils";
 
-// const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 async function main() {
   const hre = require("hardhat");
   const { getNamedAccounts, network, deployments, ethers } = hre;
@@ -81,17 +78,11 @@ async function main() {
     const deploymentName = filename.replace(".json", ""); // Use filename as a potential deployment name
     const artifactPath = path.join(deploymentsPath, filename);
 
-    // console.log(`Processing artifact file: ${filename}`); // Removed debug log
-
     try {
       const deployment = JSON.parse(fs.readFileSync(artifactPath, "utf-8"));
       const abi: AbiItem[] = deployment.abi;
       const contractAddress: string = deployment.address;
       const contractName: string = deployment.contractName || deploymentName; // Use contractName from artifact if available
-
-      // console.log(
-      //   `  Successfully read artifact for ${filename}. Contract name: ${contractName}, Address: ${contractAddress}` // Removed debug log
-      // );
 
       // Check if the contract uses AccessControl by looking for hasRole function
       const hasRoleFunction = abi.find(
@@ -162,7 +153,7 @@ async function main() {
         }
       } else {
         // console.log(
-        //   `  Skipping ${contractName}: No hasRole function found in ABI.` // Removed debug log
+        //   `  Skipping ${contractName}: No hasRole function found in ABI.` // Debug log
         // );
       }
 
@@ -228,9 +219,6 @@ async function main() {
     } = contractInfo;
 
     try {
-      // console.log(
-      //   `  Getting contract instance for ${contractName} at ${contractAddress} with deployer signer ${await deployerSigner.getAddress()}` // Removed debug log
-      // );
       const contract = await ethers.getContractAt(
         abi,
         contractAddress,
@@ -240,17 +228,13 @@ async function main() {
       const rolesHeldByDeployer: { name: string; hash: string }[] = [];
 
       for (const role of roles) {
-        // console.log(
-        //   `    Checking if deployer ${deployer} has role ${role.name} with hash ${role.hash}...` // Removed debug log
-        // );
         const hasRole = await contract.hasRole(role.hash, deployer);
-        // console.log(`    Result: ${hasRole}`); // Removed debug log
         if (hasRole) {
           rolesHeldByDeployer.push(role);
           console.log(`  - Deployer HAS role ${role.name} on ${contractName}`);
         } else {
           // console.log(
-          //   `  - Deployer does NOT have role ${role.name} on ${contractName}` // Removed debug log
+          //   `  - Deployer does NOT have role ${role.name} on ${contractName}` // Debug log
           // );
         }
       }
@@ -358,8 +342,16 @@ async function main() {
         deployerSigner
       );
 
-      for (const role of roles) {
-        console.log(`  - Transferring role ${role.name} on ${contractName}...`);
+      // Separate roles
+      const adminRole = roles.find((r) => r.name === "DEFAULT_ADMIN_ROLE");
+      const otherRoles = roles.filter((r) => r.name !== "DEFAULT_ADMIN_ROLE");
+
+      // 1. Transfer other roles first
+      console.log(
+        `  - Transferring ${otherRoles.length} non-admin role(s) on ${contractName}...`
+      );
+      for (const role of otherRoles) {
+        console.log(`    - Transferring role ${role.name}...`);
         try {
           // Grant role to multisig
           const grantTx = await contract.grantRole(
@@ -368,18 +360,53 @@ async function main() {
           );
           await grantTx.wait();
           console.log(
-            `    Granted ${role.name} to ${governanceMultisig} (Tx: ${grantTx.hash})`
+            `      Granted ${role.name} to ${governanceMultisig} (Tx: ${grantTx.hash})`
           );
 
           // Revoke role from deployer
           const revokeTx = await contract.revokeRole(role.hash, deployer);
           await revokeTx.wait();
           console.log(
-            `    Revoked ${role.name} from ${deployer} (Tx: ${revokeTx.hash})`
+            `      Revoked ${role.name} from ${deployer} (Tx: ${revokeTx.hash})`
           );
         } catch (error) {
           console.error(
-            `    Error transferring role ${role.name} on ${contractName}:`,
+            `      Error transferring role ${role.name} on ${contractName}:`,
+            error
+          );
+          // Decide if you want to stop the whole process or just skip this role/contract
+          console.warn(
+            `      Skipping remaining role transfers for ${contractName} due to error.`
+          );
+          break; // Break inner loop for this contract if a non-admin role fails
+        }
+      }
+
+      // 2. Transfer DEFAULT_ADMIN_ROLE last (if it exists and other roles were successful)
+      if (adminRole) {
+        console.log(
+          `  - Transferring DEFAULT_ADMIN_ROLE on ${contractName}...`
+        );
+        try {
+          // Grant role to multisig
+          const grantTx = await contract.grantRole(
+            adminRole.hash,
+            governanceMultisig
+          );
+          await grantTx.wait();
+          console.log(
+            `    Granted ${adminRole.name} to ${governanceMultisig} (Tx: ${grantTx.hash})`
+          );
+
+          // Revoke role from deployer
+          const revokeTx = await contract.revokeRole(adminRole.hash, deployer);
+          await revokeTx.wait();
+          console.log(
+            `    Revoked ${adminRole.name} from ${deployer} (Tx: ${revokeTx.hash})`
+          );
+        } catch (error) {
+          console.error(
+            `    Error transferring ${adminRole.name} on ${contractName}:`,
             error
           );
         }
