@@ -11,6 +11,7 @@ import {
   getUserDebtBalance,
   getUserReserveInfo,
   getUserSupplyBalance,
+  isCollateralEnabled,
   UserReserveInfo,
 } from "../dlend_helpers/reserve";
 import { getUserHealthFactor } from "../dlend_helpers/user";
@@ -71,11 +72,11 @@ export function getMaxLiquidationAmountCalculation(
   userHealthFactor: number,
   closeFactorHFThreshold: number,
 ): {
-  toLiquidateAmount: BigNumber;
+  toRepayAmount: BigNumber;
 } {
   if (userHealthFactor >= 1) {
     return {
-      toLiquidateAmount: BigNumber.from(0),
+      toRepayAmount: BigNumber.from(0),
     };
   }
 
@@ -83,13 +84,13 @@ export function getMaxLiquidationAmountCalculation(
     .mul(collateralTokenPriceInUSD)
     .div(pow10(collateralTokenInfo.decimals));
 
-  let toLiquidateAmount = totalUserDebt.div(2);
+  let toRepayAmount = totalUserDebt.div(2);
 
   if (userHealthFactor < closeFactorHFThreshold) {
-    toLiquidateAmount = totalUserDebt;
+    toRepayAmount = totalUserDebt;
   }
 
-  const toLiquidateAmountInUSD = toLiquidateAmount
+  const toLiquidateAmountInUSD = toRepayAmount
     .mul(borrowTokenPriceInUSD)
     .div(pow10(borrowTokenInfo.decimals));
 
@@ -98,7 +99,7 @@ export function getMaxLiquidationAmountCalculation(
       totalUserCollateralInUSD,
     )
   ) {
-    toLiquidateAmount = PercentMath.percentDiv(
+    toRepayAmount = PercentMath.percentDiv(
       totalUserCollateralInUSD,
       liquidationBonus,
     )
@@ -107,7 +108,7 @@ export function getMaxLiquidationAmountCalculation(
   }
 
   return {
-    toLiquidateAmount: toLiquidateAmount,
+    toRepayAmount: toRepayAmount,
   };
 }
 
@@ -118,7 +119,7 @@ export function getMaxLiquidationAmountCalculation(
  * @param borrowTokenInfo - The borrow token info
  * @param borrowerAddress - Address of the borrower
  * @param callerAddress - Address of the caller
- * @returns The maximum liquidation amount
+ * @returns The maximum liquidation amount to repay
  */
 export async function getMaxLiquidationAmount(
   collateralTokenInfo: TokenInfo,
@@ -126,7 +127,7 @@ export async function getMaxLiquidationAmount(
   borrowerAddress: string,
   callerAddress: string,
 ): Promise<{
-  toLiquidateAmount: BigNumber;
+  toRepayAmount: BigNumber;
 }> {
   const [
     collateralTokenPriceInUSD,
@@ -203,7 +204,7 @@ export async function getUserLiquidationParams(userAddress: string): Promise<{
   userAddress: string;
   collateralToken: UserReserveInfo;
   debtToken: UserReserveInfo;
-  toLiquidateAmount: BigNumber;
+  toRepayAmount: BigNumber;
 }> {
   const config = await getConfig(hre);
 
@@ -227,8 +228,12 @@ export async function getUserLiquidationParams(userAddress: string): Promise<{
     a.totalDebt.gt(b.totalDebt) ? -1 : 1,
   );
 
+  const collateralEnabledChecks = await Promise.all(
+    reserveInfos.map((r) => isCollateralEnabled(r.reserveAddress)),
+  );
+
   const availableCollateralMarkets = reserveInfos.filter(
-    (r) => r.usageAsCollateralEnabled,
+    (_, index) => collateralEnabledChecks[index],
   );
   const [collateralMarket] = availableCollateralMarkets
     .filter((b) => b.liquidationBonus.gt(0))
@@ -246,6 +251,6 @@ export async function getUserLiquidationParams(userAddress: string): Promise<{
     userAddress,
     collateralToken: collateralMarket,
     debtToken: debtMarket,
-    toLiquidateAmount: maxLiquidationAmount.toLiquidateAmount,
+    toRepayAmount: maxLiquidationAmount.toRepayAmount,
   };
 }

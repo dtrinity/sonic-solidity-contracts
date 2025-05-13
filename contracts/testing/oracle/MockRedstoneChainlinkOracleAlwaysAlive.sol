@@ -27,6 +27,10 @@ contract MockRedstoneChainlinkOracleAlwaysAlive is IPriceFeed {
         mockRoundId = 1;
     }
 
+    function decimals() external pure override returns (uint8) {
+        return 8;
+    }
+
     function setMock(int256 _price) external {
         mockPrice = _price;
         mockRoundId++;

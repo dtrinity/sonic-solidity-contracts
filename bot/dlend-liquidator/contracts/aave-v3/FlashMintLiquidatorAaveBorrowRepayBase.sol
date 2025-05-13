@@ -32,7 +32,7 @@ abstract contract FlashMintLiquidatorAaveBorrowRepayBase is
     uint256 public slippageTolerance; // in basis points units
 
     event SlippageToleranceSet(uint256 newTolerance);
-    error NotSupportingNonDUSD(address borrowedToken, string symbol);
+    error NotSupportingNonDSTABLE(address borrowedToken, string symbol);
 
     mapping(address => address) private proxyContractMap;
 
@@ -40,14 +40,14 @@ abstract contract FlashMintLiquidatorAaveBorrowRepayBase is
         IERC3156FlashLender _flashMinter,
         ILendingPoolAddressesProvider _addressesProvider,
         ILendingPool _liquidateLender,
-        IAToken _aDUSD,
+        IAToken _aDSTABLE,
         uint256 _slippageTolerance
     )
         FlashMintLiquidatorAaveBase(
             _flashMinter,
             _liquidateLender,
             _addressesProvider,
-            _aDUSD
+            _aDSTABLE
         )
         Ownable(msg.sender)
     {
@@ -105,10 +105,10 @@ abstract contract FlashMintLiquidatorAaveBorrowRepayBase is
         if (
             liquidateParams.borrowedUnderlying.balanceOf(address(this)) >=
             _repayAmount
-        )
+        ) {
             // we can liquidate without flash loan by using the contract balance
             seized = _liquidateInternal(liquidateParams);
-        else {
+        } else {
             FlashLoanParams memory params = FlashLoanParams(
                 address(liquidateParams.collateralUnderlying),
                 address(liquidateParams.borrowedUnderlying),
@@ -146,8 +146,8 @@ abstract contract FlashMintLiquidatorAaveBorrowRepayBase is
     function _flashLoanInternal(
         FlashLoanParams memory _flashLoanParams
     ) internal {
-        if (_flashLoanParams.borrowedUnderlying != address(dusd)) {
-            revert NotSupportingNonDUSD(
+        if (_flashLoanParams.borrowedUnderlying != address(dstable)) {
+            revert NotSupportingNonDSTABLE(
                 _flashLoanParams.borrowedUnderlying,
                 ERC20(_flashLoanParams.borrowedUnderlying).symbol()
             );
@@ -160,7 +160,7 @@ abstract contract FlashMintLiquidatorAaveBorrowRepayBase is
             IAToken(_flashLoanParams.poolTokenBorrowed),
             _flashLoanParams.liquidator,
             _flashLoanParams.borrower,
-            _flashLoanParams.toLiquidate,
+            _flashLoanParams.toRepay,
             _flashLoanParams.isUnstakeCollateralToken
         );
         uint256 seized = _liquidateInternal(liquidateParams);
@@ -199,8 +199,8 @@ abstract contract FlashMintLiquidatorAaveBorrowRepayBase is
             );
             uint256 maxIn = (((actualCollateralAmount *
                 10 ** ERC20(actualCollateralToken).decimals() *
-                oracle.getAssetPrice(_flashLoanParams.borrowedUnderlying)) /
                 oracle.getAssetPrice(actualCollateralToken) /
+                oracle.getAssetPrice(_flashLoanParams.borrowedUnderlying)) /
                 10 ** liquidateParams.borrowedUnderlying.decimals()) *
                 (Constants.ONE_HUNDRED_PERCENT_BPS + slippageTolerance)) /
                 Constants.ONE_HUNDRED_PERCENT_BPS;
@@ -209,7 +209,7 @@ abstract contract FlashMintLiquidatorAaveBorrowRepayBase is
                 actualCollateralToken,
                 _flashLoanParams.borrowedUnderlying,
                 _flashLoanParams.swapData,
-                _flashLoanParams.toLiquidate,
+                _flashLoanParams.toRepay,
                 maxIn
             );
         }
@@ -218,7 +218,7 @@ abstract contract FlashMintLiquidatorAaveBorrowRepayBase is
             _flashLoanParams.borrower,
             _flashLoanParams.poolTokenBorrowed,
             _flashLoanParams.poolTokenCollateral,
-            _flashLoanParams.toLiquidate,
+            _flashLoanParams.toRepay,
             seized,
             true
         );

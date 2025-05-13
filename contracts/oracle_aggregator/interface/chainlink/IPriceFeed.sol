@@ -18,6 +18,8 @@
 pragma solidity ^0.8.20;
 
 interface IPriceFeed {
+    function decimals() external view returns (uint8);
+
     function latestRoundData()
         external
         view

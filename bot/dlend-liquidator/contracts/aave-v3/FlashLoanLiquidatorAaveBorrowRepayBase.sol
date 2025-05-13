@@ -135,10 +135,10 @@ abstract contract FlashLoanLiquidatorAaveBorrowRepayBase is
         if (msg.sender != address(flashLoanLender)) revert UnknownLender();
         if (_initiator != address(this)) revert UnknownInitiator();
         FlashLoanParams memory flashLoanParams = _decodeData(params);
-        if (flashLoanAmount != flashLoanParams.toLiquidate) {
+        if (flashLoanAmount != flashLoanParams.toRepay) {
             revert InvalidFlashLoanAmount(
                 flashLoanAmount,
-                flashLoanParams.toLiquidate
+                flashLoanParams.toRepay
             );
         }
 
@@ -172,7 +172,7 @@ abstract contract FlashLoanLiquidatorAaveBorrowRepayBase is
             IAToken(_flashLoanParams.poolTokenBorrowed),
             _flashLoanParams.liquidator,
             _flashLoanParams.borrower,
-            _flashLoanParams.toLiquidate,
+            _flashLoanParams.toRepay,
             _flashLoanParams.isUnstakeCollateralToken
         );
         uint256 seized = _liquidateInternal(liquidateParams);
@@ -219,7 +219,7 @@ abstract contract FlashLoanLiquidatorAaveBorrowRepayBase is
                 actualCollateralToken,
                 _flashLoanParams.borrowedUnderlying,
                 _flashLoanParams.swapData,
-                _flashLoanParams.toLiquidate + _premium,
+                _flashLoanParams.toRepay + _premium,
                 maxIn
             );
 
@@ -230,17 +230,17 @@ abstract contract FlashLoanLiquidatorAaveBorrowRepayBase is
             // Make sure we have enough to repay the flash loan
             if (
                 borrowedUnderlyingBalanceAfter <
-                _flashLoanParams.toLiquidate + _premium
+                _flashLoanParams.toRepay + _premium
             ) {
                 revert InsufficientFlashLoanRepayAmount(
                     borrowedUnderlyingBalanceAfter,
-                    _flashLoanParams.toLiquidate + _premium
+                    _flashLoanParams.toRepay + _premium
                 );
             }
         }
         ERC20(_flashLoanParams.borrowedUnderlying).forceApprove(
             address(flashLoanLender),
-            _flashLoanParams.toLiquidate + _premium
+            _flashLoanParams.toRepay + _premium
         );
 
         emit Liquidated(
@@ -248,7 +248,7 @@ abstract contract FlashLoanLiquidatorAaveBorrowRepayBase is
             _flashLoanParams.borrower,
             _flashLoanParams.poolTokenBorrowed,
             _flashLoanParams.poolTokenCollateral,
-            _flashLoanParams.toLiquidate,
+            _flashLoanParams.toRepay,
             seized,
             true
         );

@@ -3,6 +3,7 @@ import { DeployFunction } from "hardhat-deploy/types";
 
 import { getConfig } from "../../config/config";
 import { FLASH_LOAN_LIQUIDATOR_ODOS_ID } from "../../config/deploy-ids";
+import { assertNotEmpty } from "../../typescript/common/assert";
 import { getPoolAddressesProviderAddressFromParent } from "../../typescript/dlend_helpers/pool";
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
@@ -84,27 +85,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   // Return true to indicate the success of the script
   return true;
 };
-
-/**
- * Assert that the value is not empty
- *
- * @param value - The value to assert
- * @returns The input value if it is not empty
- */
-function assertNotEmpty(value: string | undefined): string {
-  if (value === undefined) {
-    throw new Error("Value is undefined");
-  }
-
-  if (value.trim() === "") {
-    throw new Error("Trimmed value is empty");
-  }
-
-  if (value.length === 0) {
-    throw new Error("Value is empty");
-  }
-  return value;
-}
 
 func.tags = ["liquidator-bot"];
 func.dependencies = [];

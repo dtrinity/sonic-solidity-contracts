@@ -18,14 +18,14 @@ deploy.contracts.sonic_mainnet: network=sonic_mainnet
 deploy.contracts.sonic_mainnet: deploy.contracts
 
 deploy.contracts.sonic_mainnet.reset: reset=true
-deploy.contracts.sonic_mainnet.reset: deployment_keywords=FlashLoanLiquidator,FlashMintDusdLiquidator
+deploy.contracts.sonic_mainnet.reset: deployment_keywords=FlashMintDstableLiquidator
 deploy.contracts.sonic_mainnet.reset: deploy.contracts.sonic_mainnet
 
 deploy.contracts.sonic_testnet: network=sonic_testnet
 deploy.contracts.sonic_testnet: deploy.contracts
 
 deploy.contracts.sonic_testnet.reset: reset=true
-deploy.contracts.sonic_testnet.reset: deployment_keywords=FlashLoanLiquidator,FlashMintDusdLiquidator
+deploy.contracts.sonic_testnet.reset: deployment_keywords=FlashMintDstableLiquidator
 deploy.contracts.sonic_testnet.reset: deploy.contracts.sonic_testnet
 
 deploy.contracts:

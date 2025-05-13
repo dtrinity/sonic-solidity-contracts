@@ -62,6 +62,26 @@ const config: HardhatUserConfig = {
   gasReporter: {
     enabled: false, // Enable this when testing new complex functions
   },
+  etherscan: {
+    // Used for verifying single contracts when hardhat-deploy auto verify doesn't work
+    apiKey: {
+      sonic_mainnet: "4EJCRRD3JKIE6TKF6ME7AKVYWFEJI79A26",
+    },
+    customChains: [
+      {
+        network: "sonic_mainnet",
+        chainId: 146,
+        urls: {
+          apiURL: "https://api.sonicscan.org/api",
+          browserURL: "https://sonicscan.org",
+        },
+      },
+    ],
+  },
+  sourcify: {
+    // Just here to mute warning
+    enabled: false,
+  },
 };
 
 export default config;

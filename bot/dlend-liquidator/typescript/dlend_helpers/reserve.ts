@@ -259,3 +259,16 @@ export async function getReservesList(poolAddress: string): Promise<string[]> {
 
   return await poolContract.getReservesList();
 }
+
+/**
+ * Check if a reserve can be used as collateral
+ *
+ * @param reserveAddress - The reserve address
+ * @returns True if the reserve can be used as collateral
+ */
+export async function isCollateralEnabled(
+  reserveAddress: string,
+): Promise<boolean> {
+  const config = await getReserveConfigurationData(reserveAddress);
+  return BigNumber.from(config.ltv).gt(0n);
+}

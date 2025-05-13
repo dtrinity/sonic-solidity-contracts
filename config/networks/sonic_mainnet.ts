@@ -18,6 +18,7 @@ import {
   strategyDUSD,
   strategySfrxUSD,
   strategyStS,
+  strategyWstkscUSD,
   // strategyWstkscUSD,
 } from "../dlend/reserves-params";
 import { Config } from "../types";
@@ -156,7 +157,15 @@ export async function getConfig(
               lowerThresholdInBase2: 0n, // Do not threshold S/USD
               fixedPriceInBase2: 0n,
             },
-            // [wstkscUSDAddress]: {},
+            [wstkscUSDAddress]: {
+              feedAsset: wstkscUSDAddress,
+              feed1: "0x39EEB8955948B980d9ad09F92F95cdD980751ce1", // Our own ChainlinkDecimalConverter which wraps the wstkscUSD/stkscUSD Chainlink feed and converts 18 -> 8 decimals
+              feed2: "0xACE5e348a341a740004304c2c228Af1A4581920F", // scUSD/USD Chainlink price feed
+              lowerThresholdInBase1: 0n, // No thresholding
+              fixedPriceInBase1: 0n,
+              lowerThresholdInBase2: ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT, // Only threshold scUSD/USD
+              fixedPriceInBase2: ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT,
+            },
           },
         },
       },
@@ -195,7 +204,7 @@ export async function getConfig(
         dS: strategyDS,
         stS: strategyStS,
         sfrxUSD: strategySfrxUSD,
-        // wstkscUSD: strategyWstkscUSD, No Redstone feed available
+        wstkscUSD: strategyWstkscUSD,
       },
     },
     odos: {

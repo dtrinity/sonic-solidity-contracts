@@ -6,7 +6,7 @@ import { getPoolContractAddress } from "./pool";
 
 export interface UserStateLog {
   healthFactor: string;
-  toLiquidateAmount: string;
+  toRepayAmount: string;
   collateralToken:
     | {
         address: string;

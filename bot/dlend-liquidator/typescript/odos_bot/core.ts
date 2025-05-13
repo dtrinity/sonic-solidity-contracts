@@ -26,7 +26,7 @@ import { getERC4626UnderlyingAsset } from "../token/erc4626";
 import { fetchTokenInfo } from "../token/info";
 import {
   getOdosFlashLoanLiquidatorBotContract,
-  getOdosFlashMintDUSDLiquidatorBotContract,
+  getOdosFlashMintDStableLiquidatorBotContract,
 } from "./bot_contract";
 import { NotProfitableLiquidationError } from "./error";
 import {
@@ -58,12 +58,6 @@ export async function runOdosBot(index: number): Promise<void> {
     throw new Error("Liquidator bot Odos config is not found");
   }
 
-  const { deployer } = await hre.getNamedAccounts();
-  const flashMintLiquidatorBotContract =
-    await getOdosFlashMintDUSDLiquidatorBotContract(deployer);
-  const flashLoanLiquidatorBotContract =
-    await getOdosFlashLoanLiquidatorBotContract(deployer);
-
   let allUserAddresses = await getAllLendingUserAddresses();
 
   printLog(index, `Found ${allUserAddresses.length} users totally`);
@@ -92,13 +86,13 @@ export async function runOdosBot(index: number): Promise<void> {
       `Liquidating batch ${batchIndex + 1} of ${batchedAllUserAddresses.length}`,
     );
 
+    const { deployer } = await hre.getNamedAccounts();
+
     try {
       await runBotBatch(
         index,
         batchUserAddresses,
         deployer,
-        flashMintLiquidatorBotContract,
-        flashLoanLiquidatorBotContract,
         config.liquidatorBotOdos.healthFactorBatchSize,
         config.liquidatorBotOdos.healthFactorThreshold,
         config.liquidatorBotOdos.profitableThresholdInUSD,
@@ -128,8 +122,6 @@ export async function runOdosBot(index: number): Promise<void> {
  * @param index - The index of the run
  * @param allUserAddresses - The addresses of the users to liquidate
  * @param deployer - The address of the liquidator bot deployer
- * @param flashMintLiquidatorBotContract - The flash mint liquidator bot contract
- * @param flashLoanLiquidatorBotContract - The flash loan liquidator bot contract
  * @param healthFactorBatchSize - The size of the health factor batch
  * @param healthFactorThreshold - The threshold of the health factor
  * @param profitableThresholdInUSD - The threshold of the liquidation profit in USD
@@ -138,8 +130,6 @@ export async function runBotBatch(
   index: number,
   allUserAddresses: string[],
   deployer: string,
-  flashMintLiquidatorBotContract: FlashMintLiquidatorAaveBorrowRepayOdos,
-  flashLoanLiquidatorBotContract: FlashLoanLiquidatorAaveBorrowRepayOdos,
   healthFactorBatchSize: number,
   healthFactorThreshold: number,
   profitableThresholdInUSD: number,
@@ -203,7 +193,7 @@ export async function runBotBatch(
   for (const userInfo of liquidatableUserInfos) {
     const userState: UserStateLog = {
       healthFactor: userInfo.healthFactor.toString(),
-      toLiquidateAmount: "",
+      toRepayAmount: "",
       collateralToken: undefined,
       debtToken: undefined,
       lastTrial: Date.now(),
@@ -224,8 +214,7 @@ export async function runBotBatch(
         userInfo.userAddress,
       );
 
-      userState.toLiquidateAmount =
-        liquidationParams.toLiquidateAmount.toString();
+      userState.toRepayAmount = liquidationParams.toRepayAmount.toString();
       userState.collateralToken = {
         address: liquidationParams.collateralToken.reserveTokenInfo.address,
         symbol: liquidationParams.collateralToken.reserveTokenInfo.symbol,
@@ -235,16 +224,16 @@ export async function runBotBatch(
         symbol: liquidationParams.debtToken.reserveTokenInfo.symbol,
       };
 
-      if (liquidationParams.toLiquidateAmount.isZero()) {
+      if (liquidationParams.toRepayAmount.isZero()) {
         printLog(
           index,
-          `User ${userInfo.userAddress} has 0 debt to liquidate, skipping`,
+          `User ${userInfo.userAddress} has 0 debt to repay, skipping`,
         );
         notProfitableUserMemory.put(userInfo.userAddress);
 
         userState.success = false;
-        userState.error = "No debt to liquidate";
-        userState.errorMessage = "No debt to liquidate";
+        userState.error = "No debt to repay";
+        userState.errorMessage = "No debt to repay";
       } else {
         const liquidationProfitInUSD = await getLiquidationProfitInUSD(
           liquidationParams.debtToken.reserveTokenInfo,
@@ -252,7 +241,7 @@ export async function runBotBatch(
             rawValue: BigNumber.from(liquidationParams.debtToken.priceInUSD),
             decimals: liquidationParams.debtToken.priceDecimals,
           },
-          liquidationParams.toLiquidateAmount.toBigInt(),
+          liquidationParams.toRepayAmount.toBigInt(),
         );
 
         userState.profitInUSD = liquidationProfitInUSD.toString();
@@ -264,6 +253,18 @@ export async function runBotBatch(
             index,
             `Liquidating user ${userInfo.userAddress} with health factor ${userInfo.healthFactor}`,
           );
+          printLog(
+            index,
+            ` - Debt token: ${liquidationParams.debtToken.reserveTokenInfo.symbol}`,
+          );
+          printLog(
+            index,
+            ` - Collateral token: ${liquidationParams.collateralToken.reserveTokenInfo.symbol}`,
+          );
+          printLog(
+            index,
+            ` - To repay: ${liquidationParams.toRepayAmount.toString()}`,
+          );
 
           userState.lastTrial = Date.now();
           userState.success = false;
@@ -273,9 +274,7 @@ export async function runBotBatch(
             deployer,
             liquidationParams.debtToken.reserveTokenInfo.address,
             liquidationParams.collateralToken.reserveTokenInfo.address,
-            liquidationParams.toLiquidateAmount.toBigInt(),
-            flashMintLiquidatorBotContract,
-            flashLoanLiquidatorBotContract,
+            liquidationParams.toRepayAmount.toBigInt(),
           );
 
           userState.success = true;
@@ -288,7 +287,7 @@ export async function runBotBatch(
             `• Collateral Token: ${userState.collateralToken?.symbol}\n` +
             `• Debt Token: ${userState.debtToken?.symbol}\n` +
             `• Repaid Amount: ${ethers.formatUnits(
-              userState.toLiquidateAmount,
+              userState.toRepayAmount,
               liquidationParams.debtToken.reserveTokenInfo.decimals,
             )} ${liquidationParams.debtToken.reserveTokenInfo.symbol}\n` +
             `• Transaction Hash: ${txHash}`;
@@ -365,8 +364,6 @@ export async function runBotBatch(
  * @param borrowTokenAddress - The address of the borrow token
  * @param collateralTokenAddress - The address of the collateral token
  * @param repayAmount - The amount of the repay
- * @param flashMintLiquidatorBotContract - The flash mint liquidator bot contract
- * @param flashLoanLiquidatorBotContract - The flash loan liquidator bot contract
  * @returns The transaction hash
  */
 export async function performOdosLiquidationDefault(
@@ -375,12 +372,6 @@ export async function performOdosLiquidationDefault(
   borrowTokenAddress: string,
   collateralTokenAddress: string,
   repayAmount: bigint,
-  flashMintLiquidatorBotContract:
-    | FlashMintLiquidatorAaveBorrowRepayOdos
-    | undefined,
-  flashLoanLiquidatorBotContract:
-    | FlashLoanLiquidatorAaveBorrowRepayOdos
-    | undefined,
 ): Promise<string> {
   const config = await getConfig(hre);
   const signer = await hre.ethers.getSigner(liquidatorAccountAddress);
@@ -426,9 +417,21 @@ export async function performOdosLiquidationDefault(
     isUnstakeToken,
   };
 
-  if (borrowTokenInfo.address === config.liquidatorBotOdos.dUSDAddress) {
+  const flashMinterAddresses = Object.values(
+    config.liquidatorBotOdos.flashMinters,
+  );
+
+  if (flashMinterAddresses.includes(borrowTokenInfo.address)) {
+    const flashMintLiquidatorBotContract =
+      await getOdosFlashMintDStableLiquidatorBotContract(
+        liquidatorAccountAddress,
+        borrowTokenInfo.symbol,
+      );
+
     if (!flashMintLiquidatorBotContract) {
-      throw new Error("Flash mint liquidator bot contract not found");
+      throw new Error(
+        `Flash mint liquidator bot contract not found for ${borrowTokenInfo.symbol}`,
+      );
     }
 
     console.log("Liquidating with flash minting");
@@ -442,6 +445,9 @@ export async function performOdosLiquidationDefault(
       params,
     );
   } else {
+    const flashLoanLiquidatorBotContract =
+      await getOdosFlashLoanLiquidatorBotContract(liquidatorAccountAddress);
+
     if (!flashLoanLiquidatorBotContract) {
       throw new Error("Flash loan liquidator bot contract not found");
     }
