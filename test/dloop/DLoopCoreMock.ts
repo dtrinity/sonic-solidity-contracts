@@ -8,15 +8,21 @@ describe('DLoopCoreMock', function () {
   let user: string;
   let underlying: string;
   let dStable: string;
+  let accounts: any[];
 
   beforeEach(async function () {
-    await deployments.fixture(); // Start from a fresh deployment
-    await deployments.fixture(["tokens", "mock-dloop-core", "dUSD"]);
-    const accounts = await ethers.getSigners();
+    await deployments.fixture(["mock-dloop-core"]);
+    accounts = await ethers.getSigners();
     deployer = accounts[0].address;
     user = accounts[1].address;
-    underlying = (await deployments.get("USDC")).address;
-    dStable = (await deployments.get("dUSD")).address;
+
+    // Deploy mock tokens with minting
+    const MockERC20 = await ethers.getContractFactory("RewardClaimableMockERC20");
+    const mockUnderlying = await MockERC20.deploy("Mock USDC", "mUSDC");
+    const mockDStable = await MockERC20.deploy("Mock dUSD", "mdUSD");
+    underlying = await mockUnderlying.getAddress();
+    dStable = await mockDStable.getAddress();
+
     const dloopDeployment = await deployments.get("DLoopCoreMock");
     dloop = await ethers.getContractAt("DLoopCoreMock", dloopDeployment.address);
   });
@@ -42,5 +48,53 @@ describe('DLoopCoreMock', function () {
     // Leverage = collateral / (collateral - debt) * 10000 (bps)
     const leverage = await dloop.getCurrentLeverageBps();
     expect(leverage).to.equal(2 * ONE_HUNDRED_PERCENT_BPS); // 2x leverage in bps
+  });
+
+  it('supply increases collateral', async function () {
+    // Mint underlying to dloop contract
+    const underlyingToken = await ethers.getContractAt("RewardClaimableMockERC20", underlying);
+    await underlyingToken.mint(dloop.target, 1000);
+    // Supply to pool
+    await dloop.connect(accounts[0]).setMockCollateral(deployer, 0);
+    await dloop.connect(accounts[0]).testSupplyToPool(underlying, 1000, deployer);
+    expect(await dloop.mockCollateral(deployer)).to.equal(1000);
+  });
+
+  it('borrow increases debt and transfers tokens', async function () {
+    // Mint dStable to dloop contract
+    const dStableToken = await ethers.getContractAt("RewardClaimableMockERC20", dStable);
+    await dStableToken.mint(dloop.target, 1000);
+    // Borrow from pool
+    await dloop.connect(accounts[0]).setMockDebt(deployer, 0);
+    const userBalanceBefore = await dStableToken.balanceOf(deployer);
+    await dloop.connect(accounts[0]).testBorrowFromPool(dStable, 500, deployer);
+    expect(await dloop.mockDebt(deployer)).to.equal(500);
+    const userBalanceAfter = await dStableToken.balanceOf(deployer);
+    expect(userBalanceAfter - userBalanceBefore).to.equal(500);
+  });
+
+  it('repay decreases debt and transfers tokens from user', async function () {
+    // Mint dStable to user
+    const dStableToken = await ethers.getContractAt("RewardClaimableMockERC20", dStable);
+    await dStableToken.mint(deployer, 500);
+    // Approve dloop contract
+    await dStableToken.connect(accounts[0]).approve(dloop.target, 500);
+    await dloop.connect(accounts[0]).setMockDebt(deployer, 500);
+    await dloop.connect(accounts[0]).testRepayDebt(dStable, 300, deployer);
+    expect(await dloop.mockDebt(deployer)).to.equal(200);
+    // Check contract received tokens
+    expect(await dStableToken.balanceOf(dloop.target)).to.be.at.least(300);
+  });
+
+  it('withdraw decreases collateral and transfers tokens', async function () {
+    // Mint underlying to dloop contract
+    const underlyingToken = await ethers.getContractAt("RewardClaimableMockERC20", underlying);
+    await underlyingToken.mint(dloop.target, 1000);
+    await dloop.connect(accounts[0]).setMockCollateral(deployer, 1000);
+    const userBalanceBefore = await underlyingToken.balanceOf(deployer);
+    await dloop.connect(accounts[0]).testWithdrawFromPool(underlying, 400, deployer);
+    expect(await dloop.mockCollateral(deployer)).to.equal(600);
+    const userBalanceAfter = await underlyingToken.balanceOf(deployer);
+    expect(userBalanceAfter - userBalanceBefore).to.equal(400);
   });
 });
