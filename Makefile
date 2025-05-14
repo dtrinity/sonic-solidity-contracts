@@ -51,10 +51,13 @@ deploy: ## Deploy the contracts
 
 deploy.dloop:
 	@if [ -z "$(network)" ]; then \
-		yarn hardhat deploy --tags dloop; \
-	else \
-		yarn hardhat deploy --tags dloop --network $(network); \
+		echo "Error: network is not set"; \
+		exit 1; \
 	fi
+	yarn hardhat deploy --tags dloop --network $(network);
+
+deploy.dloop.sonic_mainnet: network=sonic_mainnet
+deploy.dloop.sonic_mainnet: deploy.dloop
 
 ####################
 ## Block explorer ##
