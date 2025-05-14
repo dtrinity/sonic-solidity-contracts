@@ -53,7 +53,8 @@ describe('DLoopCoreMock', function () {
   it('supply increases collateral', async function () {
     // Mint underlying to dloop contract
     const underlyingToken = await ethers.getContractAt("RewardClaimableMockERC20", underlying);
-    await underlyingToken.mint(dloop.target, 1000);
+    await underlyingToken.mint(deployer, 1000);
+    await underlyingToken.connect(accounts[0]).approve(dloop.target, 1000);
     // Supply to pool
     await dloop.connect(accounts[0]).setMockCollateral(deployer, 0);
     await dloop.connect(accounts[0]).testSupplyToPool(underlying, 1000, deployer);
@@ -96,5 +97,89 @@ describe('DLoopCoreMock', function () {
     expect(await dloop.mockCollateral(deployer)).to.equal(600);
     const userBalanceAfter = await underlyingToken.balanceOf(deployer);
     expect(userBalanceAfter - userBalanceBefore).to.equal(400);
+  });
+
+  describe('table-driven stress tests', function () {
+    let attacker: string;
+    let victim: string;
+    let underlyingToken: any;
+    let dStableToken: any;
+
+    beforeEach(async function () {
+      attacker = accounts[2].address;
+      victim = accounts[3].address;
+      underlyingToken = await ethers.getContractAt("RewardClaimableMockERC20", underlying);
+      dStableToken = await ethers.getContractAt("RewardClaimableMockERC20", dStable);
+      // Give both attacker and victim some tokens
+      await underlyingToken.mint(attacker, 1_000_000);
+      await underlyingToken.mint(victim, 1_000_000);
+      await underlyingToken.mint(dloop.target, 0); // Ensure vault starts empty
+    });
+
+    const testCases = [
+      {
+        desc: 'normal deposit and withdrawal',
+        fn: async () => {
+          await underlyingToken.connect(accounts[2]).approve(dloop.target, 1000);
+          await dloop.connect(accounts[2]).testSupplyToPool(underlying, 1000, attacker);
+          expect(await dloop.mockCollateral(attacker)).to.equal(1000);
+          await dloop.connect(accounts[2]).testWithdrawFromPool(underlying, 1000, attacker);
+          expect(await dloop.mockCollateral(attacker)).to.equal(0);
+        }
+      },
+      {
+        desc: 'multiple users deposit and withdraw',
+        fn: async () => {
+          await underlyingToken.connect(accounts[2]).approve(dloop.target, 500);
+          await underlyingToken.connect(accounts[3]).approve(dloop.target, 1500);
+          await dloop.connect(accounts[2]).testSupplyToPool(underlying, 500, attacker);
+          await dloop.connect(accounts[3]).testSupplyToPool(underlying, 1500, victim);
+          expect(await dloop.mockCollateral(attacker)).to.equal(500);
+          expect(await dloop.mockCollateral(victim)).to.equal(1500);
+          await dloop.connect(accounts[2]).testWithdrawFromPool(underlying, 500, attacker);
+          await dloop.connect(accounts[3]).testWithdrawFromPool(underlying, 1500, victim);
+          expect(await dloop.mockCollateral(attacker)).to.equal(0);
+          expect(await dloop.mockCollateral(victim)).to.equal(0);
+        }
+      },
+      {
+        desc: 'borrow and repay flow',
+        fn: async () => {
+          await underlyingToken.connect(accounts[2]).approve(dloop.target, 1000);
+          await dloop.connect(accounts[2]).testSupplyToPool(underlying, 1000, attacker);
+          await dStableToken.mint(dloop.target, 1000);
+          await dloop.connect(accounts[2]).testBorrowFromPool(dStable, 500, attacker);
+          expect(await dloop.mockDebt(attacker)).to.equal(500);
+          await dStableToken.connect(accounts[2]).approve(dloop.target, 500);
+          await dStableToken.mint(attacker, 500);
+          await dloop.connect(accounts[2]).testRepayDebt(dStable, 500, attacker);
+          expect(await dloop.mockDebt(attacker)).to.equal(0);
+        }
+      },
+      {
+        desc: 'inflation attack',
+        fn: async () => {
+          // Step 1: Attacker deposits 1 wei as first depositor
+          await underlyingToken.connect(accounts[2]).approve(dloop.target, 1);
+          await dloop.connect(accounts[2]).testSupplyToPool(underlying, 1, attacker);
+          // Step 2: Attacker donates 1000 tokens directly to vault (not via deposit)
+          await underlyingToken.connect(accounts[2]).transfer(dloop.target, 1000);
+          // Step 3: Victim deposits 1000 tokens
+          await underlyingToken.connect(accounts[3]).approve(dloop.target, 1000);
+          await dloop.connect(accounts[3]).testSupplyToPool(underlying, 1000, victim);
+          // Step 4: Attacker withdraws their share (should be only 1 wei worth, not all vault assets)
+          const attackerBalanceBefore = await underlyingToken.balanceOf(attacker);
+          await dloop.connect(accounts[2]).testWithdrawFromPool(underlying, 1, attacker);
+          const attackerBalanceAfter = await underlyingToken.balanceOf(attacker);
+          const stolen = attackerBalanceAfter - attackerBalanceBefore;
+          // Step 5: Check if attacker stole more than their fair share (should not be able to steal the victim's deposit)
+          expect(stolen).to.be.lte(1, 'Inflation attack succeeded: attacker stole more than their share!');
+        }
+      }
+    ];
+
+    for (const testCase of testCases) {
+      it(testCase.desc, testCase.fn);
+    }
   });
 });
