@@ -1,9 +1,11 @@
 ---
 description: When editing Solidity (.sol) files
 globs: *.sol
+alwaysApply: false
 ---
 # Always
 - Use OpenZeppelin when possible
 - Ensure that the Solidity version matches other files in the same directory or nearby directories
 - Verify that security best practices are met, think about potential exploits, attacks, and mistakes that can be made
 - Add test coverage when creating new logic, or modify existing tests when making edits. Hardhat tests are under the `test/` directory and mirror the contracts directory structure
+- Import "hardhat/console.sol" when using `console.log` in the contract code for debugging

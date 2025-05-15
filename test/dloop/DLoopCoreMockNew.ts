@@ -12,6 +12,7 @@ describe('DLoopCoreMock', function () {
   let underlying: TestMintableERC20;
   let dStable: TestMintableERC20;
   let accounts: SignerWithAddress[];
+  let priceDecimals: bigint;
 
   beforeEach(async function () {
     await deployments.fixture();
@@ -43,9 +44,12 @@ describe('DLoopCoreMock', function () {
     await underlying.connect(mockPool).approve(await dloop.getAddress(), ethers.MaxUint256);
     await dStable.connect(mockPool).approve(await dloop.getAddress(), ethers.MaxUint256);
 
+    // Get price base unit
+    priceDecimals = await dloop.PRICE_DECIMALS();
+
     // Set initial prices
-    await dloop.setMockPrice(await underlying.getAddress(), ethers.parseUnits("1", 8)); // $1
-    await dloop.setMockPrice(await dStable.getAddress(), ethers.parseUnits("1", 8)); // $1
+    await dloop.setMockPrice(await underlying.getAddress(), ethers.parseUnits("1", priceDecimals)); // $1
+    await dloop.setMockPrice(await dStable.getAddress(), ethers.parseUnits("1", priceDecimals)); // $1
 
     // Mint some large amount of tokens to mock pool
     await underlying.mint(await mockPool.getAddress(), ethers.parseEther("1000000000000000000000000")); // 1M tokens
@@ -72,7 +76,7 @@ describe('DLoopCoreMock', function () {
           
           // Initial state
           const initialPoolBalance = await underlying.balanceOf(await mockPool.getAddress());
-          const initialCollateral = await dloop.mockCollateral(await user.getAddress());
+          const [initialCollateral, initialDebt] = await dloop.testGetTotalCollateralAndDebtOfUserInBase(await user.getAddress());
 
           // Execute
           await dloop.connect(user).testSupplyToPool(
@@ -82,11 +86,15 @@ describe('DLoopCoreMock', function () {
           );
 
           // Verify
-          expect(await dloop.mockCollateral(await user.getAddress())).to.equal(initialCollateral + amount);
+          const [newCollateral, newDebt] = await dloop.testGetTotalCollateralAndDebtOfUserInBase(await user.getAddress());
+          expect(newCollateral).to.equal(initialCollateral + amount);
           expect(await underlying.balanceOf(await mockPool.getAddress())).to.equal(initialPoolBalance + amount);
         });
 
         it('testBorrowFromPool should increase debt and transfer from pool', async function () {
+          // Initial state
+          const [initialCollateral, initialDebt] = await dloop.testGetTotalCollateralAndDebtOfUserInBase(await user.getAddress());
+
           // Execute
           await dloop.connect(user).testBorrowFromPool(
             await dStable.getAddress(),
@@ -95,7 +103,8 @@ describe('DLoopCoreMock', function () {
           );
 
           // Verify
-          expect(await dloop.mockDebt(await user.getAddress())).to.equal(amount);
+          const [newCollateral, newDebt] = await dloop.testGetTotalCollateralAndDebtOfUserInBase(await user.getAddress());
+          expect(newDebt).to.greaterThan(initialDebt);
           expect(await dStable.balanceOf(await user.getAddress())).to.equal(amount);
         });
 
@@ -122,7 +131,8 @@ describe('DLoopCoreMock', function () {
           );
 
           // Verify
-          expect(await dloop.mockDebt(await user.getAddress())).to.equal(0);
+          const [newCollateral, newDebt] = await dloop.testGetTotalCollateralAndDebtOfUserInBase(await user.getAddress());
+          expect(newDebt).to.equal(0);
           expect(await dStable.balanceOf(await mockPool.getAddress())).to.equal(initialPoolBalance); // Back to initial pool balance
         });
 
@@ -144,7 +154,8 @@ describe('DLoopCoreMock', function () {
           );
 
           // Verify
-          expect(await dloop.mockCollateral(await user.getAddress())).to.equal(0);
+          const [newCollateral, newDebt] = await dloop.testGetTotalCollateralAndDebtOfUserInBase(await user.getAddress());
+          expect(newCollateral).to.equal(0);
           expect(await underlying.balanceOf(await user.getAddress())).to.equal(amount);
         });
       });
@@ -168,7 +179,7 @@ describe('DLoopCoreMock', function () {
         depositAmount: ethers.parseEther("100"),
         priceChange: { 
           token: 'underlying',
-          newPrice: ethers.parseUnits("1.5", 8) // $1.50
+          newPrice: ethers.parseUnits("1.5", priceDecimals) // $1.50
         }
       },
       { 
@@ -176,7 +187,7 @@ describe('DLoopCoreMock', function () {
         depositAmount: ethers.parseEther("100"),
         priceChange: { 
           token: 'underlying',
-          newPrice: ethers.parseUnits("0.5", 8) // $0.50
+          newPrice: ethers.parseUnits("0.5", priceDecimals) // $0.50
         }
       }
     ];
