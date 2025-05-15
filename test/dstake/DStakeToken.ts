@@ -11,7 +11,6 @@ import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 import { createDStakeFixture, SDUSD_CONFIG } from "./fixture";
 import { ZeroAddress } from "ethers";
 import { ERC20StablecoinUpgradeable } from "../../typechain-types/contracts/dstable/ERC20StablecoinUpgradeable";
-import { DStakeToken__factory } from "../../typechain-types/factories/contracts/vaults/dstake/DStakeToken__factory";
 import { WrappedDLendConversionAdapter__factory } from "../../typechain-types/factories/contracts/vaults/dstake/adapters/WrappedDLendConversionAdapter__factory";
 import { WrappedDLendConversionAdapter } from "../../typechain-types/contracts/vaults/dstake/adapters/WrappedDLendConversionAdapter";
 
@@ -75,17 +74,30 @@ describe("DStakeToken", () => {
       );
     });
 
-    it("Should revert constructor if dStable address is zero", async () => {
-      const factory = new DStakeToken__factory(deployer);
+    it("Should revert initialize if dStable address is zero", async () => {
+      const tokenFactory = await ethers.getContractFactory("DStakeToken");
       await expect(
-        factory.deploy(
-          ZeroAddress,
-          "TestName",
-          "TST",
-          deployer.address,
-          deployer.address
-        )
-      ).to.be.revertedWithCustomError(factory, "ZeroAddress");
+        deployments.deploy("InvalidDStakeToken", {
+          from: deployer.address,
+          contract: "DStakeToken",
+          proxy: {
+            proxyContract: "OpenZeppelinTransparentProxy",
+            execute: {
+              init: {
+                methodName: "initialize",
+                args: [
+                  ZeroAddress,
+                  "TestName",
+                  "TST",
+                  deployer.address,
+                  deployer.address,
+                ],
+              },
+            },
+          },
+          log: false,
+        })
+      ).to.be.revertedWithCustomError(tokenFactory, "ZeroAddress");
     });
 
     it("Should grant DEFAULT_ADMIN_ROLE to initialAdmin", async () => {
@@ -105,13 +117,29 @@ describe("DStakeToken", () => {
     });
 
     it("New instance withdrawalFeeBps should be zero by default", async () => {
-      const factory = new DStakeToken__factory(deployer);
-      const fresh = await factory.deploy(
-        await dStableToken.getAddress(),
-        "Fresh",
-        "FRS",
-        deployer.address,
-        deployer.address
+      const deployResult = await deployments.deploy("FreshDStakeToken", {
+        from: deployer.address,
+        contract: "DStakeToken",
+        proxy: {
+          proxyContract: "OpenZeppelinTransparentProxy",
+          execute: {
+            init: {
+              methodName: "initialize",
+              args: [
+                await dStableToken.getAddress(),
+                "Fresh",
+                "FRS",
+                deployer.address,
+                deployer.address,
+              ],
+            },
+          },
+        },
+        log: false,
+      });
+      const fresh = await ethers.getContractAt(
+        "DStakeToken",
+        deployResult.address
       );
       expect(await fresh.withdrawalFeeBps()).to.equal(0);
     });
@@ -246,14 +274,27 @@ describe("DStakeToken", () => {
     let fresh: DStakeToken;
 
     beforeEach(async () => {
-      factory = new DStakeToken__factory(deployer);
-      fresh = await factory.deploy(
-        await dStableToken.getAddress(),
-        "Fresh",
-        "FRS",
-        user1.address,
-        user1.address
-      );
+      const deployResult = await deployments.deploy("FreshDStakeToken2", {
+        from: deployer.address,
+        contract: "DStakeToken",
+        proxy: {
+          proxyContract: "OpenZeppelinTransparentProxy",
+          execute: {
+            init: {
+              methodName: "initialize",
+              args: [
+                await dStableToken.getAddress(),
+                "Fresh",
+                "FRS",
+                user1.address,
+                user1.address,
+              ],
+            },
+          },
+        },
+        log: false,
+      });
+      fresh = await ethers.getContractAt("DStakeToken", deployResult.address);
     });
 
     it("totalAssets returns 0 if collateralVault not set", async () => {

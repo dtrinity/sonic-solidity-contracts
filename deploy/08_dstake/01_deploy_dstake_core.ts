@@ -97,13 +97,21 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     const DStakeTokenDeployment = await deploy(DStakeTokenDeploymentName, {
       from: deployer,
       contract: "DStakeToken",
-      args: [
-        instanceConfig.dStable,
-        instanceConfig.name,
-        instanceConfig.symbol,
-        instanceConfig.initialAdmin,
-        instanceConfig.initialFeeManager,
-      ],
+      proxy: {
+        proxyContract: "OpenZeppelinTransparentProxy",
+        execute: {
+          init: {
+            methodName: "initialize",
+            args: [
+              instanceConfig.dStable,
+              instanceConfig.name,
+              instanceConfig.symbol,
+              instanceConfig.initialAdmin,
+              instanceConfig.initialFeeManager,
+            ],
+          },
+        },
+      },
       log: false,
     });
 

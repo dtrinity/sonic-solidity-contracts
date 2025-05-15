@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import {ERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
-import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import {ERC4626Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC4626Upgradeable.sol";
+import {ERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
+import {AccessControlUpgradeable} from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IDStakeCollateralVault} from "./interfaces/IDStakeCollateralVault.sol";
 import {IDStakeRouter} from "./interfaces/IDStakeRouter.sol";
@@ -13,7 +14,11 @@ import {BasisPointConstants} from "../../common/BasisPointConstants.sol";
  * @title DStakeToken
  * @dev ERC4626-compliant token representing shares in the DStakeCollateralVault.
  */
-contract DStakeToken is ERC4626, AccessControl {
+contract DStakeToken is
+    Initializable,
+    ERC4626Upgradeable,
+    AccessControlUpgradeable
+{
     // --- Roles ---
     bytes32 public constant FEE_MANAGER_ROLE = keccak256("FEE_MANAGER_ROLE");
 
@@ -29,14 +34,23 @@ contract DStakeToken is ERC4626, AccessControl {
     uint256 public constant maxWithdrawalFeeBps =
         BasisPointConstants.ONE_PERCENT_BPS;
 
-    // --- Constructor ---
-    constructor(
+    // --- Initializer ---
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor() {
+        _disableInitializers();
+    }
+
+    function initialize(
         IERC20 _dStable,
         string memory _name,
         string memory _symbol,
         address _initialAdmin,
         address _initialFeeManager
-    ) ERC4626(IERC20(address(_dStable))) ERC20(_name, _symbol) {
+    ) public initializer {
+        __ERC20_init(_name, _symbol);
+        __ERC4626_init(_dStable);
+        __AccessControl_init();
+
         if (
             address(_dStable) == address(0) ||
             _initialAdmin == address(0) ||
@@ -52,7 +66,7 @@ contract DStakeToken is ERC4626, AccessControl {
     // --- ERC4626 Overrides ---
 
     /**
-     * @inheritdoc ERC4626
+     * @inheritdoc ERC4626Upgradeable
      * @dev Delegates call to the collateralVault to get the total value of managed assets.
      */
     function totalAssets() public view virtual override returns (uint256) {
@@ -63,7 +77,7 @@ contract DStakeToken is ERC4626, AccessControl {
     }
 
     /**
-     * @inheritdoc ERC4626
+     * @inheritdoc ERC4626Upgradeable
      * @dev Pulls dSTABLE asset from depositor, then delegates the core deposit logic
      *      (converting dSTABLE to vault assets) to the router.
      */
@@ -91,7 +105,7 @@ contract DStakeToken is ERC4626, AccessControl {
     }
 
     /**
-     * @inheritdoc ERC4626
+     * @inheritdoc ERC4626Upgradeable
      * @dev Calculates withdrawal fee, then delegates the core withdrawal logic
      *      (converting vault assets back to dSTABLE) to the router.
      */
