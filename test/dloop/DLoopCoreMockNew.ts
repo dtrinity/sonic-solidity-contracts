@@ -85,13 +85,25 @@ describe('DLoopCoreMock', function () {
             await user.getAddress()
           );
 
+          const underlyingAssetPrice = await dloop.getAssetPriceFromOracle(await underlying.getAddress());
+          const amountInBase = amount * underlyingAssetPrice / 10n ** BigInt(await underlying.decimals());
+
           // Verify
           const [newCollateral, newDebt] = await dloop.testGetTotalCollateralAndDebtOfUserInBase(await user.getAddress());
-          expect(newCollateral).to.equal(initialCollateral + amount);
+          expect(newCollateral).to.equal(initialCollateral + amountInBase);
           expect(await underlying.balanceOf(await mockPool.getAddress())).to.equal(initialPoolBalance + amount);
         });
 
         it('testBorrowFromPool should increase debt and transfer from pool', async function () {
+          // Must have some collateral first
+          await underlying.mint(await user.getAddress(), amount);
+          await underlying.connect(user).approve(await dloop.getAddress(), amount);
+          await dloop.connect(user).testSupplyToPool(
+            await underlying.getAddress(),
+            amount,
+            await user.getAddress()
+          );
+
           // Initial state
           const [initialCollateral, initialDebt] = await dloop.testGetTotalCollateralAndDebtOfUserInBase(await user.getAddress());
 
@@ -109,6 +121,15 @@ describe('DLoopCoreMock', function () {
         });
 
         it('testRepayDebt should decrease debt and transfer to pool', async function () {
+          // Must have some collateral first
+          await underlying.mint(await user.getAddress(), amount);
+          await underlying.connect(user).approve(await dloop.getAddress(), amount);
+          await dloop.connect(user).testSupplyToPool(
+            await underlying.getAddress(),
+            amount,
+            await user.getAddress()
+          );
+
           // Intial mock pool balance
           const initialPoolBalance = await dStable.balanceOf(await mockPool.getAddress());
 

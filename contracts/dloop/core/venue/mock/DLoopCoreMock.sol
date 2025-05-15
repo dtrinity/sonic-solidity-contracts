@@ -61,6 +61,12 @@ contract DLoopCoreMock is DLoopCoreBase {
             mockCollateralTokens[user].push(token);
         }
         mockCollateral[user][token] = amount;
+
+        // If new collateral is less than debt, revert
+       ( uint256 totalCollateralInBase, uint256 totalDebtInBase) = _getTotalCollateralAndDebtOfUserInBase(user);
+       if (totalCollateralInBase < totalDebtInBase) {
+            revert("Mock: collateral is less than debt");
+       }
     }
 
     function setMockDebt(address user, address token, uint256 amount) external {
@@ -71,6 +77,12 @@ contract DLoopCoreMock is DLoopCoreBase {
             mockDebtTokens[user].push(token);
         }
         mockDebt[user][token] = amount;
+
+        // If new debt is greater than collateral, revert
+        ( uint256 totalCollateralInBase, uint256 totalDebtInBase) = _getTotalCollateralAndDebtOfUserInBase(user);
+        if (totalCollateralInBase < totalDebtInBase) {
+            revert("Mock: collateral is less than debt");
+        }
     }
 
     // --- Overrides ---
@@ -82,7 +94,7 @@ contract DLoopCoreMock is DLoopCoreBase {
 
     function _supplyToPool(address token, uint256 amount, address onBehalfOf) internal override {
         // Mimic: increase collateral for onBehalfOf, transfer token to pool
-        
+
         if (token == address(dStable)) {
             revert("Mock: dStable is not supported as collateral");
         }
@@ -136,8 +148,6 @@ contract DLoopCoreMock is DLoopCoreBase {
         totalCollateralBase = 0;
         totalDebtBase = 0;
 
-        uint256 priceBaseUnit = 10 ** PRICE_DECIMALS;
-
         // Calculate total collateral in base unit (from mockCollateral)
         // Get all users' tokens from mockCollateral[user]
         for (uint256 i = 0; i < mockCollateralTokens[user].length; i++) {
@@ -146,7 +156,8 @@ contract DLoopCoreMock is DLoopCoreBase {
             // Convert collateral to base unit
             uint256 price = mockPrices[token];
             uint256 amount = mockCollateral[user][token];
-            uint256 amountInBase = amount * price / priceBaseUnit;
+            uint256 assetTokenUnit = 10 ** ERC20(token).decimals();
+            uint256 amountInBase = amount * price / assetTokenUnit;
 
             totalCollateralBase += amountInBase;
         }
@@ -156,7 +167,8 @@ contract DLoopCoreMock is DLoopCoreBase {
             // Convert debt to base unit
             uint256 price = mockPrices[token];
             uint256 amount = mockDebt[user][token];
-            uint256 amountInBase = amount * price / priceBaseUnit;
+            uint256 assetTokenUnit = 10 ** ERC20(token).decimals();
+            uint256 amountInBase = amount * price / assetTokenUnit;
 
             totalDebtBase += amountInBase;
         }
