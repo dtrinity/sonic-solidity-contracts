@@ -15,7 +15,7 @@ describe('DLoopCoreMock', function () {
   let priceDecimals: bigint;
 
   beforeEach(async function () {
-    await deployments.fixture();
+    // await deployments.fixture();
     accounts = await ethers.getSigners();
     [deployer, user, mockPool] = accounts;
 
