@@ -143,6 +143,31 @@ contract DStakeToken is
         }
     }
 
+    /**
+     * @inheritdoc ERC4626Upgradeable
+     * @dev Preview withdraw including withdrawal fee.
+     */
+    function previewWithdraw(
+        uint256 assets
+    ) public view virtual override returns (uint256) {
+        uint256 fee = (assets * withdrawalFeeBps) /
+            BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
+        return super.previewWithdraw(assets + fee);
+    }
+
+    /**
+     * @inheritdoc ERC4626Upgradeable
+     * @dev Preview redeem including withdrawal fee.
+     */
+    function previewRedeem(
+        uint256 shares
+    ) public view virtual override returns (uint256) {
+        uint256 assets = super.previewRedeem(shares);
+        uint256 fee = (assets * withdrawalFeeBps) /
+            BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
+        return assets - fee;
+    }
+
     // --- Governance Functions ---
 
     /**

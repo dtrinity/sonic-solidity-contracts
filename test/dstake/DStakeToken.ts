@@ -6,6 +6,7 @@ import {
   DStakeRouter,
   ERC20,
   IERC20,
+  DStakeToken__factory,
 } from "../../typechain-types";
 import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 import { createDStakeFixture, SDUSD_CONFIG } from "./fixture";
@@ -270,7 +271,6 @@ describe("DStakeToken", () => {
 
   describe("ERC4626 Core Functionality (Deposits & Minting)", () => {
     const assetsToDeposit = parseUnits("100", dStableDecimals);
-    let factory: DStakeToken__factory;
     let fresh: DStakeToken;
 
     beforeEach(async () => {
@@ -533,13 +533,16 @@ describe("DStakeToken", () => {
     beforeEach(async () => {
       // Set withdrawal fee to 1%
       await DStakeToken.connect(user1).setWithdrawalFee(10000);
-      // Mint and deposit assets for user1
-      await stable.mint(user1.address, assetsToDeposit);
+      // Calculate fee and gross deposit for testing fee logic
+      const fee = (assetsToDeposit * 10000n) / 1000000n;
+      const grossDeposit = assetsToDeposit + fee;
+      // Mint and deposit gross assets for user1
+      await stable.mint(user1.address, grossDeposit);
       await dStableToken
         .connect(user1)
-        .approve(DStakeTokenAddress, assetsToDeposit);
-      shares = await DStakeToken.previewDeposit(assetsToDeposit);
-      await DStakeToken.connect(user1).deposit(assetsToDeposit, user1.address);
+        .approve(DStakeTokenAddress, grossDeposit);
+      shares = await DStakeToken.previewDeposit(grossDeposit);
+      await DStakeToken.connect(user1).deposit(grossDeposit, user1.address);
     });
 
     it("should withdraw assets with fee deducted", async () => {
@@ -559,8 +562,9 @@ describe("DStakeToken", () => {
     });
 
     it("should redeem shares with fee deducted", async () => {
-      const fee = (assetsToDeposit * 10000n) / 1000000n;
-      const netAssets = assetsToDeposit - fee;
+      const previewAssets = await DStakeToken.previewRedeem(shares);
+      const fee = (previewAssets * 10000n) / 1000000n;
+      const netAssets = previewAssets - fee;
       await expect(
         DStakeToken.connect(user1).redeem(shares, user1.address, user1.address)
       )
@@ -568,6 +572,22 @@ describe("DStakeToken", () => {
         .withArgs(user1.address, user1.address, fee);
       expect(await dStableToken.balanceOf(user1.address)).to.equal(netAssets);
       expect(await DStakeToken.balanceOf(user1.address)).to.equal(0n);
+    });
+
+    // Preview functions should account for the withdrawal fee
+    it("previewWithdraw returns expected shares including fee", async () => {
+      const fee = (assetsToDeposit * 10000n) / 1000000n;
+      const expectedShares = assetsToDeposit + fee;
+      expect(await DStakeToken.previewWithdraw(assetsToDeposit)).to.equal(
+        expectedShares
+      );
+    });
+
+    it("previewRedeem returns expected assets after fee", async () => {
+      // previewRedeem should return gross shares minus raw fee
+      const fee = (shares * 10000n) / 1000000n;
+      const expectedAssets = shares - fee;
+      expect(await DStakeToken.previewRedeem(shares)).to.equal(expectedAssets);
     });
   });
 });
