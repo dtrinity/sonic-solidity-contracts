@@ -16,6 +16,7 @@ contract DLoopCoreMock is DLoopCoreBase {
     mapping(address => uint256) public mockDebt;
     address public baseAsset;
     string public baseSymbol;
+    address public mockPool;
 
     constructor(
         string memory _name,
@@ -25,7 +26,8 @@ contract DLoopCoreMock is DLoopCoreBase {
         uint32 _targetLeverageBps,
         uint32 _lowerBoundTargetLeverageBps,
         uint32 _upperBoundTargetLeverageBps,
-        uint256 _maxSubsidyBps
+        uint256 _maxSubsidyBps,
+        address _mockPool
     ) DLoopCoreBase(
         _name,
         _symbol,
@@ -38,6 +40,7 @@ contract DLoopCoreMock is DLoopCoreBase {
     ) {
         baseAsset = address(0);
         baseSymbol = "USD";
+        mockPool = _mockPool;
     }
 
     // Allow setting mock prices for assets
@@ -61,32 +64,37 @@ contract DLoopCoreMock is DLoopCoreBase {
     }
 
     function _supplyToPool(address token, uint256 amount, address onBehalfOf) internal override {
-        // Mimic: increase collateral for onBehalfOf, transfer token from contract (already in contract)
+        // Mimic: increase collateral for onBehalfOf, transfer token to pool
         mockCollateral[onBehalfOf] += amount;
-        // In real, tokens are already in contract, so no transfer needed here
+        require(ERC20(token).transfer(mockPool, amount), "Mock: transfer to pool failed");
     }
+
     function _borrowFromPool(address token, uint256 amount, address onBehalfOf) internal override {
-        // Mimic: increase debt for onBehalfOf, transfer token to onBehalfOf
+        // Mimic: increase debt for onBehalfOf, transfer token from pool to onBehalfOf
         mockDebt[onBehalfOf] += amount;
-        require(ERC20(token).balanceOf(address(this)) >= amount, "Mock: not enough tokens to borrow");
-        ERC20(token).transfer(onBehalfOf, amount);
+        require(ERC20(token).balanceOf(mockPool) >= amount, "Mock: not enough tokens in pool to borrow");
+        require(ERC20(token).transferFrom(mockPool, onBehalfOf, amount), "Mock: borrow transfer failed");
     }
+
     function _repayDebt(address token, uint256 amount, address onBehalfOf) internal override {
-        // Mimic: decrease debt for onBehalfOf, transfer token from onBehalfOf to contract
+        // Mimic: decrease debt for onBehalfOf, transfer token from onBehalfOf to pool
         uint256 repayAmount = amount > mockDebt[onBehalfOf] ? mockDebt[onBehalfOf] : amount;
         mockDebt[onBehalfOf] -= repayAmount;
-        require(ERC20(token).transferFrom(onBehalfOf, address(this), repayAmount), "Mock: repay transfer failed");
+        require(ERC20(token).transferFrom(onBehalfOf, mockPool, repayAmount), "Mock: repay transfer failed");
     }
+
     function _withdrawFromPool(address token, uint256 amount, address onBehalfOf) internal override {
-        // Mimic: decrease collateral for onBehalfOf, transfer token to onBehalfOf
+        // Mimic: decrease collateral for onBehalfOf, transfer token from pool to onBehalfOf
         uint256 withdrawAmount = amount > mockCollateral[onBehalfOf] ? mockCollateral[onBehalfOf] : amount;
         mockCollateral[onBehalfOf] -= withdrawAmount;
-        require(ERC20(token).balanceOf(address(this)) >= withdrawAmount, "Mock: not enough tokens to withdraw");
-        ERC20(token).transfer(onBehalfOf, withdrawAmount);
+        require(ERC20(token).balanceOf(mockPool) >= withdrawAmount, "Mock: not enough tokens in pool to withdraw");
+        require(ERC20(token).transferFrom(mockPool, onBehalfOf, withdrawAmount), "Mock: withdraw transfer failed");
     }
+
     function _getBaseAssetAddressAndSymbol() internal view override returns (address, string memory) {
         return (baseAsset, baseSymbol);
     }
+
     function _getTotalCollateralAndDebtOfUserInBase(address user)
         internal
         view
