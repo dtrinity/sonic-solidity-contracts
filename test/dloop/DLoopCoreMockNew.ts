@@ -23,10 +23,6 @@ describe('DLoopCoreMock', function () {
     underlying = (await MockERC20.deploy("Mock USDC", "mUSDC", 18)) as TestMintableERC20;
     dStable = (await MockERC20.deploy("Mock dUSD", "mdUSD", 18)) as TestMintableERC20;
 
-    console.log('deployer', await deployer.getAddress());
-    console.log('user', await user.getAddress());
-    console.log('mockPool', await mockPool.getAddress());
-
     // Deploy dLOOP contract
     const DLoopCoreMock = await ethers.getContractFactory("DLoopCoreMock", deployer);
     dloop = (await DLoopCoreMock.deploy(
@@ -50,13 +46,21 @@ describe('DLoopCoreMock', function () {
     // Set initial prices
     await dloop.setMockPrice(await underlying.getAddress(), ethers.parseUnits("1", 8)); // $1
     await dloop.setMockPrice(await dStable.getAddress(), ethers.parseUnits("1", 8)); // $1
+
+    // Mint some large amount of tokens to mock pool
+    await underlying.mint(await mockPool.getAddress(), ethers.parseEther("1000000000000000000000000")); // 1M tokens
+    await dStable.mint(await mockPool.getAddress(), ethers.parseEther("1000000000000000000000000")); // 1M tokens
+
+    // Set allowance to allow the dLoop vault can spend the tokens of the mock pool
+    await underlying.connect(mockPool).approve(await dloop.getAddress(), ethers.MaxUint256);
+    await dStable.connect(mockPool).approve(await dloop.getAddress(), ethers.MaxUint256);
   });
 
   describe('Internal Pool Logic Tests', function () {
     const testCases = [
-      { name: 'small amount', amount: ethers.parseEther("1") },
-      { name: 'medium amount', amount: ethers.parseEther("1000") },
-      { name: 'large amount', amount: ethers.parseEther("100000") }
+      { name: 'small amount', amount: ethers.parseUnits("1", 18) },
+      { name: 'medium amount', amount: ethers.parseUnits("1000", 18) },
+      { name: 'large amount', amount: ethers.parseUnits("100000", 18) }
     ];
 
     testCases.forEach(({ name, amount }) => {
@@ -96,6 +100,9 @@ describe('DLoopCoreMock', function () {
         });
 
         it('testRepayDebt should decrease debt and transfer to pool', async function () {
+          // Intial mock pool balance
+          const initialPoolBalance = await dStable.balanceOf(await mockPool.getAddress());
+
           // Setup: First borrow, then repay
           await dloop.connect(user).testBorrowFromPool(
             await dStable.getAddress(),
@@ -103,6 +110,9 @@ describe('DLoopCoreMock', function () {
             await user.getAddress()
           );
           await dStable.connect(user).approve(await dloop.getAddress(), amount);
+
+          // The new pool balance should be the initial pool balance minus the amount
+          expect(await dStable.balanceOf(await mockPool.getAddress())).to.equal(initialPoolBalance - amount);
 
           // Execute
           await dloop.connect(user).testRepayDebt(
@@ -113,7 +123,7 @@ describe('DLoopCoreMock', function () {
 
           // Verify
           expect(await dloop.mockDebt(await user.getAddress())).to.equal(0);
-          expect(await dStable.balanceOf(await mockPool.getAddress())).to.equal(ethers.parseEther("1000000")); // Back to initial pool balance
+          expect(await dStable.balanceOf(await mockPool.getAddress())).to.equal(initialPoolBalance); // Back to initial pool balance
         });
 
         it('testWithdrawFromPool should decrease collateral and transfer from pool', async function () {
