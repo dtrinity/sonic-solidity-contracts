@@ -186,25 +186,6 @@ describe("DStakeRouter", function () {
           .setDefaultDepositVaultAsset(nonVaultAsset)
       ).to.be.revertedWithCustomError(router, "AdapterNotFound");
     });
-
-    it("admin can grant and revoke COLLATERAL_EXCHANGER_ROLE", async function () {
-      const exchangerRole = await router.COLLATERAL_EXCHANGER_ROLE();
-      // Grant
-      await router.connect(deployerSigner).addCollateralExchanger(user1Addr);
-      expect(await router.hasRole(exchangerRole, user1Addr)).to.be.true;
-      // Revoke
-      await router.connect(deployerSigner).removeCollateralExchanger(user1Addr);
-      expect(await router.hasRole(exchangerRole, user1Addr)).to.be.false;
-    });
-
-    it("non-admin cannot grant or revoke COLLATERAL_EXCHANGER_ROLE", async function () {
-      await expect(
-        router.connect(user2Signer).addCollateralExchanger(user1Addr)
-      ).to.be.reverted;
-      await expect(
-        router.connect(user2Signer).removeCollateralExchanger(user1Addr)
-      ).to.be.reverted;
-    });
   });
 
   // Add core logic tests for deposit, withdraw, and asset exchange functions
@@ -323,7 +304,9 @@ describe("DStakeRouter", function () {
       await router
         .connect(DStakeTokenSigner)
         .deposit(depositAmount, routerAddress);
-      await router.connect(deployerSigner).addCollateralExchanger(user1Addr);
+      await router
+        .connect(deployerSigner)
+        .grantRole(await router.COLLATERAL_EXCHANGER_ROLE(), user1Addr);
     });
 
     it("non-exchanger cannot call exchangeAssetsUsingAdapters", async function () {
@@ -411,7 +394,9 @@ describe("DStakeRouter", function () {
       await router
         .connect(DStakeTokenSigner)
         .deposit(depositAmount, routerAddress);
-      await router.connect(deployerSigner).addCollateralExchanger(user1Addr);
+      await router
+        .connect(deployerSigner)
+        .grantRole(await router.COLLATERAL_EXCHANGER_ROLE(), user1Addr);
       // Impersonate the collateralVault for transferring vault assets
       await ethers.provider.send("hardhat_impersonateAccount", [
         collateralVaultAddress,

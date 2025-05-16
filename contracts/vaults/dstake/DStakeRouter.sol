@@ -406,28 +406,6 @@ contract DStakeRouter is IDStakeRouter, AccessControl {
         emit DefaultDepositVaultAssetSet(vaultAsset);
     }
 
-    /**
-     * @notice Grants the collateral exchanger role to an address.
-     * @dev Only callable by an address with DEFAULT_ADMIN_ROLE.
-     * @param exchanger The address to grant the role to.
-     */
-    function addCollateralExchanger(
-        address exchanger
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        _grantRole(COLLATERAL_EXCHANGER_ROLE, exchanger);
-    }
-
-    /**
-     * @notice Revokes the collateral exchanger role from an address.
-     * @dev Only callable by an address with DEFAULT_ADMIN_ROLE.
-     * @param exchanger The address to revoke the role from.
-     */
-    function removeCollateralExchanger(
-        address exchanger
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        _revokeRole(COLLATERAL_EXCHANGER_ROLE, exchanger);
-    }
-
     // --- Events ---
     event Deposited(
         address indexed vaultAsset,

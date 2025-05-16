@@ -149,6 +149,12 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     }
 
     // --- Configure DStakeCollateralVault ---
+    const routerContract = await ethers.getContractAt(
+      "DStakeRouter",
+      routerDeployment.address,
+      await ethers.getSigner(adminSigner),
+    );
+
     const vaultRouter = await read(collateralVaultDeploymentName, "router");
     const vaultRouterRole = await read(
       collateralVaultDeploymentName,
@@ -174,80 +180,65 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       const adapterDeploymentName = `${adapterConfig.adapterContract}_${instanceConfig.symbol}`;
       const adapterDeployment = await get(adapterDeploymentName);
       const vaultAssetAddress = adapterConfig.vaultAsset;
-      const currentAdapter = await read(
-        collateralVaultDeploymentName,
-        "adapterForAsset",
-        vaultAssetAddress,
-      );
+      const currentAdapter =
+        await routerContract.vaultAssetToAdapter(vaultAssetAddress);
 
       if (currentAdapter !== adapterDeployment.address) {
-        await execute(
-          collateralVaultDeploymentName,
-          { from: adminSigner, log: false },
-          "addAdapter",
+        await routerContract.addAdapter(
           vaultAssetAddress,
           adapterDeployment.address,
+        );
+        console.log(
+          `    ➕ Added adapter ${adapterDeploymentName} for asset ${vaultAssetAddress} to ${routerDeploymentName}`,
         );
       }
     }
 
     // --- Configure DStakeRouter ---
-    const collateralExchangerRole = await read(
-      routerDeploymentName,
-      "COLLATERAL_EXCHANGER_ROLE",
-    );
-
-    for (const adapterConfig of instanceConfig.adapters) {
-      const adapterDeploymentName = `${adapterConfig.adapterContract}_${instanceConfig.symbol}`;
-      const adapterDeployment = await get(adapterDeploymentName);
-      const vaultAssetAddress = adapterConfig.vaultAsset;
-      const currentAdapter = await read(
-        routerDeploymentName,
-        "vaultAssetToAdapter",
-        vaultAssetAddress,
-      );
-
-      if (currentAdapter !== adapterDeployment.address) {
-        await execute(
-          routerDeploymentName,
-          { from: adminSigner, log: false },
-          "addAdapter",
-          vaultAssetAddress,
-          adapterDeployment.address,
-        );
-      }
-    }
-
-    const currentDefaultAsset = await read(
-      routerDeploymentName,
-      "defaultDepositVaultAsset",
-    );
-
-    if (currentDefaultAsset !== instanceConfig.defaultDepositVaultAsset) {
-      await execute(
-        routerDeploymentName,
-        { from: adminSigner, log: false },
-        "setDefaultDepositVaultAsset",
-        instanceConfig.defaultDepositVaultAsset,
-      );
-    }
+    const collateralExchangerRole =
+      await routerContract.COLLATERAL_EXCHANGER_ROLE();
 
     for (const exchanger of instanceConfig.collateralExchangers) {
-      const hasRole = await read(
-        routerDeploymentName,
-        "hasRole",
+      const hasRole = await routerContract.hasRole(
         collateralExchangerRole,
         exchanger,
       );
 
       if (!hasRole) {
-        await execute(
-          routerDeploymentName,
-          { from: adminSigner, log: false },
-          "addCollateralExchanger",
-          exchanger,
+        await routerContract.grantRole(collateralExchangerRole, exchanger);
+        console.log(
+          `    ➕ Granted COLLATERAL_EXCHANGER_ROLE to ${exchanger} for ${routerDeploymentName}`,
         );
       }
+    }
+
+    for (const adapterConfig of instanceConfig.adapters) {
+      const adapterDeploymentName = `${adapterConfig.adapterContract}_${instanceConfig.symbol}`;
+      const adapterDeployment = await get(adapterDeploymentName);
+      const vaultAssetAddress = adapterConfig.vaultAsset;
+      const currentAdapter =
+        await routerContract.vaultAssetToAdapter(vaultAssetAddress);
+
+      if (currentAdapter !== adapterDeployment.address) {
+        await routerContract.addAdapter(
+          vaultAssetAddress,
+          adapterDeployment.address,
+        );
+        console.log(
+          `    ➕ Added adapter ${adapterDeploymentName} for asset ${vaultAssetAddress} to ${routerDeploymentName}`,
+        );
+      }
+    }
+
+    const currentDefaultAsset = await routerContract.defaultDepositVaultAsset();
+
+    if (currentDefaultAsset !== instanceConfig.defaultDepositVaultAsset) {
+      await routerContract.setDefaultDepositVaultAsset(
+        instanceConfig.defaultDepositVaultAsset,
+      );
+      console.log(
+        `    ⚙️ Set default deposit vault asset for ${routerDeploymentName}`,
+      );
     }
   }
 
