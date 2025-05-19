@@ -11,17 +11,20 @@ export interface UserStateLog {
     | {
         address: string;
         symbol: string;
+        decimals: number;
       }
     | undefined;
   debtToken:
     | {
         address: string;
         symbol: string;
+        decimals: number;
       }
     | undefined;
   lastTrial: number;
   profitInUSD: string;
   profitable: boolean;
+  step: string;
   success: boolean;
   error: Error | string;
   errorMessage: string;
