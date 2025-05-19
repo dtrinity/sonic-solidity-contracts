@@ -14,7 +14,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   if (!config.dStake) {
     console.log(
-      "No dStake configuration found for this network. Skipping configuration."
+      "No dStake configuration found for this network. Skipping configuration.",
     );
     return;
   }
@@ -28,7 +28,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       instanceConfig.dStable === ethers.ZeroAddress
     ) {
       throw new Error(
-        `Missing dStable address for dSTAKE instance ${instanceKey}`
+        `Missing dStable address for dSTAKE instance ${instanceKey}`,
       );
     }
 
@@ -45,7 +45,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       instanceConfig.initialAdmin === ethers.ZeroAddress
     ) {
       throw new Error(
-        `Missing initialAdmin for dSTAKE instance ${instanceKey}`
+        `Missing initialAdmin for dSTAKE instance ${instanceKey}`,
       );
     }
 
@@ -54,19 +54,19 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       instanceConfig.initialFeeManager === ethers.ZeroAddress
     ) {
       throw new Error(
-        `Missing initialFeeManager for dSTAKE instance ${instanceKey}`
+        `Missing initialFeeManager for dSTAKE instance ${instanceKey}`,
       );
     }
 
     if (typeof instanceConfig.initialWithdrawalFeeBps !== "number") {
       throw new Error(
-        `Missing initialWithdrawalFeeBps for dSTAKE instance ${instanceKey}`
+        `Missing initialWithdrawalFeeBps for dSTAKE instance ${instanceKey}`,
       );
     }
 
     if (!instanceConfig.adapters || !Array.isArray(instanceConfig.adapters)) {
       throw new Error(
-        `Missing adapters array for dSTAKE instance ${instanceKey}`
+        `Missing adapters array for dSTAKE instance ${instanceKey}`,
       );
     }
 
@@ -75,7 +75,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       instanceConfig.defaultDepositVaultAsset === ethers.ZeroAddress
     ) {
       throw new Error(
-        `Missing defaultDepositVaultAsset for dSTAKE instance ${instanceKey}`
+        `Missing defaultDepositVaultAsset for dSTAKE instance ${instanceKey}`,
       );
     }
 
@@ -84,7 +84,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       !Array.isArray(instanceConfig.collateralExchangers)
     ) {
       throw new Error(
-        `Missing collateralExchangers array for dSTAKE instance ${instanceKey}`
+        `Missing collateralExchangers array for dSTAKE instance ${instanceKey}`,
       );
     }
   }
@@ -111,12 +111,12 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     const dstakeToken = await ethers.getContractAt(
       "DStakeToken",
       dstakeTokenDeployment.address,
-      await ethers.getSigner(deployer) // Use deployer as signer for read calls if needed, will connect admin/feeManager for transactions
+      await ethers.getSigner(deployer), // Use deployer as signer for read calls if needed, will connect admin/feeManager for transactions
     );
     const collateralVault = await ethers.getContractAt(
       "DStakeCollateralVault",
       collateralVaultDeployment.address,
-      await ethers.getSigner(deployer) // Use deployer as signer for read calls
+      await ethers.getSigner(deployer), // Use deployer as signer for read calls
     );
 
     // --- Configure DStakeToken ---
@@ -124,7 +124,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
     if (currentRouter !== routerDeployment.address) {
       console.log(
-        `    ⚙️ Setting router for ${DStakeTokenDeploymentName} to ${routerDeployment.address}`
+        `    ⚙️ Setting router for ${DStakeTokenDeploymentName} to ${routerDeployment.address}`,
       );
       await dstakeToken
         .connect(await ethers.getSigner(adminSigner))
@@ -134,7 +134,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
     if (currentVault !== collateralVaultDeployment.address) {
       console.log(
-        `    ⚙️ Setting collateral vault for ${DStakeTokenDeploymentName} to ${collateralVaultDeployment.address}`
+        `    ⚙️ Setting collateral vault for ${DStakeTokenDeploymentName} to ${collateralVaultDeployment.address}`,
       );
       await dstakeToken
         .connect(await ethers.getSigner(adminSigner))
@@ -147,7 +147,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       instanceConfig.initialWithdrawalFeeBps.toString()
     ) {
       console.log(
-        `    ⚙️ Setting withdrawal fee for ${DStakeTokenDeploymentName} to ${instanceConfig.initialWithdrawalFeeBps}`
+        `    ⚙️ Setting withdrawal fee for ${DStakeTokenDeploymentName} to ${instanceConfig.initialWithdrawalFeeBps}`,
       );
       await dstakeToken
         .connect(await ethers.getSigner(feeManagerSigner))
@@ -158,19 +158,19 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     const routerContract = await ethers.getContractAt(
       "DStakeRouterDLend",
       routerDeployment.address,
-      await ethers.getSigner(adminSigner)
+      await ethers.getSigner(adminSigner),
     );
 
     const vaultRouter = await collateralVault.router();
     const vaultRouterRole = await collateralVault.ROUTER_ROLE();
     const isRouterRoleGranted = await collateralVault.hasRole(
       vaultRouterRole,
-      routerDeployment.address
+      routerDeployment.address,
     );
 
     if (vaultRouter !== routerDeployment.address || !isRouterRoleGranted) {
       console.log(
-        `    ⚙️ Setting router for ${collateralVaultDeploymentName} to ${routerDeployment.address}`
+        `    ⚙️ Setting router for ${collateralVaultDeploymentName} to ${routerDeployment.address}`,
       );
       await collateralVault
         .connect(await ethers.getSigner(adminSigner))
@@ -186,7 +186,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
         .connect(await ethers.getSigner(adminSigner))
         .addAdapter(vaultAssetAddress, adapterDeployment.address);
       console.log(
-        `    ➕ Added adapter ${adapterDeploymentName} for asset ${vaultAssetAddress} to ${collateralVaultDeploymentName}`
+        `    ➕ Added adapter ${adapterDeploymentName} for asset ${vaultAssetAddress} to ${collateralVaultDeploymentName}`,
       );
     }
 
@@ -197,13 +197,13 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     for (const exchanger of instanceConfig.collateralExchangers) {
       const hasRole = await routerContract.hasRole(
         collateralExchangerRole,
-        exchanger
+        exchanger,
       );
 
       if (!hasRole) {
         await routerContract.grantRole(collateralExchangerRole, exchanger);
         console.log(
-          `    ➕ Granted COLLATERAL_EXCHANGER_ROLE to ${exchanger} for ${routerDeploymentName}`
+          `    ➕ Granted COLLATERAL_EXCHANGER_ROLE to ${exchanger} for ${routerDeploymentName}`,
         );
       }
     }
@@ -218,10 +218,10 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       if (currentAdapter !== adapterDeployment.address) {
         await routerContract.addAdapter(
           vaultAssetAddress,
-          adapterDeployment.address
+          adapterDeployment.address,
         );
         console.log(
-          `    ➕ Added adapter ${adapterDeploymentName} for asset ${vaultAssetAddress} to ${routerDeploymentName}`
+          `    ➕ Added adapter ${adapterDeploymentName} for asset ${vaultAssetAddress} to ${routerDeploymentName}`,
         );
       }
     }
@@ -230,10 +230,10 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
     if (currentDefaultAsset !== instanceConfig.defaultDepositVaultAsset) {
       await routerContract.setDefaultDepositVaultAsset(
-        instanceConfig.defaultDepositVaultAsset
+        instanceConfig.defaultDepositVaultAsset,
       );
       console.log(
-        `    ⚙️ Set default deposit vault asset for ${routerDeploymentName}`
+        `    ⚙️ Set default deposit vault asset for ${routerDeploymentName}`,
       );
     }
   }

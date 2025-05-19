@@ -1,7 +1,11 @@
 import { ZeroAddress } from "ethers";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 
-import { DS_TOKEN_ID, DUSD_TOKEN_ID } from "../../typescript/deploy-ids";
+import {
+  DS_TOKEN_ID,
+  DUSD_TOKEN_ID,
+  INCENTIVES_PROXY_ID,
+} from "../../typescript/deploy-ids";
 import {
   ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT,
   ORACLE_AGGREGATOR_PRICE_DECIMALS,
@@ -52,6 +56,10 @@ export async function getConfig(
   const dLendATokenWrapperDSDeployment = await _hre.deployments.getOrNull(
     "dLend_ATokenWrapper_dS",
   );
+
+  // Fetch deployed dLend RewardsController
+  const rewardsControllerDeployment =
+    await _hre.deployments.getOrNull(INCENTIVES_PROXY_ID);
 
   // Get mock oracle deployments
   const mockOracleNameToAddress: Record<string, string> = {};
@@ -287,12 +295,12 @@ export async function getConfig(
               ? {
                   [wOSTokenDeployment.address]: {
                     feedAsset: wOSTokenDeployment.address,
-                    feed1: mockOracleNameToAddress["wOS_S"],
-                    feed2: mockOracleNameToAddress["wS_USD"],
+                    feed1: mockOracleNameToAddress["wOS_OS"],
+                    feed2: mockOracleNameToAddress["OS_S"],
                     lowerThresholdInBase1: 0n,
                     fixedPriceInBase1: 0n,
-                    lowerThresholdInBase2: 0n,
-                    fixedPriceInBase2: 0n,
+                    lowerThresholdInBase2: ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT,
+                    fixedPriceInBase2: ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT,
                   },
                 }
               : {}),
@@ -335,8 +343,8 @@ export async function getConfig(
                     feed2: mockOracleNameToAddress["OS_S"],
                     lowerThresholdInBase1: 0n,
                     fixedPriceInBase1: 0n,
-                    lowerThresholdInBase2: ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT, // 1.0 in S terms
-                    fixedPriceInBase2: ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT, // 1.0 in S terms
+                    lowerThresholdInBase2: ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT,
+                    fixedPriceInBase2: ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT,
                   },
                 }
               : {}),
@@ -388,6 +396,21 @@ export async function getConfig(
         ),
         collateralVault: "DStakeCollateralVault_sdUSD",
         collateralExchangers: [user1],
+        dLendRewardManager: {
+          managedVaultAsset: emptyStringIfUndefined(
+            dLendATokenWrapperDUSDDeployment?.address,
+          ), // This should be the deployed StaticATokenLM address for dUSD
+          dLendAssetToClaimFor: emptyStringIfUndefined(dUSDDeployment?.address), // Use the dUSD underlying asset address as a placeholder
+          dLendRewardsController: emptyStringIfUndefined(
+            rewardsControllerDeployment?.address,
+          ), // This will be fetched after dLend incentives deployment
+          treasury: user1, // Or a dedicated treasury address
+          maxTreasuryFeeBps: 500, // Example: 5%
+          initialTreasuryFeeBps: 100, // Example: 1%
+          initialExchangeThreshold: 1e6, // Example: 1 dStable (adjust based on dStable decimals)
+          initialAdmin: user1, // Optional: specific admin for this reward manager
+          initialRewardsManager: user1, // Optional: specific rewards manager role holder
+        },
       },
       sdS: {
         dStable: emptyStringIfUndefined(dSDeployment?.address),
@@ -409,6 +432,21 @@ export async function getConfig(
         ),
         collateralVault: "DStakeCollateralVault_sdS",
         collateralExchangers: [user1],
+        dLendRewardManager: {
+          managedVaultAsset: emptyStringIfUndefined(
+            dLendATokenWrapperDSDeployment?.address,
+          ), // This should be the deployed StaticATokenLM address for dS
+          dLendAssetToClaimFor: emptyStringIfUndefined(dSDeployment?.address), // Use the dS underlying asset address as a placeholder
+          dLendRewardsController: emptyStringIfUndefined(
+            rewardsControllerDeployment?.address,
+          ), // This will be fetched after dLend incentives deployment
+          treasury: user1, // Or a dedicated treasury address
+          maxTreasuryFeeBps: 500, // Example: 5%
+          initialTreasuryFeeBps: 100, // Example: 1%
+          initialExchangeThreshold: 1e6, // Example: 1 dStable (adjust based on dStable decimals)
+          initialAdmin: user1, // Optional: specific admin for this reward manager
+          initialRewardsManager: user1, // Optional: specific rewards manager role holder
+        },
       },
     },
   };

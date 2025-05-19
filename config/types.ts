@@ -147,6 +147,18 @@ export interface DStakeAdapterConfig {
   readonly adapterContract: string; // Contract name for deployment (e.g., dLendConversionAdapter)
 }
 
+export interface DLendRewardManagerConfig {
+  readonly managedVaultAsset: Address; // Address of the StaticATokenLM wrapper this manager handles (e.g. wddUSD)
+  readonly dLendAssetToClaimFor: Address; // Address of the underlying aToken in dLEND (e.g. aDUSD)
+  readonly dLendRewardsController: Address; // Address of the dLEND RewardsController
+  readonly treasury: Address; // Address for treasury fees
+  readonly maxTreasuryFeeBps: number;
+  readonly initialTreasuryFeeBps: number;
+  readonly initialExchangeThreshold: number; // Min dStable amount to trigger compounding
+  readonly initialAdmin?: Address; // Optional: admin for this DStakeRewardManagerDLend instance
+  readonly initialRewardsManager?: Address; // Optional: holder of REWARDS_MANAGER_ROLE for this instance
+}
+
 export interface DStakeInstanceConfig {
   readonly dStable: Address; // Address of the underlying dSTABLE (e.g., dUSD)
   readonly name: string; // Name for DStakeToken (e.g., "Staked dUSD")
@@ -158,4 +170,5 @@ export interface DStakeInstanceConfig {
   readonly defaultDepositVaultAsset: Address; // Initial default vault asset for deposits
   readonly collateralExchangers: Address[]; // List of allowed exchanger addresses
   readonly collateralVault?: Address; // The DStakeCollateralVault for this instance (needed for adapter deployment)
+  readonly dLendRewardManager?: DLendRewardManagerConfig; // Added for dLend rewards
 }
