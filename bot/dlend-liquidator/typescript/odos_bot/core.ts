@@ -517,6 +517,9 @@ async function executeFlashMintLiquidation(
     await flashMintLiquidatorBotContract.getAddress(),
   );
 
+  console.log("quote:", quote);
+  console.log("Assembled quote:", assembledQuote);
+
   const collateralTokenInfo = await fetchTokenInfo(
     hre,
     params.collateralTokenAddress,
@@ -538,6 +541,7 @@ async function executeFlashMintLiquidation(
     false,
     params.isUnstakeToken,
     assembledQuote.transaction.data,
+    0,
   );
   const receipt = await tx.wait();
   return receipt?.hash as string;

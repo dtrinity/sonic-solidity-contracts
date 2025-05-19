@@ -32,6 +32,8 @@ import "../interface/aave-v3/aave/ILendingPool.sol";
 
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {SharedLiquidator, SafeERC20} from "../common/SharedLiquidator.sol";
+import {BreakPointHelper} from "../debugging/BreakPointHelper.sol";
+import {Converter} from "../debugging/Converter.sol";
 
 abstract contract FlashMintLiquidatorAaveBase is
     ReentrancyGuard,
@@ -41,6 +43,7 @@ abstract contract FlashMintLiquidatorAaveBase is
     using SafeERC20 for ERC20;
     using ReserveConfiguration for DataTypes.ReserveConfigurationMap;
     using PercentageMath for uint256;
+    using BreakPointHelper for uint256;
 
     struct FlashLoanParams {
         address collateralUnderlying;
@@ -94,6 +97,7 @@ abstract contract FlashMintLiquidatorAaveBase is
     IAToken public immutable aDSTABLE;
     ERC20 public immutable dstable;
     uint256 public immutable DSTABLE_DECIMALS;
+    uint256 public breakPoint;
 
     constructor(
         IERC3156FlashLender _flashMinter,
@@ -119,6 +123,11 @@ abstract contract FlashMintLiquidatorAaveBase is
             address(liquidateLender),
             _liquidateParams.toRepay
         );
+
+        breakPoint.checkBreakpointWithMessage(
+            20001,
+            "Yo 2-1"
+        );
         liquidateLender.liquidationCall(
             address(
                 _getUnderlying(address(_liquidateParams.poolTokenCollateral))
@@ -130,9 +139,17 @@ abstract contract FlashMintLiquidatorAaveBase is
             _liquidateParams.toRepay,
             false
         );
+        breakPoint.checkBreakpointWithMessage(
+            20002,
+            "Yo 2-2"
+        );
         seized_ =
             _liquidateParams.collateralUnderlying.balanceOf(address(this)) -
             balanceBefore;
+        breakPoint.checkBreakpointWithMessage(
+            20003,
+            "Yo 2-3"
+        );
         emit Liquidated(
             msg.sender,
             _liquidateParams.borrower,
@@ -235,7 +252,6 @@ abstract contract FlashMintLiquidatorAaveBase is
         //         loanToValue +
         //         1e18; // for rounding errors of supply/borrow on aave
         // }
-
     }
 
     function _encodeData(
