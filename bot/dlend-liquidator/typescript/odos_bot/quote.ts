@@ -66,14 +66,10 @@ export async function getOdosSwapQuote(
     swapSlippageBufferPercentage,
   );
 
-  console.log("inputAmount:", inputAmount);
-
   const formattedInputAmount = OdosClient.formatTokenAmount(
     inputAmount,
     Number(collateralDecimals),
   );
-
-  console.log("formattedInputAmount:", formattedInputAmount);
 
   const quoteRequest = {
     chainId: chainId,

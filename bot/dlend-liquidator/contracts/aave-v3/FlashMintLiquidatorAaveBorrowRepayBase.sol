@@ -28,7 +28,6 @@ abstract contract FlashMintLiquidatorAaveBorrowRepayBase is
 {
     using SafeERC20 for ERC20;
     using PercentageMath for uint256;
-    using BreakPointHelper for uint256;
 
     uint256 public slippageTolerance; // in basis points units
 
@@ -88,11 +87,8 @@ abstract contract FlashMintLiquidatorAaveBorrowRepayBase is
         uint256 _repayAmount,
         bool _stakeTokens,
         bool _isUnstakeCollateralToken,
-        bytes memory _swapData,
-        uint256 _breakPoint
+        bytes memory _swapData
     ) external nonReentrant {
-        breakPoint = _breakPoint;
-
         LiquidateParams memory liquidateParams = LiquidateParams(
             _getUnderlying(_poolTokenCollateralAddress),
             _getUnderlying(_poolTokenBorrowedAddress),
@@ -103,10 +99,6 @@ abstract contract FlashMintLiquidatorAaveBorrowRepayBase is
             _repayAmount,
             _isUnstakeCollateralToken
         );
-        breakPoint.checkBreakpointWithMessage(
-            10001,
-            "Yo 1"
-        );
 
         uint256 seized;
         address actualCollateralToken;
@@ -115,20 +107,8 @@ abstract contract FlashMintLiquidatorAaveBorrowRepayBase is
             _repayAmount
         ) {
             // we can liquidate without flash loan by using the contract balance
-            breakPoint.checkBreakpointWithMessage(
-                10002,
-                "Yo 2"
-            );
             seized = _liquidateInternal(liquidateParams);
-            breakPoint.checkBreakpointWithMessage(
-                10003,
-                "Yo 3"
-            );
         } else {
-            breakPoint.checkBreakpointWithMessage(
-                10004,
-                "Yo 4"
-            );
             FlashLoanParams memory params = FlashLoanParams(
                 address(liquidateParams.collateralUnderlying),
                 address(liquidateParams.borrowedUnderlying),
@@ -140,29 +120,11 @@ abstract contract FlashMintLiquidatorAaveBorrowRepayBase is
                 _isUnstakeCollateralToken,
                 _swapData
             );
-            breakPoint.checkBreakpointWithMessage(
-                10005,
-                "Yo 5"
-            );
             (seized, actualCollateralToken) = _liquidateWithFlashLoan(params);
-            breakPoint.checkBreakpointWithMessage(
-                10006,
-                "Yo 6"
-            );
         }
-
-        breakPoint.checkBreakpointWithMessage(
-            10007,
-            "Yo 7"
-        );
 
         if (!_stakeTokens)
             ERC20(actualCollateralToken).safeTransfer(msg.sender, seized);
-
-        breakPoint.checkBreakpointWithMessage(
-            10008,
-            "Yo 8"
-        );
     }
 
     /// @dev ERC-3156 Flash loan callback
@@ -207,10 +169,6 @@ abstract contract FlashMintLiquidatorAaveBorrowRepayBase is
             _flashLoanParams.borrowedUnderlying !=
             _flashLoanParams.collateralUnderlying
         ) {
-            breakPoint.checkBreakpointWithMessage(
-                30001,
-                "_flashLoanInternal 1"
-            );
             (
                 address actualCollateralToken,
                 address proxyContract
@@ -218,17 +176,9 @@ abstract contract FlashMintLiquidatorAaveBorrowRepayBase is
                     _flashLoanParams.collateralUnderlying,
                     _flashLoanParams.isUnstakeCollateralToken
                 );
-            breakPoint.checkBreakpointWithMessage(
-                30002,
-                "_flashLoanInternal 2"
-            );
             uint256 actualCollateralAmount = seized;
             // If isUnstakeCollateralToken is true, we need to unstake the collateral to its underlying token
             if (_flashLoanParams.isUnstakeCollateralToken) {
-                breakPoint.checkBreakpointWithMessage(
-                    30003,
-                    "_flashLoanInternal 3"
-                );
                 // Approve to burn the shares
                 ERC20(_flashLoanParams.collateralUnderlying).approve(
                     proxyContract,
@@ -240,20 +190,12 @@ abstract contract FlashMintLiquidatorAaveBorrowRepayBase is
                     actualCollateralAmount,
                     address(this)
                 );
-                breakPoint.checkBreakpointWithMessage(
-                    30004,
-                    "_flashLoanInternal 4"
-                );
             }
 
             // need a swap
             // we use aave oracle
             IPriceOracleGetter oracle = IPriceOracleGetter(
                 addressesProvider.getPriceOracle()
-            );
-            breakPoint.checkBreakpointWithMessage(
-                30005,
-                "_flashLoanInternal 5"
             );
 
             // Convert toRepay amount from borrowedUnderlying to collateral token amount using oracle prices
@@ -265,69 +207,12 @@ abstract contract FlashMintLiquidatorAaveBorrowRepayBase is
                 (Constants.ONE_HUNDRED_PERCENT_BPS + slippageTolerance) /
                 Constants.ONE_HUNDRED_PERCENT_BPS;
 
-            // breakPoint.checkBreakpointWithMessage(
-            //     30006,
-            //     string.concat(
-            //         "_flashLoanInternal 6",
-            //         "\n",
-            //         "actualCollateralAmount: ",
-            //         Converter.uintToString(actualCollateralAmount),
-            //         "\n",
-            //         "10 ** ERC20(actualCollateralToken).decimals(): ",
-            //         Converter.uintToString(10 ** ERC20(actualCollateralToken).decimals()),
-            //         "\n",
-            //         "oracle.getAssetPrice(actualCollateralToken): ",
-            //         Converter.uintToString(oracle.getAssetPrice(actualCollateralToken)),
-            //         "\n",
-            //         "oracle.getAssetPrice(_flashLoanParams.borrowedUnderlying): ",
-            //         Converter.uintToString(oracle.getAssetPrice(_flashLoanParams.borrowedUnderlying)),
-            //         "\n",
-            //         "10 ** liquidateParams.borrowedUnderlying.decimals(): ",
-            //         Converter.uintToString(10 ** liquidateParams.borrowedUnderlying.decimals()),
-            //         "\n",
-            //         "Constants.ONE_HUNDRED_PERCENT_BPS: ",
-            //         Converter.uintToString(Constants.ONE_HUNDRED_PERCENT_BPS),
-            //         "\n",
-            //         "slippageTolerance: ",
-            //         Converter.uintToString(slippageTolerance)
-            //     )
-            // );
-            breakPoint.checkBreakpointWithMessage(
-                30006,
-                string.concat(
-                    "\n",
-                    "_flashLoanInternal 6",
-                    "\n",
-                    "maxIn: ",
-                    Converter.uintToString(maxIn),
-                    "\n",
-                    "_flashLoanParams.toRepay: ",
-                    Converter.uintToString(_flashLoanParams.toRepay),
-                    "\n",
-                    "price of collateral token: ",
-                    Converter.uintToString(oracle.getAssetPrice(actualCollateralToken)),
-                    "\n",
-                    "price of borrowed token: ",
-                    Converter.uintToString(oracle.getAssetPrice(_flashLoanParams.borrowedUnderlying)),
-                    "\n",
-                    "balance of collateral token: ",
-                    Converter.uintToString(ERC20(actualCollateralToken).balanceOf(address(this))),
-                    "\n",
-                    "balance of borrowed token: ",
-                    Converter.uintToString(ERC20(_flashLoanParams.borrowedUnderlying).balanceOf(address(this)))
-                )
-            );
-
             _swapExactOutput(
                 actualCollateralToken,
                 _flashLoanParams.borrowedUnderlying,
                 _flashLoanParams.swapData,
                 _flashLoanParams.toRepay,
                 maxIn
-            );
-            breakPoint.checkBreakpointWithMessage(
-                30007,
-                "_flashLoanInternal 7"
             );
         }
         emit Liquidated(
@@ -338,10 +223,6 @@ abstract contract FlashMintLiquidatorAaveBorrowRepayBase is
             _flashLoanParams.toRepay,
             seized,
             true
-        );
-        breakPoint.checkBreakpointWithMessage(
-            30008,
-            "_flashLoanInternal 8"
         );
     }
 

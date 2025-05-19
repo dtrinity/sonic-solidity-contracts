@@ -15,14 +15,8 @@ library BreakPointHelper {
      * @param currentBreakpoint The current breakpoint value to check against
      * @param breakpointNumber The breakpoint number to trigger the break
      */
-    function checkBreakpoint(
-        uint256 currentBreakpoint,
-        uint256 breakpointNumber
-    ) internal pure {
-        require(
-            currentBreakpoint != breakpointNumber,
-            string.concat("Breakpoint triggered: ", _uint2str(breakpointNumber))
-        );
+    function checkBreakpoint(uint256 currentBreakpoint, uint256 breakpointNumber) internal pure {
+        require(currentBreakpoint != breakpointNumber, string.concat("Breakpoint triggered: ", _uint2str(breakpointNumber)));
     }
 
     /**
@@ -38,12 +32,7 @@ library BreakPointHelper {
     ) internal pure {
         require(
             currentBreakpoint != breakpointNumber,
-            string.concat(
-                "Breakpoint triggered: ",
-                _uint2str(breakpointNumber),
-                " - ",
-                message
-            )
+            string.concat("Breakpoint triggered: ", _uint2str(breakpointNumber), " - ", message)
         );
     }
 
@@ -69,12 +58,7 @@ library BreakPointHelper {
                 ),
                 debugInfo.data
             );
-            revert(
-                string.concat(
-                    "Breakpoint triggered: ",
-                    _uint2str(breakpointNumber)
-                )
-            );
+            revert(string.concat("Breakpoint triggered: ", _uint2str(breakpointNumber)));
         }
     }
 
@@ -97,7 +81,7 @@ library BreakPointHelper {
         uint256 k = length;
         j = _i;
         while (j != 0) {
-            bstr[--k] = bytes1(uint8(48 + (j % 10)));
+            bstr[--k] = bytes1(uint8(48 + j % 10));
             j /= 10;
         }
         return string(bstr);

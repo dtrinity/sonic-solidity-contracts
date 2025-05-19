@@ -26,16 +26,12 @@ library Converter {
         return string(buffer);
     }
 
-    function addressToString(
-        address value
-    ) internal pure returns (string memory) {
+    function addressToString(address value) internal pure returns (string memory) {
         bytes memory buffer = new bytes(42);
         buffer[0] = "0";
         buffer[1] = "x";
         for (uint256 i = 0; i < 20; i++) {
-            bytes1 b = bytes1(
-                uint8(uint256(uint160(value)) / (2 ** (8 * (19 - i))))
-            );
+            bytes1 b = bytes1(uint8(uint256(uint160(value)) / (2**(8 * (19 - i)))));
             bytes1 hi = bytes1(uint8(b) / 16);
             bytes1 lo = bytes1(uint8(b) - 16 * uint8(hi));
             buffer[2 + 2 * i] = char(hi);
