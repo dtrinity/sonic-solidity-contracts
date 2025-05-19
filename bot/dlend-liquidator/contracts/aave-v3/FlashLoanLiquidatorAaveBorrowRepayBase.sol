@@ -207,12 +207,12 @@ abstract contract FlashLoanLiquidatorAaveBorrowRepayBase is
             IPriceOracleGetter oracle = IPriceOracleGetter(
                 addressesProvider.getPriceOracle()
             );
-            uint256 maxIn = (((actualCollateralAmount *
+            uint256 maxIn = (_flashLoanParams.toRepay + _premium) *
                 10 ** ERC20(actualCollateralToken).decimals() *
-                oracle.getAssetPrice(_flashLoanParams.borrowedUnderlying)) /
-                oracle.getAssetPrice(actualCollateralToken) /
+                oracle.getAssetPrice(_flashLoanParams.borrowedUnderlying) /
+                (oracle.getAssetPrice(actualCollateralToken) *
                 10 ** liquidateParams.borrowedUnderlying.decimals()) *
-                (Constants.ONE_HUNDRED_PERCENT_BPS + slippageTolerance)) /
+                (Constants.ONE_HUNDRED_PERCENT_BPS + slippageTolerance) /
                 Constants.ONE_HUNDRED_PERCENT_BPS;
 
             _swapExactOutput(
