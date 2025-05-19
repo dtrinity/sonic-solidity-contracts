@@ -4,7 +4,7 @@ import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 import {
   DStakeToken,
   DStakeCollateralVault,
-  DStakeRouter,
+  DStakeRouterDLend,
   IDStableConversionAdapter,
   ERC20,
   IERC20,
@@ -27,7 +27,7 @@ STAKE_CONFIGS.forEach((cfg) => {
 
     let DStakeToken: DStakeToken;
     let collateralVault: DStakeCollateralVault;
-    let router: DStakeRouter;
+    let router: DStakeRouterDLend;
     let dStableToken: ERC20;
     let dStableDecimals: number;
     let vaultAssetToken: IERC20;
@@ -47,7 +47,7 @@ STAKE_CONFIGS.forEach((cfg) => {
       DStakeToken = fixture.DStakeToken as unknown as DStakeToken;
       collateralVault =
         fixture.collateralVault as unknown as DStakeCollateralVault;
-      router = fixture.router as unknown as DStakeRouter;
+      router = fixture.router as unknown as DStakeRouterDLend;
       dStableToken = fixture.dStableToken as unknown as ERC20;
       dStableDecimals = fixture.dStableInfo.decimals;
       vaultAssetToken = fixture.vaultAssetToken as unknown as IERC20;

@@ -3,7 +3,7 @@ import { expect } from "chai";
 import {
   DStakeCollateralVault,
   DStakeToken,
-  DStakeRouter,
+  DStakeRouterDLend,
   IDStableConversionAdapter,
   ERC20,
   IERC20,
@@ -41,7 +41,7 @@ describe("DStakeCollateralVault", () => {
   // Fixture types
   let DStakeToken: DStakeToken;
   let collateralVault: DStakeCollateralVault;
-  let router: DStakeRouter;
+  let router: DStakeRouterDLend;
   let dStableToken: ERC20;
   let dStableDecimals: bigint;
   let vaultAssetToken: IERC20;
@@ -70,7 +70,7 @@ describe("DStakeCollateralVault", () => {
     DStakeToken = fixture.DStakeToken as unknown as DStakeToken;
     collateralVault =
       fixture.collateralVault as unknown as DStakeCollateralVault;
-    router = fixture.router as unknown as DStakeRouter;
+    router = fixture.router as unknown as DStakeRouterDLend;
     dStableToken = fixture.dStableToken;
     dStableDecimals = await dStableToken.decimals();
     vaultAssetToken = fixture.vaultAssetToken;

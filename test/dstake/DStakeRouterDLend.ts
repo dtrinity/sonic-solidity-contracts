@@ -2,7 +2,7 @@ import { expect } from "chai";
 import { ethers, getNamedAccounts } from "hardhat";
 import { ZeroAddress } from "ethers";
 import {
-  DStakeRouter,
+  DStakeRouterDLend,
   DStakeCollateralVault,
   DStakeToken,
   IDStableConversionAdapter,
@@ -10,10 +10,10 @@ import {
   IERC20,
 } from "../../typechain-types";
 import { createDStakeFixture, SDUSD_CONFIG } from "./fixture";
-import { DStakeRouter__factory } from "../../typechain-types/factories/contracts/vaults/dstake/DStakeRouter__factory";
+import { DStakeRouterDLend__factory } from "../../typechain-types/factories/contracts/vaults/dstake/DStakeRouterDLend__factory";
 import { ERC20StablecoinUpgradeable } from "../../typechain-types/contracts/dstable/ERC20StablecoinUpgradeable";
 
-describe("DStakeRouter", function () {
+describe("DStakeRouterDLend", function () {
   let routerAddress: string;
   let collateralVaultAddress: string;
   let deployerAddr: string;
@@ -24,7 +24,7 @@ describe("DStakeRouter", function () {
   let user2Signer: any;
   let DStakeToken: DStakeToken;
   let collateralVault: DStakeCollateralVault;
-  let router: DStakeRouter;
+  let router: DStakeRouterDLend;
   let dStableToken: IERC20;
   let vaultAssetToken: IERC20;
   let vaultAssetAddress: string;
@@ -44,7 +44,7 @@ describe("DStakeRouter", function () {
     DStakeToken = fixture.DStakeToken as unknown as DStakeToken;
     collateralVault =
       fixture.collateralVault as unknown as DStakeCollateralVault;
-    router = fixture.router as unknown as DStakeRouter;
+    router = fixture.router as unknown as DStakeRouterDLend;
     dStableToken = fixture.dStableToken as unknown as IERC20;
     vaultAssetToken = fixture.vaultAssetToken as unknown as IERC20;
     vaultAssetAddress = fixture.vaultAssetAddress;
@@ -66,7 +66,7 @@ describe("DStakeRouter", function () {
     });
 
     it("should revert constructor if any address is zero", async function () {
-      const factory = new DStakeRouter__factory(deployerSigner);
+      const factory = new DStakeRouterDLend__factory(deployerSigner);
       await expect(
         factory.deploy(ZeroAddress, await collateralVault.getAddress())
       ).to.be.revertedWithCustomError(factory, "ZeroAddress");

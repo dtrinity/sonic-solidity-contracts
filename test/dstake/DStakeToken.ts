@@ -3,10 +3,8 @@ import { expect } from "chai";
 import {
   DStakeToken,
   DStakeCollateralVault,
-  DStakeRouter,
+  DStakeRouterDLend,
   ERC20,
-  IERC20,
-  DStakeToken__factory,
 } from "../../typechain-types";
 import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 import { createDStakeFixture, SDUSD_CONFIG } from "./fixture";
@@ -23,7 +21,7 @@ describe("DStakeToken", () => {
   let user1: SignerWithAddress;
   let DStakeToken: DStakeToken;
   let collateralVault: DStakeCollateralVault;
-  let router: DStakeRouter;
+  let router: DStakeRouterDLend;
   let dStableToken: ERC20;
   let stable: ERC20StablecoinUpgradeable;
   let minterRole: string;
@@ -50,7 +48,7 @@ describe("DStakeToken", () => {
     DStakeToken = fixture.DStakeToken as unknown as DStakeToken;
     collateralVault =
       fixture.collateralVault as unknown as DStakeCollateralVault;
-    router = fixture.router as unknown as DStakeRouter;
+    router = fixture.router as unknown as DStakeRouterDLend;
     dStableToken = fixture.dStableToken;
     dStableDecimals = await dStableToken.decimals();
 

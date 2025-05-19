@@ -10,13 +10,13 @@ import {IDStakeCollateralVault} from "./DStakeCollateralVault.sol";
 import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 
 /**
- * @title DStakeRouter
+ * @title DStakeRouterDLend
  * @notice Orchestrates deposits, withdrawals, and asset exchanges for a DStakeToken vault.
  * @dev Interacts with the DStakeToken, DStakeCollateralVault, and various IDStableConversionAdapters.
  *      This contract is non-upgradeable but replaceable via DStakeToken governance.
  *      Relies on the associated DStakeToken for role management.
  */
-contract DStakeRouter is IDStakeRouter, AccessControl {
+contract DStakeRouterDLend is IDStakeRouter, AccessControl {
     using SafeERC20 for IERC20;
 
     // --- Errors ---

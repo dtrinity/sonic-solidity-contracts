@@ -2,7 +2,6 @@ import hre from "hardhat";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { ethers } from "ethers"; // Import ethers directly if needed, but prefer hre.ethers
 import {
-  createDStableFixture,
   DStableFixtureConfig,
   DUSD_CONFIG,
   DS_CONFIG, // Import DS_CONFIG to use it in DStake config
@@ -12,10 +11,6 @@ import {
   TokenInfo,
 } from "../../typescript/token/utils";
 import {
-  DStakeToken,
-  DStakeCollateralVault,
-  DStakeRouter,
-  IDStableConversionAdapter,
   ERC20, // Use for tokens to avoid IERC20 ambiguity
 } from "../../typechain-types"; // Adjust paths as needed
 // Use specific IERC20 implementation to avoid ambiguity
@@ -115,7 +110,7 @@ export const createDStakeFixture = (config: DStakeFixtureConfig) => {
       );
 
       const router = await ethers.getContractAt(
-        "DStakeRouter",
+        "DStakeRouterDLend",
         (await deployments.get(config.routerContractId)).address
       );
 
@@ -133,11 +128,11 @@ export const createDStakeFixture = (config: DStakeFixtureConfig) => {
         wrappedATokenAddress
       );
 
-      // Get adapter from vault's registered adapters
+      // Get adapter from router's registered adapters
       const vaultAssetAddress = wrappedATokenAddress;
       let adapterAddress;
       let adapter;
-      adapterAddress = await collateralVault.adapterForAsset(vaultAssetAddress);
+      adapterAddress = await router.vaultAssetToAdapter(vaultAssetAddress);
       if (adapterAddress !== ethers.ZeroAddress) {
         adapter = await ethers.getContractAt(
           "IDStableConversionAdapter",
