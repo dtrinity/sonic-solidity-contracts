@@ -1,9 +1,12 @@
+import dotenv from "dotenv";
 import hre from "hardhat";
 
 import { getConfig } from "../../config/config";
 import { printLog } from "../common/log";
 import { getUserHealthFactor } from "../dlend_helpers/user";
 import { runBotBatch } from "./core";
+
+dotenv.config();
 
 /**
  * This script liquidates specific users by their addresses using Odos pools.
@@ -12,10 +15,13 @@ import { runBotBatch } from "./core";
  *    yarn hardhat run --network <network> typescript/odos_bot/liquidate_specific_users.ts
  */
 async function main(): Promise<void> {
-  const userAddresses: string[] = [
-    // Specify the user addresses to liquidate
-    "0x781ee269d636b9ecb7c590fcb50120905854e94e",
-  ];
+  const userAddresses = process.env.USER_ADDRESSES?.split(",");
+
+  if (!userAddresses) {
+    throw new Error(
+      "USER_ADDRESSES must be set in environment variables. Example: 0x123,0x456,0x789",
+    );
+  }
 
   const index = 1;
   const { deployer } = await hre.getNamedAccounts();
