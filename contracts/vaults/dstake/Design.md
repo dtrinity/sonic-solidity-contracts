@@ -5,7 +5,7 @@ dSTAKE allows users to stake a dSTABLE token (like dUSD) to earn yield. The depo
 **Contracts:**
 
 1.  **`DStakeToken.sol` (e.g., `sdUSD`)**
-    *   **Type:** ERC4626 Vault Token (Non-Upgradeable)
+    *   **Type:** ERC4626 Vault Token (Upgradeable)
     *   **Inherits:** `ERC4626`, `AccessControl`
     *   **Core Logic:** Minimal, immutable ERC4626 implementation handling share accounting (`sdUSD` mint/burn) relative to the underlying dSTABLE asset. Delegates complex operations.
     *   **Key State:**
@@ -96,6 +96,27 @@ dSTAKE allows users to stake a dSTABLE token (like dUSD) to earn yield. The depo
     *   **Purpose:** Implements `IDStableConversionAdapter` for a wrapped dLEND `aToken` (e.g., `wddUSD`). Wrapped using StaticATokenLM.sol
     *   **State:** Protocol addresses (`dLendLendingPool`), asset addresses (`dUSD`, `wddUSD`), `collateralVault` address.
     *   **Logic:** Wraps/unwraps dUSD/`wddUSD`, deposits/withdraws from dLEND (on behalf of `collateralVault`), uses appropriate rates for `assetValueInDStable`.
+
+6.  **`DStakeRewardManagerDLend.sol`**
+    *   **Type:** Reward Management Contract (Non-Upgradeable)
+    *   **Inherits:** `RewardClaimable`
+    *   **Purpose:** Manages claiming of dLEND rewards earned by a specific `StaticATokenLM` wrapper (associated with a `DStakeCollateralVault`) and compounds dStable (provided by a caller) into the `DStakeCollateralVault`.
+    *   **Key State:**
+        *   `dStakeCollateralVault`: Address of the `DStakeCollateralVault`. Immutable.
+        *   `dStakeRouter`: Address of the `DStakeRouterDLend`. Immutable.
+        *   `dLendRewardsController`: Address of the dLEND `RewardsController`. Settable by `DEFAULT_ADMIN_ROLE`.
+        *   `targetStaticATokenWrapper`: Address of the `StaticATokenLM` instance earning rewards. Immutable.
+        *   `dLendAssetToClaimFor`: The actual aToken in dLEND held by the wrapper. Immutable.
+        *   Inherited from `RewardClaimable`: `exchangeAsset` (dStable), `treasury`, `maxTreasuryFeeBps`, `treasuryFeeBps`, `exchangeThreshold`.
+    *   **Roles:**
+        *   `DEFAULT_ADMIN_ROLE`: Can set `dLendRewardsController`, manage other roles from `RewardClaimable` and `AccessControl`.
+        *   `REWARDS_MANAGER_ROLE`: Can call `setTreasury`, `setTreasuryFeeBps`, `setExchangeThreshold` (from `RewardClaimable`).
+    *   **Key Functions:**
+        *   `compoundRewards(address[] calldata tokensToClaim, uint256 amountExchangeAssetToProvide, address receiverForNetRewards)`: (Inherited from `RewardClaimable`, but core to this contract's utility). Claims specified `tokensToClaim` from dLEND for `targetStaticATokenWrapper`, sends net rewards (after treasury fee) to `receiverForNetRewards`, and processes `amountExchangeAssetToProvide` (dStable) for compounding.
+        *   `_claimRewards(address[] calldata tokensToClaim, address receiverForClaimedRawRewards)`: Internal override. Claims rewards from `dLendRewardsController` on behalf of `targetStaticATokenWrapper`.
+        *   `_processExchangeAssetDeposit(uint256 amountDStableToCompound)`: Internal override. Converts `amountDStableToCompound` to the `dStakeRouter.defaultDepositVaultAsset()` via its adapter and ensures it's deposited into `dStakeCollateralVault`.
+        *   `setDLendRewardsController(address newDLendRewardsController)`: `onlyRole(DEFAULT_ADMIN_ROLE)`. Updates the dLEND Rewards Controller address.
+        *   `authorizeClaimerOnDLendReminder()`: Pure function that reverts with a message reminding the user to authorize this contract as a claimer on the dLEND Rewards Controller for the `targetStaticATokenWrapper`.
 
 **Flow Summary:**
 
