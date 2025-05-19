@@ -28,7 +28,6 @@ import {
   getOdosFlashLoanLiquidatorBotContract,
   getOdosFlashMintDStableLiquidatorBotContract,
 } from "./bot_contract";
-import { NotProfitableLiquidationError } from "./error";
 import {
   getLiquidationProfitInUSD,
   getUserLiquidationParams,
@@ -322,25 +321,7 @@ export async function runBotBatch(
         }
       }
     } catch (error: any) {
-      if (error instanceof NotProfitableLiquidationError) {
-        printLog(
-          index,
-          `User ${userInfo.userAddress} is not profitable to liquidate with error: ${error.message}`,
-        );
-        notProfitableUserMemory.put(userInfo.userAddress);
-
-        userState.success = false;
-        userState.collateralToken = {
-          address: error.collateralTokenInfo.address,
-          symbol: error.collateralTokenInfo.symbol,
-        };
-        userState.debtToken = {
-          address: error.borrowTokenInfo.address,
-          symbol: error.borrowTokenInfo.symbol,
-        };
-        userState.error = error;
-        userState.errorMessage = error.message;
-      } else {
+      {
         printLog(
           index,
           `Error occurred while liquidating user ${userInfo.userAddress}: ${error}`,
