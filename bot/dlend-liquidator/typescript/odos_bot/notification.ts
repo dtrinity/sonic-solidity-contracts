@@ -37,15 +37,48 @@ export async function getSlackClient(): Promise<{
  * Send a message to Slack
  *
  * @param message - The message to send
+ * @param withIp - Whether to include the public IP address
  */
-export async function sendSlackMessage(message: string): Promise<void> {
+export async function sendSlackMessage(
+  message: string,
+  withIp: boolean = true,
+): Promise<void> {
   try {
+    let actualMessage = message;
+
+    if (withIp) {
+      const publicIp = await getPublicIPString();
+      actualMessage = `Host IP: ${publicIp}\n\n${message}`;
+    }
+
     const { client, channel } = await getSlackClient();
     await client.chat.postMessage({
       channel: channel as string,
-      text: message,
+      text: actualMessage,
     });
   } catch (error) {
     console.error("Error sending Slack message:", error);
+  }
+}
+
+/**
+ * Get the public IP address
+ *
+ * @returns The public IP address
+ */
+async function getPublicIPString(): Promise<string> {
+  try {
+    const response = await fetch("https://api.ipify.org?format=json");
+    const data = await response.json();
+    const ip = data.ip;
+
+    if (!ip) {
+      return "got_empty_ip";
+    }
+
+    return ip;
+  } catch (error) {
+    console.log("Failed to get public IP:", error);
+    return "failed_to_get_public_ip";
   }
 }
