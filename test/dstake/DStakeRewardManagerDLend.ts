@@ -200,8 +200,8 @@ describe("DStakeRewardManagerDLend", function () {
 
     it("allows REWARDS_MANAGER_ROLE to update treasury", async function () {
       const oldTreasury = await rewardManager.treasury();
-      const signers = await ethers.getSigners();
-      const newTreasury = signers[3].address;
+      const { user3 } = await getNamedAccounts();
+      const newTreasury = user3;
       const tx = await rewardManager
         .connect(adminSigner)
         .setTreasury(newTreasury);
@@ -311,7 +311,8 @@ describe("DStakeRewardManagerDLend", function () {
     });
 
     it("Successfully claims a single reward token", async function () {
-      const receiver = (await ethers.getSigners())[3].address;
+      const { user4 } = await getNamedAccounts();
+      const receiver = user4;
       // Convert balances to JS numbers for test assertions
       const beforeReceiverRaw = await rewardToken.balanceOf(receiver);
       const beforeReceiver = Number(beforeReceiverRaw);
@@ -348,7 +349,8 @@ describe("DStakeRewardManagerDLend", function () {
     });
 
     it("Successfully claims multiple reward tokens", async function () {
-      const receiver = (await ethers.getSigners())[4].address;
+      const { user4 } = await getNamedAccounts();
+      const receiver = user4;
       // Convert balances to numbers for test assertions
       const beforeReceiverRawMulti = await rewardToken.balanceOf(receiver);
       const beforeReceiverMulti = Number(beforeReceiverRawMulti);
