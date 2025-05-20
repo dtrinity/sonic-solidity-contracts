@@ -26,6 +26,10 @@ describe("DStakeRewardManagerDLend", function () {
   let user2Address: string;
   let user3Address: string;
   let user4Address: string;
+  // Variables for exchange asset deposit tests
+  let vaultAssetToken: IERC20;
+  let adapter: IDStableConversionAdapter;
+  let vaultAssetAddress: string;
 
   beforeEach(async function () {
     const fixtures = await SDUSDRewardsFixture();
@@ -42,6 +46,9 @@ describe("DStakeRewardManagerDLend", function () {
     );
     deployerSigner = fixtures.deployer;
     rewardToken = fixtures.rewardToken;
+    vaultAssetToken = fixtures.vaultAssetToken;
+    adapter = fixtures.adapter!;
+    vaultAssetAddress = fixtures.vaultAssetAddress;
 
     const namedAccounts = await getNamedAccounts();
     deployerAddress = namedAccounts.deployer;
@@ -347,6 +354,49 @@ describe("DStakeRewardManagerDLend", function () {
       // Treasury should receive the fee, receiver the remainder
       expect(deltaTreasuryMulti).to.equal(expectedFeeMulti);
       expect(deltaReceiverMulti).to.equal(rawClaimedMulti - expectedFeeMulti);
+    });
+
+    // Tests for exchange asset deposit processing
+    it("processes exchange asset deposit: emits event, deposits into vault, and consumes all exchange asset", async function () {
+      const receiver = user4Address;
+      // Fast-forward time to accrue rewards and cover both deposit and claim parts
+      await hre.network.provider.request({
+        method: "evm_increaseTime",
+        params: [50],
+      });
+      await hre.network.provider.request({ method: "evm_mine", params: [] });
+
+      // Preview expected conversion
+      const [expectedVaultAsset, expectedVaultAmount] =
+        await adapter.previewConvertToVaultAsset(threshold);
+
+      // Capture initial vault balance
+      const beforeVaultBalance = await vaultAssetToken.balanceOf(
+        dStakeCollateralVault.target
+      );
+
+      // Execute compoundRewards and assert event emission
+      await expect(
+        rewardManager
+          .connect(callerSigner)
+          .compoundRewards(threshold, [rewardToken.target], receiver)
+      )
+        .to.emit(rewardManager, "ExchangeAssetProcessed")
+        .withArgs(expectedVaultAsset, expectedVaultAmount, threshold);
+
+      // Assert vault received the converted asset
+      const afterVaultBalance = await vaultAssetToken.balanceOf(
+        dStakeCollateralVault.target
+      );
+      expect(afterVaultBalance - beforeVaultBalance).to.equal(
+        expectedVaultAmount
+      );
+
+      // Assert rewardManager consumed all exchange assets
+      const managerBalance = await underlyingDStableToken.balanceOf(
+        rewardManager.target
+      );
+      expect(managerBalance).to.equal(0);
     });
   });
 });
