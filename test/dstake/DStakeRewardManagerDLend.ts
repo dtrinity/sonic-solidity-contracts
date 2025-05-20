@@ -16,6 +16,16 @@ describe("DStakeRewardManagerDLend", function () {
   let underlyingDStableToken: any;
   let deployerSigner: any;
   let rewardToken: any;
+  let adminSigner: any;
+  let user1Signer: any; // Renaming user1 to be more descriptive if it's the admin
+  let user2Signer: any;
+  let user3Signer: any;
+  let user4Signer: any;
+  let deployerAddress: string;
+  let user1Address: string;
+  let user2Address: string;
+  let user3Address: string;
+  let user4Address: string;
 
   beforeEach(async function () {
     const fixtures = await SDUSDRewardsFixture();
@@ -32,6 +42,45 @@ describe("DStakeRewardManagerDLend", function () {
     );
     deployerSigner = fixtures.deployer;
     rewardToken = fixtures.rewardToken;
+
+    const namedAccounts = await getNamedAccounts();
+    deployerAddress = namedAccounts.deployer;
+    user1Address = namedAccounts.user1; // Assuming user1 is the admin
+    user2Address = namedAccounts.user2;
+    user3Address = namedAccounts.user3;
+    user4Address = namedAccounts.user4;
+
+    user1Signer = await ethers.getSigner(user1Address);
+    user2Signer = await ethers.getSigner(user2Address);
+    user3Signer = await ethers.getSigner(user3Address);
+    user4Signer = await ethers.getSigner(user4Address);
+
+    // Set adminSigner for clarity, assuming user1 is the admin based on tests below
+    adminSigner = user1Signer;
+
+    // Grant MINTER_ROLE to the deployer for the dStable token in beforeEach
+    // This is needed for funding accounts in some tests
+    const issuerDeployment = await deployments.get(
+      DUSD_TOKEN_ID // Assuming DUSD_TOKEN_ID is the correct deployment ID for the real dUSD/Issuer
+    );
+    const issuer = await ethers.getContractAt(
+      "ERC20StablecoinUpgradeable",
+      issuerDeployment.address
+    );
+
+    const minterRole = await issuer.MINTER_ROLE();
+    // Check if deployer already has the role to avoid errors on re-runs
+    const hasMinterRole = await issuer.hasRole(minterRole, deployerAddress);
+    if (!hasMinterRole) {
+      await issuer
+        .connect(deployerSigner)
+        .grantRole(minterRole, deployerAddress);
+    }
+
+    // Mint dStable tokens (dUSD) to the deployer
+    // Mint a generous amount to ensure sufficient balance for transfers
+    const amountToMint = (await rewardManager.exchangeThreshold()) * 100n; // Mint threshold * 100
+    await issuer.connect(deployerSigner).mint(deployerAddress, amountToMint);
   });
 
   describe("Deployment and Initialization", function () {
@@ -55,32 +104,9 @@ describe("DStakeRewardManagerDLend", function () {
       expect(dLendAssetToClaimFor).to.not.equal(zero);
       // Verify exchangeAsset matches the underlying dStable address
       const exchangeAsset = await rewardManager.exchangeAsset();
-      console.log("exchangeAsset:", exchangeAsset);
-      console.log(
-        "underlyingDStableToken.target:",
-        underlyingDStableToken.target
-      );
-      console.log(
-        "Type of underlyingDStableToken:",
-        typeof underlyingDStableToken
-      );
-      if (underlyingDStableToken) {
-        console.log(
-          "underlyingDStableToken keys:",
-          Object.keys(underlyingDStableToken)
-        );
-        // Check for .target explicitly being undefined if needed, though .address is the issue
-        // if (underlyingDStableToken.target === undefined) {
-        //   console.log("underlyingDStableToken.target is explicitly undefined");
-        // }
-      }
       expect(exchangeAsset).to.equal(underlyingDStableToken.target);
 
       // Verify roles are assigned correctly after deployment
-      const { deployer, user1 } = await getNamedAccounts(); // Get the admin account
-      const deployerSigner = await ethers.getSigner(deployer);
-      const adminSigner = await ethers.getSigner(user1);
-
       // Get the DStakeRewardManagerDLend contract instance to check roles
       const rewardManagerContract = await ethers.getContractAt(
         "DStakeRewardManagerDLend",
@@ -91,72 +117,42 @@ describe("DStakeRewardManagerDLend", function () {
       const defaultAdminRole = await rewardManagerContract.DEFAULT_ADMIN_ROLE();
       const hasDefaultAdminRole = await rewardManagerContract.hasRole(
         defaultAdminRole,
-        adminSigner.address // Check admin instead of deployer
+        adminSigner.address
       );
-      expect(hasDefaultAdminRole).to.be.true; // This is the updated assertion
+      expect(hasDefaultAdminRole).to.be.true;
 
       // Check that deployer no longer has DEFAULT_ADMIN_ROLE
       const deployerHasDefaultAdminRole = await rewardManagerContract.hasRole(
         defaultAdminRole,
         deployerSigner.address
       );
-      expect(deployerHasDefaultAdminRole).to.be.false; // Deployer should not have the role
+      expect(deployerHasDefaultAdminRole).to.be.false;
 
       // Check REWARDS_MANAGER_ROLE for the admin account
-      // Add logging before the failing line
-      console.log("Before REWARDS_MANAGER_ROLE check:");
-      console.log("rewardManagerContract:", rewardManagerContract);
-      console.log(
-        "Type of rewardManagerContract:",
-        typeof rewardManagerContract
-      );
-      console.log("rewardManager.target:", rewardManager.target);
-      // Add logging immediately before REWARDS_MANAGER_ROLE call
-      console.log(
-        "Immediately before REWARDS_MANAGER_ROLE call:",
-        rewardManagerContract
-      );
       const rewardsManagerRole =
         await rewardManagerContract.REWARDS_MANAGER_ROLE();
-      // Add logging immediately after REWARDS_MANAGER_ROLE call
-      console.log(
-        "Immediately after REWARDS_MANAGER_ROLE call. rewardsManagerRole:",
-        rewardsManagerRole
-      );
-      // Add logging for adminSigner and its address
-      console.log("Before hasRole check:");
-      console.log("adminSigner:", adminSigner);
-      if (adminSigner) {
-        console.log("adminSigner.address:", adminSigner.address);
-      }
       const hasRewardsManagerRole = await rewardManagerContract.hasRole(
         rewardsManagerRole,
-        adminSigner.address // Check admin instead of deployer
+        adminSigner.address
       );
-      expect(hasRewardsManagerRole).to.be.true; // This is the updated assertion
+      expect(hasRewardsManagerRole).to.be.true;
 
       // Check that deployer no longer has REWARDS_MANAGER_ROLE
       const deployerHasRewardsManagerRole = await rewardManagerContract.hasRole(
         rewardsManagerRole,
         deployerSigner.address
       );
-      expect(deployerHasRewardsManagerRole).to.be.false; // Deployer should not have the role
+      expect(deployerHasRewardsManagerRole).to.be.false;
     });
   });
 
   describe("Admin functions - setDLendRewardsController", function () {
-    let adminSigner: any;
-    let nonAdminSigner: any;
-    before(async function () {
-      const { user1, user2 } = await getNamedAccounts();
-      adminSigner = await ethers.getSigner(user1);
-      nonAdminSigner = await ethers.getSigner(user2);
-    });
+    // adminSigner and nonAdminSigner are set in beforeEach now
 
     it("allows DEFAULT_ADMIN_ROLE to update controller", async function () {
       const oldController = await rewardManager.dLendRewardsController();
       const newController = await ethers.Wallet.createRandom().getAddress();
-      // user1 (adminSigner) holds DEFAULT_ADMIN_ROLE
+      // adminSigner holds DEFAULT_ADMIN_ROLE
       const tx = await rewardManager
         .connect(adminSigner)
         .setDLendRewardsController(newController);
@@ -180,28 +176,21 @@ describe("DStakeRewardManagerDLend", function () {
 
     it("reverts when non-admin tries to update controller", async function () {
       const randomAddress = await ethers.Wallet.createRandom().getAddress();
-      // nonAdminSigner does not have DEFAULT_ADMIN_ROLE
+      // user2Signer (non-admin) does not have DEFAULT_ADMIN_ROLE
       await expect(
         rewardManager
-          .connect(nonAdminSigner)
+          .connect(user2Signer)
           .setDLendRewardsController(randomAddress)
       ).to.be.reverted; // missing role
     });
   });
 
   describe("Admin functions - parameters", function () {
-    let adminSigner: any;
-    let nonAdminSigner: any;
-    before(async function () {
-      const { user1, user2 } = await getNamedAccounts();
-      adminSigner = await ethers.getSigner(user1);
-      nonAdminSigner = await ethers.getSigner(user2);
-    });
+    // adminSigner and nonAdminSigner are set in beforeEach now
 
     it("allows REWARDS_MANAGER_ROLE to update treasury", async function () {
       const oldTreasury = await rewardManager.treasury();
-      const { user3 } = await getNamedAccounts();
-      const newTreasury = user3;
+      const newTreasury = user3Address;
       const tx = await rewardManager
         .connect(adminSigner)
         .setTreasury(newTreasury);
@@ -214,7 +203,7 @@ describe("DStakeRewardManagerDLend", function () {
     it("reverts when non-admin tries to update treasury", async function () {
       const randomAddress = ethers.Wallet.createRandom().address;
       await expect(
-        rewardManager.connect(nonAdminSigner).setTreasury(randomAddress)
+        rewardManager.connect(user2Signer).setTreasury(randomAddress)
       ).to.be.reverted;
     });
 
@@ -259,65 +248,45 @@ describe("DStakeRewardManagerDLend", function () {
   });
 
   describe("Reward Claiming Integration", function () {
-    let caller: any;
+    let callerSigner: any; // Renaming caller to callerSigner for consistency
     let treasuryAddr: string;
     let threshold: bigint;
     const rewardAmount = ethers.parseUnits("50", 6); // 50 USDC
 
     beforeEach(async function () {
       // Get deployer and caller
-      const { deployer, user2 } = await getNamedAccounts();
-      const deployerSigner = await ethers.getSigner(deployer);
-      caller = await ethers.getSigner(user2);
+      // deployerSigner and user2Signer are already available from the top-level beforeEach
+      callerSigner = user2Signer;
 
       // Override treasury to a distinct account to avoid conflict with incentives vault (user1)
       // Use user3 as treasury
-      const { user1, user3 } = await getNamedAccounts();
-      const adminSigner = await ethers.getSigner(user1);
-      await rewardManager.connect(adminSigner).setTreasury(user3);
-      treasuryAddr = user3;
+      // adminSigner is available from the top-level beforeEach
+      await rewardManager.connect(adminSigner).setTreasury(user3Address);
+      treasuryAddr = user3Address;
       threshold = await rewardManager.exchangeThreshold();
 
-      // Get the Issuer contract instance for dUSD
-      const issuerDeployment = await deployments.get(
-        DUSD_TOKEN_ID // Assuming DUSD_TOKEN_ID is the correct deployment ID for the real dUSD/Issuer
-      );
-      const issuer = await ethers.getContractAt(
-        "ERC20StablecoinUpgradeable",
-        issuerDeployment.address
-      );
-
-      // Grant MINTER_ROLE to the deployer
-      const minterRole = await issuer.MINTER_ROLE();
-      await issuer.connect(deployerSigner).grantRole(minterRole, deployer);
-
-      // Mint dStable tokens (dUSD) to the deployer
-      // Mint a generous amount to ensure sufficient balance for transfers
-      const amountToMint = threshold * 100n; // Mint threshold * 100
-      await issuer.connect(deployerSigner).mint(deployer, amountToMint);
-
       // Fund caller with dStable and approve
+      // underlyingDStableToken and deployerSigner are available from the top-level beforeEach
+      const amountToFundCaller = threshold * 2n;
       await underlyingDStableToken
         .connect(deployerSigner)
-        .transfer(caller.address, threshold * 2n);
+        .transfer(callerSigner.address, amountToFundCaller);
       await underlyingDStableToken
-        .connect(caller)
-        .approve(rewardManager.target, threshold * 2n);
+        .connect(callerSigner)
+        .approve(rewardManager.target, amountToFundCaller);
 
       // Fund the reward manager contract with reward tokens for distribution
+      // rewardToken and deployerSigner are available from the top-level beforeEach
       await rewardToken
         .connect(deployerSigner)
         .transfer(rewardManager.target, rewardAmount);
     });
 
     it("Successfully claims a single reward token", async function () {
-      const { user4 } = await getNamedAccounts();
-      const receiver = user4;
-      // Convert balances to JS numbers for test assertions
+      const receiver = user4Address;
+      // Convert balances to JS numbers for test assertions - removed, using BigInt directly
       const beforeReceiverRaw = await rewardToken.balanceOf(receiver);
-      const beforeReceiver = Number(beforeReceiverRaw);
       const beforeTreasuryRaw = await rewardToken.balanceOf(treasuryAddr);
-      const beforeTreasury = Number(beforeTreasuryRaw);
 
       // Fast-forward time to accrue rewards
       await hre.network.provider.request({
@@ -325,23 +294,20 @@ describe("DStakeRewardManagerDLend", function () {
         params: [50],
       });
       await hre.network.provider.request({ method: "evm_mine", params: [] });
+
       await rewardManager
-        .connect(caller)
+        .connect(callerSigner)
         .compoundRewards(threshold, [rewardToken.target], receiver);
 
       const afterReceiverRaw = await rewardToken.balanceOf(receiver);
-      const afterReceiver = Number(afterReceiverRaw);
       const afterTreasuryRaw = await rewardToken.balanceOf(treasuryAddr);
-      const afterTreasury = Number(afterTreasuryRaw);
 
-      // Compute actual deltas as numbers
-      const deltaReceiver = afterReceiver - beforeReceiver;
-      const deltaTreasury = afterTreasury - beforeTreasury;
+      // Compute actual deltas
+      const deltaReceiver = afterReceiverRaw - beforeReceiverRaw;
+      const deltaTreasury = afterTreasuryRaw - beforeTreasuryRaw;
       const rawClaimed = deltaReceiver + deltaTreasury;
       // Compute expected fee via on-chain logic
-      const expectedFee = Number(
-        await rewardManager.getTreasuryFee(rawClaimed)
-      );
+      const expectedFee = await rewardManager.getTreasuryFee(rawClaimed);
 
       // Treasury should receive the fee, receiver the remainder
       expect(deltaTreasury).to.equal(expectedFee);
@@ -349,13 +315,10 @@ describe("DStakeRewardManagerDLend", function () {
     });
 
     it("Successfully claims multiple reward tokens", async function () {
-      const { user4 } = await getNamedAccounts();
-      const receiver = user4;
-      // Convert balances to numbers for test assertions
+      const receiver = user4Address;
+      // Convert balances to numbers for test assertions - removed, using BigInt directly
       const beforeReceiverRawMulti = await rewardToken.balanceOf(receiver);
-      const beforeReceiverMulti = Number(beforeReceiverRawMulti);
       const beforeTreasuryRawMulti = await rewardToken.balanceOf(treasuryAddr);
-      const beforeTreasuryMulti = Number(beforeTreasuryRawMulti);
 
       // Fast-forward time to accrue rewards
       await hre.network.provider.request({
@@ -363,25 +326,23 @@ describe("DStakeRewardManagerDLend", function () {
         params: [50],
       });
       await hre.network.provider.request({ method: "evm_mine", params: [] });
-      await rewardManager.connect(caller).compoundRewards(
+
+      await rewardManager.connect(callerSigner).compoundRewards(
         threshold,
         [rewardToken.target, rewardToken.target], // Claiming the same token twice
         receiver
       );
 
       const afterReceiverRawMulti = await rewardToken.balanceOf(receiver);
-      const afterReceiverMulti = Number(afterReceiverRawMulti);
       const afterTreasuryRawMulti = await rewardToken.balanceOf(treasuryAddr);
-      const afterTreasuryMulti = Number(afterTreasuryRawMulti);
 
       // Compute actual deltas for multiple claims
-      const deltaReceiverMulti = afterReceiverMulti - beforeReceiverMulti;
-      const deltaTreasuryMulti = afterTreasuryMulti - beforeTreasuryMulti;
+      const deltaReceiverMulti = afterReceiverRawMulti - beforeReceiverRawMulti;
+      const deltaTreasuryMulti = afterTreasuryRawMulti - beforeTreasuryRawMulti;
       const rawClaimedMulti = deltaReceiverMulti + deltaTreasuryMulti;
       // Compute expected fee via on-chain logic
-      const expectedFeeMulti = Number(
-        await rewardManager.getTreasuryFee(rawClaimedMulti)
-      );
+      const expectedFeeMulti =
+        await rewardManager.getTreasuryFee(rawClaimedMulti);
 
       // Treasury should receive the fee, receiver the remainder
       expect(deltaTreasuryMulti).to.equal(expectedFeeMulti);
