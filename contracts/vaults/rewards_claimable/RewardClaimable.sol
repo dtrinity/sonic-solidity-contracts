@@ -194,7 +194,7 @@ abstract contract RewardClaimable is AccessControl, ReentrancyGuard {
         uint256 amount,
         address[] calldata rewardTokens,
         address receiver
-    ) public nonReentrant {
+    ) public virtual nonReentrant {
         if (amount < exchangeThreshold) {
             revert ExchangeAmountTooLow(amount, exchangeThreshold);
         }

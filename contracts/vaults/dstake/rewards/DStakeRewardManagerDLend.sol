@@ -11,9 +11,9 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 // Interface for the Aave/dLEND RewardsController
 interface IDLendRewardsController {
     function claimRewardsOnBehalf(
-        address user,
         address[] calldata assets,
         uint256 amount,
+        address user,
         address to,
         address reward
     ) external returns (uint256);
@@ -144,11 +144,11 @@ contract DStakeRewardManagerDLend is RewardClaimable {
 
             // Claim all available amount of the specific reward token
             dLendRewardsController.claimRewardsOnBehalf(
-                targetStaticATokenWrapper, // User earning rewards is the wrapper
                 assetsToClaimForPayload, // Asset held by the wrapper in dLEND
                 type(uint256).max, // Claim all
+                targetStaticATokenWrapper, // User earning rewards is the wrapper
                 _receiverForClaimedRawRewards,
-                rewardToken
+                rewardToken // The reward token to claim
             );
 
             uint256 balanceAfter = IERC20(rewardToken).balanceOf(
@@ -215,6 +215,69 @@ contract DStakeRewardManagerDLend is RewardClaimable {
             convertedVaultAssetAmount,
             amountDStableToCompound
         );
+    }
+
+    /**
+     * @notice Override to deposit exchangeAsset for wrapper positions before claiming rewards and distribute rewards
+     */
+    function compoundRewards(
+        uint256 amount,
+        address[] calldata rewardTokens,
+        address receiver
+    ) public override {
+        // Validate input
+        if (amount < exchangeThreshold) {
+            revert ExchangeAmountTooLow(amount, exchangeThreshold);
+        }
+        if (receiver == address(0)) {
+            revert ZeroReceiverAddress();
+        }
+        if (rewardTokens.length == 0) {
+            revert ZeroRewardTokens();
+        }
+
+        // Transfer the exchange asset from the caller to this contract
+        IERC20(exchangeAsset).safeTransferFrom(
+            msg.sender,
+            address(this),
+            amount
+        );
+
+        // Deposit exchange asset to collateral vault to establish wrapper positions
+        _processExchangeAssetDeposit(amount);
+
+        // Emit compound event
+        emit RewardCompounded(exchangeAsset, amount, rewardTokens);
+
+        // Claim rewards from dLEND
+        uint256[] memory rewardAmounts = _claimRewards(
+            rewardTokens,
+            address(this)
+        );
+
+        if (rewardAmounts.length != rewardTokens.length) {
+            revert RewardAmountsLengthMismatch(
+                rewardAmounts.length,
+                rewardTokens.length
+            );
+        }
+
+        // Distribute rewards: fee to treasury, net to receiver
+        for (uint256 i = 0; i < rewardTokens.length; ++i) {
+            uint256 rewardAmount = rewardAmounts[i];
+            uint256 treasuryFee = getTreasuryFee(rewardAmount);
+            if (treasuryFee > rewardAmount) {
+                revert TreasuryFeeExceedsRewardAmount(
+                    treasuryFee,
+                    rewardAmount
+                );
+            }
+            IERC20(rewardTokens[i]).safeTransfer(treasury, treasuryFee);
+            IERC20(rewardTokens[i]).safeTransfer(
+                receiver,
+                rewardAmount - treasuryFee
+            );
+        }
     }
 
     // --- Admin Functions ---
