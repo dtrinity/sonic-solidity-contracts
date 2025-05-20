@@ -17,20 +17,6 @@ import { ERC20StablecoinUpgradeable } from "../../typechain-types/contracts/dsta
 const parseUnits = (value: string | number, decimals: number | bigint) =>
   ethers.parseUnits(value.toString(), decimals);
 
-// Helper to fund vault with tokens by direct transfer from deployer
-// This helper remains useful for specific test setups
-async function fundVaultWithTokens(
-  vaultAssetToken: IERC20,
-  deployer: SignerWithAddress,
-  collateralVaultAddress: string, // Changed to address for clarity
-  amount: bigint
-): Promise<void> {
-  // vaultAssetToken is already IERC20
-  await vaultAssetToken
-    .connect(deployer)
-    .transfer(collateralVaultAddress, amount);
-}
-
 describe("DStakeCollateralVault", () => {
   let deployer: SignerWithAddress;
   let stable: ERC20StablecoinUpgradeable;

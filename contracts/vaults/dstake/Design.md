@@ -116,7 +116,6 @@ dSTAKE allows users to stake a dSTABLE token (like dUSD) to earn yield. The depo
         *   `_claimRewards(address[] calldata tokensToClaim, address receiverForClaimedRawRewards)`: Internal override. Claims rewards from `dLendRewardsController` on behalf of `targetStaticATokenWrapper`.
         *   `_processExchangeAssetDeposit(uint256 amountDStableToCompound)`: Internal override. Converts `amountDStableToCompound` to the `dStakeRouter.defaultDepositVaultAsset()` via its adapter and ensures it's deposited into `dStakeCollateralVault`.
         *   `setDLendRewardsController(address newDLendRewardsController)`: `onlyRole(DEFAULT_ADMIN_ROLE)`. Updates the dLEND Rewards Controller address.
-        *   `authorizeClaimerOnDLendReminder()`: Pure function that reverts with a message reminding the user to authorize this contract as a claimer on the dLEND Rewards Controller for the `targetStaticATokenWrapper`.
 
 **Flow Summary:**
 

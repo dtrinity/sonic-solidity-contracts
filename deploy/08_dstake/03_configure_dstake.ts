@@ -7,7 +7,7 @@ import { DStakeInstanceConfig } from "../../config/types";
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployments, getNamedAccounts } = hre;
-  const { execute, read, get } = deployments;
+  const { get } = deployments;
   const { deployer } = await getNamedAccounts();
 
   const config = await getConfig(hre);

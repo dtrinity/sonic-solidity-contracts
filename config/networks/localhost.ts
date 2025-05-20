@@ -61,6 +61,9 @@ export async function getConfig(
   const rewardsControllerDeployment =
     await _hre.deployments.getOrNull(INCENTIVES_PROXY_ID);
 
+  // Fetch deployed dLend aTokens
+  const aTokenDUSDDeployment = await _hre.deployments.getOrNull("dLEND-dUSD");
+
   // Get mock oracle deployments
   const mockOracleNameToAddress: Record<string, string> = {};
 
@@ -400,7 +403,9 @@ export async function getConfig(
           managedVaultAsset: emptyStringIfUndefined(
             dLendATokenWrapperDUSDDeployment?.address,
           ), // This should be the deployed StaticATokenLM address for dUSD
-          dLendAssetToClaimFor: emptyStringIfUndefined(dUSDDeployment?.address), // Use the dUSD underlying asset address as a placeholder
+          dLendAssetToClaimFor: emptyStringIfUndefined(
+            aTokenDUSDDeployment?.address,
+          ), // Use the deployed dLEND-dUSD aToken address
           dLendRewardsController: emptyStringIfUndefined(
             rewardsControllerDeployment?.address,
           ), // This will be fetched after dLend incentives deployment

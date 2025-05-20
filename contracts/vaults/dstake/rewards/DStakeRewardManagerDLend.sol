@@ -239,18 +239,4 @@ contract DStakeRewardManagerDLend is RewardClaimable {
             _newDLendRewardsController
         );
     }
-
-    // --- External Helper for dLEND Setup ---
-    /**
-     * @notice Informs about the required external setup for reward claiming delegation.
-     * @dev The admin of the `targetStaticATokenWrapper` must call `setClaimer` on the
-     *      dLEND RewardsController, authorizing this contract to claim rewards.
-     *      Example: `IDLendRewardsController(controllerAddr).setClaimer(targetStaticATokenWrapper, address(thisManager));`
-     *      This function reverts, serving only as a reminder of the necessary external action.
-     */
-    function authorizeClaimerOnDLendReminder() external pure {
-        revert(
-            "External setup required: targetStaticATokenWrapper admin must call setClaimer on dLendRewardsController for this contract."
-        );
-    }
 }

@@ -81,6 +81,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
 func.id = DLEND_STATIC_A_TOKEN_FACTORY_ID;
 func.tags = ["dlend-static-wrapper-factory"];
-func.dependencies = [POOL_PROXY_ID];
+func.dependencies = [POOL_PROXY_ID, "dlend-pool-init"];
 
 export default func;
