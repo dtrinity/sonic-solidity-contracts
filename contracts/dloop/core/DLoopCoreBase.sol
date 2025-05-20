@@ -457,44 +457,43 @@ abstract contract DLoopCoreBase is ERC4626, Ownable {
             );
         }
 
-        // Calculate the leveraged amount of the assets to be removed from the lending pool
-        uint256 assetsToRemoveFromLending = (principalAssetsToRemove *
-            TARGET_LEVERAGE_BPS) / BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
+        uint256 receivedUnderlyingAmount = _withdrawFromPoolImplementation(principalAssetsToRemove, receiver);
 
-        uint256 underlyingAssetBalanceBefore = underlyingAsset.balanceOf(
-            address(this)
+        emit Withdraw(
+            caller,
+            receiver,
+            owner,
+            receivedUnderlyingAmount,
+            shares
         );
+    }
 
-        // The remaining logic will be in the _onFlashLoanRedeem() function
-        uint256 maxWithdrawUnderlyingBeforeRepay = _getMaxWithdrawAmount(
-            address(this),
-            address(underlyingAsset)
-        );
+    /**
+     * @dev Handles the logic for repaying debt and withdrawing collateral from the pool, then transfers to receiver
+     * @param principalAssetsToRemove Amount of assets to remove from the lending pool (principal, not leveraged)
+     * @param receiver Address to receive the withdrawn assets
+     * @return receivedUnderlyingAmount The actual amount of underlying asset received and transferred to receiver
+     */
+    function _withdrawFromPoolImplementation(
+        uint256 principalAssetsToRemove,
+        address receiver
+    ) private returns (uint256 receivedUnderlyingAmount) {
+        uint256 assetsToRemoveFromLending = (principalAssetsToRemove * TARGET_LEVERAGE_BPS) / BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
+        uint256 underlyingAssetBalanceBefore = underlyingAsset.balanceOf(address(this));
+        uint256 maxWithdrawUnderlyingBeforeRepay = _getMaxWithdrawAmount(address(this), address(underlyingAsset));
 
-        // The repay amount with repay slippage tolerance (overhead in the repay amount to make sure
-        // we can withdraw the exact amount of collateral)
-        uint256 dStableToRepay = ((assetsToRemoveFromLending *
-            (getAssetPriceFromOracle(address(underlyingAsset)) *
-                10 ** dStable.decimals())) /
-            (getAssetPriceFromOracle(address(dStable)) *
-                10 ** underlyingAsset.decimals()));
-
+        // Calculate dStable to repay
+        uint256 dStableToRepay = ((assetsToRemoveFromLending * (getAssetPriceFromOracle(address(underlyingAsset)) * 10 ** dStable.decimals())) /
+            (getAssetPriceFromOracle(address(dStable)) * 10 ** underlyingAsset.decimals()));
         uint256 currentLeverageBps = getCurrentLeverageBps();
 
         // Repay the debt to withdraw the collateral
-        // The repaidDStableAmount can be less than dStableToRepay in case the
-        // actual debt is less than the repay amount
         _repayDebt(address(dStable), dStableToRepay, address(this));
 
-        uint256 maxWithdrawUnderlyingAfterRepay = _getMaxWithdrawAmount(
-            address(this),
-            address(underlyingAsset)
-        );
+        uint256 maxWithdrawUnderlyingAfterRepay = _getMaxWithdrawAmount(address(this), address(underlyingAsset));
 
         // Make sure the max withdraw amount of underlying asset is not decreased after repaying the debt
-        if (
-            maxWithdrawUnderlyingAfterRepay < maxWithdrawUnderlyingBeforeRepay
-        ) {
+        if (maxWithdrawUnderlyingAfterRepay < maxWithdrawUnderlyingBeforeRepay) {
             revert InvalidMaxWithdrawAfterRepay(
                 address(underlyingAsset),
                 maxWithdrawUnderlyingBeforeRepay,
@@ -502,15 +501,12 @@ abstract contract DLoopCoreBase is ERC4626, Ownable {
             );
         }
 
-        // The difference between the max withdraw amount before and after repaying the debt is the withdrawable amount without considering
-        // any pre-existing amount
         uint256 withdrawableUnderlyingAmount = _getWithdrawAmountThatKeepCurrentLeverage(
-                maxWithdrawUnderlyingBeforeRepay,
-                maxWithdrawUnderlyingAfterRepay,
-                currentLeverageBps
-            );
+            maxWithdrawUnderlyingBeforeRepay,
+            maxWithdrawUnderlyingAfterRepay,
+            currentLeverageBps
+        );
 
-        // The assertion to make sure the withdrawable amount is not less than the required amount
         if (withdrawableUnderlyingAmount < assetsToRemoveFromLending) {
             revert WithdrawableIsLessThanRequired(
                 address(underlyingAsset),
@@ -520,19 +516,14 @@ abstract contract DLoopCoreBase is ERC4626, Ownable {
         }
 
         // Withdraw the collateral
-        // The actual withdrawn amount can be less than withdrawableUnderlyingAmount in case the
-        // actual collateral is less than the withdraw amount
         _withdrawFromPool(
             address(underlyingAsset),
             withdrawableUnderlyingAmount,
             address(this)
         );
 
-        uint256 underlyingAssetBalanceAfter = underlyingAsset.balanceOf(
-            address(this)
-        );
+        uint256 underlyingAssetBalanceAfter = underlyingAsset.balanceOf(address(this));
 
-        // It is to make sure we did receive the collateral
         if (underlyingAssetBalanceAfter < underlyingAssetBalanceBefore) {
             revert UnexpectedLossOfPrincipal(
                 underlyingAssetBalanceBefore,
@@ -540,12 +531,8 @@ abstract contract DLoopCoreBase is ERC4626, Ownable {
             );
         }
 
-        uint256 receivedUnderlyingAmount = underlyingAssetBalanceAfter -
-            underlyingAssetBalanceBefore;
+        receivedUnderlyingAmount = underlyingAssetBalanceAfter - underlyingAssetBalanceBefore;
 
-        // It is to make sure we did receive the collateral
-        // It is to avoid the case when the lending pool has some issues
-        // and send less collateral than expected
         if (receivedUnderlyingAmount < withdrawableUnderlyingAmount) {
             revert UnexpectedLossOfWithdrawableAmount(
                 withdrawableUnderlyingAmount,
@@ -555,14 +542,6 @@ abstract contract DLoopCoreBase is ERC4626, Ownable {
 
         // Transfer the remaining assets to the receiver
         underlyingAsset.safeTransfer(receiver, receivedUnderlyingAmount);
-
-        emit Withdraw(
-            caller,
-            receiver,
-            owner,
-            receivedUnderlyingAmount,
-            shares
-        );
     }
 
     /**
