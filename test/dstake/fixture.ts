@@ -201,26 +201,17 @@ export async function executeSetupDLendRewards(
       rewardTokenSymbol
     );
 
-  // Get EmissionManager to call setClaimer
+  // Get EmissionManager and RewardsController instances
   const emissionManagerDeployment = await deployments.get(EMISSION_MANAGER_ID);
   const emissionManager = await ethers.getContractAt(
     "EmissionManager",
     emissionManagerDeployment.address
   );
-
   const incentivesProxy = await deployments.get(INCENTIVES_PROXY_ID);
   const rewardsController = await ethers.getContractAt(
     "RewardsController",
     incentivesProxy.address
   );
-
-  // Call setClaimer via EmissionManager, which is onlyOwner (and deployer is owner)
-  await emissionManager
-    .connect(signer) // signer is the deployer
-    .setClaimer(
-      targetStaticATokenWrapper, // user whose rewards are being claimed
-      rewardManagerDeployment.address // claimer (our DStakeRewardManagerDLend)
-    );
 
   // For configureAssets, deployer (owner of EmissionManager) must set itself as emission admin for the reward token first
   await emissionManager
@@ -286,6 +277,16 @@ export async function executeSetupDLendRewards(
     .connect(signer)
     .depositReward(rewardTokenInfo.address, rewardAmount);
 
+  // Fund the rewards vault for PullRewardsTransferStrategy and approve
+  const { user1 } = await getNamedAccounts();
+  // Transfer reward tokens to the vault address
+  await rewardTokenERC20.connect(signer).transfer(user1, rewardAmount);
+  // Approve the IncentivesController to pull rewards from the vault
+  const vaultSigner = await ethers.getSigner(user1);
+  await rewardTokenERC20
+    .connect(vaultSigner)
+    .approve(transferStrategyAddress, rewardAmount);
+
   return {
     ...dStakeBase,
     rewardManager,
@@ -342,7 +343,8 @@ export const setupDLendRewardsFixture = (
 export const SDUSDRewardsFixture = setupDLendRewardsFixture(
   SDUSD_CONFIG,
   "sfrxUSD",
-  ethers.parseUnits("100", 6)
+  ethers.parseUnits("100", 6), // total reward amount
+  ethers.parseUnits("1", 6) // emission per second (1 token/sec in 6-decimals)
 );
 
 // Pre-bound SDS rewards fixture for table-driven tests

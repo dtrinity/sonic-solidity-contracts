@@ -12,6 +12,7 @@ import {
   DS_A_TOKEN_WRAPPER_ID,
   DUSD_A_TOKEN_WRAPPER_ID,
   DUSD_TOKEN_ID,
+  EMISSION_MANAGER_ID,
   INCENTIVES_PROXY_ID,
   POOL_DATA_PROVIDER_ID,
 } from "../../typescript/deploy-ids";
@@ -25,7 +26,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   if (!config.dStake) {
     console.log(
-      "No dStake configuration found for this network. Skipping dLend rewards manager deployment."
+      "No dStake configuration found for this network. Skipping dLend rewards manager deployment.",
     );
     return;
   }
@@ -41,7 +42,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
     if (!rewardManagerConfig) {
       throw new Error(
-        `dLendRewardManager not configured for dSTAKE instance ${instanceKey}.`
+        `dLendRewardManager not configured for dSTAKE instance ${instanceKey}.`,
       );
     }
 
@@ -56,15 +57,15 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
     // Fetch the AaveProtocolDataProvider and get the aToken address for dUSD
     const poolDataProviderDeployment = await deployments.get(
-      POOL_DATA_PROVIDER_ID
+      POOL_DATA_PROVIDER_ID,
     );
     const poolDataProviderContract = await ethers.getContractAt(
       "AaveProtocolDataProvider",
-      poolDataProviderDeployment.address
+      poolDataProviderDeployment.address,
     );
     const reserveTokens =
       await poolDataProviderContract.getReserveTokensAddresses(
-        dusdTokenAddress
+        dusdTokenAddress,
       );
     const aTokenDUSDAddress = reserveTokens.aTokenAddress;
 
@@ -105,7 +106,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
         missing.push("treasury");
 
       throw new Error(
-        `Missing critical addresses in dLendRewardManager config for ${instanceKey}: ${missing.join(", ")}`
+        `Missing critical addresses in dLendRewardManager config for ${instanceKey}: ${missing.join(", ")}`,
       );
     }
 
@@ -118,7 +119,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       initialExchangeThreshold < 0
     ) {
       throw new Error(
-        `Invalid fee/threshold numbers in dLendRewardManager config for ${instanceKey}.`
+        `Invalid fee/threshold numbers in dLendRewardManager config for ${instanceKey}.`,
       );
     }
 
@@ -136,7 +137,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       instanceConfig.dLendRewardManager as DLendRewardManagerConfig;
 
     const collateralVaultDeployment = await get(
-      `DStakeCollateralVault_${instanceKey}`
+      `DStakeCollateralVault_${instanceKey}`,
     );
     const dStakeCollateralVaultAddress = collateralVaultDeployment.address;
     const routerDeployment = await get(`DStakeRouter_${instanceKey}`);
@@ -144,7 +145,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
     // Fetch dependencies again right before deployment to be safe
     const dLendATokenWrapperDUSDDeployment = await deployments.get(
-      DUSD_A_TOKEN_WRAPPER_ID
+      DUSD_A_TOKEN_WRAPPER_ID,
     );
     const incentivesProxyDeployment =
       await deployments.get(INCENTIVES_PROXY_ID);
@@ -155,15 +156,15 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
     // Fetch the AaveProtocolDataProvider and get the aToken address for dUSD
     const poolDataProviderDeployment = await deployments.get(
-      POOL_DATA_PROVIDER_ID
+      POOL_DATA_PROVIDER_ID,
     );
     const poolDataProviderContract = await ethers.getContractAt(
       "AaveProtocolDataProvider",
-      poolDataProviderDeployment.address
+      poolDataProviderDeployment.address,
     );
     const reserveTokens =
       await poolDataProviderContract.getReserveTokensAddresses(
-        dusdTokenAddress
+        dusdTokenAddress,
       );
     const aTokenDUSDAddress = reserveTokens.aTokenAddress;
 
@@ -188,12 +189,26 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       skipIfAlreadyDeployed: true,
     });
 
+    // Authorize this manager as a claimer via EmissionManager
+    const deployerSigner = await ethers.getSigner(deployer);
+    const emissionManagerDeployment =
+      await deployments.get(EMISSION_MANAGER_ID);
+    const emissionManager = await ethers.getContractAt(
+      "EmissionManager",
+      emissionManagerDeployment.address,
+    );
+
+    const tx = await emissionManager
+      .connect(deployerSigner)
+      .setClaimer(dLendATokenWrapperDUSDDeployment.address, deployment.address);
+    await tx.wait();
+
     // --- Configure Roles ---
     if (deployment.address) {
       const rewardManager: DStakeRewardManagerDLend =
         await ethers.getContractAt(
           "DStakeRewardManagerDLend",
-          deployment.address
+          deployment.address,
         );
       const DEFAULT_ADMIN_ROLE = await rewardManager.DEFAULT_ADMIN_ROLE();
       const REWARDS_MANAGER_ROLE = await rewardManager.REWARDS_MANAGER_ROLE();
@@ -215,22 +230,22 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
         if (
           !(await rewardManager.hasRole(
             REWARDS_MANAGER_ROLE,
-            targetRewardsManager
+            targetRewardsManager,
           ))
         ) {
           await rewardManager.grantRole(
             REWARDS_MANAGER_ROLE,
-            targetRewardsManager
+            targetRewardsManager,
           );
           console.log(
-            `          Granted REWARDS_MANAGER_ROLE to ${targetRewardsManager}`
+            `          Granted REWARDS_MANAGER_ROLE to ${targetRewardsManager}`,
           );
         }
 
         if (await rewardManager.hasRole(REWARDS_MANAGER_ROLE, deployer)) {
           await rewardManager.revokeRole(REWARDS_MANAGER_ROLE, deployer);
           console.log(
-            `          Revoked REWARDS_MANAGER_ROLE from ${deployer}`
+            `          Revoked REWARDS_MANAGER_ROLE from ${deployer}`,
           );
         }
       } else {
@@ -256,8 +271,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
           console.log(`          Granted DEFAULT_ADMIN_ROLE to ${deployer}`);
         }
       }
+      console.log(`    Set up DStakeRewardManagerDLend for ${instanceKey}.`);
     }
-    console.log(`    Set up DStakeRewardManagerDLend for ${instanceKey}.`);
   }
 
   console.log(`🥩 ${__filename.split("/").slice(-2).join("/")}: ✅`);
@@ -276,5 +291,6 @@ func.dependencies = [
   INCENTIVES_PROXY_ID,
   POOL_DATA_PROVIDER_ID,
   DUSD_TOKEN_ID,
+  EMISSION_MANAGER_ID,
 ];
 func.runAtTheEnd = true;
