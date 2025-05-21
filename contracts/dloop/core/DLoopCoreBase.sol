@@ -267,7 +267,10 @@ abstract contract DLoopCoreBase is ERC4626, Ownable {
         // We override this function to return the total assets in the vault
         // with respect to the position in the lending pool
         // The dLend interest will be distributed to the dToken
-        return _getMaxWithdrawAmount(address(this), address(underlyingAsset));
+        (uint256 totalCollateralBase, ) = _getTotalCollateralAndDebtOfUserInBase(address(this));
+        uint256 assetPriceInBase = getAssetPriceFromOracle(address(underlyingAsset));
+        uint256 assetTokenUnit = 10 ** ERC20(address(underlyingAsset)).decimals();
+        return (totalCollateralBase * assetTokenUnit) / assetPriceInBase;
     }
 
     /* Safety */
