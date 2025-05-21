@@ -77,6 +77,9 @@ export const SDS_CONFIG: DStakeFixtureConfig = {
   ],
 };
 
+// Array of all DStake configurations
+export const DSTAKE_CONFIGS: DStakeFixtureConfig[] = [SDUSD_CONFIG, SDS_CONFIG];
+
 // Core logic for fetching dStake components *after* deployments are done
 async function fetchDStakeComponents(
   hreElements: {
