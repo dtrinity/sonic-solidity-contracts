@@ -328,6 +328,17 @@ abstract contract DLoopCoreBase is ERC4626, Ownable {
             (assets * TARGET_LEVERAGE_BPS) / BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
     }
 
+    /**
+     * @dev Gets the amount of dStable to repay when withdrawing the underlying asset
+     * @param assets Amount of underlying asset to withdraw
+     * @return amountOfDebtToRepay Amount of dStable to repay
+     */
+    function getAmountOfDebtToRepay(uint256 assets) public view returns (uint256) {
+        return
+            (assets * (getAssetPriceFromOracle(address(underlyingAsset)) * 10 ** dStable.decimals())) /
+            (getAssetPriceFromOracle(address(dStable)) * 10 ** underlyingAsset.decimals());
+    }
+
     /* Deposit and Mint */
 
     /**
@@ -436,7 +447,7 @@ abstract contract DLoopCoreBase is ERC4626, Ownable {
     /* Withdraw and Redeem */
 
     /**
-     * @dev Withdraws assets from the vault (it actually requires to spent the leveraged amount of the assets, ie. if assets=1, and leverage=2, it means 2 assets are required to be spent)
+     * @dev Withdraws assets from the vault (it actually requires to spent the dSTABLE amount to repay the debt)
      * @param caller Address of the caller
      * @param receiver Address to receive the withdrawn assets
      * @param owner Address of the owner
@@ -478,7 +489,14 @@ abstract contract DLoopCoreBase is ERC4626, Ownable {
             );
         }
 
-        uint256 receivedUnderlyingAmount = _withdrawFromPoolImplementation(assets, receiver);
+        // Calculate dStable to repay
+        uint256 dStableToRepay = getAmountOfDebtToRepay(assets);
+
+        // Transfer the dStable to the vault to repay the debt
+        dStable.safeTransferFrom(msg.sender, address(this), dStableToRepay);
+
+        // Withdraw the collateral from the lending pool
+        uint256 receivedUnderlyingAmount = _withdrawFromPoolImplementation(assets, dStableToRepay, receiver);
 
         emit Withdraw(
             caller,
@@ -492,11 +510,13 @@ abstract contract DLoopCoreBase is ERC4626, Ownable {
     /**
      * @dev Handles the logic for repaying debt and withdrawing collateral from the pool, then transfers to receiver
      * @param assetsToRemoveFromLending The acutal amount of assets to remove from the lending pool
+     * @param dStableToRepay The amount of dStable to repay
      * @param receiver Address to receive the withdrawn assets
      * @return receivedUnderlyingAmount The actual amount of underlying asset received and transferred to receiver
      */
     function _withdrawFromPoolImplementation(
         uint256 assetsToRemoveFromLending,
+        uint256 dStableToRepay,
         address receiver
     ) private returns (uint256 receivedUnderlyingAmount) {
         // This value is used later to calculate the actual received asset after withdrawing
@@ -508,13 +528,6 @@ abstract contract DLoopCoreBase is ERC4626, Ownable {
         // Get the current leverage before repaying the debt (IMPORTANT: this is the leverage before repaying the debt)
         // It is used to calculate the expected withdrawable amount that keeps the current leverage
         uint256 leverageBpsBeforeRepayDebt = getCurrentLeverageBps();
-
-        // Calculate dStable to repay
-        uint256 dStableToRepay = ((assetsToRemoveFromLending * (getAssetPriceFromOracle(address(underlyingAsset)) * 10 ** dStable.decimals())) /
-            (getAssetPriceFromOracle(address(dStable)) * 10 ** underlyingAsset.decimals()));
-
-        // Transfer the dStable to the vault to repay the debt
-        dStable.safeTransferFrom(msg.sender, address(this), dStableToRepay);
 
         // Repay the debt to withdraw the collateral
         _repayDebt(address(dStable), dStableToRepay, address(this));
