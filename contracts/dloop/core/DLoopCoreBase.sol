@@ -506,6 +506,9 @@ abstract contract DLoopCoreBase is ERC4626, Ownable {
         uint256 dStableToRepay = ((assetsToRemoveFromLending * (getAssetPriceFromOracle(address(underlyingAsset)) * 10 ** dStable.decimals())) /
             (getAssetPriceFromOracle(address(dStable)) * 10 ** underlyingAsset.decimals()));
 
+        // Transfer the dStable to the vault to repay the debt
+        dStable.safeTransferFrom(msg.sender, address(this), dStableToRepay);
+
         // Get the current leverage before repaying the debt (IMPORTANT: this is the leverage before repaying the debt)
         uint256 leverageBpsBeforeRepayDebt = getCurrentLeverageBps();
 
