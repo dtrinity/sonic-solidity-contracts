@@ -10,6 +10,7 @@ import {
 import { DStakeRewardManagerDLend } from "../../typechain-types";
 import {
   DS_A_TOKEN_WRAPPER_ID,
+  DS_TOKEN_ID,
   DUSD_A_TOKEN_WRAPPER_ID,
   DUSD_TOKEN_ID,
   EMISSION_MANAGER_ID,
@@ -49,11 +50,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     const incentivesProxyDeployment =
       await deployments.get(INCENTIVES_PROXY_ID);
 
-    // Fetch the dUSD token address from deployments (it should be available via the 'dusd' tag)
-    const dusdTokenDeployment = await deployments.get(DUSD_TOKEN_ID);
-    const dusdTokenAddress = dusdTokenDeployment.address;
-
-    // Fetch the AaveProtocolDataProvider and get the aToken address for dUSD
+    // Fetch the AaveProtocolDataProvider and get the aToken address for this instance's underlying stablecoin
+    const underlyingStablecoinAddress = instanceConfig.dStable;
     const poolDataProviderDeployment = await deployments.get(
       POOL_DATA_PROVIDER_ID,
     );
@@ -63,9 +61,9 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     );
     const reserveTokens =
       await poolDataProviderContract.getReserveTokensAddresses(
-        dusdTokenAddress,
+        underlyingStablecoinAddress,
       );
-    const aTokenDUSDAddress = reserveTokens.aTokenAddress;
+    const aTokenAddress = reserveTokens.aTokenAddress;
 
     const {
       // Destructure from config AFTER potentially fetching addresses
@@ -82,10 +80,10 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     if (
       !managedVaultAsset ||
       managedVaultAsset === ethers.ZeroAddress ||
-      !aTokenDUSDAddress || // Use fetched aToken address
-      aTokenDUSDAddress === ethers.ZeroAddress || // Use fetched aToken address
-      !incentivesProxyDeployment.address || // Use fetched address
-      incentivesProxyDeployment.address === ethers.ZeroAddress || // Use fetched address
+      !aTokenAddress ||
+      aTokenAddress === ethers.ZeroAddress ||
+      !incentivesProxyDeployment.address ||
+      incentivesProxyDeployment.address === ethers.ZeroAddress ||
       !treasury ||
       treasury === ethers.ZeroAddress
     ) {
@@ -93,7 +91,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       let missing = [];
       if (!managedVaultAsset || managedVaultAsset === ethers.ZeroAddress)
         missing.push("managedVaultAsset");
-      if (!aTokenDUSDAddress || aTokenDUSDAddress === ethers.ZeroAddress)
+      if (!aTokenAddress || aTokenAddress === ethers.ZeroAddress)
         missing.push("dLendAssetToClaimFor (aToken)");
       if (
         !incentivesProxyDeployment.address ||
@@ -305,6 +303,7 @@ func.dependencies = [
   INCENTIVES_PROXY_ID,
   POOL_DATA_PROVIDER_ID,
   DUSD_TOKEN_ID,
+  DS_TOKEN_ID,
   EMISSION_MANAGER_ID,
 ];
 func.runAtTheEnd = true;
