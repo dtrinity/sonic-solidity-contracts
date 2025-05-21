@@ -19,6 +19,9 @@ import { ERC20StablecoinUpgradeable } from "../../typechain-types/contracts/dsta
 
 DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
   describe(`DStakeRouterDLend for ${config.DStakeTokenSymbol}`, function () {
+    // Create fixture once per suite for snapshot caching
+    const fixture = createDStakeFixture(config);
+
     let routerAddress: string;
     let collateralVaultAddress: string;
     let deployerAddr: string;
@@ -37,6 +40,8 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
     let adapterAddress: string;
 
     beforeEach(async function () {
+      // Revert to snapshot instead of full redeployment
+      const out = await fixture();
       const named = await getNamedAccounts();
       deployerAddr = named.deployer;
       user1Addr = named.user1 || named.deployer;
@@ -45,16 +50,15 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
       user1Signer = await ethers.getSigner(user1Addr);
       user2Signer = await ethers.getSigner(user2Addr);
 
-      const fixture = await createDStakeFixture(config)();
-      DStakeToken = fixture.DStakeToken as unknown as DStakeToken;
-      collateralVault =
-        fixture.collateralVault as unknown as DStakeCollateralVault;
-      router = fixture.router as unknown as DStakeRouterDLend;
-      dStableToken = fixture.dStableToken as unknown as IERC20;
-      vaultAssetToken = fixture.vaultAssetToken as unknown as IERC20;
-      vaultAssetAddress = fixture.vaultAssetAddress;
-      adapter = fixture.adapter as unknown as IDStableConversionAdapter;
-      adapterAddress = fixture.adapterAddress;
+      const D = out.DStakeToken as unknown as DStakeToken;
+      DStakeToken = D;
+      collateralVault = out.collateralVault as unknown as DStakeCollateralVault;
+      router = out.router as unknown as DStakeRouterDLend;
+      dStableToken = out.dStableToken as unknown as IERC20;
+      vaultAssetToken = out.vaultAssetToken as unknown as IERC20;
+      vaultAssetAddress = out.vaultAssetAddress;
+      adapter = out.adapter as unknown as IDStableConversionAdapter;
+      adapterAddress = out.adapterAddress;
       routerAddress = await router.getAddress();
       collateralVaultAddress = await collateralVault.getAddress();
     });

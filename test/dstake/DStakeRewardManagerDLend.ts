@@ -12,6 +12,14 @@ import { DUSD_TOKEN_ID, DS_TOKEN_ID } from "../../typescript/deploy-ids";
 
 DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
   describe(`DStakeRewardManagerDLend for ${config.DStakeTokenSymbol}`, function () {
+    // Create rewards fixture once per suite for snapshot caching
+    const rewardsFixture = setupDLendRewardsFixture(
+      config,
+      config.dStableSymbol === "dUSD" ? "sfrxUSD" : "stS",
+      ethers.parseUnits("100", 18),
+      ethers.parseUnits("1", 6)
+    );
+
     let rewardManager: any;
     let rewardsController: any;
     let targetStaticATokenWrapper: string;
@@ -45,12 +53,8 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
     const emissionPerSecond = ethers.parseUnits("1", 6);
 
     beforeEach(async function () {
-      const fixtures = await setupDLendRewardsFixture(
-        config, // Use current config
-        rewardTokenSymbol,
-        rewardAmount,
-        emissionPerSecond
-      )();
+      // Revert to snapshot of rewards fixture
+      const fixtures = await rewardsFixture();
       rewardManager = fixtures.rewardManager;
       rewardsController = fixtures.rewardsController;
       targetStaticATokenWrapper = fixtures.targetStaticATokenWrapper;

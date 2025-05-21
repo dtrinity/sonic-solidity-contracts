@@ -23,6 +23,9 @@ const parseUnits = (value: string | number, decimals: number | bigint) =>
 
 DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
   describe(`DStakeCollateralVault for ${config.DStakeTokenSymbol}`, () => {
+    // Create fixture function once per suite for snapshot caching
+    const fixture = createDStakeFixture(config);
+
     let deployer: SignerWithAddress;
     let stable: ERC20StablecoinUpgradeable;
     let user1: SignerWithAddress;
@@ -56,18 +59,18 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
         namedAccounts.user1 || namedAccounts.deployer
       );
 
-      const fixture = await createDStakeFixture(config)(); // Use the current config
+      // Revert to snapshot instead of redeploying
+      const out = await fixture();
 
-      DStakeToken = fixture.DStakeToken as unknown as DStakeToken;
-      collateralVault =
-        fixture.collateralVault as unknown as DStakeCollateralVault;
-      router = fixture.router as unknown as DStakeRouterDLend;
-      dStableToken = fixture.dStableToken;
+      DStakeToken = out.DStakeToken as unknown as DStakeToken;
+      collateralVault = out.collateralVault as unknown as DStakeCollateralVault;
+      router = out.router as unknown as DStakeRouterDLend;
+      dStableToken = out.dStableToken;
       dStableDecimals = await dStableToken.decimals();
-      vaultAssetToken = fixture.vaultAssetToken;
-      vaultAssetAddress = fixture.vaultAssetAddress;
-      adapter = fixture.adapter as unknown as IDStableConversionAdapter | null;
-      adapterAddress = fixture.adapterAddress;
+      vaultAssetToken = out.vaultAssetToken;
+      vaultAssetAddress = out.vaultAssetAddress;
+      adapter = out.adapter as unknown as IDStableConversionAdapter | null;
+      adapterAddress = out.adapterAddress;
 
       DStakeTokenAddress = await DStakeToken.getAddress();
       dStableTokenAddress = await dStableToken.getAddress();

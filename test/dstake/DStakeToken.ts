@@ -22,6 +22,8 @@ const parseUnits = (value: string | number, decimals: number | bigint) =>
 
 DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
   describe(`DStakeToken for ${config.DStakeTokenSymbol}`, () => {
+    // Create fixture function once per suite for snapshot caching
+    const fixture = createDStakeFixture(config);
     let deployer: SignerWithAddress;
     let user1: SignerWithAddress;
     let DStakeToken: DStakeToken;
@@ -43,18 +45,17 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
       deployer = await ethers.getSigner(named.deployer);
       user1 = await ethers.getSigner(named.user1 || named.deployer);
 
-      // Deploy using fixture
-      const fixture = await createDStakeFixture(config)();
-      adapterAddress = fixture.adapterAddress;
+      // Revert to snapshot instead of re-deploying
+      const out = await fixture();
+      adapterAddress = out.adapterAddress;
       adapter = WrappedDLendConversionAdapter__factory.connect(
         adapterAddress,
         deployer
       );
-      DStakeToken = fixture.DStakeToken as unknown as DStakeToken;
-      collateralVault =
-        fixture.collateralVault as unknown as DStakeCollateralVault;
-      router = fixture.router as unknown as DStakeRouterDLend;
-      dStableToken = fixture.dStableToken;
+      DStakeToken = out.DStakeToken as unknown as DStakeToken;
+      collateralVault = out.collateralVault as unknown as DStakeCollateralVault;
+      router = out.router as unknown as DStakeRouterDLend;
+      dStableToken = out.dStableToken;
       dStableDecimals = await dStableToken.decimals();
 
       // Prepare stablecoin for minting

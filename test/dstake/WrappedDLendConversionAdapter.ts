@@ -18,6 +18,9 @@ const parseUnits = (value: string | number, decimals: number | bigint) =>
 
 DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
   describe(`WrappedDLendConversionAdapter for ${config.DStakeTokenSymbol}`, function () {
+    // Create fixture function once per suite for snapshot caching
+    const fixture = createDStakeFixture(config);
+
     let deployer: SignerWithAddress;
     let user1: SignerWithAddress;
     let user2: SignerWithAddress;
@@ -34,27 +37,27 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
     let vaultAssetDecimals: bigint;
 
     beforeEach(async function () {
-      // Set up fixture and signers
-      const fixture = await createDStakeFixture(config)();
-      deployer = fixture.deployer;
+      // Revert to snapshot instead of full deployment
+      const out = await fixture();
+      // Set up signers
+      deployer = out.deployer;
       const named = await getNamedAccounts();
       user1 = await ethers.getSigner(named.user1);
       user2 = await ethers.getSigner(named.user2);
 
       // Extract deployed contracts and info
-      dStableToken = fixture.dStableToken as unknown as ERC20;
-      dStableDecimals = fixture.dStableInfo.decimals;
-      vaultAssetAddress = fixture.vaultAssetAddress;
-      wrapperToken = fixture.vaultAssetToken;
-      adapterAddress = fixture.adapterAddress;
+      dStableToken = out.dStableToken as unknown as ERC20;
+      dStableDecimals = out.dStableInfo.decimals;
+      vaultAssetAddress = out.vaultAssetAddress;
+      wrapperToken = out.vaultAssetToken;
+      adapterAddress = out.adapterAddress;
       // get the full adapter contract for WrappedDLendConversionAdapter
       adapter = (await ethers.getContractAt(
         "WrappedDLendConversionAdapter",
         adapterAddress,
         deployer
       )) as WrappedDLendConversionAdapter;
-      collateralVault =
-        fixture.collateralVault as unknown as DStakeCollateralVault;
+      collateralVault = out.collateralVault as unknown as DStakeCollateralVault;
       collateralVaultAddress = await collateralVault.getAddress();
 
       // Get wrapper as IERC4626 for previews

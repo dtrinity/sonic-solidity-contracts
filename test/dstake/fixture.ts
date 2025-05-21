@@ -303,13 +303,17 @@ export async function executeSetupDLendRewards(
 export const createDStakeFixture = (config: DStakeFixtureConfig) => {
   return deployments.createFixture(
     async (hreFixtureEnv: HardhatRuntimeEnvironment) => {
+      // Clean slate: run all default deployment scripts
+      await hreFixtureEnv.deployments.fixture();
+      // Run DStake-specific deployment tags
       await hreFixtureEnv.deployments.fixture(config.deploymentTags);
+      // Fetch DStake components using fixture environment
       return fetchDStakeComponents(
         {
           deployments: hreFixtureEnv.deployments,
           getNamedAccounts: hreFixtureEnv.getNamedAccounts,
           ethers: hreFixtureEnv.ethers,
-          globalHre: hre,
+          globalHre: hreFixtureEnv,
         },
         config
       );
@@ -326,12 +330,15 @@ export const setupDLendRewardsFixture = (
 ) =>
   deployments.createFixture(
     async (hreFixtureEnv: HardhatRuntimeEnvironment) => {
+      // Clean slate: run all default deployment scripts
+      await hreFixtureEnv.deployments.fixture();
+      // Execute DStake rewards setup, which includes its own deployments.fixture(allDeploymentTags)
       return executeSetupDLendRewards(
         {
           deployments: hreFixtureEnv.deployments,
           ethers: hreFixtureEnv.ethers,
           getNamedAccounts: hreFixtureEnv.getNamedAccounts,
-          globalHre: hre,
+          globalHre: hreFixtureEnv,
         },
         config,
         rewardTokenSymbol,

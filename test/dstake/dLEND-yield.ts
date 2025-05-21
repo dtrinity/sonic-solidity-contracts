@@ -25,6 +25,9 @@ const STAKE_CONFIGS: DStakeFixtureConfig[] = [SDUSD_CONFIG, SDS_CONFIG];
 
 STAKE_CONFIGS.forEach((cfg) => {
   describe(`dSTAKE Ecosystem - ${cfg.DStakeTokenSymbol} - Yield Accrual and Exchange Rate Update`, function () {
+    // Create fixture function once per suite for snapshot caching
+    const fixture = createDStakeFixture(cfg);
+
     let deployer: SignerWithAddress;
     let user: SignerWithAddress;
     let DStakeToken: DStakeToken;
@@ -44,18 +47,18 @@ STAKE_CONFIGS.forEach((cfg) => {
       const named = await getNamedAccounts();
       const userAddr = named.user1 || named.deployer;
 
-      const fixture = await createDStakeFixture(cfg)();
-      deployer = fixture.deployer;
+      // Revert to snapshot instead of redeploying
+      const out = await fixture();
+      deployer = out.deployer;
       user = await ethers.getSigner(userAddr);
-      DStakeToken = fixture.DStakeToken as unknown as DStakeToken;
-      collateralVault =
-        fixture.collateralVault as unknown as DStakeCollateralVault;
-      router = fixture.router as unknown as DStakeRouterDLend;
-      dStableToken = fixture.dStableToken as unknown as ERC20;
-      dStableDecimals = fixture.dStableInfo.decimals;
-      vaultAssetToken = fixture.vaultAssetToken as unknown as IERC20;
-      vaultAssetAddress = fixture.vaultAssetAddress;
-      adapter = fixture.adapter as unknown as IDStableConversionAdapter;
+      DStakeToken = out.DStakeToken as unknown as DStakeToken;
+      collateralVault = out.collateralVault as unknown as DStakeCollateralVault;
+      router = out.router as unknown as DStakeRouterDLend;
+      dStableToken = out.dStableToken as unknown as ERC20;
+      dStableDecimals = out.dStableInfo.decimals;
+      vaultAssetToken = out.vaultAssetToken as unknown as IERC20;
+      vaultAssetAddress = out.vaultAssetAddress;
+      adapter = out.adapter as unknown as IDStableConversionAdapter;
 
       // Setup dStable minting
       stable = (await ethers.getContractAt(
