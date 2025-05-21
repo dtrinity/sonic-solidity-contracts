@@ -21,6 +21,8 @@ contract DLoopCoreMock is DLoopCoreBase {
     address public mockPool;
 
     uint8 public constant PRICE_DECIMALS = 8;
+    uint256 public constant PERCENTAGE_FACTOR = 1e4;
+    uint256 public constant LIQUIDATION_THRESHOLD = 8500; // 85% in basis points
 
     constructor(
         string memory _name,
@@ -175,6 +177,25 @@ contract DLoopCoreMock is DLoopCoreBase {
         return (totalCollateralBase, totalDebtBase);
     }
 
+    function _getSuppliedBalance(address user, address asset) internal view override returns (uint256) {
+        return mockCollateral[user][asset];
+    }
+
+    function _getMaxWithdrawableAmountInBase(
+        address user
+    ) internal view override returns (uint256) {
+        // Get user account data: totalCollateralBase, totalDebtBase
+        (uint256 totalCollateralBase, uint256 totalDebtBase) = _getTotalCollateralAndDebtOfUserInBase(user);
+
+        // Calculate max withdrawable in base to keep health factor at 1
+        // (totalCollateralBase - X) * liquidationThreshold = totalDebtBase
+        // => X = totalCollateralBase - totalDebtBase / liquidationThreshold
+        uint256 rightSide = (totalDebtBase * PERCENTAGE_FACTOR) / LIQUIDATION_THRESHOLD;
+        return totalCollateralBase > rightSide
+            ? totalCollateralBase - rightSide
+            : 0;
+    }
+
     // --- Test-only public wrappers for internal pool logic ---
     function testSupplyToPool(address token, uint256 amount, address onBehalfOf) external {
         require(ERC20(token).transferFrom(onBehalfOf, address(this), amount), "Mock: transferFrom failed");
@@ -189,7 +210,6 @@ contract DLoopCoreMock is DLoopCoreBase {
     function testWithdrawFromPool(address token, uint256 amount, address onBehalfOf) external {
         _withdrawFromPool(token, amount, onBehalfOf);
     }
-
     function testGetTotalCollateralAndDebtOfUserInBase(address user) external view returns (uint256 totalCollateralBase, uint256 totalDebtBase) {
         return _getTotalCollateralAndDebtOfUserInBase(user);
     }

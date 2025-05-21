@@ -235,6 +235,23 @@ abstract contract DLoopCoreBase is ERC4626, Ownable {
         virtual
         returns (uint256 totalCollateralBase, uint256 totalDebtBase);
 
+    /**
+     * @dev Gets the supplied balance of an asset for a user in the lending pool
+     * @param user Address of the user
+     * @param asset Address of the asset
+     * @return uint256 Supplied balance of the asset
+     */
+    function _getSuppliedBalance(address user, address asset) internal view virtual returns (uint256);
+
+    /**
+     * @dev Gets the maximum withdrawable amount of a user in base currency
+     * @param user Address of the user
+     * @return uint256 Maximum withdrawable amount in base currency
+     */
+    function _getMaxWithdrawableAmountInBase(
+        address user
+    ) internal view virtual returns (uint256);
+
     /* Helper Functions */
 
     /**
@@ -247,16 +264,17 @@ abstract contract DLoopCoreBase is ERC4626, Ownable {
         address user,
         address asset
     ) internal view returns (uint256) {
-        (
-            uint256 totalCollateralBase,
-            uint256 totalDebtBase
-        ) = _getTotalCollateralAndDebtOfUserInBase(user);
+        // Calculate max withdrawable in base to keep health factor at 1
+        uint256 maxWithdrawBase = _getMaxWithdrawableAmountInBase(user);
 
-        uint256 assetPriceInBase = getAssetPriceFromOracle(asset);
-        uint256 maxWithdrawInBase = totalCollateralBase - totalDebtBase;
+        // Convert to asset units
+        uint256 maxWithdrawAsset = (maxWithdrawBase * (10 ** ERC20(asset).decimals())) / getAssetPriceFromOracle(asset);
 
-        uint256 assetTokenUnit = 10 ** ERC20(asset).decimals();
-        return (maxWithdrawInBase * assetTokenUnit) / assetPriceInBase;
+        // Get user's supplied balance of the asset in the lending pool (protocol-specific)
+        uint256 supplied = _getSuppliedBalance(user, asset);
+
+        // Return the minimum of supplied and calculated max
+        return Math.min(maxWithdrawAsset, supplied);
     }
 
     /**

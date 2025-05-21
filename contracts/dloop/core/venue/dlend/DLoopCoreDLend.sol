@@ -34,6 +34,9 @@ contract DLoopCoreDLend is DLoopCoreBase {
     // See contracts/lending/core/protocol/libraries/types/DataTypes.sol
     uint256 public constant VARIABLE_LENDING_INTERST_RATE_MODE = 2; // 0 = NONE, 1 = STABLE, 2 = VARIABLE
 
+    // Maximum percentage factor (100.00%)
+    uint256 public constant PERCENTAGE_FACTOR = 1e4;
+
     /* State */
 
     IPoolAddressesProvider public immutable lendingPoolAddressesProvider;
@@ -217,6 +220,42 @@ contract DLoopCoreDLend is DLoopCoreBase {
             .getUserAccountData(user);
         return (totalCollateralBase, totalDebtBase);
     }
+
+    /**
+     * @dev Gets the supplied balance of an asset for a user (returns aToken balance for dLEND)
+     * @param user Address of the user
+     * @param asset Address of the asset
+     * @return uint256 Supplied balance of the asset
+     */
+    function _getSuppliedBalance(address user, address asset) internal view override returns (uint256) {
+        address aToken = _getDTokenAddress(asset);
+        return ERC20(aToken).balanceOf(user);
+    }
+
+    /**
+     * @dev Gets the maximum withdrawable amount of a user in base currency
+     * @param user Address of the user
+     * @return uint256 Maximum withdrawable amount in base currency
+     */
+    function _getMaxWithdrawableAmountInBase(
+        address user
+    ) internal view override returns (uint256) {
+        // This logic is dLEND-specific (aave-v3-specific)
+
+        // Get user account data: totalCollateralBase, totalDebtBase, liquidationThreshold, etc.
+        // liquidationThreshold example: 1e4 (100%), 8500 (85%),...
+        (uint256 totalCollateralBase, uint256 totalDebtBase, , uint256 currentLiquidationThreshold, , ) = getLendingPool()
+            .getUserAccountData(user);
+
+        // Calculate max withdrawable in base to keep health factor at 1
+        // (totalCollateralBase - X) * liquidationThreshold = totalDebtBase
+        // => X = totalCollateralBase - totalDebtBase / liquidationThreshold
+        uint256 rightSide = (totalDebtBase * PERCENTAGE_FACTOR) / currentLiquidationThreshold;
+        return totalCollateralBase > rightSide
+            ? totalCollateralBase - rightSide
+            : 0;
+    }
+
 
     /* Helper functions */
 
