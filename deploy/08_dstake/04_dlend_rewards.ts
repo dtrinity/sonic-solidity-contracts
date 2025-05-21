@@ -26,15 +26,13 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   if (!config.dStake) {
     console.log(
-      "No dStake configuration found for this network. Skipping dLend rewards manager deployment.",
+      "No dSTAKE configuration found for this network. Skipping dLend rewards manager deployment.",
     );
     return;
   }
 
   // --- Validation Loop ---
   for (const instanceKey in config.dStake) {
-    if (instanceKey !== "sdUSD") continue; // Only process sdUSD for now based on the test failure
-
     const instanceConfig = config.dStake[instanceKey] as DStakeInstanceConfig;
     const rewardManagerConfig = instanceConfig.dLendRewardManager as
       | DLendRewardManagerConfig
@@ -129,12 +127,26 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   // Actual deployment logic using fetched addresses
   for (const instanceKey in config.dStake) {
-    // Only process sdUSD for now based on the test failure
-    if (instanceKey !== "sdUSD") continue;
-
     const instanceConfig = config.dStake[instanceKey] as DStakeInstanceConfig;
     const rewardManagerConfig =
       instanceConfig.dLendRewardManager as DLendRewardManagerConfig;
+
+    if (!rewardManagerConfig) {
+      console.log(
+        `No dLendRewardManager configuration for dSTAKE instance ${instanceKey}. Skipping.`,
+      );
+      continue;
+    }
+
+    if (
+      !rewardManagerConfig.managedVaultAsset ||
+      rewardManagerConfig.managedVaultAsset === ethers.ZeroAddress
+    ) {
+      console.warn(
+        `Skipping dLend rewards for ${instanceKey}: missing managedVaultAsset in rewardManagerConfig.`,
+      );
+      continue;
+    }
 
     const collateralVaultDeployment = await get(
       `DStakeCollateralVault_${instanceKey}`,
@@ -143,18 +155,13 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     const routerDeployment = await get(`DStakeRouter_${instanceKey}`);
     const dStakeRouterAddress = routerDeployment.address;
 
-    // Fetch dependencies again right before deployment to be safe
-    const dLendATokenWrapperDUSDDeployment = await deployments.get(
-      DUSD_A_TOKEN_WRAPPER_ID,
-    );
+    const targetStaticATokenWrapperAddress =
+      rewardManagerConfig.managedVaultAsset;
+    const underlyingStablecoinAddress = instanceConfig.dStable; // from parent DStakeInstanceConfig
+
     const incentivesProxyDeployment =
       await deployments.get(INCENTIVES_PROXY_ID);
 
-    // Fetch the dUSD token address
-    const dusdTokenDeployment = await deployments.get(DUSD_TOKEN_ID);
-    const dusdTokenAddress = dusdTokenDeployment.address;
-
-    // Fetch the AaveProtocolDataProvider and get the aToken address for dUSD
     const poolDataProviderDeployment = await deployments.get(
       POOL_DATA_PROVIDER_ID,
     );
@@ -164,16 +171,23 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     );
     const reserveTokens =
       await poolDataProviderContract.getReserveTokensAddresses(
-        dusdTokenAddress,
+        underlyingStablecoinAddress,
       );
-    const aTokenDUSDAddress = reserveTokens.aTokenAddress;
+    const dLendAssetToClaimForAddress = reserveTokens.aTokenAddress;
+
+    if (dLendAssetToClaimForAddress === ethers.ZeroAddress) {
+      console.warn(
+        `Skipping dLend rewards for ${instanceKey}: could not find aToken for underlying stable ${underlyingStablecoinAddress}.`,
+      );
+      continue;
+    }
 
     const deployArgs = [
       dStakeCollateralVaultAddress,
       dStakeRouterAddress,
-      incentivesProxyDeployment.address, // Use fetched address
-      dLendATokenWrapperDUSDDeployment.address, // Use fetched address
-      aTokenDUSDAddress, // Use fetched aToken address
+      incentivesProxyDeployment.address, // dLendRewardsController
+      targetStaticATokenWrapperAddress, // targetStaticATokenWrapper
+      dLendAssetToClaimForAddress, // dLendAssetToClaimFor (the actual aToken)
       rewardManagerConfig.treasury,
       rewardManagerConfig.maxTreasuryFeeBps,
       rewardManagerConfig.initialTreasuryFeeBps,
@@ -200,7 +214,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
     const tx = await emissionManager
       .connect(deployerSigner)
-      .setClaimer(dLendATokenWrapperDUSDDeployment.address, deployment.address);
+      .setClaimer(targetStaticATokenWrapperAddress, deployment.address); // Use generalized address
     await tx.wait();
 
     // --- Configure Roles ---

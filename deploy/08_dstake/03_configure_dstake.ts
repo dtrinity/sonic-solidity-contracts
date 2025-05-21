@@ -14,7 +14,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   if (!config.dStake) {
     console.log(
-      "No dStake configuration found for this network. Skipping configuration.",
+      "No dSTAKE configuration found for this network. Skipping configuration.",
     );
     return;
   }
@@ -182,12 +182,25 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       const adapterDeploymentName = `${adapterConfig.adapterContract}_${instanceConfig.symbol}`;
       const adapterDeployment = await get(adapterDeploymentName);
       const vaultAssetAddress = adapterConfig.vaultAsset;
-      await collateralVault
-        .connect(await ethers.getSigner(adminSigner))
-        .addAdapter(vaultAssetAddress, adapterDeployment.address);
-      console.log(
-        `    ➕ Added adapter ${adapterDeploymentName} for asset ${vaultAssetAddress} to ${collateralVaultDeploymentName}`,
-      );
+      const existingAdapter =
+        await collateralVault.adapterForAsset(vaultAssetAddress);
+
+      if (existingAdapter === ethers.ZeroAddress) {
+        await collateralVault
+          .connect(await ethers.getSigner(adminSigner))
+          .addAdapter(vaultAssetAddress, adapterDeployment.address);
+        console.log(
+          `    ➕ Added adapter ${adapterDeploymentName} for asset ${vaultAssetAddress} to ${collateralVaultDeploymentName}`,
+        );
+      } else if (existingAdapter !== adapterDeployment.address) {
+        throw new Error(
+          `⚠️ Adapter for asset ${vaultAssetAddress} in ${collateralVaultDeploymentName} is already set to ${existingAdapter} but config expects ${adapterDeployment.address}. Manual intervention may be required.`,
+        );
+      } else {
+        console.log(
+          `    👍 Adapter ${adapterDeploymentName} for asset ${vaultAssetAddress} already configured correctly in ${collateralVaultDeploymentName}`,
+        );
+      }
     }
 
     // --- Configure DStakeRouter --- // This part already uses Typechain

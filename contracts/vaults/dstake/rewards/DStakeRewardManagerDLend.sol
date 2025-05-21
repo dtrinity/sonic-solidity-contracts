@@ -224,7 +224,7 @@ contract DStakeRewardManagerDLend is RewardClaimable {
         uint256 amount,
         address[] calldata rewardTokens,
         address receiver
-    ) public override {
+    ) public override nonReentrant {
         // Validate input
         if (amount < exchangeThreshold) {
             revert ExchangeAmountTooLow(amount, exchangeThreshold);
