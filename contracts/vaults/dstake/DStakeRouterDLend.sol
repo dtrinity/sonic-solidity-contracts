@@ -177,11 +177,13 @@ contract DStakeRouterDLend is IDStakeRouter, AccessControl {
      * @param fromVaultAsset The address of the asset to sell.
      * @param toVaultAsset The address of the asset to buy.
      * @param fromVaultAssetAmount The amount of the `fromVaultAsset` to exchange.
+     * @param minToVaultAssetAmount The minimum amount of `toVaultAsset` the solver is willing to accept.
      */
     function exchangeAssetsUsingAdapters(
         address fromVaultAsset,
         address toVaultAsset,
-        uint256 fromVaultAssetAmount
+        uint256 fromVaultAssetAmount,
+        uint256 minToVaultAssetAmount
     ) external onlyRole(COLLATERAL_EXCHANGER_ROLE) {
         address fromAdapterAddress = vaultAssetToAdapter[fromVaultAsset];
         address toAdapterAddress = vaultAssetToAdapter[toVaultAsset];
@@ -226,6 +228,14 @@ contract DStakeRouterDLend is IDStakeRouter, AccessControl {
             uint256 resultingToVaultAssetAmount
         ) = toAdapter.convertToVaultAsset(receivedDStable);
         require(actualToVaultAsset == toVaultAsset, "Adapter asset mismatch");
+        // Slippage control: ensure output meets minimum requirement
+        if (resultingToVaultAssetAmount < minToVaultAssetAmount) {
+            revert SlippageCheckFailed(
+                toVaultAsset,
+                resultingToVaultAssetAmount,
+                minToVaultAssetAmount
+            );
+        }
 
         emit Exchanged(
             fromVaultAsset,

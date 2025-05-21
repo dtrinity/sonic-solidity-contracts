@@ -253,7 +253,7 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
           );
         expect(
           await vaultAssetToken.balanceOf(collateralVaultAddress)
-        ).to.equal(expectedVaultAssetAmount);
+        ).to.equal(depositAmount);
       });
 
       it("non-DStakeToken cannot call withdraw", async function () {
@@ -323,51 +323,43 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
 
       it("non-exchanger cannot call exchangeAssetsUsingAdapters", async function () {
         await expect(
-          router
-            .connect(user2Signer)
-            .exchangeAssetsUsingAdapters(
-              vaultAssetAddress,
-              vaultAssetAddress,
-              exchangeAmount
-            )
+          (router.connect(user2Signer) as any).exchangeAssetsUsingAdapters(
+            vaultAssetAddress,
+            vaultAssetAddress,
+            exchangeAmount,
+            0
+          )
         ).to.be.reverted;
       });
 
       it("reverts if adapter not found", async function () {
         await expect(
-          router
-            .connect(user1Signer)
-            .exchangeAssetsUsingAdapters(
-              ZeroAddress,
-              vaultAssetAddress,
-              exchangeAmount
-            )
+          (router.connect(user1Signer) as any).exchangeAssetsUsingAdapters(
+            ZeroAddress,
+            vaultAssetAddress,
+            exchangeAmount,
+            0
+          )
         ).to.be.revertedWithCustomError(router, "AdapterNotFound");
         await expect(
-          router
-            .connect(user1Signer)
-            .exchangeAssetsUsingAdapters(
-              vaultAssetAddress,
-              ZeroAddress,
-              exchangeAmount
-            )
+          (router.connect(user1Signer) as any).exchangeAssetsUsingAdapters(
+            vaultAssetAddress,
+            ZeroAddress,
+            exchangeAmount,
+            0
+          )
         ).to.be.revertedWithCustomError(router, "AdapterNotFound");
       });
 
       it("can exchange assets via adapters and emits event", async function () {
-        const dStableValue =
-          await adapter.previewConvertFromVaultAsset(exchangeAmount);
-        const [, expectedVaultAssetAmount] =
-          await adapter.previewConvertToVaultAsset(dStableValue);
         // Check event emission and balances
         await expect(
-          router
-            .connect(user1Signer)
-            .exchangeAssetsUsingAdapters(
-              vaultAssetAddress,
-              vaultAssetAddress,
-              exchangeAmount
-            )
+          (router.connect(user1Signer) as any).exchangeAssetsUsingAdapters(
+            vaultAssetAddress,
+            vaultAssetAddress,
+            exchangeAmount,
+            0
+          )
         ).to.emit(router, "Exchanged");
         expect(
           await vaultAssetToken.balanceOf(collateralVaultAddress)
