@@ -61,7 +61,7 @@ export const SDUSD_CONFIG: DStakeFixtureConfig = {
 
 export const SDS_CONFIG: DStakeFixtureConfig = {
   dStableSymbol: "dS",
-  DStakeTokenSymbol: "sDS",
+  DStakeTokenSymbol: "sdS",
   DStakeTokenContractId: SDS_DSTAKE_TOKEN_ID,
   collateralVaultContractId: SDS_COLLATERAL_VAULT_ID,
   routerContractId: SDS_ROUTER_ID,
@@ -354,5 +354,5 @@ export const SDUSDRewardsFixture = setupDLendRewardsFixture(
 export const SDSRewardsFixture = setupDLendRewardsFixture(
   SDS_CONFIG,
   "stS",
-  ethers.parseUnits("100", 6)
+  ethers.parseUnits("100", 18)
 );
