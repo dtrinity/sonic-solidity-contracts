@@ -440,14 +440,14 @@ abstract contract DLoopCoreBase is ERC4626, Ownable {
      * @param caller Address of the caller
      * @param receiver Address to receive the withdrawn assets
      * @param owner Address of the owner
-     * @param principalAssetsToRemove Amount of assets to remove from the lending pool
+     * @param assets Amount of assets to remove from the lending pool
      * @param shares Amount of shares to burn
      */
     function _withdraw(
         address caller,
         address receiver,
         address owner,
-        uint256 principalAssetsToRemove,
+        uint256 assets,
         uint256 shares
     ) internal override {
         // Note that we need the allowance before calling this function
@@ -478,7 +478,7 @@ abstract contract DLoopCoreBase is ERC4626, Ownable {
             );
         }
 
-        uint256 receivedUnderlyingAmount = _withdrawFromPoolImplementation(principalAssetsToRemove, receiver);
+        uint256 receivedUnderlyingAmount = _withdrawFromPoolImplementation(assets, receiver);
 
         emit Withdraw(
             caller,
@@ -491,22 +491,23 @@ abstract contract DLoopCoreBase is ERC4626, Ownable {
 
     /**
      * @dev Handles the logic for repaying debt and withdrawing collateral from the pool, then transfers to receiver
-     * @param principalAssetsToRemove Amount of assets to remove from the lending pool (principal, not leveraged)
+     * @param assetsToRemoveFromLending The acutal amount of assets to remove from the lending pool
      * @param receiver Address to receive the withdrawn assets
      * @return receivedUnderlyingAmount The actual amount of underlying asset received and transferred to receiver
      */
     function _withdrawFromPoolImplementation(
-        uint256 principalAssetsToRemove,
+        uint256 assetsToRemoveFromLending,
         address receiver
     ) private returns (uint256 receivedUnderlyingAmount) {
-        uint256 assetsToRemoveFromLending = (principalAssetsToRemove * TARGET_LEVERAGE_BPS) / BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
         uint256 underlyingAssetBalanceBefore = underlyingAsset.balanceOf(address(this));
         uint256 maxWithdrawUnderlyingBeforeRepay = _getMaxWithdrawAmount(address(this), address(underlyingAsset));
 
         // Calculate dStable to repay
         uint256 dStableToRepay = ((assetsToRemoveFromLending * (getAssetPriceFromOracle(address(underlyingAsset)) * 10 ** dStable.decimals())) /
             (getAssetPriceFromOracle(address(dStable)) * 10 ** underlyingAsset.decimals()));
-        uint256 currentLeverageBps = getCurrentLeverageBps();
+
+        // Get the current leverage before repaying the debt (IMPORTANT: this is the leverage before repaying the debt)
+        uint256 leverageBpsBeforeRepayDebt = getCurrentLeverageBps();
 
         // Repay the debt to withdraw the collateral
         _repayDebt(address(dStable), dStableToRepay, address(this));
@@ -522,10 +523,11 @@ abstract contract DLoopCoreBase is ERC4626, Ownable {
             );
         }
 
+        // Get the withdrawable amount that keeps the current leverage
         uint256 withdrawableUnderlyingAmount = _getWithdrawAmountThatKeepCurrentLeverage(
             maxWithdrawUnderlyingBeforeRepay,
             maxWithdrawUnderlyingAfterRepay,
-            currentLeverageBps
+            leverageBpsBeforeRepayDebt
         );
 
         if (withdrawableUnderlyingAmount < assetsToRemoveFromLending) {
@@ -545,6 +547,7 @@ abstract contract DLoopCoreBase is ERC4626, Ownable {
 
         uint256 underlyingAssetBalanceAfter = underlyingAsset.balanceOf(address(this));
 
+        // Make sure the vault received the collateral after withdrawing
         if (underlyingAssetBalanceAfter < underlyingAssetBalanceBefore) {
             revert UnexpectedLossOfPrincipal(
                 underlyingAssetBalanceBefore,
@@ -554,6 +557,7 @@ abstract contract DLoopCoreBase is ERC4626, Ownable {
 
         receivedUnderlyingAmount = underlyingAssetBalanceAfter - underlyingAssetBalanceBefore;
 
+        // Make sure the withdrawable amount is not less than expected
         if (receivedUnderlyingAmount < withdrawableUnderlyingAmount) {
             revert UnexpectedLossOfWithdrawableAmount(
                 withdrawableUnderlyingAmount,
@@ -561,7 +565,7 @@ abstract contract DLoopCoreBase is ERC4626, Ownable {
             );
         }
 
-        // Transfer the remaining assets to the receiver
+        // Transfer the asset to the receiver
         underlyingAsset.safeTransfer(receiver, receivedUnderlyingAmount);
     }
 
@@ -569,14 +573,14 @@ abstract contract DLoopCoreBase is ERC4626, Ownable {
      * @dev Gets the withdrawable amount that keeps the current leverage
      * @param maxWithdrawAmountBeforeRepay Maximum withdrawable amount before repaying
      * @param maxWithdrawAmountAfterRepay Maximum withdrawable amount after repaying
-     * @param currentLeverageBps Current leverage in basis points
-     * @return uint256 Withdrawable amount that keeps the current leverage
+     * @param leverageBpsBeforeRepayDebt Leverage in basis points before repaying
+     * @return expectedWithdrawAmount The expected withdrawable amount that keeps the current leverage
      */
     function _getWithdrawAmountThatKeepCurrentLeverage(
         uint256 maxWithdrawAmountBeforeRepay,
         uint256 maxWithdrawAmountAfterRepay,
-        uint256 currentLeverageBps
-    ) internal pure returns (uint256) {
+        uint256 leverageBpsBeforeRepayDebt
+    ) internal pure returns (uint256 expectedWithdrawAmount) {
         // Assume the maxWithdrawAmountBeforeRepay and maxWithdrawAmountAfterRepay are in the same unit
         //
         // Formula definition:
@@ -605,19 +609,19 @@ abstract contract DLoopCoreBase is ERC4626, Ownable {
         //    <=> y = x * (T-1)/T
         //    <=> x = y * T/(T-1)
         //
-        uint256 difference = maxWithdrawAmountAfterRepay -
+        uint256 actualRepaidAmount = maxWithdrawAmountAfterRepay -
             maxWithdrawAmountBeforeRepay;
 
         // Instead of using TARGET_LEVERAGE_BPS, we use the current leverage to calculate the withdrawable amount to avoid
         // unexpectedly changing the current leverage (which may cause loss to the user)
-        if (currentLeverageBps <= BasisPointConstants.ONE_HUNDRED_PERCENT_BPS) {
+        if (leverageBpsBeforeRepayDebt <= BasisPointConstants.ONE_HUNDRED_PERCENT_BPS) {
             // If there is no more debt, withdraw as much as possible
             return type(uint256).max;
         }
 
         return
-            (difference * currentLeverageBps) /
-            (currentLeverageBps - BasisPointConstants.ONE_HUNDRED_PERCENT_BPS);
+            (actualRepaidAmount * leverageBpsBeforeRepayDebt) /
+            (leverageBpsBeforeRepayDebt - BasisPointConstants.ONE_HUNDRED_PERCENT_BPS);
     }
 
     /* Rebalance */
