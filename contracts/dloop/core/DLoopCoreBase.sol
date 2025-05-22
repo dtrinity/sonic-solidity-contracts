@@ -39,8 +39,8 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard {
 
     /* Constants */
     uint32 public immutable TARGET_LEVERAGE_BPS; // ie. 30000 = 300% over 100% in basis points, means 3x leverage
-    ERC20 public immutable underlyingAsset;
-    ERC20 public immutable dStable;
+    ERC20 public immutable collateralToken;
+    ERC20 public immutable debtToken;
 
     /* Errors */
 
@@ -168,8 +168,8 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard {
      * @dev Constructor for the DLoopCore contract
      * @param _name Name of the vault token
      * @param _symbol Symbol of the vault token
-     * @param _underlyingAsset Address of the underlying asset
-     * @param _dStable Address of the dStable token
+     * @param _collateralToken Address of the collateral token
+     * @param _debtToken Address of the debt token
      * @param _targetLeverageBps Target leverage in basis points
      * @param _lowerBoundTargetLeverageBps Lower bound of target leverage in basis points
      * @param _upperBoundTargetLeverageBps Upper bound of target leverage in basis points
@@ -178,15 +178,15 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard {
     constructor(
         string memory _name,
         string memory _symbol,
-        ERC20 _underlyingAsset,
-        ERC20 _dStable,
+        ERC20 _collateralToken,
+        ERC20 _debtToken,
         uint32 _targetLeverageBps,
         uint32 _lowerBoundTargetLeverageBps,
         uint32 _upperBoundTargetLeverageBps,
         uint256 _maxSubsidyBps
-    ) ERC20(_name, _symbol) ERC4626(_underlyingAsset) Ownable(msg.sender) {
-        dStable = _dStable;
-        underlyingAsset = _underlyingAsset;
+    ) ERC20(_name, _symbol) ERC4626(_collateralToken) Ownable(msg.sender) {
+        debtToken = _debtToken;
+        collateralToken = _collateralToken;
 
         if (_targetLeverageBps < BasisPointConstants.ONE_HUNDRED_PERCENT_BPS) {
             revert("Target leverage must be at least 100% in basis points");
@@ -203,14 +203,14 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard {
             );
         }
 
-        // Make sure underlying asset is ERC-20
-        if (!Erc20Helper.isERC20(address(_underlyingAsset))) {
-            revert("Underlying asset must be an ERC-20");
+        // Make sure collateral token is ERC-20
+        if (!Erc20Helper.isERC20(address(_collateralToken))) {
+            revert("Collateral token must be an ERC-20");
         }
 
-        // Make sure dStable is ERC-20
-        if (!Erc20Helper.isERC20(address(_dStable))) {
-            revert("dStable must be an ERC-20");
+        // Make sure debt token is ERC-20
+        if (!Erc20Helper.isERC20(address(_debtToken))) {
+            revert("Debt token must be an ERC-20");
         }
 
         TARGET_LEVERAGE_BPS = _targetLeverageBps;
@@ -465,19 +465,19 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard {
     }
 
     /**
-     * @dev Gets the amount of dStable to repay when withdrawing the underlying asset
-     * @param assets Amount of underlying asset to withdraw
-     * @return amountOfDebtToRepay Amount of dStable to repay
+     * @dev Gets the amount of debt token to repay when withdrawing the collateral token
+     * @param assets Amount of collateral token to withdraw
+     * @return amountOfDebtToRepay Amount of debt token to repay
      */
     function getAmountOfDebtToRepay(
         uint256 assets
     ) public view returns (uint256) {
         return
             (assets *
-                (getAssetPriceFromOracle(address(underlyingAsset)) *
-                    10 ** dStable.decimals())) /
-            (getAssetPriceFromOracle(address(dStable)) *
-                10 ** underlyingAsset.decimals());
+                (getAssetPriceFromOracle(address(collateralToken)) *
+                    10 ** debtToken.decimals())) /
+            (getAssetPriceFromOracle(address(debtToken)) *
+                10 ** collateralToken.decimals());
     }
 
     /**
@@ -493,7 +493,7 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard {
 
         ) = getTotalCollateralAndDebtOfUserInBase(address(this));
         // The price decimals is cancelled out in the division (as the amount and price are in the same unit)
-        return convertFromBaseCurrencyToToken(totalCollateralBase, address(underlyingAsset));
+        return convertFromBaseCurrencyToToken(totalCollateralBase, address(collateralToken));
     }
 
     /* Safety */
@@ -512,13 +512,13 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard {
     }
 
     /**
-     * @dev Rescues tokens accidentally sent to the contract (except for the underlying asset and dStable)
+     * @dev Rescues tokens accidentally sent to the contract (except for the collateral token and debt token)
      * @param token Address of the token to rescue
      * @param receiver Address to receive the rescued tokens
      * @param amount Amount of tokens to rescue
      */
     function rescueToken(address token, address receiver, uint256 amount) public onlyOwner nonReentrant {
-        // The vault does not hold any dStable and underlying asset, so it is not necessary to restrict the rescue of dStable and underlying asset
+        // The vault does not hold any debt token and collateral token, so it is not necessary to restrict the rescue of debt token and collateral token
         // We can just rescue any ERC-20 token
 
         address[] memory restrictedRescueTokens = getRestrictedRescueTokens();
@@ -541,8 +541,8 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard {
 
     /**
      * @dev Deposits assets into the vault
-     *      - It will send the borrowed dStable and the minted shares to the receiver
-     *      - The minted shares represent the position of the supplied assets in the lending pool
+     *      - It will send the borrowed debt token and the minted shares to the receiver
+     *      - The minted shares represent the position of the supplied collateral assets in the lending pool
      * @param caller Address of the caller
      * @param receiver Address to receive the minted shares
      * @param assets Amount of assets to deposit
@@ -559,7 +559,7 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard {
          * 
          * Suppose that the target leverage is 3x, and the baseLTVAsCollateral is 70%
          * - The collateral token is WETH
-         * - The dSTABLE debt here is dUSD
+         * - The debt here is dUSD
          * - The current shares supply is 0
          * - Assume that the price of WETH is 2000 dUSD
          * 
@@ -580,16 +580,16 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard {
         }
 
         // Transfer the assets to the vault (need the allowance before calling this function)
-        underlyingAsset.safeTransferFrom(
+        collateralToken.safeTransferFrom(
             caller,
             address(this),
             assets
         );
 
-        uint256 dStableBorrowed = _depositToPoolImplementation(assets);
+        uint256 debtAssetBorrowed = _depositToPoolImplementation(assets);
 
-        // Transfer the dStable to the receiver
-        dStable.safeTransfer(receiver, dStableBorrowed);
+        // Transfer the debt asset to the receiver
+        debtToken.safeTransfer(receiver, debtAssetBorrowed);
 
         // Mint the vault's shares to the depositor
         _mint(receiver, shares);
@@ -600,7 +600,7 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard {
     /**
      * @dev Deposits assets into the lending pool
      * @param depositAssetAmount Amount of assets to deposit
-     * @return dStableAmountToBorrow Amount of dStable to borrow
+     * @return debtAssetAmountToBorrow Amount of debt asset to borrow
      */
     function _depositToPoolImplementation(
         uint256 depositAssetAmount // deposit amount
@@ -611,42 +611,42 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard {
         uint256 currentLeverageBpsBeforeSupply = getCurrentLeverageBps();
 
         // Make sure we have enough balance to supply before supplying
-        uint256 currentUnderlyingAssetBalance = underlyingAsset.balanceOf(
+        uint256 currentCollateralTokenBalance = collateralToken.balanceOf(
             address(this)
         );
-        if (currentUnderlyingAssetBalance < depositAssetAmount) {
+        if (currentCollateralTokenBalance < depositAssetAmount) {
             revert DepositInsufficientToSupply(
-                currentUnderlyingAssetBalance,
+                currentCollateralTokenBalance,
                 depositAssetAmount
             );
         }
 
-        // Supply the underlying asset to the lending pool
-        _supplyToPool(address(underlyingAsset), depositAssetAmount, address(this));
+        // Supply the collateral token to the lending pool
+        _supplyToPool(address(collateralToken), depositAssetAmount, address(this));
 
-        // Get the amount of dStable to borrow that keeps the current leverage
+        // Get the amount of debt token to borrow that keeps the current leverage
         // If there is no deposit yet (leverage=0), we use the target leverage
-        uint256 dStableAmountToBorrow = getBorrowAmountThatKeepCurrentLeverage(
-            address(underlyingAsset),
-            address(dStable),
+        uint256 debtTokenAmountToBorrow = getBorrowAmountThatKeepCurrentLeverage(
+            address(collateralToken),
+            address(debtToken),
             depositAssetAmount,
             currentLeverageBpsBeforeSupply > 0
                 ? currentLeverageBpsBeforeSupply
                 : TARGET_LEVERAGE_BPS
         );
 
-        // Borrow the max amount of dStable
-        _borrowFromPool(address(dStable), dStableAmountToBorrow, address(this));
+        // Borrow the max amount of debt token
+        _borrowFromPool(address(debtToken), debtTokenAmountToBorrow, address(this));
 
-        return dStableAmountToBorrow;
+        return debtTokenAmountToBorrow;
     }
 
     /* Withdraw and Redeem */
 
     /**
-     * @dev Withdraws assets from the vault
-     *      - It requires to spend the dSTABLE to repay the debt
-     *      - It will send the withdrawn underlying assets to the receiver and burn the shares
+     * @dev Withdraws collateral assets from the vault
+     *      - It requires to spend the debt token to repay the debt
+     *      - It will send the withdrawn collateral assets to the receiver and burn the shares
      *      - The burned shares represent the position of the withdrawn assets in the lending pool
      * @param caller Address of the caller
      * @param receiver Address to receive the withdrawn assets
@@ -666,7 +666,7 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard {
          * 
          * Suppose that the target leverage is 3x, and the baseLTVAsCollateral is 70%
          * - The collateral token is WETH
-         * - The dSTABLE debt here is dUSD
+         * - The debt here is dUSD
          * - The current shares supply is 300
          * - Assume that the price of WETH is 2000 dUSD
          * 
@@ -707,26 +707,26 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard {
             );
         }
 
-        // Calculate dStable to repay
-        uint256 dStableToRepay = getAmountOfDebtToRepay(assets);
+        // Calculate debt token to repay
+        uint256 debtTokenToRepay = getAmountOfDebtToRepay(assets);
 
         // If don't have enough allowance, revert with the error message
         // This is to early-revert with instruction in the error message
-        if (dStable.allowance(msg.sender, address(this)) < dStableToRepay) {
-            revert InsufficientAllowanceOfDebtAssetToRepay(msg.sender, address(this), address(dStable), dStableToRepay);
+        if (debtToken.allowance(msg.sender, address(this)) < debtTokenToRepay) {
+            revert InsufficientAllowanceOfDebtAssetToRepay(msg.sender, address(this), address(debtToken), debtTokenToRepay);
         }
 
-        // Transfer the dStable to the vault to repay the debt
-        dStable.safeTransferFrom(msg.sender, address(this), dStableToRepay);
+        // Transfer the debt token to the vault to repay the debt
+        debtToken.safeTransferFrom(msg.sender, address(this), debtTokenToRepay);
 
         // Withdraw the collateral from the lending pool
         uint256 withdrawnAssetsAmount = _withdrawFromPoolImplementation(
             assets,
-            dStableToRepay
+            debtTokenToRepay
         );
 
         // Transfer the asset to the receiver
-        underlyingAsset.safeTransfer(receiver, withdrawnAssetsAmount);
+        collateralToken.safeTransfer(receiver, withdrawnAssetsAmount);
 
         emit Withdraw(
             caller,
@@ -740,44 +740,44 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard {
     /**
      * @dev Handles the logic for repaying debt and withdrawing collateral from the pool, then transfers to receiver
      * @param assetsToRemoveFromLending The acutal amount of assets to remove from the lending pool
-     * @param dStableToRepay The amount of dStable to repay
-     * @return receivedUnderlyingAmount The actual amount of underlying asset received and transferred to receiver
+     * @param debtTokenToRepay The amount of debt token to repay
+     * @return receivedCollateralAmount The actual amount of collateral asset received and transferred to receiver
      */
     function _withdrawFromPoolImplementation(
         uint256 assetsToRemoveFromLending,
-        uint256 dStableToRepay
-    ) private returns (uint256 receivedUnderlyingAmount) {
+        uint256 debtTokenToRepay
+    ) private returns (uint256 receivedCollateralAmount) {
         // Get the current leverage before repaying the debt (IMPORTANT: this is the leverage before repaying the debt)
         // It is used to calculate the expected withdrawable amount that keeps the current leverage
         uint256 leverageBpsBeforeRepayDebt = getCurrentLeverageBps();
 
         // Repay the debt to withdraw the collateral
-        _repayDebtToPool(address(dStable), dStableToRepay, address(this));
+        _repayDebtToPool(address(debtToken), debtTokenToRepay, address(this));
 
         // Get the withdrawable amount that keeps the current leverage
-        uint256 withdrawableUnderlyingAmount = getWithdrawAmountThatKeepCurrentLeverage(
-            address(underlyingAsset),
-            address(dStable),
-            dStableToRepay,
+        uint256 withdrawableCollateralAmount = getWithdrawAmountThatKeepCurrentLeverage(
+            address(collateralToken),
+            address(debtToken),
+            debtTokenToRepay,
             leverageBpsBeforeRepayDebt
         );
 
-        if (withdrawableUnderlyingAmount < assetsToRemoveFromLending) {
+        if (withdrawableCollateralAmount < assetsToRemoveFromLending) {
             revert WithdrawableIsLessThanRequired(
-                address(underlyingAsset),
+                address(collateralToken),
                 assetsToRemoveFromLending,
-                withdrawableUnderlyingAmount
+                withdrawableCollateralAmount
             );
         }
 
         // Withdraw the collateral
         _withdrawFromPool(
-            address(underlyingAsset),
-            withdrawableUnderlyingAmount,
+            address(collateralToken),
+            withdrawableCollateralAmount,
             address(this)
         );
 
-        return withdrawableUnderlyingAmount;
+        return withdrawableCollateralAmount;
     }
 
     /* Calculate */
@@ -906,12 +906,19 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard {
 
     /* Rebalance */
 
+    function getCollateralAmountToIncreaseLeverageToTarget(
+        uint256 currentLeverageBps,
+        uint256 targetLeverageBps
+    ) public view returns (uint256 collateralAmount) {
+
+    }
+
     /**
-     * @dev Increases the leverage of the user by supplying assets and borrowing more debt asset
-     *      - It requires to spend the underlying asset from the user's wallet to supply to the pool
-     *      - It will send the borrowed debt asset to the user's wallet
+     * @dev Increases the leverage of the user by supplying assets and borrowing more debt token
+     *      - It requires to spend the collateral token from the user's wallet to supply to the pool
+     *      - It will send the borrowed debt token to the user's wallet
      * @param assetAmount The amount of asset to supply
-     * @param minReceivedAmount The minimum amount of debt asset to receive
+     * @param minReceivedAmount The minimum amount of debt token to receive
      */
     function increaseLeverage(
         uint256 assetAmount,
@@ -947,11 +954,11 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard {
             revert LeverageExceedsTarget(currentLeverageBps, TARGET_LEVERAGE_BPS);
         }
 
-        uint256 assetAmountInBase = convertFromTokenAmountToBaseCurrency(assetAmount, address(underlyingAsset));
+        uint256 assetAmountInBase = convertFromTokenAmountToBaseCurrency(assetAmount, address(collateralToken));
 
-        // The amount of debt asset to borrow (in base currency) is equal to the amount of collateral asset supplied
+        // The amount of debt token to borrow (in base currency) is equal to the amount of collateral token supplied
         // plus the subsidy (bonus for the caller)
-        uint256 borrowedDebtAssetInBase = (assetAmountInBase *
+        uint256 borrowedDebtTokenInBase = (assetAmountInBase *
             (BasisPointConstants.ONE_HUNDRED_PERCENT_BPS + getCurrentSubsidyBps())) /
             BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
 
@@ -966,7 +973,7 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard {
             (totalCollateralBase +
                 assetAmountInBase -
                 totalDebtBase -
-                borrowedDebtAssetInBase);
+                borrowedDebtTokenInBase);
 
         // Make sure the new leverage is increasing and does not exceed the target leverage
         if (
@@ -981,41 +988,41 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard {
         }
 
         // Transfer the asset to the vault to supply
-        underlyingAsset.safeTransferFrom(
+        collateralToken.safeTransferFrom(
             msg.sender,
             address(this),
             assetAmount
         );
 
         // Supply the asset to the lending pool
-        _supplyToPool(address(underlyingAsset), assetAmount, address(this));
+        _supplyToPool(address(collateralToken), assetAmount, address(this));
 
-        // Borrow more debt asset
-        uint256 borrowedDebtAsset = convertFromBaseCurrencyToToken(borrowedDebtAssetInBase, address(dStable));
+        // Borrow more debt token
+        uint256 borrowedDebtToken = convertFromBaseCurrencyToToken(borrowedDebtTokenInBase, address(debtToken));
 
         // Slippage protection, to make sure the user receives at least minReceivedAmount
-        if (borrowedDebtAsset < minReceivedAmount) {
-            revert RebalanceReceiveLessThanMinAmount("increaseLeverage", borrowedDebtAsset, minReceivedAmount);
+        if (borrowedDebtToken < minReceivedAmount) {
+            revert RebalanceReceiveLessThanMinAmount("increaseLeverage", borrowedDebtToken, minReceivedAmount);
         }
 
         // At this step, the _borrowFromPool wrapper function will also assert that
         // the borrowed amount is exactly the amount requested, thus we can safely
         // have the slippage check before calling this function
-        _borrowFromPool(address(dStable), borrowedDebtAsset, address(this));
+        _borrowFromPool(address(debtToken), borrowedDebtToken, address(this));
 
-        // Transfer the debt asset to the user
-        dStable.safeTransfer(msg.sender, borrowedDebtAsset);
+        // Transfer the debt token to the user
+        debtToken.safeTransfer(msg.sender, borrowedDebtToken);
     }
 
     /**
      * @dev Decreases the leverage of the user by repaying debt and withdrawing collateral
-     *      - It requires to spend the debt asset from the user's wallet to repay the debt to the pool
+     *      - It requires to spend the debt token from the user's wallet to repay the debt to the pool
      *      - It will send the withdrawn collateral asset to the user's wallet
-     * @param debtAssetAmount The amount of debt asset to repay
+     * @param debtTokenAmount The amount of debt token to repay
      * @param minReceivedAmount The minimum amount of collateral asset to receive
      */
     function decreaseLeverage(
-        uint256 debtAssetAmount,
+        uint256 debtTokenAmount,
         uint256 minReceivedAmount
     ) public nonReentrant {
         /**
@@ -1047,11 +1054,11 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard {
             revert LeverageBelowTarget(currentLeverageBps, TARGET_LEVERAGE_BPS);
         }
 
-        uint256 debtAssetAmountInBase = convertFromTokenAmountToBaseCurrency(debtAssetAmount, address(dStable));
+        uint256 debtTokenAmountInBase = convertFromTokenAmountToBaseCurrency(debtTokenAmount, address(debtToken));
 
-        // The amount of collateral asset to withdraw is equal to the amount of debt asset repaid
+        // The amount of collateral asset to withdraw is equal to the amount of debt token repaid
         // plus the subsidy (bonus for the caller)
-        uint256 withdrawnAssetsBase = (debtAssetAmountInBase *
+        uint256 withdrawnAssetsBase = (debtTokenAmountInBase *
             (BasisPointConstants.ONE_HUNDRED_PERCENT_BPS + getCurrentSubsidyBps())) /
             BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
 
@@ -1066,7 +1073,7 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard {
             (totalCollateralBase -
                 withdrawnAssetsBase -
                 totalDebtBase +
-                debtAssetAmountInBase);
+                debtTokenAmountInBase);
 
         // Make sure the new leverage is decreasing and is not below the target leverage
         if (
@@ -1080,13 +1087,13 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard {
             );
         }
 
-        // Transfer the debt asset to the vault to repay the debt
-        dStable.safeTransferFrom(msg.sender, address(this), debtAssetAmount);
+        // Transfer the debt token to the vault to repay the debt
+        debtToken.safeTransferFrom(msg.sender, address(this), debtTokenAmount);
 
-        _repayDebtToPool(address(dStable), debtAssetAmount, address(this));
+        _repayDebtToPool(address(debtToken), debtTokenAmount, address(this));
 
         // Withdraw collateral
-        uint256 withdrawnAssets = convertFromBaseCurrencyToToken(withdrawnAssetsBase, address(underlyingAsset));
+        uint256 withdrawnAssets = convertFromBaseCurrencyToToken(withdrawnAssetsBase, address(collateralToken));
 
         // Slippage protection, to make sure the user receives at least minReceivedAmount
         if (withdrawnAssets < minReceivedAmount) {
@@ -1097,13 +1104,13 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard {
         // the withdrawn amount is exactly the amount requested, thus we can safely
         // have the slippage check before calling this function
         _withdrawFromPool(
-            address(underlyingAsset),
+            address(collateralToken),
             withdrawnAssets,
             address(this)
         );
 
         // Transfer the collateral asset to the user
-        underlyingAsset.safeTransfer(msg.sender, withdrawnAssets);
+        collateralToken.safeTransfer(msg.sender, withdrawnAssets);
     }
 
     /* Informational */
@@ -1159,19 +1166,19 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard {
     }
 
     /**
-     * @dev Gets the address of the underlying asset
-     * @return address The address of the underlying asset
+     * @dev Gets the address of the collateral token
+     * @return address The address of the collateral token
      */
-    function getUnderlyingAssetAddress() public view returns (address) {
-        return this.asset();
+    function getCollateralTokenAddress() public view returns (address) {
+        return address(collateralToken);
     }
 
     /**
-     * @dev Gets the address of the dStable
-     * @return address The address of the dStable
+     * @dev Gets the address of the debt token
+     * @return address The address of the debt token
      */
-    function getDStableAddress() public view returns (address) {
-        return address(dStable);
+    function getDebtTokenAddress() public view returns (address) {
+        return address(debtToken);
     }
 
     /**

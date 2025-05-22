@@ -48,8 +48,8 @@ contract DLoopCoreDLend is DLoopCoreBase {
      * @dev Constructor for the DLoopCoreDLend contract
      * @param _name Name of the vault token
      * @param _symbol Symbol of the vault token
-     * @param _underlyingAsset Address of the underlying asset
-     * @param _dStable Address of the dStable token
+     * @param _collateralToken Address of the collateral token
+     * @param _debtToken Address of the debt token
      * @param _lendingPoolAddressesProvider Address of the lending pool addresses provider
      * @param _targetLeverageBps Target leverage in basis points
      * @param _lowerBoundTargetLeverageBps Lower bound of target leverage in basis points
@@ -59,8 +59,8 @@ contract DLoopCoreDLend is DLoopCoreBase {
     constructor(
         string memory _name,
         string memory _symbol,
-        ERC20 _underlyingAsset,
-        ERC20 _dStable,
+        ERC20 _collateralToken,
+        ERC20 _debtToken,
         IPoolAddressesProvider _lendingPoolAddressesProvider,
         uint32 _targetLeverageBps,
         uint32 _lowerBoundTargetLeverageBps,
@@ -70,8 +70,8 @@ contract DLoopCoreDLend is DLoopCoreBase {
         DLoopCoreBase(
             _name,
             _symbol,
-            _underlyingAsset,
-            _dStable,
+            _collateralToken,
+            _debtToken,
             _targetLeverageBps,
             _lowerBoundTargetLeverageBps,
             _upperBoundTargetLeverageBps,
@@ -98,7 +98,7 @@ contract DLoopCoreDLend is DLoopCoreBase {
      * @return address[] Restricted rescue tokens
      */
     function getRestrictedRescueTokens() public view override returns (address[] memory) {
-        DataTypes.ReserveData memory reserveData = _getReserveData(address(underlyingAsset));
+        DataTypes.ReserveData memory reserveData = _getReserveData(address(collateralToken));
         address[] memory restrictedRescueTokens = new address[](3);
         restrictedRescueTokens[0] = reserveData.aTokenAddress;
         restrictedRescueTokens[1] = reserveData.variableDebtTokenAddress;

@@ -26,8 +26,8 @@ contract DLoopCoreMock is DLoopCoreBase {
     constructor(
         string memory _name,
         string memory _symbol,
-        ERC20 _underlyingAsset,
-        ERC20 _dStable,
+        ERC20 _collateralToken,
+        ERC20 _debtToken,
         uint32 _targetLeverageBps,
         uint32 _lowerBoundTargetLeverageBps,
         uint32 _upperBoundTargetLeverageBps,
@@ -37,8 +37,8 @@ contract DLoopCoreMock is DLoopCoreBase {
         DLoopCoreBase(
             _name,
             _symbol,
-            _underlyingAsset,
-            _dStable,
+            _collateralToken,
+            _debtToken,
             _targetLeverageBps,
             _lowerBoundTargetLeverageBps,
             _upperBoundTargetLeverageBps,
@@ -125,8 +125,8 @@ contract DLoopCoreMock is DLoopCoreBase {
     ) internal override {
         // Mimic: increase collateral for onBehalfOf, transfer token to pool
 
-        if (token == address(dStable)) {
-            revert("Mock: dStable is not supported as collateral");
+        if (token == address(debtToken)) {
+            revert("Mock: debtToken is not supported as collateral");
         }
 
         _setMockCollateral(
@@ -181,8 +181,8 @@ contract DLoopCoreMock is DLoopCoreBase {
     ) internal override {
         // Mimic: decrease collateral for onBehalfOf, transfer token from pool to onBehalfOf
 
-        if (token == address(dStable)) {
-            revert("Mock: dStable is not supported as collateral");
+        if (token == address(debtToken)) {
+            revert("Mock: debtToken is not supported as collateral");
         }
         if (mockCollateral[onBehalfOf][token] < amount) {
             revert("Mock: not enough collateral to withdraw");
