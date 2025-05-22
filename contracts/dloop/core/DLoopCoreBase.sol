@@ -162,7 +162,7 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard {
     error AssetPriceIsZero(address asset);
     error LeverageExceedsTarget(uint256 currentLeverageBps, uint256 targetLeverageBps);
     error LeverageBelowTarget(uint256 currentLeverageBps, uint256 targetLeverageBps);
-    error IncreaseLeverageReceiveLessThanMinAmount(uint256 receivedAmount, uint256 minReceivedAmount);
+    error RebalanceReceiveLessThanMinAmount(string operation, uint256 receivedAmount, uint256 minReceivedAmount);
 
     /**
      * @dev Constructor for the DLoopCore contract
@@ -985,7 +985,7 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard {
 
         // Slippage protection, to make sure the user receives at least minReceivedAmount
         if (borrowedDebtAsset < minReceivedAmount) {
-            revert IncreaseLeverageReceiveLessThanMinAmount(borrowedDebtAsset, minReceivedAmount);
+            revert RebalanceReceiveLessThanMinAmount("increaseLeverage", borrowedDebtAsset, minReceivedAmount);
         }
 
         // At this step, the _borrowFromPool wrapper function will also assert that
@@ -998,46 +998,67 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard {
     }
 
     /**
-     * @dev Decreases the leverage of the user by withdrawing assets and repaying dStable
-     * @param dStableAmount The amount of dStable to repay
-     * @param maxPriceInBase The maximum price of the asset in base currency
+     * @dev Decreases the leverage of the user by repaying debt and withdrawing collateral
+     *      - It requires to spend the debt asset from the user's wallet to repay the debt to the pool
+     *      - It will send the withdrawn collateral asset to the user's wallet
+     * @param debtAssetAmount The amount of debt asset to repay
+     * @param minReceivedAmount The minimum amount of collateral asset to receive
      */
     function decreaseLeverage(
-        uint256 dStableAmount,
-        uint256 maxPriceInBase
+        uint256 debtAssetAmount,
+        uint256 minReceivedAmount
     ) public nonReentrant {
+        /**
+         * Example of how this function works:
+         * 
+         * Suppose that the target leverage is 3x, and the baseLTVAsCollateral is 70%
+         * - The collateral token is WETH
+         * - The debt here is dUSD
+         * - Assume that the price of WETH is 2000 dUSD
+         * - The current leverage is 4x
+         *   - Total collateral: 100 WETH (100 * 2000 = 200,000 dUSD)
+         *   - Total debt: 150,000 dUSD
+         *   - Leverage: 200,000 / (200,000 - 150,000) = 4x
+         * 
+         * 1. User call decreaseLeverage with 20,000 dUSD
+         * 2. The vault transfers 20,000 dUSD from the user's wallet to the vault
+         * 3. The vault repays 20,000 dUSD to the lending pool
+         * 4. The vault withdraws 10 WETH (20,000 / 2000) from the lending pool
+         * 5. The vault sends 10 WETH to the user
+         * 
+         * The current leverage is now decreased:
+         *    - Total collateral: 90 WETH (90 * 2000 = 180,000 dUSD)
+         *    - Total debt: 130,000 dUSD
+         *    - Leverage: 180,000 / (180,000 - 130,000) = 3.6x
+         */
+        // Make sure only decrease the leverage if it is above the target leverage
         uint256 currentLeverageBps = getCurrentLeverageBps();
-
         if (currentLeverageBps <= TARGET_LEVERAGE_BPS) {
             revert LeverageBelowTarget(currentLeverageBps, TARGET_LEVERAGE_BPS);
         }
 
-        uint256 assetPriceInBase = getAssetPriceFromOracle(
-            address(underlyingAsset)
-        );
-        if (assetPriceInBase > maxPriceInBase) {
-            revert ExceedMaxPrice(assetPriceInBase, maxPriceInBase);
-        }
+        uint256 debtAssetAmountInBase = convertFromTokenAmountToBaseCurrency(debtAssetAmount, address(dStable));
 
-        uint256 dStableAmountInBase = convertFromTokenAmountToBaseCurrency(dStableAmount, address(dStable));
+        // The amount of collateral asset to withdraw is equal to the amount of debt asset repaid
+        // plus the subsidy (bonus for the caller)
+        uint256 withdrawnAssetsBase = (debtAssetAmountInBase *
+            (BasisPointConstants.ONE_HUNDRED_PERCENT_BPS + getCurrentSubsidyBps())) /
+            BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
 
         (
             uint256 totalCollateralBase,
             uint256 totalDebtBase
         ) = getTotalCollateralAndDebtOfUserInBase(address(this));
 
-        uint256 currentSubsidyBps = getCurrentSubsidyBps();
-        uint256 withdrawnAssetsBase = (dStableAmountInBase *
-            (BasisPointConstants.ONE_HUNDRED_PERCENT_BPS + currentSubsidyBps)) /
-            BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
-
+        // Calculate the new leverage after decreasing the leverage
         uint256 newLeverageBps = ((totalCollateralBase - withdrawnAssetsBase) *
             BasisPointConstants.ONE_HUNDRED_PERCENT_BPS) /
             (totalCollateralBase -
                 withdrawnAssetsBase -
                 totalDebtBase +
-                dStableAmountInBase);
+                debtAssetAmountInBase);
 
+        // Make sure the new leverage is decreasing and is not below the target leverage
         if (
             newLeverageBps < TARGET_LEVERAGE_BPS ||
             newLeverageBps >= currentLeverageBps
@@ -1049,21 +1070,29 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard {
             );
         }
 
-        // Transfer the dStable to the vault to repay the debt
-        dStable.safeTransferFrom(msg.sender, address(this), dStableAmount);
+        // Transfer the debt asset to the vault to repay the debt
+        dStable.safeTransferFrom(msg.sender, address(this), debtAssetAmount);
 
-        _repayDebtToPool(address(dStable), dStableAmount, address(this));
+        _repayDebtToPool(address(dStable), debtAssetAmount, address(this));
 
         // Withdraw collateral
         uint256 withdrawnAssets = convertFromBaseCurrencyToToken(withdrawnAssetsBase, address(underlyingAsset));
 
+        // Slippage protection, to make sure the user receives at least minReceivedAmount
+        if (withdrawnAssets < minReceivedAmount) {
+            revert RebalanceReceiveLessThanMinAmount("decreaseLeverage", withdrawnAssets, minReceivedAmount);
+        }
+
+        // At this step, the _withdrawFromPool wrapper function will also assert that
+        // the withdrawn amount is exactly the amount requested, thus we can safely
+        // have the slippage check before calling this function
         _withdrawFromPool(
             address(underlyingAsset),
             withdrawnAssets,
             address(this)
         );
 
-        // Transfer the withdrawn assets to the user
+        // Transfer the collateral asset to the user
         underlyingAsset.safeTransfer(msg.sender, withdrawnAssets);
     }
 
