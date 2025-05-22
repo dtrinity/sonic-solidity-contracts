@@ -21,7 +21,7 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {BasisPointConstants} from "contracts/common/BasisPointConstants.sol";
 import {ERC4626, ERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
-
+import {Erc20Helper} from "../libraries/Erc20Helper.sol";
 /**
  * @title DLoopCoreBase
  * @dev A leveraged vault contract
@@ -202,6 +202,16 @@ abstract contract DLoopCoreBase is ERC4626, Ownable {
                 _targetLeverageBps,
                 _upperBoundTargetLeverageBps
             );
+        }
+
+        // Make sure underlying asset is ERC-20
+        if (!Erc20Helper.isERC20(_underlyingAsset)) {
+            revert("Underlying asset must be an ERC-20");
+        }
+
+        // Make sure dStable is ERC-20
+        if (!Erc20Helper.isERC20(_dStable)) {
+            revert("dStable must be an ERC-20");
         }
 
         BASE_CURRENCY = _baseCurrency;
