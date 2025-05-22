@@ -97,6 +97,19 @@ contract DLoopCoreDLend is DLoopCoreBase {
     }
 
     /**
+     * @dev Gets the restricted rescue tokens
+     * @return address[] Restricted rescue tokens
+     */
+    function getRestrictedRescueTokens() public view override returns (address[] memory) {
+        DataTypes.ReserveData memory reserveData = _getReserveData(address(underlyingAsset));
+        address[] memory restrictedRescueTokens = new address[](3);
+        restrictedRescueTokens[0] = reserveData.aTokenAddress;
+        restrictedRescueTokens[1] = reserveData.variableDebtTokenAddress;
+        restrictedRescueTokens[2] = reserveData.stableDebtTokenAddress;
+        return restrictedRescueTokens;
+    }
+
+    /**
      * @dev Gets the asset price from the oracle
      * @param asset Address of the asset
      * @return uint256 Price of the asset

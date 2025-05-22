@@ -108,6 +108,10 @@ contract DLoopCoreMock is DLoopCoreBase {
 
     // --- Overrides ---
 
+    function getRestrictedRescueTokens() public pure override returns (address[] memory) {
+        return new address[](0);
+    }
+
     function getAssetPriceFromOracleImplementation(
         address asset
     ) public view override returns (uint256) {
