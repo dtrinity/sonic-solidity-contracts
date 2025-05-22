@@ -249,28 +249,6 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard {
         returns (uint256 totalCollateralBase, uint256 totalDebtBase);
 
     /**
-     * @dev Gets the maximum withdrawable token amount of a user from the lending pool
-     * @param user Address of the user
-     * @param token Address of the token
-     * @return uint256 Maximum withdrawable token amount
-     */
-    function getMaxWithdrawableAmount(
-        address user,
-        address token
-    ) public view virtual returns (uint256);
-
-    /**
-     * @dev Gets the maximum borrowable amount of a token
-     * @param user Address of the user
-     * @param token Address of the token
-     * @return uint256 Maximum borrowable amount of the token
-     */
-    function getMaxBorrowableAmount(
-        address user,
-        address token
-    ) public view virtual returns (uint256);
-
-    /**
      * @dev Gets the asset price from the oracle
      * @param asset Address of the asset
      * @return uint256 Price of the asset
