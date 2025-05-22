@@ -187,7 +187,9 @@ abstract contract RewardClaimable is AccessControl, ReentrancyGuard {
      * @return The treasury fee in the same unit as the amount
      */
     function getTreasuryFee(uint256 amount) public view returns (uint256) {
-        return (amount * treasuryFeeBps) / BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
+        return
+            (amount * treasuryFeeBps) /
+            BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
     }
 
     /**
