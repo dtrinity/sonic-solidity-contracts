@@ -22,11 +22,12 @@ import {BasisPointConstants} from "contracts/common/BasisPointConstants.sol";
 import {ERC4626, ERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {Erc20Helper} from "../libraries/Erc20Helper.sol";
+import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 /**
  * @title DLoopCoreBase
  * @dev A leveraged vault contract
  */
-abstract contract DLoopCoreBase is ERC4626, Ownable {
+abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard {
     using Math for uint256;
     using SafeERC20 for ERC20;
 
@@ -556,7 +557,7 @@ abstract contract DLoopCoreBase is ERC4626, Ownable {
      * @param receiver Address to receive the rescued tokens
      * @param amount Amount of tokens to rescue
      */
-    function rescueToken(address token, address receiver, uint256 amount) public onlyOwner {
+    function rescueToken(address token, address receiver, uint256 amount) public onlyOwner nonReentrant {
         // The vault does not hold any dStable and underlying asset, so it is not necessary to restrict the rescue of dStable and underlying asset
         // We can just rescue any ERC-20 token
 
@@ -592,7 +593,7 @@ abstract contract DLoopCoreBase is ERC4626, Ownable {
         address receiver,
         uint256 assets,
         uint256 shares
-    ) internal override {
+    ) internal override nonReentrant {
         /**
          * Example of how this function works:
          * 
@@ -698,7 +699,7 @@ abstract contract DLoopCoreBase is ERC4626, Ownable {
         address owner,
         uint256 assets,
         uint256 shares
-    ) internal override {
+    ) internal override nonReentrant {
         /**
          * Example of how this function works:
          * 
@@ -944,7 +945,7 @@ abstract contract DLoopCoreBase is ERC4626, Ownable {
     function increaseLeverage(
         uint256 assetAmount,
         uint256 minPriceInBase
-    ) public {
+    ) public nonReentrant {
         uint256 assetPriceInBase = getAssetPriceFromOracle(
             address(underlyingAsset)
         );
@@ -1007,7 +1008,7 @@ abstract contract DLoopCoreBase is ERC4626, Ownable {
     function decreaseLeverage(
         uint256 dStableAmount,
         uint256 maxPriceInBase
-    ) public {
+    ) public nonReentrant {
         uint256 assetPriceInBase = getAssetPriceFromOracle(
             address(underlyingAsset)
         );
@@ -1130,7 +1131,7 @@ abstract contract DLoopCoreBase is ERC4626, Ownable {
      * @dev Sets the maximum subsidy in basis points
      * @param _maxSubsidyBps New maximum subsidy in basis points
      */
-    function setMaxSubsidyBps(uint256 _maxSubsidyBps) public onlyOwner {
+    function setMaxSubsidyBps(uint256 _maxSubsidyBps) public onlyOwner nonReentrant {
         _defaultMaxSubsidyBps = _maxSubsidyBps;
     }
 
@@ -1142,7 +1143,7 @@ abstract contract DLoopCoreBase is ERC4626, Ownable {
     function setLeverageBounds(
         uint32 _lowerBoundTargetLeverageBps,
         uint32 _upperBoundTargetLeverageBps
-    ) public onlyOwner {
+    ) public onlyOwner nonReentrant {
         if (
             _lowerBoundTargetLeverageBps >= TARGET_LEVERAGE_BPS ||
             TARGET_LEVERAGE_BPS >= _upperBoundTargetLeverageBps
