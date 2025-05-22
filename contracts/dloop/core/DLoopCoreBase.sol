@@ -35,6 +35,8 @@ abstract contract DLoopCoreBase is ERC4626, Ownable {
     uint32 public lowerBoundTargetLeverageBps;
     uint32 public upperBoundTargetLeverageBps;
 
+    uint8 public immutable PRICE_ORACLE_DECIMALS;
+    uint256 public immutable PRICE_ORACLE_UNIT;
     uint32 public immutable TARGET_LEVERAGE_BPS; // ie. 30000 = 300% over 100% in basis points, means 3x leverage
     ERC20 public immutable underlyingAsset;
     ERC20 public immutable dStable;
@@ -161,6 +163,7 @@ abstract contract DLoopCoreBase is ERC4626, Ownable {
      * @param _lowerBoundTargetLeverageBps Lower bound of target leverage in basis points
      * @param _upperBoundTargetLeverageBps Upper bound of target leverage in basis points
      * @param _maxSubsidyBps Maximum subsidy in basis points
+     * @param _priceOracleDecimals Decimals of the price oracle (ie, 8 means 10^8 units of the asset)
      */
     constructor(
         string memory _name,
@@ -170,7 +173,8 @@ abstract contract DLoopCoreBase is ERC4626, Ownable {
         uint32 _targetLeverageBps,
         uint32 _lowerBoundTargetLeverageBps,
         uint32 _upperBoundTargetLeverageBps,
-        uint256 _maxSubsidyBps
+        uint256 _maxSubsidyBps,
+        uint8 _priceOracleDecimals
     ) ERC20(_name, _symbol) ERC4626(_underlyingAsset) Ownable(msg.sender) {
         dStable = _dStable;
         underlyingAsset = _underlyingAsset;
@@ -190,6 +194,8 @@ abstract contract DLoopCoreBase is ERC4626, Ownable {
             );
         }
 
+        PRICE_ORACLE_DECIMALS = _priceOracleDecimals;
+        PRICE_ORACLE_UNIT = 10 ** _priceOracleDecimals;
         TARGET_LEVERAGE_BPS = _targetLeverageBps;
         lowerBoundTargetLeverageBps = _lowerBoundTargetLeverageBps;
         upperBoundTargetLeverageBps = _upperBoundTargetLeverageBps;
@@ -421,6 +427,36 @@ abstract contract DLoopCoreBase is ERC4626, Ownable {
     /* Helper Functions */
 
     /**
+     * @dev Converts an amount in base currency to the actual amount in the token
+     * @param amountInBase Amount in base currency
+     * @param token Address of the token
+     * @return amountInToken Amount in the token
+     */
+    function convertFromBaseCurrencyToToken(
+        uint256 amountInBase,
+        address token
+    ) public view returns (uint256) {
+        // The price decimals is cancelled out in the division (as the amount and price are in the same unit)
+        uint256 tokenPriceInBase = getAssetPriceFromOracle(token);
+        return (amountInBase * 10 ** ERC20(token).decimals()) / tokenPriceInBase;
+    }
+
+    /**
+     * @dev Converts an amount in the token to the actual amount in base currency
+     * @param amountInToken Amount in the token
+     * @param token Address of the token
+     * @return amountInBase Amount in base currency
+     */
+    function convertFromTokenAmountToBaseCurrency(
+        uint256 amountInToken,
+        address token
+    ) public view returns (uint256) {
+        // The token decimals is cancelled out in the division (as the amount and price are in the same unit)
+        uint256 tokenPriceInBase = getAssetPriceFromOracle(token);
+        return (amountInToken * tokenPriceInBase) / 10 ** ERC20(token).decimals();
+    }
+
+    /**
      * @dev Calculates the leveraged amount of the assets
      * @param assets Amount of assets
      * @return leveragedAssets Amount of leveraged assets
@@ -459,12 +495,8 @@ abstract contract DLoopCoreBase is ERC4626, Ownable {
             uint256 totalCollateralBase,
 
         ) = _getTotalCollateralAndDebtOfUserInBase(address(this));
-        uint256 assetPriceInBase = getAssetPriceFromOracle(
-            address(underlyingAsset)
-        );
-        uint256 assetTokenUnit = 10 **
-            ERC20(address(underlyingAsset)).decimals();
-        return (totalCollateralBase * assetTokenUnit) / assetPriceInBase;
+        // The price decimals is cancelled out in the division (as the amount and price are in the same unit)
+        return convertFromBaseCurrencyToToken(totalCollateralBase, address(underlyingAsset));
     }
 
     /* Safety */
@@ -567,7 +599,9 @@ abstract contract DLoopCoreBase is ERC4626, Ownable {
 
         // Get the amount of dStable to borrow that keeps the current leverage
         // If there is no deposit yet (leverage=0), we use the target leverage
-        uint256 dStableAmountToBorrow = _getBorrowAmountThatKeepCurrentLeverage(
+        uint256 dStableAmountToBorrow = getBorrowAmountThatKeepCurrentLeverage(
+            address(underlyingAsset),
+            address(dStable),
             depositAssetAmount,
             currentLeverageBpsBeforeSupply > 0
                 ? currentLeverageBpsBeforeSupply
@@ -667,10 +701,12 @@ abstract contract DLoopCoreBase is ERC4626, Ownable {
         _repayDebtToPool(address(dStable), dStableToRepay, address(this));
 
         // Get the withdrawable amount that keeps the current leverage
-        uint256 withdrawableUnderlyingAmount = _getWithdrawAmountThatKeepCurrentLeverage(
-                dStableToRepay,
-                leverageBpsBeforeRepayDebt
-            );
+        uint256 withdrawableUnderlyingAmount = getWithdrawAmountThatKeepCurrentLeverage(
+            address(underlyingAsset),
+            address(dStable),
+            dStableToRepay,
+            leverageBpsBeforeRepayDebt
+        );
 
         if (withdrawableUnderlyingAmount < assetsToRemoveFromLending) {
             revert WithdrawableIsLessThanRequired(
@@ -692,14 +728,18 @@ abstract contract DLoopCoreBase is ERC4626, Ownable {
 
     /**
      * @dev Gets the withdrawable amount that keeps the current leverage
-     * @param actualRepaidAmount The actual repaid amount
+     * @param collateralAsset The collateral asset
+     * @param debtAsset The debt asset
+     * @param repaidDebtAmount The actual repaid amount
      * @param leverageBpsBeforeRepayDebt Leverage in basis points before repaying
      * @return expectedWithdrawAmount The expected withdrawable amount that keeps the current leverage
      */
-    function _getWithdrawAmountThatKeepCurrentLeverage(
-        uint256 actualRepaidAmount,
+    function getWithdrawAmountThatKeepCurrentLeverage(
+        address collateralAsset,
+        address debtAsset,
+        uint256 repaidDebtAmount,
         uint256 leverageBpsBeforeRepayDebt
-    ) internal pure returns (uint256 expectedWithdrawAmount) {
+    ) public view returns (uint256 expectedWithdrawAmount) {
         // Formula definition:
         // - C1: totalCollateralBase before repay
         // - D1: totalDebtBase before repay
@@ -737,22 +777,31 @@ abstract contract DLoopCoreBase is ERC4626, Ownable {
             return type(uint256).max;
         }
 
-        return
-            (actualRepaidAmount * leverageBpsBeforeRepayDebt) /
+        // Convert the actual repaid amount to base
+        uint256 repaidDebtAmountInBase = convertFromTokenAmountToBaseCurrency(repaidDebtAmount, debtAsset);
+
+        // Calculate the expected withdrawable amount in base
+        uint256 withdrawableAmountInBase = (repaidDebtAmountInBase * leverageBpsBeforeRepayDebt) /
             (leverageBpsBeforeRepayDebt -
                 BasisPointConstants.ONE_HUNDRED_PERCENT_BPS);
+
+        return convertFromBaseCurrencyToToken(withdrawableAmountInBase, collateralAsset);
     }
 
     /**
      * @dev Gets the borrow amount that keeps the current leverage
-     * @param actualSuppliedAmount The actual supplied amount
+     * @param collateralAsset The collateral asset
+     * @param debtAsset The debt asset
+     * @param suppliedCollateralAmount The actual supplied amount of collateral asset
      * @param leverageBpsBeforeSupply Leverage in basis points before supplying
      * @return expectedBorrowAmount The expected borrow amount that keeps the current leverage
      */
-    function _getBorrowAmountThatKeepCurrentLeverage(
-        uint256 actualSuppliedAmount,
+    function getBorrowAmountThatKeepCurrentLeverage(
+        address collateralAsset,
+        address debtAsset,
+        uint256 suppliedCollateralAmount,
         uint256 leverageBpsBeforeSupply
-    ) internal pure returns (uint256 expectedBorrowAmount) {
+    ) public view returns (uint256 expectedBorrowAmount) {
         // Formula definition:
         // - C1: totalCollateralBase before supply
         // - D1: totalDebtBase before supply
@@ -788,10 +837,15 @@ abstract contract DLoopCoreBase is ERC4626, Ownable {
             return type(uint256).max;
         }
 
-        return
-            (actualSuppliedAmount * leverageBpsBeforeSupply) /
+        // Convert the actual supplied amount to base
+        uint256 suppliedCollateralAmountInBase = convertFromTokenAmountToBaseCurrency(suppliedCollateralAmount, collateralAsset);
+
+        // Calculate the borrow amount in base currency that keeps the current leverage
+        uint256 borrowAmountInBase = (suppliedCollateralAmountInBase * leverageBpsBeforeSupply) /
             (leverageBpsBeforeSupply -
                 BasisPointConstants.ONE_HUNDRED_PERCENT_BPS);
+
+        return convertFromBaseCurrencyToToken(borrowAmountInBase, debtAsset);
     }
 
     /* Rebalance */
@@ -807,8 +861,7 @@ abstract contract DLoopCoreBase is ERC4626, Ownable {
             revert BelowMinPrice(assetPriceInBase, minPriceInBase);
         }
 
-        uint256 assetAmountInBase = (assetAmount * assetPriceInBase) /
-            (10 ** underlyingAsset.decimals());
+        uint256 assetAmountInBase = convertFromTokenAmountToBaseCurrency(assetAmount, address(underlyingAsset));
 
         (
             uint256 totalCollateralBase,
@@ -817,7 +870,6 @@ abstract contract DLoopCoreBase is ERC4626, Ownable {
 
         uint256 currentSubsidyBps = _getCurrentSubsidyBps();
 
-        uint256 dStablePriceInBase = getAssetPriceFromOracle(address(dStable));
         uint256 borrowedDStableInBase = (assetAmountInBase *
             (BasisPointConstants.ONE_HUNDRED_PERCENT_BPS + currentSubsidyBps)) /
             BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
@@ -853,8 +905,7 @@ abstract contract DLoopCoreBase is ERC4626, Ownable {
         _supplyToPool(address(underlyingAsset), assetAmount, address(this));
 
         // Borrow more dStable
-        uint256 borrowedDStable = (borrowedDStableInBase *
-            (10 ** dStable.decimals())) / dStablePriceInBase;
+        uint256 borrowedDStable = convertFromBaseCurrencyToToken(borrowedDStableInBase, address(dStable));
 
         _borrowFromPool(address(dStable), borrowedDStable, address(this));
 
@@ -873,9 +924,7 @@ abstract contract DLoopCoreBase is ERC4626, Ownable {
             revert ExceedMaxPrice(assetPriceInBase, maxPriceInBase);
         }
 
-        uint256 dStableAmountInBase = (dStableAmount *
-            getAssetPriceFromOracle(address(dStable))) /
-            (10 ** dStable.decimals());
+        uint256 dStableAmountInBase = convertFromTokenAmountToBaseCurrency(dStableAmount, address(dStable));
 
         (
             uint256 totalCollateralBase,
@@ -912,8 +961,7 @@ abstract contract DLoopCoreBase is ERC4626, Ownable {
         _repayDebtToPool(address(dStable), dStableAmount, address(this));
 
         // Withdraw collateral
-        uint256 withdrawnAssets = (withdrawnAssetsBase *
-            (10 ** underlyingAsset.decimals())) / assetPriceInBase;
+        uint256 withdrawnAssets = convertFromBaseCurrencyToToken(withdrawnAssetsBase, address(underlyingAsset));
 
         _withdrawFromPool(
             address(underlyingAsset),

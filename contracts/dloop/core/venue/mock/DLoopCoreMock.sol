@@ -4,7 +4,7 @@ pragma solidity 0.8.20;
 import {DLoopCoreBase} from "../../DLoopCoreBase.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {BasisPointConstants} from "contracts/common/BasisPointConstants.sol";
-
+import {PercentageMath} from "contracts/dlend/core/protocol/libraries/math/PercentageMath.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 /**
  * @title DLoopCoreMock
@@ -44,7 +44,8 @@ contract DLoopCoreMock is DLoopCoreBase {
             _targetLeverageBps,
             _lowerBoundTargetLeverageBps,
             _upperBoundTargetLeverageBps,
-            _maxSubsidyBps
+            _maxSubsidyBps,
+            PRICE_DECIMALS
         )
     {
         baseAsset = address(0);
@@ -356,5 +357,11 @@ contract DLoopCoreMock is DLoopCoreBase {
         returns (uint256 totalCollateralBase, uint256 totalDebtBase)
     {
         return _getTotalCollateralAndDebtOfUserInBase(user);
+    }
+    function testGetMaxBorrowableAmount(
+        address user,
+        address token
+    ) external view returns (uint256) {
+        return _getMaxBorrowableAmount(user, token);
     }
 }

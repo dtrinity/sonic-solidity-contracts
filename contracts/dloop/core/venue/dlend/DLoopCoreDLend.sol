@@ -31,6 +31,8 @@ import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 contract DLoopCoreDLend is DLoopCoreBase {
     /* Constants */
 
+    uint8 public constant AAVE_PRICE_ORACLE_DECIMALS = 8;
+
     // Note that there is a vulnerability in stable interest rate mode, so we will never use it
     // See contracts/lending/core/protocol/libraries/types/DataTypes.sol
     uint256 public constant VARIABLE_LENDING_INTERST_RATE_MODE = 2; // 0 = NONE, 1 = STABLE, 2 = VARIABLE
@@ -45,6 +47,7 @@ contract DLoopCoreDLend is DLoopCoreBase {
     /* Errors */
 
     error InvalidBaseCurrency(address expected, address actual);
+    error InvalidOracleUnit(uint256 oracleUnit, uint256 expected);
 
     /**
      * @dev Constructor for the DLoopCoreDLend contract
@@ -77,7 +80,8 @@ contract DLoopCoreDLend is DLoopCoreBase {
             _targetLeverageBps,
             _lowerBoundTargetLeverageBps,
             _upperBoundTargetLeverageBps,
-            _maxSubsidyBps
+            _maxSubsidyBps,
+            AAVE_PRICE_ORACLE_DECIMALS
         )
     {
         lendingPoolAddressesProvider = _lendingPoolAddressesProvider;
@@ -89,6 +93,12 @@ contract DLoopCoreDLend is DLoopCoreBase {
                 getLendingOracle().BASE_CURRENCY(),
                 baseCurrency
             );
+        }
+
+        uint256 oracleUnit = getLendingOracle().BASE_CURRENCY_UNIT();
+
+        if (oracleUnit != 10 ** AAVE_PRICE_ORACLE_DECIMALS) {
+            revert InvalidOracleUnit(oracleUnit, 10 ** AAVE_PRICE_ORACLE_DECIMALS);
         }
     }
 
