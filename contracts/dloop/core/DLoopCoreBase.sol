@@ -472,17 +472,6 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard {
     }
 
     /**
-     * @dev Calculates the leveraged amount of the assets
-     * @param assets Amount of assets
-     * @return leveragedAssets Amount of leveraged assets
-     */
-    function getLeveragedAssets(uint256 assets) public view returns (uint256) {
-        return
-            (assets * TARGET_LEVERAGE_BPS) /
-            BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
-    }
-
-    /**
      * @dev Gets the amount of dStable to repay when withdrawing the underlying asset
      * @param assets Amount of underlying asset to withdraw
      * @return amountOfDebtToRepay Amount of dStable to repay
