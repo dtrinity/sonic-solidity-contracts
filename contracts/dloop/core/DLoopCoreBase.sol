@@ -923,12 +923,22 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard {
          * Suppose that the target leverage is 3x, and the baseLTVAsCollateral is 70%
          * - The collateral token is WETH
          * - The debt here is dUSD
+         * - Assume that the price of WETH is 2000 dUSD
+         * - The current leverage is 1.25x
+         *   - Total collateral: 100 WETH (100 * 2000 = 200,000 dUSD)
+         *   - Total debt: 40,000 dUSD
+         *   - Leverage: 200,000 / (200,000 - 40,000) = 1.25x
          * 
-         * 1. User call increaseLeverage with 100 WETH
-         * 2. The vault transfers 100 WETH from the user's wallet to the vault
-         * 3. The vault supplies 100 WETH to the lending pool
-         * 4. The vault borrows 100 dUSD from the lending pool
-         * 5. The vault sends 100 dUSD to the user
+         * 1. User call increaseLeverage with 50 WETH
+         * 2. The vault transfers 50 WETH from the user's wallet to the vault
+         * 3. The vault supplies 50 WETH to the lending pool
+         * 4. The vault borrows 100,000 dUSD (50 * 2000) from the lending pool
+         * 5. The vault sends 100,000 dUSD to the user
+         * 
+         * The current leverage is now increased:
+         *    - Total collateral: 150 WETH (150 * 2000 = 300,000 dUSD)
+         *    - Total debt: 140,000 dUSD
+         *    - Leverage: 300,000 / (300,000 - 140,000) = 1.875x
          */
 
         // Make sure only increase the leverage if it is below the target leverage
