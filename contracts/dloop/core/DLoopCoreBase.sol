@@ -205,12 +205,12 @@ abstract contract DLoopCoreBase is ERC4626, Ownable {
         }
 
         // Make sure underlying asset is ERC-20
-        if (!Erc20Helper.isERC20(_underlyingAsset)) {
+        if (!Erc20Helper.isERC20(address(_underlyingAsset))) {
             revert("Underlying asset must be an ERC-20");
         }
 
         // Make sure dStable is ERC-20
-        if (!Erc20Helper.isERC20(_dStable)) {
+        if (!Erc20Helper.isERC20(address(_dStable))) {
             revert("dStable must be an ERC-20");
         }
 
