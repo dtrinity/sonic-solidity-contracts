@@ -52,6 +52,12 @@ abstract contract DLoopCoreBase is ERC4626, Ownable {
         uint256 upperBoundTargetLeverageBps
     );
     error InvalidTotalSupplyAndAssets(uint256 totalAssets, uint256 totalSupply);
+    error InsufficientAllowanceOfDebtAssetToRepay(
+        address owner,
+        address spender,
+        address debtAsset,
+        uint256 requiredAllowance
+    );
     error DepositInsufficientToSupply(
         uint256 currentBalance,
         uint256 newTotalAssets
@@ -655,6 +661,12 @@ abstract contract DLoopCoreBase is ERC4626, Ownable {
 
         // Calculate dStable to repay
         uint256 dStableToRepay = getAmountOfDebtToRepay(assets);
+
+        // If don't have enough allowance, revert with the error message
+        // This is to early-revert with instruction in the error message
+        if (dStable.allowance(msg.sender, address(this)) < dStableToRepay) {
+            revert InsufficientAllowanceOfDebtAssetToRepay(msg.sender, address(this), address(dStable), dStableToRepay);
+        }
 
         // Transfer the dStable to the vault to repay the debt
         dStable.safeTransferFrom(msg.sender, address(this), dStableToRepay);
