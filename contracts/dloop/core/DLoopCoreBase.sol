@@ -97,12 +97,50 @@ abstract contract DLoopCoreBase is ERC4626, Ownable {
         uint256 underlyingAssetBalanceAfter,
         uint256 withdrawableUnderlyingAmount
     );
+    error TokenBalanceNotDecreasedAfterRepay(
+        address token,
+        uint256 tokenBalanceBefore,
+        uint256 tokenBalanceAfter,
+        uint256 expectedTokenBalance
+    );
+    error UnexpectedRepayAmountToPool(
+        address token,
+        uint256 tokenBalanceBefore,
+        uint256 tokenBalanceAfter,
+        uint256 expectedTokenBalance
+    );
+    error TokenBalanceNotDecreasedAfterSupply(
+        address token,
+        uint256 tokenBalanceBefore,
+        uint256 tokenBalanceAfter,
+        uint256 expectedTokenBalance
+    );
+    error UnexpectedSupplyAmountToPool(
+        address token,
+        uint256 tokenBalanceBefore,
+        uint256 tokenBalanceAfter,
+        uint256 expectedTokenBalance
+    );
+    error TokenBalanceNotIncreasedAfterBorrow(
+        address token,
+        uint256 tokenBalanceBefore,
+        uint256 tokenBalanceAfter,
+        uint256 expectedTokenBalance
+    );
     error UnexpectedBorrowAmountFromPool(
+        address token,
         uint256 borrowedAmountBefore,
         uint256 borrowedAmountAfter,
         uint256 expectedBorrowedAmount
     );
+    error TokenBalanceNotIncreasedAfterWithdraw(
+        address token,
+        uint256 tokenBalanceBefore,
+        uint256 tokenBalanceAfter,
+        uint256 expectedTokenBalance
+    );
     error UnexpectedWithdrawAmountFromPool(
+        address token,
         uint256 withdrawableAmountBefore,
         uint256 withdrawableAmountAfter,
         uint256 expectedWithdrawableAmount
@@ -175,7 +213,7 @@ abstract contract DLoopCoreBase is ERC4626, Ownable {
      * @param amount Amount of tokens to supply
      * @param onBehalfOf Address to supply on behalf of
      */
-    function _supplyToPool(
+    function _supplyToPoolImplementation(
         address token,
         uint256 amount,
         address onBehalfOf
@@ -187,7 +225,7 @@ abstract contract DLoopCoreBase is ERC4626, Ownable {
      * @param amount Amount of tokens to borrow
      * @param onBehalfOf Address to borrow on behalf of
      */
-    function _borrowFromPool(
+    function _borrowFromPoolImplementation(
         address token,
         uint256 amount,
         address onBehalfOf
@@ -199,7 +237,7 @@ abstract contract DLoopCoreBase is ERC4626, Ownable {
      * @param amount Amount of tokens to repay
      * @param onBehalfOf Address to repay on behalf of
      */
-    function _repayDebt(
+    function _repayDebtToPoolImplementation(
         address token,
         uint256 amount,
         address onBehalfOf
@@ -211,7 +249,7 @@ abstract contract DLoopCoreBase is ERC4626, Ownable {
      * @param amount Amount of tokens to withdraw
      * @param onBehalfOf Address to withdraw on behalf of
      */
-    function _withdrawFromPool(
+    function _withdrawFromPoolImplementation(
         address token,
         uint256 amount,
         address onBehalfOf
@@ -263,6 +301,122 @@ abstract contract DLoopCoreBase is ERC4626, Ownable {
         address user,
         address token
     ) internal view virtual returns (uint256);
+
+    /* Wrapper Functions */
+
+    /**
+     * @dev Supply tokens to the lending pool, and make sure the output is as expected
+     * @param token Address of the token
+     * @param amount Amount of tokens to supply
+     * @param onBehalfOf Address to supply on behalf of
+     */
+    function _supplyToPool(
+        address token,
+        uint256 amount,
+        address onBehalfOf
+    ) internal {
+        // At this step, we assume that the funds from the depositor are already in the vault
+
+        uint256 tokenBalanceBeforeSupply = ERC20(token).balanceOf(address(this));
+
+        _supplyToPoolImplementation(token, amount, onBehalfOf);
+
+        uint256 tokenBalanceAfterSupply = ERC20(token).balanceOf(address(this));
+        if (tokenBalanceAfterSupply >= tokenBalanceBeforeSupply) {
+            revert TokenBalanceNotDecreasedAfterSupply(token, tokenBalanceBeforeSupply, tokenBalanceAfterSupply, amount);
+        }
+
+        // Now, as balance before must be greater than balance after, we can just check if the difference is the expected amount
+        if (tokenBalanceBeforeSupply - tokenBalanceAfterSupply != amount) {
+            revert UnexpectedSupplyAmountToPool(token, tokenBalanceBeforeSupply, tokenBalanceAfterSupply, amount);
+        }
+    }
+
+    /**
+     * @dev Borrow tokens from the lending pool, and make sure the output is as expected
+     * @param token Address of the token
+     * @param amount Amount of tokens to borrow
+     * @param onBehalfOf Address to borrow on behalf of
+     */
+    function _borrowFromPool(
+        address token,
+        uint256 amount,
+        address onBehalfOf
+    ) internal {
+        // At this step, we assume that the funds from the depositor are already in the vault
+
+        uint256 tokenBalanceBeforeBorrow = ERC20(token).balanceOf(address(this));
+
+        _borrowFromPoolImplementation(token, amount, onBehalfOf);
+
+        uint256 tokenBalanceAfterBorrow = ERC20(token).balanceOf(address(this));
+        if (tokenBalanceAfterBorrow <= tokenBalanceBeforeBorrow) {
+            revert TokenBalanceNotIncreasedAfterBorrow(token, tokenBalanceBeforeBorrow, tokenBalanceAfterBorrow, amount);
+        }
+
+        // Now, as balance before must be less than balance after, we can just check if the difference is the expected amount
+        if (tokenBalanceAfterBorrow - tokenBalanceBeforeBorrow != amount) {
+            revert UnexpectedBorrowAmountFromPool(token, tokenBalanceBeforeBorrow, tokenBalanceAfterBorrow, amount);
+        }
+    }
+
+    /**
+     * @dev Repay debt to the lending pool, and make sure the output is as expected
+     * @param token Address of the token
+     * @param amount Amount of tokens to repay
+     * @param onBehalfOf Address to repay on behalf of
+     */
+    function _repayDebtToPool(
+        address token,
+        uint256 amount,
+        address onBehalfOf
+    ) internal {
+        // At this step, we assume that the funds from the depositor are already in the vault
+
+        uint256 tokenBalanceBeforeRepay = ERC20(token).balanceOf(address(this));
+
+        _repayDebtToPoolImplementation(token, amount, onBehalfOf);
+
+        uint256 tokenBalanceAfterRepay = ERC20(token).balanceOf(address(this));
+
+        if (tokenBalanceAfterRepay >= tokenBalanceBeforeRepay) {
+            revert TokenBalanceNotDecreasedAfterRepay(token, tokenBalanceBeforeRepay, tokenBalanceAfterRepay, amount);
+        }
+
+        // Now, as balance before must be greater than balance after, we can just check if the difference is the expected amount
+        if (tokenBalanceBeforeRepay - tokenBalanceAfterRepay != amount) {
+            revert UnexpectedRepayAmountToPool(token, tokenBalanceBeforeRepay, tokenBalanceAfterRepay, amount);
+        }
+    }
+
+    /**
+     * @dev Withdraw tokens from the lending pool, and make sure the output is as expected
+     * @param token Address of the token
+     * @param amount Amount of tokens to withdraw
+     * @param onBehalfOf Address to withdraw on behalf of
+     */
+    function _withdrawFromPool(
+        address token,
+        uint256 amount,
+        address onBehalfOf
+    ) internal {
+        // At this step, we assume that the funds from the depositor are already in the vault
+
+        uint256 tokenBalanceBeforeWithdraw = ERC20(token).balanceOf(address(this));
+
+        _withdrawFromPoolImplementation(token, amount, onBehalfOf);
+
+        uint256 tokenBalanceAfterWithdraw = ERC20(token).balanceOf(address(this));
+
+        if (tokenBalanceAfterWithdraw <= tokenBalanceBeforeWithdraw) {
+            revert TokenBalanceNotIncreasedAfterWithdraw(token, tokenBalanceBeforeWithdraw, tokenBalanceAfterWithdraw, amount);
+        }
+
+        // Now, as balance before must be less than balance after, we can just check if the difference is the expected amount
+        if (tokenBalanceAfterWithdraw - tokenBalanceBeforeWithdraw != amount) {
+            revert UnexpectedWithdrawAmountFromPool(token, tokenBalanceBeforeWithdraw, tokenBalanceAfterWithdraw, amount);
+        }
+    }
 
     /* Helper Functions */
 
@@ -384,8 +538,13 @@ abstract contract DLoopCoreBase is ERC4626, Ownable {
         emit Deposit(caller, receiver, assets, shares);
     }
 
+    /**
+     * @dev Deposits assets into the lending pool
+     * @param depositAssetAmount Amount of assets to deposit
+     * @return dStableAmountToBorrow Amount of dStable to borrow
+     */
     function _depositToPoolImplementation(
-        uint256 newTotalAssets // deposit amount
+        uint256 depositAssetAmount // deposit amount
     ) private returns (uint256) {
         // At this step, we assume that the funds from the depositor are already in the vault
 
@@ -396,70 +555,27 @@ abstract contract DLoopCoreBase is ERC4626, Ownable {
         uint256 currentUnderlyingAssetBalance = underlyingAsset.balanceOf(
             address(this)
         );
-        if (currentUnderlyingAssetBalance < newTotalAssets) {
+        if (currentUnderlyingAssetBalance < depositAssetAmount) {
             revert DepositInsufficientToSupply(
                 currentUnderlyingAssetBalance,
-                newTotalAssets
+                depositAssetAmount
             );
         }
-
-        // Get the max amount of dStable to borrow before supplying
-        // This value is used to calculate the amount of dStable to borrow that keeps the current leverage
-        uint256 maxDStableToBorrowBeforeSupply = _getMaxBorrowableAmount(
-            address(this),
-            address(dStable)
-        );
 
         // Supply the underlying asset to the lending pool
-        _supplyToPool(address(underlyingAsset), newTotalAssets, address(this));
-
-        uint256 maxDStableToBorrowAfterSupply = _getMaxBorrowableAmount(
-            address(this),
-            address(dStable)
-        );
-
-        if (maxDStableToBorrowAfterSupply <= maxDStableToBorrowBeforeSupply) {
-            revert MaxDStableToBorrowNotIncreasedAfterSupply(
-                maxDStableToBorrowBeforeSupply,
-                maxDStableToBorrowAfterSupply
-            );
-        }
+        _supplyToPool(address(underlyingAsset), depositAssetAmount, address(this));
 
         // Get the amount of dStable to borrow that keeps the current leverage
         // If there is no deposit yet (leverage=0), we use the target leverage
         uint256 dStableAmountToBorrow = _getBorrowAmountThatKeepCurrentLeverage(
-            maxDStableToBorrowBeforeSupply,
-            maxDStableToBorrowAfterSupply,
+            depositAssetAmount,
             currentLeverageBpsBeforeSupply > 0
                 ? currentLeverageBpsBeforeSupply
                 : TARGET_LEVERAGE_BPS
         );
 
-        uint256 dStableBalanceBeforeBorrow = dStable.balanceOf(address(this));
-
         // Borrow the max amount of dStable
         _borrowFromPool(address(dStable), dStableAmountToBorrow, address(this));
-
-        uint256 dStableBalanceAfterBorrow = dStable.balanceOf(address(this));
-
-        if (dStableBalanceAfterBorrow < dStableBalanceBeforeBorrow) {
-            revert DStableDecreasedAfterBorrow(
-                dStableBalanceBeforeBorrow,
-                dStableBalanceAfterBorrow,
-                dStableAmountToBorrow
-            );
-        }
-
-        if (
-            dStableBalanceAfterBorrow - dStableBalanceBeforeBorrow !=
-            dStableAmountToBorrow
-        ) {
-            revert UnexpectedBorrowAmountFromPool(
-                dStableBalanceBeforeBorrow,
-                dStableBalanceAfterBorrow,
-                dStableAmountToBorrow
-            );
-        }
 
         return dStableAmountToBorrow;
     }
@@ -543,44 +659,16 @@ abstract contract DLoopCoreBase is ERC4626, Ownable {
         uint256 assetsToRemoveFromLending,
         uint256 dStableToRepay
     ) private returns (uint256 receivedUnderlyingAmount) {
-        // This value is used later to calculate the actual received asset after withdrawing
-        uint256 underlyingAssetBalanceBefore = underlyingAsset.balanceOf(
-            address(this)
-        );
-
-        // This value is used later to calculate the expected withdrawable amount that keeps the current leverage
-        uint256 maxWithdrawUnderlyingBeforeRepay = _getMaxWithdrawableAmount(
-            address(this),
-            address(underlyingAsset)
-        );
-
         // Get the current leverage before repaying the debt (IMPORTANT: this is the leverage before repaying the debt)
         // It is used to calculate the expected withdrawable amount that keeps the current leverage
         uint256 leverageBpsBeforeRepayDebt = getCurrentLeverageBps();
 
         // Repay the debt to withdraw the collateral
-        _repayDebt(address(dStable), dStableToRepay, address(this));
-
-        uint256 maxWithdrawUnderlyingAfterRepay = _getMaxWithdrawableAmount(
-            address(this),
-            address(underlyingAsset)
-        );
-
-        // Make sure the max withdraw amount of underlying asset is not decreased after repaying the debt
-        if (
-            maxWithdrawUnderlyingAfterRepay < maxWithdrawUnderlyingBeforeRepay
-        ) {
-            revert InvalidMaxWithdrawAfterRepay(
-                address(underlyingAsset),
-                maxWithdrawUnderlyingBeforeRepay,
-                maxWithdrawUnderlyingAfterRepay
-            );
-        }
+        _repayDebtToPool(address(dStable), dStableToRepay, address(this));
 
         // Get the withdrawable amount that keeps the current leverage
         uint256 withdrawableUnderlyingAmount = _getWithdrawAmountThatKeepCurrentLeverage(
-                maxWithdrawUnderlyingBeforeRepay,
-                maxWithdrawUnderlyingAfterRepay,
+                dStableToRepay,
                 leverageBpsBeforeRepayDebt
             );
 
@@ -599,45 +687,19 @@ abstract contract DLoopCoreBase is ERC4626, Ownable {
             address(this)
         );
 
-        uint256 underlyingAssetBalanceAfter = underlyingAsset.balanceOf(
-            address(this)
-        );
-
-        // Make sure the vault received the collateral after withdrawing
-        if (underlyingAssetBalanceAfter < underlyingAssetBalanceBefore) {
-            revert UnderlyingAssetDecreasedAfterWithdraw(
-                underlyingAssetBalanceBefore,
-                underlyingAssetBalanceAfter,
-                withdrawableUnderlyingAmount
-            );
-        }
-
-        // Make sure the withdrawable amount is not less than expected
-        if (underlyingAssetBalanceAfter - underlyingAssetBalanceBefore != withdrawableUnderlyingAmount) {
-            revert UnexpectedWithdrawAmountFromPool(
-                underlyingAssetBalanceBefore,
-                underlyingAssetBalanceAfter,
-                withdrawableUnderlyingAmount
-            );
-        }
-
         return withdrawableUnderlyingAmount;
     }
 
     /**
      * @dev Gets the withdrawable amount that keeps the current leverage
-     * @param maxWithdrawAmountBeforeRepay Maximum withdrawable amount before repaying
-     * @param maxWithdrawAmountAfterRepay Maximum withdrawable amount after repaying
+     * @param actualRepaidAmount The actual repaid amount
      * @param leverageBpsBeforeRepayDebt Leverage in basis points before repaying
      * @return expectedWithdrawAmount The expected withdrawable amount that keeps the current leverage
      */
     function _getWithdrawAmountThatKeepCurrentLeverage(
-        uint256 maxWithdrawAmountBeforeRepay,
-        uint256 maxWithdrawAmountAfterRepay,
+        uint256 actualRepaidAmount,
         uint256 leverageBpsBeforeRepayDebt
     ) internal pure returns (uint256 expectedWithdrawAmount) {
-        // Assume the maxWithdrawAmountBeforeRepay and maxWithdrawAmountAfterRepay are in the same unit
-        //
         // Formula definition:
         // - C1: totalCollateralBase before repay
         // - D1: totalDebtBase before repay
@@ -664,8 +726,6 @@ abstract contract DLoopCoreBase is ERC4626, Ownable {
         //    <=> y = x * (T-1)/T
         //    <=> x = y * T/(T-1)
         //
-        uint256 actualRepaidAmount = maxWithdrawAmountAfterRepay -
-            maxWithdrawAmountBeforeRepay;
 
         // Instead of using TARGET_LEVERAGE_BPS, we use the current leverage to calculate the withdrawable amount to avoid
         // unexpectedly changing the current leverage (which may cause loss to the user)
@@ -680,6 +740,57 @@ abstract contract DLoopCoreBase is ERC4626, Ownable {
         return
             (actualRepaidAmount * leverageBpsBeforeRepayDebt) /
             (leverageBpsBeforeRepayDebt -
+                BasisPointConstants.ONE_HUNDRED_PERCENT_BPS);
+    }
+
+    /**
+     * @dev Gets the borrow amount that keeps the current leverage
+     * @param actualSuppliedAmount The actual supplied amount
+     * @param leverageBpsBeforeSupply Leverage in basis points before supplying
+     * @return expectedBorrowAmount The expected borrow amount that keeps the current leverage
+     */
+    function _getBorrowAmountThatKeepCurrentLeverage(
+        uint256 actualSuppliedAmount,
+        uint256 leverageBpsBeforeSupply
+    ) internal pure returns (uint256 expectedBorrowAmount) {
+        // Formula definition:
+        // - C1: totalCollateralBase before supply
+        // - D1: totalDebtBase before supply
+        // - C2: totalCollateralBase after supply   
+        // - D2: totalDebtBase after supply
+        // - T: target leverage
+        // - x: supply amount
+        // - y: borrow amount
+        //
+        // We have:
+        //        C1 / (C1-D1) = C2 / (C2-D2)
+        //        C2 = C1+x
+        //        D2 = D1+y
+        //        C1 / (C1-D1) = T <=> C1 = (C1-D1) * T <=> C1 = C1*T - D1*T <=> C1*T - C1 = D1*T <=> C1 = D1*T/(T-1)
+        //
+        // Formula expression:
+        //        C1 / (C1-D1) = (C1+x) / (C1+x-D1-y)
+        //    <=> C1 * (C1+x-D1-y) = (C1+x) * (C1-D1)
+        //    <=> C1^2 + C1*x - C1*D1 - C1*y = C1^2 - C1*D1 + C1*x - D1*x
+        //    <=> C1*y = x*D1
+        //    <=> y = x*D1 / C1
+        //    <=> y = x * (T-1)/T
+        //    <=> x = y * T/(T-1)
+        //
+
+        // Instead of using TARGET_LEVERAGE_BPS, we use the current leverage to calculate the borrowable amount to avoid
+        // unexpectedly changing the current leverage (which may cause loss to the user)
+        if (
+            leverageBpsBeforeSupply <=
+            BasisPointConstants.ONE_HUNDRED_PERCENT_BPS
+        ) {
+            // If there is no more debt, borrow as much as possible
+            return type(uint256).max;
+        }
+
+        return
+            (actualSuppliedAmount * leverageBpsBeforeSupply) /
+            (leverageBpsBeforeSupply -
                 BasisPointConstants.ONE_HUNDRED_PERCENT_BPS);
     }
 
@@ -744,6 +855,7 @@ abstract contract DLoopCoreBase is ERC4626, Ownable {
         // Borrow more dStable
         uint256 borrowedDStable = (borrowedDStableInBase *
             (10 ** dStable.decimals())) / dStablePriceInBase;
+
         _borrowFromPool(address(dStable), borrowedDStable, address(this));
 
         // Transfer the dStable to the user
@@ -797,41 +909,17 @@ abstract contract DLoopCoreBase is ERC4626, Ownable {
         // Transfer the dStable to the vault to repay the debt
         dStable.safeTransferFrom(msg.sender, address(this), dStableAmount);
 
-        _repayDebt(address(dStable), dStableAmount, address(this));
+        _repayDebtToPool(address(dStable), dStableAmount, address(this));
 
         // Withdraw collateral
         uint256 withdrawnAssets = (withdrawnAssetsBase *
             (10 ** underlyingAsset.decimals())) / assetPriceInBase;
-
-        uint256 underlyingAssetBalanceBefore = underlyingAsset.balanceOf(
-            address(this)
-        );
 
         _withdrawFromPool(
             address(underlyingAsset),
             withdrawnAssets,
             address(this)
         );
-
-        uint256 underlyingAssetBalanceAfter = underlyingAsset.balanceOf(
-            address(this)
-        );
-
-        if (underlyingAssetBalanceAfter < underlyingAssetBalanceBefore) {
-            revert UnderlyingAssetDecreasedAfterWithdraw(
-                underlyingAssetBalanceBefore,
-                underlyingAssetBalanceAfter,
-                withdrawnAssets
-            );
-        }
-
-        if (underlyingAssetBalanceAfter - underlyingAssetBalanceBefore != withdrawnAssets) {
-            revert UnexpectedWithdrawAmountFromPool(
-                underlyingAssetBalanceBefore,
-                underlyingAssetBalanceAfter,
-                withdrawnAssets
-            );
-        }
 
         // Transfer the withdrawn assets to the user
         underlyingAsset.safeTransfer(msg.sender, withdrawnAssets);

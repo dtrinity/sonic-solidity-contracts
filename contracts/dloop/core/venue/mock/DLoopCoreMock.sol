@@ -117,7 +117,7 @@ contract DLoopCoreMock is DLoopCoreBase {
         return price;
     }
 
-    function _supplyToPool(
+    function _supplyToPoolImplementation(
         address token,
         uint256 amount,
         address onBehalfOf
@@ -139,7 +139,7 @@ contract DLoopCoreMock is DLoopCoreBase {
         );
     }
 
-    function _borrowFromPool(
+    function _borrowFromPoolImplementation(
         address token,
         uint256 amount,
         address onBehalfOf
@@ -156,7 +156,7 @@ contract DLoopCoreMock is DLoopCoreBase {
         );
     }
 
-    function _repayDebt(
+    function _repayDebtToPoolImplementation(
         address token,
         uint256 amount,
         address onBehalfOf
@@ -173,7 +173,7 @@ contract DLoopCoreMock is DLoopCoreBase {
         );
     }
 
-    function _withdrawFromPool(
+    function _withdrawFromPoolImplementation(
         address token,
         uint256 amount,
         address onBehalfOf
@@ -334,12 +334,12 @@ contract DLoopCoreMock is DLoopCoreBase {
     ) external {
         _borrowFromPool(token, amount, onBehalfOf);
     }
-    function testRepayDebt(
+    function testRepayDebtToPool(
         address token,
         uint256 amount,
         address onBehalfOf
     ) external {
-        _repayDebt(token, amount, onBehalfOf);
+        _repayDebtToPool(token, amount, onBehalfOf);
     }
     function testWithdrawFromPool(
         address token,

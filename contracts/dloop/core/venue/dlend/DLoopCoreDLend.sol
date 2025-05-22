@@ -109,7 +109,7 @@ contract DLoopCoreDLend is DLoopCoreBase {
      * @param amount Amount of tokens to supply
      * @param onBehalfOf Address to supply on behalf of
      */
-    function _supplyToPool(
+    function _supplyToPoolImplementation(
         address token,
         uint256 amount,
         address onBehalfOf
@@ -132,7 +132,7 @@ contract DLoopCoreDLend is DLoopCoreBase {
      * @param amount Amount of tokens to borrow
      * @param onBehalfOf Address to borrow on behalf of
      */
-    function _borrowFromPool(
+    function _borrowFromPoolImplementation(
         address token,
         uint256 amount,
         address onBehalfOf
@@ -152,7 +152,7 @@ contract DLoopCoreDLend is DLoopCoreBase {
      * @param amount Amount of tokens to repay
      * @param onBehalfOf Address to repay on behalf of
      */
-    function _repayDebt(
+    function _repayDebtToPoolImplementation(
         address token,
         uint256 amount,
         address onBehalfOf
@@ -180,7 +180,7 @@ contract DLoopCoreDLend is DLoopCoreBase {
      * @param amount Amount of tokens to withdraw
      * @param onBehalfOf Address to withdraw on behalf of
      */
-    function _withdrawFromPool(
+    function _withdrawFromPoolImplementation(
         address token,
         uint256 amount,
         address onBehalfOf
