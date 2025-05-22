@@ -43,7 +43,6 @@ contract DLoopCoreMock is DLoopCoreBase {
             _lowerBoundTargetLeverageBps,
             _upperBoundTargetLeverageBps,
             _maxSubsidyBps,
-            address(0),
             PRICE_DECIMALS
         )
     {
