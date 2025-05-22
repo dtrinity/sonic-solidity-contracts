@@ -160,6 +160,8 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard {
         uint256 upperBound
     );
     error AssetPriceIsZero(address asset);
+    error LeverageExceedsTarget(uint256 currentLeverageBps, uint256 targetLeverageBps);
+    error LeverageBelowTarget(uint256 currentLeverageBps, uint256 targetLeverageBps);
 
     /**
      * @dev Constructor for the DLoopCore contract
@@ -910,6 +912,11 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard {
         uint256 assetAmount,
         uint256 minPriceInBase
     ) public nonReentrant {
+        uint256 currentLeverageBps = getCurrentLeverageBps();
+        if (currentLeverageBps >= TARGET_LEVERAGE_BPS) {
+            revert LeverageExceedsTarget(currentLeverageBps, TARGET_LEVERAGE_BPS);
+        }
+
         uint256 assetPriceInBase = getAssetPriceFromOracle(
             address(underlyingAsset)
         );
@@ -934,8 +941,6 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard {
                 assetAmountInBase -
                 totalDebtBase -
                 borrowedDStableInBase);
-
-        uint256 currentLeverageBps = getCurrentLeverageBps();
 
         if (
             newLeverageBps > TARGET_LEVERAGE_BPS ||
@@ -976,6 +981,12 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard {
         uint256 dStableAmount,
         uint256 maxPriceInBase
     ) public nonReentrant {
+        uint256 currentLeverageBps = getCurrentLeverageBps();
+
+        if (currentLeverageBps <= TARGET_LEVERAGE_BPS) {
+            revert LeverageBelowTarget(currentLeverageBps, TARGET_LEVERAGE_BPS);
+        }
+
         uint256 assetPriceInBase = getAssetPriceFromOracle(
             address(underlyingAsset)
         );
@@ -1002,7 +1013,6 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard {
                 totalDebtBase +
                 dStableAmountInBase);
 
-        uint256 currentLeverageBps = getCurrentLeverageBps();
         if (
             newLeverageBps < TARGET_LEVERAGE_BPS ||
             newLeverageBps >= currentLeverageBps
