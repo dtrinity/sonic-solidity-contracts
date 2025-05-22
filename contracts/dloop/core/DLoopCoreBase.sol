@@ -560,11 +560,12 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard {
          * - The collateral token is WETH
          * - The dSTABLE debt here is dUSD
          * - The current shares supply is 0
+         * - Assume that the price of WETH is 2000 dUSD
          * 
          * 1. User deposits 300 WETH
          * 2. The vault supplies 300 WETH to the lending pool
-         * 3. The vault borrows 210 dUSD (300 * 70%) from the lending pool
-         * 4. The vault sends 210 dUSD to the receiver
+         * 3. The vault borrows 420,000 dUSD (300 * 2000 * 70%) from the lending pool
+         * 4. The vault sends 420,000 dUSD to the receiver
          * 5. The vault mints 300 shares to the user (representing 300 WETH position in the lending pool)
          */
 
@@ -666,12 +667,13 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard {
          * - The collateral token is WETH
          * - The dSTABLE debt here is dUSD
          * - The current shares supply is 300
+         * - Assume that the price of WETH is 2000 dUSD
          * 
          * 1. User has 100 shares
          * 2. User wants to withdraw 100 WETH
          * 3. The vault burns 100 shares
-         * 4. The vault transfers 70 dUSD (100 * 70%) from the user to the vault
-         * 5. The vault repays 70 dUSD to the lending pool
+         * 4. The vault transfers 140,000 dUSD (100 * 2000 * 70%) from the user to the vault
+         * 5. The vault repays 140,000 dUSD to the lending pool
          * 6. The vault withdraws 100 WETH from the lending pool
          * 7. The vault sends 100 WETH to the receiver
          */
@@ -1151,6 +1153,8 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard {
         lowerBoundTargetLeverageBps = _lowerBoundTargetLeverageBps;
         upperBoundTargetLeverageBps = _upperBoundTargetLeverageBps;
     }
+
+    /* Overrides to add leverage check */
 
     function maxDeposit(address _user) public view override returns (uint256) {
         // Don't allow deposit if the leverage is too imbalanced
