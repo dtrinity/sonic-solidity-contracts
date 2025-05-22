@@ -112,9 +112,9 @@ contract DLoopCoreMock is DLoopCoreBase {
         return new address[](0);
     }
 
-    function getAssetPriceFromOracleImplementation(
+    function _getAssetPriceFromOracleImplementation(
         address asset
-    ) public view override returns (uint256) {
+    ) internal view override returns (uint256) {
         uint256 price = mockPrices[asset];
         require(price > 0, "Mock price not set");
         return price;

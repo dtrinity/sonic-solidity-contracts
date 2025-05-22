@@ -239,9 +239,9 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard {
      * @param asset Address of the asset
      * @return uint256 Price of the asset
      */
-    function getAssetPriceFromOracleImplementation(
+    function _getAssetPriceFromOracleImplementation(
         address asset
-    ) public view virtual returns (uint256);
+    ) internal view virtual returns (uint256);
 
     /**
      * @dev Supply tokens to the lending pool
@@ -453,7 +453,7 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard {
     function getAssetPriceFromOracle(
         address asset
     ) public view returns (uint256) {
-        uint256 assetPrice = getAssetPriceFromOracleImplementation(asset);
+        uint256 assetPrice = _getAssetPriceFromOracleImplementation(asset);
 
         // Sanity check
         if (assetPrice == 0) {
