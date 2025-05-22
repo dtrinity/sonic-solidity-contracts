@@ -914,11 +914,61 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard {
 
     /* Rebalance */
 
-    function getCollateralAmountToIncreaseLeverageToTarget(
-        uint256 currentLeverageBps,
-        uint256 targetLeverageBps
-    ) public view returns (uint256 collateralAmount) {
+    /**
+     * @dev Gets the rebalance amount to reach the target leverage in base currency
+     * @return tokenAmountInBase The amount of token to call increaseLeverage or decreaseLeverage (in base currency)
+     * @return direction The direction of the rebalance (1 for increase, -1 for decrease, 0 means no rebalance)
+     */
+    function getAmountToReachTargetLeverageInBase() public view returns (uint256 tokenAmountInBase, int8 direction) {
+        /**
+         * Formula definition:
+         * - C: totalCollateralBase
+         * - D: totalDebtBase
+         * - T: target leverage
+         * - k: subsidy (0.01 means 1%)
+         * - x: change amount of collateral in base currency
+         * - y: change amount of debt in base currency
+         * 
+         * We have:
+         *      y = x*(1+k)
+         *      (C + x) / (C + x - D - y) = T
+         *  <=> (C + x) / (C + x - D - x*(1+k)) = T
+         *  <=> (C + x) = T * (C + x - D - x*(1+k))
+         *  <=> C + x = T*C + T*x - T*D - T*x - T*x*k
+         *  <=> C + x = T*C - T*D - T*x*k
+         *  <=> x + T*x*k = T*C - T*D - C
+         *  <=> x*(1 + T*k) = T*C - T*D - C
+         *  <=> x = (T*(C - D) - C) / (1 + T*k)
+         * 
+         * If x > 0, it means the user should increase the leverage, so the direction is 1
+         *    => x = (T*(C - D) - C) / (1 + T*k)
+         * If x < 0, it means the user should decrease the leverage, so the direction is -1
+         *    => x = (C - T*(C - D)) / (1 + T*k)
+         * If x = 0, it means the user should not rebalance, so the direction is 0
+         */
 
+        (
+            uint256 totalCollateralBase,
+            uint256 totalDebtBase
+        ) = getTotalCollateralAndDebtOfUserInBase(address(this));
+
+        uint256 subsidyBps = getCurrentSubsidyBps();
+
+        uint256 currentLeverageBps = getCurrentLeverageBps();
+
+        // If the current leverage is below the target leverage, the user should increase the leverage
+        if (currentLeverageBps < TARGET_LEVERAGE_BPS) {
+            tokenAmountInBase = (TARGET_LEVERAGE_BPS * (totalCollateralBase - totalDebtBase) - totalCollateralBase) / (1 + TARGET_LEVERAGE_BPS * subsidyBps / BasisPointConstants.ONE_HUNDRED_PERCENT_BPS);
+            return (tokenAmountInBase, 1);
+        }
+        // If the current leverage is above the target leverage, the user should decrease the leverage
+        else if (currentLeverageBps > TARGET_LEVERAGE_BPS) {
+            tokenAmountInBase = (totalCollateralBase - TARGET_LEVERAGE_BPS * (totalCollateralBase - totalDebtBase)) / (1 + TARGET_LEVERAGE_BPS * subsidyBps / BasisPointConstants.ONE_HUNDRED_PERCENT_BPS);
+            return (tokenAmountInBase, -1);
+        }
+
+        // If the current leverage is equal to the target leverage, the user should not rebalance
+        return (0, 0);
     }
 
     /**
