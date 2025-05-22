@@ -804,32 +804,32 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard {
         uint256 repaidDebtAmount,
         uint256 leverageBpsBeforeRepayDebt
     ) public view returns (uint256 expectedWithdrawAmount) {
-        // Formula definition:
-        // - C1: totalCollateralBase before repay
-        // - D1: totalDebtBase before repay
-        // - C2: totalCollateralBase after repay
-        // - D2: totalDebtBase after repay
-        // - T: target leverage
-        // - x: withdraw amount
-        // - y: repay amount
-        //
-        // We have:
-        //        C1 / (C1-D1) = C2 / (C2-D2)
-        //        C2 = C1-x
-        //        D2 = D1-y
-        //        C1 / (C1-D1) = T <=> C1 = (C1-D1) * T <=> C1 = C1*T - D1*T <=> C1*T - C1 = D1*T <=> C1 = D1*T/(T-1)
-        //
-        // Formula expression:
-        //        C1 / (C1-D1) = (C1-x) / (C1-x-D1+y)
-        //    <=> C1 * (C1-x-D1+y) = (C1-x) * (C1-D1)
-        //    <=> C1^2 - C1*x - C1*D1 + C1*y = C1^2 - C1*D1 - C1*x + D1*x
-        //    <=> C1^2 - C1*x - C1*D1 + C1*y = C1^2 - C1*x - C1*D1 + D1*x
-        //    <=> C1*y = x*D1
-        //    <=> y = x*D1 / C1
-        //    <=> y = x*D1 / [D1*T / (T-1)]
-        //    <=> y = x * (T-1)/T
-        //    <=> x = y * T/(T-1)
-        //
+        /* Formula definition:
+         * - C1: totalCollateralBase before repay
+         * - D1: totalDebtBase before repay
+         * - C2: totalCollateralBase after repay
+         * - D2: totalDebtBase after repay
+         * - T: target leverage
+         * - x: withdraw amount
+         * - y: repay amount
+         *
+         * We have:
+         *        C1 / (C1-D1) = C2 / (C2-D2)
+         *        C2 = C1-x
+         *        D2 = D1-y
+         *        C1 / (C1-D1) = T <=> C1 = (C1-D1) * T <=> C1 = C1*T - D1*T <=> C1*T - C1 = D1*T <=> C1 = D1*T/(T-1)
+         *
+         * Formula expression:
+         *        C1 / (C1-D1) = (C1-x) / (C1-x-D1+y)
+         *    <=> C1 * (C1-x-D1+y) = (C1-x) * (C1-D1)
+         *    <=> C1^2 - C1*x - C1*D1 + C1*y = C1^2 - C1*D1 - C1*x + D1*x
+         *    <=> C1^2 - C1*x - C1*D1 + C1*y = C1^2 - C1*x - C1*D1 + D1*x
+         *    <=> C1*y = x*D1
+         *    <=> y = x*D1 / C1
+         *    <=> y = x*D1 / [D1*T / (T-1)]
+         *    <=> y = x * (T-1)/T
+         *    <=> x = y * T/(T-1)
+         */
 
         // Instead of using TARGET_LEVERAGE_BPS, we use the current leverage to calculate the withdrawable amount to avoid
         // unexpectedly changing the current leverage (which may cause loss to the user)
@@ -866,30 +866,30 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard {
         uint256 suppliedCollateralAmount,
         uint256 leverageBpsBeforeSupply
     ) public view returns (uint256 expectedBorrowAmount) {
-        // Formula definition:
-        // - C1: totalCollateralBase before supply
-        // - D1: totalDebtBase before supply
-        // - C2: totalCollateralBase after supply   
-        // - D2: totalDebtBase after supply
-        // - T: target leverage
-        // - x: supply amount
-        // - y: borrow amount
-        //
-        // We have:
-        //        C1 / (C1-D1) = C2 / (C2-D2)
-        //        C2 = C1+x
-        //        D2 = D1+y
-        //        C1 / (C1-D1) = T <=> C1 = (C1-D1) * T <=> C1 = C1*T - D1*T <=> C1*T - C1 = D1*T <=> C1 = D1*T/(T-1)
-        //
-        // Formula expression:
-        //        C1 / (C1-D1) = (C1+x) / (C1+x-D1-y)
-        //    <=> C1 * (C1+x-D1-y) = (C1+x) * (C1-D1)
-        //    <=> C1^2 + C1*x - C1*D1 - C1*y = C1^2 - C1*D1 + C1*x - D1*x
-        //    <=> C1*y = x*D1
-        //    <=> y = x*D1 / C1
-        //    <=> y = x * (T-1)/T
-        //    <=> x = y * T/(T-1)
-        //
+        /* Formula definition:
+         * - C1: totalCollateralBase before supply
+         * - D1: totalDebtBase before supply  
+         * - C2: totalCollateralBase after supply
+         * - D2: totalDebtBase after supply
+         * - T: target leverage
+         * - x: supply amount
+         * - y: borrow amount
+         *
+         * We have:
+         *      C1 / (C1-D1) = C2 / (C2-D2)
+         *      C2 = C1+x
+         *      D2 = D1+y
+         *      C1 / (C1-D1) = T <=> C1 = (C1-D1) * T <=> C1 = C1*T - D1*T <=> C1*T - C1 = D1*T <=> C1 = D1*T/(T-1)
+         *
+         * Formula expression:
+         *      C1 / (C1-D1) = (C1+x) / (C1+x-D1-y)
+         *  <=> C1 * (C1+x-D1-y) = (C1+x) * (C1-D1)
+         *  <=> C1^2 + C1*x - C1*D1 - C1*y = C1^2 - C1*D1 + C1*x - D1*x
+         *  <=> C1*y = x*D1
+         *  <=> y = x*D1 / C1
+         *  <=> y = x * (T-1)/T
+         *  <=> x = y * T/(T-1)
+         */
 
         // Instead of using TARGET_LEVERAGE_BPS, we use the current leverage to calculate the borrowable amount to avoid
         // unexpectedly changing the current leverage (which may cause loss to the user)
