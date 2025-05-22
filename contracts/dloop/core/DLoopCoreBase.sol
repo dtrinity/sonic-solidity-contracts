@@ -162,6 +162,7 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard {
     error AssetPriceIsZero(address asset);
     error LeverageExceedsTarget(uint256 currentLeverageBps, uint256 targetLeverageBps);
     error LeverageBelowTarget(uint256 currentLeverageBps, uint256 targetLeverageBps);
+    error IncreaseLeverageReceiveLessThanMinAmount(uint256 receivedAmount, uint256 minReceivedAmount);
 
     /**
      * @dev Constructor for the DLoopCore contract
@@ -906,29 +907,41 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard {
     /* Rebalance */
 
     /**
-     * @dev Increases the leverage of the user by supplying assets and borrowing more dStable
+     * @dev Increases the leverage of the user by supplying assets and borrowing more debt asset
+     *      - It requires to spend the underlying asset from the user's wallet to supply to the pool
+     *      - It will send the borrowed debt asset to the user's wallet
      * @param assetAmount The amount of asset to supply
-     * @param minPriceInBase The minimum price of the asset in base currency
+     * @param minReceivedAmount The minimum amount of debt asset to receive
      */
     function increaseLeverage(
         uint256 assetAmount,
-        uint256 minPriceInBase
+        uint256 minReceivedAmount
     ) public nonReentrant {
+        /**
+         * Example of how this function works:
+         * 
+         * Suppose that the target leverage is 3x, and the baseLTVAsCollateral is 70%
+         * - The collateral token is WETH
+         * - The debt here is dUSD
+         * 
+         * 1. User call increaseLeverage with 100 WETH
+         * 2. The vault transfers 100 WETH from the user's wallet to the vault
+         * 3. The vault supplies 100 WETH to the lending pool
+         * 4. The vault borrows 100 dUSD from the lending pool
+         * 5. The vault sends 100 dUSD to the user
+         */
+
+        // Make sure only increase the leverage if it is below the target leverage
         uint256 currentLeverageBps = getCurrentLeverageBps();
         if (currentLeverageBps >= TARGET_LEVERAGE_BPS) {
             revert LeverageExceedsTarget(currentLeverageBps, TARGET_LEVERAGE_BPS);
         }
 
-        uint256 assetPriceInBase = getAssetPriceFromOracle(
-            address(underlyingAsset)
-        );
-        if (assetPriceInBase < minPriceInBase) {
-            revert BelowMinPrice(assetPriceInBase, minPriceInBase);
-        }
-
         uint256 assetAmountInBase = convertFromTokenAmountToBaseCurrency(assetAmount, address(underlyingAsset));
 
-        uint256 borrowedDStableInBase = (assetAmountInBase *
+        // The amount of debt asset to borrow (in base currency) is equal to the amount of collateral asset supplied
+        // plus the subsidy (bonus for the caller)
+        uint256 borrowedDebtAssetInBase = (assetAmountInBase *
             (BasisPointConstants.ONE_HUNDRED_PERCENT_BPS + getCurrentSubsidyBps())) /
             BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
 
@@ -937,13 +950,15 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard {
             uint256 totalDebtBase
         ) = getTotalCollateralAndDebtOfUserInBase(address(this));
 
+        // Calculate the new leverage after increasing the leverage
         uint256 newLeverageBps = ((totalCollateralBase + assetAmountInBase) *
             BasisPointConstants.ONE_HUNDRED_PERCENT_BPS) /
             (totalCollateralBase +
                 assetAmountInBase -
                 totalDebtBase -
-                borrowedDStableInBase);
+                borrowedDebtAssetInBase);
 
+        // Make sure the new leverage is increasing and does not exceed the target leverage
         if (
             newLeverageBps > TARGET_LEVERAGE_BPS ||
             newLeverageBps <= currentLeverageBps
@@ -965,13 +980,21 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard {
         // Supply the asset to the lending pool
         _supplyToPool(address(underlyingAsset), assetAmount, address(this));
 
-        // Borrow more dStable
-        uint256 borrowedDStable = convertFromBaseCurrencyToToken(borrowedDStableInBase, address(dStable));
+        // Borrow more debt asset
+        uint256 borrowedDebtAsset = convertFromBaseCurrencyToToken(borrowedDebtAssetInBase, address(dStable));
 
-        _borrowFromPool(address(dStable), borrowedDStable, address(this));
+        // Slippage protection, to make sure the user receives at least minReceivedAmount
+        if (borrowedDebtAsset < minReceivedAmount) {
+            revert IncreaseLeverageReceiveLessThanMinAmount(borrowedDebtAsset, minReceivedAmount);
+        }
 
-        // Transfer the dStable to the user
-        dStable.safeTransfer(msg.sender, borrowedDStable);
+        // At this step, the _borrowFromPool wrapper function will also assert that
+        // the borrowed amount is exactly the amount requested, thus we can safely
+        // have the slippage check before calling this function
+        _borrowFromPool(address(dStable), borrowedDebtAsset, address(this));
+
+        // Transfer the debt asset to the user
+        dStable.safeTransfer(msg.sender, borrowedDebtAsset);
     }
 
     /**
