@@ -1,6 +1,7 @@
 import { ZeroAddress } from "ethers";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 
+import { ONE_PERCENT_BPS } from "../../typescript/bps-constants";
 import { DS_TOKEN_ID, DUSD_TOKEN_ID } from "../../typescript/deploy-ids";
 import {
   ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT,
@@ -159,6 +160,8 @@ export async function getConfig(
           frxUSDDeployment?.address || ZeroAddress,
           sfrxUSDDeployment?.address || ZeroAddress,
         ],
+        initialFeeReceiver: user1,
+        initialRedemptionFeeBps: 1 * ONE_PERCENT_BPS,
       },
       dS: {
         collaterals: [
@@ -166,6 +169,8 @@ export async function getConfig(
           wOSTokenDeployment?.address || ZeroAddress,
           stSTokenDeployment?.address || ZeroAddress,
         ],
+        initialFeeReceiver: user1,
+        initialRedemptionFeeBps: 1 * ONE_PERCENT_BPS,
       },
     },
     oracleAggregators: {

@@ -81,3 +81,7 @@ export const PULL_REWARDS_TRANSFER_STRATEGY_ID = "PullRewardsTransferStrategy";
 // Chainlink Oracle Converters
 export const CHAINLINK_DECIMAL_CONVERTER_WSTKSCUSD_ID =
   "ChainlinkDecimalConverter_wstkscUSD";
+
+// RedeemerWithFees
+export const DUSD_REDEEMER_WITH_FEES_CONTRACT_ID = "dUSD_RedeemerWithFees";
+export const DS_REDEEMER_WITH_FEES_CONTRACT_ID = "dS_RedeemerWithFees";
