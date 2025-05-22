@@ -66,7 +66,7 @@ export async function getConfig(
   }
 
   // Get the named accounts
-  const { user1 } = await _hre.getNamedAccounts();
+  const { deployer } = await _hre.getNamedAccounts();
 
   return {
     MOCK_ONLY: {
@@ -148,8 +148,8 @@ export async function getConfig(
       wstkscUSD: emptyStringIfUndefined(wstkscUSDDeployment?.address), // Used by dLEND
     },
     walletAddresses: {
-      governanceMultisig: user1,
-      incentivesVault: user1,
+      governanceMultisig: deployer,
+      incentivesVault: deployer,
     },
     dStables: {
       dUSD: {
@@ -160,7 +160,7 @@ export async function getConfig(
           frxUSDDeployment?.address || ZeroAddress,
           sfrxUSDDeployment?.address || ZeroAddress,
         ],
-        initialFeeReceiver: user1,
+        initialFeeReceiver: deployer,
         initialRedemptionFeeBps: 1 * ONE_PERCENT_BPS,
       },
       dS: {
@@ -169,7 +169,7 @@ export async function getConfig(
           wOSTokenDeployment?.address || ZeroAddress,
           stSTokenDeployment?.address || ZeroAddress,
         ],
-        initialFeeReceiver: user1,
+        initialFeeReceiver: deployer,
         initialRedemptionFeeBps: 1 * ONE_PERCENT_BPS,
       },
     },
