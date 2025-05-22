@@ -5,6 +5,7 @@ import {DLoopCoreBase} from "../../DLoopCoreBase.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {BasisPointConstants} from "contracts/common/BasisPointConstants.sol";
 
+import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 /**
  * @title DLoopCoreMock
  * @dev Simple mock implementation of DLoopCoreBase for testing
@@ -177,12 +178,13 @@ contract DLoopCoreMock is DLoopCoreBase {
         return (totalCollateralBase, totalDebtBase);
     }
 
-    function _getSuppliedBalance(address user, address asset) internal view override returns (uint256) {
+    function _getSuppliedBalance(address user, address asset) internal view returns (uint256) {
         return mockCollateral[user][asset];
     }
 
-    function _getMaxWithdrawableAmountInBase(
-        address user
+    function _getMaxWithdrawableAmount(
+        address user,
+        address token
     ) internal view override returns (uint256) {
         // Get user account data: totalCollateralBase, totalDebtBase
         (uint256 totalCollateralBase, uint256 totalDebtBase) = _getTotalCollateralAndDebtOfUserInBase(user);
@@ -191,9 +193,18 @@ contract DLoopCoreMock is DLoopCoreBase {
         // (totalCollateralBase - X) * liquidationThreshold = totalDebtBase
         // => X = totalCollateralBase - totalDebtBase / liquidationThreshold
         uint256 rightSide = (totalDebtBase * PERCENTAGE_FACTOR) / LIQUIDATION_THRESHOLD;
-        return totalCollateralBase > rightSide
+        uint256 maxWithdrawBase = totalCollateralBase > rightSide
             ? totalCollateralBase - rightSide
             : 0;
+
+        // Convert to asset units
+        uint256 maxWithdrawAsset = (maxWithdrawBase * (10 ** ERC20(token).decimals())) / getAssetPriceFromOracle(token);
+
+        // Get user's supplied balance of the asset in the lending pool (protocol-specific)
+        uint256 supplied = _getSuppliedBalance(user, token);
+
+        // Return the minimum of supplied and calculated max
+        return Math.min(maxWithdrawAsset, supplied);
     }
 
     // --- Test-only public wrappers for internal pool logic ---

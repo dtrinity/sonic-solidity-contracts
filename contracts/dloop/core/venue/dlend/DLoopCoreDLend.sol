@@ -22,6 +22,7 @@ import {IPool as ILendingPool, DataTypes} from "./interface/IPool.sol";
 import {IPoolAddressesProvider} from "./interface/IPoolAddressesProvider.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {DLoopCoreBase} from "../../DLoopCoreBase.sol";
+import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
 /**
  * @title DLoopCoreDLend
@@ -227,18 +228,20 @@ contract DLoopCoreDLend is DLoopCoreBase {
      * @param asset Address of the asset
      * @return uint256 Supplied balance of the asset
      */
-    function _getSuppliedBalance(address user, address asset) internal view override returns (uint256) {
+    function _getSuppliedBalance(address user, address asset) internal view returns (uint256) {
         address aToken = _getDTokenAddress(asset);
         return ERC20(aToken).balanceOf(user);
     }
 
     /**
-     * @dev Gets the maximum withdrawable amount of a user in base currency
+     * @dev Gets the maximum withdrawable amount of a user from the lending pool
      * @param user Address of the user
-     * @return uint256 Maximum withdrawable amount in base currency
+     * @param token Address of the token to withdraw
+     * @return uint256 Maximum withdrawable token amount
      */
-    function _getMaxWithdrawableAmountInBase(
-        address user
+    function _getMaxWithdrawableAmount(
+        address user,
+        address token
     ) internal view override returns (uint256) {
         // This logic is dLEND-specific (aave-v3-specific)
 
@@ -251,11 +254,19 @@ contract DLoopCoreDLend is DLoopCoreBase {
         // (totalCollateralBase - X) * liquidationThreshold = totalDebtBase
         // => X = totalCollateralBase - totalDebtBase / liquidationThreshold
         uint256 rightSide = (totalDebtBase * PERCENTAGE_FACTOR) / currentLiquidationThreshold;
-        return totalCollateralBase > rightSide
+        uint256 maxWithdrawBase = totalCollateralBase > rightSide
             ? totalCollateralBase - rightSide
             : 0;
-    }
 
+        // Convert to asset units
+        uint256 maxWithdrawAsset = (maxWithdrawBase * (10 ** ERC20(token).decimals())) / getAssetPriceFromOracle(token);
+
+        // Get user's supplied balance of the asset in the lending pool (protocol-specific)
+        uint256 supplied = _getSuppliedBalance(user, token);
+
+        // Return the minimum of supplied and calculated max
+        return Math.min(maxWithdrawAsset, supplied);
+    }
 
     /* Helper functions */
 
