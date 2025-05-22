@@ -35,6 +35,7 @@ abstract contract DLoopCoreBase is ERC4626, Ownable {
     uint32 public lowerBoundTargetLeverageBps;
     uint32 public upperBoundTargetLeverageBps;
     uint256 private _defaultMaxSubsidyBps;
+    address[] public restrictedRescueTokens;
 
     /* Constants */
     address public immutable BASE_CURRENCY;
@@ -46,6 +47,7 @@ abstract contract DLoopCoreBase is ERC4626, Ownable {
 
     /* Errors */
 
+    error RestrictedRescueTokenIsNotERC20(address token);
     error TooImbalanced(
         uint256 currentLeverageBps,
         uint256 lowerBoundTargetLeverageBps,
@@ -173,6 +175,7 @@ abstract contract DLoopCoreBase is ERC4626, Ownable {
      * @param _maxSubsidyBps Maximum subsidy in basis points
      * @param _baseCurrency Address of the base currency
      * @param _priceOracleDecimals Decimals of the price oracle (ie, 8 means 10^8 units of the asset)
+     * @param _restrictedRescueTokens Restricted rescue tokens
      */
     constructor(
         string memory _name,
@@ -184,7 +187,8 @@ abstract contract DLoopCoreBase is ERC4626, Ownable {
         uint32 _upperBoundTargetLeverageBps,
         uint256 _maxSubsidyBps,
         address _baseCurrency,
-        uint8 _priceOracleDecimals
+        uint8 _priceOracleDecimals,
+        address[] memory _restrictedRescueTokens
     ) ERC20(_name, _symbol) ERC4626(_underlyingAsset) Ownable(msg.sender) {
         dStable = _dStable;
         underlyingAsset = _underlyingAsset;
@@ -221,6 +225,15 @@ abstract contract DLoopCoreBase is ERC4626, Ownable {
         lowerBoundTargetLeverageBps = _lowerBoundTargetLeverageBps;
         upperBoundTargetLeverageBps = _upperBoundTargetLeverageBps;
         _defaultMaxSubsidyBps = _maxSubsidyBps;
+
+        // Make sure the restricted rescue tokens are ERC-20
+        for (uint256 i = 0; i < _restrictedRescueTokens.length; i++) {
+            if (!Erc20Helper.isERC20(_restrictedRescueTokens[i])) {
+                revert RestrictedRescueTokenIsNotERC20(_restrictedRescueTokens[i]);
+            }
+        }
+
+        restrictedRescueTokens = _restrictedRescueTokens;
     }
 
     /* Virtual Methods - Required to be implemented by derived contracts */
@@ -525,14 +538,26 @@ abstract contract DLoopCoreBase is ERC4626, Ownable {
     }
 
     /**
-     * @dev Rescues tokens accidentally sent to the contract
+     * @dev Rescues tokens accidentally sent to the contract (except for the underlying asset and dStable)
      * @param token Address of the token to rescue
      * @param receiver Address to receive the rescued tokens
+     * @param amount Amount of tokens to rescue
      */
-    function rescueToken(address token, address receiver) public onlyOwner {
+    function rescueToken(address token, address receiver, uint256 amount) public onlyOwner {
+        // The vault does not hold any dStable and underlying asset, so it is not necessary to restrict the rescue of dStable and underlying asset
+        // We can just rescue any ERC-20 token
+
+        // Check if the token is restricted
+        for (uint256 i = 0; i < restrictedRescueTokens.length; i++) {
+            if (token == restrictedRescueTokens[i]) {
+                revert("Cannot rescue restricted token");
+            }
+        }
+
+        // Rescue the token
         ERC20(token).safeTransfer(
             receiver,
-            ERC20(token).balanceOf(address(this))
+            amount
         );
     }
 
