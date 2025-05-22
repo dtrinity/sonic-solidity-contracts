@@ -942,6 +942,11 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard {
 
     /* Rebalance */
 
+    /**
+     * @dev Increases the leverage of the user by supplying assets and borrowing more dStable
+     * @param assetAmount The amount of asset to supply
+     * @param minPriceInBase The minimum price of the asset in base currency
+     */
     function increaseLeverage(
         uint256 assetAmount,
         uint256 minPriceInBase
@@ -960,10 +965,8 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard {
             uint256 totalDebtBase
         ) = _getTotalCollateralAndDebtOfUserInBase(address(this));
 
-        uint256 currentSubsidyBps = _getCurrentSubsidyBps();
-
         uint256 borrowedDStableInBase = (assetAmountInBase *
-            (BasisPointConstants.ONE_HUNDRED_PERCENT_BPS + currentSubsidyBps)) /
+            (BasisPointConstants.ONE_HUNDRED_PERCENT_BPS + getCurrentSubsidyBps())) /
             BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
 
         uint256 newLeverageBps = ((totalCollateralBase + assetAmountInBase) *
@@ -1005,6 +1008,11 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard {
         dStable.safeTransfer(msg.sender, borrowedDStable);
     }
 
+    /**
+     * @dev Decreases the leverage of the user by withdrawing assets and repaying dStable
+     * @param dStableAmount The amount of dStable to repay
+     * @param maxPriceInBase The maximum price of the asset in base currency
+     */
     function decreaseLeverage(
         uint256 dStableAmount,
         uint256 maxPriceInBase
@@ -1023,7 +1031,7 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard {
             uint256 totalDebtBase
         ) = _getTotalCollateralAndDebtOfUserInBase(address(this));
 
-        uint256 currentSubsidyBps = _getCurrentSubsidyBps();
+        uint256 currentSubsidyBps = getCurrentSubsidyBps();
         uint256 withdrawnAssetsBase = (dStableAmountInBase *
             (BasisPointConstants.ONE_HUNDRED_PERCENT_BPS + currentSubsidyBps)) /
             BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
@@ -1065,27 +1073,6 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard {
         underlyingAsset.safeTransfer(msg.sender, withdrawnAssets);
     }
 
-    function _getCurrentSubsidyBps() internal view returns (uint256) {
-        uint256 currentLeverageBps = getCurrentLeverageBps();
-
-        uint256 subsidyBps;
-        if (currentLeverageBps > TARGET_LEVERAGE_BPS) {
-            subsidyBps =
-                ((currentLeverageBps - TARGET_LEVERAGE_BPS) *
-                    BasisPointConstants.ONE_HUNDRED_PERCENT_BPS) /
-                TARGET_LEVERAGE_BPS;
-        } else {
-            subsidyBps =
-                ((TARGET_LEVERAGE_BPS - currentLeverageBps) *
-                    BasisPointConstants.ONE_HUNDRED_PERCENT_BPS) /
-                TARGET_LEVERAGE_BPS;
-        }
-        if (subsidyBps > _defaultMaxSubsidyBps) {
-            return _defaultMaxSubsidyBps;
-        }
-        return subsidyBps;
-    }
-
     /* Informational */
 
     /**
@@ -1113,14 +1100,51 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard {
             (totalCollateralBase - totalDebtBase));
     }
 
+    /**
+     * @dev Gets the current subsidy in basis points
+     * @return uint256 The current subsidy in basis points
+     */
+    function getCurrentSubsidyBps() public view returns (uint256) {
+        uint256 currentLeverageBps = getCurrentLeverageBps();
+
+        uint256 subsidyBps;
+        if (currentLeverageBps > TARGET_LEVERAGE_BPS) {
+            subsidyBps =
+                ((currentLeverageBps - TARGET_LEVERAGE_BPS) *
+                    BasisPointConstants.ONE_HUNDRED_PERCENT_BPS) /
+                TARGET_LEVERAGE_BPS;
+        } else {
+            subsidyBps =
+                ((TARGET_LEVERAGE_BPS - currentLeverageBps) *
+                    BasisPointConstants.ONE_HUNDRED_PERCENT_BPS) /
+                TARGET_LEVERAGE_BPS;
+        }
+        if (subsidyBps > _defaultMaxSubsidyBps) {
+            return _defaultMaxSubsidyBps;
+        }
+        return subsidyBps;
+    }
+
+    /**
+     * @dev Gets the address of the underlying asset
+     * @return address The address of the underlying asset
+     */
     function getUnderlyingAssetAddress() public view returns (address) {
         return this.asset();
     }
 
+    /**
+     * @dev Gets the address of the dStable
+     * @return address The address of the dStable
+     */
     function getDStableAddress() public view returns (address) {
         return address(dStable);
     }
 
+    /**
+     * @dev Gets the default maximum subsidy in basis points
+     * @return uint256 The default maximum subsidy in basis points
+     */
     function getDefaultMaxSubsidyBps() public view returns (uint256) {
         return _defaultMaxSubsidyBps;
     }
