@@ -26,7 +26,8 @@ import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
 /**
  * @title DLoopCoreDLend
- * @dev A leveraged vault contract for dLEND
+ * @dev Read the documentation of DLoopCoreBase for more details
+ *      - This contract implement dLEND-specific lending operations for DLoopCoreBase
  */
 contract DLoopCoreDLend is DLoopCoreBase {
     /* Constants */

@@ -23,9 +23,17 @@ import {ERC4626, ERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/ext
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {Erc20Helper} from "../libraries/Erc20Helper.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+
 /**
  * @title DLoopCoreBase
- * @dev A leveraged vault contract
+ * @dev A contract that executes leveraged operations on a lending pool using a collateral token and a debt token
+ *      - A leveraged position is created by supplying a collateral token to the lending pool and borrowing a debt token
+ *      - The leverage ratio will be changed if the collateral and debt values are changed (due to price changes)
+ *      - The leverage can be increased by supplying more collateral token or decreasing the debt token
+ *      - The leverage can be decreased by withdrawing collateral token or increasing the debt token
+ *      - In order to keep the vault balanced, user can call increaseLeverage or decreaseLeverage to increase or decrease the leverage
+ *        when it is away from the target leverage
+ *      - There is a subsidy for the caller when increasing the leverage.
  */
 abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard {
     using Math for uint256;
