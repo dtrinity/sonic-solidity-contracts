@@ -36,7 +36,8 @@ contract RedeemerWithFees is AccessControl, OracleAware {
 
     /* Fee related state */
     address public feeReceiver;
-    uint256 public redemptionFeeBps; // Fee in basis points
+    uint256 public defaultRedemptionFeeBps; // Default fee in basis points
+    mapping(address => uint256) public collateralRedemptionFeeBps; // Fee in basis points per collateral asset
 
     /* Roles */
     bytes32 public constant REDEMPTION_MANAGER_ROLE =
@@ -47,7 +48,12 @@ contract RedeemerWithFees is AccessControl, OracleAware {
         address indexed oldFeeReceiver,
         address indexed newFeeReceiver
     );
-    event RedemptionFeeUpdated(uint256 oldFeeBps, uint256 newFeeBps);
+    event DefaultRedemptionFeeUpdated(uint256 oldFeeBps, uint256 newFeeBps);
+    event CollateralRedemptionFeeUpdated(
+        address indexed collateralAsset,
+        uint256 oldFeeBps,
+        uint256 newFeeBps
+    );
     event Redemption(
         address indexed redeemer,
         address indexed collateralAsset,
@@ -106,13 +112,13 @@ contract RedeemerWithFees is AccessControl, OracleAware {
         BASE_UNIT = _oracle.BASE_CURRENCY_UNIT();
 
         feeReceiver = _initialFeeReceiver;
-        redemptionFeeBps = _initialRedemptionFeeBps;
+        defaultRedemptionFeeBps = _initialRedemptionFeeBps;
 
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _grantRole(REDEMPTION_MANAGER_ROLE, msg.sender); // Grant to deployer as well
 
         emit FeeReceiverUpdated(address(0), _initialFeeReceiver);
-        emit RedemptionFeeUpdated(0, _initialRedemptionFeeBps);
+        emit DefaultRedemptionFeeUpdated(0, _initialRedemptionFeeBps);
     }
 
     /* Public Redemption */
@@ -135,13 +141,18 @@ contract RedeemerWithFees is AccessControl, OracleAware {
         );
         // Calculate fee
         uint256 feeCollateral = 0;
-        if (redemptionFeeBps > 0) {
+        uint256 currentFeeBps = collateralRedemptionFeeBps[collateralAsset];
+        if (currentFeeBps == 0) {
+            currentFeeBps = defaultRedemptionFeeBps;
+        }
+
+        if (currentFeeBps > 0) {
             feeCollateral =
-                (totalCollateral * redemptionFeeBps) /
+                (totalCollateral * currentFeeBps) /
                 BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
             if (feeCollateral > totalCollateral) {
                 // This should never happen
-                revert FeeTooHigh(redemptionFeeBps, MAX_FEE_BPS);
+                revert FeeTooHigh(currentFeeBps, MAX_FEE_BPS);
             }
         }
         uint256 netCollateral = totalCollateral - feeCollateral;
@@ -276,17 +287,41 @@ contract RedeemerWithFees is AccessControl, OracleAware {
     }
 
     /**
-     * @notice Sets the redemption fee in basis points.
-     * @param _newFeeBps The new redemption fee (e.g., 100 for 1%).
+     * @notice Sets the default redemption fee in basis points.
+     * @param _newFeeBps The new default redemption fee (e.g., 100 for 1%).
      */
-    function setRedemptionFee(
+    function setDefaultRedemptionFee(
         uint256 _newFeeBps
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         if (_newFeeBps > MAX_FEE_BPS) {
             revert FeeTooHigh(_newFeeBps, MAX_FEE_BPS);
         }
-        uint256 oldFeeBps = redemptionFeeBps;
-        redemptionFeeBps = _newFeeBps;
-        emit RedemptionFeeUpdated(oldFeeBps, _newFeeBps);
+        uint256 oldFeeBps = defaultRedemptionFeeBps;
+        defaultRedemptionFeeBps = _newFeeBps;
+        emit DefaultRedemptionFeeUpdated(oldFeeBps, _newFeeBps);
+    }
+
+    /**
+     * @notice Sets the redemption fee for a specific collateral asset in basis points.
+     * @param _collateralAsset The address of the collateral asset.
+     * @param _newFeeBps The new redemption fee for the specified asset (e.g., 100 for 1%).
+     */
+    function setCollateralRedemptionFee(
+        address _collateralAsset,
+        uint256 _newFeeBps
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        if (_collateralAsset == address(0)) {
+            revert CannotBeZeroAddress();
+        }
+        if (_newFeeBps > MAX_FEE_BPS) {
+            revert FeeTooHigh(_newFeeBps, MAX_FEE_BPS);
+        }
+        uint256 oldFeeBps = collateralRedemptionFeeBps[_collateralAsset];
+        collateralRedemptionFeeBps[_collateralAsset] = _newFeeBps;
+        emit CollateralRedemptionFeeUpdated(
+            _collateralAsset,
+            oldFeeBps,
+            _newFeeBps
+        );
     }
 }
