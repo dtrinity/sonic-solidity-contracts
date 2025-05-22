@@ -34,13 +34,15 @@ abstract contract DLoopCoreBase is ERC4626, Ownable {
 
     uint32 public lowerBoundTargetLeverageBps;
     uint32 public upperBoundTargetLeverageBps;
+    uint256 private _defaultMaxSubsidyBps;
 
+    /* Constants */
+    address public immutable BASE_CURRENCY;
     uint8 public immutable PRICE_ORACLE_DECIMALS;
     uint256 public immutable PRICE_ORACLE_UNIT;
     uint32 public immutable TARGET_LEVERAGE_BPS; // ie. 30000 = 300% over 100% in basis points, means 3x leverage
     ERC20 public immutable underlyingAsset;
     ERC20 public immutable dStable;
-    uint256 private _defaultMaxSubsidyBps;
 
     /* Errors */
 
@@ -163,6 +165,7 @@ abstract contract DLoopCoreBase is ERC4626, Ownable {
      * @param _lowerBoundTargetLeverageBps Lower bound of target leverage in basis points
      * @param _upperBoundTargetLeverageBps Upper bound of target leverage in basis points
      * @param _maxSubsidyBps Maximum subsidy in basis points
+     * @param _baseCurrency Address of the base currency
      * @param _priceOracleDecimals Decimals of the price oracle (ie, 8 means 10^8 units of the asset)
      */
     constructor(
@@ -174,6 +177,7 @@ abstract contract DLoopCoreBase is ERC4626, Ownable {
         uint32 _lowerBoundTargetLeverageBps,
         uint32 _upperBoundTargetLeverageBps,
         uint256 _maxSubsidyBps,
+        address _baseCurrency,
         uint8 _priceOracleDecimals
     ) ERC20(_name, _symbol) ERC4626(_underlyingAsset) Ownable(msg.sender) {
         dStable = _dStable;
@@ -194,6 +198,7 @@ abstract contract DLoopCoreBase is ERC4626, Ownable {
             );
         }
 
+        BASE_CURRENCY = _baseCurrency;
         PRICE_ORACLE_DECIMALS = _priceOracleDecimals;
         PRICE_ORACLE_UNIT = 10 ** _priceOracleDecimals;
         TARGET_LEVERAGE_BPS = _targetLeverageBps;
@@ -260,17 +265,6 @@ abstract contract DLoopCoreBase is ERC4626, Ownable {
         uint256 amount,
         address onBehalfOf
     ) internal virtual;
-
-    /**
-     * @dev Gets the base asset address and symbol
-     * @return address Base asset address
-     * @return string Base asset symbol
-     */
-    function _getBaseAssetAddressAndSymbol()
-        internal
-        view
-        virtual
-        returns (address, string memory);
 
     /**
      * @dev Gets the total collateral and debt of a user in base currency

@@ -31,6 +31,7 @@ import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 contract DLoopCoreDLend is DLoopCoreBase {
     /* Constants */
 
+    address public constant AAVE_PRICE_ORACLE_BASE_CURRENCY = address(0);
     uint8 public constant AAVE_PRICE_ORACLE_DECIMALS = 8;
 
     // Note that there is a vulnerability in stable interest rate mode, so we will never use it
@@ -43,11 +44,6 @@ contract DLoopCoreDLend is DLoopCoreBase {
     /* State */
 
     IPoolAddressesProvider public immutable lendingPoolAddressesProvider;
-
-    /* Errors */
-
-    error InvalidBaseCurrency(address expected, address actual);
-    error InvalidOracleUnit(uint256 oracleUnit, uint256 expected);
 
     /**
      * @dev Constructor for the DLoopCoreDLend contract
@@ -81,24 +77,22 @@ contract DLoopCoreDLend is DLoopCoreBase {
             _lowerBoundTargetLeverageBps,
             _upperBoundTargetLeverageBps,
             _maxSubsidyBps,
+            AAVE_PRICE_ORACLE_BASE_CURRENCY,
             AAVE_PRICE_ORACLE_DECIMALS
         )
     {
         lendingPoolAddressesProvider = _lendingPoolAddressesProvider;
 
-        (address baseCurrency, ) = _getBaseAssetAddressAndSymbol();
-
-        if (getLendingOracle().BASE_CURRENCY() != baseCurrency) {
-            revert InvalidBaseCurrency(
-                getLendingOracle().BASE_CURRENCY(),
-                baseCurrency
-            );
+        if (
+            getLendingOracle().BASE_CURRENCY() != AAVE_PRICE_ORACLE_BASE_CURRENCY
+        ) {
+            revert("Invalid price oracle base currency");
         }
 
         uint256 oracleUnit = getLendingOracle().BASE_CURRENCY_UNIT();
 
         if (oracleUnit != 10 ** AAVE_PRICE_ORACLE_DECIMALS) {
-            revert InvalidOracleUnit(oracleUnit, 10 ** AAVE_PRICE_ORACLE_DECIMALS);
+            revert("Invalid price oracle unit");
         }
     }
 
@@ -196,21 +190,6 @@ contract DLoopCoreDLend is DLoopCoreBase {
         address onBehalfOf
     ) internal override {
         getLendingPool().withdraw(token, amount, onBehalfOf);
-    }
-
-    /**
-     * @dev Gets the base asset address and symbol
-     * @return address Base asset address
-     * @return string Base asset symbol
-     */
-    function _getBaseAssetAddressAndSymbol()
-        internal
-        pure
-        override
-        returns (address, string memory)
-    {
-        // In dLEND, the base asset is USD
-        return (address(0), "USD");
     }
 
     /**

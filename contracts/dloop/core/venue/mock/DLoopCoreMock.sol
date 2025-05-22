@@ -17,8 +17,6 @@ contract DLoopCoreMock is DLoopCoreBase {
     mapping(address => address[]) private mockCollateralTokens; // user => tokens
     mapping(address => mapping(address => uint256)) private mockDebt; // user => token => amount
     mapping(address => address[]) private mockDebtTokens; // user => tokens
-    address public baseAsset;
-    string public baseSymbol;
     address public mockPool;
 
     uint8 public constant PRICE_DECIMALS = 8;
@@ -45,11 +43,10 @@ contract DLoopCoreMock is DLoopCoreBase {
             _lowerBoundTargetLeverageBps,
             _upperBoundTargetLeverageBps,
             _maxSubsidyBps,
+            address(0),
             PRICE_DECIMALS
         )
     {
-        baseAsset = address(0);
-        baseSymbol = "USD";
         mockPool = _mockPool;
     }
 
@@ -201,15 +198,6 @@ contract DLoopCoreMock is DLoopCoreBase {
             ERC20(token).transferFrom(mockPool, onBehalfOf, amount),
             "Mock: withdraw transfer failed"
         );
-    }
-
-    function _getBaseAssetAddressAndSymbol()
-        internal
-        view
-        override
-        returns (address, string memory)
-    {
-        return (baseAsset, baseSymbol);
     }
 
     function _getTotalCollateralAndDebtOfUserInBase(
