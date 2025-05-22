@@ -246,6 +246,17 @@ abstract contract DLoopCoreBase is ERC4626, Ownable {
         address token
     ) internal view virtual returns (uint256);
 
+    /**
+     * @dev Gets the maximum borrowable amount of a token
+     * @param user Address of the user
+     * @param token Address of the token
+     * @return uint256 Maximum borrowable amount of the token
+     */
+    function _getMaxBorrowableAmount(
+        address user,
+        address token
+    ) internal view virtual returns (uint256);
+
     /* Helper Functions */
 
     /**
@@ -372,6 +383,9 @@ abstract contract DLoopCoreBase is ERC4626, Ownable {
     ) private {
         // At this step, we assume that the funds from the depositor are already in the vault
 
+        // Get current leverage before supplying (IMPORTANT: this is the leverage before supplying)
+        uint256 currentLeverageBpsBeforeSupply = getCurrentLeverageBps();
+
         // Make sure we have enough balance to supply before supplying
         uint256 currentUnderlyingAssetBalance = underlyingAsset.balanceOf(
             address(this)
@@ -383,7 +397,7 @@ abstract contract DLoopCoreBase is ERC4626, Ownable {
             );
         }
 
-        uint256 maxDStableToBorrowBeforeSupply = _getMaxWithdrawAmount(
+        uint256 maxDStableToBorrowBeforeSupply = _getMaxBorrowableAmount(
             address(this),
             address(dStable)
         );
@@ -391,7 +405,7 @@ abstract contract DLoopCoreBase is ERC4626, Ownable {
         // Supply the underlying asset to the lending pool
         _supplyToPool(address(underlyingAsset), newTotalAssets, address(this));
 
-        uint256 maxDStableToBorrowAfterSupply = _getMaxWithdrawAmount(
+        uint256 maxDStableToBorrowAfterSupply = _getMaxBorrowableAmount(
             address(this),
             address(dStable)
         );
@@ -403,30 +417,29 @@ abstract contract DLoopCoreBase is ERC4626, Ownable {
             );
         }
 
-        // Now, this value > 0
-        uint256 maxDStableToBorrow = maxDStableToBorrowAfterSupply -
-            maxDStableToBorrowBeforeSupply;
+        // Get the amount of dStable to borrow that keeps the current leverage
+        uint256 dStableAmountToBorrow = maxDStableToBorrowAfterSupply - maxDStableToBorrowBeforeSupply;
 
         uint256 dStableBalanceBeforeBorrow = dStable.balanceOf(address(this));
 
         // Borrow the max amount of dStable
-        _borrowFromPool(address(dStable), maxDStableToBorrow, address(this));
+        _borrowFromPool(address(dStable), dStableAmountToBorrow, address(this));
 
         uint256 dStableBalanceAfterBorrow = dStable.balanceOf(address(this));
 
         if (
             dStableBalanceAfterBorrow - dStableBalanceBeforeBorrow <
-            maxDStableToBorrow
+            dStableAmountToBorrow
         ) {
             revert UnexpectedBorrowAmountFromPool(
                 dStableBalanceBeforeBorrow,
                 dStableBalanceAfterBorrow,
-                maxDStableToBorrow
+                dStableAmountToBorrow
             );
         }
 
         // Transfer the dStable to the receiver
-        dStable.safeTransfer(receiver, maxDStableToBorrow);
+        dStable.safeTransfer(receiver, dStableAmountToBorrow);
     }
 
     /* Withdraw and Redeem */

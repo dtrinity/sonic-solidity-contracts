@@ -223,6 +223,28 @@ contract DLoopCoreDLend is DLoopCoreBase {
     }
 
     /**
+     * @dev Gets the maximum borrowable amount for a user in base currency
+     * @param user Address of the user
+     * @param token Address of the token
+     * @return uint256 Maximum borrowable amount in token decimals
+     */
+    function _getMaxBorrowableAmount(
+        address user,
+        address token
+    ) internal view override returns (uint256) {
+        uint256 availableBorrowsBase;
+        (, , availableBorrowsBase, , , ) = getLendingPool().getUserAccountData(
+            user
+        );
+
+        uint256 tokenPriceInBase = getAssetPriceFromOracle(token);
+        uint256 tokenUnit = 10 ** ERC20(token).decimals();
+
+        // Convert the available borrow amount to the token's decimals
+        return (availableBorrowsBase * tokenUnit) / tokenPriceInBase;
+    }
+
+    /**
      * @dev Gets the supplied balance of an asset for a user (returns aToken balance for dLEND)
      * @param user Address of the user
      * @param asset Address of the asset

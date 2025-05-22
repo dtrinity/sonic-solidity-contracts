@@ -286,6 +286,35 @@ contract DLoopCoreMock is DLoopCoreBase {
         return Math.min(maxWithdrawAsset, supplied);
     }
 
+    function _getMaxBorrowableAmount(
+        address user,
+        address token
+    ) internal view override returns (uint256) {
+        // Use 70% LTV in basis points
+        uint256 LTV_BPS = 7000; // 70% in basis points (10000 = 100%)
+        (
+            uint256 totalCollateralBase,
+            uint256 totalDebtBase
+        ) = _getTotalCollateralAndDebtOfUserInBase(user);
+        // Calculate available borrow in base units
+        uint256 availableBorrowBase = PercentageMath.percentMul(
+            totalCollateralBase,
+            LTV_BPS
+        );
+        if (availableBorrowBase <= totalDebtBase) {
+            return 0;
+        }
+        availableBorrowBase = availableBorrowBase - totalDebtBase;
+        // Convert available borrow in base to token units
+        uint256 price = mockPrices[token];
+        require(price > 0, "Mock price not set for token");
+        uint256 tokenDecimals = ERC20(token).decimals();
+        uint256 tokenUnit = 10 ** tokenDecimals;
+        // availableBorrowBase is in base units, so convert to token units
+        uint256 maxBorrowable = (availableBorrowBase * tokenUnit) / price;
+        return maxBorrowable;
+    }
+
     // --- Test-only public wrappers for internal pool logic ---
     function testSupplyToPool(
         address token,
