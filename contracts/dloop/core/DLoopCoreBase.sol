@@ -257,21 +257,21 @@ abstract contract DLoopCoreBase is ERC4626, Ownable {
     /**
      * @dev Gets the maximum withdrawable amount of an asset
      * @param user Address of the user
-     * @param asset Address of the asset
+     * @param token Address of the token to withdraw
      * @return uint256 Maximum withdrawable amount of the asset
      */
-    function _getMaxWithdrawAmount(
+    function _getMaxWithdrawableAmount(
         address user,
-        address asset
+        address token
     ) internal view returns (uint256) {
         // Calculate max withdrawable in base to keep health factor at 1
         uint256 maxWithdrawBase = _getMaxWithdrawableAmountInBase(user);
 
         // Convert to asset units
-        uint256 maxWithdrawAsset = (maxWithdrawBase * (10 ** ERC20(asset).decimals())) / getAssetPriceFromOracle(asset);
+        uint256 maxWithdrawAsset = (maxWithdrawBase * (10 ** ERC20(token).decimals())) / getAssetPriceFromOracle(token);
 
         // Get user's supplied balance of the asset in the lending pool (protocol-specific)
-        uint256 supplied = _getSuppliedBalance(user, asset);
+        uint256 supplied = _getSuppliedBalance(user, token);
 
         // Return the minimum of supplied and calculated max
         return Math.min(maxWithdrawAsset, supplied);
@@ -523,7 +523,7 @@ abstract contract DLoopCoreBase is ERC4626, Ownable {
         uint256 underlyingAssetBalanceBefore = underlyingAsset.balanceOf(address(this));
 
         // This value is used later to calculate the expected withdrawable amount that keeps the current leverage
-        uint256 maxWithdrawUnderlyingBeforeRepay = _getMaxWithdrawAmount(address(this), address(underlyingAsset));
+        uint256 maxWithdrawUnderlyingBeforeRepay = _getMaxWithdrawableAmount(address(this), address(underlyingAsset));
 
         // Get the current leverage before repaying the debt (IMPORTANT: this is the leverage before repaying the debt)
         // It is used to calculate the expected withdrawable amount that keeps the current leverage
@@ -532,7 +532,7 @@ abstract contract DLoopCoreBase is ERC4626, Ownable {
         // Repay the debt to withdraw the collateral
         _repayDebt(address(dStable), dStableToRepay, address(this));
 
-        uint256 maxWithdrawUnderlyingAfterRepay = _getMaxWithdrawAmount(address(this), address(underlyingAsset));
+        uint256 maxWithdrawUnderlyingAfterRepay = _getMaxWithdrawableAmount(address(this), address(underlyingAsset));
 
         // Make sure the max withdraw amount of underlying asset is not decreased after repaying the debt
         if (maxWithdrawUnderlyingAfterRepay < maxWithdrawUnderlyingBeforeRepay) {
