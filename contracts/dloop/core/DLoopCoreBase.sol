@@ -369,7 +369,10 @@ abstract contract DLoopCoreBase is ERC4626, Ownable {
             leveragedAssets
         );
 
-        _depositToPoolImplementation(leveragedAssets, receiver);
+        uint256 dStableBorrowed = _depositToPoolImplementation(leveragedAssets);
+
+        // Transfer the dStable to the receiver
+        dStable.safeTransfer(receiver, dStableBorrowed);
 
         // Mint the vault's shares to the depositor
         _mint(receiver, shares);
@@ -378,9 +381,8 @@ abstract contract DLoopCoreBase is ERC4626, Ownable {
     }
 
     function _depositToPoolImplementation(
-        uint256 newTotalAssets, // deposit amount
-        address receiver
-    ) private {
+        uint256 newTotalAssets // deposit amount
+    ) private returns (uint256) {
         // At this step, we assume that the funds from the depositor are already in the vault
 
         // Get current leverage before supplying (IMPORTANT: this is the leverage before supplying)
@@ -418,7 +420,13 @@ abstract contract DLoopCoreBase is ERC4626, Ownable {
         }
 
         // Get the amount of dStable to borrow that keeps the current leverage
-        uint256 dStableAmountToBorrow = maxDStableToBorrowAfterSupply - maxDStableToBorrowBeforeSupply;
+        uint256 dStableAmountToBorrow = _getBorrowAmountThatKeepCurrentLeverage(
+            maxDStableToBorrowBeforeSupply,
+            maxDStableToBorrowAfterSupply,
+            currentLeverageBpsBeforeSupply > 0
+                ? currentLeverageBpsBeforeSupply
+                : TARGET_LEVERAGE_BPS
+        );
 
         uint256 dStableBalanceBeforeBorrow = dStable.balanceOf(address(this));
 
@@ -428,7 +436,7 @@ abstract contract DLoopCoreBase is ERC4626, Ownable {
         uint256 dStableBalanceAfterBorrow = dStable.balanceOf(address(this));
 
         if (
-            dStableBalanceAfterBorrow - dStableBalanceBeforeBorrow <
+            dStableBalanceAfterBorrow - dStableBalanceBeforeBorrow !=
             dStableAmountToBorrow
         ) {
             revert UnexpectedBorrowAmountFromPool(
@@ -438,8 +446,7 @@ abstract contract DLoopCoreBase is ERC4626, Ownable {
             );
         }
 
-        // Transfer the dStable to the receiver
-        dStable.safeTransfer(receiver, dStableAmountToBorrow);
+        return dStableAmountToBorrow;
     }
 
     /* Withdraw and Redeem */
@@ -494,17 +501,19 @@ abstract contract DLoopCoreBase is ERC4626, Ownable {
         dStable.safeTransferFrom(msg.sender, address(this), dStableToRepay);
 
         // Withdraw the collateral from the lending pool
-        uint256 receivedUnderlyingAmount = _withdrawFromPoolImplementation(
+        uint256 withdrawnAssetsAmount = _withdrawFromPoolImplementation(
             assets,
-            dStableToRepay,
-            receiver
+            dStableToRepay
         );
+
+        // Transfer the asset to the receiver
+        underlyingAsset.safeTransfer(receiver, withdrawnAssetsAmount);
 
         emit Withdraw(
             caller,
             receiver,
             owner,
-            receivedUnderlyingAmount,
+            withdrawnAssetsAmount,
             shares
         );
     }
@@ -513,13 +522,11 @@ abstract contract DLoopCoreBase is ERC4626, Ownable {
      * @dev Handles the logic for repaying debt and withdrawing collateral from the pool, then transfers to receiver
      * @param assetsToRemoveFromLending The acutal amount of assets to remove from the lending pool
      * @param dStableToRepay The amount of dStable to repay
-     * @param receiver Address to receive the withdrawn assets
      * @return receivedUnderlyingAmount The actual amount of underlying asset received and transferred to receiver
      */
     function _withdrawFromPoolImplementation(
         uint256 assetsToRemoveFromLending,
-        uint256 dStableToRepay,
-        address receiver
+        uint256 dStableToRepay
     ) private returns (uint256 receivedUnderlyingAmount) {
         // This value is used later to calculate the actual received asset after withdrawing
         uint256 underlyingAssetBalanceBefore = underlyingAsset.balanceOf(
@@ -594,15 +601,14 @@ abstract contract DLoopCoreBase is ERC4626, Ownable {
             underlyingAssetBalanceBefore;
 
         // Make sure the withdrawable amount is not less than expected
-        if (receivedUnderlyingAmount < withdrawableUnderlyingAmount) {
+        if (receivedUnderlyingAmount != withdrawableUnderlyingAmount) {
             revert UnexpectedLossOfWithdrawableAmount(
                 withdrawableUnderlyingAmount,
                 receivedUnderlyingAmount
             );
         }
 
-        // Transfer the asset to the receiver
-        underlyingAsset.safeTransfer(receiver, receivedUnderlyingAmount);
+        return receivedUnderlyingAmount;
     }
 
     /**
