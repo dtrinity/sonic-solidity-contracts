@@ -162,6 +162,7 @@ abstract contract DLoopCoreBase is ERC4626, Ownable {
         uint256 targetLeverage,
         uint256 upperBound
     );
+    error AssetPriceIsZero(address asset);
 
     /**
      * @dev Constructor for the DLoopCore contract
@@ -243,7 +244,7 @@ abstract contract DLoopCoreBase is ERC4626, Ownable {
      * @param asset Address of the asset
      * @return uint256 Price of the asset
      */
-    function getAssetPriceFromOracle(
+    function getAssetPriceFromOracleImplementation(
         address asset
     ) public view virtual returns (uint256);
 
@@ -448,6 +449,24 @@ abstract contract DLoopCoreBase is ERC4626, Ownable {
     }
 
     /* Helper Functions */
+
+    /**
+     * @dev Gets the asset price from the oracle
+     * @param asset Address of the asset
+     * @return uint256 Price of the asset
+     */
+    function getAssetPriceFromOracle(
+        address asset
+    ) public view returns (uint256) {
+        uint256 assetPrice = getAssetPriceFromOracleImplementation(asset);
+
+        // Sanity check
+        if (assetPrice == 0) {
+            revert AssetPriceIsZero(asset);
+        }
+
+        return assetPrice;
+    }
 
     /**
      * @dev Converts an amount in base currency to the actual amount in the token

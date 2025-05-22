@@ -101,7 +101,7 @@ contract DLoopCoreDLend is DLoopCoreBase {
      * @param asset Address of the asset
      * @return uint256 Price of the asset
      */
-    function getAssetPriceFromOracle(
+    function getAssetPriceFromOracleImplementation(
         address asset
     ) public view override returns (uint256) {
         return getLendingOracle().getAssetPrice(asset);
