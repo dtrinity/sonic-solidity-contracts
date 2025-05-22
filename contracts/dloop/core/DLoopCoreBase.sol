@@ -256,9 +256,15 @@ abstract contract DLoopCoreBase is ERC4626, Ownable {
         // We override this function to return the total assets in the vault
         // with respect to the position in the lending pool
         // The dLend interest will be distributed to the dToken
-        (uint256 totalCollateralBase, ) = _getTotalCollateralAndDebtOfUserInBase(address(this));
-        uint256 assetPriceInBase = getAssetPriceFromOracle(address(underlyingAsset));
-        uint256 assetTokenUnit = 10 ** ERC20(address(underlyingAsset)).decimals();
+        (
+            uint256 totalCollateralBase,
+
+        ) = _getTotalCollateralAndDebtOfUserInBase(address(this));
+        uint256 assetPriceInBase = getAssetPriceFromOracle(
+            address(underlyingAsset)
+        );
+        uint256 assetTokenUnit = 10 **
+            ERC20(address(underlyingAsset)).decimals();
         return (totalCollateralBase * assetTokenUnit) / assetPriceInBase;
     }
 
@@ -296,7 +302,8 @@ abstract contract DLoopCoreBase is ERC4626, Ownable {
      */
     function getLeveragedAssets(uint256 assets) public view returns (uint256) {
         return
-            (assets * TARGET_LEVERAGE_BPS) / BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
+            (assets * TARGET_LEVERAGE_BPS) /
+            BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
     }
 
     /**
@@ -304,16 +311,23 @@ abstract contract DLoopCoreBase is ERC4626, Ownable {
      * @param assets Amount of underlying asset to withdraw
      * @return amountOfDebtToRepay Amount of dStable to repay
      */
-    function getAmountOfDebtToRepay(uint256 assets) public view returns (uint256) {
+    function getAmountOfDebtToRepay(
+        uint256 assets
+    ) public view returns (uint256) {
         return
-            (assets * (getAssetPriceFromOracle(address(underlyingAsset)) * 10 ** dStable.decimals())) /
-            (getAssetPriceFromOracle(address(dStable)) * 10 ** underlyingAsset.decimals());
+            (assets *
+                (getAssetPriceFromOracle(address(underlyingAsset)) *
+                    10 ** dStable.decimals())) /
+            (getAssetPriceFromOracle(address(dStable)) *
+                10 ** underlyingAsset.decimals());
     }
 
     /* Deposit and Mint */
 
     /**
-     * @dev Deposits assets into the vault (it actually requires to spent the leveraged amount of the assets, ie. if assets=1, and leverage=2, it means 2 assets are required to be spent)
+     * @dev Deposits assets into the vault
+     *      - It actually requires to spent the leveraged amount of the assets,
+     *        ie. if assets=1, and leverage=2, it means 2 assets are required to be spent
      * @param caller Address of the caller
      * @param receiver Address to receive the minted shares
      * @param assets Amount of assets to deposit
@@ -467,7 +481,11 @@ abstract contract DLoopCoreBase is ERC4626, Ownable {
         dStable.safeTransferFrom(msg.sender, address(this), dStableToRepay);
 
         // Withdraw the collateral from the lending pool
-        uint256 receivedUnderlyingAmount = _withdrawFromPoolImplementation(assets, dStableToRepay, receiver);
+        uint256 receivedUnderlyingAmount = _withdrawFromPoolImplementation(
+            assets,
+            dStableToRepay,
+            receiver
+        );
 
         emit Withdraw(
             caller,
@@ -491,10 +509,15 @@ abstract contract DLoopCoreBase is ERC4626, Ownable {
         address receiver
     ) private returns (uint256 receivedUnderlyingAmount) {
         // This value is used later to calculate the actual received asset after withdrawing
-        uint256 underlyingAssetBalanceBefore = underlyingAsset.balanceOf(address(this));
+        uint256 underlyingAssetBalanceBefore = underlyingAsset.balanceOf(
+            address(this)
+        );
 
         // This value is used later to calculate the expected withdrawable amount that keeps the current leverage
-        uint256 maxWithdrawUnderlyingBeforeRepay = _getMaxWithdrawableAmount(address(this), address(underlyingAsset));
+        uint256 maxWithdrawUnderlyingBeforeRepay = _getMaxWithdrawableAmount(
+            address(this),
+            address(underlyingAsset)
+        );
 
         // Get the current leverage before repaying the debt (IMPORTANT: this is the leverage before repaying the debt)
         // It is used to calculate the expected withdrawable amount that keeps the current leverage
@@ -503,10 +526,15 @@ abstract contract DLoopCoreBase is ERC4626, Ownable {
         // Repay the debt to withdraw the collateral
         _repayDebt(address(dStable), dStableToRepay, address(this));
 
-        uint256 maxWithdrawUnderlyingAfterRepay = _getMaxWithdrawableAmount(address(this), address(underlyingAsset));
+        uint256 maxWithdrawUnderlyingAfterRepay = _getMaxWithdrawableAmount(
+            address(this),
+            address(underlyingAsset)
+        );
 
         // Make sure the max withdraw amount of underlying asset is not decreased after repaying the debt
-        if (maxWithdrawUnderlyingAfterRepay < maxWithdrawUnderlyingBeforeRepay) {
+        if (
+            maxWithdrawUnderlyingAfterRepay < maxWithdrawUnderlyingBeforeRepay
+        ) {
             revert InvalidMaxWithdrawAfterRepay(
                 address(underlyingAsset),
                 maxWithdrawUnderlyingBeforeRepay,
@@ -516,10 +544,10 @@ abstract contract DLoopCoreBase is ERC4626, Ownable {
 
         // Get the withdrawable amount that keeps the current leverage
         uint256 withdrawableUnderlyingAmount = _getWithdrawAmountThatKeepCurrentLeverage(
-            maxWithdrawUnderlyingBeforeRepay,
-            maxWithdrawUnderlyingAfterRepay,
-            leverageBpsBeforeRepayDebt
-        );
+                maxWithdrawUnderlyingBeforeRepay,
+                maxWithdrawUnderlyingAfterRepay,
+                leverageBpsBeforeRepayDebt
+            );
 
         if (withdrawableUnderlyingAmount < assetsToRemoveFromLending) {
             revert WithdrawableIsLessThanRequired(
@@ -536,7 +564,9 @@ abstract contract DLoopCoreBase is ERC4626, Ownable {
             address(this)
         );
 
-        uint256 underlyingAssetBalanceAfter = underlyingAsset.balanceOf(address(this));
+        uint256 underlyingAssetBalanceAfter = underlyingAsset.balanceOf(
+            address(this)
+        );
 
         // Make sure the vault received the collateral after withdrawing
         if (underlyingAssetBalanceAfter < underlyingAssetBalanceBefore) {
@@ -546,7 +576,9 @@ abstract contract DLoopCoreBase is ERC4626, Ownable {
             );
         }
 
-        receivedUnderlyingAmount = underlyingAssetBalanceAfter - underlyingAssetBalanceBefore;
+        receivedUnderlyingAmount =
+            underlyingAssetBalanceAfter -
+            underlyingAssetBalanceBefore;
 
         // Make sure the withdrawable amount is not less than expected
         if (receivedUnderlyingAmount < withdrawableUnderlyingAmount) {
@@ -605,14 +637,18 @@ abstract contract DLoopCoreBase is ERC4626, Ownable {
 
         // Instead of using TARGET_LEVERAGE_BPS, we use the current leverage to calculate the withdrawable amount to avoid
         // unexpectedly changing the current leverage (which may cause loss to the user)
-        if (leverageBpsBeforeRepayDebt <= BasisPointConstants.ONE_HUNDRED_PERCENT_BPS) {
+        if (
+            leverageBpsBeforeRepayDebt <=
+            BasisPointConstants.ONE_HUNDRED_PERCENT_BPS
+        ) {
             // If there is no more debt, withdraw as much as possible
             return type(uint256).max;
         }
 
         return
             (actualRepaidAmount * leverageBpsBeforeRepayDebt) /
-            (leverageBpsBeforeRepayDebt - BasisPointConstants.ONE_HUNDRED_PERCENT_BPS);
+            (leverageBpsBeforeRepayDebt -
+                BasisPointConstants.ONE_HUNDRED_PERCENT_BPS);
     }
 
     /* Rebalance */
@@ -813,7 +849,8 @@ abstract contract DLoopCoreBase is ERC4626, Ownable {
             return type(uint256).max; // infinite leverage
         }
         // The leverage will be 1 if totalDebtBase is 0 (no more debt)
-        return ((totalCollateralBase * BasisPointConstants.ONE_HUNDRED_PERCENT_BPS) /
+        return ((totalCollateralBase *
+            BasisPointConstants.ONE_HUNDRED_PERCENT_BPS) /
             (totalCollateralBase - totalDebtBase));
     }
 

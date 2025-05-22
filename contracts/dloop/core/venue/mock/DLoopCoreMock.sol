@@ -35,16 +35,18 @@ contract DLoopCoreMock is DLoopCoreBase {
         uint32 _upperBoundTargetLeverageBps,
         uint256 _maxSubsidyBps,
         address _mockPool
-    ) DLoopCoreBase(
-        _name,
-        _symbol,
-        _underlyingAsset,
-        _dStable,
-        _targetLeverageBps,
-        _lowerBoundTargetLeverageBps,
-        _upperBoundTargetLeverageBps,
-        _maxSubsidyBps
-    ) {
+    )
+        DLoopCoreBase(
+            _name,
+            _symbol,
+            _underlyingAsset,
+            _dStable,
+            _targetLeverageBps,
+            _lowerBoundTargetLeverageBps,
+            _upperBoundTargetLeverageBps,
+            _maxSubsidyBps
+        )
+    {
         baseAsset = address(0);
         baseSymbol = "USD";
         mockPool = _mockPool;
@@ -56,76 +58,128 @@ contract DLoopCoreMock is DLoopCoreBase {
     }
 
     // Allow setting mock collateral and debt for a user
-    function setMockCollateral(address user, address token, uint256 amount) external {
+    function setMockCollateral(
+        address user,
+        address token,
+        uint256 amount
+    ) external {
         _setMockCollateral(user, token, amount);
     }
-    function _setMockCollateral(address user, address token, uint256 amount) internal {
+    function _setMockCollateral(
+        address user,
+        address token,
+        uint256 amount
+    ) internal {
         if (mockCollateral[user][token] == 0) {
             mockCollateralTokens[user].push(token);
         }
         mockCollateral[user][token] = amount;
 
         // If new collateral is less than debt, revert
-       ( uint256 totalCollateralInBase, uint256 totalDebtInBase) = _getTotalCollateralAndDebtOfUserInBase(user);
-       if (totalCollateralInBase < totalDebtInBase) {
+        (
+            uint256 totalCollateralInBase,
+            uint256 totalDebtInBase
+        ) = _getTotalCollateralAndDebtOfUserInBase(user);
+        if (totalCollateralInBase < totalDebtInBase) {
             revert("Mock: collateral is less than debt");
-       }
+        }
     }
 
     function setMockDebt(address user, address token, uint256 amount) external {
         _setMockDebt(user, token, amount);
     }
-    function _setMockDebt(address user, address token, uint256 amount) internal {
+    function _setMockDebt(
+        address user,
+        address token,
+        uint256 amount
+    ) internal {
         if (mockDebt[user][token] == 0) {
             mockDebtTokens[user].push(token);
         }
         mockDebt[user][token] = amount;
 
         // If new debt is greater than collateral, revert
-        ( uint256 totalCollateralInBase, uint256 totalDebtInBase) = _getTotalCollateralAndDebtOfUserInBase(user);
+        (
+            uint256 totalCollateralInBase,
+            uint256 totalDebtInBase
+        ) = _getTotalCollateralAndDebtOfUserInBase(user);
         if (totalCollateralInBase < totalDebtInBase) {
             revert("Mock: collateral is less than debt");
         }
     }
 
     // --- Overrides ---
-    function getAssetPriceFromOracle(address asset) public view override returns (uint256) {
+    function getAssetPriceFromOracle(
+        address asset
+    ) public view override returns (uint256) {
         uint256 price = mockPrices[asset];
         require(price > 0, "Mock price not set");
         return price;
     }
 
-    function _supplyToPool(address token, uint256 amount, address onBehalfOf) internal override {
+    function _supplyToPool(
+        address token,
+        uint256 amount,
+        address onBehalfOf
+    ) internal override {
         // Mimic: increase collateral for onBehalfOf, transfer token to pool
 
         if (token == address(dStable)) {
             revert("Mock: dStable is not supported as collateral");
         }
 
-        _setMockCollateral(onBehalfOf, token, mockCollateral[onBehalfOf][token] + amount);
-        require(ERC20(token).transfer(mockPool, amount), "Mock: transfer to pool failed");
+        _setMockCollateral(
+            onBehalfOf,
+            token,
+            mockCollateral[onBehalfOf][token] + amount
+        );
+        require(
+            ERC20(token).transfer(mockPool, amount),
+            "Mock: transfer to pool failed"
+        );
     }
 
-    function _borrowFromPool(address token, uint256 amount, address onBehalfOf) internal override {
+    function _borrowFromPool(
+        address token,
+        uint256 amount,
+        address onBehalfOf
+    ) internal override {
         // Mimic: increase debt for onBehalfOf, transfer token from pool to onBehalfOf
         _setMockDebt(onBehalfOf, token, mockDebt[onBehalfOf][token] + amount);
-        require(ERC20(token).balanceOf(mockPool) >= amount, "Mock: not enough tokens in pool to borrow");
-        require(ERC20(token).transferFrom(mockPool, onBehalfOf, amount), "Mock: borrow transfer failed");
+        require(
+            ERC20(token).balanceOf(mockPool) >= amount,
+            "Mock: not enough tokens in pool to borrow"
+        );
+        require(
+            ERC20(token).transferFrom(mockPool, onBehalfOf, amount),
+            "Mock: borrow transfer failed"
+        );
     }
 
-    function _repayDebt(address token, uint256 amount, address onBehalfOf) internal override {
+    function _repayDebt(
+        address token,
+        uint256 amount,
+        address onBehalfOf
+    ) internal override {
         // Mimic: decrease debt for onBehalfOf, transfer token from onBehalfOf to pool
         if (mockDebt[onBehalfOf][token] < amount) {
             revert("Mock: repay exceeds debt");
         }
 
         _setMockDebt(onBehalfOf, token, mockDebt[onBehalfOf][token] - amount);
-        require(ERC20(token).transferFrom(onBehalfOf, mockPool, amount), "Mock: repay transfer failed");
+        require(
+            ERC20(token).transferFrom(onBehalfOf, mockPool, amount),
+            "Mock: repay transfer failed"
+        );
     }
 
-    function _withdrawFromPool(address token, uint256 amount, address onBehalfOf) internal override {
+    function _withdrawFromPool(
+        address token,
+        uint256 amount,
+        address onBehalfOf
+    ) internal override {
         // Mimic: decrease collateral for onBehalfOf, transfer token from pool to onBehalfOf
-        
+
         if (token == address(dStable)) {
             revert("Mock: dStable is not supported as collateral");
         }
@@ -133,16 +187,33 @@ contract DLoopCoreMock is DLoopCoreBase {
             revert("Mock: not enough collateral to withdraw");
         }
 
-        _setMockCollateral(onBehalfOf, token, mockCollateral[onBehalfOf][token] - amount);
-        require(ERC20(token).balanceOf(mockPool) >= amount, "Mock: not enough tokens in pool to withdraw");
-        require(ERC20(token).transferFrom(mockPool, onBehalfOf, amount), "Mock: withdraw transfer failed");
+        _setMockCollateral(
+            onBehalfOf,
+            token,
+            mockCollateral[onBehalfOf][token] - amount
+        );
+        require(
+            ERC20(token).balanceOf(mockPool) >= amount,
+            "Mock: not enough tokens in pool to withdraw"
+        );
+        require(
+            ERC20(token).transferFrom(mockPool, onBehalfOf, amount),
+            "Mock: withdraw transfer failed"
+        );
     }
 
-    function _getBaseAssetAddressAndSymbol() internal view override returns (address, string memory) {
+    function _getBaseAssetAddressAndSymbol()
+        internal
+        view
+        override
+        returns (address, string memory)
+    {
         return (baseAsset, baseSymbol);
     }
 
-    function _getTotalCollateralAndDebtOfUserInBase(address user)
+    function _getTotalCollateralAndDebtOfUserInBase(
+        address user
+    )
         internal
         view
         override
@@ -160,7 +231,7 @@ contract DLoopCoreMock is DLoopCoreBase {
             uint256 price = mockPrices[token];
             uint256 amount = mockCollateral[user][token];
             uint256 assetTokenUnit = 10 ** ERC20(token).decimals();
-            uint256 amountInBase = amount * price / assetTokenUnit;
+            uint256 amountInBase = (amount * price) / assetTokenUnit;
 
             totalCollateralBase += amountInBase;
         }
@@ -171,14 +242,17 @@ contract DLoopCoreMock is DLoopCoreBase {
             uint256 price = mockPrices[token];
             uint256 amount = mockDebt[user][token];
             uint256 assetTokenUnit = 10 ** ERC20(token).decimals();
-            uint256 amountInBase = amount * price / assetTokenUnit;
+            uint256 amountInBase = (amount * price) / assetTokenUnit;
 
             totalDebtBase += amountInBase;
         }
         return (totalCollateralBase, totalDebtBase);
     }
 
-    function _getSuppliedBalance(address user, address asset) internal view returns (uint256) {
+    function _getSuppliedBalance(
+        address user,
+        address asset
+    ) internal view returns (uint256) {
         return mockCollateral[user][asset];
     }
 
@@ -187,18 +261,23 @@ contract DLoopCoreMock is DLoopCoreBase {
         address token
     ) internal view override returns (uint256) {
         // Get user account data: totalCollateralBase, totalDebtBase
-        (uint256 totalCollateralBase, uint256 totalDebtBase) = _getTotalCollateralAndDebtOfUserInBase(user);
+        (
+            uint256 totalCollateralBase,
+            uint256 totalDebtBase
+        ) = _getTotalCollateralAndDebtOfUserInBase(user);
 
         // Calculate max withdrawable in base to keep health factor at 1
         // (totalCollateralBase - X) * liquidationThreshold = totalDebtBase
         // => X = totalCollateralBase - totalDebtBase / liquidationThreshold
-        uint256 rightSide = (totalDebtBase * PERCENTAGE_FACTOR) / LIQUIDATION_THRESHOLD;
+        uint256 rightSide = (totalDebtBase * PERCENTAGE_FACTOR) /
+            LIQUIDATION_THRESHOLD;
         uint256 maxWithdrawBase = totalCollateralBase > rightSide
             ? totalCollateralBase - rightSide
             : 0;
 
         // Convert to asset units
-        uint256 maxWithdrawAsset = (maxWithdrawBase * (10 ** ERC20(token).decimals())) / getAssetPriceFromOracle(token);
+        uint256 maxWithdrawAsset = (maxWithdrawBase *
+            (10 ** ERC20(token).decimals())) / getAssetPriceFromOracle(token);
 
         // Get user's supplied balance of the asset in the lending pool (protocol-specific)
         uint256 supplied = _getSuppliedBalance(user, token);
@@ -208,20 +287,45 @@ contract DLoopCoreMock is DLoopCoreBase {
     }
 
     // --- Test-only public wrappers for internal pool logic ---
-    function testSupplyToPool(address token, uint256 amount, address onBehalfOf) external {
-        require(ERC20(token).transferFrom(onBehalfOf, address(this), amount), "Mock: transferFrom failed");
+    function testSupplyToPool(
+        address token,
+        uint256 amount,
+        address onBehalfOf
+    ) external {
+        require(
+            ERC20(token).transferFrom(onBehalfOf, address(this), amount),
+            "Mock: transferFrom failed"
+        );
         _supplyToPool(token, amount, onBehalfOf);
     }
-    function testBorrowFromPool(address token, uint256 amount, address onBehalfOf) external {
+    function testBorrowFromPool(
+        address token,
+        uint256 amount,
+        address onBehalfOf
+    ) external {
         _borrowFromPool(token, amount, onBehalfOf);
     }
-    function testRepayDebt(address token, uint256 amount, address onBehalfOf) external {
+    function testRepayDebt(
+        address token,
+        uint256 amount,
+        address onBehalfOf
+    ) external {
         _repayDebt(token, amount, onBehalfOf);
     }
-    function testWithdrawFromPool(address token, uint256 amount, address onBehalfOf) external {
+    function testWithdrawFromPool(
+        address token,
+        uint256 amount,
+        address onBehalfOf
+    ) external {
         _withdrawFromPool(token, amount, onBehalfOf);
     }
-    function testGetTotalCollateralAndDebtOfUserInBase(address user) external view returns (uint256 totalCollateralBase, uint256 totalDebtBase) {
+    function testGetTotalCollateralAndDebtOfUserInBase(
+        address user
+    )
+        external
+        view
+        returns (uint256 totalCollateralBase, uint256 totalDebtBase)
+    {
         return _getTotalCollateralAndDebtOfUserInBase(user);
     }
 }

@@ -228,7 +228,10 @@ contract DLoopCoreDLend is DLoopCoreBase {
      * @param asset Address of the asset
      * @return uint256 Supplied balance of the asset
      */
-    function _getSuppliedBalance(address user, address asset) internal view returns (uint256) {
+    function _getSuppliedBalance(
+        address user,
+        address asset
+    ) internal view returns (uint256) {
         address aToken = _getDTokenAddress(asset);
         return ERC20(aToken).balanceOf(user);
     }
@@ -247,19 +250,27 @@ contract DLoopCoreDLend is DLoopCoreBase {
 
         // Get user account data: totalCollateralBase, totalDebtBase, liquidationThreshold, etc.
         // liquidationThreshold example: 1e4 (100%), 8500 (85%),...
-        (uint256 totalCollateralBase, uint256 totalDebtBase, , uint256 currentLiquidationThreshold, , ) = getLendingPool()
-            .getUserAccountData(user);
+        (
+            uint256 totalCollateralBase,
+            uint256 totalDebtBase,
+            ,
+            uint256 currentLiquidationThreshold,
+            ,
+
+        ) = getLendingPool().getUserAccountData(user);
 
         // Calculate max withdrawable in base to keep health factor at 1
         // (totalCollateralBase - X) * liquidationThreshold = totalDebtBase
         // => X = totalCollateralBase - totalDebtBase / liquidationThreshold
-        uint256 rightSide = (totalDebtBase * PERCENTAGE_FACTOR) / currentLiquidationThreshold;
+        uint256 rightSide = (totalDebtBase * PERCENTAGE_FACTOR) /
+            currentLiquidationThreshold;
         uint256 maxWithdrawBase = totalCollateralBase > rightSide
             ? totalCollateralBase - rightSide
             : 0;
 
         // Convert to asset units
-        uint256 maxWithdrawAsset = (maxWithdrawBase * (10 ** ERC20(token).decimals())) / getAssetPriceFromOracle(token);
+        uint256 maxWithdrawAsset = (maxWithdrawBase *
+            (10 ** ERC20(token).decimals())) / getAssetPriceFromOracle(token);
 
         // Get user's supplied balance of the asset in the lending pool (protocol-specific)
         uint256 supplied = _getSuppliedBalance(user, token);
