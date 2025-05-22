@@ -75,8 +75,7 @@ contract DLoopCoreDLend is DLoopCoreBase {
             _targetLeverageBps,
             _lowerBoundTargetLeverageBps,
             _upperBoundTargetLeverageBps,
-            _maxSubsidyBps,
-            AAVE_PRICE_ORACLE_DECIMALS
+            _maxSubsidyBps
         )
     {
         lendingPoolAddressesProvider = _lendingPoolAddressesProvider;
