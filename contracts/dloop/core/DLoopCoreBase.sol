@@ -530,8 +530,8 @@ abstract contract DLoopCoreBase is ERC4626, Ownable {
 
     /**
      * @dev Deposits assets into the vault
-     *      - It actually requires to spent the leveraged amount of the assets,
-     *        ie. if assets=1, and leverage=2, it means 2 assets are required to be spent
+     *      - It will send the borrowed dStable and the minted shares to the receiver
+     *      - The minted shares represent the position of the supplied assets in the lending pool
      * @param caller Address of the caller
      * @param receiver Address to receive the minted shares
      * @param assets Amount of assets to deposit
@@ -543,6 +543,21 @@ abstract contract DLoopCoreBase is ERC4626, Ownable {
         uint256 assets,
         uint256 shares
     ) internal override {
+        /**
+         * Example of how this function works:
+         * 
+         * Suppose that the target leverage is 3x, and the baseLTVAsCollateral is 70%
+         * - The collateral token is WETH
+         * - The dSTABLE debt here is dUSD
+         * - The current shares supply is 0
+         * 
+         * 1. User deposits 300 WETH
+         * 2. The vault supplies 300 WETH to the lending pool
+         * 3. The vault borrows 210 dUSD (300 * 70%) from the lending pool
+         * 4. The vault sends 210 dUSD to the receiver
+         * 5. The vault mints 300 shares to the user (representing 300 WETH position in the lending pool)
+         */
+
         // Make sure the current leverage is within the target range
         if (isTooImbalanced()) {
             revert TooImbalanced(
@@ -617,7 +632,10 @@ abstract contract DLoopCoreBase is ERC4626, Ownable {
     /* Withdraw and Redeem */
 
     /**
-     * @dev Withdraws assets from the vault (it actually requires to spent the dSTABLE amount to repay the debt)
+     * @dev Withdraws assets from the vault
+     *      - It requires to spend the dSTABLE to repay the debt
+     *      - It will send the withdrawn underlying assets to the receiver and burn the shares
+     *      - The burned shares represent the position of the withdrawn assets in the lending pool
      * @param caller Address of the caller
      * @param receiver Address to receive the withdrawn assets
      * @param owner Address of the owner
@@ -631,6 +649,23 @@ abstract contract DLoopCoreBase is ERC4626, Ownable {
         uint256 assets,
         uint256 shares
     ) internal override {
+        /**
+         * Example of how this function works:
+         * 
+         * Suppose that the target leverage is 3x, and the baseLTVAsCollateral is 70%
+         * - The collateral token is WETH
+         * - The dSTABLE debt here is dUSD
+         * - The current shares supply is 300
+         * 
+         * 1. User has 100 shares
+         * 2. User wants to withdraw 100 WETH
+         * 3. The vault burns 100 shares
+         * 4. The vault transfers 70 dUSD (100 * 70%) from the user to the vault
+         * 5. The vault repays 70 dUSD to the lending pool
+         * 6. The vault withdraws 100 WETH from the lending pool
+         * 7. The vault sends 100 WETH to the receiver
+         */
+
         // Note that we need the allowance before calling this function
         // - Allowance for the message sender to spend the shares on behalf of the owner
         // - Allowance for the vault to burn the shares
