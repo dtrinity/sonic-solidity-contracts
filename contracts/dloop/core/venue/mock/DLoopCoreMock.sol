@@ -77,7 +77,7 @@ contract DLoopCoreMock is DLoopCoreBase {
         (
             uint256 totalCollateralInBase,
             uint256 totalDebtInBase
-        ) = _getTotalCollateralAndDebtOfUserInBase(user);
+        ) = getTotalCollateralAndDebtOfUserInBase(user);
         if (totalCollateralInBase < totalDebtInBase) {
             revert("Mock: collateral is less than debt");
         }
@@ -100,7 +100,7 @@ contract DLoopCoreMock is DLoopCoreBase {
         (
             uint256 totalCollateralInBase,
             uint256 totalDebtInBase
-        ) = _getTotalCollateralAndDebtOfUserInBase(user);
+        ) = getTotalCollateralAndDebtOfUserInBase(user);
         if (totalCollateralInBase < totalDebtInBase) {
             revert("Mock: collateral is less than debt");
         }
@@ -205,10 +205,10 @@ contract DLoopCoreMock is DLoopCoreBase {
         );
     }
 
-    function _getTotalCollateralAndDebtOfUserInBase(
+    function getTotalCollateralAndDebtOfUserInBase(
         address user
     )
-        internal
+        public
         view
         override
         returns (uint256 totalCollateralBase, uint256 totalDebtBase)
@@ -250,15 +250,15 @@ contract DLoopCoreMock is DLoopCoreBase {
         return mockCollateral[user][asset];
     }
 
-    function _getMaxWithdrawableAmount(
+    function getMaxWithdrawableAmount(
         address user,
         address token
-    ) internal view override returns (uint256) {
+    ) public view override returns (uint256) {
         // Get user account data: totalCollateralBase, totalDebtBase
         (
             uint256 totalCollateralBase,
             uint256 totalDebtBase
-        ) = _getTotalCollateralAndDebtOfUserInBase(user);
+        ) = getTotalCollateralAndDebtOfUserInBase(user);
 
         // Calculate max withdrawable in base to keep health factor at 1
         // (totalCollateralBase - X) * liquidationThreshold = totalDebtBase
@@ -280,16 +280,16 @@ contract DLoopCoreMock is DLoopCoreBase {
         return Math.min(maxWithdrawAsset, supplied);
     }
 
-    function _getMaxBorrowableAmount(
+    function getMaxBorrowableAmount(
         address user,
         address token
-    ) internal view override returns (uint256) {
+    ) public view override returns (uint256) {
         // Use 70% LTV in basis points
         uint256 LTV_BPS = 7000; // 70% in basis points (10000 = 100%)
         (
             uint256 totalCollateralBase,
             uint256 totalDebtBase
-        ) = _getTotalCollateralAndDebtOfUserInBase(user);
+        ) = getTotalCollateralAndDebtOfUserInBase(user);
         // Calculate available borrow in base units
         uint256 availableBorrowBase = PercentageMath.percentMul(
             totalCollateralBase,
@@ -341,20 +341,5 @@ contract DLoopCoreMock is DLoopCoreBase {
         address onBehalfOf
     ) external {
         _withdrawFromPool(token, amount, onBehalfOf);
-    }
-    function testGetTotalCollateralAndDebtOfUserInBase(
-        address user
-    )
-        external
-        view
-        returns (uint256 totalCollateralBase, uint256 totalDebtBase)
-    {
-        return _getTotalCollateralAndDebtOfUserInBase(user);
-    }
-    function testGetMaxBorrowableAmount(
-        address user,
-        address token
-    ) external view returns (uint256) {
-        return _getMaxBorrowableAmount(user, token);
     }
 }

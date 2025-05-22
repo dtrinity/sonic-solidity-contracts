@@ -211,10 +211,10 @@ contract DLoopCoreDLend is DLoopCoreBase {
      * @return totalCollateralBase Total collateral in base currency
      * @return totalDebtBase Total debt in base currency
      */
-    function _getTotalCollateralAndDebtOfUserInBase(
+    function getTotalCollateralAndDebtOfUserInBase(
         address user
     )
-        internal
+        public
         view
         override
         returns (uint256 totalCollateralBase, uint256 totalDebtBase)
@@ -230,10 +230,10 @@ contract DLoopCoreDLend is DLoopCoreBase {
      * @param token Address of the token
      * @return uint256 Maximum borrowable amount in token decimals
      */
-    function _getMaxBorrowableAmount(
+    function getMaxBorrowableAmount(
         address user,
         address token
-    ) internal view override returns (uint256) {
+    ) public view override returns (uint256) {
         uint256 availableBorrowsBase;
         (, , availableBorrowsBase, , , ) = getLendingPool().getUserAccountData(
             user
@@ -266,10 +266,10 @@ contract DLoopCoreDLend is DLoopCoreBase {
      * @param token Address of the token to withdraw
      * @return uint256 Maximum withdrawable token amount
      */
-    function _getMaxWithdrawableAmount(
+    function getMaxWithdrawableAmount(
         address user,
         address token
-    ) internal view override returns (uint256) {
+    ) public view override returns (uint256) {
         // This logic is dLEND-specific (aave-v3-specific)
 
         // Get user account data: totalCollateralBase, totalDebtBase, liquidationThreshold, etc.

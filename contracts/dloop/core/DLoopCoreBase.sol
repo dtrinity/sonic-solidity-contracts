@@ -235,6 +235,42 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard {
     function getRestrictedRescueTokens() public view virtual returns (address[] memory);
 
     /**
+     * @dev Gets the total collateral and debt of a user in base currency
+     * @param user Address of the user
+     * @return totalCollateralBase Total collateral in base currency
+     * @return totalDebtBase Total debt in base currency
+     */
+    function getTotalCollateralAndDebtOfUserInBase(
+        address user
+    )
+        public
+        view
+        virtual
+        returns (uint256 totalCollateralBase, uint256 totalDebtBase);
+
+    /**
+     * @dev Gets the maximum withdrawable token amount of a user from the lending pool
+     * @param user Address of the user
+     * @param token Address of the token
+     * @return uint256 Maximum withdrawable token amount
+     */
+    function getMaxWithdrawableAmount(
+        address user,
+        address token
+    ) public view virtual returns (uint256);
+
+    /**
+     * @dev Gets the maximum borrowable amount of a token
+     * @param user Address of the user
+     * @param token Address of the token
+     * @return uint256 Maximum borrowable amount of the token
+     */
+    function getMaxBorrowableAmount(
+        address user,
+        address token
+    ) public view virtual returns (uint256);
+
+    /**
      * @dev Gets the asset price from the oracle
      * @param asset Address of the asset
      * @return uint256 Price of the asset
@@ -290,42 +326,6 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard {
         uint256 amount,
         address onBehalfOf
     ) internal virtual;
-
-    /**
-     * @dev Gets the total collateral and debt of a user in base currency
-     * @param user Address of the user
-     * @return totalCollateralBase Total collateral in base currency
-     * @return totalDebtBase Total debt in base currency
-     */
-    function _getTotalCollateralAndDebtOfUserInBase(
-        address user
-    )
-        internal
-        view
-        virtual
-        returns (uint256 totalCollateralBase, uint256 totalDebtBase);
-
-    /**
-     * @dev Gets the maximum withdrawable token amount of a user from the lending pool
-     * @param user Address of the user
-     * @param token Address of the token
-     * @return uint256 Maximum withdrawable token amount
-     */
-    function _getMaxWithdrawableAmount(
-        address user,
-        address token
-    ) internal view virtual returns (uint256);
-
-    /**
-     * @dev Gets the maximum borrowable amount of a token
-     * @param user Address of the user
-     * @param token Address of the token
-     * @return uint256 Maximum borrowable amount of the token
-     */
-    function _getMaxBorrowableAmount(
-        address user,
-        address token
-    ) internal view virtual returns (uint256);
 
     /* Wrapper Functions */
 
@@ -531,7 +531,7 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard {
         (
             uint256 totalCollateralBase,
 
-        ) = _getTotalCollateralAndDebtOfUserInBase(address(this));
+        ) = getTotalCollateralAndDebtOfUserInBase(address(this));
         // The price decimals is cancelled out in the division (as the amount and price are in the same unit)
         return convertFromBaseCurrencyToToken(totalCollateralBase, address(underlyingAsset));
     }
@@ -818,6 +818,8 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard {
         return withdrawableUnderlyingAmount;
     }
 
+    /* Calculate */
+
     /**
      * @dev Gets the withdrawable amount that keeps the current leverage
      * @param collateralAsset The collateral asset
@@ -960,14 +962,14 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard {
 
         uint256 assetAmountInBase = convertFromTokenAmountToBaseCurrency(assetAmount, address(underlyingAsset));
 
-        (
-            uint256 totalCollateralBase,
-            uint256 totalDebtBase
-        ) = _getTotalCollateralAndDebtOfUserInBase(address(this));
-
         uint256 borrowedDStableInBase = (assetAmountInBase *
             (BasisPointConstants.ONE_HUNDRED_PERCENT_BPS + getCurrentSubsidyBps())) /
             BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
+
+        (
+            uint256 totalCollateralBase,
+            uint256 totalDebtBase
+        ) = getTotalCollateralAndDebtOfUserInBase(address(this));
 
         uint256 newLeverageBps = ((totalCollateralBase + assetAmountInBase) *
             BasisPointConstants.ONE_HUNDRED_PERCENT_BPS) /
@@ -1029,7 +1031,7 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard {
         (
             uint256 totalCollateralBase,
             uint256 totalDebtBase
-        ) = _getTotalCollateralAndDebtOfUserInBase(address(this));
+        ) = getTotalCollateralAndDebtOfUserInBase(address(this));
 
         uint256 currentSubsidyBps = getCurrentSubsidyBps();
         uint256 withdrawnAssetsBase = (dStableAmountInBase *
@@ -1083,7 +1085,7 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard {
         (
             uint256 totalCollateralBase,
             uint256 totalDebtBase
-        ) = _getTotalCollateralAndDebtOfUserInBase(address(this));
+        ) = getTotalCollateralAndDebtOfUserInBase(address(this));
 
         if (totalCollateralBase < totalDebtBase) {
             revert CollateralLessThanDebt(totalCollateralBase, totalDebtBase);
