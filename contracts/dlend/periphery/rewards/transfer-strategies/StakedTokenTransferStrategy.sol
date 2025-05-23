@@ -47,7 +47,6 @@ contract StakedTokenTransferStrategy is
         STAKE_CONTRACT = stakeToken;
         UNDERLYING_TOKEN = STAKE_CONTRACT.STAKED_TOKEN();
 
-        IERC20(UNDERLYING_TOKEN).approve(address(STAKE_CONTRACT), 0);
         IERC20(UNDERLYING_TOKEN).approve(
             address(STAKE_CONTRACT),
             type(uint256).max
@@ -77,7 +76,6 @@ contract StakedTokenTransferStrategy is
 
     /// @inheritdoc IStakedTokenTransferStrategy
     function renewApproval() external onlyRewardsAdmin {
-        IERC20(UNDERLYING_TOKEN).approve(address(STAKE_CONTRACT), 0);
         IERC20(UNDERLYING_TOKEN).approve(
             address(STAKE_CONTRACT),
             type(uint256).max

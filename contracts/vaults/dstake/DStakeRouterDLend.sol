@@ -96,8 +96,7 @@ contract DStakeRouterDLend is IDStakeRouter, AccessControl {
             dStableAmount
         );
 
-        // 2. Approve adapter (zero allowance first, then set required allowance using standard approve)
-        IERC20(dStable).approve(adapterAddress, 0);
+        // 2. Approve adapter (set required allowance using standard approve)
         IERC20(dStable).approve(adapterAddress, dStableAmount);
 
         // 3. Call adapter to convert and deposit to vault
@@ -138,8 +137,7 @@ contract DStakeRouterDLend is IDStakeRouter, AccessControl {
         // 2. Pull vaultAsset from collateral vault
         collateralVault.sendAsset(vaultAsset, vaultAssetAmount, address(this));
 
-        // 3. Approve adapter (zero allowance first, then set required allowance using standard approve)
-        IERC20(vaultAsset).approve(adapterAddress, 0);
+        // 3. Approve adapter (set required allowance using standard approve)
         IERC20(vaultAsset).approve(adapterAddress, vaultAssetAmount);
 
         // 4. Call adapter to convert and send dStable to receiver
@@ -209,7 +207,6 @@ contract DStakeRouterDLend is IDStakeRouter, AccessControl {
         );
 
         // 3. Approve fromAdapter & Convert fromVaultAsset -> dStable (sent to this router)
-        IERC20(fromVaultAsset).approve(fromAdapterAddress, 0);
         IERC20(fromVaultAsset).approve(
             fromAdapterAddress,
             fromVaultAssetAmount
@@ -219,7 +216,6 @@ contract DStakeRouterDLend is IDStakeRouter, AccessControl {
         );
 
         // 4. Approve toAdapter & Convert dStable -> toVaultAsset (sent to collateralVault)
-        IERC20(dStable).approve(toAdapterAddress, 0);
         IERC20(dStable).approve(toAdapterAddress, receivedDStable);
         (
             address actualToVaultAsset,

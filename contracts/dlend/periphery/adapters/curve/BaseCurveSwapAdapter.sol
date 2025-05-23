@@ -126,7 +126,6 @@ abstract contract BaseCurveSwapAdapter is Ownable, IBaseCurveAdapter {
             address(POOL)
         );
         if (allowance < minAmount) {
-            IERC20(asset).safeApprove(address(POOL), 0);
             IERC20(asset).safeApprove(address(POOL), type(uint256).max);
         }
     }
