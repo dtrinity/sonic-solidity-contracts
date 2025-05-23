@@ -20,7 +20,6 @@ pragma solidity 0.8.20;
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {BasisPointConstants} from "contracts/common/BasisPointConstants.sol";
 import {ERC4626, ERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
-import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {Erc20Helper} from "../libraries/Erc20Helper.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
@@ -36,17 +35,17 @@ import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol
  *      - There is a subsidy for the caller when increasing the leverage.
  */
 abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard {
-    using Math for uint256;
     using SafeERC20 for ERC20;
 
     /* Core state */
 
     uint32 public lowerBoundTargetLeverageBps;
     uint32 public upperBoundTargetLeverageBps;
-    uint256 private _defaultMaxSubsidyBps;
+    uint256 public maxSubsidyBps;
 
     /* Constants */
-    uint32 public immutable TARGET_LEVERAGE_BPS; // ie. 30000 = 300% over 100% in basis points, means 3x leverage
+
+    uint32 public immutable targetLeverageBps; // ie. 30000 = 300% over 100% in basis points, means 3x leverage
     ERC20 public immutable collateralToken;
     ERC20 public immutable debtToken;
 
@@ -199,10 +198,10 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard {
             revert("Debt token must be an ERC-20");
         }
 
-        TARGET_LEVERAGE_BPS = _targetLeverageBps;
+        targetLeverageBps = _targetLeverageBps;
         lowerBoundTargetLeverageBps = _lowerBoundTargetLeverageBps;
         upperBoundTargetLeverageBps = _upperBoundTargetLeverageBps;
-        _defaultMaxSubsidyBps = _maxSubsidyBps;
+        maxSubsidyBps = _maxSubsidyBps;
     }
 
     /* Virtual Methods - Required to be implemented by derived contracts */
@@ -609,7 +608,7 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard {
             supplyAssetAmount,
             currentLeverageBpsBeforeSupply > 0
                 ? currentLeverageBpsBeforeSupply
-                : TARGET_LEVERAGE_BPS
+                : targetLeverageBps
         );
 
         // Borrow the max amount of debt token
@@ -897,13 +896,13 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard {
         uint256 currentLeverageBps = getCurrentLeverageBps();
 
         // If the current leverage is below the target leverage, the user should increase the leverage
-        if (currentLeverageBps < TARGET_LEVERAGE_BPS) {
-            tokenAmountInBase = (TARGET_LEVERAGE_BPS * (totalCollateralBase - totalDebtBase) - totalCollateralBase) / (1 + TARGET_LEVERAGE_BPS * subsidyBps / BasisPointConstants.ONE_HUNDRED_PERCENT_BPS);
+        if (currentLeverageBps < targetLeverageBps) {
+            tokenAmountInBase = (targetLeverageBps * (totalCollateralBase - totalDebtBase) - totalCollateralBase) / (1 + targetLeverageBps * subsidyBps / BasisPointConstants.ONE_HUNDRED_PERCENT_BPS);
             return (tokenAmountInBase, 1);
         }
         // If the current leverage is above the target leverage, the user should decrease the leverage
-        else if (currentLeverageBps > TARGET_LEVERAGE_BPS) {
-            tokenAmountInBase = (totalCollateralBase - TARGET_LEVERAGE_BPS * (totalCollateralBase - totalDebtBase)) / (1 + TARGET_LEVERAGE_BPS * subsidyBps / BasisPointConstants.ONE_HUNDRED_PERCENT_BPS);
+        else if (currentLeverageBps > targetLeverageBps) {
+            tokenAmountInBase = (totalCollateralBase - targetLeverageBps * (totalCollateralBase - totalDebtBase)) / (1 + targetLeverageBps * subsidyBps / BasisPointConstants.ONE_HUNDRED_PERCENT_BPS);
             return (tokenAmountInBase, -1);
         }
 
@@ -948,8 +947,8 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard {
 
         // Make sure only increase the leverage if it is below the target leverage
         uint256 currentLeverageBps = getCurrentLeverageBps();
-        if (currentLeverageBps >= TARGET_LEVERAGE_BPS) {
-            revert LeverageExceedsTarget(currentLeverageBps, TARGET_LEVERAGE_BPS);
+        if (currentLeverageBps >= targetLeverageBps) {
+            revert LeverageExceedsTarget(currentLeverageBps, targetLeverageBps);
         }
 
         uint256 assetAmountInBase = convertFromTokenAmountToBaseCurrency(assetAmount, address(collateralToken));
@@ -975,12 +974,12 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard {
 
         // Make sure the new leverage is increasing and does not exceed the target leverage
         if (
-            newLeverageBps > TARGET_LEVERAGE_BPS ||
+            newLeverageBps > targetLeverageBps ||
             newLeverageBps <= currentLeverageBps
         ) {
             revert IncreaseLeverageOutOfRange(
                 newLeverageBps,
-                TARGET_LEVERAGE_BPS,
+                targetLeverageBps,
                 currentLeverageBps
             );
         }
@@ -1048,8 +1047,8 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard {
          */
         // Make sure only decrease the leverage if it is above the target leverage
         uint256 currentLeverageBps = getCurrentLeverageBps();
-        if (currentLeverageBps <= TARGET_LEVERAGE_BPS) {
-            revert LeverageBelowTarget(currentLeverageBps, TARGET_LEVERAGE_BPS);
+        if (currentLeverageBps <= targetLeverageBps) {
+            revert LeverageBelowTarget(currentLeverageBps, targetLeverageBps);
         }
 
         uint256 debtTokenAmountInBase = convertFromTokenAmountToBaseCurrency(debtTokenAmount, address(debtToken));
@@ -1075,12 +1074,12 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard {
 
         // Make sure the new leverage is decreasing and is not below the target leverage
         if (
-            newLeverageBps < TARGET_LEVERAGE_BPS ||
+            newLeverageBps < targetLeverageBps ||
             newLeverageBps >= currentLeverageBps
         ) {
             revert DecreaseLeverageOutOfRange(
                 newLeverageBps,
-                TARGET_LEVERAGE_BPS,
+                targetLeverageBps,
                 currentLeverageBps
             );
         }
@@ -1150,19 +1149,19 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard {
         uint256 currentLeverageBps = getCurrentLeverageBps();
 
         uint256 subsidyBps;
-        if (currentLeverageBps > TARGET_LEVERAGE_BPS) {
+        if (currentLeverageBps > targetLeverageBps) {
             subsidyBps =
-                ((currentLeverageBps - TARGET_LEVERAGE_BPS) *
+                ((currentLeverageBps - targetLeverageBps) *
                     BasisPointConstants.ONE_HUNDRED_PERCENT_BPS) /
-                TARGET_LEVERAGE_BPS;
+                targetLeverageBps;
         } else {
             subsidyBps =
-                ((TARGET_LEVERAGE_BPS - currentLeverageBps) *
+                ((targetLeverageBps - currentLeverageBps) *
                     BasisPointConstants.ONE_HUNDRED_PERCENT_BPS) /
-                TARGET_LEVERAGE_BPS;
+                targetLeverageBps;
         }
-        if (subsidyBps > _defaultMaxSubsidyBps) {
-            return _defaultMaxSubsidyBps;
+        if (subsidyBps > maxSubsidyBps) {
+            return maxSubsidyBps;
         }
         return subsidyBps;
     }
@@ -1188,7 +1187,7 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard {
      * @return uint256 The default maximum subsidy in basis points
      */
     function getDefaultMaxSubsidyBps() public view returns (uint256) {
-        return _defaultMaxSubsidyBps;
+        return maxSubsidyBps;
     }
 
     /* Admin */
@@ -1198,7 +1197,7 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard {
      * @param _maxSubsidyBps New maximum subsidy in basis points
      */
     function setMaxSubsidyBps(uint256 _maxSubsidyBps) public onlyOwner nonReentrant {
-        _defaultMaxSubsidyBps = _maxSubsidyBps;
+        maxSubsidyBps = _maxSubsidyBps;
     }
 
     /**
@@ -1211,12 +1210,12 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard {
         uint32 _upperBoundTargetLeverageBps
     ) public onlyOwner nonReentrant {
         if (
-            _lowerBoundTargetLeverageBps >= TARGET_LEVERAGE_BPS ||
-            TARGET_LEVERAGE_BPS >= _upperBoundTargetLeverageBps
+            _lowerBoundTargetLeverageBps >= targetLeverageBps ||
+            targetLeverageBps >= _upperBoundTargetLeverageBps
         ) {
             revert InvalidLeverageBounds(
                 _lowerBoundTargetLeverageBps,
-                TARGET_LEVERAGE_BPS,
+                targetLeverageBps,
                 _upperBoundTargetLeverageBps
             );
         }
