@@ -52,13 +52,11 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard {
 
     /* Errors */
 
-    error RestrictedRescueTokenIsNotERC20(address token);
     error TooImbalanced(
         uint256 currentLeverageBps,
         uint256 lowerBoundTargetLeverageBps,
         uint256 upperBoundTargetLeverageBps
     );
-    error InvalidTotalSupplyAndAssets(uint256 totalAssets, uint256 totalSupply);
     error InsufficientAllowanceOfDebtAssetToRepay(
         address owner,
         address spender,
@@ -78,18 +76,11 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard {
         uint256 sharesToRedeem,
         uint256 shareBalance
     );
-    error InvalidMaxWithdrawAfterRepay(
-        address token,
-        uint256 maxWithdrawUnderlyingBeforeRepay,
-        uint256 maxWithdrawUnderlyingAfterRepay
-    );
     error WithdrawableIsLessThanRequired(
         address token,
         uint256 assetToRemoveFromLending,
         uint256 withdrawableAmount
     );
-    error ExceedMaxPrice(uint256 assetPrice, uint256 maxPrice);
-    error BelowMinPrice(uint256 assetPrice, uint256 minPrice);
     error DecreaseLeverageOutOfRange(
         uint256 newLeverageBps,
         uint256 targetLeverageBps, // lower bound
@@ -99,20 +90,6 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard {
         uint256 newLeverageBps,
         uint256 targetLeverageBps, // upper bound
         uint256 currentLeverageBps // lower bound
-    );
-    error MaxDStableToBorrowNotIncreasedAfterSupply(
-        uint256 maxDStableToBorrowBeforeSupply,
-        uint256 maxDStableToBorrowAfterSupply
-    );
-    error DStableDecreasedAfterBorrow(
-        uint256 dStableBalanceBeforeBorrow,
-        uint256 dStableBalanceAfterBorrow,
-        uint256 dStableAmountToBorrow
-    );
-    error UnderlyingAssetDecreasedAfterWithdraw(
-        uint256 underlyingAssetBalanceBefore,
-        uint256 underlyingAssetBalanceAfter,
-        uint256 withdrawableUnderlyingAmount
     );
     error TokenBalanceNotDecreasedAfterRepay(
         address token,
