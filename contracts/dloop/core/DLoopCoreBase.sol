@@ -577,14 +577,7 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard {
             );
         }
 
-        // Transfer the assets to the vault (need the allowance before calling this function)
-        collateralToken.safeTransferFrom(
-            caller,
-            address(this),
-            assets
-        );
-
-        uint256 debtAssetBorrowed = _depositToPoolImplementation(assets);
+        uint256 debtAssetBorrowed = _depositToPoolImplementation(caller, assets);
 
         // Transfer the debt asset to the receiver
         debtToken.safeTransfer(receiver, debtAssetBorrowed);
@@ -597,12 +590,21 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard {
 
     /**
      * @dev Handles the logic of supplying collateral token and borrowing debt token
+     * @param caller Address of the caller
      * @param supplyAssetAmount Amount of assets to supply
      * @return debtAssetAmountToBorrow Amount of debt asset to borrow
      */
     function _depositToPoolImplementation(
+        address caller,
         uint256 supplyAssetAmount // supply amount
     ) private returns (uint256) {
+        // Transfer the assets to the vault (need the allowance before calling this function)
+        collateralToken.safeTransferFrom(
+            caller,
+            address(this),
+            supplyAssetAmount
+        );
+
         // At this step, we assume that the funds from the depositor are already in the vault
 
         // Get current leverage before supplying (IMPORTANT: this is the leverage before supplying)
