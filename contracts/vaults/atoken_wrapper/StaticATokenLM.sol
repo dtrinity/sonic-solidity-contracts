@@ -19,7 +19,6 @@ import {IERC20WithPermit} from "contracts/dlend/core/interfaces/IERC20WithPermit
 import {IStaticATokenLM} from "./interfaces/IStaticATokenLM.sol";
 import {IAToken} from "./interfaces/IAToken.sol";
 import {ERC20} from "./ERC20.sol";
-import {IInitializableStaticATokenLM} from "./interfaces/IInitializableStaticATokenLM.sol";
 import {StaticATokenErrors} from "./StaticATokenErrors.sol";
 import {RayMathExplicitRounding, Rounding} from "./RayMathExplicitRounding.sol";
 import {IERC4626} from "./interfaces/IERC4626.sol";
