@@ -45,7 +45,7 @@ abstract contract DLoopDepositorBase is IERC3156FlashBorrower, Ownable {
 
     error UnknownLender(address msgSender, address flashLender);
     error UnknownInitiator(address initiator, address thisContract);
-    error UnknownToken(address token, address dStable);
+    error UnknownToken(address token, address debtToken);
     error SharesNotIncreasedAfterFlashLoan(
         uint256 sharesBeforeDeposit,
         uint256 sharesAfterDeposit
@@ -58,7 +58,7 @@ abstract contract DLoopDepositorBase is IERC3156FlashBorrower, Ownable {
         uint256 depositAssetAmount;
         uint256 newTotalAssets;
         uint256 slippageTolerance; // ie. 1000 = 10%
-        bytes dStableToUnderlyingSwapData;
+        bytes debtTokenToCollateralSwapData;
         DLoopCoreBase dLoopCore;
     }
 
@@ -112,7 +112,7 @@ abstract contract DLoopDepositorBase is IERC3156FlashBorrower, Ownable {
      * @param assets Amount of assets to deposit
      * @param receiver Address to receive the minted shares
      * @param slippageTolerance Slippage tolerance for the swap
-     * @param dStableToUnderlyingSwapData Swap data from dStable to underlying asset
+     * @param debtTokenToCollateralSwapData Swap data from debt token to collateral token
      * @param dLoopCore Address of the DLoopCore contract to use
      * @return shares Amount of shares minted
      */
@@ -120,43 +120,33 @@ abstract contract DLoopDepositorBase is IERC3156FlashBorrower, Ownable {
         uint256 assets, // deposit amount
         address receiver,
         uint256 slippageTolerance,
-        bytes memory dStableToUnderlyingSwapData,
+        bytes memory debtTokenToCollateralSwapData,
         DLoopCoreBase dLoopCore
     ) public returns (uint256 shares) {
-        // Get the underlying asset and dStable from the dLoopCore
-        ERC20 underlyingAsset = dLoopCore.underlyingAsset();
-
+        // Get the collateral token and debt token from the dLoopCore
+        ERC20 collateralToken = dLoopCore.collateralToken();
         // Transfer the assets to the vault (need the allowance before calling this function)
-        underlyingAsset.safeTransferFrom(msg.sender, address(this), assets);
-
+        collateralToken.safeTransferFrom(msg.sender, address(this), assets);
         FlashLoanParams memory params = FlashLoanParams(
             receiver,
             assets,
             dLoopCore.getLeveragedAssets(assets),
             slippageTolerance,
-            dStableToUnderlyingSwapData,
+            debtTokenToCollateralSwapData,
             dLoopCore
         );
         bytes memory data = _encodeParamsToData(params);
-        ERC20 dStable = dLoopCore.dStable();
-        uint256 maxFlashLoanAmount = flashLender.maxFlashLoan(address(dStable));
-
-        // Shares before deposit
+        ERC20 debtToken = dLoopCore.debtToken();
+        uint256 maxFlashLoanAmount = flashLender.maxFlashLoan(address(debtToken));
         uint256 sharesBeforeDeposit = dLoopCore.balanceOf(receiver);
-
-        // The remaining logic will be in the _onFlashLoan() function
-        flashLender.flashLoan(this, address(dStable), maxFlashLoanAmount, data);
-
-        // Shares after deposit
+        flashLender.flashLoan(this, address(debtToken), maxFlashLoanAmount, data);
         uint256 sharesAfterDeposit = dLoopCore.balanceOf(receiver);
-
         if (sharesAfterDeposit <= sharesBeforeDeposit) {
             revert SharesNotIncreasedAfterFlashLoan(
                 sharesBeforeDeposit,
                 sharesAfterDeposit
             );
         }
-
         return sharesAfterDeposit - sharesBeforeDeposit;
     }
 
@@ -165,7 +155,7 @@ abstract contract DLoopDepositorBase is IERC3156FlashBorrower, Ownable {
      * @param shares Amount of shares to mint
      * @param receiver Address to receive the minted shares
      * @param slippageTolerance Slippage tolerance for the swap
-     * @param dStableToUnderlyingSwapData Swap data from dStable to underlying asset
+     * @param debtTokenToCollateralSwapData Swap data from debt token to collateral token
      * @param dLoopCore Address of the DLoopCore contract to use
      * @return assets Amount of assets deposited
      */
@@ -173,7 +163,7 @@ abstract contract DLoopDepositorBase is IERC3156FlashBorrower, Ownable {
         uint256 shares,
         address receiver,
         uint256 slippageTolerance,
-        bytes memory dStableToUnderlyingSwapData,
+        bytes memory debtTokenToCollateralSwapData,
         DLoopCoreBase dLoopCore
     ) public returns (uint256 assets) {
         assets = dLoopCore.convertToAssets(shares);
@@ -181,7 +171,7 @@ abstract contract DLoopDepositorBase is IERC3156FlashBorrower, Ownable {
             assets,
             receiver,
             slippageTolerance,
-            dStableToUnderlyingSwapData,
+            debtTokenToCollateralSwapData,
             dLoopCore
         );
         return assets;
@@ -202,60 +192,45 @@ abstract contract DLoopDepositorBase is IERC3156FlashBorrower, Ownable {
         uint256, // amount (flash loan amount)
         uint256, // fee (flash loan fee)
         bytes calldata data
-    ) public returns (bytes32) {
+    ) external override returns (bytes32) {
         if (msg.sender != address(flashLender))
             revert UnknownLender(msg.sender, address(flashLender));
+
         if (initiator != address(this))
             revert UnknownInitiator(initiator, address(this));
 
         FlashLoanParams memory flashLoanParams = _decodeDataToParams(data);
         DLoopCoreBase dLoopCore = flashLoanParams.dLoopCore;
-        ERC20 underlyingAsset = dLoopCore.underlyingAsset();
-        ERC20 dStable = dLoopCore.dStable();
+        
+        ERC20 collateralToken = dLoopCore.collateralToken();
+        ERC20 debtToken = dLoopCore.debtToken();
 
-        if (token != address(dStable))
-            revert UnknownToken(token, address(dStable));
+        if (token != address(debtToken))
+            revert UnknownToken(token, address(debtToken));
 
-        uint256 requiredAdditionalAssets = flashLoanParams.newTotalAssets -
-            flashLoanParams.depositAssetAmount;
-
-        uint256 estimatedInputAmount = (requiredAdditionalAssets *
-            (
-                (dLoopCore.getAssetPriceFromOracle(address(underlyingAsset)) *
-                    (10 ** dStable.decimals()))
-            )) /
-            (dLoopCore.getAssetPriceFromOracle(address(dStable)) *
-                (10 ** underlyingAsset.decimals()));
-
-        // Calculate the max input amount with slippage tolerance
-        uint256 maxIn = (estimatedInputAmount *
-            (BasisPointConstants.ONE_HUNDRED_PERCENT_BPS +
-                flashLoanParams.slippageTolerance)) /
-            BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
+        uint256 requiredAdditionalAssets = flashLoanParams.newTotalAssets - flashLoanParams.depositAssetAmount;
+        uint256 estimatedInputAmount = (requiredAdditionalAssets * (dLoopCore.getAssetPriceFromOracle(address(collateralToken)) * (10 ** debtToken.decimals()))) / (dLoopCore.getAssetPriceFromOracle(address(debtToken)) * (10 ** collateralToken.decimals()));
+        uint256 maxIn = (estimatedInputAmount * (BasisPointConstants.ONE_HUNDRED_PERCENT_BPS + flashLoanParams.slippageTolerance)) / BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
         require(maxIn > 0, "maxIn is not positive");
 
-        // Swap from dStable to the underlying asset
+        // Swap the debt token to the collateral token to deposit
         _swapExactOutput(
-            dStable,
-            underlyingAsset,
+            debtToken,
+            collateralToken,
             requiredAdditionalAssets,
             maxIn,
             address(this),
             block.timestamp,
-            flashLoanParams.dStableToUnderlyingSwapData
+            flashLoanParams.debtTokenToCollateralSwapData
         );
-
-        // Approve the dLoopCore to spend leveraged assets
-        underlyingAsset.approve(
+        collateralToken.approve(
             address(dLoopCore),
             flashLoanParams.newTotalAssets
         );
-
         dLoopCore.deposit(
             flashLoanParams.depositAssetAmount,
             flashLoanParams.receiver
         );
-
         return FLASHLOAN_CALLBACK;
     }
 
@@ -272,7 +247,7 @@ abstract contract DLoopDepositorBase is IERC3156FlashBorrower, Ownable {
             _flashLoanParams.depositAssetAmount,
             _flashLoanParams.newTotalAssets,
             _flashLoanParams.slippageTolerance,
-            _flashLoanParams.dStableToUnderlyingSwapData,
+            _flashLoanParams.debtTokenToCollateralSwapData,
             _flashLoanParams.dLoopCore
         );
     }
@@ -290,7 +265,7 @@ abstract contract DLoopDepositorBase is IERC3156FlashBorrower, Ownable {
             _flashLoanParams.depositAssetAmount,
             _flashLoanParams.newTotalAssets,
             _flashLoanParams.slippageTolerance,
-            _flashLoanParams.dStableToUnderlyingSwapData,
+            _flashLoanParams.debtTokenToCollateralSwapData,
             _flashLoanParams.dLoopCore
         ) = abi.decode(
             data,
