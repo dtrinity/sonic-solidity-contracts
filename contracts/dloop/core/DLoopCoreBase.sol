@@ -474,22 +474,6 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard {
     }
 
     /**
-     * @dev Gets the amount of debt token to repay when withdrawing the collateral token
-     * @param assets Amount of collateral token to withdraw
-     * @return amountOfDebtToRepay Amount of debt token to repay
-     */
-    function getAmountOfDebtToRepay(
-        uint256 assets
-    ) public view returns (uint256) {
-        return
-            (assets *
-                (getAssetPriceFromOracle(address(collateralToken)) *
-                    10 ** debtToken.decimals())) /
-            (getAssetPriceFromOracle(address(debtToken)) *
-                10 ** collateralToken.decimals());
-    }
-
-    /**
      * @dev Override of totalAssets from ERC4626
      * @return uint256 Total assets in the vault
      */
@@ -569,14 +553,19 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard {
          * Suppose that the target leverage is 3x, and the baseLTVAsCollateral is 70%
          * - The collateral token is WETH
          * - The debt here is dUSD
+         * - The current collateral token balance is 0 WETH
+         * - The current debt token balance is 0 dUSD
          * - The current shares supply is 0
          * - Assume that the price of WETH is 2000 dUSD
          * 
          * 1. User deposits 300 WETH
          * 2. The vault supplies 300 WETH to the lending pool
-         * 3. The vault borrows 420,000 dUSD (300 * 2000 * 70%) from the lending pool
-         * 4. The vault sends 420,000 dUSD to the receiver
+         * 3. The vault borrows 400,000 dUSD (300 * 2000 * 66.6666666%) from the lending pool
+         *    - 66.666% is to keep the target leverage 3x
+         * 4. The vault sends 400,000 dUSD to the receiver
          * 5. The vault mints 300 shares to the user (representing 300 WETH position in the lending pool)
+         * 
+         * The current leverage is: (300 * 2000) / (300 * 2000 - 400,000) = 3x
          */
 
         // Make sure the current leverage is within the target range
@@ -677,15 +666,23 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard {
          * - The collateral token is WETH
          * - The debt here is dUSD
          * - The current shares supply is 300
+         * - The current leverage is 3x
+         * - The current collateral token balance is 300 WETH
+         * - The current debt token balance is 400,000 dUSD (300 * 2000 * 66.6666666%)
          * - Assume that the price of WETH is 2000 dUSD
          * 
          * 1. User has 100 shares
          * 2. User wants to withdraw 100 WETH
          * 3. The vault burns 100 shares
-         * 4. The vault transfers 140,000 dUSD (100 * 2000 * 70%) from the user to the vault
-         * 5. The vault repays 140,000 dUSD to the lending pool
+         * 4. The vault transfers 133,333 dUSD (100 * 2000 * 66.6666666%) from the user to the vault
+         *    - 66.6666% is to keep the target leverage 3x
+         * 5. The vault repays 133,333 dUSD to the lending pool
+         *    - The debt is now 266,667 dUSD (400,000 - 133,333)
          * 6. The vault withdraws 100 WETH from the lending pool
+         *    - The collateral is now 200 WETH (300 - 100)
          * 7. The vault sends 100 WETH to the receiver
+         * 
+         * The current leverage is: (200 * 2000) / (200 * 2000 - 266,667) = 3x
          */
 
         // Note that we need the allowance before calling this function
@@ -716,95 +713,79 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard {
             );
         }
 
-        // Calculate debt token to repay
-        uint256 debtTokenToRepay = getAmountOfDebtToRepay(assets);
-
-        // If don't have enough allowance, revert with the error message
-        // This is to early-revert with instruction in the error message
-        if (debtToken.allowance(msg.sender, address(this)) < debtTokenToRepay) {
-            revert InsufficientAllowanceOfDebtAssetToRepay(msg.sender, address(this), address(debtToken), debtTokenToRepay);
-        }
-
-        // Transfer the debt token to the vault to repay the debt
-        debtToken.safeTransferFrom(msg.sender, address(this), debtTokenToRepay);
-
         // Withdraw the collateral from the lending pool
-        uint256 withdrawnAssetsAmount = _withdrawFromPoolImplementation(
-            assets,
-            debtTokenToRepay
-        );
+        // After this step, the _withdrawFromPool wrapper function will also assert that
+        // the withdrawn amount is exactly the amount requested.
+        _withdrawFromPoolImplementation(caller, assets);
 
         // Transfer the asset to the receiver
-        collateralToken.safeTransfer(receiver, withdrawnAssetsAmount);
+        collateralToken.safeTransfer(receiver, assets);
 
         emit Withdraw(
             caller,
             receiver,
             owner,
-            withdrawnAssetsAmount,
+            assets,
             shares
         );
     }
 
     /**
      * @dev Handles the logic for repaying debt and withdrawing collateral from the pool
-     * @param minCollateralTokenToWithdraw The minimum amount of collateral token to withdraw
-     * @param debtTokenToRepay The amount of debt token to repay
-     * @return receivedCollateralAmount The actual amount of collateral asset received
+     *      - It calculates the required debt token to repay to keep the current leverage
+     *        given the expected withdraw amount
+     *      - Then performs the actual repay and withdraw
+     * @param caller Address of the caller
+     * @param collateralTokenToWithdraw The amount of collateral token to withdraw
+     * @return repaidDebtTokenAmount The amount of debt token repaid
      */
     function _withdrawFromPoolImplementation(
-        uint256 minCollateralTokenToWithdraw,
-        uint256 debtTokenToRepay
-    ) private returns (uint256 receivedCollateralAmount) {
+        address caller,
+        uint256 collateralTokenToWithdraw
+    ) private returns (uint256 repaidDebtTokenAmount) {
         // Get the current leverage before repaying the debt (IMPORTANT: this is the leverage before repaying the debt)
         // It is used to calculate the expected withdrawable amount that keeps the current leverage
         uint256 leverageBpsBeforeRepayDebt = getCurrentLeverageBps();
 
-        // Repay the debt to withdraw the collateral
-        _repayDebtToPool(address(debtToken), debtTokenToRepay, address(this));
-
-        // Get the withdrawable amount that keeps the current leverage
-        uint256 withdrawableCollateralAmount = getWithdrawAmountThatKeepCurrentLeverage(
+        repaidDebtTokenAmount = getRepayAmountThatKeepCurrentLeverage(
             address(collateralToken),
             address(debtToken),
-            debtTokenToRepay,
+            collateralTokenToWithdraw,
             leverageBpsBeforeRepayDebt
         );
 
-        if (withdrawableCollateralAmount < minCollateralTokenToWithdraw) {
-            revert WithdrawableIsLessThanRequired(
-                address(collateralToken),
-                minCollateralTokenToWithdraw,
-                withdrawableCollateralAmount
-            );
+        // If don't have enough allowance, revert with the error message
+        // This is to early-revert with instruction in the error message
+        if (debtToken.allowance(caller, address(this)) < repaidDebtTokenAmount) {
+            revert InsufficientAllowanceOfDebtAssetToRepay(caller, address(this), address(debtToken), repaidDebtTokenAmount);
         }
 
+        // Transfer the debt token to the vault to repay the debt
+        debtToken.safeTransferFrom(caller, address(this), repaidDebtTokenAmount);
+
+        // Repay the debt to withdraw the collateral
+        _repayDebtToPool(address(debtToken), repaidDebtTokenAmount, address(this));
+
         // Withdraw the collateral
+        // At this step, the _withdrawFromPool wrapper function will also assert that
+        // the withdrawn amount is exactly the amount requested.
         _withdrawFromPool(
             address(collateralToken),
-            withdrawableCollateralAmount,
+            collateralTokenToWithdraw,
             address(this)
         );
 
-        return withdrawableCollateralAmount;
+        return repaidDebtTokenAmount;
     }
 
     /* Calculate */
 
-    /**
-     * @dev Gets the withdrawable amount that keeps the current leverage
-     * @param collateralAsset The collateral asset
-     * @param debtAsset The debt asset
-     * @param repaidDebtAmount The actual repaid amount
-     * @param leverageBpsBeforeRepayDebt Leverage in basis points before repaying
-     * @return expectedWithdrawAmount The expected withdrawable amount that keeps the current leverage
-     */
-    function getWithdrawAmountThatKeepCurrentLeverage(
+    function getRepayAmountThatKeepCurrentLeverage(
         address collateralAsset,
         address debtAsset,
-        uint256 repaidDebtAmount,
+        uint256 targetWithdrawAmount,
         uint256 leverageBpsBeforeRepayDebt
-    ) public view returns (uint256 expectedWithdrawAmount) {
+    ) public view returns (uint256 repayAmount) {
         /* Formula definition:
          * - C1: totalCollateralBase before repay
          * - D1: totalDebtBase before repay
@@ -829,18 +810,17 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard {
          *    <=> y = x*D1 / C1
          *    <=> y = x*D1 / [D1*T / (T-1)]
          *    <=> y = x * (T-1)/T
-         *    <=> x = y * T/(T-1)
          */
 
-        // Convert the actual repaid amount to base
-        uint256 repaidDebtAmountInBase = convertFromTokenAmountToBaseCurrency(repaidDebtAmount, debtAsset);
+        // Convert the target withdraw amount to base
+        uint256 targetWithdrawAmountInBase = convertFromTokenAmountToBaseCurrency(targetWithdrawAmount, collateralAsset);
 
-        // Calculate the expected withdrawable amount in base
-        uint256 withdrawableAmountInBase = (repaidDebtAmountInBase * leverageBpsBeforeRepayDebt) /
+        // Calculate the repay amount in base
+        uint256 repayAmountInBase = (targetWithdrawAmountInBase * leverageBpsBeforeRepayDebt) /
             (leverageBpsBeforeRepayDebt -
                 BasisPointConstants.ONE_HUNDRED_PERCENT_BPS);
 
-        return convertFromBaseCurrencyToToken(withdrawableAmountInBase, collateralAsset);
+        return convertFromBaseCurrencyToToken(repayAmountInBase, debtAsset);
     }
 
     /**
