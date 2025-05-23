@@ -147,9 +147,7 @@ contract DStakeRouterDLend is IDStakeRouter, AccessControl {
         uint256 receivedDStable = adapter.convertFromVaultAsset(
             vaultAssetAmount
         );
-        if (receiver != address(this)) {
-            IERC20(dStable).safeTransfer(receiver, receivedDStable);
-        }
+        IERC20(dStable).safeTransfer(receiver, receivedDStable);
 
         // Sanity check: Ensure received amount is sufficient
         if (receivedDStable < dStableAmount) {
