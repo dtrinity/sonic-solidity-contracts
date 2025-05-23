@@ -142,7 +142,9 @@ abstract contract DLoopWithdrawerBase is IERC3156FlashBorrower, Ownable {
             dLoopCore.approve(address(this), shares);
         }
         uint256 finalAssetsRequired = dLoopCore.convertToAssets(shares);
-        uint256 assetsToRemoveFromLending = (finalAssetsRequired * dLoopCore.targetLeverageBps()) / BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
+        uint256 assetsToRemoveFromLending = (finalAssetsRequired *
+            dLoopCore.targetLeverageBps()) /
+            BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
         FlashLoanParams memory params = FlashLoanParams(
             owner,
             receiver,
@@ -154,16 +156,24 @@ abstract contract DLoopWithdrawerBase is IERC3156FlashBorrower, Ownable {
             dLoopCore
         );
         bytes memory data = _encodeParamsToData(params);
-        uint256 maxFlashLoanAmount = flashLender.maxFlashLoan(address(debtToken));
+        uint256 maxFlashLoanAmount = flashLender.maxFlashLoan(
+            address(debtToken)
+        );
         uint256 sharesBeforeWithdraw = dLoopCore.balanceOf(owner);
         require(
             debtToken.approve(
                 address(flashLender),
-                maxFlashLoanAmount + flashLender.flashFee(address(debtToken), maxFlashLoanAmount)
+                maxFlashLoanAmount +
+                    flashLender.flashFee(address(debtToken), maxFlashLoanAmount)
             ),
             "approve failed for flash lender in redeem"
         );
-        flashLender.flashLoan(this, address(debtToken), maxFlashLoanAmount, data);
+        flashLender.flashLoan(
+            this,
+            address(debtToken),
+            maxFlashLoanAmount,
+            data
+        );
         uint256 sharesAfterWithdraw = dLoopCore.balanceOf(owner);
         if (sharesAfterWithdraw >= sharesBeforeWithdraw) {
             revert SharesNotDecreasedAfterFlashLoan(
@@ -238,14 +248,18 @@ abstract contract DLoopWithdrawerBase is IERC3156FlashBorrower, Ownable {
         ERC20 debtToken = dLoopCore.debtToken();
         if (token != address(debtToken))
             revert UnknownToken(token, address(debtToken));
-        uint256 collateralTokenBalanceBefore = collateralToken.balanceOf(address(this));
+        uint256 collateralTokenBalanceBefore = collateralToken.balanceOf(
+            address(this)
+        );
         uint256 debtTokenBalanceBefore = debtToken.balanceOf(address(this));
         dLoopCore.redeem(
             flashLoanParams.shares,
             address(this),
             flashLoanParams.owner
         );
-        uint256 collateralTokenBalanceAfter = collateralToken.balanceOf(address(this));
+        uint256 collateralTokenBalanceAfter = collateralToken.balanceOf(
+            address(this)
+        );
         uint256 debtTokenBalanceAfter = debtToken.balanceOf(address(this));
         if (debtTokenBalanceAfter > debtTokenBalanceBefore) {
             revert UnexpectedIncreaseInDebtToken(
@@ -259,8 +273,10 @@ abstract contract DLoopWithdrawerBase is IERC3156FlashBorrower, Ownable {
                 collateralTokenBalanceAfter
             );
         }
-        uint256 withdrawnAssets = collateralTokenBalanceAfter - collateralTokenBalanceBefore;
-        uint256 debtTokenRepaymentAmount = debtTokenBalanceAfter - debtTokenBalanceBefore;
+        uint256 withdrawnAssets = collateralTokenBalanceAfter -
+            collateralTokenBalanceBefore;
+        uint256 debtTokenRepaymentAmount = debtTokenBalanceAfter -
+            debtTokenBalanceBefore;
         if (withdrawnAssets < flashLoanParams.minReceiveAmount) {
             revert InsufficientOutput(
                 withdrawnAssets,
@@ -268,8 +284,15 @@ abstract contract DLoopWithdrawerBase is IERC3156FlashBorrower, Ownable {
             );
         }
         collateralToken.safeTransfer(flashLoanParams.receiver, withdrawnAssets);
-        uint256 estimatedInputAmount = (debtTokenRepaymentAmount * (dLoopCore.getAssetPriceFromOracle(address(debtToken)) * (10 ** collateralToken.decimals()))) / (dLoopCore.getAssetPriceFromOracle(address(collateralToken)) * (10 ** debtToken.decimals()));
-        uint256 maxIn = (estimatedInputAmount * (BasisPointConstants.ONE_HUNDRED_PERCENT_BPS + flashLoanParams.slippageTolerance)) / BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
+        uint256 estimatedInputAmount = (debtTokenRepaymentAmount *
+            (dLoopCore.getAssetPriceFromOracle(address(debtToken)) *
+                (10 ** collateralToken.decimals()))) /
+            (dLoopCore.getAssetPriceFromOracle(address(collateralToken)) *
+                (10 ** debtToken.decimals()));
+        uint256 maxIn = (estimatedInputAmount *
+            (BasisPointConstants.ONE_HUNDRED_PERCENT_BPS +
+                flashLoanParams.slippageTolerance)) /
+            BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
         require(maxIn > 0, "maxIn is not positive");
         _swapExactOutput(
             collateralToken,
@@ -322,7 +345,16 @@ abstract contract DLoopWithdrawerBase is IERC3156FlashBorrower, Ownable {
             _flashLoanParams.dLoopCore
         ) = abi.decode(
             data,
-            (address, address, uint256, uint256, uint256, uint256, bytes, DLoopCoreBase)
+            (
+                address,
+                address,
+                uint256,
+                uint256,
+                uint256,
+                uint256,
+                bytes,
+                DLoopCoreBase
+            )
         );
     }
 }

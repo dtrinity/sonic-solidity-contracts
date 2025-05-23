@@ -19,7 +19,6 @@ pragma solidity 0.8.20;
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 library Erc20Helper {
-
     /**
      * @dev Checks if a token is an ERC-20
      * @param token Address of the token

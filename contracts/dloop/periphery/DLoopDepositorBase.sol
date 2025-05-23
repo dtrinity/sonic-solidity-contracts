@@ -137,9 +137,16 @@ abstract contract DLoopDepositorBase is IERC3156FlashBorrower, Ownable {
         );
         bytes memory data = _encodeParamsToData(params);
         ERC20 debtToken = dLoopCore.debtToken();
-        uint256 maxFlashLoanAmount = flashLender.maxFlashLoan(address(debtToken));
+        uint256 maxFlashLoanAmount = flashLender.maxFlashLoan(
+            address(debtToken)
+        );
         uint256 sharesBeforeDeposit = dLoopCore.balanceOf(receiver);
-        flashLender.flashLoan(this, address(debtToken), maxFlashLoanAmount, data);
+        flashLender.flashLoan(
+            this,
+            address(debtToken),
+            maxFlashLoanAmount,
+            data
+        );
         uint256 sharesAfterDeposit = dLoopCore.balanceOf(receiver);
         if (sharesAfterDeposit <= sharesBeforeDeposit) {
             revert SharesNotIncreasedAfterFlashLoan(
@@ -201,16 +208,24 @@ abstract contract DLoopDepositorBase is IERC3156FlashBorrower, Ownable {
 
         FlashLoanParams memory flashLoanParams = _decodeDataToParams(data);
         DLoopCoreBase dLoopCore = flashLoanParams.dLoopCore;
-        
+
         ERC20 collateralToken = dLoopCore.collateralToken();
         ERC20 debtToken = dLoopCore.debtToken();
 
         if (token != address(debtToken))
             revert UnknownToken(token, address(debtToken));
 
-        uint256 requiredAdditionalAssets = flashLoanParams.newTotalAssets - flashLoanParams.depositAssetAmount;
-        uint256 estimatedInputAmount = (requiredAdditionalAssets * (dLoopCore.getAssetPriceFromOracle(address(collateralToken)) * (10 ** debtToken.decimals()))) / (dLoopCore.getAssetPriceFromOracle(address(debtToken)) * (10 ** collateralToken.decimals()));
-        uint256 maxIn = (estimatedInputAmount * (BasisPointConstants.ONE_HUNDRED_PERCENT_BPS + flashLoanParams.slippageTolerance)) / BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
+        uint256 requiredAdditionalAssets = flashLoanParams.newTotalAssets -
+            flashLoanParams.depositAssetAmount;
+        uint256 estimatedInputAmount = (requiredAdditionalAssets *
+            (dLoopCore.getAssetPriceFromOracle(address(collateralToken)) *
+                (10 ** debtToken.decimals()))) /
+            (dLoopCore.getAssetPriceFromOracle(address(debtToken)) *
+                (10 ** collateralToken.decimals()));
+        uint256 maxIn = (estimatedInputAmount *
+            (BasisPointConstants.ONE_HUNDRED_PERCENT_BPS +
+                flashLoanParams.slippageTolerance)) /
+            BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
         require(maxIn > 0, "maxIn is not positive");
 
         // Swap the debt token to the collateral token to deposit

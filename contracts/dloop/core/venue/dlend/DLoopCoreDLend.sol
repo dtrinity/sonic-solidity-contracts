@@ -81,9 +81,7 @@ contract DLoopCoreDLend is DLoopCoreBase {
     {
         lendingPoolAddressesProvider = _lendingPoolAddressesProvider;
 
-        if (
-            getLendingOracle().BASE_CURRENCY() != address(0)
-        ) {
+        if (getLendingOracle().BASE_CURRENCY() != address(0)) {
             revert("Invalid price oracle base currency");
         }
 
@@ -98,8 +96,15 @@ contract DLoopCoreDLend is DLoopCoreBase {
      * @dev Gets the restricted rescue tokens
      * @return address[] Restricted rescue tokens
      */
-    function getRestrictedRescueTokens() public view override returns (address[] memory) {
-        DataTypes.ReserveData memory reserveData = _getReserveData(address(collateralToken));
+    function getRestrictedRescueTokens()
+        public
+        view
+        override
+        returns (address[] memory)
+    {
+        DataTypes.ReserveData memory reserveData = _getReserveData(
+            address(collateralToken)
+        );
         address[] memory restrictedRescueTokens = new address[](3);
         restrictedRescueTokens[0] = reserveData.aTokenAddress;
         restrictedRescueTokens[1] = reserveData.variableDebtTokenAddress;

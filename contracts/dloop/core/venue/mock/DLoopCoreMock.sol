@@ -106,7 +106,12 @@ contract DLoopCoreMock is DLoopCoreBase {
 
     // --- Overrides ---
 
-    function getRestrictedRescueTokens() public pure override returns (address[] memory) {
+    function getRestrictedRescueTokens()
+        public
+        pure
+        override
+        returns (address[] memory)
+    {
         return new address[](0);
     }
 
