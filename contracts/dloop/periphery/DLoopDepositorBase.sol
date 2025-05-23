@@ -55,8 +55,8 @@ abstract contract DLoopDepositorBase is IERC3156FlashBorrower, Ownable {
 
     struct FlashLoanParams {
         address receiver;
-        uint256 depositAssetAmount;
-        uint256 newTotalAssets;
+        uint256 depositCollateralAmount;
+        uint256 leveragedCollateralAmount;
         uint256 slippageTolerance; // ie. 1000 = 10%
         bytes debtTokenToCollateralSwapData;
         DLoopCoreBase dLoopCore;
@@ -215,8 +215,8 @@ abstract contract DLoopDepositorBase is IERC3156FlashBorrower, Ownable {
         if (token != address(debtToken))
             revert UnknownToken(token, address(debtToken));
 
-        uint256 requiredAdditionalAssets = flashLoanParams.newTotalAssets -
-            flashLoanParams.depositAssetAmount;
+        uint256 requiredAdditionalAssets = flashLoanParams.leveragedCollateralAmount -
+            flashLoanParams.depositCollateralAmount;
         uint256 estimatedInputAmount = (requiredAdditionalAssets *
             (dLoopCore.getAssetPriceFromOracle(address(collateralToken)) *
                 (10 ** debtToken.decimals()))) /
@@ -240,10 +240,10 @@ abstract contract DLoopDepositorBase is IERC3156FlashBorrower, Ownable {
         );
         collateralToken.approve(
             address(dLoopCore),
-            flashLoanParams.newTotalAssets
+            flashLoanParams.leveragedCollateralAmount
         );
         dLoopCore.deposit(
-            flashLoanParams.depositAssetAmount,
+            flashLoanParams.depositCollateralAmount,
             flashLoanParams.receiver
         );
         return FLASHLOAN_CALLBACK;
@@ -259,8 +259,8 @@ abstract contract DLoopDepositorBase is IERC3156FlashBorrower, Ownable {
     ) internal pure returns (bytes memory data) {
         data = abi.encode(
             _flashLoanParams.receiver,
-            _flashLoanParams.depositAssetAmount,
-            _flashLoanParams.newTotalAssets,
+            _flashLoanParams.depositCollateralAmount,
+            _flashLoanParams.leveragedCollateralAmount,
             _flashLoanParams.slippageTolerance,
             _flashLoanParams.debtTokenToCollateralSwapData,
             _flashLoanParams.dLoopCore
@@ -277,8 +277,8 @@ abstract contract DLoopDepositorBase is IERC3156FlashBorrower, Ownable {
     ) internal pure returns (FlashLoanParams memory _flashLoanParams) {
         (
             _flashLoanParams.receiver,
-            _flashLoanParams.depositAssetAmount,
-            _flashLoanParams.newTotalAssets,
+            _flashLoanParams.depositCollateralAmount,
+            _flashLoanParams.leveragedCollateralAmount,
             _flashLoanParams.slippageTolerance,
             _flashLoanParams.debtTokenToCollateralSwapData,
             _flashLoanParams.dLoopCore

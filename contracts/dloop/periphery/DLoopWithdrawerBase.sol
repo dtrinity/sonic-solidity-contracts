@@ -65,7 +65,7 @@ abstract contract DLoopWithdrawerBase is IERC3156FlashBorrower, Ownable {
         address owner;
         address receiver;
         uint256 shares;
-        uint256 assetsToRemoveFromLending;
+        uint256 collateralToRemoveFromLending;
         uint256 slippageTolerance; // ie. 1000 = 10%
         uint256 minReceiveAmount;
         bytes collateralToDebtTokenSwapData;
@@ -294,6 +294,8 @@ abstract contract DLoopWithdrawerBase is IERC3156FlashBorrower, Ownable {
                 flashLoanParams.slippageTolerance)) /
             BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
         require(maxIn > 0, "maxIn is not positive");
+
+        // Swap the collateral token to the debt token to repay the flash loan
         _swapExactOutput(
             collateralToken,
             debtToken,
@@ -318,7 +320,7 @@ abstract contract DLoopWithdrawerBase is IERC3156FlashBorrower, Ownable {
             _flashLoanParams.owner,
             _flashLoanParams.receiver,
             _flashLoanParams.shares,
-            _flashLoanParams.assetsToRemoveFromLending,
+            _flashLoanParams.collateralToRemoveFromLending,
             _flashLoanParams.slippageTolerance,
             _flashLoanParams.minReceiveAmount,
             _flashLoanParams.collateralToDebtTokenSwapData,
@@ -338,7 +340,7 @@ abstract contract DLoopWithdrawerBase is IERC3156FlashBorrower, Ownable {
             _flashLoanParams.owner,
             _flashLoanParams.receiver,
             _flashLoanParams.shares,
-            _flashLoanParams.assetsToRemoveFromLending,
+            _flashLoanParams.collateralToRemoveFromLending,
             _flashLoanParams.slippageTolerance,
             _flashLoanParams.minReceiveAmount,
             _flashLoanParams.collateralToDebtTokenSwapData,
