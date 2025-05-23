@@ -171,6 +171,7 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard {
     error LeverageExceedsTarget(uint256 currentLeverageBps, uint256 targetLeverageBps);
     error LeverageBelowTarget(uint256 currentLeverageBps, uint256 targetLeverageBps);
     error RebalanceReceiveLessThanMinAmount(string operation, uint256 receivedAmount, uint256 minReceivedAmount);
+    error InvalidLeverage(uint256 leverageBps);
 
     /**
      * @dev Constructor for the DLoopCore contract
@@ -831,16 +832,6 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard {
          *    <=> x = y * T/(T-1)
          */
 
-        // Instead of using TARGET_LEVERAGE_BPS, we use the current leverage to calculate the withdrawable amount to avoid
-        // unexpectedly changing the current leverage (which may cause loss to the user)
-        if (
-            leverageBpsBeforeRepayDebt <=
-            BasisPointConstants.ONE_HUNDRED_PERCENT_BPS
-        ) {
-            // If there is no more debt, withdraw as much as possible
-            return type(uint256).max;
-        }
-
         // Convert the actual repaid amount to base
         uint256 repaidDebtAmountInBase = convertFromTokenAmountToBaseCurrency(repaidDebtAmount, debtAsset);
 
@@ -890,16 +881,6 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard {
          *  <=> y = x * (T-1)/T
          *  <=> x = y * T/(T-1)
          */
-
-        // Instead of using TARGET_LEVERAGE_BPS, we use the current leverage to calculate the borrowable amount to avoid
-        // unexpectedly changing the current leverage (which may cause loss to the user)
-        if (
-            leverageBpsBeforeSupply <=
-            BasisPointConstants.ONE_HUNDRED_PERCENT_BPS
-        ) {
-            // If there is no more debt, borrow as much as possible
-            return type(uint256).max;
-        }
 
         // Convert the actual supplied amount to base
         uint256 suppliedCollateralAmountInBase = convertFromTokenAmountToBaseCurrency(suppliedCollateralAmount, collateralAsset);
@@ -1193,9 +1174,13 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard {
             return type(uint256).max; // infinite leverage
         }
         // The leverage will be 1 if totalDebtBase is 0 (no more debt)
-        return ((totalCollateralBase *
+        uint256 leverageBps = ((totalCollateralBase *
             BasisPointConstants.ONE_HUNDRED_PERCENT_BPS) /
             (totalCollateralBase - totalDebtBase));
+        if (leverageBps <= BasisPointConstants.ONE_HUNDRED_PERCENT_BPS) {
+            revert InvalidLeverage(leverageBps);
+        }
+        return leverageBps;
     }
 
     /**
