@@ -606,12 +606,12 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard {
     }
 
     /**
-     * @dev Deposits assets into the lending pool
-     * @param depositAssetAmount Amount of assets to deposit
+     * @dev Handles the logic of supplying collateral token and borrowing debt token
+     * @param supplyAssetAmount Amount of assets to supply
      * @return debtAssetAmountToBorrow Amount of debt asset to borrow
      */
     function _depositToPoolImplementation(
-        uint256 depositAssetAmount // deposit amount
+        uint256 supplyAssetAmount // supply amount
     ) private returns (uint256) {
         // At this step, we assume that the funds from the depositor are already in the vault
 
@@ -622,22 +622,22 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard {
         uint256 currentCollateralTokenBalance = collateralToken.balanceOf(
             address(this)
         );
-        if (currentCollateralTokenBalance < depositAssetAmount) {
+        if (currentCollateralTokenBalance < supplyAssetAmount) {
             revert DepositInsufficientToSupply(
                 currentCollateralTokenBalance,
-                depositAssetAmount
+                supplyAssetAmount
             );
         }
 
         // Supply the collateral token to the lending pool
-        _supplyToPool(address(collateralToken), depositAssetAmount, address(this));
+        _supplyToPool(address(collateralToken), supplyAssetAmount, address(this));
 
         // Get the amount of debt token to borrow that keeps the current leverage
         // If there is no deposit yet (leverage=0), we use the target leverage
         uint256 debtTokenAmountToBorrow = getBorrowAmountThatKeepCurrentLeverage(
             address(collateralToken),
             address(debtToken),
-            depositAssetAmount,
+            supplyAssetAmount,
             currentLeverageBpsBeforeSupply > 0
                 ? currentLeverageBpsBeforeSupply
                 : TARGET_LEVERAGE_BPS
@@ -746,13 +746,13 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard {
     }
 
     /**
-     * @dev Handles the logic for repaying debt and withdrawing collateral from the pool, then transfers to receiver
-     * @param assetsToRemoveFromLending The acutal amount of assets to remove from the lending pool
+     * @dev Handles the logic for repaying debt and withdrawing collateral from the pool
+     * @param minCollateralTokenToWithdraw The minimum amount of collateral token to withdraw
      * @param debtTokenToRepay The amount of debt token to repay
-     * @return receivedCollateralAmount The actual amount of collateral asset received and transferred to receiver
+     * @return receivedCollateralAmount The actual amount of collateral asset received
      */
     function _withdrawFromPoolImplementation(
-        uint256 assetsToRemoveFromLending,
+        uint256 minCollateralTokenToWithdraw,
         uint256 debtTokenToRepay
     ) private returns (uint256 receivedCollateralAmount) {
         // Get the current leverage before repaying the debt (IMPORTANT: this is the leverage before repaying the debt)
@@ -770,10 +770,10 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard {
             leverageBpsBeforeRepayDebt
         );
 
-        if (withdrawableCollateralAmount < assetsToRemoveFromLending) {
+        if (withdrawableCollateralAmount < minCollateralTokenToWithdraw) {
             revert WithdrawableIsLessThanRequired(
                 address(collateralToken),
-                assetsToRemoveFromLending,
+                minCollateralTokenToWithdraw,
                 withdrawableCollateralAmount
             );
         }
