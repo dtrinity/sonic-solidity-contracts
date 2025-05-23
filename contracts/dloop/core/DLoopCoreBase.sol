@@ -402,6 +402,17 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard {
     /* Helper Functions */
 
     /**
+     * @dev Calculates the leveraged amount of the assets
+     * @param assets Amount of assets
+     * @return leveragedAssets Amount of leveraged assets
+     */
+    function getLeveragedAssets(uint256 assets) public view returns (uint256) {
+        return
+            (assets * targetLeverageBps) /
+            BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
+    }
+
+    /**
      * @dev Gets the asset price from the oracle
      * @param asset Address of the asset
      * @return uint256 Price of the asset
