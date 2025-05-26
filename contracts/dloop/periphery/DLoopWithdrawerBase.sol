@@ -185,43 +185,6 @@ abstract contract DLoopWithdrawerBase is IERC3156FlashBorrower, Ownable {
         return assets;
     }
 
-    /**
-     * @dev Withdraws assets from the core vault
-     * @param assets Amount of assets to withdraw
-     * @param receiver Address to receive the assets
-     * @param owner Address that owns the shares
-     * @param slippageTolerance Slippage tolerance for the swap
-     * @param minReceiveAmount Minimum amount of assets to receive
-     * @param collateralToDebtTokenSwapData Swap data from collateral token to debt token
-     * @param dLoopCore Address of the DLoopCore contract to use
-     * @return shares Amount of shares burned
-     */
-    function withdraw(
-        uint256 assets,
-        address receiver,
-        address owner,
-        uint256 slippageTolerance,
-        uint256 minReceiveAmount,
-        bytes memory collateralToDebtTokenSwapData,
-        DLoopCoreBase dLoopCore
-    ) public returns (uint256 shares) {
-        // Calculate the shares needed to withdraw the requested assets
-        shares = dLoopCore.convertToShares(assets);
-
-        // Call redeem with the calculated shares
-        redeem(
-            shares,
-            receiver,
-            owner,
-            slippageTolerance,
-            minReceiveAmount,
-            collateralToDebtTokenSwapData,
-            dLoopCore
-        );
-
-        return shares;
-    }
-
     /* Flash loan entrypoint */
 
     /**
