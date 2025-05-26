@@ -157,33 +157,6 @@ abstract contract DLoopDepositorBase is IERC3156FlashBorrower, Ownable {
         return sharesAfterDeposit - sharesBeforeDeposit;
     }
 
-    /**
-     * @dev Mints shares to the receiver by depositing assets to the core vault
-     * @param shares Amount of shares to mint
-     * @param receiver Address to receive the minted shares
-     * @param slippageTolerance Slippage tolerance for the swap
-     * @param debtTokenToCollateralSwapData Swap data from debt token to collateral token
-     * @param dLoopCore Address of the DLoopCore contract to use
-     * @return assets Amount of assets deposited
-     */
-    function mint(
-        uint256 shares,
-        address receiver,
-        uint256 slippageTolerance,
-        bytes memory debtTokenToCollateralSwapData,
-        DLoopCoreBase dLoopCore
-    ) public returns (uint256 assets) {
-        assets = dLoopCore.convertToAssets(shares);
-        deposit(
-            assets,
-            receiver,
-            slippageTolerance,
-            debtTokenToCollateralSwapData,
-            dLoopCore
-        );
-        return assets;
-    }
-
     /* Flash loan entrypoint */
 
     /**
