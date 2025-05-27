@@ -119,7 +119,7 @@ abstract contract DLoopWithdrawerBase is
         uint256 shares,
         address receiver,
         uint256 minOutputCollateralAmount,
-        bytes memory collateralToDebtTokenSwapData,
+        bytes calldata collateralToDebtTokenSwapData,
         DLoopCoreBase dLoopCore
     ) public returns (uint256 assets) {
         // We assume the owner is always the msg.sender, means you cannot redeem shares on behalf of others

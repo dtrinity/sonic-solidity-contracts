@@ -112,7 +112,7 @@ abstract contract DLoopDepositorBase is
         uint256 assets, // deposit amount
         address receiver,
         uint256 minOutputShares,
-        bytes memory debtTokenToCollateralSwapData,
+        bytes calldata debtTokenToCollateralSwapData,
         DLoopCoreBase dLoopCore
     ) public returns (uint256 shares) {
         // Transfer the collateral token to the vault (need the allowance before calling this function)
