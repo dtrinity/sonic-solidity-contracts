@@ -21,15 +21,20 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     console.log(`\n--- Deploying DPoolToken for ${dPoolName} ---`);
 
     // Get base asset address
-    const baseAssetAddress =
-      config.MOCK_ONLY?.tokens[dPoolConfig.baseAsset]?.address ||
-      config.tokenAddresses[
+    const baseAssetAddress = config.tokenAddresses[
         dPoolConfig.baseAsset as keyof typeof config.tokenAddresses
       ];
 
     if (!baseAssetAddress) {
       console.log(
         `⚠️  Skipping ${dPoolName}: missing base asset address for ${dPoolConfig.baseAsset}`,
+      );
+      continue;
+    }
+    
+    if (!dPoolConfig.initialAdmin || !dPoolConfig.initialFeeManager || !dPoolConfig.maxWithdrawalFeeBps) {
+      console.log(
+        `⚠️  Skipping ${dPoolName}: missing required configuration values`,
       );
       continue;
     }
@@ -52,7 +57,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
         baseAssetAddress, // base asset
         dPoolConfig.initialAdmin, // initial admin
         dPoolConfig.initialFeeManager, // initial fee manager
-        dPoolConfig.maxWithdrawalFeeBps, // max withdrawal fee BPS
+        dPoolConfig.initialFeeManager, // max withdrawal fee BPS
       ],
       log: true,
       skipIfAlreadyDeployed: true,

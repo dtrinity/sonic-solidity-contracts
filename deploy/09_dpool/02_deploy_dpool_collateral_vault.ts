@@ -23,9 +23,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     console.log(`\n--- Deploying DPoolCollateralVault for ${dPoolName} ---`);
 
     // Get base asset address
-    const baseAssetAddress =
-      config.MOCK_ONLY?.tokens[dPoolConfig.baseAsset]?.address ||
-      config.tokenAddresses[
+    const baseAssetAddress = config.tokenAddresses[
         dPoolConfig.baseAsset as keyof typeof config.tokenAddresses
       ];
 
