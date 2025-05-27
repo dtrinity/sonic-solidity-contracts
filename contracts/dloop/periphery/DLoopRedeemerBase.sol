@@ -28,7 +28,7 @@ import {SwappableVault} from "../libraries/SwappableVault.sol";
 import {RescuableVault} from "../libraries/RescuableVault.sol";
 
 /**
- * @title DLoopWithdrawerBase
+ * @title DLoopRedeemerBase
  * @dev A helper contract for withdrawing assets from the core vault with flash loans
  *      - Suppose that the core contract has leverage of 3x, and the collateral token is WETH, debt token is dUSD, price of WETH is 1000, price of dUSD is 2000
  *      - ie, given user has 300 shares representing 300 WETH, and wants to withdraw 300 WETH, this contract will do a flash loan to get 200 * 2000 dUSD
@@ -36,7 +36,7 @@ import {RescuableVault} from "../libraries/RescuableVault.sol";
  *      - In the final state, the user has 100 WETH (300 - 200), and the core contract has 0 WETH as collateral, 0 dUSD as debt
  *      - NOTE: This contract only support redeem() from DLoopCore contracts, not withdraw()
  */
-abstract contract DLoopWithdrawerBase is
+abstract contract DLoopRedeemerBase is
     IERC3156FlashBorrower,
     Ownable,
     SwappableVault,
@@ -96,7 +96,7 @@ abstract contract DLoopWithdrawerBase is
     }
 
     /**
-     * @dev Constructor for the DLoopWithdrawerBase contract
+     * @dev Constructor for the DLoopRedeemerBase contract
      * @param _flashLender Address of the flash loan provider
      */
     constructor(IERC3156FlashLender _flashLender) Ownable(msg.sender) {

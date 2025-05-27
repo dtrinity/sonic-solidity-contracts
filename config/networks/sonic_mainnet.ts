@@ -95,7 +95,7 @@ export async function getConfig(
           router: odoRouterV2Address,
         },
       },
-      withdrawers: {
+      redeemers: {
         odos: {
           router: odoRouterV2Address,
         },

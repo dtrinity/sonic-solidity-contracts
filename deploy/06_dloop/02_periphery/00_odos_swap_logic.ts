@@ -16,7 +16,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   // Skip if no dLOOP configuration or no Odos configuration is defined
   if (
     !dloopConfig ||
-    (!dloopConfig.depositors?.odos && !dloopConfig.withdrawers?.odos)
+    (!dloopConfig.depositors?.odos && !dloopConfig.redeemers?.odos)
   ) {
     console.log(
       `No Odos configuration defined for network ${hre.network.name}. Skipping.`,

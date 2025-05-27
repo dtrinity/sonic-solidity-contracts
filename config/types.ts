@@ -22,8 +22,8 @@ export interface Config {
     readonly depositors: {
       odos: DLoopDepositorOdosConfig;
     };
-    readonly withdrawers: {
-      odos: DLoopWithdrawerOdosConfig;
+    readonly redeemers: {
+      odos: DLoopRedeemerOdosConfig;
     };
   };
 }
@@ -61,7 +61,7 @@ export interface DLoopDepositorOdosConfig {
   readonly router: string;
 }
 
-export interface DLoopWithdrawerOdosConfig {
+export interface DLoopRedeemerOdosConfig {
   readonly router: string;
 }
 

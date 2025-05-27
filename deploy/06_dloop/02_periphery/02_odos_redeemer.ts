@@ -3,8 +3,8 @@ import { DeployFunction } from "hardhat-deploy/types";
 
 import { getConfig } from "../../../config/config";
 import {
+  DLOOP_PERIPHERY_ODOS_REDEEMER_ID,
   DLOOP_PERIPHERY_ODOS_SWAP_LOGIC_ID,
-  DLOOP_PERIPHERY_ODOS_WITHDRAWER_ID,
 } from "../../../typescript/deploy-ids";
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
@@ -16,15 +16,15 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const networkConfig = await getConfig(hre);
   const dloopConfig = networkConfig.dLoop;
 
-  // Skip if no dLOOP configuration or no Odos withdrawer configuration is defined
-  if (!dloopConfig || !dloopConfig.withdrawers?.odos) {
+  // Skip if no dLOOP configuration or no Odos redeemer configuration is defined
+  if (!dloopConfig || !dloopConfig.redeemers?.odos) {
     console.log(
-      `No Odos withdrawer configuration defined for network ${hre.network.name}. Skipping.`,
+      `No Odos redeemer configuration defined for network ${hre.network.name}. Skipping.`,
     );
     return;
   }
 
-  const odosConfig = dloopConfig.withdrawers.odos;
+  const odosConfig = dloopConfig.redeemers.odos;
 
   if (!odosConfig.router) {
     console.log(
@@ -41,16 +41,16 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   }
 
   console.log(
-    `Deploying Odos withdrawer on network ${hre.network.name} (chainId: ${chainId})`,
+    `Deploying Odos redeemer on network ${hre.network.name} (chainId: ${chainId})`,
   );
 
   const { address: odosSwapLogicAddress } = await hre.deployments.get(
     DLOOP_PERIPHERY_ODOS_SWAP_LOGIC_ID,
   );
 
-  await hre.deployments.deploy(DLOOP_PERIPHERY_ODOS_WITHDRAWER_ID, {
+  await hre.deployments.deploy(DLOOP_PERIPHERY_ODOS_REDEEMER_ID, {
     from: dloopDeployer,
-    contract: "DLoopWithdrawerOdos",
+    contract: "DLoopRedeemerOdos",
     args: [dUSDAddress, odosConfig.router],
     libraries: {
       OdosSwapLogic: odosSwapLogicAddress,
@@ -59,13 +59,13 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     autoMine: true,
   });
 
-  console.log("Odos withdrawer deployed successfully");
+  console.log("Odos redeemer deployed successfully");
 
   return true;
 };
 
-func.tags = ["dloop", "periphery", "odos", "withdrawer"];
+func.tags = ["dloop", "periphery", "odos", "redeemer"];
 func.dependencies = [DLOOP_PERIPHERY_ODOS_SWAP_LOGIC_ID];
-func.id = DLOOP_PERIPHERY_ODOS_WITHDRAWER_ID;
+func.id = DLOOP_PERIPHERY_ODOS_REDEEMER_ID;
 
 export default func;

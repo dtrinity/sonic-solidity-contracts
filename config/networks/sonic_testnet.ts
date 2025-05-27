@@ -164,7 +164,7 @@ export async function getConfig(
           router: "0x0000000", // dummy address
         },
       },
-      withdrawers: {
+      redeemers: {
         odos: {
           router: "0x00000", // dummy address
         },
