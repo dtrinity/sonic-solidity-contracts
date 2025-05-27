@@ -131,7 +131,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       if (currentRouter === ethers.ZeroAddress) {
         console.log(`Setting router in CollateralVault...`);
         const tx4 = await collateralVault
-          .connect(await ethers.getSigner(adminSigner))
+          .connect(await ethers.getSigner(deployer))
           .setRouter(routerDeployment.address);
         await tx4.wait();
         console.log(`✅ Router set in CollateralVault`);
@@ -164,7 +164,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
           if (existingAdapter === ethers.ZeroAddress) {
             console.log(`Adding LP adapter to router...`);
             const tx5 = await router
-              .connect(await ethers.getSigner(adminSigner))
+              .connect(await ethers.getSigner(deployer))
               .addLPAdapter(
                 curvePoolDeployment.address,
                 adapterDeployment.address,
@@ -188,7 +188,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
           if (existingAdapter === ethers.ZeroAddress) {
             console.log(`Adding LP adapter to collateral vault...`);
             const tx6 = await collateralVault
-              .connect(await ethers.getSigner(adminSigner))
+              .connect(await ethers.getSigner(deployer))
               .addLPAdapter(
                 curvePoolDeployment.address,
                 adapterDeployment.address,
@@ -224,7 +224,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
         if (currentDefault === ethers.ZeroAddress) {
           console.log(`Setting default deposit LP token: ${firstLPToken}...`);
           const tx7 = await router
-            .connect(await ethers.getSigner(adminSigner))
+            .connect(await ethers.getSigner(deployer))
             .setDefaultDepositLP(firstLPToken);
           await tx7.wait();
           console.log(`✅ Default deposit LP set`);
@@ -246,7 +246,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       ) {
         console.log(`Setting max slippage to ${dPoolConfig.initialSlippageBps} BPS...`);
         const tx8 = await router
-          .connect(await ethers.getSigner(adminSigner))
+          .connect(await ethers.getSigner(deployer))
           .setMaxSlippageBps(dPoolConfig.initialSlippageBps);
         await tx8.wait();
         console.log(`✅ Max slippage set`);
@@ -269,7 +269,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       if (!hasRole) {
         console.log(`Granting DPOOL_TOKEN_ROLE to DPoolToken in router...`);
         const tx9 = await router
-          .connect(await ethers.getSigner(adminSigner))
+          .connect(await ethers.getSigner(deployer))
           .grantRole(
             DPOOL_TOKEN_ROLE,
             poolTokenDeployment.address,

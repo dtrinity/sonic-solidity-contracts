@@ -31,7 +31,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       );
       continue;
     }
-    
+
     if (!dPoolConfig.initialAdmin || !dPoolConfig.initialFeeManager || !dPoolConfig.maxWithdrawalFeeBps) {
       console.log(
         `⚠️  Skipping ${dPoolName}: missing required configuration values`,
@@ -57,7 +57,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
         baseAssetAddress, // base asset
         dPoolConfig.initialAdmin, // initial admin
         dPoolConfig.initialFeeManager, // initial fee manager
-        dPoolConfig.initialFeeManager, // max withdrawal fee BPS
+        dPoolConfig.maxWithdrawalFeeBps, // max withdrawal fee BPS
       ],
       log: true,
       skipIfAlreadyDeployed: true,
