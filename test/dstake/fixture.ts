@@ -281,11 +281,15 @@ export async function executeSetupDLendRewards(
     .depositReward(rewardTokenInfo.address, rewardAmount);
 
   // Fund the rewards vault for PullRewardsTransferStrategy and approve
-  const { user1 } = await getNamedAccounts();
-  // Transfer reward tokens to the vault address
-  await rewardTokenERC20.connect(signer).transfer(user1, rewardAmount);
-  // Approve the IncentivesController to pull rewards from the vault
-  const vaultSigner = await ethers.getSigner(user1);
+  const pullStrategy = await ethers.getContractAt(
+    "IPullRewardsTransferStrategy",
+    transferStrategyAddress
+  );
+  const rewardsVault = await pullStrategy.getRewardsVault();
+  // Transfer reward tokens to the pull strategy's vault
+  await rewardTokenERC20.connect(signer).transfer(rewardsVault, rewardAmount);
+  // Approve the PullRewardsTransferStrategy to pull rewards from the vault
+  const vaultSigner = await ethers.getSigner(rewardsVault);
   await rewardTokenERC20
     .connect(vaultSigner)
     .approve(transferStrategyAddress, rewardAmount);
