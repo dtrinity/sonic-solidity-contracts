@@ -64,7 +64,16 @@ abstract contract DLoopWithdrawerBase is IERC3156FlashBorrower, Ownable {
         uint256 collateralTokenBalanceBefore,
         uint256 collateralTokenBalanceAfter
     );
+    error UnexpectedDecreaseInCollateralTokenAfterFlashLoan(
+        uint256 collateralTokenBalanceBefore,
+        uint256 collateralTokenBalanceAfter
+    );
     error IncorrectSharesBurned(uint256 expected, uint256 actual);
+    error WithdrawnCollateralTokenAmountNotMetMinReceiveAmount(
+        uint256 slippageTolerance,
+        uint256 withdrawnCollateralTokenAmount,
+        uint256 minReceiveCollateralTokenAmount
+    );
 
     /* Structs */
 
@@ -74,7 +83,6 @@ abstract contract DLoopWithdrawerBase is IERC3156FlashBorrower, Ownable {
         uint256 shares;
         uint256 collateralToRemoveFromLending;
         uint256 slippageTolerance; // ie. 1000 = 10%
-        uint256 minReceiveAmount;
         bytes collateralToDebtTokenSwapData;
         DLoopCoreBase dLoopCore;
     }
@@ -132,7 +140,6 @@ abstract contract DLoopWithdrawerBase is IERC3156FlashBorrower, Ownable {
      * @param shares Amount of shares to redeem
      * @param receiver Address to receive the assets
      * @param slippageTolerance Slippage tolerance for the swap
-     * @param minReceiveAmount Minimum amount of assets to receive
      * @param collateralToDebtTokenSwapData Swap data from collateral token to debt token
      * @param dLoopCore Address of the DLoopCore contract to use
      * @return assets Amount of assets redeemed
@@ -141,7 +148,6 @@ abstract contract DLoopWithdrawerBase is IERC3156FlashBorrower, Ownable {
         uint256 shares,
         address receiver,
         uint256 slippageTolerance,
-        uint256 minReceiveAmount,
         bytes memory collateralToDebtTokenSwapData,
         DLoopCoreBase dLoopCore
     ) public returns (uint256 assets) {
@@ -160,11 +166,11 @@ abstract contract DLoopWithdrawerBase is IERC3156FlashBorrower, Ownable {
             shares,
             collateralToRemoveFromLending,
             slippageTolerance,
-            minReceiveAmount,
             collateralToDebtTokenSwapData,
             dLoopCore
         );
         bytes memory data = _encodeParamsToData(params);
+        ERC20 collateralToken = dLoopCore.collateralToken();
         ERC20 debtToken = dLoopCore.debtToken();
         uint256 maxFlashLoanAmount = flashLender.maxFlashLoan(
             address(debtToken)
@@ -173,14 +179,14 @@ abstract contract DLoopWithdrawerBase is IERC3156FlashBorrower, Ownable {
         // This value is used to check if the shares decreased after the flash loan
         uint256 sharesBeforeWithdraw = dLoopCore.balanceOf(owner);
 
+        // Collateral balance before the flash loan
+        uint256 collateralTokenBalanceBefore = collateralToken.balanceOf(address(this));
+
         // Approve the flash lender to spend the flash loan amount of debt token from this contract
-        require(
-            debtToken.approve(
-                address(flashLender),
-                maxFlashLoanAmount +
-                    flashLender.flashFee(address(debtToken), maxFlashLoanAmount)
-            ),
-            "approve failed for flash lender in redeem"
+        debtToken.forceApprove(
+            address(flashLender),
+            maxFlashLoanAmount +
+                flashLender.flashFee(address(debtToken), maxFlashLoanAmount)
         );
 
         // The main logic will be done in the onFlashLoan function
@@ -205,6 +211,37 @@ abstract contract DLoopWithdrawerBase is IERC3156FlashBorrower, Ownable {
         if (actualBurnedShares != shares) {
             revert IncorrectSharesBurned(shares, actualBurnedShares);
         }
+
+
+        // Collateral balance after the flash loan
+        uint256 collateralTokenBalanceAfter = collateralToken.balanceOf(address(this));
+
+        // Make sure the collateral token balance increased after the flash loan
+        if (collateralTokenBalanceAfter <= collateralTokenBalanceBefore) {
+            revert UnexpectedDecreaseInCollateralTokenAfterFlashLoan(
+                collateralTokenBalanceBefore,
+                collateralTokenBalanceAfter
+            );
+        }
+
+        // The remaining collateral token amount after the repaying the flash loan
+        uint256 remainingCollateralTokenAmount = collateralTokenBalanceAfter - collateralTokenBalanceBefore;
+
+        // Slippage protection for the withdrawn collateral token amount
+        uint256 minReceiveCollateralTokenAmount = SwapHelper.getMinOutputAmountWithSlippageTolerance(
+            remainingCollateralTokenAmount,
+            slippageTolerance
+        );
+        if (remainingCollateralTokenAmount < minReceiveCollateralTokenAmount) {
+            revert WithdrawnCollateralTokenAmountNotMetMinReceiveAmount(
+                slippageTolerance,
+                remainingCollateralTokenAmount,
+                minReceiveCollateralTokenAmount
+            );
+        }
+
+        // Transfer the withdrawn collateral token to the receiver
+        collateralToken.safeTransfer(receiver, remainingCollateralTokenAmount);
 
         // Return the assets removed from the lending pool
         assets = collateralToRemoveFromLending;
@@ -250,7 +287,7 @@ abstract contract DLoopWithdrawerBase is IERC3156FlashBorrower, Ownable {
         uint256 debtTokenBalanceBefore = debtToken.balanceOf(address(this));
 
         // Calculate the max debt token amount to repay with slippage tolerance
-        uint256 maxDebtAmountToRepay = SwapHelper.getAmountWithSlippageTolerance(
+        uint256 maxDebtAmountToRepay = SwapHelper.getMaxInputAmountWithSlippageTolerance(
             flashLoanParams.collateralToRemoveFromLending,
             flashLoanParams.slippageTolerance
         );
@@ -289,18 +326,6 @@ abstract contract DLoopWithdrawerBase is IERC3156FlashBorrower, Ownable {
             );
         }
 
-        // Calculate the withdrawn collateral token amount after the redeem
-        uint256 withdrawnCollateralTokenAmount = collateralTokenBalanceAfter -
-            collateralTokenBalanceBefore;
-
-        // Slippage protection for the withdrawn collateral token amount
-        if (withdrawnCollateralTokenAmount < flashLoanParams.minReceiveAmount) {
-            revert InsufficientOutput(
-                withdrawnCollateralTokenAmount,
-                flashLoanParams.minReceiveAmount
-            );
-        }
-
         // Calculate the max collateral token amount to swap with slippage tolerance
         uint256 repaidDebtTokenAmount = debtTokenBalanceAfter -
             debtTokenBalanceBefore;
@@ -313,6 +338,12 @@ abstract contract DLoopWithdrawerBase is IERC3156FlashBorrower, Ownable {
         );
         require(maxCollateralInputAmount > 0, "maxCollateralInputAmount is not positive");
 
+        // Cap the maxCollateralInputAmount to the collateral token balance
+        uint256 collateralTokenBalance = collateralToken.balanceOf(address(this));
+        if (maxCollateralInputAmount > collateralTokenBalance) {
+            maxCollateralInputAmount = collateralTokenBalance;
+        }
+
         // Swap the collateral token to the debt token to repay the flash loan
         _swapExactOutput(
             collateralToken,
@@ -323,9 +354,6 @@ abstract contract DLoopWithdrawerBase is IERC3156FlashBorrower, Ownable {
             block.timestamp,
             flashLoanParams.collateralToDebtTokenSwapData
         );
-
-        // Transfer the withdrawn collateral token to the receiver
-        collateralToken.safeTransfer(flashLoanParams.receiver, withdrawnCollateralTokenAmount);
 
         // Return the success bytes
         return FLASHLOAN_CALLBACK;
@@ -345,7 +373,6 @@ abstract contract DLoopWithdrawerBase is IERC3156FlashBorrower, Ownable {
             _flashLoanParams.shares,
             _flashLoanParams.collateralToRemoveFromLending,
             _flashLoanParams.slippageTolerance,
-            _flashLoanParams.minReceiveAmount,
             _flashLoanParams.collateralToDebtTokenSwapData,
             _flashLoanParams.dLoopCore
         );
@@ -365,7 +392,6 @@ abstract contract DLoopWithdrawerBase is IERC3156FlashBorrower, Ownable {
             _flashLoanParams.shares,
             _flashLoanParams.collateralToRemoveFromLending,
             _flashLoanParams.slippageTolerance,
-            _flashLoanParams.minReceiveAmount,
             _flashLoanParams.collateralToDebtTokenSwapData,
             _flashLoanParams.dLoopCore
         ) = abi.decode(
@@ -373,7 +399,6 @@ abstract contract DLoopWithdrawerBase is IERC3156FlashBorrower, Ownable {
             (
                 address,
                 address,
-                uint256,
                 uint256,
                 uint256,
                 uint256,

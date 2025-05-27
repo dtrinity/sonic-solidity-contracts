@@ -158,6 +158,13 @@ abstract contract DLoopDepositorBase is IERC3156FlashBorrower, Ownable {
         // This value is used to check if the shares increased after the flash loan
         uint256 sharesBeforeDeposit = dLoopCore.balanceOf(receiver);
 
+        // Approve the flash lender to spend the flash loan amount of debt token from this contract
+        ERC20(debtToken).forceApprove(
+            address(flashLender),
+            maxFlashLoanAmount +
+                flashLender.flashFee(debtToken, maxFlashLoanAmount)
+        );
+
         // The main logic will be done in the onFlashLoan function
         flashLender.flashLoan(
             this,

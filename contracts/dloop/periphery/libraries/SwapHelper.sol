@@ -25,6 +25,8 @@ interface PriceGetter {
 }
 
 library SwapHelper {
+  error SlippageToleranceCannotExceedOneHundredPercent(uint256 slippageTolerance);
+
   /**
    * @notice Estimates the input amount from an exact output amount
    * @param inputToken The input token
@@ -56,13 +58,29 @@ library SwapHelper {
   }
 
   /**
-   * @notice Get the amount with slippage tolerance
+   * @notice Get the max input amount with slippage tolerance
    * @param amount The amount
    * @param slippageTolerance The slippage tolerance
-   * @return amountWithSlippageTolerance The amount with slippage tolerance
+   * @return maxInputAmount The max input amount
    */
-  function getAmountWithSlippageTolerance(uint256 amount, uint256 slippageTolerance) internal pure returns (uint256) {
+  function getMaxInputAmountWithSlippageTolerance(uint256 amount, uint256 slippageTolerance) internal pure returns (uint256) {
     return (amount * (BasisPointConstants.ONE_HUNDRED_PERCENT_BPS +
+            slippageTolerance)) /
+        BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
+  }
+
+  /**
+   * @notice Get the min output amount with slippage tolerance
+   * @param amount The amount
+   * @param slippageTolerance The slippage tolerance
+   * @return minOutputAmount The min output amount
+   */
+  function getMinOutputAmountWithSlippageTolerance(uint256 amount, uint256 slippageTolerance) internal pure returns (uint256) {
+    if (slippageTolerance >= BasisPointConstants.ONE_HUNDRED_PERCENT_BPS) {
+      revert SlippageToleranceCannotExceedOneHundredPercent(slippageTolerance);
+    }
+    
+    return (amount * (BasisPointConstants.ONE_HUNDRED_PERCENT_BPS -
             slippageTolerance)) /
         BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
   }
