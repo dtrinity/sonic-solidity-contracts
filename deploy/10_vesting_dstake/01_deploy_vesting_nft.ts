@@ -3,7 +3,10 @@ import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
 
 import { getConfig } from "../../config/config";
-import { ERC20_VESTING_NFT_ID } from "../../typescript/deploy-ids";
+import {
+  ERC20_VESTING_NFT_ID,
+  DSTAKE_NFT_VESTING_DEPLOYMENT_TAG,
+} from "../../typescript/deploy-ids";
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployments, getNamedAccounts } = hre;
@@ -14,7 +17,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   if (!config.vesting) {
     console.log(
-      "No vesting configuration found for this network. Skipping vesting NFT deployment.",
+      "No vesting configuration found for this network. Skipping vesting NFT deployment."
     );
     return;
   }
@@ -25,7 +28,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     config.vesting.dstakeToken === ethers.ZeroAddress
   ) {
     throw new Error(
-      "Missing or invalid dstakeToken address in vesting configuration",
+      "Missing or invalid dstakeToken address in vesting configuration"
     );
   }
 
@@ -34,7 +37,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     config.vesting.initialOwner === ethers.ZeroAddress
   ) {
     throw new Error(
-      "Missing or invalid initialOwner address in vesting configuration",
+      "Missing or invalid initialOwner address in vesting configuration"
     );
   }
 
@@ -47,7 +50,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   }
 
   // Deploy the ERC20VestingNFT contract
-  const vestingNFT = await deploy(ERC20_VESTING_NFT_ID, {
+  await deploy(ERC20_VESTING_NFT_ID, {
     from: deployer,
     contract: "ERC20VestingNFT",
     args: [
@@ -60,17 +63,12 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   });
 
   console.log(`🔒 ${__filename.split("/").slice(-2).join("/")}: ✅`);
-  console.log(`   ERC20VestingNFT: ${vestingNFT.address}`);
-  console.log(`   dSTAKE Token: ${config.vesting.dstakeToken}`);
-  console.log(
-    `   Vesting Period: ${config.vesting.vestingPeriod} seconds (${Math.round(config.vesting.vestingPeriod / (24 * 60 * 60))} days)`,
-  );
-  console.log(
-    `   Max Total Supply: ${ethers.formatUnits(config.vesting.maxTotalSupply, 18)} dSTAKE`,
-  );
-  console.log(`   Initial Owner: ${config.vesting.initialOwner}`);
+
+  return true;
 };
 
-export default func;
-func.tags = ["ERC20VestingNFT", "vesting"];
+func.id = ERC20_VESTING_NFT_ID;
+func.tags = [DSTAKE_NFT_VESTING_DEPLOYMENT_TAG];
 func.dependencies = ["dStake"]; // Depends on dSTAKE tokens being deployed
+
+export default func;

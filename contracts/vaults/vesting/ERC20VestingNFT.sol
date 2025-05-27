@@ -95,7 +95,7 @@ contract ERC20VestingNFT is ERC721, ERC721Enumerable, Ownable, ReentrancyGuard {
         uint256 _maxTotalSupply,
         address _initialOwner
     ) ERC721("dSTAKE Vesting NFT", "dVEST") Ownable(_initialOwner) {
-        if (_dstakeToken == address(0) || _initialOwner == address(0)) {
+        if (_dstakeToken == address(0)) {
             revert ZeroAddress();
         }
         if (_vestingPeriod == 0 || _maxTotalSupply == 0) {
