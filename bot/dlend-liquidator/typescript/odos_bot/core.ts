@@ -28,7 +28,6 @@ import {
   getOdosFlashLoanLiquidatorBotContract,
   getOdosFlashMintDStableLiquidatorBotContract,
 } from "./bot_contract";
-import { NotProfitableLiquidationError } from "./error";
 import {
   getLiquidationProfitInUSD,
   getUserLiquidationParams,
@@ -200,6 +199,7 @@ export async function runBotBatch(
       success: false,
       profitInUSD: "",
       profitable: false,
+      step: "",
       error: "",
       errorMessage: "",
     };
@@ -210,18 +210,24 @@ export async function runBotBatch(
         `Checking user ${userInfo.userAddress} for liquidation with health factor ${userInfo.healthFactor}`,
       );
 
+      userState.step = "getting_user_liquidation_params";
+
       const liquidationParams = await getUserLiquidationParams(
         userInfo.userAddress,
       );
+
+      userState.step = "got_user_liquidation_params";
 
       userState.toRepayAmount = liquidationParams.toRepayAmount.toString();
       userState.collateralToken = {
         address: liquidationParams.collateralToken.reserveTokenInfo.address,
         symbol: liquidationParams.collateralToken.reserveTokenInfo.symbol,
+        decimals: liquidationParams.collateralToken.reserveTokenInfo.decimals,
       };
       userState.debtToken = {
         address: liquidationParams.debtToken.reserveTokenInfo.address,
         symbol: liquidationParams.debtToken.reserveTokenInfo.symbol,
+        decimals: liquidationParams.debtToken.reserveTokenInfo.decimals,
       };
 
       if (liquidationParams.toRepayAmount.isZero()) {
@@ -231,10 +237,14 @@ export async function runBotBatch(
         );
         notProfitableUserMemory.put(userInfo.userAddress);
 
+        userState.step = "no_debt_to_repay";
+
         userState.success = false;
         userState.error = "No debt to repay";
         userState.errorMessage = "No debt to repay";
       } else {
+        userState.step = "getting_liquidation_profit_in_usd";
+
         const liquidationProfitInUSD = await getLiquidationProfitInUSD(
           liquidationParams.debtToken.reserveTokenInfo,
           {
@@ -245,8 +255,11 @@ export async function runBotBatch(
         );
 
         userState.profitInUSD = liquidationProfitInUSD.toString();
+        printLog(index, `Profit in USD: $${liquidationProfitInUSD.toFixed(4)}`);
         userState.profitable =
           liquidationProfitInUSD >= profitableThresholdInUSD;
+
+        userState.step = "got_liquidation_profit_in_usd";
 
         if (userState.profitable) {
           printLog(
@@ -266,6 +279,8 @@ export async function runBotBatch(
             ` - To repay: ${liquidationParams.toRepayAmount.toString()}`,
           );
 
+          userState.step = "profitable_user_performing_liquidation";
+
           userState.lastTrial = Date.now();
           userState.success = false;
 
@@ -277,52 +292,36 @@ export async function runBotBatch(
             liquidationParams.toRepayAmount.toBigInt(),
           );
 
+          userState.step = "successful_liquidation";
           userState.success = true;
 
           const successMessage =
             `<!channel> 🎯 *Successful Liquidation via Odos DEX* 🎯\n\n` +
             `User \`${userInfo.userAddress}\`:\n` +
             `• Health Factor: ${userInfo.healthFactor}\n` +
-            `• Profit: $${Number(userState.profitInUSD).toFixed(2)}\n` +
+            `• Profit: $${Number(userState.profitInUSD).toFixed(6)}\n` +
             `• Collateral Token: ${userState.collateralToken?.symbol}\n` +
             `• Debt Token: ${userState.debtToken?.symbol}\n` +
             `• Repaid Amount: ${ethers.formatUnits(
               userState.toRepayAmount,
-              liquidationParams.debtToken.reserveTokenInfo.decimals,
-            )} ${liquidationParams.debtToken.reserveTokenInfo.symbol}\n` +
+              userState.debtToken.decimals,
+            )} ${userState.debtToken.symbol}\n` +
             `• Transaction Hash: ${txHash}`;
 
           await sendSlackMessage(successMessage);
         } else {
           printLog(
             index,
-            `User ${userInfo.userAddress} is not profitable to liquidate due to profitable threshold`,
+            `User ${userInfo.userAddress} is not profitable to liquidate due to profitable threshold: $${liquidationProfitInUSD.toFixed(4)} < $${profitableThresholdInUSD}`,
           );
           notProfitableUserMemory.put(userInfo.userAddress);
 
           userState.success = false;
+          userState.step = "not_profitable_user";
         }
       }
     } catch (error: any) {
-      if (error instanceof NotProfitableLiquidationError) {
-        printLog(
-          index,
-          `User ${userInfo.userAddress} is not profitable to liquidate with error: ${error.message}`,
-        );
-        notProfitableUserMemory.put(userInfo.userAddress);
-
-        userState.success = false;
-        userState.collateralToken = {
-          address: error.collateralTokenInfo.address,
-          symbol: error.collateralTokenInfo.symbol,
-        };
-        userState.debtToken = {
-          address: error.borrowTokenInfo.address,
-          symbol: error.borrowTokenInfo.symbol,
-        };
-        userState.error = error;
-        userState.errorMessage = error.message;
-      } else {
+      {
         printLog(
           index,
           `Error occurred while liquidating user ${userInfo.userAddress}: ${error}`,
@@ -332,6 +331,10 @@ export async function runBotBatch(
         userState.success = false;
         userState.error = error;
         userState.errorMessage = error.message;
+        userState.step = "liquidation_error";
+
+        const debtTokenDecimals = userState.debtToken?.decimals;
+        const debtTokenSymbol = userState.debtToken?.symbol;
 
         const errorMessage =
           `<!channel> ⚠️ *Odos DEX Liquidation Error* ⚠️\n\n` +
@@ -339,7 +342,13 @@ export async function runBotBatch(
           `• Health Factor: ${userInfo.healthFactor}\n` +
           `• Error: ${error.message}\n` +
           `• Collateral Token: ${userState.collateralToken?.symbol}\n` +
-          `• Debt Token: ${userState.debtToken?.symbol}`;
+          `• Debt Token: ${debtTokenSymbol}\n` +
+          `• To Repay: ${ethers.formatUnits(
+            userState.toRepayAmount,
+            debtTokenDecimals,
+          )} ${debtTokenSymbol}\n` +
+          `• Profit (USD): $${Number(userState.profitInUSD).toFixed(6)}\n` +
+          `• Step: ${userState.step}`;
 
         await sendSlackMessage(errorMessage);
       }
