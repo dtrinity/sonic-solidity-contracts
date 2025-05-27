@@ -20,7 +20,7 @@ export interface Config {
     [key: string]: DStakeInstanceConfig; // e.g., sdUSD, sdS
   };
   readonly dPool?: {
-    [key: string]: DPoolInstanceConfig; // e.g., dpUSDC, dpUSD
+    [key: string]: DPoolInstanceConfig; // e.g., dUSD-USDC_Curve
   };
 }
 
@@ -179,17 +179,16 @@ export interface DStakeInstanceConfig {
 // --- dPool Types ---
 
 export interface DPoolCurvePoolConfig {
-  readonly name: string; // Name identifier for the pool (e.g., "USDC_USDS_CurvePool")
+  readonly name: string; // Name identifier for the pool (e.g., "USDC-USDS_CurvePool")
   readonly token0: string; // Reference to token in config (e.g., "USDC")
   readonly token1: string; // Reference to token in config (e.g., "USDS")
-  readonly address?: Address; // Deployed pool address (populated after deployment)
-  readonly lpToken?: Address; // LP token address (populated after deployment)
+  readonly address?: Address; // Pool address (also serves as LP token address)
 }
 
 export interface DPoolInstanceConfig {
   readonly baseAsset: string; // Reference to token in config (e.g., "USDC", "dUSD")
-  readonly name: string; // Name for DPoolToken (e.g., "dPOOL USDC LP")
-  readonly symbol: string; // Symbol for DPoolToken (e.g., "dpUSDC")
+  readonly name: string; // Name for DPoolToken (e.g., "dPOOL dUSD/USDC Curve")
+  readonly symbol: string; // Symbol for DPoolToken (e.g., "dUSD-USDC_Curve")
   readonly initialAdmin: Address;
   readonly initialFeeManager: Address;
   readonly maxWithdrawalFeeBps: number; // Maximum withdrawal fee in BPS

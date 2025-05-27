@@ -25,7 +25,8 @@ export const DPUSDC_CONFIG: DPoolFixtureConfig = {
   curvePoolName: "USDC_USDS_CurvePool",
   deploymentTags: [
     "local-setup", // mock tokens and oracles
-    "mocks", // mock curve pools
+    "oracle", // mock oracle setup uses this tag
+    "curve", // mock curve pools
     "dpool", // dPOOL core contracts and configuration
   ],
 };
@@ -40,7 +41,7 @@ export const DPUSD_CONFIG: DPoolFixtureConfig = {
     "local-setup",
     "oracle", // needed for dUSD
     "dusd", // underlying dUSD token
-    "mocks",
+    "curve",
     "dpool",
   ],
 };
@@ -125,7 +126,7 @@ async function fetchDPoolComponents(
 
   // Get CurveLPAdapter
   const adapterDeployment = await deployments.get(
-    `CurveLPAdapter_${config.dPoolName}_${config.curvePoolName}`
+    `CurveLPAdapter_${config.curvePoolName}`
   );
   const curveLPAdapter = await ethers.getContractAt(
     "CurveLPAdapter",

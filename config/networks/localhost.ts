@@ -164,6 +164,7 @@ export async function getConfig(
       sfrxUSD: emptyStringIfUndefined(sfrxUSDDeployment?.address), // Used by dLEND
       stS: emptyStringIfUndefined(stSTokenDeployment?.address), // Used by dLEND
       wstkscUSD: emptyStringIfUndefined(wstkscUSDDeployment?.address), // Used by dLEND
+      USDC: emptyStringIfUndefined(USDCDeployment?.address), // Used by dPOOL
     },
     walletAddresses: {
       governanceMultisig: user1,

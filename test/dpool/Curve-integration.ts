@@ -491,7 +491,7 @@ describe("dPOOL Integration", () => {
       const newCurvePool = await MockCurveFactory.deploy(
         "New Pool",
         "NEW",
-        [baseAssetToken.address, otherAssetToken.address],
+        [await baseAssetToken.getAddress(), await otherAssetToken.getAddress()],
         4000000
       );
 

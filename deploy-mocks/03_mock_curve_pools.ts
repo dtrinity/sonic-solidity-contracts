@@ -59,7 +59,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   }
 };
 
-func.tags = ["dpool", "dpool-curve-pools", "mocks"];
-func.dependencies = ["tokens"]; // Ensure tokens are deployed first
+func.tags = ["local-setup", "curve"];
+func.dependencies = ["tokens"];
+func.id = "local_curve_pools_setup";
 
 export default func; 

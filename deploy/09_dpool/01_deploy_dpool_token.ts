@@ -67,6 +67,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 };
 
 func.tags = ["dpool", "dpool-token"];
-func.dependencies = ["tokens"];
+func.dependencies = [];
 
 export default func;

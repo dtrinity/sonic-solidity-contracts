@@ -74,6 +74,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 };
 
 func.tags = ["dpool", "dpool-router"];
-func.dependencies = ["dpool-collateral-vault"];
+func.dependencies = ["dpool-token", "dpool-collateral-vault"];
 
 export default func;

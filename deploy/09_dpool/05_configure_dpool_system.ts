@@ -134,7 +134,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     let firstLPToken = null;
 
     for (const poolConfig of dPoolConfig.curvePools) {
-      const adapterName = `CurveLPAdapter_${dPoolName}_${poolConfig.name}`;
+      const adapterName = `CurveLPAdapter_${poolConfig.name}`;
 
       try {
         const adapterDeployment = await get(adapterName);
@@ -262,7 +262,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 };
 
 func.tags = ["dpool", "dpool-configure"];
-func.dependencies = ["dpool-adapters"];
+func.dependencies = ["dpool-token", "dpool-collateral-vault", "dpool-router", "dpool-adapters"];
 func.runAtTheEnd = true; // Ensure this runs after all other deployments
 
 export default func;
