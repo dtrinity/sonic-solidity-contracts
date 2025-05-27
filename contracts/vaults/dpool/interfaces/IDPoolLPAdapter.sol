@@ -79,4 +79,4 @@ interface IDPoolLPAdapter {
      * @return collateralVault Address of the collateral vault
      */
     function collateralVault() external view returns (address collateralVault);
-} 
+}

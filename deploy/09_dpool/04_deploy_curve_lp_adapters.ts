@@ -1,5 +1,6 @@
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
+
 import { getConfig } from "../../config/config";
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
@@ -20,31 +21,40 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     log(`\n--- Deploying CurveLPAdapters for ${dPoolName} ---`);
 
     // Get base asset address
-    const baseAssetAddress = config.MOCK_ONLY?.tokens[dPoolConfig.baseAsset]?.address ||
-                            config.tokenAddresses[dPoolConfig.baseAsset as keyof typeof config.tokenAddresses];
+    const baseAssetAddress =
+      config.MOCK_ONLY?.tokens[dPoolConfig.baseAsset]?.address ||
+      config.tokenAddresses[
+        dPoolConfig.baseAsset as keyof typeof config.tokenAddresses
+      ];
 
     if (!baseAssetAddress) {
-      log(`⚠️  Skipping ${dPoolName}: missing base asset address for ${dPoolConfig.baseAsset}`);
+      log(
+        `⚠️  Skipping ${dPoolName}: missing base asset address for ${dPoolConfig.baseAsset}`,
+      );
       continue;
     }
 
     // Get collateral vault deployment
     const collateralVaultName = `DPoolCollateralVault_${dPoolName}`;
-    
+
     let collateralVaultDeployment;
+
     try {
       collateralVaultDeployment = await get(collateralVaultName);
     } catch (error) {
-      log(`⚠️  Skipping ${dPoolName}: DPoolCollateralVault not found (${collateralVaultName})`);
+      log(
+        `⚠️  Skipping ${dPoolName}: DPoolCollateralVault not found (${collateralVaultName})`,
+      );
       continue;
     }
 
     // Deploy adapter for each Curve pool
     for (const poolConfig of dPoolConfig.curvePools) {
       const poolName = poolConfig.name;
-      
+
       // Get Curve pool deployment
       let curvePoolDeployment;
+
       try {
         curvePoolDeployment = await get(poolName);
       } catch (error) {
@@ -53,7 +63,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       }
 
       const adapterName = `CurveLPAdapter_${dPoolName}_${poolConfig.name}`;
-      
+
       log(`Deploying CurveLPAdapter: ${adapterName}`);
       log(`  Curve Pool: ${curvePoolDeployment.address}`);
       log(`  Base Asset (${dPoolConfig.baseAsset}): ${baseAssetAddress}`);
@@ -83,4 +93,4 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 func.tags = ["dpool", "dpool-adapters"];
 func.dependencies = ["dpool-curve-pools", "dpool-router"];
 
-export default func; 
+export default func;

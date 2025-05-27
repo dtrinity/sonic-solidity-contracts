@@ -1,5 +1,6 @@
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
+
 import { getConfig } from "../../config/config";
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
@@ -11,7 +12,9 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   // Skip if no dPool config
   if (!config.dPool) {
-    log("No dPool configuration found, skipping DPoolCollateralVault deployment");
+    log(
+      "No dPool configuration found, skipping DPoolCollateralVault deployment",
+    );
     return;
   }
 
@@ -20,18 +23,24 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     log(`\n--- Deploying DPoolCollateralVault for ${dPoolName} ---`);
 
     // Get base asset address
-    const baseAssetAddress = config.MOCK_ONLY?.tokens[dPoolConfig.baseAsset]?.address ||
-                            config.tokenAddresses[dPoolConfig.baseAsset as keyof typeof config.tokenAddresses];
+    const baseAssetAddress =
+      config.MOCK_ONLY?.tokens[dPoolConfig.baseAsset]?.address ||
+      config.tokenAddresses[
+        dPoolConfig.baseAsset as keyof typeof config.tokenAddresses
+      ];
 
     if (!baseAssetAddress) {
-      log(`⚠️  Skipping ${dPoolName}: missing base asset address for ${dPoolConfig.baseAsset}`);
+      log(
+        `⚠️  Skipping ${dPoolName}: missing base asset address for ${dPoolConfig.baseAsset}`,
+      );
       continue;
     }
 
     // Get DPoolToken deployment
     const tokenName = `DPoolToken_${dPoolName}`;
-    
+
     let poolTokenDeployment;
+
     try {
       poolTokenDeployment = await get(tokenName);
     } catch (error) {
@@ -40,7 +49,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     }
 
     const collateralVaultName = `DPoolCollateralVault_${dPoolName}`;
-    
+
     log(`Deploying DPoolCollateralVault: ${collateralVaultName}`);
     log(`  Pool Token: ${poolTokenDeployment.address}`);
     log(`  Base Asset (${dPoolConfig.baseAsset}): ${baseAssetAddress}`);
@@ -59,7 +68,9 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     if (collateralVault.newlyDeployed) {
       log(`✅ Deployed ${collateralVaultName} at: ${collateralVault.address}`);
     } else {
-      log(`♻️  Reusing existing ${collateralVaultName} at: ${collateralVault.address}`);
+      log(
+        `♻️  Reusing existing ${collateralVaultName} at: ${collateralVault.address}`,
+      );
     }
   }
 };
@@ -67,4 +78,4 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 func.tags = ["dpool", "dpool-collateral-vault"];
 func.dependencies = ["dpool-token"];
 
-export default func; 
+export default func;

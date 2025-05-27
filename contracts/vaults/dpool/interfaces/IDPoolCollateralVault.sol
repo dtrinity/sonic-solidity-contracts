@@ -12,7 +12,10 @@ interface IDPoolCollateralVault {
      * @dev Iterates through supported LP tokens and calculates their total value
      * @return baseAssetValue Total value in base asset terms
      */
-    function getTotalAssetValue() external view returns (uint256 baseAssetValue);
+    function getTotalAssetValue()
+        external
+        view
+        returns (uint256 baseAssetValue);
 
     /**
      * @notice Sends LP tokens from the vault to a recipient
@@ -33,10 +36,7 @@ interface IDPoolCollateralVault {
      * @param lpToken Address of the LP token
      * @param adapterAddress Address of the LP adapter contract
      */
-    function addLPAdapter(
-        address lpToken,
-        address adapterAddress
-    ) external;
+    function addLPAdapter(address lpToken, address adapterAddress) external;
 
     /**
      * @notice Removes support for an LP token
@@ -75,24 +75,35 @@ interface IDPoolCollateralVault {
      * @param lpToken Address of the LP token
      * @return adapter Address of the adapter contract
      */
-    function adapterForLP(address lpToken) external view returns (address adapter);
+    function adapterForLP(
+        address lpToken
+    ) external view returns (address adapter);
 
     /**
      * @notice Returns the list of supported LP tokens
      * @return lpTokens Array of supported LP token addresses
      */
-    function getSupportedLPTokens() external view returns (address[] memory lpTokens);
+    function getSupportedLPTokens()
+        external
+        view
+        returns (address[] memory lpTokens);
 
     /**
      * @notice Returns the balance of a specific LP token held by the vault
      * @param lpToken Address of the LP token
      * @return balance Amount of LP tokens held
      */
-    function getLPTokenBalance(address lpToken) external view returns (uint256 balance);
+    function getLPTokenBalance(
+        address lpToken
+    ) external view returns (uint256 balance);
 
     // Events
     event LPAdapterAdded(address indexed lpToken, address indexed adapter);
     event LPAdapterRemoved(address indexed lpToken);
     event RouterUpdated(address indexed oldRouter, address indexed newRouter);
-    event LPTokensSent(address indexed lpToken, uint256 amount, address indexed recipient);
-} 
+    event LPTokensSent(
+        address indexed lpToken,
+        uint256 amount,
+        address indexed recipient
+    );
+}

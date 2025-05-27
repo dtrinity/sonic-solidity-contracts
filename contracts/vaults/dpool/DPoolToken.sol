@@ -15,7 +15,6 @@ import {BasisPointConstants} from "../../common/BasisPointConstants.sol";
  *      Delegates complex operations to router and collateral vault contracts
  */
 contract DPoolToken is ERC4626, AccessControl {
-
     // --- Roles ---
     bytes32 public constant FEE_MANAGER_ROLE = keccak256("FEE_MANAGER_ROLE");
 
@@ -33,9 +32,16 @@ contract DPoolToken is ERC4626, AccessControl {
 
     // --- Events ---
     event RouterSet(address indexed oldRouter, address indexed newRouter);
-    event CollateralVaultSet(address indexed oldVault, address indexed newVault);
+    event CollateralVaultSet(
+        address indexed oldVault,
+        address indexed newVault
+    );
     event WithdrawalFeeSet(uint256 oldFeeBps, uint256 newFeeBps);
-    event WithdrawalFee(address indexed owner, address indexed receiver, uint256 feeAmount);
+    event WithdrawalFee(
+        address indexed owner,
+        address indexed receiver,
+        uint256 feeAmount
+    );
 
     // --- Constructor ---
     constructor(
@@ -55,7 +61,10 @@ contract DPoolToken is ERC4626, AccessControl {
         }
 
         if (_maxWithdrawalFeeBps > BasisPointConstants.ONE_PERCENT_BPS) {
-            revert InvalidFeeBps(_maxWithdrawalFeeBps, BasisPointConstants.ONE_PERCENT_BPS);
+            revert InvalidFeeBps(
+                _maxWithdrawalFeeBps,
+                BasisPointConstants.ONE_PERCENT_BPS
+            );
         }
 
         maxWithdrawalFeeBps = _maxWithdrawalFeeBps;
@@ -136,7 +145,8 @@ contract DPoolToken is ERC4626, AccessControl {
         }
 
         // Calculate withdrawal fee
-        uint256 fee = (assets * withdrawalFeeBps) / BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
+        uint256 fee = (assets * withdrawalFeeBps) /
+            BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
         uint256 amountToSend = assets - fee;
 
         // Burn shares from owner
@@ -161,7 +171,8 @@ contract DPoolToken is ERC4626, AccessControl {
     function previewWithdraw(
         uint256 assets
     ) public view virtual override returns (uint256) {
-        uint256 fee = (assets * withdrawalFeeBps) / BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
+        uint256 fee = (assets * withdrawalFeeBps) /
+            BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
         return super.previewWithdraw(assets + fee);
     }
 
@@ -173,7 +184,8 @@ contract DPoolToken is ERC4626, AccessControl {
         uint256 shares
     ) public view virtual override returns (uint256) {
         uint256 assets = super.previewRedeem(shares);
-        uint256 fee = (assets * withdrawalFeeBps) / BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
+        uint256 fee = (assets * withdrawalFeeBps) /
+            BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
         return assets - fee;
     }
 
@@ -234,4 +246,4 @@ contract DPoolToken is ERC4626, AccessControl {
     function baseAsset() external view returns (address) {
         return asset();
     }
-} 
+}

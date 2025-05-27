@@ -194,7 +194,7 @@ export interface DPoolInstanceConfig {
   readonly initialFeeManager: Address;
   readonly maxWithdrawalFeeBps: number; // Maximum withdrawal fee in BPS
   readonly initialWithdrawalFeeBps: number; // Initial withdrawal fee in BPS
-  readonly maxSlippageBps: number; // Maximum slippage in BPS  
+  readonly maxSlippageBps: number; // Maximum slippage in BPS
   readonly initialSlippageBps: number; // Initial max slippage setting in BPS
   readonly curvePools: DPoolCurvePoolConfig[]; // Curve pools for this dPool instance
   readonly collateralVault?: Address; // DPoolCollateralVault address (populated after deployment)

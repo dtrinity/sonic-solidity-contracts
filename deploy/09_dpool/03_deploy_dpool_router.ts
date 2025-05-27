@@ -1,5 +1,6 @@
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
+
 import { getConfig } from "../../config/config";
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
@@ -21,8 +22,9 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
     // Get DPoolToken deployment
     const tokenName = `DPoolToken_${dPoolName}`;
-    
+
     let poolTokenDeployment;
+
     try {
       poolTokenDeployment = await get(tokenName);
     } catch (error) {
@@ -32,17 +34,20 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
     // Get collateral vault deployment
     const collateralVaultName = `DPoolCollateralVault_${dPoolName}`;
-    
+
     let collateralVaultDeployment;
+
     try {
       collateralVaultDeployment = await get(collateralVaultName);
     } catch (error) {
-      log(`⚠️  Skipping ${dPoolName}: DPoolCollateralVault not found (${collateralVaultName})`);
+      log(
+        `⚠️  Skipping ${dPoolName}: DPoolCollateralVault not found (${collateralVaultName})`,
+      );
       continue;
     }
 
     const routerName = `DPoolRouter_${dPoolName}`;
-    
+
     log(`Deploying DPoolRouter: ${routerName}`);
     log(`  Pool Token: ${poolTokenDeployment.address}`);
     log(`  Collateral Vault: ${collateralVaultDeployment.address}`);
@@ -69,4 +74,4 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 func.tags = ["dpool", "dpool-router"];
 func.dependencies = ["dpool-collateral-vault"];
 
-export default func; 
+export default func;

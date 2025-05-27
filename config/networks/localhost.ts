@@ -458,7 +458,7 @@ export async function getConfig(
       dpUSDC: {
         baseAsset: "USDC", // Reference to existing USDC token
         name: "dPOOL USDC/USDS Curve",
-        symbol: "USDC-USDS_Curve", 
+        symbol: "USDC-USDS_Curve",
         initialAdmin: user1,
         initialFeeManager: user1,
         maxWithdrawalFeeBps: 10000, // 1% max withdrawal fee (using BasisPointConstants scale)
@@ -476,7 +476,7 @@ export async function getConfig(
       },
       dpUSD: {
         baseAsset: "dUSD",
-        name: "dPOOL dUSD/USDC Curve", 
+        name: "dPOOL dUSD/USDC Curve",
         symbol: "dUSD-USDC_Curve",
         initialAdmin: user1,
         initialFeeManager: user1,

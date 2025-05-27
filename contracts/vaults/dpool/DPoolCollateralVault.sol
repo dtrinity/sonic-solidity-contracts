@@ -85,14 +85,21 @@ contract DPoolCollateralVault is IDPoolCollateralVault, AccessControl {
     /**
      * @inheritdoc IDPoolCollateralVault
      */
-    function getSupportedLPTokens() external view override returns (address[] memory) {
+    function getSupportedLPTokens()
+        external
+        view
+        override
+        returns (address[] memory)
+    {
         return supportedLPTokens;
     }
 
     /**
      * @inheritdoc IDPoolCollateralVault
      */
-    function getLPTokenBalance(address lpToken) external view override returns (uint256) {
+    function getLPTokenBalance(
+        address lpToken
+    ) external view override returns (uint256) {
         return IERC20(lpToken).balanceOf(address(this));
     }
 
@@ -218,4 +225,4 @@ contract DPoolCollateralVault is IDPoolCollateralVault, AccessControl {
         }
         emit LPAdapterRemoved(lpToken);
     }
-} 
+}

@@ -41,10 +41,7 @@ interface IDPoolRouter {
      * @param lpToken Address of the LP token
      * @param adapterAddress Address of the adapter contract
      */
-    function addLPAdapter(
-        address lpToken,
-        address adapterAddress
-    ) external;
+    function addLPAdapter(address lpToken, address adapterAddress) external;
 
     /**
      * @notice Removes support for an LP token adapter
@@ -90,7 +87,9 @@ interface IDPoolRouter {
      * @param lpToken Address of the LP token
      * @return adapter Address of the adapter contract
      */
-    function lpAdapters(address lpToken) external view returns (address adapter);
+    function lpAdapters(
+        address lpToken
+    ) external view returns (address adapter);
 
     /**
      * @notice Returns the default LP token for deposits
@@ -109,6 +108,17 @@ interface IDPoolRouter {
     event LPAdapterRemoved(address indexed lpToken);
     event DefaultDepositLPUpdated(address indexed oldLP, address indexed newLP);
     event MaxSlippageUpdated(uint256 oldSlippage, uint256 newSlippage);
-    event Deposit(address indexed user, address indexed receiver, uint256 baseAssetAmount, uint256 lpAmount);
-    event Withdraw(address indexed user, address indexed receiver, address indexed owner, uint256 baseAssetAmount, uint256 lpAmount);
-} 
+    event Deposit(
+        address indexed user,
+        address indexed receiver,
+        uint256 baseAssetAmount,
+        uint256 lpAmount
+    );
+    event Withdraw(
+        address indexed user,
+        address indexed receiver,
+        address indexed owner,
+        uint256 baseAssetAmount,
+        uint256 lpAmount
+    );
+}

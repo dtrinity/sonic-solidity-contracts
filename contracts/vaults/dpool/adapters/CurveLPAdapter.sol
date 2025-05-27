@@ -16,9 +16,20 @@ contract CurveLPAdapter is IDPoolLPAdapter {
 
     // --- Errors ---
     error ZeroAddress();
-    error UnderlyingAssetNotInPool(address baseAsset, address coin0, address coin1);
-    error SlippageExceeded(uint256 expected, uint256 received, uint256 minExpected);
-    error LPTokenDoesNotIncreaseAfterDeposit(uint256 before, uint256 afterAmount);
+    error UnderlyingAssetNotInPool(
+        address baseAsset,
+        address coin0,
+        address coin1
+    );
+    error SlippageExceeded(
+        uint256 expected,
+        uint256 received,
+        uint256 minExpected
+    );
+    error LPTokenDoesNotIncreaseAfterDeposit(
+        uint256 before,
+        uint256 afterAmount
+    );
     error InsufficientAssetReceived(uint256 expected, uint256 received);
 
     // --- State ---
@@ -26,7 +37,7 @@ contract CurveLPAdapter is IDPoolLPAdapter {
     address public immutable lpToken;
     address public immutable baseAsset;
     address public immutable collateralVault;
-    
+
     uint128 public immutable baseAssetIndex; // Index of base asset in Curve pool (0 or 1)
     uint128 public immutable otherAssetIndex; // Index of the other asset in pool (1 or 0)
 
@@ -36,12 +47,16 @@ contract CurveLPAdapter is IDPoolLPAdapter {
         address _baseAsset,
         address _collateralVault
     ) {
-        if (_curvePool == address(0) || _baseAsset == address(0) || _collateralVault == address(0)) {
+        if (
+            _curvePool == address(0) ||
+            _baseAsset == address(0) ||
+            _collateralVault == address(0)
+        ) {
             revert ZeroAddress();
         }
 
         ICurveStableSwapNG pool = ICurveStableSwapNG(_curvePool);
-        
+
         // Validate pool has required coins
         require(pool.coins(0) != address(0), "No 1st coin in pool");
         require(pool.coins(1) != address(0), "No 2nd coin in pool");
@@ -69,7 +84,11 @@ contract CurveLPAdapter is IDPoolLPAdapter {
         uint256 minLPAmount
     ) external override returns (address, uint256) {
         // Pull base asset from caller
-        IERC20(baseAsset).safeTransferFrom(msg.sender, address(this), baseAssetAmount);
+        IERC20(baseAsset).safeTransferFrom(
+            msg.sender,
+            address(this),
+            baseAssetAmount
+        );
 
         uint256 lpBalanceBefore = curvePool.balanceOf(address(this));
 
@@ -94,7 +113,10 @@ contract CurveLPAdapter is IDPoolLPAdapter {
 
         // Validate LP tokens were received
         if (lpReceived == 0) {
-            revert LPTokenDoesNotIncreaseAfterDeposit(lpBalanceBefore, lpBalanceAfter);
+            revert LPTokenDoesNotIncreaseAfterDeposit(
+                lpBalanceBefore,
+                lpBalanceAfter
+            );
         }
 
         // Send LP tokens to collateral vault
@@ -113,7 +135,9 @@ contract CurveLPAdapter is IDPoolLPAdapter {
         // Pull LP tokens from caller
         IERC20(lpToken).safeTransferFrom(msg.sender, address(this), lpAmount);
 
-        uint256 baseAssetBalanceBefore = IERC20(baseAsset).balanceOf(address(this));
+        uint256 baseAssetBalanceBefore = IERC20(baseAsset).balanceOf(
+            address(this)
+        );
 
         // Approve Curve pool to spend LP tokens
         IERC20(lpToken).approve(address(curvePool), lpAmount);
@@ -125,12 +149,18 @@ contract CurveLPAdapter is IDPoolLPAdapter {
             minBaseAssetAmount
         );
 
-        uint256 baseAssetBalanceAfter = IERC20(baseAsset).balanceOf(address(this));
-        uint256 baseAssetReceived = baseAssetBalanceAfter - baseAssetBalanceBefore;
+        uint256 baseAssetBalanceAfter = IERC20(baseAsset).balanceOf(
+            address(this)
+        );
+        uint256 baseAssetReceived = baseAssetBalanceAfter -
+            baseAssetBalanceBefore;
 
         // Validate minimum amount received
         if (baseAssetReceived < minBaseAssetAmount) {
-            revert InsufficientAssetReceived(minBaseAssetAmount, baseAssetReceived);
+            revert InsufficientAssetReceived(
+                minBaseAssetAmount,
+                baseAssetReceived
+            );
         }
 
         // Send base asset to caller
@@ -157,7 +187,7 @@ contract CurveLPAdapter is IDPoolLPAdapter {
 
         // Calculate expected LP tokens
         uint256 expectedLPAmount = curvePool.calc_token_amount(amounts, true);
-        
+
         return (lpToken, expectedLPAmount);
     }
 
@@ -168,10 +198,11 @@ contract CurveLPAdapter is IDPoolLPAdapter {
         uint256 lpAmount
     ) external view override returns (uint256) {
         // Calculate expected base asset amount
-        return curvePool.calc_withdraw_one_coin(
-            lpAmount,
-            int128(uint128(baseAssetIndex))
-        );
+        return
+            curvePool.calc_withdraw_one_coin(
+                lpAmount,
+                int128(uint128(baseAssetIndex))
+            );
     }
 
     /**
@@ -182,16 +213,17 @@ contract CurveLPAdapter is IDPoolLPAdapter {
         uint256 lpAmount
     ) external view override returns (uint256) {
         require(_lpToken == lpToken, "Invalid LP token");
-        
+
         if (lpAmount == 0) {
             return 0;
         }
 
         // Calculate value using Curve's calc_withdraw_one_coin
-        return curvePool.calc_withdraw_one_coin(
-            lpAmount,
-            int128(uint128(baseAssetIndex))
-        );
+        return
+            curvePool.calc_withdraw_one_coin(
+                lpAmount,
+                int128(uint128(baseAssetIndex))
+            );
     }
 
     // --- Internal Functions ---
@@ -216,4 +248,4 @@ contract CurveLPAdapter is IDPoolLPAdapter {
         }
         revert UnderlyingAssetNotInPool(_baseAsset, coin0, coin1);
     }
-} 
+}

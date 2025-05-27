@@ -1,5 +1,6 @@
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
+
 import { getConfig } from "../../config/config";
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
@@ -20,16 +21,21 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     log(`\n--- Deploying DPoolToken for ${dPoolName} ---`);
 
     // Get base asset address
-    const baseAssetAddress = config.MOCK_ONLY?.tokens[dPoolConfig.baseAsset]?.address ||
-                            config.tokenAddresses[dPoolConfig.baseAsset as keyof typeof config.tokenAddresses];
+    const baseAssetAddress =
+      config.MOCK_ONLY?.tokens[dPoolConfig.baseAsset]?.address ||
+      config.tokenAddresses[
+        dPoolConfig.baseAsset as keyof typeof config.tokenAddresses
+      ];
 
     if (!baseAssetAddress) {
-      log(`⚠️  Skipping ${dPoolName}: missing base asset address for ${dPoolConfig.baseAsset}`);
+      log(
+        `⚠️  Skipping ${dPoolName}: missing base asset address for ${dPoolConfig.baseAsset}`,
+      );
       continue;
     }
 
     const tokenName = `DPoolToken_${dPoolName}`;
-    
+
     log(`Deploying DPoolToken: ${tokenName}`);
     log(`  Name: ${dPoolConfig.name}`);
     log(`  Symbol: ${dPoolConfig.symbol}`);
@@ -63,4 +69,4 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 func.tags = ["dpool", "dpool-token"];
 func.dependencies = ["tokens"];
 
-export default func; 
+export default func;

@@ -30,7 +30,11 @@ contract DPoolRouter is IDPoolRouter, AccessControl {
     error LPTokenAlreadySupported(address lpToken);
     error InvalidSlippage(uint256 slippage, uint256 maxSlippage);
     error AdapterMismatch(address expected, address actual);
-    error SlippageExceeded(uint256 expected, uint256 actual, uint256 maxSlippage);
+    error SlippageExceeded(
+        uint256 expected,
+        uint256 actual,
+        uint256 maxSlippage
+    );
     error InsufficientLPTokens(uint256 required, uint256 available);
 
     // --- State ---
@@ -43,18 +47,15 @@ contract DPoolRouter is IDPoolRouter, AccessControl {
     uint256 public maxSlippageBps; // Maximum allowed slippage in basis points
 
     // --- Constructor ---
-    constructor(
-        address _poolToken,
-        address _collateralVault
-    ) {
+    constructor(address _poolToken, address _collateralVault) {
         if (_poolToken == address(0) || _collateralVault == address(0)) {
             revert ZeroAddress();
         }
-        
+
         poolToken = _poolToken;
         collateralVault = _collateralVault;
         baseAsset = IDPoolCollateralVault(_collateralVault).asset();
-        
+
         if (baseAsset == address(0)) {
             revert ZeroAddress();
         }
@@ -72,7 +73,9 @@ contract DPoolRouter is IDPoolRouter, AccessControl {
     /**
      * @inheritdoc IDPoolRouter
      */
-    function lpAdapters(address lpToken) external view returns (address adapter) {
+    function lpAdapters(
+        address lpToken
+    ) external view returns (address adapter) {
         return _lpAdapters[lpToken];
     }
 
@@ -89,7 +92,7 @@ contract DPoolRouter is IDPoolRouter, AccessControl {
         if (defaultDepositLP == address(0)) {
             revert AdapterNotFound(address(0));
         }
-        
+
         address adapterAddress = _lpAdapters[defaultDepositLP];
         if (adapterAddress == address(0)) {
             revert AdapterNotFound(defaultDepositLP);
@@ -107,8 +110,10 @@ contract DPoolRouter is IDPoolRouter, AccessControl {
 
         // 3. Convert base asset to LP tokens via adapter
         // Adapter will send LP tokens directly to collateral vault
-        (, uint256 lpAmount) = IDPoolLPAdapter(adapterAddress)
-            .convertToLP(baseAssetAmount, minLPAmount);
+        (, uint256 lpAmount) = IDPoolLPAdapter(adapterAddress).convertToLP(
+            baseAssetAmount,
+            minLPAmount
+        );
 
         emit Deposit(msg.sender, receiver, baseAssetAmount, lpAmount);
     }
@@ -129,7 +134,7 @@ contract DPoolRouter is IDPoolRouter, AccessControl {
         if (defaultDepositLP == address(0)) {
             revert AdapterNotFound(address(0));
         }
-        
+
         address adapterAddress = _lpAdapters[defaultDepositLP];
         if (adapterAddress == address(0)) {
             revert AdapterNotFound(defaultDepositLP);
@@ -146,14 +151,19 @@ contract DPoolRouter is IDPoolRouter, AccessControl {
         );
 
         // 2. Pull LP tokens from collateral vault
-        IDPoolCollateralVault(collateralVault).sendLP(lpToken, requiredLPAmount, address(this));
+        IDPoolCollateralVault(collateralVault).sendLP(
+            lpToken,
+            requiredLPAmount,
+            address(this)
+        );
 
         // 3. Approve adapter to spend LP tokens
         IERC20(lpToken).approve(adapterAddress, requiredLPAmount);
 
         // 4. Calculate minimum base asset amount considering slippage
-        uint256 minBaseAssetAmount = (baseAssetAmount * 
-            (BasisPointConstants.ONE_HUNDRED_PERCENT_BPS - maxSlippage)) / BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
+        uint256 minBaseAssetAmount = (baseAssetAmount *
+            (BasisPointConstants.ONE_HUNDRED_PERCENT_BPS - maxSlippage)) /
+            BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
 
         // 5. Convert LP tokens back to base asset
         uint256 receivedBaseAsset = adapter.convertFromLP(
@@ -164,7 +174,13 @@ contract DPoolRouter is IDPoolRouter, AccessControl {
         // 6. Send base asset to receiver
         IERC20(baseAsset).safeTransfer(receiver, receivedBaseAsset);
 
-        emit Withdraw(msg.sender, receiver, owner, receivedBaseAsset, requiredLPAmount);
+        emit Withdraw(
+            msg.sender,
+            receiver,
+            owner,
+            receivedBaseAsset,
+            requiredLPAmount
+        );
     }
 
     // --- External Functions (Governance) ---
@@ -220,7 +236,7 @@ contract DPoolRouter is IDPoolRouter, AccessControl {
         if (_lpAdapters[lpToken] == address(0)) {
             revert AdapterNotFound(lpToken);
         }
-        
+
         address oldDefaultLP = defaultDepositLP;
         defaultDepositLP = lpToken;
         emit DefaultDepositLPUpdated(oldDefaultLP, lpToken);
@@ -235,7 +251,7 @@ contract DPoolRouter is IDPoolRouter, AccessControl {
         if (newMaxSlippageBps > MAX_SLIPPAGE_BPS) {
             revert InvalidSlippage(newMaxSlippageBps, MAX_SLIPPAGE_BPS);
         }
-        
+
         uint256 oldMaxSlippage = maxSlippageBps;
         maxSlippageBps = newMaxSlippageBps;
         emit MaxSlippageUpdated(oldMaxSlippage, newMaxSlippageBps);
@@ -295,12 +311,16 @@ contract DPoolRouter is IDPoolRouter, AccessControl {
         uint256 maxSlippage
     ) internal view returns (uint256 requiredLPAmount) {
         // Preview how many LP tokens we need for the target base asset amount
-        (, uint256 previewLPAmount) = adapter.previewConvertToLP(baseAssetAmount);
-        
+        (, uint256 previewLPAmount) = adapter.previewConvertToLP(
+            baseAssetAmount
+        );
+
         // Add slippage buffer to ensure we have enough LP tokens
-        requiredLPAmount = (previewLPAmount * 
-            (BasisPointConstants.ONE_HUNDRED_PERCENT_BPS + maxSlippage)) / BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
-        
+        requiredLPAmount =
+            (previewLPAmount *
+                (BasisPointConstants.ONE_HUNDRED_PERCENT_BPS + maxSlippage)) /
+            BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
+
         return requiredLPAmount;
     }
-} 
+}
