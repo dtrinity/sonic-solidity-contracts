@@ -154,7 +154,8 @@ contract DPoolToken is ERC4626, AccessControl {
 
         // Delegate conversion and withdrawal logic to router
         // Router will pull LP tokens from vault, convert to base asset, and send to receiver
-        router.withdraw(amountToSend, receiver, owner, 50_000); // TODO: Make maxSlippage configurable (5% in new BPS scale)
+        uint256 defaultSlippage = BasisPointConstants.ONE_PERCENT_BPS;
+        router.withdraw(amountToSend, receiver, owner, defaultSlippage);
 
         emit Withdraw(caller, receiver, owner, assets, shares);
 
