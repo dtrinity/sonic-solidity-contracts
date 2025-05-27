@@ -25,6 +25,7 @@ import {IERC3156FlashBorrower} from "./interface/flashloan/IERC3156FlashBorrower
 import {IERC3156FlashLender} from "./interface/flashloan/IERC3156FlashLender.sol";
 import {DLoopCoreBase} from "../core/DLoopCoreBase.sol";
 import {SwapHelper, PriceGetter} from "./libraries/SwapHelper.sol";
+import {SwappableVault} from "../libraries/SwappableVault.sol";
 /**
  * @title DLoopWithdrawerBase
  * @dev A helper contract for withdrawing assets from the core vault with flash loans
@@ -34,7 +35,7 @@ import {SwapHelper, PriceGetter} from "./libraries/SwapHelper.sol";
  *      - In the final state, the user has 100 WETH (300 - 200), and the core contract has 0 WETH as collateral, 0 dUSD as debt
  *      - NOTE: This contract only support withdraw() from DLoopCore contracts, not redeem()
  */
-abstract contract DLoopWithdrawerBase is IERC3156FlashBorrower, Ownable {
+abstract contract DLoopWithdrawerBase is IERC3156FlashBorrower, Ownable, SwappableVault {
     using SafeERC20 for ERC20;
 
     /* Constants */
@@ -94,29 +95,6 @@ abstract contract DLoopWithdrawerBase is IERC3156FlashBorrower, Ownable {
     constructor(IERC3156FlashLender _flashLender) Ownable(msg.sender) {
         flashLender = _flashLender;
     }
-
-    /* Virtual functions */
-
-    /**
-     * @dev Swaps an exact amount of input assets for as much output assets as possible
-     * @param inputToken Input asset
-     * @param outputToken Output asset
-     * @param amountOut Amount of input assets
-     * @param amountInMaximum Minimum amount of output assets (slippage protection)
-     * @param receiver Address to receive the output assets
-     * @param deadline Deadline for the swap
-     * @param extraData Additional data for the swap
-     * @return amountIn Amount of input assets used for the swap
-     */
-    function _swapExactOutput(
-        ERC20 inputToken,
-        ERC20 outputToken,
-        uint256 amountOut,
-        uint256 amountInMaximum,
-        address receiver,
-        uint256 deadline,
-        bytes memory extraData
-    ) internal virtual returns (uint256);
     
     /* Safety functions */
 
