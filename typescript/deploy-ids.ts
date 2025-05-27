@@ -106,3 +106,7 @@ export const SDUSD_ROUTER_ID = `${DSTAKE_ROUTER_ID_PREFIX}_sdUSD`;
 export const SDS_DSTAKE_TOKEN_ID = `${DSTAKE_TOKEN_ID_PREFIX}_sdS`;
 export const SDS_COLLATERAL_VAULT_ID = `${DSTAKE_COLLATERAL_VAULT_ID_PREFIX}_sdS`;
 export const SDS_ROUTER_ID = `${DSTAKE_ROUTER_ID_PREFIX}_sdS`;
+
+// Vesting NFT
+export const ERC20_VESTING_NFT_ID = "ERC20VestingNFT";
+export const VESTING_DEPLOYMENT_TAG = "vesting";

@@ -19,6 +19,7 @@ export interface Config {
   readonly dStake?: {
     [key: string]: DStakeInstanceConfig; // e.g., sdUSD, sdS
   };
+  readonly vesting?: VestingConfig;
 }
 
 // Configuration for mocking infrastructure on local and test networks
@@ -171,4 +172,13 @@ export interface DStakeInstanceConfig {
   readonly collateralExchangers: Address[]; // List of allowed exchanger addresses
   readonly collateralVault?: Address; // The DStakeCollateralVault for this instance (needed for adapter deployment)
   readonly dLendRewardManager?: DLendRewardManagerConfig; // Added for dLend rewards
+}
+
+// --- Vesting Types ---
+
+export interface VestingConfig {
+  readonly dstakeToken: Address; // Address of the dSTAKE token to vest
+  readonly vestingPeriod: number; // Vesting period in seconds (e.g., 6 months)
+  readonly maxTotalSupply: string; // Maximum total dSTAKE that can be deposited (as string for big numbers)
+  readonly initialOwner: Address; // Initial owner of the vesting contract
 }

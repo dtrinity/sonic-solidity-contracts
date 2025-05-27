@@ -5,6 +5,7 @@ import {
   DS_TOKEN_ID,
   DUSD_TOKEN_ID,
   INCENTIVES_PROXY_ID,
+  SDUSD_DSTAKE_TOKEN_ID,
 } from "../../typescript/deploy-ids";
 import {
   ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT,
@@ -63,6 +64,11 @@ export async function getConfig(
 
   // Fetch deployed dLend aTokens
   const aTokenDUSDDeployment = await _hre.deployments.getOrNull("dLEND-dUSD");
+
+  // Fetch deployed dSTAKE tokens for vesting
+  const sdUSDDeployment = await _hre.deployments.getOrNull(
+    SDUSD_DSTAKE_TOKEN_ID,
+  );
 
   // Get mock oracle deployments
   const mockOracleNameToAddress: Record<string, string> = {};
@@ -453,6 +459,12 @@ export async function getConfig(
           initialRewardsManager: user1, // Optional: specific rewards manager role holder
         },
       },
+    },
+    vesting: {
+      dstakeToken: emptyStringIfUndefined(sdUSDDeployment?.address), // Use sdUSD as the vesting token
+      vestingPeriod: 180 * 24 * 60 * 60, // 6 months in seconds
+      maxTotalSupply: "1000000000000000000000000", // 1 million tokens (1e6 * 1e18)
+      initialOwner: user1,
     },
   };
 }
