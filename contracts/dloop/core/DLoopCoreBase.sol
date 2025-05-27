@@ -35,7 +35,12 @@ import {RescuableVault} from "../libraries/RescuableVault.sol";
  *        when it is away from the target leverage
  *      - There is a subsidy for the caller when increasing the leverage.
  */
-abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard, RescuableVault {
+abstract contract DLoopCoreBase is
+    ERC4626,
+    Ownable,
+    ReentrancyGuard,
+    RescuableVault
+{
     using SafeERC20 for ERC20;
 
     /* Core state */

@@ -36,7 +36,12 @@ import {RescuableVault} from "../libraries/RescuableVault.sol";
  *      - In the final state, the user has 100 WETH (300 - 200), and the core contract has 0 WETH as collateral, 0 dUSD as debt
  *      - NOTE: This contract only support redeem() from DLoopCore contracts, not withdraw()
  */
-abstract contract DLoopWithdrawerBase is IERC3156FlashBorrower, Ownable, SwappableVault, RescuableVault {
+abstract contract DLoopWithdrawerBase is
+    IERC3156FlashBorrower,
+    Ownable,
+    SwappableVault,
+    RescuableVault
+{
     using SafeERC20 for ERC20;
 
     /* Constants */
@@ -52,7 +57,10 @@ abstract contract DLoopWithdrawerBase is IERC3156FlashBorrower, Ownable, Swappab
 
     error UnknownLender(address msgSender, address flashLender);
     error UnknownInitiator(address initiator, address thisContract);
-    error IncompatibleDLoopCoreDebtToken(address currentDebtToken, address dLoopCoreDebtToken);
+    error IncompatibleDLoopCoreDebtToken(
+        address currentDebtToken,
+        address dLoopCoreDebtToken
+    );
     error SharesNotDecreasedAfterFlashLoan(
         uint256 sharesBeforeWithdraw,
         uint256 sharesAfterWithdraw
@@ -123,7 +131,9 @@ abstract contract DLoopWithdrawerBase is IERC3156FlashBorrower, Ownable, Swappab
         // Do not need to transfer the debt token to repay the lending pool, as it will be done with flash loan
 
         // This amount is representing the leveraged amount
-        uint256 collateralToRemoveFromLending = dLoopCore.convertToAssets(shares);
+        uint256 collateralToRemoveFromLending = dLoopCore.convertToAssets(
+            shares
+        );
 
         // Create the flash loan params data
         FlashLoanParams memory params = FlashLoanParams(
@@ -145,7 +155,9 @@ abstract contract DLoopWithdrawerBase is IERC3156FlashBorrower, Ownable, Swappab
         uint256 sharesBeforeRedeem = dLoopCore.balanceOf(owner);
 
         // This value is used to calculate the received collateral token amount after the flash loan
-        uint256 collateralTokenBalanceBefore = collateralToken.balanceOf(address(this));
+        uint256 collateralTokenBalanceBefore = collateralToken.balanceOf(
+            address(this)
+        );
 
         // Approve the flash lender to spend the flash loan amount of debt token from this contract
         debtToken.forceApprove(
@@ -177,9 +189,10 @@ abstract contract DLoopWithdrawerBase is IERC3156FlashBorrower, Ownable, Swappab
             revert IncorrectSharesBurned(shares, actualBurnedShares);
         }
 
-
         // Collateral balance after the flash loan
-        uint256 collateralTokenBalanceAfter = collateralToken.balanceOf(address(this));
+        uint256 collateralTokenBalanceAfter = collateralToken.balanceOf(
+            address(this)
+        );
 
         // Calculate the received collateral token amount after the flash loan
         if (collateralTokenBalanceAfter <= collateralTokenBalanceBefore) {
@@ -191,7 +204,8 @@ abstract contract DLoopWithdrawerBase is IERC3156FlashBorrower, Ownable, Swappab
 
         // Make sure the received collateral token amount is not less than the minimum output collateral amount
         // for slippage protection
-        uint256 receivedCollateralTokenAmount = collateralTokenBalanceAfter - collateralTokenBalanceBefore;
+        uint256 receivedCollateralTokenAmount = collateralTokenBalanceAfter -
+            collateralTokenBalanceBefore;
         if (receivedCollateralTokenAmount < minOutputCollateralAmount) {
             revert WithdrawnCollateralTokenAmountNotMetMinReceiveAmount(
                 receivedCollateralTokenAmount,
@@ -244,10 +258,10 @@ abstract contract DLoopWithdrawerBase is IERC3156FlashBorrower, Ownable, Swappab
          * Redeem the shares to get the collateral token
          * The core vault will also take the debt token from the periphery contract
          * to repay the debt and then withdraw the collateral token
-         * 
+         *
          * The receiver is this periphery contract as it needs to use the collateral token
          * to swap to the debt token to repay the flash loan
-         * 
+         *
          * The owner is the owner of the shares as it needs to burn the shares
          */
         debtToken.forceApprove(
@@ -322,14 +336,7 @@ abstract contract DLoopWithdrawerBase is IERC3156FlashBorrower, Ownable, Swappab
             _flashLoanParams.dLoopCore
         ) = abi.decode(
             data,
-            (
-                address,
-                address,
-                uint256,
-                uint256,
-                bytes,
-                DLoopCoreBase
-            )
+            (address, address, uint256, uint256, bytes, DLoopCoreBase)
         );
     }
 }

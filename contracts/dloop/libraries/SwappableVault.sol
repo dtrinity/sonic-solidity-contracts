@@ -107,7 +107,8 @@ abstract contract SwappableVault {
 
         // Make sure the spent input token amount is not greater than the amount in maximum
         if (inputTokenBalanceAfter < inputTokenBalanceBefore) {
-            uint256 spentInputTokenAmount = inputTokenBalanceBefore - inputTokenBalanceAfter;
+            uint256 spentInputTokenAmount = inputTokenBalanceBefore -
+                inputTokenBalanceAfter;
             if (spentInputTokenAmount > amountInMaximum) {
                 revert SpentInputTokenAmountGreaterThanAmountInMaximum(
                     spentInputTokenAmount,
@@ -126,15 +127,15 @@ abstract contract SwappableVault {
 
         // Make sure the received output token amount is exactly the amount out
         if (outputTokenBalanceAfter < outputTokenBalanceBefore) {
-            uint256 receivedOutputTokenAmount = outputTokenBalanceBefore - outputTokenBalanceAfter;
+            uint256 receivedOutputTokenAmount = outputTokenBalanceBefore -
+                outputTokenBalanceAfter;
             if (receivedOutputTokenAmount != amountOut) {
                 revert ReceivedOutputTokenAmountNotEqualAmountOut(
                     receivedOutputTokenAmount,
                     amountOut
                 );
             }
-        }
-        else {
+        } else {
             revert OutputTokenBalanceNotIncreasedAfterSwap(
                 outputTokenBalanceBefore,
                 outputTokenBalanceAfter

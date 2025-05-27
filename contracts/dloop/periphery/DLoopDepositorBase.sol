@@ -36,7 +36,12 @@ import {RescuableVault} from "../libraries/RescuableVault.sol";
  *      - In the final state, the user has 300 shares representing 300 WETH, and the core contract has 300 WETH as collateral, 200 dUSD as debt
  *      - NOTE: This contract only support deposit() to DLoopCore contracts, not mint()
  */
-abstract contract DLoopDepositorBase is IERC3156FlashBorrower, Ownable, SwappableVault, RescuableVault {
+abstract contract DLoopDepositorBase is
+    IERC3156FlashBorrower,
+    Ownable,
+    SwappableVault,
+    RescuableVault
+{
     using SafeERC20 for ERC20;
 
     /* Constants */
@@ -52,7 +57,10 @@ abstract contract DLoopDepositorBase is IERC3156FlashBorrower, Ownable, Swappabl
 
     error UnknownLender(address msgSender, address flashLender);
     error UnknownInitiator(address initiator, address thisContract);
-    error IncompatibleDLoopCoreDebtToken(address currentDebtToken, address dLoopCoreDebtToken);
+    error IncompatibleDLoopCoreDebtToken(
+        address currentDebtToken,
+        address dLoopCoreDebtToken
+    );
     error SharesNotIncreasedAfterFlashLoan(
         uint256 sharesBeforeDeposit,
         uint256 sharesAfterDeposit
@@ -136,12 +144,7 @@ abstract contract DLoopDepositorBase is IERC3156FlashBorrower, Ownable, Swappabl
         );
 
         // The main logic will be done in the onFlashLoan function
-        flashLender.flashLoan(
-            this,
-            debtToken,
-            maxFlashLoanAmount,
-            data
-        );
+        flashLender.flashLoan(this, debtToken, maxFlashLoanAmount, data);
 
         // Check if the shares increased after the flash loan
         uint256 sharesAfterDeposit = dLoopCore.balanceOf(address(this));
@@ -155,7 +158,7 @@ abstract contract DLoopDepositorBase is IERC3156FlashBorrower, Ownable, Swappabl
         /**
          * Make sure the shares minted is not less than the minimum output shares
          * for slippage protection
-         * 
+         *
          * We only perform slippage protection outside of the flash loan callback
          * as we only need to care about the last state after the flash loan
          */
@@ -168,12 +171,7 @@ abstract contract DLoopDepositorBase is IERC3156FlashBorrower, Ownable, Swappabl
         }
 
         // Transfer the minted shares to the receiver
-        SafeERC20.safeTransferFrom(
-            dLoopCore,
-            address(this),
-            receiver,
-            shares
-        );
+        SafeERC20.safeTransferFrom(dLoopCore, address(this), receiver, shares);
 
         // Return the shares minted
         return shares;
@@ -211,7 +209,8 @@ abstract contract DLoopDepositorBase is IERC3156FlashBorrower, Ownable, Swappabl
             revert IncompatibleDLoopCoreDebtToken(token, address(debtToken));
 
         // Calculate the maxDebtInputAmount for slippage protection
-        uint256 requiredAdditionalCollateralAmount = flashLoanParams.leveragedCollateralAmount -
+        uint256 requiredAdditionalCollateralAmount = flashLoanParams
+            .leveragedCollateralAmount -
             flashLoanParams.depositCollateralAmount;
 
         // Swap the flash loan debt token to the collateral token
@@ -226,14 +225,16 @@ abstract contract DLoopDepositorBase is IERC3156FlashBorrower, Ownable, Swappabl
         );
 
         // This value is used to check if the debt token balance increased after the deposit
-        uint256 debtTokenBalanceBeforeDeposit = debtToken.balanceOf(address(this));
+        uint256 debtTokenBalanceBeforeDeposit = debtToken.balanceOf(
+            address(this)
+        );
 
         /**
          * Deposit the collateral token to the core vault
-         * 
+         *
          * The receiver is this periphery contract as the core contract will send both debt token and
          * the minted shares to the receiver. This contract needs the debt token to repay the flash loan.
-         * 
+         *
          * The minted shares will be sent to the receiver later (outside of the flash loan callback)
          */
         collateralToken.forceApprove(
@@ -246,7 +247,9 @@ abstract contract DLoopDepositorBase is IERC3156FlashBorrower, Ownable, Swappabl
         );
 
         // Debt token balance after deposit, which is used to sanity check the debt token balance increased after the deposit
-        uint256 debtTokenBalanceAfterDeposit = debtToken.balanceOf(address(this));
+        uint256 debtTokenBalanceAfterDeposit = debtToken.balanceOf(
+            address(this)
+        );
 
         // Make sure to receive the debt token from the core vault to repay the flash loan
         if (debtTokenBalanceAfterDeposit <= debtTokenBalanceBeforeDeposit) {
@@ -257,7 +260,8 @@ abstract contract DLoopDepositorBase is IERC3156FlashBorrower, Ownable, Swappabl
         }
 
         // Calculate the debt token received after the deposit
-        uint256 debtTokenReceivedAfterDeposit = debtTokenBalanceAfterDeposit - debtTokenBalanceBeforeDeposit;
+        uint256 debtTokenReceivedAfterDeposit = debtTokenBalanceAfterDeposit -
+            debtTokenBalanceBeforeDeposit;
 
         // Make sure the debt token received after the deposit is not less than the debt token used in the swap
         // to allow repaying the flash loan
@@ -303,9 +307,6 @@ abstract contract DLoopDepositorBase is IERC3156FlashBorrower, Ownable, Swappabl
             _flashLoanParams.leveragedCollateralAmount,
             _flashLoanParams.debtTokenToCollateralSwapData,
             _flashLoanParams.dLoopCore
-        ) = abi.decode(
-            data,
-            (address, uint256, uint256, bytes, DLoopCoreBase)
-        );
+        ) = abi.decode(data, (address, uint256, uint256, bytes, DLoopCoreBase));
     }
 }
