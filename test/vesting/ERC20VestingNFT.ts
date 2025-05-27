@@ -473,7 +473,7 @@ describe("ERC20VestingNFT", function () {
         expect(await vestingNFT.maxTotalSupply()).to.equal(newMaxSupply);
       });
 
-      it("Should revert if new max supply is less than total deposited", async function () {
+      it("Should allow setting max supply below current total deposited", async function () {
         // Make a deposit first
         const depositAmount = ethers.parseUnits("100", 18);
         await dstakeToken.mint(user1.address, depositAmount);
@@ -482,10 +482,66 @@ describe("ERC20VestingNFT", function () {
           .approve(await vestingNFT.getAddress(), depositAmount);
         await vestingNFT.connect(user1).deposit(depositAmount);
 
-        // Try to set max supply below current deposits
+        // Set max supply below current deposits - should succeed
+        const newMaxSupply = depositAmount / 2n;
+        const tx = await vestingNFT
+          .connect(deployer)
+          .setMaxTotalSupply(newMaxSupply);
+
+        await expect(tx)
+          .to.emit(vestingNFT, "MaxTotalSupplyUpdated")
+          .withArgs(newMaxSupply);
+
+        expect(await vestingNFT.maxTotalSupply()).to.equal(newMaxSupply);
+
+        // New deposits should be blocked until total deposited drops below cap
         await expect(
-          vestingNFT.connect(deployer).setMaxTotalSupply(depositAmount / 2n)
+          vestingNFT.connect(user1).deposit(1)
         ).to.be.revertedWithCustomError(vestingNFT, "MaxSupplyExceeded");
+      });
+
+      it("Should allow deposits to resume after withdrawals bring total below new cap", async function () {
+        // Setup: Make deposits from two users
+        const depositAmount = ethers.parseUnits("100", 18);
+        await dstakeToken.mint(user1.address, depositAmount);
+        await dstakeToken.mint(user2.address, depositAmount);
+        await dstakeToken
+          .connect(user1)
+          .approve(await vestingNFT.getAddress(), depositAmount);
+        await dstakeToken
+          .connect(user2)
+          .approve(await vestingNFT.getAddress(), depositAmount);
+
+        await vestingNFT.connect(user1).deposit(depositAmount);
+        await vestingNFT.connect(user2).deposit(depositAmount);
+
+        expect(await vestingNFT.totalDeposited()).to.equal(depositAmount * 2n);
+
+        // Set max supply below current total deposited
+        const newMaxSupply = depositAmount + depositAmount / 2n; // 150 tokens
+        await vestingNFT.connect(deployer).setMaxTotalSupply(newMaxSupply);
+
+        // New deposits should be blocked
+        await expect(
+          vestingNFT.connect(user1).deposit(1)
+        ).to.be.revertedWithCustomError(vestingNFT, "MaxSupplyExceeded");
+
+        // User1 redeems early, reducing total deposited
+        await vestingNFT.connect(user1).redeemEarly(1);
+        expect(await vestingNFT.totalDeposited()).to.equal(depositAmount);
+
+        // Now deposits should be allowed again since total < maxSupply
+        const smallDeposit = ethers.parseUnits("10", 18);
+        await dstakeToken.mint(user1.address, smallDeposit);
+        await dstakeToken
+          .connect(user1)
+          .approve(await vestingNFT.getAddress(), smallDeposit);
+
+        await expect(vestingNFT.connect(user1).deposit(smallDeposit)).to.not.be
+          .reverted;
+        expect(await vestingNFT.totalDeposited()).to.equal(
+          depositAmount + smallDeposit
+        );
       });
 
       it("Should revert if non-owner tries to set max total supply", async function () {

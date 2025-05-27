@@ -218,9 +218,9 @@ contract ERC20VestingNFT is ERC721, ERC721Enumerable, Ownable, ReentrancyGuard {
     /**
      * @notice Update the maximum total supply of dSTAKE that can be deposited
      * @param newMaxSupply New maximum total supply
+     * @dev Can be set below current totalDeposited to allow withdrawals until cap is reached
      */
     function setMaxTotalSupply(uint256 newMaxSupply) external onlyOwner {
-        if (newMaxSupply < totalDeposited) revert MaxSupplyExceeded();
         maxTotalSupply = newMaxSupply;
         emit MaxTotalSupplyUpdated(newMaxSupply);
     }
