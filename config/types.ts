@@ -19,6 +19,9 @@ export interface Config {
   readonly dStake?: {
     [key: string]: DStakeInstanceConfig; // e.g., sdUSD, sdS
   };
+  readonly dPool?: {
+    [key: string]: DPoolInstanceConfig; // e.g., dpUSDC, dpUSD
+  };
 }
 
 // Configuration for mocking infrastructure on local and test networks
@@ -171,4 +174,30 @@ export interface DStakeInstanceConfig {
   readonly collateralExchangers: Address[]; // List of allowed exchanger addresses
   readonly collateralVault?: Address; // The DStakeCollateralVault for this instance (needed for adapter deployment)
   readonly dLendRewardManager?: DLendRewardManagerConfig; // Added for dLend rewards
+}
+
+// --- dPool Types ---
+
+export interface DPoolCurvePoolConfig {
+  readonly name: string; // Name identifier for the pool (e.g., "USDC_USDS_CurvePool")
+  readonly token0: string; // Reference to token in config (e.g., "USDC")
+  readonly token1: string; // Reference to token in config (e.g., "USDS")
+  readonly address?: Address; // Deployed pool address (populated after deployment)
+  readonly lpToken?: Address; // LP token address (populated after deployment)
+}
+
+export interface DPoolInstanceConfig {
+  readonly baseAsset: string; // Reference to token in config (e.g., "USDC", "dUSD")
+  readonly name: string; // Name for DPoolToken (e.g., "dPOOL USDC LP")
+  readonly symbol: string; // Symbol for DPoolToken (e.g., "dpUSDC")
+  readonly initialAdmin: Address;
+  readonly initialFeeManager: Address;
+  readonly maxWithdrawalFeeBps: number; // Maximum withdrawal fee in BPS
+  readonly initialWithdrawalFeeBps: number; // Initial withdrawal fee in BPS
+  readonly maxSlippageBps: number; // Maximum slippage in BPS  
+  readonly initialSlippageBps: number; // Initial max slippage setting in BPS
+  readonly curvePools: DPoolCurvePoolConfig[]; // Curve pools for this dPool instance
+  readonly collateralVault?: Address; // DPoolCollateralVault address (populated after deployment)
+  readonly router?: Address; // DPoolRouter address (populated after deployment)
+  readonly adapters?: { [lpToken: string]: Address }; // LP adapters (populated after deployment)
 }

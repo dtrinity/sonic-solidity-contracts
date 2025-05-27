@@ -454,6 +454,45 @@ export async function getConfig(
         },
       },
     },
+    dPool: {
+      dpUSDC: {
+        baseAsset: "USDC", // Reference to existing USDC token
+        name: "dPOOL USDC/USDS Curve",
+        symbol: "USDC-USDS_Curve", 
+        initialAdmin: user1,
+        initialFeeManager: user1,
+        maxWithdrawalFeeBps: 10000, // 1% max withdrawal fee (using BasisPointConstants scale)
+        initialWithdrawalFeeBps: 1000, // 0.1% initial withdrawal fee
+        maxSlippageBps: 100000, // 10% max slippage
+        initialSlippageBps: 20000, // 2% initial slippage
+        curvePools: [
+          {
+            name: "USDC_USDS_CurvePool",
+            token0: "USDC",
+            token1: "USDS",
+            // Mock Curve pool will be deployed with these tokens
+          },
+        ],
+      },
+      dpUSD: {
+        baseAsset: "dUSD",
+        name: "dPOOL dUSD/USDC Curve", 
+        symbol: "dUSD-USDC_Curve",
+        initialAdmin: user1,
+        initialFeeManager: user1,
+        maxWithdrawalFeeBps: 10000, // 1% max
+        initialWithdrawalFeeBps: 1000, // 0.1% initial
+        maxSlippageBps: 100000, // 10% max
+        initialSlippageBps: 20000, // 2% initial
+        curvePools: [
+          {
+            name: "dUSD_USDC_CurvePool",
+            token0: "dUSD",
+            token1: "USDC",
+          },
+        ],
+      },
+    },
   };
 }
 
