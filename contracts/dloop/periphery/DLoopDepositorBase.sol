@@ -65,6 +65,10 @@ abstract contract DLoopDepositorBase is IERC3156FlashBorrower, Ownable, Swappabl
         uint256 receivedShares,
         uint256 minOutputShares
     );
+    error DebtTokenReceivedNotMetUsedAmount(
+        uint256 debtTokenReceived,
+        uint256 debtTokenUsed
+    );
 
     /* Structs */
 
@@ -122,7 +126,7 @@ abstract contract DLoopDepositorBase is IERC3156FlashBorrower, Ownable, Swappabl
         uint256 maxFlashLoanAmount = flashLender.maxFlashLoan(debtToken);
 
         // This value is used to check if the shares increased after the flash loan
-        uint256 sharesBeforeDeposit = dLoopCore.balanceOf(receiver);
+        uint256 sharesBeforeDeposit = dLoopCore.balanceOf(address(this));
 
         // Approve the flash lender to spend the flash loan amount of debt token from this contract
         ERC20(debtToken).forceApprove(
@@ -140,7 +144,7 @@ abstract contract DLoopDepositorBase is IERC3156FlashBorrower, Ownable, Swappabl
         );
 
         // Check if the shares increased after the flash loan
-        uint256 sharesAfterDeposit = dLoopCore.balanceOf(receiver);
+        uint256 sharesAfterDeposit = dLoopCore.balanceOf(address(this));
         if (sharesAfterDeposit <= sharesBeforeDeposit) {
             revert SharesNotIncreasedAfterFlashLoan(
                 sharesBeforeDeposit,
@@ -148,8 +152,13 @@ abstract contract DLoopDepositorBase is IERC3156FlashBorrower, Ownable, Swappabl
             );
         }
 
-        // Make sure the shares minted is not less than the minimum output shares
-        // for slippage protection
+        /**
+         * Make sure the shares minted is not less than the minimum output shares
+         * for slippage protection
+         * 
+         * We only perform slippage protection outside of the flash loan callback
+         * as we only need to care about the last state after the flash loan
+         */
         shares = sharesAfterDeposit - sharesBeforeDeposit;
         if (shares < minOutputShares) {
             revert ReceivedSharesNotMetMinReceiveAmount(
@@ -157,6 +166,14 @@ abstract contract DLoopDepositorBase is IERC3156FlashBorrower, Ownable, Swappabl
                 minOutputShares
             );
         }
+
+        // Transfer the minted shares to the receiver
+        SafeERC20.safeTransferFrom(
+            dLoopCore,
+            address(this),
+            receiver,
+            shares
+        );
 
         // Return the shares minted
         return shares;
@@ -198,7 +215,7 @@ abstract contract DLoopDepositorBase is IERC3156FlashBorrower, Ownable, Swappabl
             flashLoanParams.depositCollateralAmount;
 
         // Swap the flash loan debt token to the collateral token
-        _swapExactOutput(
+        uint256 debtTokenAmountUsedInSwap = _swapExactOutput(
             debtToken,
             collateralToken,
             requiredAdditionalCollateralAmount, // exact output amount
@@ -211,14 +228,21 @@ abstract contract DLoopDepositorBase is IERC3156FlashBorrower, Ownable, Swappabl
         // This value is used to check if the debt token balance increased after the deposit
         uint256 debtTokenBalanceBeforeDeposit = debtToken.balanceOf(address(this));
 
-        // Deposit the collateral token to the core vault
+        /**
+         * Deposit the collateral token to the core vault
+         * 
+         * The receiver is this periphery contract as the core contract will send both debt token and
+         * the minted shares to the receiver. This contract needs the debt token to repay the flash loan.
+         * 
+         * The minted shares will be sent to the receiver later (outside of the flash loan callback)
+         */
         collateralToken.forceApprove(
             address(dLoopCore),
             flashLoanParams.leveragedCollateralAmount
         );
         dLoopCore.deposit(
             flashLoanParams.leveragedCollateralAmount,
-            flashLoanParams.receiver
+            address(this)
         );
 
         // Debt token balance after deposit, which is used to sanity check the debt token balance increased after the deposit
@@ -229,6 +253,18 @@ abstract contract DLoopDepositorBase is IERC3156FlashBorrower, Ownable, Swappabl
             revert DebtTokenBalanceNotIncreasedAfterDeposit(
                 debtTokenBalanceBeforeDeposit,
                 debtTokenBalanceAfterDeposit
+            );
+        }
+
+        // Calculate the debt token received after the deposit
+        uint256 debtTokenReceivedAfterDeposit = debtTokenBalanceAfterDeposit - debtTokenBalanceBeforeDeposit;
+
+        // Make sure the debt token received after the deposit is not less than the debt token used in the swap
+        // to allow repaying the flash loan
+        if (debtTokenReceivedAfterDeposit < debtTokenAmountUsedInSwap) {
+            revert DebtTokenReceivedNotMetUsedAmount(
+                debtTokenReceivedAfterDeposit,
+                debtTokenAmountUsedInSwap
             );
         }
 

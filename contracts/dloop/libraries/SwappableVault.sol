@@ -38,6 +38,10 @@ abstract contract SwappableVault {
         uint256 outputTokenBalanceBefore,
         uint256 outputTokenBalanceAfter
     );
+    error SpentInputTokenAmountNotEqualReturnedAmountIn(
+        uint256 spentInputTokenAmount,
+        uint256 returnedAmountIn
+    );
 
     /* Virtual functions */
 
@@ -88,6 +92,7 @@ abstract contract SwappableVault {
         uint256 inputTokenBalanceBefore = inputToken.balanceOf(address(this));
         uint256 outputTokenBalanceBefore = outputToken.balanceOf(address(this));
 
+        // Perform the swap
         uint256 amountIn = _swapExactOutputImplementation(
             inputToken,
             outputToken,
@@ -109,7 +114,15 @@ abstract contract SwappableVault {
                     amountInMaximum
                 );
             }
+            if (spentInputTokenAmount != amountIn) {
+                revert SpentInputTokenAmountNotEqualReturnedAmountIn(
+                    spentInputTokenAmount,
+                    amountIn
+                );
+            }
         }
+        // Do not need to check the input token balance decreased after the swap
+        // as it is not a risk for the caller
 
         // Make sure the received output token amount is exactly the amount out
         if (outputTokenBalanceAfter < outputTokenBalanceBefore) {

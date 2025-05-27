@@ -34,7 +34,7 @@ import {RescuableVault} from "../libraries/RescuableVault.sol";
  *      - ie, given user has 300 shares representing 300 WETH, and wants to withdraw 300 WETH, this contract will do a flash loan to get 200 * 2000 dUSD
  *        to repay the debt in the core vault, then withdraw 300 WETH from the core vault. The contract will swap 200 WETH to 200 * 2000 dUSD to repay the flash loan.
  *      - In the final state, the user has 100 WETH (300 - 200), and the core contract has 0 WETH as collateral, 0 dUSD as debt
- *      - NOTE: This contract only support withdraw() from DLoopCore contracts, not redeem()
+ *      - NOTE: This contract only support redeem() from DLoopCore contracts, not withdraw()
  */
 abstract contract DLoopWithdrawerBase is IERC3156FlashBorrower, Ownable, SwappableVault, RescuableVault {
     using SafeERC20 for ERC20;
@@ -114,10 +114,13 @@ abstract contract DLoopWithdrawerBase is IERC3156FlashBorrower, Ownable, Swappab
         bytes memory collateralToDebtTokenSwapData,
         DLoopCoreBase dLoopCore
     ) public returns (uint256 assets) {
+        // We assume the owner is always the msg.sender, means you cannot redeem shares on behalf of others
         address owner = msg.sender;
 
         // Transfer the shares to the periphery contract to prepare for the redeeming process
         SafeERC20.safeTransferFrom(dLoopCore, owner, address(this), shares);
+
+        // Do not need to transfer the debt token to repay the lending pool, as it will be done with flash loan
 
         // This amount is representing the leveraged amount
         uint256 collateralToRemoveFromLending = dLoopCore.convertToAssets(shares);
@@ -237,17 +240,24 @@ abstract contract DLoopWithdrawerBase is IERC3156FlashBorrower, Ownable, Swappab
         // This value is used to calculate the debt token was used from the flash loan
         uint256 debtTokenBalanceBefore = debtToken.balanceOf(address(this));
 
-        // Redeem the shares to get the collateral token
-        // The core vault will also take the debt token from the periphery contract
-        // to repay the debt and then withdraw the collateral token
+        /**
+         * Redeem the shares to get the collateral token
+         * The core vault will also take the debt token from the periphery contract
+         * to repay the debt and then withdraw the collateral token
+         * 
+         * The receiver is this periphery contract as it needs to use the collateral token
+         * to swap to the debt token to repay the flash loan
+         * 
+         * The owner is the owner of the shares as it needs to burn the shares
+         */
         debtToken.forceApprove(
             address(dLoopCore),
             type(uint256).max // No slippage tolerance
         );
         dLoopCore.redeem(
             flashLoanParams.shares,
-            address(this),
-            flashLoanParams.owner
+            address(this), // receiver
+            flashLoanParams.owner // owner
         );
         // Approve back to 0 to avoid any potential exploits later
         debtToken.forceApprove(address(dLoopCore), 0);
