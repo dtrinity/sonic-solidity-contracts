@@ -28,7 +28,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     try {
       poolTokenDeployment = await get(tokenName);
     } catch (error) {
-      console.log(error);
+      console.log(`⚠️  Failed to get DPoolToken deployment ${tokenName}: ${error}`);
       console.log(`⚠️  Skipping ${dPoolName}: DPoolToken not found (${tokenName})`);
       continue;
     }
@@ -41,7 +41,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     try {
       collateralVaultDeployment = await get(collateralVaultName);
     } catch (error) {
-      console.log(error);
+      console.log(`⚠️  Failed to get DPoolCollateralVault deployment ${collateralVaultName}: ${error}`);
       console.log(
         `⚠️  Skipping ${dPoolName}: DPoolCollateralVault not found (${collateralVaultName})`,
       );

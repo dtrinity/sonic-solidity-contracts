@@ -34,7 +34,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       collateralVaultDeployment = await get(collateralVaultName);
       routerDeployment = await get(routerName);
     } catch (error) {
-      console.log(error);
+      console.log(`⚠️  Failed to get deployments for ${dPoolName}: ${error}`);
       console.log(`⚠️  Skipping ${dPoolName}: Missing required deployments`);
       continue;
     }
@@ -75,6 +75,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       }
     } catch (error) {
       console.log(`⚠️  Failed to set router: ${error}`);
+      return false;
     }
 
     try {
@@ -92,6 +93,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       }
     } catch (error) {
       console.log(`⚠️  Failed to set collateral vault: ${error}`);
+      return false;
     }
 
     // 2. Set initial withdrawal fee
@@ -112,6 +114,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       }
     } catch (error) {
       console.log(`⚠️  Failed to set withdrawal fee: ${error}`);
+      return false;
     }
 
     // 3. Set router in collateral vault
@@ -128,6 +131,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       }
     } catch (error) {
       console.log(`⚠️  Failed to set router in collateral vault: ${error}`);
+      return false;
     }
 
     // 4. Configure LP adapters and set default
@@ -161,6 +165,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
           }
         } catch (error) {
           console.log(`⚠️  Failed to add LP adapter to router: ${error}`);
+          return false;
         }
 
         // Add LP adapter to collateral vault
@@ -182,6 +187,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
           }
         } catch (error) {
           console.log(`⚠️  Failed to add LP adapter to collateral vault: ${error}`);
+          return false;
         }
 
         // Store first LP token for default setting
@@ -189,10 +195,11 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
           firstLPToken = curvePoolDeployment.address;
         }
       } catch (error) {
-        console.log(error);
+        console.log(`⚠️  Failed to configure adapter for ${poolConfig.name}: ${error}`);
         console.log(
           `⚠️  Skipping adapter configuration for ${poolConfig.name}: deployment not found`,
         );
+        return false;
       }
     }
 
@@ -211,6 +218,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
         }
       } catch (error) {
         console.log(`⚠️  Failed to set default deposit LP: ${error}`);
+        return false;
       }
     }
 
@@ -232,6 +240,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       }
     } catch (error) {
       console.log(`⚠️  Failed to set max slippage: ${error}`);
+      return false;
     }
 
     // 7. Grant DPOOL_TOKEN_ROLE to DPoolToken in router
@@ -255,6 +264,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       }
     } catch (error) {
       console.log(`⚠️  Failed to grant DPOOL_TOKEN_ROLE: ${error}`);
+      return false;
     }
 
     console.log(`🎉 Configuration complete for ${dPoolName}!`);
