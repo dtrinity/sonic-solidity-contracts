@@ -23,7 +23,6 @@ import {ERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/extensions/E
 import {IERC3156FlashBorrower} from "./interface/flashloan/IERC3156FlashBorrower.sol";
 import {IERC3156FlashLender} from "./interface/flashloan/IERC3156FlashLender.sol";
 import {DLoopCoreBase} from "../core/DLoopCoreBase.sol";
-import {SwapHelper, PriceGetter} from "./libraries/SwapHelper.sol";
 import {SwappableVault} from "../libraries/SwappableVault.sol";
 import {RescuableVault} from "../libraries/RescuableVault.sol";
 
@@ -62,6 +61,10 @@ abstract contract DLoopDepositorBase is IERC3156FlashBorrower, Ownable, Swappabl
         uint256 debtTokenBalanceBeforeDeposit,
         uint256 debtTokenBalanceAfterDeposit
     );
+    error ReceivedSharesNotMetMinReceiveAmount(
+        uint256 receivedShares,
+        uint256 minOutputShares
+    );
 
     /* Structs */
 
@@ -69,7 +72,6 @@ abstract contract DLoopDepositorBase is IERC3156FlashBorrower, Ownable, Swappabl
         address receiver;
         uint256 depositCollateralAmount;
         uint256 leveragedCollateralAmount;
-        uint256 slippageTolerance; // ie. 1000 = 10%
         bytes debtTokenToCollateralSwapData;
         DLoopCoreBase dLoopCore;
     }
@@ -89,7 +91,7 @@ abstract contract DLoopDepositorBase is IERC3156FlashBorrower, Ownable, Swappabl
      *      - The required collateral token to reeach the leveraged amount will be flash loaned from the flash lender
      * @param assets Amount of assets to deposit
      * @param receiver Address to receive the minted shares
-     * @param slippageTolerance Slippage tolerance for the swap
+     * @param minOutputShares Minimum amount of shares to receive (slippage protection)
      * @param debtTokenToCollateralSwapData Swap data from debt token to collateral token
      * @param dLoopCore Address of the DLoopCore contract to use
      * @return shares Amount of shares minted
@@ -97,7 +99,7 @@ abstract contract DLoopDepositorBase is IERC3156FlashBorrower, Ownable, Swappabl
     function deposit(
         uint256 assets, // deposit amount
         address receiver,
-        uint256 slippageTolerance,
+        uint256 minOutputShares,
         bytes memory debtTokenToCollateralSwapData,
         DLoopCoreBase dLoopCore
     ) public returns (uint256 shares) {
@@ -112,7 +114,6 @@ abstract contract DLoopDepositorBase is IERC3156FlashBorrower, Ownable, Swappabl
             receiver,
             assets,
             dLoopCore.getLeveragedAssets(assets),
-            slippageTolerance,
             debtTokenToCollateralSwapData,
             dLoopCore
         );
@@ -147,8 +148,18 @@ abstract contract DLoopDepositorBase is IERC3156FlashBorrower, Ownable, Swappabl
             );
         }
 
+        // Make sure the shares minted is not less than the minimum output shares
+        // for slippage protection
+        shares = sharesAfterDeposit - sharesBeforeDeposit;
+        if (shares < minOutputShares) {
+            revert ReceivedSharesNotMetMinReceiveAmount(
+                shares,
+                minOutputShares
+            );
+        }
+
         // Return the shares minted
-        return sharesAfterDeposit - sharesBeforeDeposit;
+        return shares;
     }
 
     /* Flash loan entrypoint */
@@ -185,21 +196,13 @@ abstract contract DLoopDepositorBase is IERC3156FlashBorrower, Ownable, Swappabl
         // Calculate the maxDebtInputAmount for slippage protection
         uint256 requiredAdditionalCollateralAmount = flashLoanParams.leveragedCollateralAmount -
             flashLoanParams.depositCollateralAmount;
-        uint256 maxDebtInputAmount = SwapHelper.estimateInputAmountFromExactOutputAmount(
-            debtToken,
-            collateralToken,
-            requiredAdditionalCollateralAmount,
-            flashLoanParams.slippageTolerance,
-            PriceGetter(address(dLoopCore))
-        );
-        require(maxDebtInputAmount > 0, "maxDebtInputAmount is not positive");
 
         // Swap the flash loan debt token to the collateral token
         _swapExactOutput(
             debtToken,
             collateralToken,
             requiredAdditionalCollateralAmount, // exact output amount
-            maxDebtInputAmount, // max input amount
+            type(uint256).max, // no slippage protection
             address(this),
             block.timestamp,
             flashLoanParams.debtTokenToCollateralSwapData
@@ -228,6 +231,7 @@ abstract contract DLoopDepositorBase is IERC3156FlashBorrower, Ownable, Swappabl
                 debtTokenBalanceAfterDeposit
             );
         }
+
         // Return the success bytes
         return FLASHLOAN_CALLBACK;
     }
@@ -244,7 +248,6 @@ abstract contract DLoopDepositorBase is IERC3156FlashBorrower, Ownable, Swappabl
             _flashLoanParams.receiver,
             _flashLoanParams.depositCollateralAmount,
             _flashLoanParams.leveragedCollateralAmount,
-            _flashLoanParams.slippageTolerance,
             _flashLoanParams.debtTokenToCollateralSwapData,
             _flashLoanParams.dLoopCore
         );
@@ -262,12 +265,11 @@ abstract contract DLoopDepositorBase is IERC3156FlashBorrower, Ownable, Swappabl
             _flashLoanParams.receiver,
             _flashLoanParams.depositCollateralAmount,
             _flashLoanParams.leveragedCollateralAmount,
-            _flashLoanParams.slippageTolerance,
             _flashLoanParams.debtTokenToCollateralSwapData,
             _flashLoanParams.dLoopCore
         ) = abi.decode(
             data,
-            (address, uint256, uint256, uint256, bytes, DLoopCoreBase)
+            (address, uint256, uint256, bytes, DLoopCoreBase)
         );
     }
 }
