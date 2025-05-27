@@ -17,27 +17,19 @@
 
 pragma solidity 0.8.20;
 
-import {DLoopWithdrawerBase, ERC20, IERC3156FlashLender} from "../../DLoopWithdrawerBase.sol";
-import {OdosSwapLogic, IOdosRouterV2} from "./OdosSwapLogic.sol";
+import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {ERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 
 /**
- * @title DLoopWithdrawerOdos
- * @dev Implementation of DLoopWithdrawerBase with Odos swap functionality
+ * @title RescuableVault
+ * @dev A helper contract for rescuing tokens accidentally sent to the contract
+ *      - The derived contract must implement the getRestrictedRescueTokens() function
  */
-contract DLoopWithdrawerOdos is DLoopWithdrawerBase {
-    IOdosRouterV2 public immutable odosRouter;
+abstract contract RescuableVault is Ownable, ReentrancyGuard {
+    using SafeERC20 for ERC20;
 
-    /**
-     * @dev Constructor for the DLoopWithdrawerOdos contract
-     * @param _flashLender Address of the flash loan provider
-     * @param _odosRouter Address of the Odos router
-     */
-    constructor(
-        IERC3156FlashLender _flashLender,
-        IOdosRouterV2 _odosRouter
-    ) DLoopWithdrawerBase(_flashLender) {
-        odosRouter = _odosRouter;
-    }
+    /* Virtual Methods - Required to be implemented by derived contracts */
 
     /**
      * @dev Gets the restricted rescue tokens
@@ -45,36 +37,36 @@ contract DLoopWithdrawerOdos is DLoopWithdrawerBase {
      */
     function getRestrictedRescueTokens()
         public
-        pure
-        override
-        returns (address[] memory)
-    {
-        // Return empty array as there is no restricted rescue token
-        return new address[](0);
-    }
+        view
+        virtual
+        returns (address[] memory);
+
+    /* Rescue Functions */
 
     /**
-     * @dev Swaps an exact amount of output tokens for the minimum input tokens using Odos
+     * @dev Rescues tokens accidentally sent to the contract (except for the collateral token and debt token)
+     * @param token Address of the token to rescue
+     * @param receiver Address to receive the rescued tokens
+     * @param amount Amount of tokens to rescue
      */
-    function _swapExactOutputImplementation(
-        ERC20 inputToken,
-        ERC20 outputToken,
-        uint256 amountOut,
-        uint256 amountInMaximum,
+    function rescueToken(
+        address token,
         address receiver,
-        uint256 deadline,
-        bytes memory underlyingToDStableSwapData
-    ) internal override returns (uint256) {
-        return
-            OdosSwapLogic.swapExactOutput(
-                inputToken,
-                outputToken,
-                amountOut,
-                amountInMaximum,
-                receiver,
-                deadline,
-                underlyingToDStableSwapData,
-                odosRouter
-            );
+        uint256 amount
+    ) public onlyOwner nonReentrant {
+        // The vault does not hold any debt token and collateral token, so it is not necessary to restrict the rescue of debt token and collateral token
+        // We can just rescue any ERC-20 token
+
+        address[] memory restrictedRescueTokens = getRestrictedRescueTokens();
+
+        // Check if the token is restricted
+        for (uint256 i = 0; i < restrictedRescueTokens.length; i++) {
+            if (token == restrictedRescueTokens[i]) {
+                revert("Cannot rescue restricted token");
+            }
+        }
+
+        // Rescue the token
+        ERC20(token).safeTransfer(receiver, amount);
     }
 }

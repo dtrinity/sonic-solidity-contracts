@@ -26,6 +26,8 @@ import {IERC3156FlashLender} from "./interface/flashloan/IERC3156FlashLender.sol
 import {DLoopCoreBase} from "../core/DLoopCoreBase.sol";
 import {SwapHelper, PriceGetter} from "./libraries/SwapHelper.sol";
 import {SwappableVault} from "../libraries/SwappableVault.sol";
+import {RescuableVault} from "../libraries/RescuableVault.sol";
+
 /**
  * @title DLoopWithdrawerBase
  * @dev A helper contract for withdrawing assets from the core vault with flash loans
@@ -35,7 +37,7 @@ import {SwappableVault} from "../libraries/SwappableVault.sol";
  *      - In the final state, the user has 100 WETH (300 - 200), and the core contract has 0 WETH as collateral, 0 dUSD as debt
  *      - NOTE: This contract only support withdraw() from DLoopCore contracts, not redeem()
  */
-abstract contract DLoopWithdrawerBase is IERC3156FlashBorrower, Ownable, SwappableVault {
+abstract contract DLoopWithdrawerBase is IERC3156FlashBorrower, Ownable, SwappableVault, RescuableVault {
     using SafeERC20 for ERC20;
 
     /* Constants */
@@ -94,20 +96,6 @@ abstract contract DLoopWithdrawerBase is IERC3156FlashBorrower, Ownable, Swappab
      */
     constructor(IERC3156FlashLender _flashLender) Ownable(msg.sender) {
         flashLender = _flashLender;
-    }
-    
-    /* Safety functions */
-
-    /**
-     * @dev Rescues tokens accidentally sent to the contract
-     * @param token Address of the token to rescue
-     * @param receiver Address to receive the rescued tokens
-     */
-    function rescueToken(address token, address receiver) public onlyOwner {
-        ERC20(token).safeTransfer(
-            receiver,
-            ERC20(token).balanceOf(address(this))
-        );
     }
 
     /* Withdraw */

@@ -22,6 +22,7 @@ import {BasisPointConstants} from "contracts/common/BasisPointConstants.sol";
 import {ERC4626, ERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 import {Erc20Helper} from "../libraries/Erc20Helper.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import {RescuableVault} from "../libraries/RescuableVault.sol";
 
 /**
  * @title DLoopCoreBase
@@ -34,7 +35,7 @@ import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol
  *        when it is away from the target leverage
  *      - There is a subsidy for the caller when increasing the leverage.
  */
-abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard {
+abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard, RescuableVault {
     using SafeERC20 for ERC20;
 
     /* Core state */
@@ -215,16 +216,6 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard {
     }
 
     /* Virtual Methods - Required to be implemented by derived contracts */
-
-    /**
-     * @dev Gets the restricted rescue tokens
-     * @return address[] Restricted rescue tokens
-     */
-    function getRestrictedRescueTokens()
-        public
-        view
-        virtual
-        returns (address[] memory);
 
     /**
      * @dev Gets the total collateral and debt of a user in base currency
@@ -556,33 +547,6 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard {
             currentLeverageBps != 0 &&
             (currentLeverageBps < lowerBoundTargetLeverageBps ||
                 currentLeverageBps > upperBoundTargetLeverageBps);
-    }
-
-    /**
-     * @dev Rescues tokens accidentally sent to the contract (except for the collateral token and debt token)
-     * @param token Address of the token to rescue
-     * @param receiver Address to receive the rescued tokens
-     * @param amount Amount of tokens to rescue
-     */
-    function rescueToken(
-        address token,
-        address receiver,
-        uint256 amount
-    ) public onlyOwner nonReentrant {
-        // The vault does not hold any debt token and collateral token, so it is not necessary to restrict the rescue of debt token and collateral token
-        // We can just rescue any ERC-20 token
-
-        address[] memory restrictedRescueTokens = getRestrictedRescueTokens();
-
-        // Check if the token is restricted
-        for (uint256 i = 0; i < restrictedRescueTokens.length; i++) {
-            if (token == restrictedRescueTokens[i]) {
-                revert("Cannot rescue restricted token");
-            }
-        }
-
-        // Rescue the token
-        ERC20(token).safeTransfer(receiver, amount);
     }
 
     /* Deposit and Mint */

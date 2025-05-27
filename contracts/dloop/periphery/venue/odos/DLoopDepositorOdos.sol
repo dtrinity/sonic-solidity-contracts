@@ -40,10 +40,23 @@ contract DLoopDepositorOdos is DLoopDepositorBase {
     }
 
     /**
-     * @inheritdoc DLoopDepositorBase
+     * @dev Gets the restricted rescue tokens
+     * @return address[] Restricted rescue tokens
+     */
+    function getRestrictedRescueTokens()
+        public
+        pure
+        override
+        returns (address[] memory)
+    {
+        // Return empty array as there is no restricted rescue token
+        return new address[](0);
+    }
+
+    /**
      * @dev Swaps an exact amount of output tokens for the minimum input tokens using Odos
      */
-    function _swapExactOutput(
+    function _swapExactOutputImplementation(
         ERC20 inputToken,
         ERC20 outputToken,
         uint256 amountOut,
