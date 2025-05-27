@@ -235,7 +235,7 @@ abstract contract DLoopRedeemerBase is
         address initiator,
         address token,
         uint256, // amount (flash loan amount)
-        uint256, // fee (flash loan fee)
+        uint256 flashLoanFee, // fee (flash loan fee)
         bytes calldata data
     ) external override nonReentrant returns (bytes32) {
         if (msg.sender != address(flashLender))
@@ -292,16 +292,21 @@ abstract contract DLoopRedeemerBase is
         _swapExactOutput(
             collateralToken,
             debtToken,
-            debtTokenUsed,
+            debtTokenUsed + flashLoanFee,
             type(uint256).max, // No slippage tolerance
             address(this),
             block.timestamp,
             flashLoanParams.collateralToDebtTokenSwapData
         );
 
+        // If the swapped debt token amount is less than the debt token used,
+        // the flash loan fee will be reverted
+
         // Return the success bytes
         return FLASHLOAN_CALLBACK;
     }
+
+    /* Data encoding/decoding helpers */
 
     /**
      * @dev Encodes flash loan parameters to data

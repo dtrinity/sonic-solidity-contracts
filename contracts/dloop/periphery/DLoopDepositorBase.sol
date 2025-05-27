@@ -148,6 +148,8 @@ abstract contract DLoopDepositorBase is
         // The main logic will be done in the onFlashLoan function
         flashLender.flashLoan(this, debtToken, maxFlashLoanAmount, data);
 
+        // The received debt token after deposit was used to repay the flash loan
+
         // Check if the shares increased after the flash loan
         uint256 sharesAfterDeposit = dLoopCore.balanceOf(address(this));
         if (sharesAfterDeposit <= sharesBeforeDeposit) {
@@ -277,6 +279,8 @@ abstract contract DLoopDepositorBase is
         // Return the success bytes
         return FLASHLOAN_CALLBACK;
     }
+
+    /* Data encoding/decoding helpers */
 
     /**
      * @dev Encodes flash loan parameters to data
