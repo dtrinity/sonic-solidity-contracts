@@ -20,6 +20,7 @@ pragma solidity 0.8.20;
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {ERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 import {BasisPointConstants} from "contracts/common/BasisPointConstants.sol";
+import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 import {IERC3156FlashBorrower} from "./interface/flashloan/IERC3156FlashBorrower.sol";
 import {IERC3156FlashLender} from "./interface/flashloan/IERC3156FlashLender.sol";
@@ -39,6 +40,7 @@ import {RescuableVault} from "../libraries/RescuableVault.sol";
 abstract contract DLoopRedeemerBase is
     IERC3156FlashBorrower,
     Ownable,
+    ReentrancyGuard,
     SwappableVault,
     RescuableVault
 {
@@ -121,7 +123,7 @@ abstract contract DLoopRedeemerBase is
         uint256 minOutputCollateralAmount,
         bytes calldata collateralToDebtTokenSwapData,
         DLoopCoreBase dLoopCore
-    ) public returns (uint256 assets) {
+    ) public nonReentrant returns (uint256 assets) {
         // We assume the owner is always the msg.sender, means you cannot redeem shares on behalf of others
         address owner = msg.sender;
 
@@ -235,7 +237,7 @@ abstract contract DLoopRedeemerBase is
         uint256, // amount (flash loan amount)
         uint256, // fee (flash loan fee)
         bytes calldata data
-    ) external override returns (bytes32) {
+    ) external override nonReentrant returns (bytes32) {
         if (msg.sender != address(flashLender))
             revert UnknownLender(msg.sender, address(flashLender));
         if (initiator != address(this))

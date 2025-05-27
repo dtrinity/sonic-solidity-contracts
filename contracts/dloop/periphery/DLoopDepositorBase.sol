@@ -19,6 +19,7 @@ pragma solidity 0.8.20;
 
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {ERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
+import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 import {IERC3156FlashBorrower} from "./interface/flashloan/IERC3156FlashBorrower.sol";
 import {IERC3156FlashLender} from "./interface/flashloan/IERC3156FlashLender.sol";
@@ -39,6 +40,7 @@ import {RescuableVault} from "../libraries/RescuableVault.sol";
 abstract contract DLoopDepositorBase is
     IERC3156FlashBorrower,
     Ownable,
+    ReentrancyGuard,
     SwappableVault,
     RescuableVault
 {
@@ -114,7 +116,7 @@ abstract contract DLoopDepositorBase is
         uint256 minOutputShares,
         bytes calldata debtTokenToCollateralSwapData,
         DLoopCoreBase dLoopCore
-    ) public returns (uint256 shares) {
+    ) public nonReentrant returns (uint256 shares) {
         // Transfer the collateral token to the vault (need the allowance before calling this function)
         // The remaining amount of collateral token will be flash loaned from the flash lender
         // to reach the leveraged amount
@@ -192,7 +194,7 @@ abstract contract DLoopDepositorBase is
         uint256, // amount (flash loan amount)
         uint256, // fee (flash loan fee)
         bytes calldata data
-    ) external override returns (bytes32) {
+    ) external override nonReentrant returns (bytes32) {
         if (msg.sender != address(flashLender))
             revert UnknownLender(msg.sender, address(flashLender));
         if (initiator != address(this))
