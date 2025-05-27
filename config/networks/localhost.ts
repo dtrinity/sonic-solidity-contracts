@@ -165,6 +165,8 @@ export async function getConfig(
       stS: emptyStringIfUndefined(stSTokenDeployment?.address), // Used by dLEND
       wstkscUSD: emptyStringIfUndefined(wstkscUSDDeployment?.address), // Used by dLEND
       USDC: emptyStringIfUndefined(USDCDeployment?.address), // Used by dPOOL
+      USDS: emptyStringIfUndefined(USDSDeployment?.address), // Used by dPOOL
+      frxUSD: emptyStringIfUndefined(frxUSDDeployment?.address), // Used by dPOOL
     },
     walletAddresses: {
       governanceMultisig: user1,
@@ -475,10 +477,10 @@ export async function getConfig(
           },
         ],
       },
-      dpUSD: {
-        baseAsset: "dUSD",
-        name: "dPOOL dUSD/USDC Curve",
-        symbol: "dUSD-USDC_Curve",
+      dpfrxUSD: {
+        baseAsset: "frxUSD",
+        name: "dPOOL frxUSD/USDC Curve",
+        symbol: "frxUSD-USDC_Curve",
         initialAdmin: user1,
         initialFeeManager: user1,
         maxWithdrawalFeeBps: 10000, // 1% max
@@ -487,8 +489,8 @@ export async function getConfig(
         initialSlippageBps: 20000, // 2% initial
         curvePools: [
           {
-            name: "dUSD_USDC_CurvePool",
-            token0: "dUSD",
+            name: "frxUSD_USDC_CurvePool",
+            token0: "frxUSD",
             token1: "USDC",
           },
         ],

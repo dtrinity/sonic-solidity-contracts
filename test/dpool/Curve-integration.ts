@@ -4,7 +4,7 @@ import { parseUnits } from "ethers";
 
 import {
   DPUSDCFixture,
-  DPUSDFixture,
+  DPfrxUSDFixture,
   DPoolFixtureResult,
   fundUserWithTokens,
   approveToken,
@@ -320,13 +320,13 @@ describe("dPOOL Integration", () => {
   });
 
   describe("Cross-Pool Operations", () => {
-    it("should support both USDC and dUSD pools simultaneously", async () => {
+    it("should support both USDC and frxUSD pools simultaneously", async () => {
       // Test with both fixture types
       const usdcFixture = await DPUSDCFixture();
-      const dusdFixture = await DPUSDFixture();
+      const frxusdFixture = await DPfrxUSDFixture();
 
       const depositAmount = parseUnits("1000", 6); // USDC has 6 decimals
-      const depositAmountDUSD = parseUnits("1000", 18); // dUSD has 18 decimals
+      const depositAmountfrxUSD = parseUnits("1000", 18); // frxUSD has 18 decimals
 
       // Deposit to USDC pool
       await fundUserWithTokens(
@@ -343,28 +343,28 @@ describe("dPOOL Integration", () => {
       );
       await depositToPool(usdcFixture.poolToken, usdcFixture.user1, depositAmount);
 
-      // Deposit to dUSD pool
+      // Deposit to frxUSD pool
       await fundUserWithTokens(
-        dusdFixture.baseAssetToken,
-        dusdFixture.user1,
-        depositAmountDUSD,
-        dusdFixture.deployer
+        frxusdFixture.baseAssetToken,
+        frxusdFixture.user1,
+        depositAmountfrxUSD,
+        frxusdFixture.deployer
       );
       await approveToken(
-        dusdFixture.baseAssetToken,
-        dusdFixture.user1,
-        dusdFixture.poolToken.address,
-        depositAmountDUSD
+        frxusdFixture.baseAssetToken,
+        frxusdFixture.user1,
+        frxusdFixture.poolToken.address,
+        depositAmountfrxUSD
       );
-      await depositToPool(dusdFixture.poolToken, dusdFixture.user1, depositAmountDUSD);
+      await depositToPool(frxusdFixture.poolToken, frxusdFixture.user1, depositAmountfrxUSD);
 
       // Both pools should have value
       expect(await usdcFixture.poolToken.totalAssets()).to.be.gt(0);
-      expect(await dusdFixture.poolToken.totalAssets()).to.be.gt(0);
+      expect(await frxusdFixture.poolToken.totalAssets()).to.be.gt(0);
 
       // Both users should have shares
       expect(await getUserShares(usdcFixture.poolToken, usdcFixture.user1)).to.be.gt(0);
-      expect(await getUserShares(dusdFixture.poolToken, dusdFixture.user1)).to.be.gt(0);
+      expect(await getUserShares(frxusdFixture.poolToken, frxusdFixture.user1)).to.be.gt(0);
 
       // Generate yield in both pools
       await simulateLPValueIncrease(
@@ -377,17 +377,17 @@ describe("dPOOL Integration", () => {
       );
 
       await simulateLPValueIncrease(
-        dusdFixture.curvePool,
-        dusdFixture.baseAssetToken,
-        dusdFixture.otherAssetToken,
-        dusdFixture.deployer,
+        frxusdFixture.curvePool,
+        frxusdFixture.baseAssetToken,
+        frxusdFixture.otherAssetToken,
+        frxusdFixture.deployer,
         parseUnits("500", 18),
         parseUnits("500", 6)
       );
 
       // Both pools should show increased value
       expect(await usdcFixture.poolToken.totalAssets()).to.be.gt(depositAmount);
-      expect(await dusdFixture.poolToken.totalAssets()).to.be.gt(depositAmountDUSD);
+      expect(await frxusdFixture.poolToken.totalAssets()).to.be.gt(depositAmountfrxUSD);
     });
   });
 

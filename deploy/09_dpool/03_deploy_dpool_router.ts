@@ -5,20 +5,20 @@ import { getConfig } from "../../config/config";
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployments, getNamedAccounts } = hre;
-  const { deploy, log, get } = deployments;
+  const { deploy, get } = deployments;
   const { deployer } = await getNamedAccounts();
 
   const config = await getConfig(hre);
 
   // Skip if no dPool config
   if (!config.dPool) {
-    log("No dPool configuration found, skipping DPoolRouter deployment");
+    console.log("No dPool configuration found, skipping DPoolRouter deployment");
     return;
   }
 
   // Deploy router for each dPool instance
   for (const [dPoolName] of Object.entries(config.dPool)) {
-    log(`\n--- Deploying DPoolRouter for ${dPoolName} ---`);
+    console.log(`\n--- Deploying DPoolRouter for ${dPoolName} ---`);
 
     // Get DPoolToken deployment
     const tokenName = `DPoolToken_${dPoolName}`;
@@ -29,7 +29,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       poolTokenDeployment = await get(tokenName);
     } catch (error) {
       console.log(error);
-      log(`⚠️  Skipping ${dPoolName}: DPoolToken not found (${tokenName})`);
+      console.log(`⚠️  Skipping ${dPoolName}: DPoolToken not found (${tokenName})`);
       continue;
     }
 
@@ -42,7 +42,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       collateralVaultDeployment = await get(collateralVaultName);
     } catch (error) {
       console.log(error);
-      log(
+      console.log(
         `⚠️  Skipping ${dPoolName}: DPoolCollateralVault not found (${collateralVaultName})`,
       );
       continue;
@@ -50,9 +50,9 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
     const routerName = `DPoolRouter_${dPoolName}`;
 
-    log(`Deploying DPoolRouter: ${routerName}`);
-    log(`  Pool Token: ${poolTokenDeployment.address}`);
-    log(`  Collateral Vault: ${collateralVaultDeployment.address}`);
+    console.log(`Deploying DPoolRouter: ${routerName}`);
+    console.log(`  Pool Token: ${poolTokenDeployment.address}`);
+    console.log(`  Collateral Vault: ${collateralVaultDeployment.address}`);
 
     const router = await deploy(routerName, {
       contract: "DPoolRouter",
@@ -66,11 +66,13 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     });
 
     if (router.newlyDeployed) {
-      log(`✅ Deployed ${routerName} at: ${router.address}`);
+      console.log(`✅ Deployed ${routerName} at: ${router.address}`);
     } else {
-      log(`♻️  Reusing existing ${routerName} at: ${router.address}`);
+      console.log(`♻️  Reusing existing ${routerName} at: ${router.address}`);
     }
   }
+
+  console.log(`🦉 ${__filename.split("/").slice(-2).join("/")}: ✅`);
 };
 
 func.tags = ["dpool", "dpool-router"];

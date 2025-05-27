@@ -1,6 +1,6 @@
-import hre, { deployments } from "hardhat";
+import { deployments } from "hardhat";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
-import { ethers, BigNumberish } from "ethers";
+import { BigNumberish } from "ethers";
 import {
   getTokenContractForSymbol,
   TokenInfo,
@@ -9,7 +9,7 @@ import { ERC20 } from "../../typechain-types";
 
 
 export interface DPoolFixtureConfig {
-  dPoolName: "dpUSDC" | "dpUSD";
+  dPoolName: "dpUSDC" | "dpfrxUSD";
   baseAssetSymbol: string;
   poolTokenSymbol: string;
   curvePoolTokens: [string, string];
@@ -31,23 +31,22 @@ export const DPUSDC_CONFIG: DPoolFixtureConfig = {
   ],
 };
 
-export const DPUSD_CONFIG: DPoolFixtureConfig = {
-  dPoolName: "dpUSD",
-  baseAssetSymbol: "dUSD",
-  poolTokenSymbol: "dUSD-USDC_Curve",
-  curvePoolTokens: ["dUSD", "USDC"],
-  curvePoolName: "dUSD_USDC_CurvePool",
+export const DPfrxUSD_CONFIG: DPoolFixtureConfig = {
+  dPoolName: "dpfrxUSD",
+  baseAssetSymbol: "frxUSD",
+  poolTokenSymbol: "frxUSD-USDC_Curve",
+  curvePoolTokens: ["frxUSD", "USDC"],
+  curvePoolName: "frxUSD_USDC_CurvePool",
   deploymentTags: [
     "local-setup",
-    "oracle", // needed for dUSD
-    "dusd", // underlying dUSD token
+    "oracle", // needed for frxUSD
     "curve",
     "dpool",
   ],
 };
 
 // Array of all DPool configurations
-export const DPOOL_CONFIGS: DPoolFixtureConfig[] = [DPUSDC_CONFIG, DPUSD_CONFIG];
+export const DPOOL_CONFIGS: DPoolFixtureConfig[] = [DPUSDC_CONFIG, DPfrxUSD_CONFIG];
 
 export interface DPoolFixtureResult {
   config: DPoolFixtureConfig;
@@ -173,7 +172,7 @@ export const createDPoolFixture = (config: DPoolFixtureConfig) => {
 
 // Pre-bound fixtures for common test cases
 export const DPUSDCFixture = createDPoolFixture(DPUSDC_CONFIG);
-export const DPUSDFixture = createDPoolFixture(DPUSD_CONFIG);
+export const DPfrxUSDFixture = createDPoolFixture(DPfrxUSD_CONFIG);
 
 // Utility functions for tests
 export async function fundUserWithTokens(

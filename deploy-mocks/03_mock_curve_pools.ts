@@ -4,38 +4,35 @@ import { getConfig } from "../config/config";
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployments, getNamedAccounts } = hre;
-  const { deploy, log } = deployments;
+  const { deploy } = deployments;
   const { deployer } = await getNamedAccounts();
 
   const config = await getConfig(hre);
 
   // Skip if no dPool config
   if (!config.dPool) {
-    log("No dPool configuration found, skipping mock Curve pool deployment");
-    return;
+    console.log("No dPool configuration found, skipping mock Curve pool deployment");
+    return true;
   }
 
   // Deploy mock Curve pools for each dPool instance
   for (const [dPoolName, dPoolConfig] of Object.entries(config.dPool)) {
-    log(`\n--- Deploying Mock Curve Pools for ${dPoolName} ---`);
+    console.log(`\n--- Deploying Mock Curve Pools for ${dPoolName} ---`);
 
     for (const poolConfig of dPoolConfig.curvePools) {
       const poolName = poolConfig.name;
-      
       // Get token addresses from config
-      const token0Address = config.MOCK_ONLY?.tokens[poolConfig.token0]?.address ||
-                           config.tokenAddresses[poolConfig.token0 as keyof typeof config.tokenAddresses];
-      const token1Address = config.MOCK_ONLY?.tokens[poolConfig.token1]?.address ||
-                           config.tokenAddresses[poolConfig.token1 as keyof typeof config.tokenAddresses];
+      const token0Address = config.tokenAddresses[poolConfig.token0 as keyof typeof config.tokenAddresses];
+      const token1Address = config.tokenAddresses[poolConfig.token1 as keyof typeof config.tokenAddresses];
 
       if (!token0Address || !token1Address) {
-        log(`⚠️  Skipping ${poolName}: missing token addresses for ${poolConfig.token0} or ${poolConfig.token1}`);
+        console.log(`⚠️  Skipping ${poolName}: missing token addresses for ${poolConfig.token0} or ${poolConfig.token1}`);
         continue;
       }
 
-      log(`Deploying MockCurveStableSwapNG: ${poolName}`);
-      log(`  Token 0 (${poolConfig.token0}): ${token0Address}`);
-      log(`  Token 1 (${poolConfig.token1}): ${token1Address}`);
+      console.log(`Deploying MockCurveStableSwapNG: ${poolName}`);
+      console.log(`  Token 0 (${poolConfig.token0}): ${token0Address}`);
+      console.log(`  Token 1 (${poolConfig.token1}): ${token1Address}`);
 
       const curvePool = await deploy(poolName, {
         contract: "MockCurveStableSwapNG",
@@ -51,12 +48,15 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       });
 
       if (curvePool.newlyDeployed) {
-        log(`✅ Deployed ${poolName} at: ${curvePool.address}`);
+        console.log(`✅ Deployed ${poolName} at: ${curvePool.address}`);
       } else {
-        log(`♻️  Reusing existing ${poolName} at: ${curvePool.address}`);
+        console.log(`♻️  Reusing existing ${poolName} at: ${curvePool.address}`);
       }
     }
   }
+
+  console.log(`🎱 ${__filename.split("/").slice(-2).join("/")}: ✅`);
+  return true;
 };
 
 func.tags = ["local-setup", "curve"];
