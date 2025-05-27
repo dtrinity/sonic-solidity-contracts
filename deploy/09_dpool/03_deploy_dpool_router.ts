@@ -17,7 +17,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   }
 
   // Deploy router for each dPool instance
-  for (const [dPoolName, dPoolConfig] of Object.entries(config.dPool)) {
+  for (const [dPoolName] of Object.entries(config.dPool)) {
     log(`\n--- Deploying DPoolRouter for ${dPoolName} ---`);
 
     // Get DPoolToken deployment
@@ -28,6 +28,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     try {
       poolTokenDeployment = await get(tokenName);
     } catch (error) {
+      console.log(error);
       log(`⚠️  Skipping ${dPoolName}: DPoolToken not found (${tokenName})`);
       continue;
     }
@@ -40,6 +41,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     try {
       collateralVaultDeployment = await get(collateralVaultName);
     } catch (error) {
+      console.log(error);
       log(
         `⚠️  Skipping ${dPoolName}: DPoolCollateralVault not found (${collateralVaultName})`,
       );

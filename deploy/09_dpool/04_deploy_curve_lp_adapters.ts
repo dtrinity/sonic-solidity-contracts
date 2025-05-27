@@ -42,6 +42,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     try {
       collateralVaultDeployment = await get(collateralVaultName);
     } catch (error) {
+      console.log(error);
       log(
         `⚠️  Skipping ${dPoolName}: DPoolCollateralVault not found (${collateralVaultName})`,
       );
@@ -58,6 +59,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       try {
         curvePoolDeployment = await get(poolName);
       } catch (error) {
+        console.log(error);
         log(`⚠️  Skipping adapter for ${poolName}: Curve pool not found`);
         continue;
       }

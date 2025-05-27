@@ -44,6 +44,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     try {
       poolTokenDeployment = await get(tokenName);
     } catch (error) {
+      console.log(error);
       log(`⚠️  Skipping ${dPoolName}: DPoolToken not found (${tokenName})`);
       continue;
     }

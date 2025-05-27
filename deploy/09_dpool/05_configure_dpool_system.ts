@@ -34,6 +34,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       collateralVaultDeployment = await get(collateralVaultName);
       routerDeployment = await get(routerName);
     } catch (error) {
+      console.log(error);
       log(`⚠️  Skipping ${dPoolName}: Missing required deployments`);
       continue;
     }
@@ -188,6 +189,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
           firstLPToken = curvePoolDeployment.address;
         }
       } catch (error) {
+        console.log(error);
         log(
           `⚠️  Skipping adapter configuration for ${poolConfig.name}: deployment not found`,
         );
