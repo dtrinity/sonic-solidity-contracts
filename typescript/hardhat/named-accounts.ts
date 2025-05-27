@@ -112,6 +112,18 @@ export function getStandardNamedAccounts(): {
       hardhat: 2,
       localhost: 2,
     },
+    user3: {
+      hardhat: 3,
+      localhost: 3,
+    },
+    user4: {
+      hardhat: 4,
+      localhost: 4,
+    },
+    user5: {
+      hardhat: 5,
+      localhost: 5,
+    },
     /* eslint-enable camelcase -- Use camelcase for network config */
   };
 }

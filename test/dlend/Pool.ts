@@ -4,7 +4,8 @@ import { dLendFixture } from "./fixtures";
 import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 import { DLendFixtureResult } from "./fixtures";
 import { POOL_ADDRESSES_PROVIDER_ID } from "../../typescript/deploy-ids";
-import { Pool } from "../../typechain-types";
+import { Pool, TestERC20 } from "../../typechain-types";
+import { time } from "@nomicfoundation/hardhat-toolbox/network-helpers";
 
 describe("dLEND Pool", () => {
   // Test fixture and common variables
@@ -422,6 +423,105 @@ describe("dLEND Pool", () => {
       expect(currentLiquidationThreshold).to.be.gt(0);
       expect(ltv).to.be.gt(0);
       expect(healthFactor).to.be.gt(1); // Health factor should be > 1 to avoid liquidation
+    });
+  });
+
+  describe("Interest Accrual", () => {
+    it("should increase dStable liquidityIndex over time when borrowed", async () => {
+      // Find two distinct collateral assets
+      const collateralAssets = Object.entries(fixture.assets)
+        .filter(([_, config]) => !config.isDStable && config.ltv !== BigInt(0))
+        .map(([addr, _]) => addr);
+
+      if (collateralAssets.length < 2) {
+        throw new Error(
+          "Need at least two distinct non-dStable collateral assets for this test setup."
+        );
+      }
+      const collateralAsset1 = collateralAssets[0]; // User 1 supplies this
+      const collateralAsset2 = collateralAssets[1]; // User 2 supplies this
+
+      const user1SupplyAmount = ethers.parseUnits("1000", 18); // User1 supplies collateral
+      const user2SupplyAmount = ethers.parseUnits("1000", 18); // User2 supplies different collateral
+      const borrowAmount = ethers.parseUnits("100", 18); // User2 borrows dStable
+
+      const collateralToken1 = (await ethers.getContractAt(
+        "TestERC20",
+        collateralAsset1
+      )) as TestERC20;
+      const collateralToken2 = (await ethers.getContractAt(
+        "TestERC20",
+        collateralAsset2
+      )) as TestERC20;
+      const dStableToken = (await ethers.getContractAt(
+        "TestERC20",
+        dStableAsset
+      )) as TestERC20;
+
+      // --- Setup User 1 (Supplies collateral, but doesn't borrow - not strictly needed but good practice) ---
+      await collateralToken1
+        .connect(deployerSigner)
+        .transfer(user1Signer.address, user1SupplyAmount);
+      await collateralToken1
+        .connect(user1Signer)
+        .approve(await pool.getAddress(), user1SupplyAmount);
+      await pool
+        .connect(user1Signer)
+        .supply(collateralAsset1, user1SupplyAmount, user1Signer.address, 0);
+      // No need to enable collateral for user1 in this test flow
+
+      // --- Setup User 2 (Supplies different collateral, borrows dStable) ---
+      await collateralToken2
+        .connect(deployerSigner)
+        .transfer(user2Signer.address, user2SupplyAmount);
+      await collateralToken2
+        .connect(user2Signer)
+        .approve(await pool.getAddress(), user2SupplyAmount);
+      await pool
+        .connect(user2Signer)
+        .supply(collateralAsset2, user2SupplyAmount, user2Signer.address, 0);
+      await pool
+        .connect(user2Signer)
+        .setUserUseReserveAsCollateral(collateralAsset2, true); // Enable the *correct* collateral
+
+      // --- User 2 Borrows dStableAsset ---
+      // Note: Deployer supplied dStable liquidity in beforeEach
+      await pool
+        .connect(user2Signer)
+        .borrow(dStableAsset, borrowAmount, 2, 0, user2Signer.address); // 2 = variable rate
+
+      // --- Test Interest Accrual on dStableAsset ---
+      // Record initial liquidity index for dStableAsset (AFTER borrow establishes utilization)
+      const initialReserveData = await pool.getReserveData(dStableAsset);
+      const initialLiquidityIndex = initialReserveData.liquidityIndex;
+      expect(initialLiquidityIndex).to.be.gt(0);
+
+      // Advance time significantly
+      const ONE_YEAR_IN_SECS = 365 * 24 * 60 * 60;
+      await time.increase(ONE_YEAR_IN_SECS);
+
+      // Perform a minimal interaction with the *dStableAsset* reserve to trigger index update
+      // Using User 2 to repay 1 wei
+      const interactionAmount = BigInt(1);
+      await dStableToken
+        .connect(deployerSigner)
+        .transfer(user2Signer.address, interactionAmount); // Give user2 1 wei dStable
+      await dStableToken
+        .connect(user2Signer)
+        .approve(await pool.getAddress(), interactionAmount); // Approve pool
+      await pool
+        .connect(user2Signer)
+        .repay(dStableAsset, interactionAmount, 2, user2Signer.address); // Repay 1 wei variable debt
+
+      // Record final liquidity index for dStableAsset
+      const finalReserveData = await pool.getReserveData(dStableAsset);
+      const finalLiquidityIndex = finalReserveData.liquidityIndex;
+
+      // Assert that the liquidity index has increased
+      expect(finalLiquidityIndex).to.be.gt(
+        initialLiquidityIndex,
+        "dStable liquidity index should increase after time passes and interaction when reserve is borrowed"
+      );
     });
   });
 });

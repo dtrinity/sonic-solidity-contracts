@@ -126,7 +126,6 @@ abstract contract BaseOdosSwapAdapter is Ownable, IBaseOdosAdapter {
             address(POOL)
         );
         if (allowance < minAmount) {
-            IERC20(asset).safeApprove(address(POOL), 0);
             IERC20(asset).safeApprove(address(POOL), type(uint256).max);
         }
     }

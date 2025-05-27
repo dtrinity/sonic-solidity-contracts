@@ -89,9 +89,6 @@ abstract contract AmoVault is CollateralVault, IRecoverable, ReentrancyGuard {
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         if (_newAmoManager == address(0)) revert InvalidAmoManager();
 
-        // Reset allowance for old AMO manager
-        dstable.approve(address(amoManager), 0);
-
         // Set new AMO manager
         amoManager = AmoManager(_newAmoManager);
 
