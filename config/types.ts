@@ -175,9 +175,6 @@ export interface DStakeInstanceConfig {
   readonly collateralVault?: Address; // The DStakeCollateralVault for this instance (needed for adapter deployment)
   readonly dLendRewardManager?: DLendRewardManagerConfig; // Added for dLend rewards
 }
-<<<<<<< HEAD
-
-// --- Vesting Types ---
 
 export interface VestingConfig {
   readonly dstakeToken: Address; // Address of the dSTAKE token to vest
@@ -185,5 +182,3 @@ export interface VestingConfig {
   readonly maxTotalSupply: string; // Maximum total dSTAKE that can be deposited (as string for big numbers)
   readonly initialOwner: Address; // Initial owner of the vesting contract
 }
-=======
->>>>>>> main
