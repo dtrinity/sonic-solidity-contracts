@@ -4,8 +4,8 @@ import { DeployFunction } from "hardhat-deploy/types";
 
 import { getConfig } from "../../config/config";
 import {
-  ERC20_VESTING_NFT_ID,
   DSTAKE_NFT_VESTING_DEPLOYMENT_TAG,
+  ERC20_VESTING_NFT_ID,
 } from "../../typescript/deploy-ids";
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
@@ -17,7 +17,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   if (!config.vesting) {
     console.log(
-      "No vesting configuration found for this network. Skipping vesting NFT deployment."
+      "No vesting configuration found for this network. Skipping vesting NFT deployment.",
     );
     return;
   }
@@ -28,7 +28,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     config.vesting.dstakeToken === ethers.ZeroAddress
   ) {
     throw new Error(
-      "Missing or invalid dstakeToken address in vesting configuration"
+      "Missing or invalid dstakeToken address in vesting configuration",
     );
   }
 
@@ -37,7 +37,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     config.vesting.initialOwner === ethers.ZeroAddress
   ) {
     throw new Error(
-      "Missing or invalid initialOwner address in vesting configuration"
+      "Missing or invalid initialOwner address in vesting configuration",
     );
   }
 
