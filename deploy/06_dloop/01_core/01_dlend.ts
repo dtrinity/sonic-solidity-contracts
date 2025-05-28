@@ -1,3 +1,4 @@
+import { ethers } from "hardhat";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
 
@@ -6,7 +7,9 @@ import { DLoopCoreConfig } from "../../../config/types";
 import { assertNotEmpty } from "../../../typescript/common/assert";
 import {
   DLOOP_CORE_DLEND_ID,
+  INCENTIVES_PROXY_ID,
   POOL_ADDRESSES_PROVIDER_ID,
+  POOL_DATA_PROVIDER_ID,
 } from "../../../typescript/deploy-ids";
 
 /**
@@ -27,6 +30,32 @@ async function deployDLoopCoreDLend(
   const { address: lendingPoolAddressesProviderAddress } =
     await hre.deployments.get(POOL_ADDRESSES_PROVIDER_ID);
 
+  // Get the incentives proxy (rewards controller)
+  const incentivesProxyDeployment =
+    await hre.deployments.get(INCENTIVES_PROXY_ID);
+
+  // Get the pool data provider to fetch the aToken address
+  const poolDataProviderDeployment = await hre.deployments.get(
+    POOL_DATA_PROVIDER_ID,
+  );
+  const poolDataProviderContract = await ethers.getContractAt(
+    "AaveProtocolDataProvider",
+    poolDataProviderDeployment.address,
+  );
+
+  // Get the aToken address for the underlying asset
+  const reserveTokens =
+    await poolDataProviderContract.getReserveTokensAddresses(
+      vaultInfo.underlyingAsset,
+    );
+  const aTokenAddress = reserveTokens.aTokenAddress;
+
+  if (aTokenAddress === ethers.ZeroAddress) {
+    throw new Error(
+      `Could not find aToken for underlying asset ${vaultInfo.underlyingAsset}`,
+    );
+  }
+
   const underlyingTokenContract = await hre.ethers.getContractAt(
     ["function symbol() view returns (string)"],
     vaultInfo.underlyingAsset,
@@ -39,6 +68,26 @@ async function deployDLoopCoreDLend(
   }
 
   const deploymentName = `${DLOOP_CORE_DLEND_ID}-${vaultInfo.symbol}`;
+
+  // Extract additional parameters from extraParams or use defaults
+  const extraParams = vaultInfo.extraParams;
+
+  if (!extraParams) {
+    throw new Error("No extra parameters provided for dLOOP Core DLend");
+  }
+
+  const targetStaticATokenWrapper = assertNotEmpty(
+    extraParams.targetStaticATokenWrapper as string,
+  );
+  const exchangeAsset = assertNotEmpty(extraParams.exchangeAsset);
+  const treasury = assertNotEmpty(extraParams.treasury);
+  const maxTreasuryFeeBps = assertNotEmpty(extraParams.maxTreasuryFeeBps);
+  const initialTreasuryFeeBps = assertNotEmpty(
+    extraParams.initialTreasuryFeeBps,
+  );
+  const initialExchangeThreshold = assertNotEmpty(
+    extraParams.initialExchangeThreshold,
+  );
 
   await hre.deployments.deploy(deploymentName, {
     from: dloopDeployer,
@@ -53,6 +102,14 @@ async function deployDLoopCoreDLend(
       vaultInfo.lowerBoundTargetLeverageBps,
       vaultInfo.upperBoundTargetLeverageBps,
       vaultInfo.maxSubsidyBps,
+      incentivesProxyDeployment.address, // _rewardsController
+      aTokenAddress, // _dLendAssetToClaimFor
+      targetStaticATokenWrapper, // _targetStaticATokenWrapper
+      exchangeAsset, // _exchangeAsset
+      treasury, // _treasury
+      maxTreasuryFeeBps, // _maxTreasuryFeeBps
+      initialTreasuryFeeBps, // _initialTreasuryFeeBps
+      initialExchangeThreshold, // _initialExchangeThreshold
     ],
     log: true,
     autoMine: true,
@@ -112,7 +169,11 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 };
 
 func.tags = ["dloop", "core", "dlend"];
-func.dependencies = [POOL_ADDRESSES_PROVIDER_ID];
+func.dependencies = [
+  POOL_ADDRESSES_PROVIDER_ID,
+  INCENTIVES_PROXY_ID,
+  POOL_DATA_PROVIDER_ID,
+];
 func.id = DLOOP_CORE_DLEND_ID;
 
 export default func;

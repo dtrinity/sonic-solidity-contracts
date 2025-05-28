@@ -23,13 +23,15 @@ import {IPoolAddressesProvider} from "./interface/IPoolAddressesProvider.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {DLoopCoreBase} from "../../DLoopCoreBase.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
+import {RewardClaimable} from "contracts/reward_management/RewardClaimable.sol";
+import {IRewardsController} from "./interface/IRewardsController.sol";
 
 /**
  * @title DLoopCoreDLend
  * @dev Read the documentation of DLoopCoreBase for more details
  *      - This contract implement dLEND-specific lending operations for DLoopCoreBase
  */
-contract DLoopCoreDLend is DLoopCoreBase {
+contract DLoopCoreDLend is DLoopCoreBase, RewardClaimable {
     /* Constants */
 
     uint8 public constant AAVE_PRICE_ORACLE_DECIMALS = 8;
@@ -44,6 +46,15 @@ contract DLoopCoreDLend is DLoopCoreBase {
     /* State */
 
     IPoolAddressesProvider public immutable lendingPoolAddressesProvider;
+    IRewardsController public immutable dLendRewardsController;
+    address public immutable dLendAssetToClaimFor;
+    address public immutable targetStaticATokenWrapper;
+
+    /* Errors */
+
+    error ZeroRewardTokens();
+    error ZeroReceiverAddress();
+    error ZeroAddress();
 
     /**
      * @dev Constructor for the DLoopCoreDLend contract
@@ -56,6 +67,13 @@ contract DLoopCoreDLend is DLoopCoreBase {
      * @param _lowerBoundTargetLeverageBps Lower bound of target leverage in basis points
      * @param _upperBoundTargetLeverageBps Upper bound of target leverage in basis points
      * @param _maxSubsidyBps Maximum subsidy in basis points
+     * @param _rewardsController Address of the dLEND rewards controller
+     * @param _dLendAssetToClaimFor Address of the dLEND asset to claim for
+     * @param _targetStaticATokenWrapper Address of the target static aToken wrapper
+     * @param _exchangeAsset Address of the exchange asset
+     * @param _treasury Address of the treasury
+     * @param _maxTreasuryFeeBps Maximum treasury fee in basis points
+     * @param _initialTreasuryFeeBps Initial treasury fee in basis points
      */
     constructor(
         string memory _name,
@@ -66,7 +84,15 @@ contract DLoopCoreDLend is DLoopCoreBase {
         uint32 _targetLeverageBps,
         uint32 _lowerBoundTargetLeverageBps,
         uint32 _upperBoundTargetLeverageBps,
-        uint256 _maxSubsidyBps
+        uint256 _maxSubsidyBps,
+        IRewardsController _rewardsController,
+        address _dLendAssetToClaimFor,
+        address _targetStaticATokenWrapper,
+        address _exchangeAsset,
+        address _treasury,
+        uint256 _maxTreasuryFeeBps,
+        uint256 _initialTreasuryFeeBps,
+        uint256 _initialExchangeThreshold
     )
         DLoopCoreBase(
             _name,
@@ -78,8 +104,18 @@ contract DLoopCoreDLend is DLoopCoreBase {
             _upperBoundTargetLeverageBps,
             _maxSubsidyBps
         )
+        RewardClaimable(
+            _exchangeAsset,
+            _treasury,
+            _maxTreasuryFeeBps,
+            _initialTreasuryFeeBps,
+            _initialExchangeThreshold
+        )
     {
         lendingPoolAddressesProvider = _lendingPoolAddressesProvider;
+        dLendRewardsController = _rewardsController;
+        dLendAssetToClaimFor = _dLendAssetToClaimFor;
+        targetStaticATokenWrapper = _targetStaticATokenWrapper;
 
         if (getLendingOracle().BASE_CURRENCY() != address(0)) {
             revert("Invalid price oracle base currency");
@@ -293,5 +329,59 @@ contract DLoopCoreDLend is DLoopCoreBase {
         address tokenAddress
     ) public view returns (uint256) {
         return ERC20(_getDTokenAddress(tokenAddress)).balanceOf(address(this));
+    }
+
+    /* RewardClaimable functions */
+
+    /**
+     * @dev Claims multiple rewards
+     * @param rewardTokens The reward tokens to claim
+     * @param receiver The address to receive the claimed rewards
+     * @return rewardAmounts The amount of rewards claimed for each token (have the same length as the tokens array)
+     */
+    function _claimRewards(
+        address[] calldata rewardTokens,
+        address receiver
+    ) internal override returns (uint256[] memory rewardAmounts) {
+        if (rewardTokens.length == 0) {
+            revert ZeroRewardTokens();
+        }
+        if (receiver == address(0)) {
+            revert ZeroReceiverAddress();
+        }
+
+        rewardAmounts = new uint256[](rewardTokens.length);
+        address[] memory assetsToClaimForPayload = new address[](1);
+        assetsToClaimForPayload[0] = dLendAssetToClaimFor;
+
+        for (uint256 i = 0; i < rewardTokens.length; i++) {
+            address rewardToken = rewardTokens[i];
+            if (rewardToken == address(0)) {
+                revert ZeroAddress(); // Cannot claim zero address token
+            }
+
+            uint256 balanceBefore = ERC20(rewardToken).balanceOf(receiver);
+
+            // Claim all available amount of the specific reward token
+            dLendRewardsController.claimRewardsOnBehalf(
+                assetsToClaimForPayload, // Asset held by the wrapper in dLEND
+                type(uint256).max, // Claim all
+                targetStaticATokenWrapper, // User earning rewards is the wrapper
+                receiver,
+                rewardToken // The reward token to claim
+            );
+
+            uint256 balanceAfter = ERC20(rewardToken).balanceOf(receiver);
+            rewardAmounts[i] = balanceAfter - balanceBefore;
+        }
+        return rewardAmounts;
+    }
+
+    /**
+     * @dev Processes the exchange asset deposit from the caller
+     * @param amount The amount of exchange asset to deposit
+     */
+    function _processExchangeAssetDeposit(uint256 amount) internal override {
+
     }
 }

@@ -383,6 +383,41 @@ export async function getConfig(
     odos: {
       router: "", // Odos doesn't work on localhost
     },
+    dLoop: {
+      dUSDAddress: dUSDDeployment?.address || "",
+      coreVaults: {
+        "3x_sFRAX_dUSD": {
+          venue: "dlend",
+          name: "Leveraged sFRAX-dUSD Vault",
+          symbol: "FRAX-dUSD-3x",
+          underlyingAsset: sfrxUSDDeployment?.address || "",
+          dStable: dUSDDeployment?.address || "",
+          targetLeverageBps: 300 * ONE_PERCENT_BPS, // 300% leverage, meaning 3x leverage
+          lowerBoundTargetLeverageBps: 200 * ONE_PERCENT_BPS, // 200% leverage, meaning 2x leverage
+          upperBoundTargetLeverageBps: 400 * ONE_PERCENT_BPS, // 400% leverage, meaning 4x leverage
+          maxSubsidyBps: 2 * ONE_PERCENT_BPS, // 2% subsidy
+          extraParams: {
+            targetStaticATokenWrapper:
+              dLendATokenWrapperDUSDDeployment?.address,
+            exchangeAsset: dUSDDeployment?.address || "",
+            treasury: user1,
+            maxTreasuryFeeBps: 1000,
+            initialTreasuryFeeBps: 500,
+            initialExchangeThreshold: "100",
+          },
+        },
+      },
+      depositors: {
+        odos: {
+          router: "", // Odos doesn't work on localhost
+        },
+      },
+      redeemers: {
+        odos: {
+          router: "", // Odos doesn't work on localhost
+        },
+      },
+    },
     dStake: {
       sdUSD: {
         dStable: emptyStringIfUndefined(dUSDDeployment?.address),

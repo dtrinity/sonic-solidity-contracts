@@ -156,7 +156,14 @@ export async function getConfig(
           lowerBoundTargetLeverageBps: 200 * ONE_PERCENT_BPS, // 200% leverage, meaning 2x leverage
           upperBoundTargetLeverageBps: 400 * ONE_PERCENT_BPS, // 400% leverage, meaning 4x leverage
           maxSubsidyBps: 2 * ONE_PERCENT_BPS, // 2% subsidy
-          extraParams: {},
+          extraParams: {
+            targetStaticATokenWrapper: "",
+            exchangeAsset: dUSDDeployment?.address || "",
+            treasury: "0x0000000000000000000000000000000000000000",
+            maxTreasuryFeeBps: 1000,
+            initialTreasuryFeeBps: 500,
+            initialExchangeThreshold: "100",
+          },
         },
       },
       depositors: {

@@ -44,6 +44,16 @@ export async function getConfig(
 
   const odoRouterV2Address = "0xaC041Df48dF9791B0654f1Dbbf2CC8450C5f2e9D"; // OdoRouterV2
 
+  const dLendATokenWrapperDUSDDeployment = await _hre.deployments.getOrNull(
+    "dLend_ATokenWrapper_dUSD",
+  );
+
+  const { feeTreasury } = await _hre.getNamedAccounts();
+
+  if (!feeTreasury) {
+    throw new Error("Fee treasury address not found");
+  }
+
   return {
     tokenAddresses: {
       dUSD: emptyStringIfUndefined(dUSDDeployment?.address),
@@ -87,7 +97,15 @@ export async function getConfig(
           lowerBoundTargetLeverageBps: 200 * ONE_PERCENT_BPS, // 200% leverage, meaning 2x leverage
           upperBoundTargetLeverageBps: 400 * ONE_PERCENT_BPS, // 400% leverage, meaning 4x leverage
           maxSubsidyBps: 2 * ONE_PERCENT_BPS, // 2% subsidy
-          extraParams: {},
+          extraParams: {
+            targetStaticATokenWrapper:
+              dLendATokenWrapperDUSDDeployment?.address,
+            exchangeAsset: dUSDDeployment?.address || "",
+            treasury: feeTreasury,
+            maxTreasuryFeeBps: 1000,
+            initialTreasuryFeeBps: 500,
+            initialExchangeThreshold: "100",
+          },
         },
       },
       depositors: {
