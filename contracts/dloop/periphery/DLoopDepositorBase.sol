@@ -54,6 +54,8 @@ abstract contract DLoopDepositorBase is
     /* Core state */
 
     IERC3156FlashLender public immutable flashLender;
+    // If the token is not in the mapping, the min value is 0
+    mapping(address => uint256) public minLeftoverDebtTokenAmount;
 
     /* Errors */
 
@@ -79,6 +81,18 @@ abstract contract DLoopDepositorBase is
         uint256 debtTokenReceived,
         uint256 debtTokenUsed,
         uint256 flashLoanFee
+    );
+
+    /* Events */
+
+    event LeftoverDebtTokensTransferred(
+        address indexed dLoopCore,
+        address indexed debtToken,
+        uint256 amount
+    );
+    event MinLeftoverDebtTokenAmountSet(
+        address indexed debtToken,
+        uint256 minAmount
     );
 
     /* Structs */
@@ -122,6 +136,7 @@ abstract contract DLoopDepositorBase is
         // The remaining amount of collateral token will be flash loaned from the flash lender
         // to reach the leveraged amount
         ERC20 collateralToken = dLoopCore.collateralToken();
+        ERC20 debtToken = dLoopCore.debtToken();
         collateralToken.safeTransferFrom(msg.sender, address(this), assets);
 
         // Create the flash loan params data
@@ -133,8 +148,9 @@ abstract contract DLoopDepositorBase is
             dLoopCore
         );
         bytes memory data = _encodeParamsToData(params);
-        address debtToken = address(dLoopCore.debtToken());
-        uint256 maxFlashLoanAmount = flashLender.maxFlashLoan(debtToken);
+        uint256 maxFlashLoanAmount = flashLender.maxFlashLoan(
+            address(debtToken)
+        );
 
         // This value is used to check if the shares increased after the flash loan
         uint256 sharesBeforeDeposit = dLoopCore.balanceOf(address(this));
@@ -143,11 +159,16 @@ abstract contract DLoopDepositorBase is
         ERC20(debtToken).forceApprove(
             address(flashLender),
             maxFlashLoanAmount +
-                flashLender.flashFee(debtToken, maxFlashLoanAmount)
+                flashLender.flashFee(address(debtToken), maxFlashLoanAmount)
         );
 
         // The main logic will be done in the onFlashLoan function
-        flashLender.flashLoan(this, debtToken, maxFlashLoanAmount, data);
+        flashLender.flashLoan(
+            this,
+            address(debtToken),
+            maxFlashLoanAmount,
+            data
+        );
 
         // The received debt token after deposit was used to repay the flash loan
 
@@ -172,6 +193,21 @@ abstract contract DLoopDepositorBase is
             revert ReceivedSharesNotMetMinReceiveAmount(
                 shares,
                 minOutputShares
+            );
+        }
+
+        // There is no leftover collateral token, as all swapped collateral token
+        // (using flash loaned debt token) is used to deposit to the core contract
+
+        // Handle any leftover debt tokens and transfer them to the dLoopCore contract
+        uint256 leftoverAmount = debtToken.balanceOf(address(this));
+        if (leftoverAmount > minLeftoverDebtTokenAmount[address(debtToken)]) {
+            // Transfer any leftover debt tokens to the core contract
+            debtToken.safeTransfer(address(dLoopCore), leftoverAmount);
+            emit LeftoverDebtTokensTransferred(
+                address(dLoopCore),
+                address(debtToken),
+                leftoverAmount
             );
         }
 
@@ -218,7 +254,13 @@ abstract contract DLoopDepositorBase is
             .leveragedCollateralAmount -
             flashLoanParams.depositCollateralAmount;
 
-        // Swap the flash loan debt token to the collateral token
+        /**
+         * Swap the flash loan debt token to the collateral token
+         *
+         * Slippage protection is not needed here as the debt token to be used
+         * is from flash loan, which is required to repay the flash loan later
+         * Otherwise, the flash loan will be reverted
+         */
         uint256 debtTokenAmountUsedInSwap = _swapExactOutput(
             debtToken,
             collateralToken,
@@ -283,6 +325,21 @@ abstract contract DLoopDepositorBase is
 
         // Return the success bytes
         return FLASHLOAN_CALLBACK;
+    }
+
+    /* Setters */
+
+    /**
+     * @dev Sets the minimum leftover debt token amount for a given debt token
+     * @param debtToken Address of the debt token
+     * @param minAmount Minimum leftover debt token amount for the given debt token
+     */
+    function setMinLeftoverDebtTokenAmount(
+        address debtToken,
+        uint256 minAmount
+    ) external nonReentrant onlyOwner {
+        minLeftoverDebtTokenAmount[debtToken] = minAmount;
+        emit MinLeftoverDebtTokenAmountSet(debtToken, minAmount);
     }
 
     /* Data encoding/decoding helpers */

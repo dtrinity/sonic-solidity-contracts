@@ -54,6 +54,8 @@ abstract contract DLoopRedeemerBase is
     /* Core state */
 
     IERC3156FlashLender public immutable flashLender;
+    // If the token is not in the mapping, the min value is 0
+    mapping(address => uint256) public minLeftoverCollateralTokenAmount;
 
     /* Errors */
 
@@ -84,6 +86,18 @@ abstract contract DLoopRedeemerBase is
     error WithdrawnCollateralTokenAmountNotMetMinReceiveAmount(
         uint256 withdrawnCollateralTokenAmount,
         uint256 minReceiveCollateralTokenAmount
+    );
+
+    /* Events */
+
+    event LeftoverCollateralTokenTransferred(
+        address indexed dLoopCore,
+        address indexed collateralToken,
+        uint256 amount
+    );
+    event MinLeftoverCollateralTokenAmountSet(
+        address indexed collateralToken,
+        uint256 minAmount
     );
 
     /* Structs */
@@ -215,6 +229,28 @@ abstract contract DLoopRedeemerBase is
             );
         }
 
+        // There is no leftover debt token, as all flash loaned debt token is used to repay the debt
+        // when calling the redeem() function
+
+        // Handle any leftover collateral token and transfer them to the dLoopCore contract
+        uint256 leftoverCollateralTokenAmount = collateralToken.balanceOf(
+            address(this)
+        );
+        if (
+            leftoverCollateralTokenAmount >
+            minLeftoverCollateralTokenAmount[address(collateralToken)]
+        ) {
+            collateralToken.safeTransfer(
+                address(dLoopCore),
+                leftoverCollateralTokenAmount
+            );
+            emit LeftoverCollateralTokenTransferred(
+                address(dLoopCore),
+                address(collateralToken),
+                leftoverCollateralTokenAmount
+            );
+        }
+
         // Transfer the received collateral token to the receiver
         collateralToken.safeTransfer(receiver, receivedCollateralTokenAmount);
 
@@ -288,7 +324,15 @@ abstract contract DLoopRedeemerBase is
         }
         uint256 debtTokenUsed = debtTokenBalanceBefore - debtTokenBalanceAfter;
 
-        // Swap the collateral token to the debt token to repay the flash loan
+        /**
+         * Swap the collateral token to the debt token to repay the flash loan
+         *
+         * Slippage protection is not needed here as the received collateral token
+         * will be protected by the minOutputCollateralAmount of the redeem() function
+         * - It means, if the swap has too high slippage, the final output collateral token
+         *   amount will be less than the minOutputCollateralAmount, which will be reverted
+         *   by the redeem() function
+         */
         _swapExactOutput(
             collateralToken,
             debtToken,
@@ -304,6 +348,21 @@ abstract contract DLoopRedeemerBase is
 
         // Return the success bytes
         return FLASHLOAN_CALLBACK;
+    }
+
+    /* Setters */
+
+    /**
+     * @dev Sets the minimum leftover collateral token amount for a given collateral token
+     * @param collateralToken Address of the collateral token
+     * @param minAmount Minimum leftover collateral token amount for the given collateral token
+     */
+    function setMinLeftoverCollateralTokenAmount(
+        address collateralToken,
+        uint256 minAmount
+    ) external nonReentrant onlyOwner {
+        minLeftoverCollateralTokenAmount[collateralToken] = minAmount;
+        emit MinLeftoverCollateralTokenAmountSet(collateralToken, minAmount);
     }
 
     /* Data encoding/decoding helpers */
