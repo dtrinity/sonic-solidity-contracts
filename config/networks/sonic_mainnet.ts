@@ -44,9 +44,9 @@ export async function getConfig(
 
   const odoRouterV2Address = "0xaC041Df48dF9791B0654f1Dbbf2CC8450C5f2e9D"; // OdoRouterV2
 
-  const dLendATokenWrapperDUSDDeployment = await _hre.deployments.getOrNull(
-    "dLend_ATokenWrapper_dUSD",
-  );
+  // const dLendATokenWrapperDUSDDeployment = await _hre.deployments.getOrNull(
+  //   "dLend_ATokenWrapper_dUSD",
+  // );
 
   const { feeTreasury } = await _hre.getNamedAccounts();
 
@@ -98,12 +98,14 @@ export async function getConfig(
           upperBoundTargetLeverageBps: 400 * ONE_PERCENT_BPS, // 400% leverage, meaning 4x leverage
           maxSubsidyBps: 2 * ONE_PERCENT_BPS, // 2% subsidy
           extraParams: {
+            // targetStaticATokenWrapper:
+            //   dLendATokenWrapperDUSDDeployment?.address,
             targetStaticATokenWrapper:
-              dLendATokenWrapperDUSDDeployment?.address,
+              "0x0000000000000000000000000000000000000000", // TODO: add real targetStaticATokenWrapper address
             exchangeAsset: dUSDDeployment?.address || "",
             treasury: feeTreasury,
-            maxTreasuryFeeBps: 1000,
-            initialTreasuryFeeBps: 500,
+            maxTreasuryFeeBps: "1000",
+            initialTreasuryFeeBps: "500",
             initialExchangeThreshold: "100",
           },
         },

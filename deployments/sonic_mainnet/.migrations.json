@@ -48,10 +48,9 @@
   "point-usd-oracle-aggregator-for-usd": 1746520591,
   "ChainlinkDecimalConverter_wstkscUSD": 1746529362,
   "add-wstkscUSD-reserve": 1746597765,
-  "DLoopCoreDLend": 1747222569,
   "OdosSwapLogic": 1747222570,
-  "DLoopDepositorOdos": 1747222570,
-  "DLoopWithdrawerOdos": 1747222571,
-  "DLoopRedeemerOdos": 1748367876,
-  "transfer_oracle_wrapper_roles_to_multisig": 1747057583
+  "transfer_oracle_wrapper_roles_to_multisig": 1747057583,
+  "DLoopCoreDLend": 1748469592,
+  "DLoopDepositorOdos": 1748469595,
+  "DLoopRedeemerOdos": 1748469599
 }

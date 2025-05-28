@@ -53,6 +53,8 @@ const config: HardhatUserConfig = {
     user3: 3,
     user4: 4,
     user5: 5,
+    feeTreasury: 0,
+    dloopDeployer: 0,
   },
   paths: {
     sources: "./contracts",

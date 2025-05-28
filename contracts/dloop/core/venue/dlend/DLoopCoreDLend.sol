@@ -52,8 +52,6 @@ contract DLoopCoreDLend is DLoopCoreBase, RewardClaimable {
 
     /* Errors */
 
-    error ZeroRewardTokens();
-    error ZeroReceiverAddress();
     error ZeroAddress();
 
     /**

@@ -49,15 +49,34 @@ test.hardhat: ## Run the hardhat tests
 deploy: ## Deploy the contracts
 	@yarn hardhat deploy
 
-deploy.dloop:
-	@if [ -z "$(network)" ]; then \
-		echo "Error: network is not set"; \
-		exit 1; \
-	fi
-	yarn hardhat deploy --tags dloop --network $(network);
-
 deploy.dloop.sonic_mainnet: network=sonic_mainnet
 deploy.dloop.sonic_mainnet: deploy.dloop
+
+deploy.dloop.sonic_mainnet.reset: reset=true
+deploy.dloop.sonic_mainnet.reset: deployment_keywords=DLoop
+deploy.dloop.sonic_mainnet.reset: deploy.dloop.sonic_mainnet
+
+deploy.dloop.sonic_testnet: network=sonic_testnet
+deploy.dloop.sonic_testnet: deploy.dloop
+
+deploy.dloop.sonic_testnet.reset: reset=true
+deploy.dloop.sonic_testnet.reset: deployment_keywords=DLoop
+deploy.dloop.sonic_testnet.reset: deploy.dloop.sonic_testnet
+
+deploy.dloop:
+	@if [ "$(network)" = "" ]; then \
+		echo "Must provide 'network' argument"; \
+		exit 1; \
+	fi
+	@if [ "$(reset)" = "true" ]; then \
+		if [ "$(deployment_keywords)" = "" ]; then \
+			echo "Must provide 'deployment_keywords' argument when reset=true"; \
+			exit 1; \
+		fi; \
+		echo "Resetting deployments for $(network)"; \
+		./scripts/sh/clean-deployments.sh $(deployment_keywords) $(network); \
+	fi
+	@yarn hardhat deploy --tags dloop --network $(network)
 
 ####################
 ## Block explorer ##
@@ -85,3 +104,4 @@ clean: ## When renaming directories or files, run this to clean up
 	@echo "Cleaned solidity cache and artifacts. Remember to recompile."
 
 .PHONY: help compile test deploy clean
+
