@@ -93,11 +93,11 @@ contract DLoopCoreDLend is DLoopCoreBase {
     }
 
     /**
-     * @dev Gets the restricted rescue tokens
-     * @return address[] Restricted rescue tokens
+     * @inheritdoc DLoopCoreBase
+     * @return address[] Additional rescue tokens
      */
-    function getRestrictedRescueTokens()
-        public
+    function _getAdditionalRescueTokensImplementation()
+        internal
         view
         override
         returns (address[] memory)
@@ -105,11 +105,11 @@ contract DLoopCoreDLend is DLoopCoreBase {
         DataTypes.ReserveData memory reserveData = _getReserveData(
             address(collateralToken)
         );
-        address[] memory restrictedRescueTokens = new address[](3);
-        restrictedRescueTokens[0] = reserveData.aTokenAddress;
-        restrictedRescueTokens[1] = reserveData.variableDebtTokenAddress;
-        restrictedRescueTokens[2] = reserveData.stableDebtTokenAddress;
-        return restrictedRescueTokens;
+        address[] memory additionalRescueTokens = new address[](3);
+        additionalRescueTokens[0] = reserveData.aTokenAddress;
+        additionalRescueTokens[1] = reserveData.variableDebtTokenAddress;
+        additionalRescueTokens[2] = reserveData.stableDebtTokenAddress;
+        return additionalRescueTokens;
     }
 
     /**

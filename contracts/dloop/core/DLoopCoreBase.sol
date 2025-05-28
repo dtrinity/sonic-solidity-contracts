@@ -237,6 +237,19 @@ abstract contract DLoopCoreBase is
         returns (uint256 totalCollateralBase, uint256 totalDebtBase);
 
     /**
+     * @dev Gets the additional rescue tokens
+     *      - As the getRestrictedRescueTokens function is very critical and we do not
+     *        want to override it in the derived contracts, we use this function to
+     *        get the additional rescue tokens
+     * @return address[] Additional rescue tokens
+     */
+    function _getAdditionalRescueTokensImplementation()
+        internal
+        view
+        virtual
+        returns (address[] memory);
+
+    /**
      * @dev Gets the asset price from the oracle
      * @param asset Address of the asset
      * @return uint256 Price of the asset
@@ -455,6 +468,37 @@ abstract contract DLoopCoreBase is
                 amount
             );
         }
+    }
+
+    /* Safety */
+
+    /**
+     * @dev Gets the restricted rescue tokens
+     * @return address[] Restricted rescue tokens
+     */
+    function getRestrictedRescueTokens()
+        public
+        view
+        override
+        returns (address[] memory)
+    {
+        // Get the additional rescue tokens from the derived contract
+        address[]
+            memory additionalRescueTokens = _getAdditionalRescueTokensImplementation();
+
+        // Restrict the rescue tokens to the collateral token and the debt token
+        // as they are going to be used to compensate subsidies during the rebalance
+        address[] memory restrictedRescueTokens = new address[](
+            2 + additionalRescueTokens.length
+        );
+        restrictedRescueTokens[0] = address(collateralToken);
+        restrictedRescueTokens[1] = address(debtToken);
+
+        // Concatenate the restricted rescue tokens and the additional rescue tokens
+        for (uint256 i = 0; i < additionalRescueTokens.length; i++) {
+            restrictedRescueTokens[2 + i] = additionalRescueTokens[i];
+        }
+        return restrictedRescueTokens;
     }
 
     /* Helper Functions */
