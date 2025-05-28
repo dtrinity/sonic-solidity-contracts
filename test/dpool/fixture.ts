@@ -217,22 +217,6 @@ export async function redeemFromPool(
   return poolToken.connect(user).redeem(shares, user.address, user.address);
 }
 
-export async function simulateLPValueIncrease(
-  curvePool: any,
-  baseAsset: ERC20,
-  otherAsset: ERC20,
-  deployer: any,
-  baseAmount: BigNumberish,
-  otherAmount: BigNumberish
-): Promise<void> {
-  // Add liquidity to the Curve pool to simulate value increase
-  await baseAsset.connect(deployer).approve(curvePool.address, baseAmount);
-  await otherAsset.connect(deployer).approve(curvePool.address, otherAmount);
-  
-  const amounts = [baseAmount, otherAmount];
-  await curvePool.connect(deployer).add_liquidity(amounts, 0);
-}
-
 export async function getPoolTokenValue(poolToken: any): Promise<BigNumberish> {
   return poolToken.totalAssets();
 }

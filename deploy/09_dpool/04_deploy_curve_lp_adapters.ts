@@ -12,7 +12,9 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   // Skip if no dPool config
   if (!config.dPool) {
-    console.log("No dPool configuration found, skipping CurveLPAdapter deployment");
+    console.log(
+      "No dPool configuration found, skipping CurveLPAdapter deployment",
+    );
     return;
   }
 
@@ -21,9 +23,10 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     console.log(`\n--- Deploying CurveLPAdapters for ${dPoolName} ---`);
 
     // Get base asset address
-    const baseAssetAddress = config.tokenAddresses[
-      dPoolConfig.baseAsset as keyof typeof config.tokenAddresses
-    ];
+    const baseAssetAddress =
+      config.tokenAddresses[
+        dPoolConfig.baseAsset as keyof typeof config.tokenAddresses
+      ];
 
     if (!baseAssetAddress) {
       console.log(
@@ -40,7 +43,9 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     try {
       collateralVaultDeployment = await get(collateralVaultName);
     } catch (error) {
-      console.log(`⚠️  Failed to get DPoolCollateralVault deployment ${collateralVaultName}: ${error}`);
+      console.log(
+        `⚠️  Failed to get DPoolCollateralVault deployment ${collateralVaultName}: ${error}`,
+      );
       console.log(
         `⚠️  Skipping ${dPoolName}: DPoolCollateralVault not found (${collateralVaultName})`,
       );
@@ -59,20 +64,29 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
         try {
           const curvePoolDeployment = await get(poolName);
           curvePoolAddress = curvePoolDeployment.address;
-          console.log(`📋 Using deployed mock pool ${poolName}: ${curvePoolAddress}`);
+          console.log(
+            `📋 Using deployed mock pool ${poolName}: ${curvePoolAddress}`,
+          );
         } catch (error) {
-          console.log(`⚠️  Skipping adapter for ${poolName}: Pool address not configured and deployment not found`);
+          console.log(`There is an error: ${error}`);
+          console.log(
+            `⚠️  Skipping adapter for ${poolName}: Pool address not configured and deployment not found`,
+          );
           continue;
         }
       } else {
-        console.log(`🔗 Using configured external pool ${poolName}: ${curvePoolAddress}`);
+        console.log(
+          `🔗 Using configured external pool ${poolName}: ${curvePoolAddress}`,
+        );
       }
 
       const adapterName = `CurveLPAdapter_${poolConfig.name}`;
 
       console.log(`Deploying CurveLPAdapter: ${adapterName}`);
       console.log(`  Curve Pool: ${curvePoolAddress}`);
-      console.log(`  Base Asset (${dPoolConfig.baseAsset}): ${baseAssetAddress}`);
+      console.log(
+        `  Base Asset (${dPoolConfig.baseAsset}): ${baseAssetAddress}`,
+      );
       console.log(`  Collateral Vault: ${collateralVaultDeployment.address}`);
 
       const adapter = await deploy(adapterName, {
@@ -90,7 +104,9 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       if (adapter.newlyDeployed) {
         console.log(`✅ Deployed ${adapterName} at: ${adapter.address}`);
       } else {
-        console.log(`♻️  Reusing existing ${adapterName} at: ${adapter.address}`);
+        console.log(
+          `♻️  Reusing existing ${adapterName} at: ${adapter.address}`,
+        );
       }
     }
   }

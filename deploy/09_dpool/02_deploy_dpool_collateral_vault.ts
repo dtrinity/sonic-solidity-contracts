@@ -23,7 +23,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     console.log(`\n--- Deploying DPoolCollateralVault for ${dPoolName} ---`);
 
     // Get base asset address
-    const baseAssetAddress = config.tokenAddresses[
+    const baseAssetAddress =
+      config.tokenAddresses[
         dPoolConfig.baseAsset as keyof typeof config.tokenAddresses
       ];
 
@@ -42,8 +43,12 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     try {
       poolTokenDeployment = await get(tokenName);
     } catch (error) {
-      console.log(`⚠️  Failed to get DPoolToken deployment ${tokenName}: ${error}`);
-      console.log(`⚠️  Skipping ${dPoolName}: DPoolToken not found (${tokenName})`);
+      console.log(
+        `⚠️  Failed to get DPoolToken deployment ${tokenName}: ${error}`,
+      );
+      console.log(
+        `⚠️  Skipping ${dPoolName}: DPoolToken not found (${tokenName})`,
+      );
       continue;
     }
 
@@ -65,7 +70,9 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     });
 
     if (collateralVault.newlyDeployed) {
-      console.log(`✅ Deployed ${collateralVaultName} at: ${collateralVault.address}`);
+      console.log(
+        `✅ Deployed ${collateralVaultName} at: ${collateralVault.address}`,
+      );
     } else {
       console.log(
         `♻️  Reusing existing ${collateralVaultName} at: ${collateralVault.address}`,

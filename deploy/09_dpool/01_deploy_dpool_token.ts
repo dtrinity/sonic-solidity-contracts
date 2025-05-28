@@ -21,7 +21,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     console.log(`\n--- Deploying DPoolToken for ${dPoolName} ---`);
 
     // Get base asset address
-    const baseAssetAddress = config.tokenAddresses[
+    const baseAssetAddress =
+      config.tokenAddresses[
         dPoolConfig.baseAsset as keyof typeof config.tokenAddresses
       ];
 
@@ -32,7 +33,11 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       continue;
     }
 
-    if (!dPoolConfig.initialAdmin || !dPoolConfig.initialFeeManager || !dPoolConfig.maxWithdrawalFeeBps) {
+    if (
+      !dPoolConfig.initialAdmin ||
+      !dPoolConfig.initialFeeManager ||
+      !dPoolConfig.maxWithdrawalFeeBps
+    ) {
       console.log(
         `⚠️  Skipping ${dPoolName}: missing required configuration values`,
       );

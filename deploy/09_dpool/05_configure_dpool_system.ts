@@ -12,7 +12,9 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   // Skip if no dPool config
   if (!config.dPool) {
-    console.log("No dPool configuration found, skipping dPOOL system configuration");
+    console.log(
+      "No dPool configuration found, skipping dPOOL system configuration",
+    );
     return;
   }
 
@@ -42,7 +44,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     const initialFeeManager = dPoolConfig.initialFeeManager;
 
     const adminSigner = initialAdmin === deployer ? deployer : initialAdmin;
-    const feeManagerSigner = initialFeeManager === deployer ? deployer : initialFeeManager;
+    const feeManagerSigner =
+      initialFeeManager === deployer ? deployer : initialFeeManager;
 
     // Get contract instances (use deployer for read calls initially)
     const poolToken = await ethers.getContractAt(
@@ -199,7 +202,9 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
             console.log(`♻️  LP adapter already added to collateral vault`);
           }
         } catch (error) {
-          console.log(`⚠️  Failed to add LP adapter to collateral vault: ${error}`);
+          console.log(
+            `⚠️  Failed to add LP adapter to collateral vault: ${error}`,
+          );
           return false;
         }
 
@@ -208,7 +213,9 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
           firstLPToken = curvePoolDeployment.address;
         }
       } catch (error) {
-        console.log(`⚠️  Failed to configure adapter for ${poolConfig.name}: ${error}`);
+        console.log(
+          `⚠️  Failed to configure adapter for ${poolConfig.name}: ${error}`,
+        );
         console.log(
           `⚠️  Skipping adapter configuration for ${poolConfig.name}: deployment not found`,
         );
@@ -244,7 +251,9 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       if (
         currentSlippage.toString() !== dPoolConfig.initialSlippageBps.toString()
       ) {
-        console.log(`Setting max slippage to ${dPoolConfig.initialSlippageBps} BPS...`);
+        console.log(
+          `Setting max slippage to ${dPoolConfig.initialSlippageBps} BPS...`,
+        );
         const tx8 = await router
           .connect(await ethers.getSigner(deployer))
           .setMaxSlippageBps(dPoolConfig.initialSlippageBps);
@@ -270,10 +279,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
         console.log(`Granting DPOOL_TOKEN_ROLE to DPoolToken in router...`);
         const tx9 = await router
           .connect(await ethers.getSigner(deployer))
-          .grantRole(
-            DPOOL_TOKEN_ROLE,
-            poolTokenDeployment.address,
-          );
+          .grantRole(DPOOL_TOKEN_ROLE, poolTokenDeployment.address);
         await tx9.wait();
         console.log(`✅ DPOOL_TOKEN_ROLE granted`);
       } else {
@@ -291,7 +297,12 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 };
 
 func.tags = ["dpool", "dpool-configure"];
-func.dependencies = ["dpool-token", "dpool-collateral-vault", "dpool-router", "dpool-adapters"];
+func.dependencies = [
+  "dpool-token",
+  "dpool-collateral-vault",
+  "dpool-router",
+  "dpool-adapters",
+];
 func.runAtTheEnd = true; // Ensure this runs after all other deployments
 
 export default func;

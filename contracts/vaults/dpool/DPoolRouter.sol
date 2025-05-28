@@ -146,8 +146,7 @@ contract DPoolRouter is IDPoolRouter, AccessControl {
         // 1. Calculate required LP tokens for desired base asset amount
         uint256 requiredLPAmount = _calculateRequiredLPTokens(
             adapter,
-            baseAssetAmount,
-            maxSlippage
+            baseAssetAmount
         );
 
         // 2. Pull LP tokens from collateral vault
@@ -299,27 +298,56 @@ contract DPoolRouter is IDPoolRouter, AccessControl {
     }
 
     /**
-     * @notice Calculates required LP tokens for withdrawal with slippage consideration
+     * @notice Calculates required LP tokens for withdrawal with precision buffer
      * @param adapter The LP adapter to use for calculations
      * @param baseAssetAmount Target base asset amount to withdraw
-     * @param maxSlippage Maximum allowed slippage in basis points
      * @return requiredLPAmount Amount of LP tokens needed
      */
     function _calculateRequiredLPTokens(
         IDPoolLPAdapter adapter,
-        uint256 baseAssetAmount,
-        uint256 maxSlippage
+        uint256 baseAssetAmount
     ) internal view returns (uint256 requiredLPAmount) {
-        // Preview how many LP tokens we need for the target base asset amount
-        (, uint256 previewLPAmount) = adapter.previewConvertToLP(
-            baseAssetAmount
+        address lpToken = adapter.lpToken();
+
+        // Get current LP balance in the collateral vault
+        uint256 currentLPBalance = IERC20(lpToken).balanceOf(collateralVault);
+
+        if (currentLPBalance == 0) {
+            return 0;
+        }
+
+        // Get total assets that could be withdrawn from current LP balance
+        uint256 totalAssetsAvailable = adapter.previewConvertFromLP(
+            currentLPBalance
         );
 
-        // Add slippage buffer to ensure we have enough LP tokens
+        if (totalAssetsAvailable == 0) {
+            return 0;
+        }
+
+        // If requesting more than available, cap to what's available
+        if (baseAssetAmount > totalAssetsAvailable) {
+            baseAssetAmount = totalAssetsAvailable;
+        }
+
+        // Use proportional calculation: lpTokensNeeded = (requestedAssets * currentLPBalance) / totalAvailableAssets
+        uint256 lpTokensNeeded = (baseAssetAmount * currentLPBalance) /
+            totalAssetsAvailable;
+
+        // Add a minimal slippage buffer only if the proportional calculation might have precision issues
+        // Use a smaller buffer (0.1%) for precision rather than market slippage
+        uint256 precisionBuffer = BasisPointConstants.ONE_HUNDRED_PERCENT_BPS /
+            1000; // 0.1%
         requiredLPAmount =
-            (previewLPAmount *
-                (BasisPointConstants.ONE_HUNDRED_PERCENT_BPS + maxSlippage)) /
+            (lpTokensNeeded *
+                (BasisPointConstants.ONE_HUNDRED_PERCENT_BPS +
+                    precisionBuffer)) /
             BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
+
+        // Revert if we don't have enough LP tokens available
+        if (requiredLPAmount > currentLPBalance) {
+            revert InsufficientLPTokens(requiredLPAmount, currentLPBalance);
+        }
 
         return requiredLPAmount;
     }
