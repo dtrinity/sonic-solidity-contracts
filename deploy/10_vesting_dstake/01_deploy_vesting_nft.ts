@@ -23,6 +23,14 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   }
 
   // Validate configuration
+  if (!config.vesting.name || config.vesting.name.trim() === "") {
+    throw new Error("Missing or invalid name in vesting configuration");
+  }
+
+  if (!config.vesting.symbol || config.vesting.symbol.trim() === "") {
+    throw new Error("Missing or invalid symbol in vesting configuration");
+  }
+
   if (
     !config.vesting.dstakeToken ||
     config.vesting.dstakeToken === ethers.ZeroAddress
@@ -54,6 +62,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     from: deployer,
     contract: "ERC20VestingNFT",
     args: [
+      config.vesting.name,
+      config.vesting.symbol,
       config.vesting.dstakeToken,
       config.vesting.vestingPeriod,
       config.vesting.maxTotalSupply,

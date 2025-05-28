@@ -177,6 +177,8 @@ export interface DStakeInstanceConfig {
 }
 
 export interface VestingConfig {
+  readonly name: string; // Name of the NFT collection
+  readonly symbol: string; // Symbol of the NFT collection
   readonly dstakeToken: Address; // Address of the dSTAKE token to vest
   readonly vestingPeriod: number; // Vesting period in seconds (e.g., 6 months)
   readonly maxTotalSupply: string; // Maximum total dSTAKE that can be deposited (as string for big numbers)

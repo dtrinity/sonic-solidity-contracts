@@ -466,6 +466,8 @@ export async function getConfig(
       },
     },
     vesting: {
+      name: "dBOOST sdUSD Season 1",
+      symbol: "sdUSD-S1",
       dstakeToken: emptyStringIfUndefined(sdUSDDeployment?.address), // Use sdUSD as the vesting token
       vestingPeriod: 180 * 24 * 60 * 60, // 6 months in seconds
       maxTotalSupply: "1000000000000000000000000", // 1 million tokens (1e6 * 1e18)

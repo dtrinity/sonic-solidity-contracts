@@ -84,17 +84,21 @@ contract ERC20VestingNFT is ERC721, ERC721Enumerable, Ownable, ReentrancyGuard {
 
     /**
      * @notice Initialize the vesting NFT contract
+     * @param _name Name of the NFT collection
+     * @param _symbol Symbol of the NFT collection
      * @param _dstakeToken Address of the dSTAKE token
      * @param _vestingPeriod Vesting period in seconds (6 months)
      * @param _maxTotalSupply Maximum total dSTAKE that can be deposited
      * @param _initialOwner Initial owner of the contract
      */
     constructor(
+        string memory _name,
+        string memory _symbol,
         address _dstakeToken,
         uint256 _vestingPeriod,
         uint256 _maxTotalSupply,
         address _initialOwner
-    ) ERC721("dSTAKE Vesting NFT", "dVEST") Ownable(_initialOwner) {
+    ) ERC721(_name, _symbol) Ownable(_initialOwner) {
         if (_dstakeToken == address(0)) {
             revert ZeroAddress();
         }

@@ -39,6 +39,8 @@ const createVestingFixture = deployments.createFixture(
         from: deployer,
         contract: "ERC20VestingNFT",
         args: [
+          "Test dSTAKE Vesting NFT",
+          "TEST-dVEST",
           mockDStakeToken.address,
           VESTING_PERIOD,
           MAX_TOTAL_SUPPLY,
@@ -87,6 +89,8 @@ describe("ERC20VestingNFT", function () {
 
   describe("Contract Deployment & Initialization", function () {
     it("Should deploy with valid parameters", async function () {
+      expect(await vestingNFT.name()).to.equal("Test dSTAKE Vesting NFT");
+      expect(await vestingNFT.symbol()).to.equal("TEST-dVEST");
       expect(await vestingNFT.dstakeToken()).to.equal(
         await dstakeToken.getAddress()
       );
@@ -103,6 +107,8 @@ describe("ERC20VestingNFT", function () {
           from: deployer.address,
           contract: "ERC20VestingNFT",
           args: [
+            "Test Name",
+            "TEST",
             ZeroAddress,
             VESTING_PERIOD,
             MAX_TOTAL_SUPPLY,
@@ -120,6 +126,8 @@ describe("ERC20VestingNFT", function () {
 
       await expect(
         ERC20VestingNFTFactory.deploy(
+          "Test Name",
+          "TEST",
           await dstakeToken.getAddress(),
           VESTING_PERIOD,
           MAX_TOTAL_SUPPLY,
@@ -137,6 +145,8 @@ describe("ERC20VestingNFT", function () {
           from: deployer.address,
           contract: "ERC20VestingNFT",
           args: [
+            "Test Name",
+            "TEST",
             await dstakeToken.getAddress(),
             0,
             MAX_TOTAL_SUPPLY,
@@ -153,6 +163,8 @@ describe("ERC20VestingNFT", function () {
           from: deployer.address,
           contract: "ERC20VestingNFT",
           args: [
+            "Test Name",
+            "TEST",
             await dstakeToken.getAddress(),
             VESTING_PERIOD,
             0,
