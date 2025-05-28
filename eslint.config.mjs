@@ -24,14 +24,16 @@ const compat = new FlatCompat({
 export default [
   {
     ignores: [
-      "!**/.*",
       "**/contracts/",
       "**/node_modules/",
       "**/debug/",
       "**/typechain-types/",
       "**/.github/",
       "**/.yarn/",
+      "**/bot/**",
     ],
+  },
+  {
     files: [
       "*.ts",
       "*.js",
