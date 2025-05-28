@@ -26,6 +26,9 @@ export interface Config {
       odos: DLoopRedeemerOdosConfig;
     };
   };
+  readonly dStake?: {
+    [key: string]: DStakeInstanceConfig; // e.g., sdUSD, sdS
+  };
 }
 
 // Configuration for mocking infrastructure on local and test networks
@@ -42,6 +45,8 @@ export interface MockConfig {
 
 export interface DStableConfig {
   readonly collaterals: Address[];
+  readonly initialFeeReceiver?: string;
+  readonly initialRedemptionFeeBps?: number;
 }
 
 export interface DLoopCoreConfig {
@@ -166,4 +171,37 @@ export interface IReserveParams
   readonly reserveFactor: string;
   readonly supplyCap: string;
   readonly strategy: IInterestRateStrategyParams;
+}
+
+// --- dStake Types ---
+
+export interface DStakeAdapterConfig {
+  readonly vaultAsset: Address; // Address of the vault asset (e.g., wddUSD)
+  readonly adapterContract: string; // Contract name for deployment (e.g., dLendConversionAdapter)
+}
+
+export interface DLendRewardManagerConfig {
+  readonly managedVaultAsset: Address; // Address of the StaticATokenLM wrapper this manager handles (e.g. wddUSD)
+  readonly dLendAssetToClaimFor: Address; // Address of the underlying aToken in dLEND (e.g. aDUSD)
+  readonly dLendRewardsController: Address; // Address of the dLEND RewardsController
+  readonly treasury: Address; // Address for treasury fees
+  readonly maxTreasuryFeeBps: number;
+  readonly initialTreasuryFeeBps: number;
+  readonly initialExchangeThreshold: number; // Min dStable amount to trigger compounding
+  readonly initialAdmin?: Address; // Optional: admin for this DStakeRewardManagerDLend instance
+  readonly initialRewardsManager?: Address; // Optional: holder of REWARDS_MANAGER_ROLE for this instance
+}
+
+export interface DStakeInstanceConfig {
+  readonly dStable: Address; // Address of the underlying dSTABLE (e.g., dUSD)
+  readonly name: string; // Name for DStakeToken (e.g., "Staked dUSD")
+  readonly symbol: string; // Symbol for DStakeToken (e.g., "sdUSD")
+  readonly initialAdmin: Address;
+  readonly initialFeeManager: Address;
+  readonly initialWithdrawalFeeBps: number;
+  readonly adapters: DStakeAdapterConfig[]; // List of supported adapters/vault assets
+  readonly defaultDepositVaultAsset: Address; // Initial default vault asset for deposits
+  readonly collateralExchangers: Address[]; // List of allowed exchanger addresses
+  readonly collateralVault?: Address; // The DStakeCollateralVault for this instance (needed for adapter deployment)
+  readonly dLendRewardManager?: DLendRewardManagerConfig; // Added for dLend rewards
 }

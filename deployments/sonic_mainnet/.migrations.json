@@ -52,5 +52,6 @@
   "OdosSwapLogic": 1747222570,
   "DLoopDepositorOdos": 1747222570,
   "DLoopWithdrawerOdos": 1747222571,
-  "DLoopRedeemerOdos": 1748367876
+  "DLoopRedeemerOdos": 1748367876,
+  "transfer_oracle_wrapper_roles_to_multisig": 1747057583
 }

@@ -8,11 +8,9 @@ import "dotenv/config";
 
 import { HardhatUserConfig } from "hardhat/config";
 
-import {
-  getEnvPrivateKeys,
-  getStandardNamedAccounts,
-} from "./typescript/hardhat/named-accounts";
+import { getEnvPrivateKeys } from "./typescript/hardhat/named-accounts";
 
+/* eslint-disable camelcase -- Network names follow specific naming conventions that require snake_case */
 const config: HardhatUserConfig = {
   solidity: {
     version: "0.8.20",
@@ -24,7 +22,6 @@ const config: HardhatUserConfig = {
       viaIR: true,
     },
   },
-  /* eslint-disable camelcase -- Network names follow specific naming conventions that require snake_case */
   networks: {
     hardhat: {
       deploy: ["deploy-mocks", "deploy"],
@@ -48,9 +45,15 @@ const config: HardhatUserConfig = {
       saveDeployments: true,
       accounts: getEnvPrivateKeys("sonic_mainnet"),
     },
-    /* eslint-enable camelcase -- Re-enabling camelcase rule after network definitions */
   },
-  namedAccounts: getStandardNamedAccounts(),
+  namedAccounts: {
+    deployer: 0,
+    user1: 1,
+    user2: 2,
+    user3: 3,
+    user4: 4,
+    user5: 5,
+  },
   paths: {
     sources: "./contracts",
     tests: "./test",
@@ -84,5 +87,6 @@ const config: HardhatUserConfig = {
     enabled: false,
   },
 };
+/* eslint-enable camelcase -- Re-enabling camelcase rule after network definitions */
 
 export default config;

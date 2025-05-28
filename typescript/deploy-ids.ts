@@ -77,6 +77,8 @@ export const EMISSION_MANAGER_ID = "EmissionManager";
 export const INCENTIVES_IMPL_ID = "RewardsController";
 export const INCENTIVES_PROXY_ID = "IncentivesProxy";
 export const PULL_REWARDS_TRANSFER_STRATEGY_ID = "PullRewardsTransferStrategy";
+export const ORACLE_AGGREGATOR_WRAPPER_BASE_ID =
+  "oracle-aggregator-wrapper-base";
 
 // dLOOP
 export const DLOOP_CORE_DLEND_ID = "DLoopCoreDLend";
@@ -89,3 +91,30 @@ export const DLOOP_PERIPHERY_ODOS_SWAP_LOGIC_ID = "OdosSwapLogic";
 // Chainlink Oracle Converters
 export const CHAINLINK_DECIMAL_CONVERTER_WSTKSCUSD_ID =
   "ChainlinkDecimalConverter_wstkscUSD";
+
+// Wrapped dLEND ATokens
+export const DLEND_STATIC_A_TOKEN_FACTORY_ID = "dLend_StaticATokenFactory";
+export const DLEND_A_TOKEN_WRAPPER_PREFIX = "dLend_ATokenWrapper";
+export const DUSD_A_TOKEN_WRAPPER_ID = `${DLEND_A_TOKEN_WRAPPER_PREFIX}_dUSD`;
+export const DS_A_TOKEN_WRAPPER_ID = `${DLEND_A_TOKEN_WRAPPER_PREFIX}_dS`;
+
+// dSTAKE deployment tag
+export const DSTAKE_DEPLOYMENT_TAG = "dStake"; // Define the deployment tag
+
+// dSTAKE deploy ID prefixes
+export const DSTAKE_TOKEN_ID_PREFIX = "DStakeToken";
+export const DSTAKE_COLLATERAL_VAULT_ID_PREFIX = "DStakeCollateralVault";
+export const DSTAKE_ROUTER_ID_PREFIX = "DStakeRouter";
+
+// dSTAKE specific instance IDs
+export const SDUSD_DSTAKE_TOKEN_ID = `${DSTAKE_TOKEN_ID_PREFIX}_sdUSD`;
+export const SDUSD_COLLATERAL_VAULT_ID = `${DSTAKE_COLLATERAL_VAULT_ID_PREFIX}_sdUSD`;
+export const SDUSD_ROUTER_ID = `${DSTAKE_ROUTER_ID_PREFIX}_sdUSD`;
+
+export const SDS_DSTAKE_TOKEN_ID = `${DSTAKE_TOKEN_ID_PREFIX}_sdS`;
+export const SDS_COLLATERAL_VAULT_ID = `${DSTAKE_COLLATERAL_VAULT_ID_PREFIX}_sdS`;
+export const SDS_ROUTER_ID = `${DSTAKE_ROUTER_ID_PREFIX}_sdS`;
+
+// RedeemerWithFees
+export const DUSD_REDEEMER_WITH_FEES_CONTRACT_ID = "dUSD_RedeemerWithFees";
+export const DS_REDEEMER_WITH_FEES_CONTRACT_ID = "dS_RedeemerWithFees";
