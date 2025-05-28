@@ -106,8 +106,12 @@ contract DLoopCoreMock is DLoopCoreBase {
 
     // --- Overrides ---
 
-    function getRestrictedRescueTokens()
-        public
+    /**
+     * @inheritdoc DLoopCoreBase
+     * @return address[] Additional rescue tokens
+     */
+    function _getAdditionalRescueTokensImplementation()
+        internal
         pure
         override
         returns (address[] memory)

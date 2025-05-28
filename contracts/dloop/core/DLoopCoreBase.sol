@@ -479,6 +479,7 @@ abstract contract DLoopCoreBase is
     function getRestrictedRescueTokens()
         public
         view
+        virtual
         override
         returns (address[] memory)
     {
