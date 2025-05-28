@@ -974,14 +974,126 @@ abstract contract DLoopCoreBase is
     /* Rebalance */
 
     /**
-     * @dev Gets the rebalance amount to reach the target leverage in base currency
-     * @return tokenAmountInBase The amount of token to call increaseLeverage or decreaseLeverage (in base currency)
+     * @dev Gets the collateral token amount to reach the target leverage
+     * @param useVaultTokenBalance Whether to use the current token balance in the vault as the amount to rebalance
+     * @return collateralTokenAmount The collateral token amount to reach the target leverage
+     */
+    function _getCollateralTokenAmountToReachTargetLeverage(
+        bool useVaultTokenBalance
+    ) internal view returns (uint256) {
+        // The formula is at getAmountToReachTargetLeverage()
+
+        (
+            uint256 totalCollateralBase,
+            uint256 totalDebtBase
+        ) = getTotalCollateralAndDebtOfUserInBase(address(this));
+
+        uint256 subsidyBps = getCurrentSubsidyBps();
+
+        // Calculate the amount of collateral token to supply
+        uint256 requiredCollateralTokenAmountInBase =
+            (targetLeverageBps *
+                (totalCollateralBase - totalDebtBase) -
+                totalCollateralBase) /
+            (1 +
+                (targetLeverageBps * subsidyBps) /
+                BasisPointConstants.ONE_HUNDRED_PERCENT_BPS);
+
+        // Convert to token unit
+        uint256 requiredCollateralTokenAmount = convertFromBaseCurrencyToToken(
+            requiredCollateralTokenAmountInBase,
+            address(collateralToken)
+        );
+
+        if (useVaultTokenBalance) {
+            // Get the current collateral token balance in the vault to compensate the required collateral amount
+            // when increasing the leverage
+            uint256 collateralBalanceInVault = collateralToken.balanceOf(address(this));
+
+            // If the required collateral token amount is more than the collateral balance in the vault,
+            // the caller need to call increaseLeverage with the additional collateral token amount
+            if (requiredCollateralTokenAmount > collateralBalanceInVault) {
+                return requiredCollateralTokenAmount - collateralBalanceInVault;
+            }
+
+            // Otherwise, it is a free lunch, the user call increaseLeverage without having to pay
+            // for the collateral token
+            return 0;
+        }
+
+        // Otherwise, the user can call increaseLeverage with the required collateral token amount
+        return requiredCollateralTokenAmount;
+    }
+
+    /**
+     * @dev Gets the debt token amount to reach the target leverage
+     * @param useVaultTokenBalance Whether to use the current token balance in the vault as the amount to rebalance
+     * @return requiredDebtTokenAmount The debt token amount to reach the target leverage
+     */
+    function _getDebtTokenAmountToReachTargetLeverage(
+        bool useVaultTokenBalance
+    ) internal view returns (uint256) {
+        // The formula is at getAmountToReachTargetLeverage()
+
+        (
+            uint256 totalCollateralBase,
+            uint256 totalDebtBase
+        ) = getTotalCollateralAndDebtOfUserInBase(address(this));
+
+        uint256 subsidyBps = getCurrentSubsidyBps();
+
+        // Calculate the amount of debt token to repay
+        uint256 requiredDebtTokenAmountInBase =
+            (totalCollateralBase -
+                targetLeverageBps *
+                (totalCollateralBase - totalDebtBase)) /
+            (1 +
+                (targetLeverageBps * subsidyBps) /
+                BasisPointConstants.ONE_HUNDRED_PERCENT_BPS);
+
+        // Convert to token unit
+        uint256 requiredDebtTokenAmount = convertFromBaseCurrencyToToken(
+            requiredDebtTokenAmountInBase,
+            address(debtToken)
+        );
+
+        if (useVaultTokenBalance) {
+            // Get the current debt token balance in the vault to compensate the required debt amount
+            uint256 debtTokenBalanceInVault = debtToken.balanceOf(address(this));
+
+            // If the required debt token amount is more than the debt token balance in the vault,
+            // the caller need to call decreaseLeverage with the additional debt token amount
+            if (requiredDebtTokenAmount > debtTokenBalanceInVault) {
+                return requiredDebtTokenAmount - debtTokenBalanceInVault;
+            }
+
+            // Otherwise, it is a free lunch, the user call decreaseLeverage without having to pay
+            // for the debt token
+            return 0;
+        }
+
+        // Otherwise, the user can call decreaseLeverage with the required debt token amount
+        return requiredDebtTokenAmount;
+    }
+
+    /**
+     * @dev Gets the rebalance amount to reach the target leverage in token unit
+     *      - This method is supposed to be used by the rebalancing service which will use it to quote the required
+     *        collateral/debt amount and the corresponding direction (increase or decrease)
+     * @param useVaultTokenBalance Whether to use the current token balance in the vault as the amount to rebalance
+     *      - It will help to save the additional collateral/debt token transfer from the caller to the vault, while getting
+     *        the same effect as calling increaseLeverage or decreaseLeverage with the required collateral/debt token amount
+     * @return tokenAmount The amount of token to call increaseLeverage or decreaseLeverage (in token unit)
+     *         - If the direction is 1, the amount is in collateral token
+     *         - If the direction is -1, the amount is in debt token
      * @return direction The direction of the rebalance (1 for increase, -1 for decrease, 0 means no rebalance)
      */
-    function getAmountToReachTargetLeverageInBase()
+    function getAmountToReachTargetLeverage(
+        bool useVaultTokenBalance
+    )
         public
         view
-        returns (uint256 tokenAmountInBase, int8 direction)
+        returns (uint256 tokenAmount, int8 direction)
     {
         /**
          * Formula definition:
@@ -1010,36 +1122,15 @@ abstract contract DLoopCoreBase is
          * If x = 0, it means the user should not rebalance, so the direction is 0
          */
 
-        (
-            uint256 totalCollateralBase,
-            uint256 totalDebtBase
-        ) = getTotalCollateralAndDebtOfUserInBase(address(this));
-
-        uint256 subsidyBps = getCurrentSubsidyBps();
-
         uint256 currentLeverageBps = getCurrentLeverageBps();
 
         // If the current leverage is below the target leverage, the user should increase the leverage
         if (currentLeverageBps < targetLeverageBps) {
-            tokenAmountInBase =
-                (targetLeverageBps *
-                    (totalCollateralBase - totalDebtBase) -
-                    totalCollateralBase) /
-                (1 +
-                    (targetLeverageBps * subsidyBps) /
-                    BasisPointConstants.ONE_HUNDRED_PERCENT_BPS);
-            return (tokenAmountInBase, 1);
+            return (_getCollateralTokenAmountToReachTargetLeverage(useVaultTokenBalance), 1);
         }
         // If the current leverage is above the target leverage, the user should decrease the leverage
         else if (currentLeverageBps > targetLeverageBps) {
-            tokenAmountInBase =
-                (totalCollateralBase -
-                    targetLeverageBps *
-                    (totalCollateralBase - totalDebtBase)) /
-                (1 +
-                    (targetLeverageBps * subsidyBps) /
-                    BasisPointConstants.ONE_HUNDRED_PERCENT_BPS);
-            return (tokenAmountInBase, -1);
+            return (_getDebtTokenAmountToReachTargetLeverage(useVaultTokenBalance), -1);
         }
 
         // If the current leverage is equal to the target leverage, the user should not rebalance
