@@ -75,9 +75,10 @@ abstract contract DLoopDepositorBase is
         uint256 receivedShares,
         uint256 minOutputShares
     );
-    error DebtTokenReceivedNotMetUsedAmount(
+    error DebtTokenReceivedNotMetUsedAmountWithFlashLoanFee(
         uint256 debtTokenReceived,
-        uint256 debtTokenUsed
+        uint256 debtTokenUsed,
+        uint256 flashLoanFee
     );
 
     /* Structs */
@@ -194,7 +195,7 @@ abstract contract DLoopDepositorBase is
         address initiator,
         address token,
         uint256, // amount (flash loan amount)
-        uint256, // fee (flash loan fee)
+        uint256 flashLoanFee, // fee (flash loan fee)
         bytes calldata data
     ) external override nonReentrant returns (bytes32) {
         if (msg.sender != address(flashLender))
@@ -269,10 +270,14 @@ abstract contract DLoopDepositorBase is
 
         // Make sure the debt token received after the deposit is not less than the debt token used in the swap
         // to allow repaying the flash loan
-        if (debtTokenReceivedAfterDeposit < debtTokenAmountUsedInSwap) {
-            revert DebtTokenReceivedNotMetUsedAmount(
+        if (
+            debtTokenReceivedAfterDeposit <
+            debtTokenAmountUsedInSwap + flashLoanFee
+        ) {
+            revert DebtTokenReceivedNotMetUsedAmountWithFlashLoanFee(
                 debtTokenReceivedAfterDeposit,
-                debtTokenAmountUsedInSwap
+                debtTokenAmountUsedInSwap,
+                flashLoanFee
             );
         }
 
