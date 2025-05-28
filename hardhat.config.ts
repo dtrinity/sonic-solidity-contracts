@@ -68,7 +68,6 @@ const config: HardhatUserConfig = {
   etherscan: {
     // Used for verifying single contracts when hardhat-deploy auto verify doesn't work
     apiKey: {
-      // eslint-disable-next-line camelcase -- Network names follow specific naming conventions that require camelCase
       sonic_mainnet: "4EJCRRD3JKIE6TKF6ME7AKVYWFEJI79A26",
     },
     customChains: [
