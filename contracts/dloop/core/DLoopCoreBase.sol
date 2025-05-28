@@ -1145,15 +1145,69 @@ abstract contract DLoopCoreBase is
     }
 
     /**
-     * @dev Increases the leverage of the user by supplying assets and borrowing more debt token
+     * @dev Gets the required collateral token amount to reach the target leverage
+     * @param additionalCollateralTokenAmount The additional collateral token amount to supply
+     * @return requiredCollateralTokenAmount The required collateral token amount to reach the target leverage
+     */
+    function _getRequiredCollateralTokenAmountToRebalance(
+        uint256 additionalCollateralTokenAmount
+    ) internal view returns (uint256 requiredCollateralTokenAmount) {
+        /* If the additional collateral token amount is 0, it means the expected collateral token amount to reach the target leverage
+         * can be less than or equal to the current collateral token balance in the vault
+         * Thus, we need to calculate the actual required collateral token amount to reach the target leverage
+         * and then use the current collateral token balance in the vault to supply
+         * - It is to avoid the situation where the current collateral token balance in the vault is too high
+         *   and thus cannot call increaseLeverage with this balance as it will increase the leverage above the target leverage
+         *
+         * This function is only being used internally
+         */
+        if (additionalCollateralTokenAmount == 0) {
+            return _getCollateralTokenAmountToReachTargetLeverage(false);
+        }
+
+        // Otherwise, it means the expected collateral token amount to reach the target leverage
+        // is less than the current collateral token balance in the vault
+        uint256 collateralTokenBalanceInVault = collateralToken.balanceOf(
+            address(this)
+        );
+        return collateralTokenBalanceInVault + additionalCollateralTokenAmount;
+    }
+
+    /**
+     * @dev Gets the required debt token amount to reach the target leverage
+     * @param additionalDebtTokenAmount The additional debt token amount to repay
+     * @return requiredDebtTokenAmount The required debt token amount to reach the target leverage
+     */
+    function _getRequiredDebtTokenAmountToRebalance(
+        uint256 additionalDebtTokenAmount
+    ) internal view returns (uint256 requiredDebtTokenAmount) {
+        /* If the additional debt token amount is 0, it means the expected debt token amount to reach the target leverage
+         * can be less than or equal to the current debt token balance in the vault
+         * Thus, we need to calculate the actual required debt token amount to reach the target leverage
+         * and then use the current debt token balance in the vault to repay
+         * - It is to avoid the situation where the current debt token balance in the vault is too high
+         *   and thus cannot call decreaseLeverage with this balance as it will decrease the leverage below the target leverage
+         *
+         * This function is only being used internally
+         */
+        if (additionalDebtTokenAmount == 0) {
+            return _getDebtTokenAmountToReachTargetLeverage(false);
+        }
+
+        uint256 debtTokenBalanceInVault = debtToken.balanceOf(address(this));
+        return debtTokenBalanceInVault + additionalDebtTokenAmount;
+    }
+
+    /**
+     * @dev Increases the leverage of the user by supplying collateral token and borrowing more debt token
      *      - It requires to spend the collateral token from the user's wallet to supply to the pool
      *      - It will send the borrowed debt token to the user's wallet
-     * @param assetAmount The amount of asset to supply
-     * @param minReceivedAmount The minimum amount of debt token to receive
+     * @param additionalCollateralTokenAmount The additional amount of collateral token to supply
+     * @param minReceivedDebtTokenAmount The minimum amount of debt token to receive
      */
     function increaseLeverage(
-        uint256 assetAmount,
-        uint256 minReceivedAmount
+        uint256 additionalCollateralTokenAmount,
+        uint256 minReceivedDebtTokenAmount
     ) public nonReentrant {
         /**
          * Example of how this function works:
@@ -1166,6 +1220,7 @@ abstract contract DLoopCoreBase is
          *   - Total collateral: 100 WETH (100 * 2000 = 200,000 dUSD)
          *   - Total debt: 40,000 dUSD
          *   - Leverage: 200,000 / (200,000 - 40,000) = 1.25x
+         *   - Assume that there is 0 collateral token in the vault
          *
          * 1. User call increaseLeverage with 50 WETH
          * 2. The vault transfers 50 WETH from the user's wallet to the vault
@@ -1185,14 +1240,31 @@ abstract contract DLoopCoreBase is
             revert LeverageExceedsTarget(currentLeverageBps, targetLeverageBps);
         }
 
-        uint256 assetAmountInBase = convertFromTokenAmountToBaseCurrency(
-            assetAmount,
-            address(collateralToken)
-        );
+        // Need to calculate the required collateral token amount before transferring the additional collateral token
+        // to the vault as it will change the current collateral token balance in the vault
+        uint256 requiredCollateralTokenAmount = _getRequiredCollateralTokenAmountToRebalance(
+                additionalCollateralTokenAmount
+            );
+
+        // Only transfer the collateral token if there is an additional amount to supply
+        if (additionalCollateralTokenAmount > 0) {
+            // Transfer the additional collateral token from the caller to the vault
+            collateralToken.safeTransferFrom(
+                msg.sender,
+                address(this),
+                additionalCollateralTokenAmount
+            );
+        }
+
+        // Calculate the amount of collateral token in base currency
+        uint256 requiredCollateralTokenAmountInBase = convertFromTokenAmountToBaseCurrency(
+                requiredCollateralTokenAmount,
+                address(collateralToken)
+            );
 
         // The amount of debt token to borrow (in base currency) is equal to the amount of collateral token supplied
         // plus the subsidy (bonus for the caller)
-        uint256 borrowedDebtTokenInBase = (assetAmountInBase *
+        uint256 borrowedDebtTokenInBase = (requiredCollateralTokenAmountInBase *
             (BasisPointConstants.ONE_HUNDRED_PERCENT_BPS +
                 getCurrentSubsidyBps())) /
             BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
@@ -1203,10 +1275,11 @@ abstract contract DLoopCoreBase is
         ) = getTotalCollateralAndDebtOfUserInBase(address(this));
 
         // Calculate the new leverage after increasing the leverage
-        uint256 newLeverageBps = ((totalCollateralBase + assetAmountInBase) *
+        uint256 newLeverageBps = ((totalCollateralBase +
+            requiredCollateralTokenAmountInBase) *
             BasisPointConstants.ONE_HUNDRED_PERCENT_BPS) /
             (totalCollateralBase +
-                assetAmountInBase -
+                requiredCollateralTokenAmountInBase -
                 totalDebtBase -
                 borrowedDebtTokenInBase);
 
@@ -1222,49 +1295,50 @@ abstract contract DLoopCoreBase is
             );
         }
 
-        // Transfer the asset to the vault to supply
-        collateralToken.safeTransferFrom(
-            msg.sender,
-            address(this),
-            assetAmount
+        // Supply the collateral token to the lending pool
+        _supplyToPool(
+            address(collateralToken),
+            requiredCollateralTokenAmount,
+            address(this)
         );
 
-        // Supply the asset to the lending pool
-        _supplyToPool(address(collateralToken), assetAmount, address(this));
-
-        // Borrow more debt token
-        uint256 borrowedDebtToken = convertFromBaseCurrencyToToken(
+        // Borrow debt token
+        uint256 borrowedDebtTokenAmount = convertFromBaseCurrencyToToken(
             borrowedDebtTokenInBase,
             address(debtToken)
         );
 
-        // Slippage protection, to make sure the user receives at least minReceivedAmount
-        if (borrowedDebtToken < minReceivedAmount) {
+        // Slippage protection, to make sure the user receives at least minReceivedDebtTokenAmount
+        if (borrowedDebtTokenAmount < minReceivedDebtTokenAmount) {
             revert RebalanceReceiveLessThanMinAmount(
                 "increaseLeverage",
-                borrowedDebtToken,
-                minReceivedAmount
+                borrowedDebtTokenAmount,
+                minReceivedDebtTokenAmount
             );
         }
 
         // At this step, the _borrowFromPool wrapper function will also assert that
         // the borrowed amount is exactly the amount requested, thus we can safely
         // have the slippage check before calling this function
-        _borrowFromPool(address(debtToken), borrowedDebtToken, address(this));
+        _borrowFromPool(
+            address(debtToken),
+            borrowedDebtTokenAmount,
+            address(this)
+        );
 
         // Transfer the debt token to the user
-        debtToken.safeTransfer(msg.sender, borrowedDebtToken);
+        debtToken.safeTransfer(msg.sender, borrowedDebtTokenAmount);
     }
 
     /**
      * @dev Decreases the leverage of the user by repaying debt and withdrawing collateral
      *      - It requires to spend the debt token from the user's wallet to repay the debt to the pool
      *      - It will send the withdrawn collateral asset to the user's wallet
-     * @param debtTokenAmount The amount of debt token to repay
+     * @param additionalDebtTokenAmount The additional amount of debt token to repay
      * @param minReceivedAmount The minimum amount of collateral asset to receive
      */
     function decreaseLeverage(
-        uint256 debtTokenAmount,
+        uint256 additionalDebtTokenAmount,
         uint256 minReceivedAmount
     ) public nonReentrant {
         /**
@@ -1296,14 +1370,31 @@ abstract contract DLoopCoreBase is
             revert LeverageBelowTarget(currentLeverageBps, targetLeverageBps);
         }
 
-        uint256 debtTokenAmountInBase = convertFromTokenAmountToBaseCurrency(
-            debtTokenAmount,
-            address(debtToken)
-        );
+        // Need to calculate the required debt token amount before transferring the additional debt token
+        // to the vault as it will change the current debt token balance in the vault
+        uint256 requiredDebtTokenAmount = _getRequiredDebtTokenAmountToRebalance(
+                additionalDebtTokenAmount
+            );
+
+        // Only transfer the debt token if there is an additional amount to repay
+        if (additionalDebtTokenAmount > 0) {
+            // Transfer the additional debt token from the caller to the vault
+            debtToken.safeTransferFrom(
+                msg.sender,
+                address(this),
+                additionalDebtTokenAmount
+            );
+        }
+
+        // Calculate the amount of debt token in base currency
+        uint256 requiredDebtTokenAmountInBase = convertFromTokenAmountToBaseCurrency(
+                requiredDebtTokenAmount,
+                address(debtToken)
+            );
 
         // The amount of collateral asset to withdraw is equal to the amount of debt token repaid
         // plus the subsidy (bonus for the caller)
-        uint256 withdrawnAssetsBase = (debtTokenAmountInBase *
+        uint256 withdrawCollateralTokenInBase = (requiredDebtTokenAmountInBase *
             (BasisPointConstants.ONE_HUNDRED_PERCENT_BPS +
                 getCurrentSubsidyBps())) /
             BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
@@ -1314,12 +1405,13 @@ abstract contract DLoopCoreBase is
         ) = getTotalCollateralAndDebtOfUserInBase(address(this));
 
         // Calculate the new leverage after decreasing the leverage
-        uint256 newLeverageBps = ((totalCollateralBase - withdrawnAssetsBase) *
+        uint256 newLeverageBps = ((totalCollateralBase -
+            withdrawCollateralTokenInBase) *
             BasisPointConstants.ONE_HUNDRED_PERCENT_BPS) /
             (totalCollateralBase -
-                withdrawnAssetsBase -
+                withdrawCollateralTokenInBase -
                 totalDebtBase +
-                debtTokenAmountInBase);
+                requiredDebtTokenAmountInBase);
 
         // Make sure the new leverage is decreasing and is not below the target leverage
         if (
@@ -1333,22 +1425,24 @@ abstract contract DLoopCoreBase is
             );
         }
 
-        // Transfer the debt token to the vault to repay the debt
-        debtToken.safeTransferFrom(msg.sender, address(this), debtTokenAmount);
-
-        _repayDebtToPool(address(debtToken), debtTokenAmount, address(this));
+        // Repay the debt token to the lending pool
+        _repayDebtToPool(
+            address(debtToken),
+            requiredDebtTokenAmount,
+            address(this)
+        );
 
         // Withdraw collateral
-        uint256 withdrawnAssets = convertFromBaseCurrencyToToken(
-            withdrawnAssetsBase,
+        uint256 withdrawnCollateralTokenAmount = convertFromBaseCurrencyToToken(
+            withdrawCollateralTokenInBase,
             address(collateralToken)
         );
 
         // Slippage protection, to make sure the user receives at least minReceivedAmount
-        if (withdrawnAssets < minReceivedAmount) {
+        if (withdrawnCollateralTokenAmount < minReceivedAmount) {
             revert RebalanceReceiveLessThanMinAmount(
                 "decreaseLeverage",
-                withdrawnAssets,
+                withdrawnCollateralTokenAmount,
                 minReceivedAmount
             );
         }
@@ -1358,12 +1452,15 @@ abstract contract DLoopCoreBase is
         // have the slippage check before calling this function
         _withdrawFromPool(
             address(collateralToken),
-            withdrawnAssets,
+            withdrawnCollateralTokenAmount,
             address(this)
         );
 
         // Transfer the collateral asset to the user
-        collateralToken.safeTransfer(msg.sender, withdrawnAssets);
+        collateralToken.safeTransfer(
+            msg.sender,
+            withdrawnCollateralTokenAmount
+        );
     }
 
     /* Informational */
