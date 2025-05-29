@@ -1,0 +1,113 @@
+// SPDX-License-Identifier: MIT
+/* ———————————————————————————————————————————————————————————————————————————————— *
+ *    _____     ______   ______     __     __   __     __     ______   __  __       *
+ *   /\  __-.  /\__  _\ /\  == \   /\ \   /\ "-.\ \   /\ \   /\__  _\ /\ \_\ \      *
+ *   \ \ \/\ \ \/_/\ \/ \ \  __<   \ \ \  \ \ \-.  \  \ \ \  \/_/\ \/ \ \____ \     *
+ *    \ \____-    \ \_\  \ \_\ \_\  \ \_\  \ \_\\"\_\  \ \_\    \ \_\  \/\_____\    *
+ *     \/____/     \/_/   \/_/ /_/   \/_/   \/_/ \/_/   \/_/     \/_/   \/_____/    *
+ *                                                                                  *
+ * ————————————————————————————————— dtrinity.org ————————————————————————————————— *
+ *                                                                                  *
+ *                                         ▲                                        *
+ *                                        ▲ ▲                                       *
+ *                                                                                  *
+ * ———————————————————————————————————————————————————————————————————————————————— *
+ * dTRINITY Protocol: https://github.com/dtrinity                                   *
+ * ———————————————————————————————————————————————————————————————————————————————— */
+
+pragma solidity ^0.8.20;
+
+import "@openzeppelin/contracts/interfaces/IERC4626.sol";
+import "@openzeppelin/contracts/access/IAccessControl.sol";
+
+/**
+ * @title IDPoolVaultLP
+ * @author dTRINITY Protocol
+ * @notice Interface for dPOOL vault that accepts LP tokens and values them in base asset terms
+ * @dev Each vault represents a specific LP position on a specific DEX
+ */
+interface IDPoolVaultLP is IERC4626, IAccessControl {
+    // --- Events ---
+
+    /**
+     * @notice Emitted when withdrawal fee is updated
+     * @param newFee New withdrawal fee in basis points
+     */
+    event WithdrawalFeeUpdated(uint256 newFee);
+
+    // --- Errors ---
+
+    /**
+     * @notice Thrown when withdrawal fee exceeds maximum
+     */
+    error ExcessiveWithdrawalFee();
+
+    /**
+     * @notice Thrown when insufficient LP tokens for withdrawal
+     */
+    error InsufficientLPTokens();
+
+    // --- Vault Configuration ---
+
+    /**
+     * @notice Address of the LP token this vault accepts
+     * @return The LP token address
+     */
+    function lpToken() external view returns (address);
+
+    /**
+     * @notice Address of the DEX pool for this vault
+     * @return The pool address
+     */
+    function pool() external view returns (address);
+
+    /**
+     * @notice Current withdrawal fee in basis points
+     * @return Withdrawal fee in basis points
+     */
+    function withdrawalFeeBps() external view returns (uint256);
+
+    /**
+     * @notice Maximum allowed withdrawal fee in basis points
+     * @return Maximum withdrawal fee in basis points
+     */
+    function maxWithdrawalFeeBps() external view returns (uint256);
+
+    // --- Fee Management ---
+
+    /**
+     * @notice Set withdrawal fee (only FEE_MANAGER_ROLE)
+     * @param newFeeBps New withdrawal fee in basis points
+     */
+    function setWithdrawalFee(uint256 newFeeBps) external;
+
+    // --- Preview Functions ---
+
+    /**
+     * @notice Preview shares received for LP token deposit
+     * @param lpAmount Amount of LP tokens to deposit
+     * @return shares Amount of shares that would be minted
+     */
+    function previewDepositLP(uint256 lpAmount) external view returns (uint256 shares);
+
+    /**
+     * @notice Preview LP tokens received for asset withdrawal
+     * @param assets Amount of base assets to withdraw
+     * @return lpAmount Amount of LP tokens that would be returned
+     */
+    function previewWithdrawLP(uint256 assets) external view returns (uint256 lpAmount);
+
+    /**
+     * @notice Preview base asset value for a given amount of LP tokens
+     * @param lpAmount Amount of LP tokens
+     * @return Base asset value
+     */
+    function previewLPValue(uint256 lpAmount) external view returns (uint256);
+
+    // --- Roles ---
+
+    /**
+     * @notice Role identifier for fee management
+     */
+    function FEE_MANAGER_ROLE() external pure returns (bytes32);
+} 
