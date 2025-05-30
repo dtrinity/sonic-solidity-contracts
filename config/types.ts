@@ -187,6 +187,6 @@ export interface DPoolInstanceConfig {
   readonly pool: string; // Pool deployment name (localhost) or pool address (testnet/mainnet)
   // Examples by environment:
   // - localhost: "USDC_USDS_CurvePool" (deployment name)
-  // - testnet: "0x742d35Cc6634C0532925a3b8D404fEdF6Caf9cd5" (actual pool address)  
+  // - testnet: "0x742d35Cc6634C0532925a3b8D404fEdF6Caf9cd5" (actual pool address)
   // - mainnet: "0xA5407eAE9Ba41422680e2e00537571bcC53efBfD" (actual pool address)
 }

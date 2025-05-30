@@ -12,7 +12,9 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   // Skip if no dPool config
   if (!config.dPool) {
-    console.log("No dPool configuration found, skipping DPoolVaultFactory deployment");
+    console.log(
+      "No dPool configuration found, skipping DPoolVaultFactory deployment",
+    );
     return;
   }
 
@@ -32,7 +34,9 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   if (factory.newlyDeployed) {
     console.log(`✅ Deployed DPoolVaultFactory at: ${factory.address}`);
   } else {
-    console.log(`♻️  Reusing existing DPoolVaultFactory at: ${factory.address}`);
+    console.log(
+      `♻️  Reusing existing DPoolVaultFactory at: ${factory.address}`,
+    );
   }
 
   console.log(`🦉 ${__filename.split("/").slice(-2).join("/")}: ✅`);
@@ -41,4 +45,4 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 func.tags = ["dpool", "dpool-factory"];
 func.dependencies = [];
 
-export default func; 
+export default func;

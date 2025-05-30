@@ -32,7 +32,12 @@ import "../../../common/BasisPointConstants.sol";
  * @notice Abstract base ERC4626 vault that accepts LP tokens and values them in base asset terms
  * @dev Each vault represents a specific LP position on a specific DEX
  */
-abstract contract DPoolVaultLP is ERC4626, AccessControl, ReentrancyGuard, IDPoolVaultLP {
+abstract contract DPoolVaultLP is
+    ERC4626,
+    AccessControl,
+    ReentrancyGuard,
+    IDPoolVaultLP
+{
     using SafeERC20 for IERC20;
 
     // --- Constants ---
@@ -41,7 +46,8 @@ abstract contract DPoolVaultLP is ERC4626, AccessControl, ReentrancyGuard, IDPoo
     bytes32 public constant FEE_MANAGER_ROLE = keccak256("FEE_MANAGER_ROLE");
 
     /// @notice Maximum withdrawal fee (5%)
-    uint256 public constant MAX_WITHDRAWAL_FEE_BPS = 5 * BasisPointConstants.ONE_PERCENT_BPS;
+    uint256 public constant MAX_WITHDRAWAL_FEE_BPS =
+        5 * BasisPointConstants.ONE_PERCENT_BPS;
 
     // --- Immutables ---
 
@@ -70,9 +76,9 @@ abstract contract DPoolVaultLP is ERC4626, AccessControl, ReentrancyGuard, IDPoo
         string memory symbol,
         address admin
     ) ERC4626(IERC20(baseAsset)) ERC20(name, symbol) {
-        if (baseAsset == address(0)) revert("Invalid base asset");
-        if (_lpToken == address(0)) revert("Invalid LP token");
-        if (admin == address(0)) revert("Invalid admin");
+        if (baseAsset == address(0)) revert ZeroAddress();
+        if (_lpToken == address(0)) revert ZeroAddress();
+        if (admin == address(0)) revert ZeroAddress();
 
         LP_TOKEN = _lpToken;
 
@@ -105,15 +111,21 @@ abstract contract DPoolVaultLP is ERC4626, AccessControl, ReentrancyGuard, IDPoo
      * @param lpAmount Amount of LP tokens
      * @return Base asset value
      */
-    function previewLPValue(uint256 lpAmount) external view virtual returns (uint256);
+    function previewLPValue(
+        uint256 lpAmount
+    ) external view virtual returns (uint256);
 
     /// @inheritdoc IDPoolVaultLP
-    function previewDepositLP(uint256 lpAmount) external view returns (uint256 shares) {
+    function previewDepositLP(
+        uint256 lpAmount
+    ) external view returns (uint256 shares) {
         return previewDeposit(lpAmount);
     }
 
     /// @inheritdoc IDPoolVaultLP
-    function previewWithdrawLP(uint256 assets) external view returns (uint256 lpAmount) {
+    function previewWithdrawLP(
+        uint256 assets
+    ) external view returns (uint256 lpAmount) {
         return previewWithdraw(assets);
     }
 
@@ -122,8 +134,20 @@ abstract contract DPoolVaultLP is ERC4626, AccessControl, ReentrancyGuard, IDPoo
     /**
      * @dev Override to handle LP token deposits
      */
-    function deposit(uint256 assets, address receiver) public virtual override(ERC4626, IERC4626) nonReentrant returns (uint256 shares) {
-        require(assets <= maxDeposit(receiver), "ERC4626: deposit more than max");
+    function deposit(
+        uint256 assets,
+        address receiver
+    )
+        public
+        virtual
+        override(ERC4626, IERC4626)
+        nonReentrant
+        returns (uint256 shares)
+    {
+        require(
+            assets <= maxDeposit(receiver),
+            "ERC4626: deposit more than max"
+        );
 
         shares = previewDeposit(assets);
         _deposit(_msgSender(), receiver, assets, shares);
@@ -134,14 +158,21 @@ abstract contract DPoolVaultLP is ERC4626, AccessControl, ReentrancyGuard, IDPoo
     /**
      * @dev Override to handle LP token withdrawals with fees
      */
-    function withdraw(uint256 assets, address receiver, address owner) 
-        public 
-        virtual 
-        override(ERC4626, IERC4626) 
-        nonReentrant 
-        returns (uint256 shares) 
+    function withdraw(
+        uint256 assets,
+        address receiver,
+        address owner
+    )
+        public
+        virtual
+        override(ERC4626, IERC4626)
+        nonReentrant
+        returns (uint256 shares)
     {
-        require(assets <= maxWithdraw(owner), "ERC4626: withdraw more than max");
+        require(
+            assets <= maxWithdraw(owner),
+            "ERC4626: withdraw more than max"
+        );
 
         shares = previewWithdraw(assets);
         _withdraw(_msgSender(), receiver, owner, assets, shares);
@@ -152,7 +183,12 @@ abstract contract DPoolVaultLP is ERC4626, AccessControl, ReentrancyGuard, IDPoo
     /**
      * @dev Internal deposit function
      */
-    function _deposit(address caller, address receiver, uint256 assets, uint256 shares) internal virtual override {
+    function _deposit(
+        address caller,
+        address receiver,
+        uint256 assets,
+        uint256 shares
+    ) internal virtual override {
         // Pull LP tokens from caller
         IERC20(LP_TOKEN).safeTransferFrom(caller, address(this), assets);
 
@@ -177,7 +213,8 @@ abstract contract DPoolVaultLP is ERC4626, AccessControl, ReentrancyGuard, IDPoo
         }
 
         // Calculate withdrawal fee
-        uint256 fee = (assets * withdrawalFeeBps) / BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
+        uint256 fee = (assets * withdrawalFeeBps) /
+            BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
         uint256 lpTokensToSend = assets - fee;
 
         // Check if we have enough LP tokens
@@ -198,7 +235,9 @@ abstract contract DPoolVaultLP is ERC4626, AccessControl, ReentrancyGuard, IDPoo
     // --- Fee management ---
 
     /// @inheritdoc IDPoolVaultLP
-    function setWithdrawalFee(uint256 newFeeBps) external onlyRole(FEE_MANAGER_ROLE) {
+    function setWithdrawalFee(
+        uint256 newFeeBps
+    ) external onlyRole(FEE_MANAGER_ROLE) {
         if (newFeeBps > MAX_WITHDRAWAL_FEE_BPS) {
             revert ExcessiveWithdrawalFee();
         }
@@ -212,13 +251,9 @@ abstract contract DPoolVaultLP is ERC4626, AccessControl, ReentrancyGuard, IDPoo
     /**
      * @dev See {IERC165-supportsInterface}.
      */
-    function supportsInterface(bytes4 interfaceId) 
-        public 
-        view 
-        virtual 
-        override(AccessControl) 
-        returns (bool) 
-    {
+    function supportsInterface(
+        bytes4 interfaceId
+    ) public view virtual override(AccessControl) returns (bool) {
         return super.supportsInterface(interfaceId);
     }
-} 
+}

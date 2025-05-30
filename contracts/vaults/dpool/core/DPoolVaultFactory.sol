@@ -23,10 +23,18 @@ import "@openzeppelin/contracts/proxy/Clones.sol";
 /**
  * @title DPoolVaultFactory
  * @author dTRINITY Protocol
- * @notice Factory for deploying vault + periphery pairs across different DEX types
+ * @notice Factory contract for deploying dPOOL vault and periphery pairs
  * @dev Uses minimal proxy pattern for gas-efficient deployments
  */
 contract DPoolVaultFactory is AccessControl {
+    using Clones for address;
+
+    // --- Constants ---
+
+    /// @notice Role identifier for factory management
+    bytes32 public constant FACTORY_MANAGER_ROLE =
+        keccak256("FACTORY_MANAGER_ROLE");
+
     // --- Events ---
 
     /**
@@ -50,26 +58,34 @@ contract DPoolVaultFactory is AccessControl {
      * @param dexType DEX type
      * @param implementation New implementation address
      */
-    event VaultImplementationUpdated(bytes32 indexed dexType, address implementation);
+    event VaultImplementationUpdated(
+        bytes32 indexed dexType,
+        address implementation
+    );
 
     /**
      * @notice Emitted when periphery implementation is updated
      * @param dexType DEX type
      * @param implementation New implementation address
      */
-    event PeripheryImplementationUpdated(bytes32 indexed dexType, address implementation);
+    event PeripheryImplementationUpdated(
+        bytes32 indexed dexType,
+        address implementation
+    );
 
     // --- Errors ---
 
-    /**
-     * @notice Thrown when DEX type is not supported
-     */
+    /// @notice Thrown when zero address is provided where valid address is required
+    error ZeroAddress();
+
+    /// @notice Thrown when trying to use an unsupported DEX type
     error UnsupportedDexType();
 
-    /**
-     * @notice Thrown when implementation is not set
-     */
+    /// @notice Thrown when implementation is not set for a DEX type
     error ImplementationNotSet();
+
+    /// @notice Thrown when invalid implementation address is provided
+    error InvalidImplementation();
 
     // --- Structs ---
 
@@ -118,8 +134,10 @@ contract DPoolVaultFactory is AccessControl {
      * @param admin Address to grant admin role
      */
     constructor(address admin) {
-        if (admin == address(0)) revert("Invalid admin");
+        if (admin == address(0)) revert ZeroAddress();
+
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
+        _grantRole(FACTORY_MANAGER_ROLE, admin);
     }
 
     // --- Deployment Functions ---
@@ -144,20 +162,27 @@ contract DPoolVaultFactory is AccessControl {
         // Check implementations exist
         address vaultImpl = vaultImplementations[dexType];
         address peripheryImpl = peripheryImplementations[dexType];
-        
+
         if (vaultImpl == address(0) || peripheryImpl == address(0)) {
             revert ImplementationNotSet();
         }
 
         // Deploy vault clone
         vault = Clones.clone(vaultImpl);
-        
+
         // Deploy periphery clone
         periphery = Clones.clone(peripheryImpl);
 
         // Initialize contracts based on DEX type
         if (dexType == keccak256("CURVE")) {
-            _initializeCurveFarm(vault, periphery, name, symbol, lpToken, pricingConfig);
+            _initializeCurveFarm(
+                vault,
+                periphery,
+                name,
+                symbol,
+                lpToken,
+                pricingConfig
+            );
         } else {
             revert UnsupportedDexType();
         }
@@ -169,7 +194,10 @@ contract DPoolVaultFactory is AccessControl {
         peripheryToVault[periphery] = vault;
 
         // Store vault info
-        (address baseAsset, ,) = abi.decode(pricingConfig, (address, address, address));
+        (address baseAsset, , ) = abi.decode(
+            pricingConfig,
+            (address, address, address)
+        );
         vaultInfo[vault] = VaultInfo({
             vault: vault,
             periphery: periphery,
@@ -192,7 +220,9 @@ contract DPoolVaultFactory is AccessControl {
      * @param vault Address of vault
      * @return Vault information struct
      */
-    function getVaultInfo(address vault) external view returns (VaultInfo memory) {
+    function getVaultInfo(
+        address vault
+    ) external view returns (VaultInfo memory) {
         return vaultInfo[vault];
     }
 
@@ -243,14 +273,13 @@ contract DPoolVaultFactory is AccessControl {
     /**
      * @notice Set vault implementation for a DEX type
      * @param dexType DEX type identifier
-     * @param implementation Implementation contract address
+     * @param implementation Address of vault implementation
      */
-    function setVaultImplementation(bytes32 dexType, address implementation) 
-        external 
-        onlyRole(DEFAULT_ADMIN_ROLE) 
-    {
-        if (implementation == address(0)) revert("Invalid implementation");
-        
+    function setVaultImplementation(
+        bytes32 dexType,
+        address implementation
+    ) external onlyRole(FACTORY_MANAGER_ROLE) {
+        if (implementation == address(0)) revert InvalidImplementation();
         vaultImplementations[dexType] = implementation;
         emit VaultImplementationUpdated(dexType, implementation);
     }
@@ -258,14 +287,13 @@ contract DPoolVaultFactory is AccessControl {
     /**
      * @notice Set periphery implementation for a DEX type
      * @param dexType DEX type identifier
-     * @param implementation Implementation contract address
+     * @param implementation Address of periphery implementation
      */
-    function setPeripheryImplementation(bytes32 dexType, address implementation) 
-        external 
-        onlyRole(DEFAULT_ADMIN_ROLE) 
-    {
-        if (implementation == address(0)) revert("Invalid implementation");
-        
+    function setPeripheryImplementation(
+        bytes32 dexType,
+        address implementation
+    ) external onlyRole(FACTORY_MANAGER_ROLE) {
+        if (implementation == address(0)) revert InvalidImplementation();
         peripheryImplementations[dexType] = implementation;
         emit PeripheryImplementationUpdated(dexType, implementation);
     }
@@ -289,11 +317,13 @@ contract DPoolVaultFactory is AccessControl {
         address lpToken,
         bytes calldata pricingConfig
     ) internal {
-        (address baseAsset, address pool, address admin) = 
-            abi.decode(pricingConfig, (address, address, address));
+        (address baseAsset, address pool, address admin) = abi.decode(
+            pricingConfig,
+            (address, address, address)
+        );
 
         // Initialize vault (constructor will automatically determine baseAssetIndex)
-        (bool success,) = vault.call(
+        (bool success, ) = vault.call(
             abi.encodeWithSignature(
                 "initialize(address,address,address,string,string,address)",
                 baseAsset,
@@ -307,7 +337,7 @@ contract DPoolVaultFactory is AccessControl {
         require(success, "Vault initialization failed");
 
         // Initialize periphery
-        (success,) = periphery.call(
+        (success, ) = periphery.call(
             abi.encodeWithSignature(
                 "initialize(address,address,address)",
                 vault,
@@ -317,4 +347,4 @@ contract DPoolVaultFactory is AccessControl {
         );
         require(success, "Periphery initialization failed");
     }
-} 
+}

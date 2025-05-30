@@ -81,6 +81,11 @@ interface IDPoolPeriphery is IAccessControl {
     // --- Errors ---
 
     /**
+     * @notice Thrown when zero address is provided where valid address is required
+     */
+    error ZeroAddress();
+
+    /**
      * @notice Thrown when slippage exceeds maximum allowed
      */
     error ExcessiveSlippage();
@@ -146,7 +151,10 @@ interface IDPoolPeriphery is IAccessControl {
      * @param amount Amount of asset to deposit
      * @return shares Amount of vault shares that would be received
      */
-    function previewDepositAsset(address asset, uint256 amount) external view returns (uint256 shares);
+    function previewDepositAsset(
+        address asset,
+        uint256 amount
+    ) external view returns (uint256 shares);
 
     /**
      * @notice Preview asset amount for share withdrawal
@@ -154,7 +162,10 @@ interface IDPoolPeriphery is IAccessControl {
      * @param asset Address of asset to receive
      * @return assetAmount Amount of asset that would be received
      */
-    function previewWithdrawToAsset(uint256 shares, address asset) external view returns (uint256 assetAmount);
+    function previewWithdrawToAsset(
+        uint256 shares,
+        address asset
+    ) external view returns (uint256 assetAmount);
 
     // --- View Functions ---
 
@@ -208,4 +219,4 @@ interface IDPoolPeriphery is IAccessControl {
      * @param newMaxSlippage New maximum slippage in basis points
      */
     function setMaxSlippage(uint256 newMaxSlippage) external;
-} 
+}

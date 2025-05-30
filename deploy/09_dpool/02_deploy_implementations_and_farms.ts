@@ -20,6 +20,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   // Get factory deployment
   let factoryDeployment;
+
   try {
     factoryDeployment = await get("DPoolVaultFactory");
   } catch (error) {
@@ -32,7 +33,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const factory = await ethers.getContractAt(
     "DPoolVaultFactory",
     factoryDeployment.address,
-    await ethers.getSigner(deployer as string)
+    await ethers.getSigner(deployer as string),
   );
 
   // --- Step 1: Deploy Implementations ---
@@ -56,63 +57,78 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   });
 
   if (curveVaultImpl.newlyDeployed) {
-    console.log(`✅ Deployed Curve Vault Implementation at: ${curveVaultImpl.address}`);
+    console.log(
+      `✅ Deployed Curve Vault Implementation at: ${curveVaultImpl.address}`,
+    );
   } else {
-    console.log(`♻️  Reusing existing Curve Vault Implementation at: ${curveVaultImpl.address}`);
+    console.log(
+      `♻️  Reusing existing Curve Vault Implementation at: ${curveVaultImpl.address}`,
+    );
   }
 
   // Deploy Curve periphery implementation with dummy values (it's just a template)
   console.log(`Deploying Curve Periphery Implementation...`);
-  const curvePeripheryImpl = await deploy("DPoolCurvePeriphery_Implementation", {
-    contract: "DPoolCurvePeriphery",
-    from: deployer,
-    args: [
-      deployer, // vault (dummy - implementations use dummy values)
-      deployer, // pool (dummy - implementations use dummy values)
-      deployer, // admin (dummy)
-    ],
-    log: true,
-    skipIfAlreadyDeployed: true,
-  });
+  const curvePeripheryImpl = await deploy(
+    "DPoolCurvePeriphery_Implementation",
+    {
+      contract: "DPoolCurvePeriphery",
+      from: deployer,
+      args: [
+        deployer, // vault (dummy - implementations use dummy values)
+        deployer, // pool (dummy - implementations use dummy values)
+        deployer, // admin (dummy)
+      ],
+      log: true,
+      skipIfAlreadyDeployed: true,
+    },
+  );
 
   if (curvePeripheryImpl.newlyDeployed) {
-    console.log(`✅ Deployed Curve Periphery Implementation at: ${curvePeripheryImpl.address}`);
+    console.log(
+      `✅ Deployed Curve Periphery Implementation at: ${curvePeripheryImpl.address}`,
+    );
   } else {
-    console.log(`♻️  Reusing existing Curve Periphery Implementation at: ${curvePeripheryImpl.address}`);
+    console.log(
+      `♻️  Reusing existing Curve Periphery Implementation at: ${curvePeripheryImpl.address}`,
+    );
   }
 
   // --- Step 2: Configure Factory with Implementations ---
   console.log(`\n--- Configuring Factory ---`);
 
   const CURVE_DEX_TYPE = ethers.keccak256(ethers.toUtf8Bytes("CURVE"));
-  
+
   // Check if implementations are already set
   const currentVaultImpl = await factory.vaultImplementations(CURVE_DEX_TYPE);
-  const currentPeripheryImpl = await factory.peripheryImplementations(CURVE_DEX_TYPE);
+  const currentPeripheryImpl =
+    await factory.peripheryImplementations(CURVE_DEX_TYPE);
 
-  if (currentVaultImpl === ethers.ZeroAddress || currentPeripheryImpl === ethers.ZeroAddress) {
+  if (
+    currentVaultImpl === ethers.ZeroAddress ||
+    currentPeripheryImpl === ethers.ZeroAddress
+  ) {
     console.log(`Setting Curve implementations in factory...`);
-    
+
     // Set vault implementation
     if (currentVaultImpl === ethers.ZeroAddress) {
       const vaultTx = await factory.setVaultImplementation(
         CURVE_DEX_TYPE,
-        curveVaultImpl.address
+        curveVaultImpl.address,
       );
       await vaultTx.wait();
       console.log(`✅ Vault implementation set`);
     }
-    
-    // Set periphery implementation  
+
+    // Set periphery implementation
     if (currentPeripheryImpl === ethers.ZeroAddress) {
       const peripheryTx = await factory.setPeripheryImplementation(
         CURVE_DEX_TYPE,
-        curvePeripheryImpl.address
+        curvePeripheryImpl.address,
       );
       await peripheryTx.wait();
       console.log(`✅ Periphery implementation set`);
     }
-    
+
     console.log(`✅ Factory configured with Curve implementations`);
   } else {
     console.log(`♻️  Factory already configured with Curve implementations`);
@@ -126,19 +142,21 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     console.log(`\n--- Deploying Farm for ${dPoolId} ---`);
 
     // Get base asset address
-    const baseAssetAddress = config.tokenAddresses[
-      dPoolConfig.baseAsset as keyof typeof config.tokenAddresses
-    ];
+    const baseAssetAddress =
+      config.tokenAddresses[
+        dPoolConfig.baseAsset as keyof typeof config.tokenAddresses
+      ];
 
     if (!baseAssetAddress) {
       console.log(
-        `⚠️  Skipping ${dPoolId}: missing base asset address for ${dPoolConfig.baseAsset}`
+        `⚠️  Skipping ${dPoolId}: missing base asset address for ${dPoolConfig.baseAsset}`,
       );
       continue;
     }
 
     // Get Curve pool deployment
     let curvePoolDeployment;
+
     try {
       // Try to get by deployment name first (localhost)
       curvePoolDeployment = await get(dPoolConfig.pool);
@@ -148,7 +166,9 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
         curvePoolDeployment = { address: dPoolConfig.pool };
         console.log(`Using external pool address: ${dPoolConfig.pool}`);
       } else {
-        console.log(`⚠️  Failed to get Curve pool deployment ${dPoolConfig.pool}: ${error}`);
+        console.log(
+          `⚠️  Failed to get Curve pool deployment ${dPoolConfig.pool}: ${error}`,
+        );
         console.log(`⚠️  Skipping ${dPoolId}: pool not found`);
         continue;
       }
@@ -156,10 +176,12 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
     // Check if farm already exists
     const allVaults = await factory.getAllVaults();
-    
+
     let farmExists = false;
+
     for (let i = 0; i < allVaults.length; i++) {
       const vaultInfo = await factory.getVaultInfo(allVaults[i]);
+
       if (vaultInfo.lpToken === curvePoolDeployment.address) {
         console.log(`♻️  Farm already exists for ${dPoolId}`);
         console.log(`    Vault: ${vaultInfo.vault}`);
@@ -184,7 +206,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
         baseAssetAddress, // baseAsset
         curvePoolDeployment.address, // pool
         dPoolConfig.initialAdmin || deployer, // admin
-      ]
+      ],
     );
 
     console.log(`  Deploying farm:`);
@@ -200,16 +222,16 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
         vaultName,
         vaultSymbol,
         curvePoolDeployment.address,
-        pricingConfig
+        pricingConfig,
       );
 
       const receipt = await tx.wait();
-      
+
       if (!receipt) {
         console.log(`  ⚠️  Transaction receipt is null for ${dPoolId}`);
         continue;
       }
-      
+
       // Get the deployed addresses from the event
       const event = receipt.logs.find((log: any) => {
         try {
@@ -223,12 +245,14 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       if (event) {
         const parsed = factory.interface.parseLog(event);
         const { vault, periphery } = parsed!.args;
-        
+
         console.log(`  ✅ Farm deployed successfully:`);
         console.log(`    Vault: ${vault}`);
         console.log(`    Periphery: ${periphery}`);
       } else {
-        console.log(`  ✅ Farm deployed successfully (addresses not found in events)`);
+        console.log(
+          `  ✅ Farm deployed successfully (addresses not found in events)`,
+        );
       }
     } catch (error) {
       console.log(`  ⚠️  Failed to deploy farm for ${dPoolId}: ${error}`);
@@ -243,4 +267,4 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 func.tags = ["dpool", "dpool-implementations", "dpool-farms"];
 func.dependencies = ["dpool-factory"];
 
-export default func; 
+export default func;

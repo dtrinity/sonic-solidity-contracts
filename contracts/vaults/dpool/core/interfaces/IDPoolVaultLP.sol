@@ -38,6 +38,11 @@ interface IDPoolVaultLP is IERC4626, IAccessControl {
     // --- Errors ---
 
     /**
+     * @notice Thrown when zero address is provided where valid address is required
+     */
+    error ZeroAddress();
+
+    /**
      * @notice Thrown when withdrawal fee exceeds maximum
      */
     error ExcessiveWithdrawalFee();
@@ -88,14 +93,18 @@ interface IDPoolVaultLP is IERC4626, IAccessControl {
      * @param lpAmount Amount of LP tokens to deposit
      * @return shares Amount of shares that would be minted
      */
-    function previewDepositLP(uint256 lpAmount) external view returns (uint256 shares);
+    function previewDepositLP(
+        uint256 lpAmount
+    ) external view returns (uint256 shares);
 
     /**
      * @notice Preview LP tokens received for asset withdrawal
      * @param assets Amount of base assets to withdraw
      * @return lpAmount Amount of LP tokens that would be returned
      */
-    function previewWithdrawLP(uint256 assets) external view returns (uint256 lpAmount);
+    function previewWithdrawLP(
+        uint256 assets
+    ) external view returns (uint256 lpAmount);
 
     /**
      * @notice Preview base asset value for a given amount of LP tokens
@@ -110,4 +119,4 @@ interface IDPoolVaultLP is IERC4626, IAccessControl {
      * @notice Role identifier for fee management
      */
     function FEE_MANAGER_ROLE() external pure returns (bytes32);
-} 
+}

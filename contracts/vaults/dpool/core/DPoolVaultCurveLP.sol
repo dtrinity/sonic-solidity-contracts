@@ -20,60 +20,65 @@ pragma solidity ^0.8.20;
 import "./DPoolVaultLP.sol";
 import "./interfaces/ICurveStableSwapNG.sol";
 import "@openzeppelin/contracts/interfaces/IERC4626.sol";
+import "./interfaces/IDPoolVaultLP.sol";
 
 /**
  * @title DPoolVaultCurveLP
- * @author dTRINITY Protocol  
- * @notice Curve LP vault implementation that values LP tokens in base asset terms
- * @dev Uses Curve's calc_withdraw_one_coin for accurate pricing without oracle dependencies
+ * @author dTRINITY Protocol
+ * @notice Curve-specific dPOOL vault implementation
+ * @dev Handles Curve LP tokens and uses Curve's calc_withdraw_one_coin for pricing
  */
 contract DPoolVaultCurveLP is DPoolVaultLP {
-    using SafeERC20 for IERC20;
+    // --- Errors ---
+
+    /// @notice Thrown when base asset is not found in the Curve pool
+    error BaseAssetNotFoundInPool();
 
     // --- Immutables ---
 
-    /// @notice Address of the DEX pool for LP token interactions
-    ICurveStableSwapNG public immutable POOL;
+    /// @notice Address of the Curve pool (same as LP token for Curve)
+    address public immutable POOL;
 
-    /// @notice Index of base asset in the DEX pool
+    /// @notice Index of the base asset in the Curve pool (0 or 1)
     int128 public immutable BASE_ASSET_INDEX;
 
     // --- Constructor ---
 
     /**
-     * @notice Initialize the Curve LP vault
+     * @notice Initialize the Curve vault
      * @param baseAsset Address of the base asset for valuation
-     * @param lpToken Address of the Curve LP token
-     * @param _pool Address of the DEX pool
+     * @param _lpToken Address of the Curve LP token (same as pool address)
+     * @param _pool Address of the Curve pool (same as LP token for Curve)
      * @param name Vault token name
-     * @param symbol Vault token symbol  
+     * @param symbol Vault token symbol
      * @param admin Address to grant admin role
      */
     constructor(
         address baseAsset,
-        address lpToken,
+        address _lpToken,
         address _pool,
         string memory name,
         string memory symbol,
         address admin
-    ) DPoolVaultLP(baseAsset, lpToken, name, symbol, admin) {
-        if (_pool == address(0)) revert("Invalid pool");
+    ) DPoolVaultLP(baseAsset, _lpToken, name, symbol, admin) {
+        if (_pool == address(0)) revert ZeroAddress();
 
-        POOL = ICurveStableSwapNG(_pool);
+        POOL = _pool;
 
-        // Query pool to find which index corresponds to the base asset
-        address asset0 = POOL.coins(0);
-        address asset1 = POOL.coins(1);
-        
+        // Auto-determine base asset index in pool
+        ICurveStableSwapNG curvePool = ICurveStableSwapNG(_pool);
+        address coin0 = curvePool.coins(0);
+        address coin1 = curvePool.coins(1);
+
         int128 calculatedIndex;
-        if (baseAsset == asset0) {
+        if (baseAsset == coin0) {
             calculatedIndex = 0;
-        } else if (baseAsset == asset1) {
+        } else if (baseAsset == coin1) {
             calculatedIndex = 1;
         } else {
-            revert("Base asset not found in pool");
+            revert BaseAssetNotFoundInPool();
         }
-        
+
         BASE_ASSET_INDEX = calculatedIndex;
     }
 
@@ -84,14 +89,23 @@ contract DPoolVaultCurveLP is DPoolVaultLP {
      * @dev Uses Curve's calc_withdraw_one_coin for accurate LP token valuation
      * @return Total assets in base asset terms
      */
-    function totalAssets() public view override(ERC4626, IERC4626) returns (uint256) {
+    function totalAssets()
+        public
+        view
+        override(ERC4626, IERC4626)
+        returns (uint256)
+    {
         uint256 lpBalance = IERC20(LP_TOKEN).balanceOf(address(this));
         if (lpBalance == 0) {
             return 0;
         }
 
         // Use Curve's calc_withdraw_one_coin to get base asset value
-        return POOL.calc_withdraw_one_coin(lpBalance, BASE_ASSET_INDEX);
+        return
+            ICurveStableSwapNG(POOL).calc_withdraw_one_coin(
+                lpBalance,
+                BASE_ASSET_INDEX
+            );
     }
 
     // --- View functions ---
@@ -101,15 +115,15 @@ contract DPoolVaultCurveLP is DPoolVaultLP {
      * @return Address of the DEX pool
      */
     function pool() external view override returns (address) {
-        return address(POOL);
+        return POOL;
     }
 
     /**
-     * @notice Get the base asset index in the DEX pool
+     * @notice Get the base asset index in the Curve pool
      * @return Index of the base asset
      */
-    function baseAssetIndex() external view returns (int128) {
-        return BASE_ASSET_INDEX;
+    function baseAssetIndex() external view returns (uint256) {
+        return uint256(int256(BASE_ASSET_INDEX));
     }
 
     /**
@@ -117,10 +131,16 @@ contract DPoolVaultCurveLP is DPoolVaultLP {
      * @param lpAmount Amount of LP tokens
      * @return Base asset value
      */
-    function previewLPValue(uint256 lpAmount) external view override returns (uint256) {
+    function previewLPValue(
+        uint256 lpAmount
+    ) external view override returns (uint256) {
         if (lpAmount == 0) {
             return 0;
         }
-        return POOL.calc_withdraw_one_coin(lpAmount, BASE_ASSET_INDEX);
+        return
+            ICurveStableSwapNG(POOL).calc_withdraw_one_coin(
+                lpAmount,
+                BASE_ASSET_INDEX
+            );
     }
-} 
+}

@@ -461,7 +461,8 @@ export async function getConfig(
       // Note: In localhost, pool should be the deployment name
       // In testnet/mainnet, pool should be the actual pool address
       // Example for mainnet: pool: "0xA5407eAE9Ba41422680e2e00537571bcC53efBfD"
-      "USDC_USDS_Curve": {
+      // eslint-disable-next-line camelcase -- Ignore for config
+      USDC_USDS_Curve: {
         baseAsset: "USDC", // Base asset for valuation (smart contract will auto-determine index)
         name: "dPOOL USDC/USDS",
         symbol: "USDC-USDS_Curve",
@@ -469,7 +470,8 @@ export async function getConfig(
         initialSlippageBps: 100, // 1% max slippage for periphery
         pool: "USDC_USDS_CurvePool", // Deployment name (localhost) or address (testnet/mainnet)
       },
-      "frxUSD_USDC_Curve": {
+      // eslint-disable-next-line camelcase -- Ignore for config
+      frxUSD_USDC_Curve: {
         baseAsset: "frxUSD", // Base asset for valuation (smart contract will auto-determine index)
         name: "dPOOL frxUSD/USDC",
         symbol: "frxUSD-USDC_Curve",
