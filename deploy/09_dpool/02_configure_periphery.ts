@@ -12,52 +12,39 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   // Skip if no dPool config
   if (!config.dPool) {
-    console.log(
-      "No dPool configuration found, skipping periphery configuration",
-    );
+    console.log("No dPool configuration found, skipping periphery configuration");
     return;
   }
 
   console.log(`\n--- Configuring dPOOL Periphery Contracts ---`);
 
-  // Get factory deployment
-  let factoryDeployment;
-
-  try {
-    factoryDeployment = await get("DPoolVaultFactory");
-  } catch (error) {
-    console.log(`⚠️  Failed to get DPoolVaultFactory deployment: ${error}`);
-    console.log(`⚠️  Skipping periphery configuration: factory not found`);
-    return;
-  }
-
-  // Get factory contract instance
-  const factory = await ethers.getContractAt(
-    "DPoolVaultFactory",
-    factoryDeployment.address,
-    await ethers.getSigner(deployer as string),
-  );
-
-  // Configure periphery for each dPool instance (now one farm per pool)
+  // Configure periphery for each dPool instance
   for (const [dPoolId, dPoolConfig] of Object.entries(config.dPool)) {
     console.log(`\n--- Configuring Periphery for ${dPoolId} ---`);
 
-    // Get base asset address
-    const baseAssetAddress =
-      config.tokenAddresses[
-        dPoolConfig.baseAsset as keyof typeof config.tokenAddresses
-      ];
-
-    if (!baseAssetAddress) {
-      console.log(
-        `⚠️  Skipping ${dPoolId}: missing base asset address for ${dPoolConfig.baseAsset}`,
-      );
+    // Get periphery deployment
+    const peripheryDeploymentName = `DPoolPeriphery_${dPoolId}`;
+    let peripheryDeployment;
+    
+    try {
+      peripheryDeployment = await get(peripheryDeploymentName);
+    } catch (error) {
+      console.log(`⚠️  Periphery deployment ${peripheryDeploymentName} not found: ${error}`);
+      console.log(`⚠️  Skipping ${dPoolId}: periphery not deployed`);
       continue;
     }
 
+    console.log(`  Found periphery: ${peripheryDeployment.address}`);
+
+    // Get periphery contract instance
+    const periphery = await ethers.getContractAt(
+      "DPoolCurvePeriphery",
+      peripheryDeployment.address,
+      await ethers.getSigner(deployer as string)
+    );
+
     // Get Curve pool deployment
     let curvePoolDeployment;
-
     try {
       // Try to get by deployment name first (localhost)
       curvePoolDeployment = await get(dPoolConfig.pool);
@@ -67,50 +54,17 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
         curvePoolDeployment = { address: dPoolConfig.pool };
         console.log(`Using external pool address: ${dPoolConfig.pool}`);
       } else {
-        console.log(
-          `⚠️  Failed to get Curve pool deployment ${dPoolConfig.pool}: ${error}`,
-        );
+        console.log(`⚠️  Failed to get Curve pool deployment ${dPoolConfig.pool}: ${error}`);
         console.log(`⚠️  Skipping ${dPoolId}: pool not found`);
         continue;
       }
     }
 
-    // Find the farm for this pool
-    const allVaults = await factory.getAllVaults();
-    let farmVault = null;
-    let farmPeriphery = null;
-
-    for (let i = 0; i < allVaults.length; i++) {
-      const vaultInfo = await factory.getVaultInfo(allVaults[i]);
-
-      if (vaultInfo.lpToken === curvePoolDeployment.address) {
-        farmVault = vaultInfo.vault;
-        farmPeriphery = vaultInfo.periphery;
-        break;
-      }
-    }
-
-    if (!farmVault || !farmPeriphery) {
-      console.log(`⚠️  Farm not found for ${dPoolId}, skipping configuration`);
-      continue;
-    }
-
-    console.log(`  Found farm:`);
-    console.log(`    Vault: ${farmVault}`);
-    console.log(`    Periphery: ${farmPeriphery}`);
-
-    // Get periphery contract instance
-    const periphery = await ethers.getContractAt(
-      "DPoolCurvePeriphery",
-      farmPeriphery,
-      await ethers.getSigner(deployer as string),
-    );
-
     // Get pool assets from the Curve pool
     const curvePool = await ethers.getContractAt(
       "ICurveStableSwapNG",
       curvePoolDeployment.address,
-      await ethers.getSigner(deployer as string),
+      await ethers.getSigner(deployer as string)
     );
 
     const asset0 = await curvePool.coins(0);
@@ -124,7 +78,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     for (const asset of [asset0, asset1]) {
       try {
         const isWhitelisted = await periphery.isAssetWhitelisted(asset);
-
+        
         if (!isWhitelisted) {
           console.log(`  Whitelisting asset: ${asset}`);
           const tx = await periphery.addWhitelistedAsset(asset);
@@ -142,17 +96,10 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     if (dPoolConfig.initialSlippageBps) {
       try {
         const currentSlippage = await periphery.maxSlippageBps();
-
-        if (
-          currentSlippage.toString() !==
-          dPoolConfig.initialSlippageBps.toString()
-        ) {
-          console.log(
-            `  Setting max slippage to ${dPoolConfig.initialSlippageBps} BPS`,
-          );
-          const tx = await periphery.setMaxSlippage(
-            dPoolConfig.initialSlippageBps,
-          );
+        
+        if (currentSlippage.toString() !== dPoolConfig.initialSlippageBps.toString()) {
+          console.log(`  Setting max slippage to ${dPoolConfig.initialSlippageBps} BPS`);
+          const tx = await periphery.setMaxSlippage(dPoolConfig.initialSlippageBps);
           await tx.wait();
           console.log(`  ✅ Max slippage set`);
         } else {
@@ -170,6 +117,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 };
 
 func.tags = ["dpool", "dpool-periphery-config"];
-func.dependencies = ["dpool-implementations", "dpool-farms"];
+func.dependencies = ["dpool-vaults", "dpool-peripheries"];
 
 export default func;

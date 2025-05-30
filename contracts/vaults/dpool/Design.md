@@ -8,19 +8,20 @@ dPOOL is a collection of individual yield farms, where each vault represents a s
 - **Risk Isolation:** Each vault represents pure exposure to one specific LP pool
 - **Native Pricing:** Each DEX uses its own battle-tested pricing mechanisms without oracle dependencies
 - **Multi-DEX Support:** Supports Curve, Uniswap, and other DEX protocols
-- **Simple Architecture:** Minimal vault complexity, complex logic isolated in replaceable periphery
+- **Simple Architecture:** Direct deployment pattern with minimal complexity
+- **No Factory Overhead:** Direct contract deployment for simplicity and clarity
 
 **Contracts:**
 
 1. **`DPoolVaultLP.sol` (Base Contract)**
    * **Type:** Abstract Base Asset ERC4626 Vault (Non-Upgradeable)
-   * **Inherits:** `ERC4626`, `AccessControl`
+   * **Inherits:** `ERC4626`, `AccessControl`, `ReentrancyGuard`
    * **Core Logic:** Abstract ERC4626 vault that accepts LP tokens and values them in base asset terms. No DEX interactions, only LP token accounting and valuation.
    * **Key State:**
      * `asset()`: Base asset address for consistent valuation (e.g., USDC). Immutable.
-     * `lpToken`: Address of the specific LP token this vault accepts. Immutable.
+     * `LP_TOKEN`: Address of the specific LP token this vault accepts. Immutable.
      * `withdrawalFeeBps`: Fee charged on withdrawal. Settable by `FEE_MANAGER_ROLE`.
-     * `maxWithdrawalFeeBps`: Hardcoded maximum for withdrawal fees.
+     * `MAX_WITHDRAWAL_FEE_BPS`: Hardcoded maximum for withdrawal fees (5%).
    * **Roles:**
      * `DEFAULT_ADMIN_ROLE`: Can manage other roles.
      * `FEE_MANAGER_ROLE`: Can set withdrawal fees up to maximum.
@@ -28,8 +29,9 @@ dPOOL is a collection of individual yield farms, where each vault represents a s
      * `deposit(uint256 lpAmount, address receiver)`: Standard ERC4626 deposit accepting LP tokens directly.
      * `withdraw(uint256 assets, address receiver, address owner)`: Standard ERC4626 withdrawal returning LP tokens equivalent to asset value.
      * `totalAssets()`: Abstract function for LP valuation in base asset terms using DEX-native pricing.
-     * `previewDeposit(uint256 lpAmount)`: Preview shares for LP token deposit.
-     * `previewWithdraw(uint256 assets)`: Preview LP tokens returned for asset withdrawal.
+     * `previewDepositLP(uint256 lpAmount)`: Preview shares for LP token deposit.
+     * `previewWithdrawLP(uint256 assets)`: Preview LP tokens returned for asset withdrawal.
+     * `previewLPValue(uint256 lpAmount)`: Preview base asset value for LP tokens.
 
 2. **`DPoolVaultCurveLP.sol` (Curve Implementation)**
    * **Type:** Curve LP Token ERC4626 Vault (Non-Upgradeable)
@@ -37,23 +39,28 @@ dPOOL is a collection of individual yield farms, where each vault represents a s
    * **Core Logic:** Pure LP token vault that accepts Curve LP tokens and values them consistently using a base asset.
    * **Key State:**
      * `asset()`: Base asset for consistent valuation (e.g., USDC). Immutable.
-     * `curvePool`: Address of the Curve pool for pricing queries. Immutable.
-     * `lpToken`: Address of the Curve LP token that this vault accepts. Immutable.
-     * `baseAssetIndex`: Index of base asset in Curve pool for pricing. Immutable.
+     * `POOL`: Address of the Curve pool for pricing queries. Immutable.
+     * `LP_TOKEN`: Address of the Curve LP token that this vault accepts. Immutable.
+     * `BASE_ASSET_INDEX`: Index of base asset in Curve pool for pricing. Immutable (auto-determined).
    * **Implementation:**
      * `deposit(uint256 lpAmount, address receiver)`: Accepts LP tokens directly, mints shares based on LP value.
      * `withdraw(uint256 assets, address receiver, address owner)`: Burns shares, returns LP tokens equivalent to asset value.
-     * `totalAssets()`: Uses `curvePool.calc_withdraw_one_coin(lpBalance, baseAssetIndex)` to value LP tokens in base asset terms.
+     * `totalAssets()`: Uses `curvePool.calc_withdraw_one_coin(lpBalance, BASE_ASSET_INDEX)` to value LP tokens in base asset terms.
+     * `pool()`: Returns the Curve pool address.
+     * `baseAssetIndex()`: Returns the index of the base asset in the pool.
 
 3. **`DPoolCurvePeriphery.sol` (Curve DEX Handler)**
-   * **Type:** Curve Pool Asset ↔ LP Token Conversion Handler (Non-Upgradeable, replaceable)
+   * **Type:** Curve Pool Asset ↔ LP Token Conversion Handler (Non-Upgradeable)
    * **Purpose:** Handles pool asset deposits/withdrawals by converting to/from Curve LP tokens with slippage protection.
    * **Key State:**
-     * `vault`: Address of the associated Curve LP vault. Immutable.
-     * `curvePool`: Address of the Curve pool. Immutable.
-     * `poolAssets`: `address[2]`. The two assets in the Curve pool. Immutable.
+     * `VAULT`: Address of the associated Curve LP vault. Immutable.
+     * `POOL`: Address of the Curve pool. Immutable.
+     * `poolAssets`: `address[2]`. The two assets in the Curve pool. Auto-queried from pool.
      * `whitelistedAssets`: `mapping(address => bool)`. Assets approved for deposits/withdrawals. Managed by admin.
+     * `supportedAssets`: `address[]`. Array of whitelisted assets for enumeration.
      * `maxSlippageBps`: Maximum allowed slippage. Settable by admin.
+   * **Constants:**
+     * `MAX_SLIPPAGE_BPS`: Maximum allowed slippage (10%).
    * **Roles:**
      * `DEFAULT_ADMIN_ROLE`: Can manage whitelisted assets and slippage settings.
    * **Key Functions:**
@@ -65,21 +72,7 @@ dPOOL is a collection of individual yield farms, where each vault represents a s
      * `addWhitelistedAsset(address asset)`: Admin function to whitelist an asset for deposits/withdrawals.
      * `removeWhitelistedAsset(address asset)`: Admin function to remove an asset from whitelist.
      * `isAssetWhitelisted(address asset)`: Check if an asset is whitelisted for use.
-
-4. **`DPoolVaultFactory.sol`**
-   * **Type:** Vault Deployment Factory (Non-Upgradeable)
-   * **Purpose:** Standardized deployment of vault + periphery pairs across different DEX types.
-   * **Key State:**
-     * `vaultImplementations`: `mapping(bytes32 => address)`. Maps DEX type to vault implementation.
-     * `peripheryImplementations`: `mapping(bytes32 => address)`. Maps DEX type to periphery implementation.
-     * `deployedVaults`: `address[]`. List of all deployed vaults.
-     * `deployedPeripheries`: `address[]`. List of all deployed peripheries.
-   * **Key Functions:**
-     * `deployFarm(bytes32 dexType, string memory name, string memory symbol, address lpToken, bytes calldata pricingConfig) returns (address vault, address periphery)`: Generic deployment function for any DEX type.
-     * `setVaultImplementation(bytes32 dexType, address implementation)`: Admin function to register vault implementations.
-     * `setPeripheryImplementation(bytes32 dexType, address implementation)`: Admin function to register periphery implementations.
-     * `getVaultInfo(address vault) returns (VaultInfo memory)`: Returns comprehensive vault information.
-     * `getAllVaults() returns (address[] memory)`: Returns list of all deployed vaults.
+     * `setMaxSlippage(uint256 newMaxSlippage)`: Admin function to set maximum allowed slippage.
 
 **User Flow Examples:**
 
@@ -97,75 +90,141 @@ dPOOL is a collection of individual yield farms, where each vault represents a s
 
 * **Flexible Withdrawal:**
   1. User → `DPoolCurvePeriphery.withdrawToAsset(shares, frxUSD, user, user, minAmount, 1%)`
-  2. Periphery → Validate frxUSD is whitelisted, calculate LP needed, call `vault.withdraw(assetsEquivalent, periphery, user)` → Get LP tokens
+  2. Periphery → Validate frxUSD is whitelisted, calculate LP needed, call `vault.redeem(shares, periphery, user)` → Get LP tokens
   3. Periphery → `curvePool.remove_liquidity_one_coin(lpAmount, 1, minAmount)` (index 1 for frxUSD)
   4. Periphery → Send frxUSD to user (user deposited USDC but withdrew frxUSD!)
   5. Note: Vault internally valued LP in base asset terms for consistent share pricing
 
 **Deployment Pattern:**
 
-```solidity
-// First, register implementations for different DEX types
-factory.setVaultImplementation(keccak256("CURVE"), curveLPVaultImplementation);
-factory.setPeripheryImplementation(keccak256("CURVE"), curvePeripheryImplementation);
+```typescript
+// Direct deployment approach (no factory)
+// Example from deployment scripts:
 
-// Deploy farms using generic function
-(address dpCurveUSDC_frxUSD_Vault, address dpCurveUSDC_frxUSD_Periphery) = factory.deployFarm(
-    keccak256("CURVE"), // dexType
-    "dPOOL USDC/frxUSD Curve",
-    "USDC-frxUSD_Curve",
-    curveUSDC_frxUSD_LP_Token, // The actual LP token address
-    abi.encode(curvePool, USDC_ADDRESS, 0) // Curve config: pool, base asset, base asset index
-);
+// Deploy Vault directly for each pool
+const vault = await deploy(`DPoolVault_USDC_USDS_Curve`, {
+  contract: "DPoolVaultCurveLP",
+  args: [
+    USDC_ADDRESS,           // baseAsset
+    curveUSDC_USDS_LP,     // lpToken (curve pool serves as LP token)
+    curveUSDC_USDS_Pool,   // pool (same as LP token for Curve)
+    "dPOOL USDC/USDS",     // name
+    "USDC-USDS_Curve",     // symbol
+    admin                   // admin
+  ]
+});
 
-// Setup asset whitelist for periphery
-DPoolCurvePeriphery periphery = DPoolCurvePeriphery(dpCurveUSDC_frxUSD_Periphery);
-periphery.addWhitelistedAsset(USDC_ADDRESS);   // Allow USDC deposits/withdrawals
-periphery.addWhitelistedAsset(frxUSD_ADDRESS); // Allow frxUSD deposits/withdrawals
+// Deploy Periphery directly for each pool
+const periphery = await deploy(`DPoolPeriphery_USDC_USDS_Curve`, {
+  contract: "DPoolCurvePeriphery",
+  args: [
+    vault.address,         // vault
+    curveUSDC_USDS_Pool,  // pool
+    admin                  // admin
+  ]
+});
 
-// Deploy different DEX type with same function
-factory.setVaultImplementation(keccak256("UNISWAP_V3"), uniswapV3VaultImplementation);
-factory.setPeripheryImplementation(keccak256("UNISWAP_V3"), uniswapV3PeripheryImplementation);
+// Configure periphery - whitelist assets
+const peripheryContract = await ethers.getContractAt("DPoolCurvePeriphery", periphery.address);
+await peripheryContract.addWhitelistedAsset(USDC_ADDRESS);   // Allow USDC deposits/withdrawals
+await peripheryContract.addWhitelistedAsset(USDS_ADDRESS);   // Allow USDS deposits/withdrawals
+await peripheryContract.setMaxSlippage(100); // 1% max slippage
 
-(address dpUniV3USDC_USDT_Vault, address dpUniV3USDT_Periphery) = factory.deployFarm(
-    keccak256("UNISWAP_V3"), // dexType
-    "dPOOL USDC/USDT Uniswap V3",
-    "USDC-USDT_UniV3",
-    uniswapV3Position_TokenId, // The position NFT or wrapped token
-    abi.encode(uniswapPool, positionManager, tickLower, tickUpper) // Uniswap-specific pricing config
-);
+// Deploy additional pools
+const frxUSDVault = await deploy(`DPoolVault_frxUSD_USDC_Curve`, {
+  contract: "DPoolVaultCurveLP",
+  args: [frxUSD_ADDRESS, curvefrxUSD_USDC_LP, curvefrxUSD_USDC_Pool, "dPOOL frxUSD/USDC", "frxUSD-USDC_Curve", admin]
+});
 
-// Users can only deposit/withdraw whitelisted assets:
-periphery.depositAsset(USDC, 1000e6, user, minShares, 1%);    // ✅ Allowed (whitelisted)
-periphery.depositAsset(frxUSD, 1000e18, user, minShares, 1%); // ✅ Allowed (whitelisted)
-periphery.depositAsset(DAI, 1000e18, user, minShares, 1%);    // ❌ Reverts (not whitelisted)
-// But vault values everything in base asset (USDC) for consistent share pricing
+const frxUSDPeriphery = await deploy(`DPoolPeriphery_frxUSD_USDC_Curve`, {
+  contract: "DPoolCurvePeriphery", 
+  args: [frxUSDVault.address, curvefrxUSD_USDC_Pool, admin]
+});
+
+// Users can interact with any deployed vault:
+// Direct LP deposit to USDC/USDS vault
+vault.deposit(lpAmount, user);
+
+// Asset conversion through periphery
+periphery.depositAsset(USDC, 1000e6, user, minShares, 100);    // ✅ Allowed (whitelisted)
+periphery.depositAsset(USDS, 1000e18, user, minShares, 100);   // ✅ Allowed (whitelisted) 
+periphery.depositAsset(DAI, 1000e18, user, minShares, 100);    // ❌ Reverts (not whitelisted)
 ```
+
+**Configuration Structure:**
+
+```typescript
+// localhost.ts configuration example
+dPool: {
+  // eslint-disable-next-line camelcase
+  USDC_USDS_Curve: {
+    baseAsset: "USDC",                    // Base asset for valuation
+    name: "dPOOL USDC/USDS",             // Vault name
+    symbol: "USDC-USDS_Curve",           // Vault symbol
+    initialAdmin: user1,                  // Initial admin
+    initialSlippageBps: 100,             // 1% max slippage for periphery
+    pool: "USDC_USDS_CurvePool",         // Pool deployment name (localhost) or address (mainnet)
+  },
+  // eslint-disable-next-line camelcase 
+  frxUSD_USDC_Curve: {
+    baseAsset: "frxUSD",                 // Different base asset
+    name: "dPOOL frxUSD/USDC", 
+    symbol: "frxUSD-USDC_Curve",
+    initialAdmin: user1,
+    initialSlippageBps: 100,
+    pool: "frxUSD_USDC_CurvePool",
+  },
+}
+```
+
+**Deployment Scripts:**
+
+1. **`01_deploy_vaults_and_peripheries.ts`**
+   - Deploys vault and periphery contracts directly for each dPool configuration
+   - Dependencies: `["curve"]` (requires curve pools to be deployed first)
+   - Tags: `["dpool", "dpool-vaults", "dpool-peripheries"]`
+
+2. **`02_configure_periphery.ts`**
+   - Configures periphery contracts (whitelist assets, set slippage limits)
+   - Dependencies: `["dpool-vaults", "dpool-peripheries"]`
+   - Tags: `["dpool", "dpool-periphery-config"]`
+
+3. **`03_verify_system.ts`**
+   - Health check and system verification with deployment summary
+   - Dependencies: `["dpool-periphery-config"]`
+   - Tags: `["dpool", "dpool-verify"]`
 
 **File Structure:**
 ```
 contracts/vaults/dpool/
 ├── core/
 │   ├── DPoolVaultLP.sol              // Abstract base asset vault
-│   ├── DPoolVaultCurveLP.sol         // Curve LP vault implementation
-│   ├── DPoolVaultUniswapV3LP.sol     // Uniswap V3 LP position vault
-│   ├── DPoolVaultFactory.sol         // Multi-DEX deployment factory
-│   └── interfaces/IDPoolVaultLP.sol
+│   ├── DPoolVaultCurveLP.sol         // Curve LP vault implementation  
+│   └── interfaces/
+│       ├── IDPoolVaultLP.sol         // Vault interface
+│       └── ICurveStableSwapNG.sol    // Curve pool interface
 └── periphery/
     ├── DPoolCurvePeriphery.sol       // Curve pool asset conversion
-    ├── DPoolUniswapV3Periphery.sol   // Uniswap V3 pool asset conversion
-    └── interfaces/IDPoolPeriphery.sol
+    └── interfaces/
+        └── IDPoolPeriphery.sol       // Periphery interface
+
+deploy/09_dpool/
+├── 01_deploy_vaults_and_peripheries.ts  // Direct deployment of contracts
+├── 02_configure_periphery.ts           // Configure periphery contracts  
+└── 03_verify_system.ts                 // System verification & health check
 ```
 
 **Key Design Decisions Summary:**
 
+* **Direct Deployment:** Each vault and periphery pair is deployed directly without factory complexity.
 * **Base Asset Vaults:** Core vaults accept LP tokens but value them in base asset terms for consistent ERC4626 accounting.
 * **DEX-Native Pricing:** Each vault uses its DEX's native pricing for `totalAssets()` calculation in base asset terms.
 * **Periphery Pattern:** All pool asset conversions and DEX interactions isolated in periphery contracts.
 * **Asset Whitelisting:** Periphery contracts restrict deposits/withdrawals to approved assets for security and control.
 * **Dual Interface:** Advanced users can use vaults directly (LP tokens), regular users use periphery (whitelisted pool assets).
 * **Clean Separation:** Vault handles base asset accounting, periphery handles conversions with slippage protection.
-* **Generic Factory:** Single deployment function supports all DEX types via implementation registry and flexible config parameters.
+* **Simple Deployment:** Direct contract deployment for clarity and maintainability.
 * **No Oracle Dependencies:** Each DEX uses its own pricing mechanisms.
-* **Replaceable Periphery:** Periphery contracts can be upgraded without touching core vaults.
-* **Farm Collection Model:** Users choose specific LP exposures across different DEXes.
+* **Individual Farms:** Users choose specific LP exposures, each pool gets its own vault + periphery pair.
+* **Custom Errors:** Gas-efficient error handling throughout all contracts.
+* **Immutable Core:** Critical addresses and indices are immutable for security.
