@@ -15,6 +15,7 @@ import {
 import {
   strategyDS,
   strategyDUSD,
+  strategyETHLST,
   strategySfrxUSD,
   strategyStS,
   strategyWstkscUSD,
@@ -40,6 +41,9 @@ export async function getConfig(
   const wstkscUSDAddress = "0x9fb76f7ce5FCeAA2C42887ff441D46095E494206";
   const USDCeAddress = "0x29219dd400f2Bf60E5a23d13Be72B486D4038894";
   const scUSDAddress = "0xd3DCe716f3eF535C5Ff8d041c1A41C3bd89b97aE";
+  const WETHAddress = "0x50c42dEAcD8Fc9773493ED674b675bE577f2634b";
+  const scETHAddress = "0x3bcE5CB273F0F148010BbEa2470e7b5df84C7812";
+  const wstkscETHAddress = "0xE8a41c62BB4d5863C6eadC96792cFE90A1f37C47"
 
   return {
     tokenAddresses: {
@@ -52,6 +56,9 @@ export async function getConfig(
       wstkscUSD: wstkscUSDAddress,
       USDCe: USDCeAddress,
       scUSD: scUSDAddress,
+      WETH: WETHAddress,
+      scETH: scETHAddress,
+      wstkscETH: wstkscETHAddress,
     },
     walletAddresses: {
       governanceMultisig: "0xE83c188a7BE46B90715C757A06cF917175f30262", // Created via Safe
@@ -98,6 +105,16 @@ export async function getConfig(
               lowerThreshold: ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT,
               fixedPrice: ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT,
             },
+            [WETHAddress]: {
+              feed: "0x824364077993847f71293B24ccA8567c00c2de11", // WETH/USD Redstone price feed
+              lowerThreshold: ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT,
+              fixedPrice: ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT,
+            },
+            [scETHAddress]: {
+              feed: "0x19A95E6203A0611b6be322c25b63Ec989fFE15c1", // scETH/USD Redstone price feed
+              lowerThreshold: ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT,
+              fixedPrice: ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT,
+            },
           },
           compositeRedstoneOracleWrappersWithThresholding: {
             [sfrxUSDAddress]: {
@@ -135,6 +152,15 @@ export async function getConfig(
               fixedPriceInBase1: 0n,
               lowerThresholdInBase2: ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT, // Only threshold scUSD/USD
               fixedPriceInBase2: ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT,
+            },
+            [wstkscETHAddress]: {
+              feedAsset: wstkscETHAddress,
+              feed1: "0x356637474C2124cdD46d8c5fFA17365ad2B42d45", // wstkscETH/stkscETH Chainlink price feed
+              feed2: "0x19A95E6203A0611b6be322c25b63Ec989fFE15c1", // scETH/USD Chainlink price feed
+              lowerThresholdInBase1: 0n, // No thresholding
+              fixedPriceInBase1: 0n,
+              lowerThresholdInBase2: 0n, // No thresholding
+              fixedPriceInBase2: 0n,
             },
           },
         },
@@ -175,6 +201,9 @@ export async function getConfig(
         stS: strategyStS,
         sfrxUSD: strategySfrxUSD,
         wstkscUSD: strategyWstkscUSD,
+        WETH: strategyETHLST,
+        scETH: strategyETHLST,
+        wstkscETH: strategyETHLST,
       },
     },
     odos: {
