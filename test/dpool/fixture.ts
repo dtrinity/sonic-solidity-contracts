@@ -1,240 +1,294 @@
-import { deployments } from "hardhat";
-import { HardhatRuntimeEnvironment } from "hardhat/types";
-import { BigNumberish } from "ethers";
+import { ethers, deployments } from "hardhat";
+import { parseUnits } from "ethers";
+import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
+
 import {
-  getTokenContractForSymbol,
-  TokenInfo,
-} from "../../typescript/token/utils";
-import { ERC20 } from "../../typechain-types";
-
-
-export interface DPoolFixtureConfig {
-  dPoolName: "dpUSDC" | "dpfrxUSD";
-  baseAssetSymbol: string;
-  poolTokenSymbol: string;
-  curvePoolTokens: [string, string];
-  curvePoolName: string;
-  deploymentTags: string[];
-}
-
-export const DPUSDC_CONFIG: DPoolFixtureConfig = {
-  dPoolName: "dpUSDC",
-  baseAssetSymbol: "USDC",
-  poolTokenSymbol: "USDC-USDS_Curve",
-  curvePoolTokens: ["USDC", "USDS"],
-  curvePoolName: "USDC_USDS_CurvePool",
-  deploymentTags: [
-    "local-setup", // mock tokens and oracles
-    "oracle", // mock oracle setup uses this tag
-    "curve", // mock curve pools
-    "dpool", // dPOOL core contracts and configuration
-  ],
-};
-
-export const DPfrxUSD_CONFIG: DPoolFixtureConfig = {
-  dPoolName: "dpfrxUSD",
-  baseAssetSymbol: "frxUSD",
-  poolTokenSymbol: "frxUSD-USDC_Curve",
-  curvePoolTokens: ["frxUSD", "USDC"],
-  curvePoolName: "frxUSD_USDC_CurvePool",
-  deploymentTags: [
-    "local-setup",
-    "oracle", // needed for frxUSD
-    "curve",
-    "dpool",
-  ],
-};
-
-// Array of all DPool configurations
-export const DPOOL_CONFIGS: DPoolFixtureConfig[] = [DPUSDC_CONFIG, DPfrxUSD_CONFIG];
+  IERC20,
+  DPoolVaultCurveLP,
+  DPoolCurvePeriphery,
+  ICurveStableSwapNG,
+} from "../../typechain-types";
 
 export interface DPoolFixtureResult {
-  config: DPoolFixtureConfig;
-  poolToken: any; // DPoolToken contract
-  collateralVault: any; // DPoolCollateralVault contract
-  router: any; // DPoolRouter contract
-  curvePool: any; // MockCurveStableSwapNG contract
-  curveLPAdapter: any; // CurveLPAdapter contract
-  baseAssetToken: ERC20;
-  baseAssetInfo: TokenInfo;
-  otherAssetToken: ERC20;
-  otherAssetInfo: TokenInfo;
-  deployer: any; // Signer
-  user1: any; // Signer
-  user2: any; // Signer
-}
-
-// Core logic for fetching dPOOL components after deployments are done
-async function fetchDPoolComponents(
-  hreElements: {
-    deployments: HardhatRuntimeEnvironment["deployments"];
-    getNamedAccounts: HardhatRuntimeEnvironment["getNamedAccounts"];
-    ethers: HardhatRuntimeEnvironment["ethers"];
-    globalHre: HardhatRuntimeEnvironment;
-  },
-  config: DPoolFixtureConfig
-): Promise<DPoolFixtureResult> {
-  const { deployments, getNamedAccounts, ethers, globalHre } = hreElements;
-  const { deployer, user1, user2 } = await getNamedAccounts();
-  const deployerSigner = await ethers.getSigner(deployer);
-  const user1Signer = await ethers.getSigner(user1);
-  const user2Signer = await ethers.getSigner(user2);
-
-  // Get base asset token
-  const { contract: baseAssetToken, tokenInfo: baseAssetInfo } =
-    await getTokenContractForSymbol(globalHre, deployer, config.baseAssetSymbol);
-
-  // Get other asset token
-  const otherAssetSymbol = config.curvePoolTokens.find(
-    (token) => token !== config.baseAssetSymbol
-  )!;
-  const { contract: otherAssetToken, tokenInfo: otherAssetInfo } =
-    await getTokenContractForSymbol(globalHre, deployer, otherAssetSymbol);
-
-  // Get dPOOL contracts
-  const poolTokenDeployment = await deployments.get(
-    `DPoolToken_${config.dPoolName}`
-  );
-  const poolToken = await ethers.getContractAt(
-    "DPoolToken",
-    poolTokenDeployment.address
-  );
-
-  const collateralVaultDeployment = await deployments.get(
-    `DPoolCollateralVault_${config.dPoolName}`
-  );
-  const collateralVault = await ethers.getContractAt(
-    "DPoolCollateralVault",
-    collateralVaultDeployment.address
-  );
-
-  const routerDeployment = await deployments.get(
-    `DPoolRouter_${config.dPoolName}`
-  );
-  const router = await ethers.getContractAt(
-    "DPoolRouter",
-    routerDeployment.address
-  );
-
-  // Get Curve pool
-  const curvePoolDeployment = await deployments.get(config.curvePoolName);
-  const curvePool = await ethers.getContractAt(
-    "MockCurveStableSwapNG",
-    curvePoolDeployment.address
-  );
-
-  // Get CurveLPAdapter
-  const adapterDeployment = await deployments.get(
-    `CurveLPAdapter_${config.curvePoolName}`
-  );
-  const curveLPAdapter = await ethers.getContractAt(
-    "CurveLPAdapter",
-    adapterDeployment.address
-  );
-
-  return {
-    config,
-    poolToken,
-    collateralVault,
-    router,
-    curvePool,
-    curveLPAdapter,
-    baseAssetToken: baseAssetToken as unknown as ERC20,
-    baseAssetInfo,
-    otherAssetToken: otherAssetToken as unknown as ERC20,
-    otherAssetInfo,
-    deployer: deployerSigner,
-    user1: user1Signer,
-    user2: user2Signer,
+  // Contracts
+  vault: DPoolVaultCurveLP;
+  periphery: DPoolCurvePeriphery;
+  curvePool: ICurveStableSwapNG;
+  
+  // Tokens
+  baseAssetToken: IERC20;
+  otherAssetToken: IERC20;
+  
+  // Signers
+  deployer: SignerWithAddress;
+  user1: SignerWithAddress;
+  user2: SignerWithAddress;
+  admin: SignerWithAddress;
+  
+  // Pool info
+  baseAssetInfo: {
+    address: string;
+    symbol: string;
+    decimals: number;
+  };
+  otherAssetInfo: {
+    address: string;
+    symbol: string;
+    decimals: number;
   };
 }
 
-export const createDPoolFixture = (config: DPoolFixtureConfig) => {
-  return deployments.createFixture(
-    async (hreFixtureEnv: HardhatRuntimeEnvironment) => {
-      // Clean slate: run all default deployment scripts
-      await hreFixtureEnv.deployments.fixture();
-      // Run dPOOL-specific deployment tags
-      await hreFixtureEnv.deployments.fixture(config.deploymentTags);
-      // Fetch dPOOL components using fixture environment
-      return fetchDPoolComponents(
-        {
-          deployments: hreFixtureEnv.deployments,
-          getNamedAccounts: hreFixtureEnv.getNamedAccounts,
-          ethers: hreFixtureEnv.ethers,
-          globalHre: hreFixtureEnv,
-        },
-        config
-      );
-    }
-  );
-};
+/**
+ * Create a dPool fixture for USDC/USDS Curve pool
+ */
+export async function DPoolUSDCFixture(): Promise<DPoolFixtureResult> {
+  const [deployer, user1, user2, admin] = await ethers.getSigners();
 
-// Pre-bound fixtures for common test cases
-export const DPUSDCFixture = createDPoolFixture(DPUSDC_CONFIG);
-export const DPfrxUSDFixture = createDPoolFixture(DPfrxUSD_CONFIG);
+  // Deploy all contracts first
+  await deployments.fixture(); // Start from a fresh deployment
+  await deployments.fixture(["dpool"]); // Deploy dPool system
 
-// Utility functions for tests
+  // Get deployed contracts using the expected deployment names
+  const vaultDeployment = await deployments.get("DPoolVault_USDC_USDS_Curve");
+  const peripheryDeployment = await deployments.get("DPoolPeriphery_USDC_USDS_Curve");
+  const curvePoolDeployment = await deployments.get("USDC_USDS_CurvePool");
+  const usdcDeployment = await deployments.get("USDC");
+  const usdsDeployment = await deployments.get("USDS");
+
+  // Connect to contracts
+  const vault = await ethers.getContractAt("DPoolVaultCurveLP", vaultDeployment.address) as DPoolVaultCurveLP;
+  const periphery = await ethers.getContractAt("DPoolCurvePeriphery", peripheryDeployment.address) as DPoolCurvePeriphery;
+  const curvePool = await ethers.getContractAt("ICurveStableSwapNG", curvePoolDeployment.address) as ICurveStableSwapNG;
+  const baseAssetToken = (await ethers.getContractAt("@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20", usdcDeployment.address)) as unknown as IERC20;
+  const otherAssetToken = (await ethers.getContractAt("@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20", usdsDeployment.address)) as unknown as IERC20;
+
+  return {
+    vault,
+    periphery,
+    curvePool,
+    baseAssetToken,
+    otherAssetToken,
+    deployer,
+    user1,
+    user2,
+    admin,
+    baseAssetInfo: {
+      address: usdcDeployment.address,
+      symbol: "USDC",
+      decimals: 6,
+    },
+    otherAssetInfo: {
+      address: usdsDeployment.address,
+      symbol: "USDS",
+      decimals: 18,
+    },
+  };
+}
+
+/**
+ * Create a dPool fixture for frxUSD/USDC Curve pool
+ */
+export async function DPoolfrxUSDFixture(): Promise<DPoolFixtureResult> {
+  const [deployer, user1, user2, admin] = await ethers.getSigners();
+
+  // Deploy all contracts first
+  await deployments.fixture(); // Start from a fresh deployment
+  await deployments.fixture(["dpool"]); // Deploy dPool system
+
+  // Get deployed contracts using the expected deployment names
+  const vaultDeployment = await deployments.get("DPoolVault_frxUSD_USDC_Curve");
+  const peripheryDeployment = await deployments.get("DPoolPeriphery_frxUSD_USDC_Curve");
+  const curvePoolDeployment = await deployments.get("frxUSD_USDC_CurvePool");
+  const frxUSDDeployment = await deployments.get("frxUSD");
+  const usdcDeployment = await deployments.get("USDC");
+
+  // Connect to contracts
+  const vault = await ethers.getContractAt("DPoolVaultCurveLP", vaultDeployment.address) as DPoolVaultCurveLP;
+  const periphery = await ethers.getContractAt("DPoolCurvePeriphery", peripheryDeployment.address) as DPoolCurvePeriphery;
+  const curvePool = await ethers.getContractAt("ICurveStableSwapNG", curvePoolDeployment.address) as ICurveStableSwapNG;
+  const baseAssetToken = (await ethers.getContractAt("@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20", frxUSDDeployment.address)) as unknown as IERC20;
+  const otherAssetToken = (await ethers.getContractAt("@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20", usdcDeployment.address)) as unknown as IERC20;
+
+  return {
+    vault,
+    periphery,
+    curvePool,
+    baseAssetToken,
+    otherAssetToken,
+    deployer,
+    user1,
+    user2,
+    admin,
+    baseAssetInfo: {
+      address: frxUSDDeployment.address,
+      symbol: "frxUSD",
+      decimals: 18,
+    },
+    otherAssetInfo: {
+      address: usdcDeployment.address,
+      symbol: "USDC",
+      decimals: 6,
+    },
+  };
+}
+
+// --- Helper functions ---
+
+/**
+ * Fund a user with tokens from the deployer
+ */
 export async function fundUserWithTokens(
-  token: ERC20,
-  user: any,
-  amount: BigNumberish,
-  deployer: any
+  token: IERC20,
+  user: SignerWithAddress,
+  amount: bigint,
+  funder: SignerWithAddress
 ): Promise<void> {
-  await token.connect(deployer).transfer(user.address, amount);
+  await token.connect(funder).transfer(user.address, amount);
 }
 
+/**
+ * Approve token spending
+ */
 export async function approveToken(
-  token: ERC20,
-  owner: any,
+  token: IERC20,
+  user: SignerWithAddress,
   spender: string,
-  amount: BigNumberish
+  amount: bigint
 ): Promise<void> {
-  await token.connect(owner).approve(spender, amount);
+  await token.connect(user).approve(spender, amount);
 }
 
-export async function depositToPool(
-  poolToken: any,
-  user: any,
-  amount: BigNumberish
-): Promise<any> {
-  return poolToken.connect(user).deposit(amount, user.address);
+/**
+ * Deposit LP tokens directly to vault
+ */
+export async function depositLPToVault(
+  vault: DPoolVaultCurveLP,
+  user: SignerWithAddress,
+  lpAmount: bigint
+): Promise<void> {
+  await vault.connect(user).deposit(lpAmount, user.address);
 }
 
-export async function withdrawFromPool(
-  poolToken: any,
-  user: any,
-  amount: BigNumberish
-): Promise<any> {
-  return poolToken.connect(user).withdraw(amount, user.address, user.address);
+/**
+ * Withdraw LP tokens directly from vault
+ */
+export async function withdrawLPFromVault(
+  vault: DPoolVaultCurveLP,
+  user: SignerWithAddress,
+  assets: bigint
+): Promise<void> {
+  await vault.connect(user).withdraw(assets, user.address, user.address);
 }
 
-export async function redeemFromPool(
-  poolToken: any,
-  user: any,
-  shares: BigNumberish
-): Promise<any> {
-  return poolToken.connect(user).redeem(shares, user.address, user.address);
+/**
+ * Redeem shares from vault
+ */
+export async function redeemFromVault(
+  vault: DPoolVaultCurveLP,
+  user: SignerWithAddress,
+  shares: bigint
+): Promise<void> {
+  await vault.connect(user).redeem(shares, user.address, user.address);
 }
 
-export async function getPoolTokenValue(poolToken: any): Promise<BigNumberish> {
-  return poolToken.totalAssets();
+/**
+ * Deposit asset via periphery
+ */
+export async function depositAssetViaPeriphery(
+  periphery: DPoolCurvePeriphery,
+  user: SignerWithAddress,
+  asset: string,
+  amount: bigint,
+  minShares: bigint = 0n,
+  maxSlippage: number = 100 // 1%
+): Promise<void> {
+  await periphery.connect(user).depositAsset(
+    asset,
+    amount,
+    user.address,
+    minShares,
+    maxSlippage
+  );
 }
 
-export async function getPoolTokenShares(poolToken: any): Promise<BigNumberish> {
-  return poolToken.totalSupply();
+/**
+ * Withdraw to asset via periphery
+ */
+export async function withdrawToAssetViaPeriphery(
+  periphery: DPoolCurvePeriphery,
+  user: SignerWithAddress,
+  shares: bigint,
+  asset: string,
+  minAmount: bigint = 0n,
+  maxSlippage: number = 100 // 1%
+): Promise<void> {
+  await periphery.connect(user).withdrawToAsset(
+    shares,
+    asset,
+    user.address,
+    user.address,
+    minAmount,
+    maxSlippage
+  );
 }
 
+/**
+ * Get user's vault share balance
+ */
 export async function getUserShares(
-  poolToken: any,
-  user: any
-): Promise<BigNumberish> {
-  return poolToken.balanceOf(user.address);
+  vault: DPoolVaultCurveLP,
+  user: SignerWithAddress
+): Promise<bigint> {
+  return await vault.balanceOf(user.address);
 }
 
-export async function getUserBaseAssets(
-  baseAsset: ERC20,
-  user: any
-): Promise<BigNumberish> {
-  return baseAsset.balanceOf(user.address);
+/**
+ * Get user's token balance
+ */
+export async function getUserTokenBalance(
+  token: IERC20,
+  user: SignerWithAddress
+): Promise<bigint> {
+  return await token.balanceOf(user.address);
+}
+
+/**
+ * Get vault's total assets
+ */
+export async function getVaultTotalAssets(
+  vault: DPoolVaultCurveLP
+): Promise<bigint> {
+  return await vault.totalAssets();
+}
+
+/**
+ * Get vault's total supply
+ */
+export async function getVaultTotalSupply(
+  vault: DPoolVaultCurveLP
+): Promise<bigint> {
+  return await vault.totalSupply();
+}
+
+/**
+ * Add liquidity to mock curve pool (for testing LP token acquisition)
+ */
+export async function addLiquidityToCurvePool(
+  curvePool: ICurveStableSwapNG,
+  user: SignerWithAddress,
+  amount0: bigint,
+  amount1: bigint,
+  minLP: bigint = 0n
+): Promise<void> {
+  await curvePool.connect(user)["add_liquidity(uint256[],uint256)"]([amount0, amount1], minLP);
+}
+
+/**
+ * Get LP token balance from curve pool
+ */
+export async function getLPTokenBalance(
+  curvePool: ICurveStableSwapNG,
+  user: SignerWithAddress
+): Promise<bigint> {
+  return await curvePool.balanceOf(user.address);
 } 

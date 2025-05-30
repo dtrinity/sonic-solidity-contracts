@@ -157,14 +157,16 @@ export async function getConfig(
         },
       },
       curvePools: {
+        // eslint-disable-next-line camelcase -- Ignore for config
         USDC_USDS_CurvePool: {
           name: "USDC/USDS Curve Pool",
           token0: "USDC",
           token1: "USDS",
           fee: 4000000, // 0.04% fee
         },
+        // eslint-disable-next-line camelcase -- Ignore for config
         frxUSD_USDC_CurvePool: {
-          name: "frxUSD/USDC Curve Pool", 
+          name: "frxUSD/USDC Curve Pool",
           token0: "frxUSD",
           token1: "USDC",
           fee: 4000000, // 0.04% fee
