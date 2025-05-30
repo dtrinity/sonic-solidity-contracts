@@ -9,49 +9,49 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   const config = await getConfig(hre);
 
-  // Skip if no dPool config
-  if (!config.dPool) {
-    console.log("No dPool configuration found, skipping mock Curve pool deployment");
+  // Skip if no mock config or curve pools config
+  if (!config.MOCK_ONLY?.curvePools) {
+    console.log("No mock curve pools configuration found, skipping mock Curve pool deployment");
     return true;
   }
 
-  // Deploy mock Curve pools for each dPool instance
-  for (const [dPoolName, dPoolConfig] of Object.entries(config.dPool)) {
-    console.log(`\n--- Deploying Mock Curve Pools for ${dPoolName} ---`);
+  console.log(`\n--- Deploying Mock Curve Pools ---`);
 
-    for (const poolConfig of dPoolConfig.curvePools) {
-      const poolName = poolConfig.name;
-      // Get token addresses from config
-      const token0Address = config.tokenAddresses[poolConfig.token0 as keyof typeof config.tokenAddresses];
-      const token1Address = config.tokenAddresses[poolConfig.token1 as keyof typeof config.tokenAddresses];
+  // Deploy mock Curve pools from mock configuration
+  for (const [poolId, poolConfig] of Object.entries(config.MOCK_ONLY.curvePools)) {
+    console.log(`\nDeploying pool: ${poolId}`);
+    
+    // Get token addresses from config
+    const token0Address = config.tokenAddresses[poolConfig.token0 as keyof typeof config.tokenAddresses];
+    const token1Address = config.tokenAddresses[poolConfig.token1 as keyof typeof config.tokenAddresses];
 
-      if (!token0Address || !token1Address) {
-        console.log(`⚠️  Skipping ${poolName}: missing token addresses for ${poolConfig.token0} or ${poolConfig.token1}`);
-        continue;
-      }
+    if (!token0Address || !token1Address) {
+      console.log(`⚠️  Skipping ${poolId}: missing token addresses for ${poolConfig.token0} or ${poolConfig.token1}`);
+      continue;
+    }
 
-      console.log(`Deploying MockCurveStableSwapNG: ${poolName}`);
-      console.log(`  Token 0 (${poolConfig.token0}): ${token0Address}`);
-      console.log(`  Token 1 (${poolConfig.token1}): ${token1Address}`);
+    console.log(`  Pool Name: ${poolConfig.name}`);
+    console.log(`  Token 0 (${poolConfig.token0}): ${token0Address}`);
+    console.log(`  Token 1 (${poolConfig.token1}): ${token1Address}`);
+    console.log(`  Fee: ${poolConfig.fee}`);
 
-      const curvePool = await deploy(poolName, {
-        contract: "MockCurveStableSwapNG",
-        from: deployer,
-        args: [
-          `${poolConfig.token0}/${poolConfig.token1} LP`, // name
-          `${poolConfig.token0}${poolConfig.token1}LP`, // symbol
-          [token0Address, token1Address], // coins array
-          4000000, // fee: 0.04% (4000000 / 10**10)
-        ],
-        log: true,
-        skipIfAlreadyDeployed: true,
-      });
+    const curvePool = await deploy(poolId, {
+      contract: "MockCurveStableSwapNG",
+      from: deployer,
+      args: [
+        `${poolConfig.token0}/${poolConfig.token1} LP`, // name
+        `${poolConfig.token0}${poolConfig.token1}LP`, // symbol
+        [token0Address, token1Address], // coins array
+        poolConfig.fee, // fee
+      ],
+      log: true,
+      skipIfAlreadyDeployed: true,
+    });
 
-      if (curvePool.newlyDeployed) {
-        console.log(`✅ Deployed ${poolName} at: ${curvePool.address}`);
-      } else {
-        console.log(`♻️  Reusing existing ${poolName} at: ${curvePool.address}`);
-      }
+    if (curvePool.newlyDeployed) {
+      console.log(`✅ Deployed ${poolId} at: ${curvePool.address}`);
+    } else {
+      console.log(`♻️  Reusing existing ${poolId} at: ${curvePool.address}`);
     }
   }
 

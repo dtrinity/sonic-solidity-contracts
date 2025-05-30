@@ -156,6 +156,20 @@ export async function getConfig(
           initialSupply: 1e6,
         },
       },
+      curvePools: {
+        USDC_USDS_CurvePool: {
+          name: "USDC/USDS Curve Pool",
+          token0: "USDC",
+          token1: "USDS",
+          fee: 4000000, // 0.04% fee
+        },
+        frxUSD_USDC_CurvePool: {
+          name: "frxUSD/USDC Curve Pool", 
+          token0: "frxUSD",
+          token1: "USDC",
+          fee: 4000000, // 0.04% fee
+        },
+      },
     },
     tokenAddresses: {
       dUSD: emptyStringIfUndefined(dUSDDeployment?.address),

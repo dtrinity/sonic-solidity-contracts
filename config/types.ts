@@ -34,6 +34,14 @@ export interface MockConfig {
       readonly initialSupply: number;
     };
   };
+  readonly curvePools: {
+    [key: string]: {
+      readonly name: string;
+      readonly token0: string;
+      readonly token1: string;
+      readonly fee: number;
+    };
+  };
 }
 
 export interface DStableConfig {
