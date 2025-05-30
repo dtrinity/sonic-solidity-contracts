@@ -83,7 +83,7 @@ contract DPoolCurvePeriphery is AccessControl, ReentrancyGuard, IDPoolPeriphery 
         VAULT = IDPoolVaultLP(_vault);
         POOL = ICurveStableSwapNG(_pool);
 
-        // Get pool assets
+        // Automatically query pool assets instead of manual configuration
         poolAssets[0] = POOL.coins(0);
         poolAssets[1] = POOL.coins(1);
 

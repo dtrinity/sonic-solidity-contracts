@@ -54,11 +54,18 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     // Get Curve pool deployment
     let curvePoolDeployment;
     try {
-      curvePoolDeployment = await get(dPoolConfig.poolConfig.name);
+      // Try to get by deployment name first (localhost)
+      curvePoolDeployment = await get(dPoolConfig.pool);
     } catch (error) {
-      console.log(`⚠️  Failed to get Curve pool deployment ${dPoolConfig.poolConfig.name}: ${error}`);
-      console.log(`⚠️  Skipping ${dPoolId}: pool not found`);
-      continue;
+      // If deployment name fails, assume it's an address (testnet/mainnet)
+      if (ethers.isAddress(dPoolConfig.pool)) {
+        curvePoolDeployment = { address: dPoolConfig.pool };
+        console.log(`Using external pool address: ${dPoolConfig.pool}`);
+      } else {
+        console.log(`⚠️  Failed to get Curve pool deployment ${dPoolConfig.pool}: ${error}`);
+        console.log(`⚠️  Skipping ${dPoolId}: pool not found`);
+        continue;
+      }
     }
 
     // Find the farm for this pool
@@ -148,6 +155,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 };
 
 func.tags = ["dpool", "dpool-periphery-config"];
-func.dependencies = ["dpool-farms"];
+func.dependencies = ["dpool-implementations", "dpool-farms"];
 
 export default func; 

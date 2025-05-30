@@ -169,7 +169,7 @@ contract DPoolVaultFactory is AccessControl {
         peripheryToVault[periphery] = vault;
 
         // Store vault info
-        (address baseAsset, , ,) = abi.decode(pricingConfig, (address, address, int128, address));
+        (address baseAsset, ,) = abi.decode(pricingConfig, (address, address, address));
         vaultInfo[vault] = VaultInfo({
             vault: vault,
             periphery: periphery,
@@ -279,7 +279,7 @@ contract DPoolVaultFactory is AccessControl {
      * @param name Vault name
      * @param symbol Vault symbol
      * @param lpToken LP token address
-     * @param pricingConfig Curve-specific config (baseAsset, pool, baseAssetIndex, admin)
+     * @param pricingConfig Curve-specific config (baseAsset, pool, admin)
      */
     function _initializeCurveFarm(
         address vault,
@@ -289,17 +289,16 @@ contract DPoolVaultFactory is AccessControl {
         address lpToken,
         bytes calldata pricingConfig
     ) internal {
-        (address baseAsset, address pool, int128 baseAssetIndex, address admin) = 
-            abi.decode(pricingConfig, (address, address, int128, address));
+        (address baseAsset, address pool, address admin) = 
+            abi.decode(pricingConfig, (address, address, address));
 
-        // Initialize vault
+        // Initialize vault (constructor will automatically determine baseAssetIndex)
         (bool success,) = vault.call(
             abi.encodeWithSignature(
-                "initialize(address,address,address,int128,string,string,address)",
+                "initialize(address,address,address,string,string,address)",
                 baseAsset,
                 lpToken,
                 pool,
-                baseAssetIndex,
                 name,
                 symbol,
                 admin

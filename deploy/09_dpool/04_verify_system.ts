@@ -67,7 +67,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     console.log(`\n--- Verifying ${dPoolId} ---`);
     
     try {
-      const curvePoolDeployment = await get(dPoolConfig.poolConfig.name);
+      // Try to get by deployment name first (localhost)
+      const curvePoolDeployment = await get(dPoolConfig.pool);
       
       // Find the farm for this pool
       let farmFound = false;
@@ -115,7 +116,37 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
         console.log(`  ❌ ${dPoolId}: Farm not found`);
       }
     } catch (error) {
-      console.log(`  ❌ ${dPoolId}: Pool deployment not found`);
+      // If deployment name fails, try as address (testnet/mainnet)
+      if (ethers.isAddress(dPoolConfig.pool)) {
+        console.log(`  ℹ️  ${dPoolId}: Using external pool address ${dPoolConfig.pool}`);
+        
+        // Find farm by pool address for external pools
+        let farmFound = false;
+        let farmVault = null;
+        let farmPeriphery = null;
+
+        for (let i = 0; i < allVaults.length; i++) {
+          const vaultInfo = await factory.getVaultInfo(allVaults[i]);
+          if (vaultInfo.lpToken === dPoolConfig.pool) {
+            farmFound = true;
+            farmVault = vaultInfo.vault;
+            farmPeriphery = vaultInfo.periphery;
+            totalFarmCount++;
+            break;
+          }
+        }
+
+        if (farmFound) {
+          console.log(`  ✅ ${dPoolId}:`);
+          console.log(`    Vault: ${farmVault}`);
+          console.log(`    Periphery: ${farmPeriphery}`);
+          console.log(`    LP Token: ${dPoolConfig.pool}`);
+        } else {
+          console.log(`  ❌ ${dPoolId}: Farm not found for external pool`);
+        }
+      } else {
+        console.log(`  ❌ ${dPoolId}: Pool deployment not found and not a valid address`);
+      }
     }
   }
 

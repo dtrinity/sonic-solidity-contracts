@@ -178,19 +178,15 @@ export interface DStakeInstanceConfig {
 
 // --- dPool Types ---
 
-export interface DPoolCurvePoolConfig {
-  readonly name: string; // Name identifier for the pool (e.g., "USDC-USDS_CurvePool")
-  readonly token0: string; // Reference to token in config (e.g., "USDC")
-  readonly token1: string; // Reference to token in config (e.g., "USDS")
-  readonly baseAssetIndex?: number; // Index of base asset in the pool (0 or 1)
-  readonly address?: Address; // Pool address (also serves as LP token address)
-}
-
 export interface DPoolInstanceConfig {
   readonly baseAsset: string; // Reference to token in config (e.g., "USDC", "dUSD")
   readonly name: string; // Name for the vault (e.g., "dPOOL USDC/USDS")
   readonly symbol: string; // Symbol for the vault (e.g., "dpUSDC_USDS")
   readonly initialAdmin: Address;
   readonly initialSlippageBps?: number; // Initial max slippage setting in BPS for periphery
-  readonly poolConfig: DPoolCurvePoolConfig; // Configuration for the specific pool
+  readonly pool: string; // Pool deployment name (localhost) or pool address (testnet/mainnet)
+  // Examples by environment:
+  // - localhost: "USDC_USDS_CurvePool" (deployment name)
+  // - testnet: "0x742d35Cc6634C0532925a3b8D404fEdF6Caf9cd5" (actual pool address)  
+  // - mainnet: "0xA5407eAE9Ba41422680e2e00537571bcC53efBfD" (actual pool address)
 }

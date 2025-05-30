@@ -458,31 +458,24 @@ export async function getConfig(
       },
     },
     dPool: {
+      // Note: In localhost, pool should be the deployment name
+      // In testnet/mainnet, pool should be the actual pool address
+      // Example for mainnet: pool: "0xA5407eAE9Ba41422680e2e00537571bcC53efBfD"
       "USDC_USDS_Curve": {
-        baseAsset: "USDC", // Base asset for valuation
+        baseAsset: "USDC", // Base asset for valuation (smart contract will auto-determine index)
         name: "dPOOL USDC/USDS",
         symbol: "USDC-USDS_Curve",
         initialAdmin: user1,
         initialSlippageBps: 100, // 1% max slippage for periphery
-        poolConfig: {
-          name: "USDC_USDS_CurvePool",
-          token0: "USDC",
-          token1: "USDS",
-          baseAssetIndex: 0, // USDC is at index 0
-        },
+        pool: "USDC_USDS_CurvePool", // Deployment name (localhost) or address (testnet/mainnet)
       },
       "frxUSD_USDC_Curve": {
-        baseAsset: "frxUSD", // Base asset for valuation
+        baseAsset: "frxUSD", // Base asset for valuation (smart contract will auto-determine index)
         name: "dPOOL frxUSD/USDC",
         symbol: "frxUSD-USDC_Curve",
         initialAdmin: user1,
         initialSlippageBps: 100, // 1% max slippage for periphery
-        poolConfig: {
-          name: "frxUSD_USDC_CurvePool",
-          token0: "frxUSD",
-          token1: "USDC",
-          baseAssetIndex: 0, // frxUSD is at index 0
-        },
+        pool: "frxUSD_USDC_CurvePool", // Deployment name (localhost) or address (testnet/mainnet)
       },
     },
   };

@@ -45,7 +45,6 @@ contract DPoolVaultCurveLP is DPoolVaultLP {
      * @param baseAsset Address of the base asset for valuation
      * @param lpToken Address of the Curve LP token
      * @param _pool Address of the DEX pool
-     * @param _baseAssetIndex Index of base asset in DEX pool (0 or 1)
      * @param name Vault token name
      * @param symbol Vault token symbol  
      * @param admin Address to grant admin role
@@ -54,21 +53,28 @@ contract DPoolVaultCurveLP is DPoolVaultLP {
         address baseAsset,
         address lpToken,
         address _pool,
-        int128 _baseAssetIndex,
         string memory name,
         string memory symbol,
         address admin
     ) DPoolVaultLP(baseAsset, lpToken, name, symbol, admin) {
         if (_pool == address(0)) revert("Invalid pool");
-        if (_baseAssetIndex < 0 || _baseAssetIndex > 1) revert("Invalid base asset index");
 
         POOL = ICurveStableSwapNG(_pool);
-        BASE_ASSET_INDEX = _baseAssetIndex;
 
-        // Verify base asset matches the pool
-        if (POOL.coins(uint256(uint128(_baseAssetIndex))) != baseAsset) {
-            revert("Base asset index mismatch");
+        // Query pool to find which index corresponds to the base asset
+        address asset0 = POOL.coins(0);
+        address asset1 = POOL.coins(1);
+        
+        int128 calculatedIndex;
+        if (baseAsset == asset0) {
+            calculatedIndex = 0;
+        } else if (baseAsset == asset1) {
+            calculatedIndex = 1;
+        } else {
+            revert("Base asset not found in pool");
         }
+        
+        BASE_ASSET_INDEX = calculatedIndex;
     }
 
     // --- Asset valuation ---
