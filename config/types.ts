@@ -182,21 +182,15 @@ export interface DPoolCurvePoolConfig {
   readonly name: string; // Name identifier for the pool (e.g., "USDC-USDS_CurvePool")
   readonly token0: string; // Reference to token in config (e.g., "USDC")
   readonly token1: string; // Reference to token in config (e.g., "USDS")
+  readonly baseAssetIndex?: number; // Index of base asset in the pool (0 or 1)
   readonly address?: Address; // Pool address (also serves as LP token address)
 }
 
 export interface DPoolInstanceConfig {
   readonly baseAsset: string; // Reference to token in config (e.g., "USDC", "dUSD")
-  readonly name: string; // Name for DPoolToken (e.g., "dPOOL dUSD/USDC Curve")
-  readonly symbol: string; // Symbol for DPoolToken (e.g., "dUSD-USDC_Curve")
+  readonly name: string; // Name for the vault (e.g., "dPOOL USDC/USDS")
+  readonly symbol: string; // Symbol for the vault (e.g., "dpUSDC_USDS")
   readonly initialAdmin: Address;
-  readonly initialFeeManager: Address;
-  readonly maxWithdrawalFeeBps: number; // Maximum withdrawal fee in BPS
-  readonly initialWithdrawalFeeBps: number; // Initial withdrawal fee in BPS
-  readonly maxSlippageBps: number; // Maximum slippage in BPS
-  readonly initialSlippageBps: number; // Initial max slippage setting in BPS
-  readonly curvePools: DPoolCurvePoolConfig[]; // Curve pools for this dPool instance
-  readonly collateralVault?: Address; // DPoolCollateralVault address (populated after deployment)
-  readonly router?: Address; // DPoolRouter address (populated after deployment)
-  readonly adapters?: { [lpToken: string]: Address }; // LP adapters (populated after deployment)
+  readonly initialSlippageBps?: number; // Initial max slippage setting in BPS for periphery
+  readonly poolConfig: DPoolCurvePoolConfig; // Configuration for the specific pool
 }

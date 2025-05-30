@@ -458,42 +458,31 @@ export async function getConfig(
       },
     },
     dPool: {
-      dpUSDC: {
-        baseAsset: "USDC", // Reference to existing USDC token
-        name: "dPOOL USDC/USDS Curve",
+      "USDC_USDS_Curve": {
+        baseAsset: "USDC", // Base asset for valuation
+        name: "dPOOL USDC/USDS",
         symbol: "USDC-USDS_Curve",
         initialAdmin: user1,
-        initialFeeManager: user1,
-        maxWithdrawalFeeBps: 10000, // 1% max withdrawal fee (using BasisPointConstants scale)
-        initialWithdrawalFeeBps: 1000, // 0.1% initial withdrawal fee
-        maxSlippageBps: 100000, // 10% max slippage
-        initialSlippageBps: 20000, // 2% initial slippage
-        curvePools: [
-          {
-            name: "USDC_USDS_CurvePool",
-            token0: "USDC",
-            token1: "USDS",
-            // Mock Curve pool will be deployed with these tokens
-          },
-        ],
+        initialSlippageBps: 100, // 1% max slippage for periphery
+        poolConfig: {
+          name: "USDC_USDS_CurvePool",
+          token0: "USDC",
+          token1: "USDS",
+          baseAssetIndex: 0, // USDC is at index 0
+        },
       },
-      dpfrxUSD: {
-        baseAsset: "frxUSD",
-        name: "dPOOL frxUSD/USDC Curve",
+      "frxUSD_USDC_Curve": {
+        baseAsset: "frxUSD", // Base asset for valuation
+        name: "dPOOL frxUSD/USDC",
         symbol: "frxUSD-USDC_Curve",
         initialAdmin: user1,
-        initialFeeManager: user1,
-        maxWithdrawalFeeBps: 10000, // 1% max
-        initialWithdrawalFeeBps: 1000, // 0.1% initial
-        maxSlippageBps: 100000, // 10% max
-        initialSlippageBps: 20000, // 2% initial
-        curvePools: [
-          {
-            name: "frxUSD_USDC_CurvePool",
-            token0: "frxUSD",
-            token1: "USDC",
-          },
-        ],
+        initialSlippageBps: 100, // 1% max slippage for periphery
+        poolConfig: {
+          name: "frxUSD_USDC_CurvePool",
+          token0: "frxUSD",
+          token1: "USDC",
+          baseAssetIndex: 0, // frxUSD is at index 0
+        },
       },
     },
   };
