@@ -30,22 +30,25 @@ async function approveLPTokens(curvePool: any, user: any, spender: string, amoun
  * Setup periphery by whitelisting assets manually (deployment script has access control issues)
  */
 async function setupPeriphery(fixture: DPoolFixtureResult) {
-  const { periphery, deployer, baseAssetToken, otherAssetToken } = fixture;
+  const { periphery, user1, baseAssetToken, otherAssetToken } = fixture;
+  
+  // In localhost config, user1 is set as initialAdmin for dPool contracts
+  const adminAccount = user1;
   
   try {
-    // Grant admin role to deployer if not already granted
-    await periphery.connect(deployer).grantRole(await periphery.DEFAULT_ADMIN_ROLE(), deployer.address);
+    // Grant admin role to user1 if not already granted (user1 should already be admin from deployment)
+    await periphery.connect(adminAccount).grantRole(await periphery.DEFAULT_ADMIN_ROLE(), adminAccount.address);
   } catch {
     // Role might already be granted, ignore error
   }
   
   try {
-    // Whitelist both pool assets
-    await periphery.connect(deployer).addWhitelistedAsset(await baseAssetToken.getAddress());
-    await periphery.connect(deployer).addWhitelistedAsset(await otherAssetToken.getAddress());
+    // Whitelist both pool assets using the correct admin account
+    await periphery.connect(adminAccount).addWhitelistedAsset(await baseAssetToken.getAddress());
+    await periphery.connect(adminAccount).addWhitelistedAsset(await otherAssetToken.getAddress());
     
     // Set reasonable slippage (1%)
-    await periphery.connect(deployer).setMaxSlippage(100);
+    await periphery.connect(adminAccount).setMaxSlippage(100);
   } catch (error) {
     console.warn("Failed to setup periphery:", error);
     // Don't fail the test, just skip periphery tests
