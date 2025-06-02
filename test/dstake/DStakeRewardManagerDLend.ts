@@ -15,7 +15,17 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
     // Create rewards fixture once per suite for snapshot caching
     const rewardsFixture = setupDLendRewardsFixture(
       config,
-      config.dStableSymbol === "dUSD" ? "sfrxUSD" : "stS",
+      (() => {
+        if (config.dStableSymbol === "dUSD") {
+          return "sfrxUSD";
+        } else if (config.dStableSymbol === "dS") {
+          return "stS";
+        } else {
+          throw new Error(
+            `Unsupported dStableSymbol for rewards fixture: ${config.dStableSymbol}`
+          );
+        }
+      })(),
       ethers.parseUnits("100", 18),
       ethers.parseUnits("1", 6)
     );

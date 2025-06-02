@@ -6,6 +6,7 @@ import {
   DS_TOKEN_ID,
   DUSD_TOKEN_ID,
   INCENTIVES_PROXY_ID,
+  SDUSD_DSTAKE_TOKEN_ID,
 } from "../../typescript/deploy-ids";
 import {
   ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT,
@@ -64,6 +65,11 @@ export async function getConfig(
 
   // Fetch deployed dLend aTokens
   const aTokenDUSDDeployment = await _hre.deployments.getOrNull("dLEND-dUSD");
+
+  // Fetch deployed dSTAKE tokens for vesting
+  const sdUSDDeployment = await _hre.deployments.getOrNull(
+    SDUSD_DSTAKE_TOKEN_ID
+  );
 
   // Get mock oracle deployments
   const mockOracleNameToAddress: Record<string, string> = {};
@@ -157,6 +163,22 @@ export async function getConfig(
           initialSupply: 1e6,
         },
       },
+      curvePools: {
+        // eslint-disable-next-line camelcase -- Ignore for config
+        USDC_USDS_CurvePool: {
+          name: "USDC/USDS Curve Pool",
+          token0: "USDC",
+          token1: "USDS",
+          fee: 4000000, // 0.04% fee
+        },
+        // eslint-disable-next-line camelcase -- Ignore for config
+        frxUSD_USDC_CurvePool: {
+          name: "frxUSD/USDC Curve Pool",
+          token0: "frxUSD",
+          token1: "USDC",
+          fee: 4000000, // 0.04% fee
+        },
+      },
     },
     tokenAddresses: {
       dUSD: emptyStringIfUndefined(dUSDDeployment?.address),
@@ -165,6 +187,9 @@ export async function getConfig(
       sfrxUSD: emptyStringIfUndefined(sfrxUSDDeployment?.address), // Used by dLEND
       stS: emptyStringIfUndefined(stSTokenDeployment?.address), // Used by dLEND
       wstkscUSD: emptyStringIfUndefined(wstkscUSDDeployment?.address), // Used by dLEND
+      USDC: emptyStringIfUndefined(USDCDeployment?.address), // Used by dPOOL
+      USDS: emptyStringIfUndefined(USDSDeployment?.address), // Used by dPOOL
+      frxUSD: emptyStringIfUndefined(frxUSDDeployment?.address), // Used by dPOOL
     },
     walletAddresses: {
       governanceMultisig: deployer,
@@ -491,6 +516,38 @@ export async function getConfig(
           initialAdmin: user1, // Optional: specific admin for this reward manager
           initialRewardsManager: user1, // Optional: specific rewards manager role holder
         },
+      },
+    },
+    vesting: {
+      name: "dBOOST sdUSD Season 1",
+      symbol: "sdUSD-S1",
+      dstakeToken: emptyStringIfUndefined(sdUSDDeployment?.address), // Use sdUSD as the vesting token
+      vestingPeriod: 180 * 24 * 60 * 60, // 6 months in seconds
+      maxTotalSupply: _hre.ethers.parseUnits("1000000", 18).toString(), // 1 million tokens
+      initialOwner: user1,
+      minDepositThreshold: _hre.ethers.parseUnits("100000", 18).toString(), // 100,000 tokens
+    },
+    dPool: {
+      // Note: In localhost, pool should be the deployment name
+      // In testnet/mainnet, pool should be the actual pool address
+      // Example for mainnet: pool: "0xA5407eAE9Ba41422680e2e00537571bcC53efBfD"
+      // eslint-disable-next-line camelcase -- Ignore for config
+      USDC_USDS_Curve: {
+        baseAsset: "USDC", // Base asset for valuation (smart contract will auto-determine index)
+        name: "dPOOL USDC/USDS",
+        symbol: "USDC-USDS_Curve",
+        initialAdmin: user1,
+        initialSlippageBps: 100, // 1% max slippage for periphery
+        pool: "USDC_USDS_CurvePool", // Deployment name (localhost) or address (testnet/mainnet)
+      },
+      // eslint-disable-next-line camelcase -- Ignore for config
+      frxUSD_USDC_Curve: {
+        baseAsset: "frxUSD", // Base asset for valuation (smart contract will auto-determine index)
+        name: "dPOOL frxUSD/USDC",
+        symbol: "frxUSD-USDC_Curve",
+        initialAdmin: user1,
+        initialSlippageBps: 100, // 1% max slippage for periphery
+        pool: "frxUSD_USDC_CurvePool", // Deployment name (localhost) or address (testnet/mainnet)
       },
     },
   };

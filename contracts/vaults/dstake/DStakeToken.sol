@@ -9,6 +9,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IDStakeCollateralVault} from "./interfaces/IDStakeCollateralVault.sol";
 import {IDStakeRouter} from "./interfaces/IDStakeRouter.sol";
 import {BasisPointConstants} from "../../common/BasisPointConstants.sol";
+import {SupportsWithdrawalFee} from "../../common/SupportsWithdrawalFee.sol";
 
 /**
  * @title DStakeToken
@@ -17,21 +18,20 @@ import {BasisPointConstants} from "../../common/BasisPointConstants.sol";
 contract DStakeToken is
     Initializable,
     ERC4626Upgradeable,
-    AccessControlUpgradeable
+    AccessControlUpgradeable,
+    SupportsWithdrawalFee
 {
     // --- Roles ---
     bytes32 public constant FEE_MANAGER_ROLE = keccak256("FEE_MANAGER_ROLE");
 
     // --- Errors ---
     error ZeroAddress();
-    error InvalidFeeBps(uint256 feeBps, uint256 maxFeeBps);
 
     // --- State ---
     IDStakeCollateralVault public collateralVault;
     IDStakeRouter public router;
 
-    uint256 public withdrawalFeeBps;
-    uint256 public constant maxWithdrawalFeeBps =
+    uint256 public constant MAX_WITHDRAWAL_FEE_BPS =
         BasisPointConstants.ONE_PERCENT_BPS;
 
     // --- Initializer ---
@@ -50,6 +50,7 @@ contract DStakeToken is
         __ERC20_init(_name, _symbol);
         __ERC4626_init(_dStable);
         __AccessControl_init();
+        _initializeWithdrawalFee(0);
 
         if (
             address(_dStable) == address(0) ||
@@ -61,6 +62,31 @@ contract DStakeToken is
 
         _grantRole(DEFAULT_ADMIN_ROLE, _initialAdmin);
         _grantRole(FEE_MANAGER_ROLE, _initialFeeManager);
+    }
+
+    // --- SupportsWithdrawalFee Implementation ---
+    function _maxWithdrawalFeeBps()
+        internal
+        view
+        virtual
+        override
+        returns (uint256)
+    {
+        return MAX_WITHDRAWAL_FEE_BPS;
+    }
+
+    /**
+     * @notice Public getter for the current withdrawal fee in basis points.
+     */
+    function withdrawalFeeBps() public view returns (uint256) {
+        return getWithdrawalFeeBps(); // Uses getter from SupportsWithdrawalFee
+    }
+
+    /**
+     * @notice Public getter for the maximum withdrawal fee in basis points.
+     */
+    function maxWithdrawalFeeBps() public view returns (uint256) {
+        return MAX_WITHDRAWAL_FEE_BPS;
     }
 
     // --- ERC4626 Overrides ---
@@ -106,14 +132,37 @@ contract DStakeToken is
 
     /**
      * @inheritdoc ERC4626Upgradeable
+     * @dev Override to handle withdrawals with fees correctly.
+     *      The `assets` parameter is the net amount of assets the user wants to receive.
+     */
+    function withdraw(
+        uint256 assets,
+        address receiver,
+        address owner
+    ) public virtual override returns (uint256 shares) {
+        shares = previewWithdraw(assets); // Calculate shares needed for net amount
+        uint256 grossAssets = convertToAssets(shares); // Calculate gross amount from shares
+
+        require(
+            grossAssets <= maxWithdraw(owner),
+            "ERC4626: withdraw more than max"
+        );
+
+        _withdraw(_msgSender(), receiver, owner, grossAssets, shares); // Pass GROSS amount to _withdraw
+        return shares;
+    }
+
+    /**
+     * @inheritdoc ERC4626Upgradeable
      * @dev Calculates withdrawal fee, then delegates the core withdrawal logic
      *      (converting vault assets back to dSTABLE) to the router.
+     *      The `assets` parameter is now the gross amount that needs to be withdrawn from the vault.
      */
     function _withdraw(
         address caller,
         address receiver,
         address owner,
-        uint256 assets,
+        uint256 assets, // This is now the GROSS amount
         uint256 shares
     ) internal virtual override {
         if (
@@ -123,9 +172,8 @@ contract DStakeToken is
             revert ZeroAddress(); // Router or Vault not set
         }
 
-        uint256 fee = (assets * withdrawalFeeBps) /
-            BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
-        uint256 amountToSend = assets - fee;
+        uint256 fee = _calculateWithdrawalFee(assets); // Calculate fee on GROSS amount
+        uint256 amountToSend = assets - fee; // Send NET amount to user
 
         // Burn shares from owner
         _burn(owner, shares);
@@ -150,9 +198,8 @@ contract DStakeToken is
     function previewWithdraw(
         uint256 assets
     ) public view virtual override returns (uint256) {
-        uint256 fee = (assets * withdrawalFeeBps) /
-            BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
-        return super.previewWithdraw(assets + fee);
+        uint256 grossAssetsRequired = _getGrossAmountRequiredForNet(assets);
+        return super.previewWithdraw(grossAssetsRequired);
     }
 
     /**
@@ -162,10 +209,8 @@ contract DStakeToken is
     function previewRedeem(
         uint256 shares
     ) public view virtual override returns (uint256) {
-        uint256 assets = super.previewRedeem(shares);
-        uint256 fee = (assets * withdrawalFeeBps) /
-            BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
-        return assets - fee;
+        uint256 grossAssets = super.previewRedeem(shares);
+        return _getNetAmountAfterFee(grossAssets);
     }
 
     // --- Governance Functions ---
@@ -206,20 +251,10 @@ contract DStakeToken is
     function setWithdrawalFee(
         uint256 _feeBps
     ) external onlyRole(FEE_MANAGER_ROLE) {
-        if (_feeBps > maxWithdrawalFeeBps) {
-            revert InvalidFeeBps(_feeBps, maxWithdrawalFeeBps);
-        }
-        withdrawalFeeBps = _feeBps;
-        emit WithdrawalFeeSet(_feeBps);
+        _setWithdrawalFee(_feeBps);
     }
 
     // --- Events ---
     event RouterSet(address indexed router);
     event CollateralVaultSet(address indexed collateralVault);
-    event WithdrawalFeeSet(uint256 feeBps);
-    event WithdrawalFee(
-        address indexed owner,
-        address indexed receiver,
-        uint256 feeAmount
-    );
 }
