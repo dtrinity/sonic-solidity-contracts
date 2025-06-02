@@ -79,7 +79,6 @@ async function deployDLoopCoreDLend(
   const targetStaticATokenWrapper = assertNotEmpty(
     extraParams.targetStaticATokenWrapper as string,
   );
-  const exchangeAsset = assertNotEmpty(extraParams.exchangeAsset);
   const treasury = assertNotEmpty(extraParams.treasury);
   const maxTreasuryFeeBps = assertNotEmpty(extraParams.maxTreasuryFeeBps);
   const initialTreasuryFeeBps = assertNotEmpty(
@@ -105,7 +104,6 @@ async function deployDLoopCoreDLend(
       incentivesProxyDeployment.address, // _rewardsController
       aTokenAddress, // _dLendAssetToClaimFor
       targetStaticATokenWrapper, // _targetStaticATokenWrapper
-      exchangeAsset, // _exchangeAsset
       treasury, // _treasury
       maxTreasuryFeeBps, // _maxTreasuryFeeBps
       initialTreasuryFeeBps, // _initialTreasuryFeeBps

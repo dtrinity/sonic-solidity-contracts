@@ -399,7 +399,6 @@ export async function getConfig(
           extraParams: {
             targetStaticATokenWrapper:
               dLendATokenWrapperDUSDDeployment?.address,
-            exchangeAsset: dUSDDeployment?.address || "",
             treasury: user1,
             maxTreasuryFeeBps: 1000,
             initialTreasuryFeeBps: 500,

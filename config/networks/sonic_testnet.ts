@@ -158,7 +158,6 @@ export async function getConfig(
           maxSubsidyBps: 2 * ONE_PERCENT_BPS, // 2% subsidy
           extraParams: {
             targetStaticATokenWrapper: "",
-            exchangeAsset: dUSDDeployment?.address || "",
             treasury: "0x0000000000000000000000000000000000000000",
             maxTreasuryFeeBps: 1000,
             initialTreasuryFeeBps: 500,

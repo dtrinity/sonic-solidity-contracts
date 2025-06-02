@@ -102,7 +102,6 @@ export async function getConfig(
             //   dLendATokenWrapperDUSDDeployment?.address,
             targetStaticATokenWrapper:
               "0x0000000000000000000000000000000000000000", // TODO: add real targetStaticATokenWrapper address
-            exchangeAsset: dUSDDeployment?.address || "",
             treasury: feeTreasury,
             maxTreasuryFeeBps: "1000",
             initialTreasuryFeeBps: "500",

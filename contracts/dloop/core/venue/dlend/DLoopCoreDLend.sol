@@ -68,7 +68,6 @@ contract DLoopCoreDLend is DLoopCoreBase, RewardClaimable {
      * @param _rewardsController Address of the dLEND rewards controller
      * @param _dLendAssetToClaimFor Address of the dLEND asset to claim for
      * @param _targetStaticATokenWrapper Address of the target static aToken wrapper
-     * @param _exchangeAsset Address of the exchange asset
      * @param _treasury Address of the treasury
      * @param _maxTreasuryFeeBps Maximum treasury fee in basis points
      * @param _initialTreasuryFeeBps Initial treasury fee in basis points
@@ -86,7 +85,6 @@ contract DLoopCoreDLend is DLoopCoreBase, RewardClaimable {
         IRewardsController _rewardsController,
         address _dLendAssetToClaimFor,
         address _targetStaticATokenWrapper,
-        address _exchangeAsset,
         address _treasury,
         uint256 _maxTreasuryFeeBps,
         uint256 _initialTreasuryFeeBps,
@@ -103,13 +101,14 @@ contract DLoopCoreDLend is DLoopCoreBase, RewardClaimable {
             _maxSubsidyBps
         )
         RewardClaimable(
-            _exchangeAsset,
+            address(_debtToken),
             _treasury,
             _maxTreasuryFeeBps,
             _initialTreasuryFeeBps,
             _initialExchangeThreshold
         )
     {
+        // Always use the debt token as the exchange asset in reward claim logic
         lendingPoolAddressesProvider = _lendingPoolAddressesProvider;
         dLendRewardsController = _rewardsController;
         dLendAssetToClaimFor = _dLendAssetToClaimFor;
@@ -380,6 +379,8 @@ contract DLoopCoreDLend is DLoopCoreBase, RewardClaimable {
      * @param amount The amount of exchange asset to deposit
      */
     function _processExchangeAssetDeposit(uint256 amount) internal override {
-
+        // As the exchange asset is the debt token, we use it to repay the debt,
+        // which means to reduce the borrowing interest to be paid
+        _repayDebtToPoolImplementation(exchangeAsset, amount, address(this));
     }
 }
