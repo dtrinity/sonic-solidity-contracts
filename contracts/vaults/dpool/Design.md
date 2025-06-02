@@ -10,30 +10,49 @@ dPOOL is a collection of individual yield farms, where each vault represents a s
 - **Multi-DEX Support:** Supports Curve, Uniswap, and other DEX protocols
 - **Simple Architecture:** Direct deployment pattern with minimal complexity
 - **No Factory Overhead:** Direct contract deployment for simplicity and clarity
+- **Shared Fee Logic:** Uses `SupportsWithdrawalFee` for consistent withdrawal fee calculation and preview functions
 
 **Contracts:**
 
 1. **`DPoolVaultLP.sol` (Base Contract)**
    * **Type:** Abstract Base Asset ERC4626 Vault (Non-Upgradeable)
-   * **Inherits:** `ERC4626`, `AccessControl`, `ReentrancyGuard`
-   * **Core Logic:** Abstract ERC4626 vault that accepts LP tokens and values them in base asset terms. No DEX interactions, only LP token accounting and valuation.
+   * **Inherits:** `ERC4626`, `AccessControl`, `ReentrancyGuard`, `IDPoolVaultLP`, `SupportsWithdrawalFee`
+   * **Core Logic:** Abstract ERC4626 vault that accepts LP tokens and values them in base asset terms. No DEX interactions, only LP token accounting and valuation. Uses shared withdrawal fee logic from `SupportsWithdrawalFee`.
    * **Key State:**
      * `asset()`: Base asset address for consistent valuation (e.g., USDC). Immutable.
      * `LP_TOKEN`: Address of the specific LP token this vault accepts. Immutable.
-     * `withdrawalFeeBps`: Fee charged on withdrawal. Settable by `FEE_MANAGER_ROLE`.
-     * `MAX_WITHDRAWAL_FEE_BPS`: Hardcoded maximum for withdrawal fees (5%).
+     * `withdrawalFeeBps_`: Fee charged on withdrawal. Inherited from `SupportsWithdrawalFee`. Settable by `FEE_MANAGER_ROLE`.
+     * `MAX_WITHDRAWAL_FEE_BPS_CONFIG`: Hardcoded maximum for withdrawal fees (5%).
    * **Roles:**
      * `DEFAULT_ADMIN_ROLE`: Can manage other roles.
-     * `FEE_MANAGER_ROLE`: Can set withdrawal fees up to maximum.
+     * `FEE_MANAGER_ROLE`: Can set withdrawal fees up to maximum via `setWithdrawalFee()`.
    * **Key Functions:**
      * `deposit(uint256 lpAmount, address receiver)`: Standard ERC4626 deposit accepting LP tokens directly.
-     * `withdraw(uint256 assets, address receiver, address owner)`: Standard ERC4626 withdrawal returning LP tokens equivalent to asset value.
+     * `withdraw(uint256 assets, address receiver, address owner)`: Standard ERC4626 withdrawal returning LP tokens equivalent to asset value, with fee handling.
      * `totalAssets()`: Abstract function for LP valuation in base asset terms using DEX-native pricing.
      * `previewDepositLP(uint256 lpAmount)`: Preview shares for LP token deposit.
-     * `previewWithdrawLP(uint256 assets)`: Preview LP tokens returned for asset withdrawal.
+     * `previewWithdraw(uint256 assets)`: Preview shares needed for net asset withdrawal (accounts for fees using `SupportsWithdrawalFee._getGrossAmountRequiredForNet()`).
+     * `previewRedeem(uint256 shares)`: Preview net assets received for share redemption (accounts for fees using `SupportsWithdrawalFee._getNetAmountAfterFee()`).
      * `previewLPValue(uint256 lpAmount)`: Preview base asset value for LP tokens.
 
-2. **`DPoolVaultCurveLP.sol` (Curve Implementation)**
+2. **`SupportsWithdrawalFee.sol`**
+   * **Type:** Shared Abstract Contract for Withdrawal Fee Logic
+   * **Purpose:** Provides consistent withdrawal fee calculation, state management, and preview functions across different vault types (dSTAKE and dPOOL).
+   * **Key State:**
+     * `withdrawalFeeBps_`: Internal state variable for withdrawal fee in basis points.
+   * **Key Functions:**
+     * `_initializeWithdrawalFee(uint256)`: Initialize fee during construction/initialization.
+     * `_setWithdrawalFee(uint256)`: Internal function to set fee with validation.
+     * `_calculateWithdrawalFee(uint256)`: Calculate fee amount for given asset amount.
+     * `_getNetAmountAfterFee(uint256)`: Calculate net amount after deducting fees (for `previewRedeem`).
+     * `_getGrossAmountRequiredForNet(uint256)`: Calculate gross amount needed for desired net amount (for `previewWithdraw`).
+     * `getWithdrawalFeeBps()`: Public getter for current fee.
+     * `_maxWithdrawalFeeBps()`: Abstract function for inheriting contracts to define maximum fee.
+   * **Events:**
+     * `WithdrawalFeeSet(uint256)`: Emitted when fee is updated.
+     * `WithdrawalFeeApplied(address indexed owner, address indexed receiver, uint256 feeAmount)`: Emitted when fee is charged.
+
+3. **`DPoolVaultCurveLP.sol` (Curve Implementation)**
    * **Type:** Curve LP Token ERC4626 Vault (Non-Upgradeable)
    * **Inherits:** `DPoolVaultLP`
    * **Core Logic:** Pure LP token vault that accepts Curve LP tokens and values them consistently using a base asset.
@@ -44,12 +63,12 @@ dPOOL is a collection of individual yield farms, where each vault represents a s
      * `BASE_ASSET_INDEX`: Index of base asset in Curve pool for pricing. Immutable (auto-determined).
    * **Implementation:**
      * `deposit(uint256 lpAmount, address receiver)`: Accepts LP tokens directly, mints shares based on LP value.
-     * `withdraw(uint256 assets, address receiver, address owner)`: Burns shares, returns LP tokens equivalent to asset value.
+     * `withdraw(uint256 assets, address receiver, address owner)`: Burns shares, returns LP tokens equivalent to asset value (with fee handling).
      * `totalAssets()`: Uses `curvePool.calc_withdraw_one_coin(lpBalance, BASE_ASSET_INDEX)` to value LP tokens in base asset terms.
      * `pool()`: Returns the Curve pool address.
      * `baseAssetIndex()`: Returns the index of the base asset in the pool.
 
-3. **`DPoolCurvePeriphery.sol` (Curve DEX Handler)**
+4. **`DPoolCurvePeriphery.sol` (Curve DEX Handler)**
    * **Type:** Curve Pool Asset ↔ LP Token Conversion Handler (Non-Upgradeable)
    * **Purpose:** Handles pool asset deposits/withdrawals by converting to/from Curve LP tokens with slippage protection.
    * **Key State:**
@@ -219,6 +238,7 @@ deploy/09_dpool/
 * **Direct Deployment:** Each vault and periphery pair is deployed directly without factory complexity.
 * **Base Asset Vaults:** Core vaults accept LP tokens but value them in base asset terms for consistent ERC4626 accounting.
 * **DEX-Native Pricing:** Each vault uses its DEX's native pricing for `totalAssets()` calculation in base asset terms.
+* **Shared Fee Logic:** Uses `SupportsWithdrawalFee` for consistent withdrawal fee calculation and preview functions across vault types.
 * **Periphery Pattern:** All pool asset conversions and DEX interactions isolated in periphery contracts.
 * **Asset Whitelisting:** Periphery contracts restrict deposits/withdrawals to approved assets for security and control.
 * **Dual Interface:** Advanced users can use vaults directly (LP tokens), regular users use periphery (whitelisted pool assets).

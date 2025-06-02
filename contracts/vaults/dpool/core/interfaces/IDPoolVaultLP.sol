@@ -28,12 +28,7 @@ import "@openzeppelin/contracts/access/IAccessControl.sol";
  */
 interface IDPoolVaultLP is IERC4626, IAccessControl {
     // --- Events ---
-
-    /**
-     * @notice Emitted when withdrawal fee is updated
-     * @param newFee New withdrawal fee in basis points
-     */
-    event WithdrawalFeeUpdated(uint256 newFee);
+    // Note: WithdrawalFeeSet and WithdrawalFeeApplied events are inherited from SupportsWithdrawalFee
 
     // --- Errors ---
 
@@ -43,14 +38,11 @@ interface IDPoolVaultLP is IERC4626, IAccessControl {
     error ZeroAddress();
 
     /**
-     * @notice Thrown when withdrawal fee exceeds maximum
-     */
-    error ExcessiveWithdrawalFee();
-
-    /**
      * @notice Thrown when insufficient LP tokens for withdrawal
      */
     error InsufficientLPTokens();
+
+    // Note: FeeExceedsMaxFee and InitialFeeExceedsMaxFee errors are inherited from SupportsWithdrawalFee
 
     // --- Vault Configuration ---
 

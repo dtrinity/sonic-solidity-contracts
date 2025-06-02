@@ -546,11 +546,18 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
       let shares: bigint;
 
       beforeEach(async () => {
-        // Set withdrawal fee to 1%
+        // Set withdrawal fee to 1% (10000 BPS)
         await DStakeToken.connect(user1).setWithdrawalFee(10000);
-        // Calculate fee and gross deposit for testing fee logic
-        const fee = (assetsToDeposit * 10000n) / 1000000n;
-        const grossDeposit = assetsToDeposit + fee;
+
+        // Calculate the correct gross deposit amount needed to have enough shares
+        // to withdraw 100 assets net. We need to deposit enough so that after
+        // fees are deducted, we can still withdraw 100 assets.
+        //
+        // For mathematical correctness:
+        // grossAmount = netAmount * ONE_HUNDRED_PERCENT_BPS / (ONE_HUNDRED_PERCENT_BPS - feeBps)
+        // grossAmount = 100 * 1000000 / (1000000 - 10000) = 100 * 1000000 / 990000
+        const grossDeposit = (assetsToDeposit * 1000000n) / (1000000n - 10000n);
+
         // Mint and deposit gross assets for user1
         await stable.mint(user1.address, grossDeposit);
         await dStableToken
@@ -561,8 +568,14 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
       });
 
       it("should withdraw assets with fee deducted", async () => {
-        const fee = (assetsToDeposit * 10000n) / 1000000n;
-        const netAssets = assetsToDeposit - fee;
+        // When we call withdraw(100), the user wants 100 net assets
+        // The contract calculates the gross amount needed and takes a fee from that
+        const grossAmountNeeded =
+          (assetsToDeposit * 1000000n) / (1000000n - 10000n);
+        const fee = (grossAmountNeeded * 10000n) / 1000000n;
+        // The user should receive exactly the amount they requested (100 assets)
+        const netAssets = assetsToDeposit; // This should be exactly 100
+
         await expect(
           DStakeToken.connect(user1).withdraw(
             assetsToDeposit,
@@ -595,17 +608,20 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
 
       // Preview functions should account for the withdrawal fee
       it("previewWithdraw returns expected shares including fee", async () => {
-        const fee = (assetsToDeposit * 10000n) / 1000000n;
-        const expectedShares = assetsToDeposit + fee;
+        // For mathematically correct fee calculation:
+        // grossAmount = netAmount * ONE_HUNDRED_PERCENT_BPS / (ONE_HUNDRED_PERCENT_BPS - feeBps)
+        const expectedGrossAmount =
+          (assetsToDeposit * 1000000n) / (1000000n - 10000n);
         expect(await DStakeToken.previewWithdraw(assetsToDeposit)).to.equal(
-          expectedShares
+          expectedGrossAmount
         );
       });
 
       it("previewRedeem returns expected assets after fee", async () => {
-        // previewRedeem should return gross shares minus raw fee
-        const fee = (shares * 10000n) / 1000000n;
-        const expectedAssets = shares - fee;
+        // previewRedeem should return net amount after fee deduction
+        const grossAssets = shares; // 1:1 ratio in this test setup
+        const fee = (grossAssets * 10000n) / 1000000n;
+        const expectedAssets = grossAssets - fee;
         expect(await DStakeToken.previewRedeem(shares)).to.equal(
           expectedAssets
         );
