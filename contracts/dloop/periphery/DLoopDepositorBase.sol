@@ -56,11 +56,11 @@ abstract contract DLoopDepositorBase is
 
     IERC3156FlashLender public immutable flashLender;
     // [dLoopCore][tokenAddress] -> leftOverAmount
-    mapping(address => mapping(address => uint256)) public minLeftoverDebtTokenAmount;
+    mapping(address => mapping(address => uint256))
+        public minLeftoverDebtTokenAmount;
     // [tokenAddress] -> exists (for gas efficient token tracking)
     mapping(address => bool) private _existingDebtTokensMap;
     address[] public existingDebtTokens;
-
 
     /* Errors */
 
@@ -323,7 +323,10 @@ abstract contract DLoopDepositorBase is
 
         // Handle any leftover debt tokens and transfer them to the dLoopCore contract
         uint256 leftoverAmount = debtToken.balanceOf(address(this));
-        if (leftoverAmount > minLeftoverDebtTokenAmount[address(dLoopCore)][address(debtToken)]) {
+        if (
+            leftoverAmount >
+            minLeftoverDebtTokenAmount[address(dLoopCore)][address(debtToken)]
+        ) {
             // Transfer any leftover debt tokens to the core contract
             debtToken.safeTransfer(address(dLoopCore), leftoverAmount);
             emit LeftoverDebtTokensTransferred(

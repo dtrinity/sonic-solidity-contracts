@@ -55,7 +55,8 @@ abstract contract DLoopIncreaseLeverageBase is
 
     IERC3156FlashLender public immutable flashLender;
     // [dLoopCore][tokenAddress] -> leftOverAmount
-    mapping(address => mapping(address => uint256)) public minLeftoverDebtTokenAmount;
+    mapping(address => mapping(address => uint256))
+        public minLeftoverDebtTokenAmount;
     // [tokenAddress] -> exists (for gas efficient token tracking)
     mapping(address => bool) private _existingDebtTokensMap;
     address[] public existingDebtTokens;
@@ -175,7 +176,7 @@ abstract contract DLoopIncreaseLeverageBase is
         // Calculate the required collateral amount to reach target leverage
         (uint256 requiredCollateralAmount, int8 direction) = dLoopCore
             .getAmountToReachTargetLeverage(true); // Use vault token balance
-        
+
         // Verify we need to increase leverage
         if (direction != 1) {
             revert("Current leverage is already at or above target");
@@ -279,7 +280,10 @@ abstract contract DLoopIncreaseLeverageBase is
             );
 
             // Approve collateral token for core contract
-            collateralToken.forceApprove(address(dLoopCore), collateralFromUser);
+            collateralToken.forceApprove(
+                address(dLoopCore),
+                collateralFromUser
+            );
 
             // Call increase leverage directly
             dLoopCore.increaseLeverage(
@@ -324,7 +328,10 @@ abstract contract DLoopIncreaseLeverageBase is
 
         // Handle any leftover debt tokens
         uint256 leftoverAmount = debtToken.balanceOf(address(this));
-        if (leftoverAmount > minLeftoverDebtTokenAmount[address(dLoopCore)][address(debtToken)]) {
+        if (
+            leftoverAmount >
+            minLeftoverDebtTokenAmount[address(dLoopCore)][address(debtToken)]
+        ) {
             debtToken.safeTransfer(address(dLoopCore), leftoverAmount);
             emit LeftoverDebtTokensTransferred(
                 address(dLoopCore),
@@ -486,4 +493,4 @@ abstract contract DLoopIncreaseLeverageBase is
             _flashLoanParams.dLoopCore
         ) = abi.decode(data, (address, uint256, uint256, bytes, DLoopCoreBase));
     }
-} 
+}

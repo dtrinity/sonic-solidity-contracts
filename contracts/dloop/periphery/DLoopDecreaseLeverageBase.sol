@@ -55,7 +55,8 @@ abstract contract DLoopDecreaseLeverageBase is
 
     IERC3156FlashLender public immutable flashLender;
     // [dLoopCore][tokenAddress] -> leftOverAmount
-    mapping(address => mapping(address => uint256)) public minLeftoverCollateralTokenAmount;
+    mapping(address => mapping(address => uint256))
+        public minLeftoverCollateralTokenAmount;
     // [tokenAddress] -> exists (for gas efficient token tracking)
     mapping(address => bool) private _existingCollateralTokensMap;
     address[] public existingCollateralTokens;
@@ -175,7 +176,7 @@ abstract contract DLoopDecreaseLeverageBase is
         // Calculate the required debt amount to reach target leverage
         (uint256 requiredDebtAmount, int8 direction) = dLoopCore
             .getAmountToReachTargetLeverage(true); // Use vault token balance
-        
+
         // Verify we need to decrease leverage
         if (direction != -1) {
             revert("Current leverage is already at or below target");
@@ -224,9 +225,8 @@ abstract contract DLoopDecreaseLeverageBase is
             uint256 leverageBeforeDecrease = dLoopCore.getCurrentLeverageBps();
 
             // This value is used to check if the collateral token balance increased after decrease leverage
-            uint256 collateralTokenBalanceBeforeDecrease = collateralToken.balanceOf(
-                address(this)
-            );
+            uint256 collateralTokenBalanceBeforeDecrease = collateralToken
+                .balanceOf(address(this));
 
             // Approve flash lender to spend collateral tokens
             collateralToken.forceApprove(
@@ -256,11 +256,11 @@ abstract contract DLoopDecreaseLeverageBase is
             }
 
             // Calculate received collateral tokens
-            uint256 collateralTokenBalanceAfterDecrease = collateralToken.balanceOf(
-                address(this)
-            );
+            uint256 collateralTokenBalanceAfterDecrease = collateralToken
+                .balanceOf(address(this));
             if (
-                collateralTokenBalanceAfterDecrease <= collateralTokenBalanceBeforeDecrease
+                collateralTokenBalanceAfterDecrease <=
+                collateralTokenBalanceBeforeDecrease
             ) {
                 revert CollateralTokenBalanceNotIncreasedAfterDecreaseLeverage(
                     collateralTokenBalanceBeforeDecrease,
@@ -274,9 +274,8 @@ abstract contract DLoopDecreaseLeverageBase is
         } else {
             // No flash loan needed, direct decrease leverage
             uint256 leverageBeforeDecrease = dLoopCore.getCurrentLeverageBps();
-            uint256 collateralTokenBalanceBeforeDecrease = collateralToken.balanceOf(
-                address(this)
-            );
+            uint256 collateralTokenBalanceBeforeDecrease = collateralToken
+                .balanceOf(address(this));
 
             // Approve debt token for core contract
             debtToken.forceApprove(address(dLoopCore), debtFromUser);
@@ -297,11 +296,11 @@ abstract contract DLoopDecreaseLeverageBase is
             }
 
             // Calculate received collateral tokens
-            uint256 collateralTokenBalanceAfterDecrease = collateralToken.balanceOf(
-                address(this)
-            );
+            uint256 collateralTokenBalanceAfterDecrease = collateralToken
+                .balanceOf(address(this));
             if (
-                collateralTokenBalanceAfterDecrease <= collateralTokenBalanceBeforeDecrease
+                collateralTokenBalanceAfterDecrease <=
+                collateralTokenBalanceBeforeDecrease
             ) {
                 revert CollateralTokenBalanceNotIncreasedAfterDecreaseLeverage(
                     collateralTokenBalanceBeforeDecrease,
@@ -324,7 +323,12 @@ abstract contract DLoopDecreaseLeverageBase is
 
         // Handle any leftover collateral tokens
         uint256 leftoverAmount = collateralToken.balanceOf(address(this));
-        if (leftoverAmount > minLeftoverCollateralTokenAmount[address(dLoopCore)][address(collateralToken)]) {
+        if (
+            leftoverAmount >
+            minLeftoverCollateralTokenAmount[address(dLoopCore)][
+                address(collateralToken)
+            ]
+        ) {
             collateralToken.safeTransfer(address(dLoopCore), leftoverAmount);
             emit LeftoverCollateralTokensTransferred(
                 address(dLoopCore),
@@ -369,11 +373,13 @@ abstract contract DLoopDecreaseLeverageBase is
 
         // Verify token compatibility
         if (token != address(collateralToken))
-            revert IncompatibleDLoopCoreCollateralToken(token, address(collateralToken));
+            revert IncompatibleDLoopCoreCollateralToken(
+                token,
+                address(collateralToken)
+            );
 
         // Swap flash loaned collateral tokens to debt tokens
-        uint256 requiredDebtFromFlashLoan = flashLoanParams
-            .requiredDebtAmount -
+        uint256 requiredDebtFromFlashLoan = flashLoanParams.requiredDebtAmount -
             flashLoanParams.additionalDebtFromUser -
             debtToken.balanceOf(address(this));
 
@@ -388,9 +394,8 @@ abstract contract DLoopDecreaseLeverageBase is
         );
 
         // Record collateral token balance before decrease leverage
-        uint256 collateralTokenBalanceBeforeDecrease = collateralToken.balanceOf(
-            address(this)
-        );
+        uint256 collateralTokenBalanceBeforeDecrease = collateralToken
+            .balanceOf(address(this));
 
         // Approve debt for core contract
         debtToken.forceApprove(
@@ -408,7 +413,10 @@ abstract contract DLoopDecreaseLeverageBase is
         uint256 collateralTokenBalanceAfterDecrease = collateralToken.balanceOf(
             address(this)
         );
-        if (collateralTokenBalanceAfterDecrease <= collateralTokenBalanceBeforeDecrease) {
+        if (
+            collateralTokenBalanceAfterDecrease <=
+            collateralTokenBalanceBeforeDecrease
+        ) {
             revert CollateralTokenBalanceNotIncreasedAfterDecreaseLeverage(
                 collateralTokenBalanceBeforeDecrease,
                 collateralTokenBalanceAfterDecrease
@@ -443,12 +451,18 @@ abstract contract DLoopDecreaseLeverageBase is
         address collateralToken,
         uint256 minAmount
     ) external nonReentrant onlyOwner {
-        minLeftoverCollateralTokenAmount[dLoopCore][collateralToken] = minAmount;
+        minLeftoverCollateralTokenAmount[dLoopCore][
+            collateralToken
+        ] = minAmount;
         if (!_existingCollateralTokensMap[collateralToken]) {
             _existingCollateralTokensMap[collateralToken] = true;
             existingCollateralTokens.push(collateralToken);
         }
-        emit MinLeftoverCollateralTokenAmountSet(dLoopCore, collateralToken, minAmount);
+        emit MinLeftoverCollateralTokenAmountSet(
+            dLoopCore,
+            collateralToken,
+            minAmount
+        );
     }
 
     /* Data encoding/decoding helpers */
@@ -486,4 +500,4 @@ abstract contract DLoopDecreaseLeverageBase is
             _flashLoanParams.dLoopCore
         ) = abi.decode(data, (address, uint256, uint256, bytes, DLoopCoreBase));
     }
-} 
+}

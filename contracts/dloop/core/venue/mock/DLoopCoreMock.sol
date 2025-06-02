@@ -64,7 +64,11 @@ contract DLoopCoreMock is DLoopCoreBase {
     }
 
     // Allow setting mock collateral and debt for a user
-    function setMockCollateral(address user, address token, uint256 amount) external {
+    function setMockCollateral(
+        address user,
+        address token,
+        uint256 amount
+    ) external {
         _setMockCollateral(user, token, amount);
     }
     function _setMockCollateral(
@@ -76,13 +80,15 @@ contract DLoopCoreMock is DLoopCoreBase {
             mockCollateralTokens[user].push(token);
         }
         mockCollateral[user][token] = amount;
-        
+
         // Remove token from array if amount becomes 0
         if (amount == 0) {
             for (uint256 i = 0; i < mockCollateralTokens[user].length; i++) {
                 if (mockCollateralTokens[user][i] == token) {
                     // Replace with last element and pop
-                    mockCollateralTokens[user][i] = mockCollateralTokens[user][mockCollateralTokens[user].length - 1];
+                    mockCollateralTokens[user][i] = mockCollateralTokens[user][
+                        mockCollateralTokens[user].length - 1
+                    ];
                     mockCollateralTokens[user].pop();
                     break;
                 }
@@ -102,13 +108,15 @@ contract DLoopCoreMock is DLoopCoreBase {
             mockDebtTokens[user].push(token);
         }
         mockDebt[user][token] = amount;
-        
+
         // Remove token from array if amount becomes 0
         if (amount == 0) {
             for (uint256 i = 0; i < mockDebtTokens[user].length; i++) {
                 if (mockDebtTokens[user][i] == token) {
                     // Replace with last element and pop
-                    mockDebtTokens[user][i] = mockDebtTokens[user][mockDebtTokens[user].length - 1];
+                    mockDebtTokens[user][i] = mockDebtTokens[user][
+                        mockDebtTokens[user].length - 1
+                    ];
                     mockDebtTokens[user].pop();
                     break;
                 }
@@ -171,16 +179,16 @@ contract DLoopCoreMock is DLoopCoreBase {
             mockPoolBalances[token] >= amount,
             "Mock: not enough tokens in pool to borrow"
         );
-        
+
         // Transfer from vault to user (simulating pool lending)
         require(
             ERC20(token).transfer(onBehalfOf, amount),
             "Mock: borrow transfer failed"
         );
-        
+
         // Decrease mock pool balance to simulate pool lending
         mockPoolBalances[token] -= amount;
-        
+
         // Set debt after successful transfer
         _setMockDebt(onBehalfOf, token, mockDebt[onBehalfOf][token] + amount);
     }
@@ -311,14 +319,20 @@ contract DLoopCoreMock is DLoopCoreBase {
     /**
      * @dev Test wrapper for _getAdditionalRescueTokensImplementation
      */
-    function testGetAdditionalRescueTokens() external pure returns (address[] memory) {
+    function testGetAdditionalRescueTokens()
+        external
+        pure
+        returns (address[] memory)
+    {
         return _getAdditionalRescueTokensImplementation();
     }
 
     /**
      * @dev Test wrapper for _getAssetPriceFromOracleImplementation
      */
-    function testGetAssetPriceFromOracle(address asset) external view returns (uint256) {
+    function testGetAssetPriceFromOracle(
+        address asset
+    ) external view returns (uint256) {
         return _getAssetPriceFromOracleImplementation(asset);
     }
 
@@ -395,12 +409,13 @@ contract DLoopCoreMock is DLoopCoreBase {
         uint256 suppliedCollateralAmount,
         uint256 leverageBpsBeforeSupply
     ) external view returns (uint256) {
-        return getBorrowAmountThatKeepCurrentLeverage(
-            collateralAsset,
-            debtAsset,
-            suppliedCollateralAmount,
-            leverageBpsBeforeSupply
-        );
+        return
+            getBorrowAmountThatKeepCurrentLeverage(
+                collateralAsset,
+                debtAsset,
+                suppliedCollateralAmount,
+                leverageBpsBeforeSupply
+            );
     }
 
     /**
@@ -412,12 +427,13 @@ contract DLoopCoreMock is DLoopCoreBase {
         uint256 targetWithdrawAmount,
         uint256 leverageBpsBeforeRepayDebt
     ) external view returns (uint256) {
-        return getRepayAmountThatKeepCurrentLeverage(
-            collateralAsset,
-            debtAsset,
-            targetWithdrawAmount,
-            leverageBpsBeforeRepayDebt
-        );
+        return
+            getRepayAmountThatKeepCurrentLeverage(
+                collateralAsset,
+                debtAsset,
+                targetWithdrawAmount,
+                leverageBpsBeforeRepayDebt
+            );
     }
 
     /**
@@ -439,14 +455,20 @@ contract DLoopCoreMock is DLoopCoreBase {
     /**
      * @dev Test wrapper for getLeveragedAssets
      */
-    function testGetLeveragedAssets(uint256 assets) external view returns (uint256) {
+    function testGetLeveragedAssets(
+        uint256 assets
+    ) external view returns (uint256) {
         return getLeveragedAssets(assets);
     }
 
     /**
      * @dev Test wrapper for getRestrictedRescueTokens
      */
-    function testGetRestrictedRescueTokens() external view returns (address[] memory) {
+    function testGetRestrictedRescueTokens()
+        external
+        view
+        returns (address[] memory)
+    {
         return getRestrictedRescueTokens();
     }
 
@@ -455,28 +477,38 @@ contract DLoopCoreMock is DLoopCoreBase {
     /**
      * @dev Get mock collateral for a user and token
      */
-    function getMockCollateral(address user, address token) external view returns (uint256) {
+    function getMockCollateral(
+        address user,
+        address token
+    ) external view returns (uint256) {
         return mockCollateral[user][token];
     }
 
     /**
      * @dev Get mock debt for a user and token
      */
-    function getMockDebt(address user, address token) external view returns (uint256) {
+    function getMockDebt(
+        address user,
+        address token
+    ) external view returns (uint256) {
         return mockDebt[user][token];
     }
 
     /**
      * @dev Get all collateral tokens for a user
      */
-    function getMockCollateralTokens(address user) external view returns (address[] memory) {
+    function getMockCollateralTokens(
+        address user
+    ) external view returns (address[] memory) {
         return mockCollateralTokens[user];
     }
 
     /**
      * @dev Get all debt tokens for a user
      */
-    function getMockDebtTokens(address user) external view returns (address[] memory) {
+    function getMockDebtTokens(
+        address user
+    ) external view returns (address[] memory) {
         return mockDebtTokens[user];
     }
 

@@ -55,7 +55,8 @@ abstract contract DLoopRedeemerBase is
 
     IERC3156FlashLender public immutable flashLender;
     // [dLoopCore][tokenAddress] -> leftOverAmount
-    mapping(address => mapping(address => uint256)) public minLeftoverCollateralTokenAmount;
+    mapping(address => mapping(address => uint256))
+        public minLeftoverCollateralTokenAmount;
     // [tokenAddress] -> exists (for gas efficient token tracking)
     mapping(address => bool) private _existingCollateralTokensMap;
     address[] public existingCollateralTokens;
@@ -289,7 +290,9 @@ abstract contract DLoopRedeemerBase is
         );
         if (
             leftoverCollateralTokenAmount >
-            minLeftoverCollateralTokenAmount[address(dLoopCore)][address(collateralToken)]
+            minLeftoverCollateralTokenAmount[address(dLoopCore)][
+                address(collateralToken)
+            ]
         ) {
             collateralToken.safeTransfer(
                 address(dLoopCore),
@@ -414,12 +417,18 @@ abstract contract DLoopRedeemerBase is
         address collateralToken,
         uint256 minAmount
     ) external nonReentrant onlyOwner {
-        minLeftoverCollateralTokenAmount[dLoopCore][collateralToken] = minAmount;
+        minLeftoverCollateralTokenAmount[dLoopCore][
+            collateralToken
+        ] = minAmount;
         if (!_existingCollateralTokensMap[collateralToken]) {
             _existingCollateralTokensMap[collateralToken] = true;
             existingCollateralTokens.push(collateralToken);
         }
-        emit MinLeftoverCollateralTokenAmountSet(dLoopCore, collateralToken, minAmount);
+        emit MinLeftoverCollateralTokenAmountSet(
+            dLoopCore,
+            collateralToken,
+            minAmount
+        );
     }
 
     /* Data encoding/decoding helpers */
