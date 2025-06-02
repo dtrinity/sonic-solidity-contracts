@@ -126,13 +126,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   if (totalDeployedCount === Object.keys(config.dPool).length) {
     console.log(`\n🎉 dPOOL System deployment completed successfully!`);
-    console.log(`\n📋 Usage Summary:`);
-    console.log(
-      `  • Advanced users can interact directly with vault contracts (LP tokens)`,
-    );
-    console.log(`  • Regular users can use periphery contracts (pool assets)`);
-    console.log(`  • Each deployment represents one LP pool on one DEX`);
-    console.log(`  • Direct deployment pattern for simplicity and clarity`);
   } else {
     console.log(
       `\n⚠️  System deployment incomplete - please review errors above`,
