@@ -55,8 +55,12 @@ abstract contract DLoopDepositorBase is
     /* Core state */
 
     IERC3156FlashLender public immutable flashLender;
-    // If the token is not in the mapping, the min value is 0
-    mapping(address => uint256) public minLeftoverDebtTokenAmount;
+    // [dLoopCore][tokenAddress] -> leftOverAmount
+    mapping(address => mapping(address => uint256)) public minLeftoverDebtTokenAmount;
+    // [tokenAddress] -> exists (for gas efficient token tracking)
+    mapping(address => bool) private _existingDebtTokensMap;
+    address[] public existingDebtTokens;
+
 
     /* Errors */
 
@@ -103,6 +107,7 @@ abstract contract DLoopDepositorBase is
         uint256 amount
     );
     event MinLeftoverDebtTokenAmountSet(
+        address indexed dLoopCore,
         address indexed debtToken,
         uint256 minAmount
     );
@@ -123,6 +128,23 @@ abstract contract DLoopDepositorBase is
      */
     constructor(IERC3156FlashLender _flashLender) Ownable(msg.sender) {
         flashLender = _flashLender;
+    }
+
+    /* RescuableVault Override */
+
+    /**
+     * @dev Gets the restricted rescue tokens
+     * @return restrictedTokens Restricted rescue tokens
+     */
+    function getRestrictedRescueTokens()
+        public
+        view
+        virtual
+        override
+        returns (address[] memory restrictedTokens)
+    {
+        // Return the existing tokens as we handle leftover debt tokens
+        return existingDebtTokens;
     }
 
     /* Deposit */
@@ -301,7 +323,7 @@ abstract contract DLoopDepositorBase is
 
         // Handle any leftover debt tokens and transfer them to the dLoopCore contract
         uint256 leftoverAmount = debtToken.balanceOf(address(this));
-        if (leftoverAmount > minLeftoverDebtTokenAmount[address(debtToken)]) {
+        if (leftoverAmount > minLeftoverDebtTokenAmount[address(dLoopCore)][address(debtToken)]) {
             // Transfer any leftover debt tokens to the core contract
             debtToken.safeTransfer(address(dLoopCore), leftoverAmount);
             emit LeftoverDebtTokensTransferred(
@@ -441,16 +463,22 @@ abstract contract DLoopDepositorBase is
     /* Setters */
 
     /**
-     * @dev Sets the minimum leftover debt token amount for a given debt token
+     * @dev Sets the minimum leftover debt token amount for a given dLoopCore and debt token
+     * @param dLoopCore Address of the dLoopCore contract
      * @param debtToken Address of the debt token
-     * @param minAmount Minimum leftover debt token amount for the given debt token
+     * @param minAmount Minimum leftover debt token amount for the given dLoopCore and debt token
      */
     function setMinLeftoverDebtTokenAmount(
+        address dLoopCore,
         address debtToken,
         uint256 minAmount
     ) external nonReentrant onlyOwner {
-        minLeftoverDebtTokenAmount[debtToken] = minAmount;
-        emit MinLeftoverDebtTokenAmountSet(debtToken, minAmount);
+        minLeftoverDebtTokenAmount[dLoopCore][debtToken] = minAmount;
+        if (!_existingDebtTokensMap[debtToken]) {
+            _existingDebtTokensMap[debtToken] = true;
+            existingDebtTokens.push(debtToken);
+        }
+        emit MinLeftoverDebtTokenAmountSet(dLoopCore, debtToken, minAmount);
     }
 
     /* Data encoding/decoding helpers */

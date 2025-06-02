@@ -54,8 +54,11 @@ abstract contract DLoopRedeemerBase is
     /* Core state */
 
     IERC3156FlashLender public immutable flashLender;
-    // If the token is not in the mapping, the min value is 0
-    mapping(address => uint256) public minLeftoverCollateralTokenAmount;
+    // [dLoopCore][tokenAddress] -> leftOverAmount
+    mapping(address => mapping(address => uint256)) public minLeftoverCollateralTokenAmount;
+    // [tokenAddress] -> exists (for gas efficient token tracking)
+    mapping(address => bool) private _existingCollateralTokensMap;
+    address[] public existingCollateralTokens;
 
     /* Errors */
 
@@ -100,6 +103,7 @@ abstract contract DLoopRedeemerBase is
         uint256 amount
     );
     event MinLeftoverCollateralTokenAmountSet(
+        address indexed dLoopCore,
         address indexed collateralToken,
         uint256 minAmount
     );
@@ -119,6 +123,23 @@ abstract contract DLoopRedeemerBase is
      */
     constructor(IERC3156FlashLender _flashLender) Ownable(msg.sender) {
         flashLender = _flashLender;
+    }
+
+    /* RescuableVault Override */
+
+    /**
+     * @dev Gets the restricted rescue tokens
+     * @return restrictedTokens Restricted rescue tokens
+     */
+    function getRestrictedRescueTokens()
+        public
+        view
+        virtual
+        override
+        returns (address[] memory restrictedTokens)
+    {
+        // Return the existing tokens as we handle leftover collateral tokens
+        return existingCollateralTokens;
     }
 
     /* Redeem */
@@ -268,7 +289,7 @@ abstract contract DLoopRedeemerBase is
         );
         if (
             leftoverCollateralTokenAmount >
-            minLeftoverCollateralTokenAmount[address(collateralToken)]
+            minLeftoverCollateralTokenAmount[address(dLoopCore)][address(collateralToken)]
         ) {
             collateralToken.safeTransfer(
                 address(dLoopCore),
@@ -383,16 +404,22 @@ abstract contract DLoopRedeemerBase is
     /* Setters */
 
     /**
-     * @dev Sets the minimum leftover collateral token amount for a given collateral token
+     * @dev Sets the minimum leftover collateral token amount for a given dLoopCore and collateral token
+     * @param dLoopCore Address of the dLoopCore contract
      * @param collateralToken Address of the collateral token
-     * @param minAmount Minimum leftover collateral token amount for the given collateral token
+     * @param minAmount Minimum leftover collateral token amount for the given dLoopCore and collateral token
      */
     function setMinLeftoverCollateralTokenAmount(
+        address dLoopCore,
         address collateralToken,
         uint256 minAmount
     ) external nonReentrant onlyOwner {
-        minLeftoverCollateralTokenAmount[collateralToken] = minAmount;
-        emit MinLeftoverCollateralTokenAmountSet(collateralToken, minAmount);
+        minLeftoverCollateralTokenAmount[dLoopCore][collateralToken] = minAmount;
+        if (!_existingCollateralTokensMap[collateralToken]) {
+            _existingCollateralTokensMap[collateralToken] = true;
+            existingCollateralTokens.push(collateralToken);
+        }
+        emit MinLeftoverCollateralTokenAmountSet(dLoopCore, collateralToken, minAmount);
     }
 
     /* Data encoding/decoding helpers */
