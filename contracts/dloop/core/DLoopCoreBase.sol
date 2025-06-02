@@ -955,26 +955,6 @@ abstract contract DLoopCoreBase is
          *  <=> y = x*D1 / C1
          *  <=> y = x * (T-1)/T
          *
-         * We have:
-         *      x = (d + f) * (1 - s)
-         *   => y = (d + f) * (1 - s) * (T-1) / T
-         * where:
-         *      - d is the user's deposit collateral amount (original deposit amount) in base currency
-         *      - f is the flash loan amount of debt token in base currency
-         *      - s is the swap slippage (0.01 means 1%)
-         *
-         * We want find what is the condition of f so that we can borrow the debt token
-         * which is sufficient to cover up the flash loan amount. We want:
-         *      y >= f
-         *  <=> (d+f) * (1-s) * (T-1) / T >= f
-         *  <=> (d+f) * (1-s) * (T-1) >= T*f
-         *  <=> d * (1-s) * (T-1) >= T*f - f * (1-s) * (T-1)
-         *  <=> d * (1-s) * (T-1) >= f * (T - (1-s) * (T-1))
-         *  <=> (d * (1-s) * (T-1)) / (T - (1-s) * (T-1)) >= f    (as the denominator is greater than 0)
-         *  <=> f <= (d * (1-s) * (T-1)) / (T - (1-s) * (T-1))
-         *  <=> f <= (d * (1-s) * (T-1)) / (T - T + 1 + T*s - s)
-         *  <=> f <= (d * (1-s) * (T-1)) / (1 + T*s - s)
-         *
          * Suppose that:
          *      T' = T * ONE_HUNDRED_PERCENT_BPS, then:
          *   => T = T' / ONE_HUNDRED_PERCENT_BPS
@@ -985,13 +965,6 @@ abstract contract DLoopCoreBase is
          *      y = x * (T-1)/T
          *  <=> y = x * (T' / ONE_HUNDRED_PERCENT_BPS - 1) / (T' / ONE_HUNDRED_PERCENT_BPS)
          *  <=> y = x * (T' - ONE_HUNDRED_PERCENT_BPS) / T'
-         *
-         * This is the formula to calculate the condition of f so that we can borrow the debt token
-         * which is sufficient to cover up the flash loan amount:
-         *      f <= (d * (1-s) * (T-1)) / (1 + T*s - s)
-         *  <=> f <= (d * (1-s) * (T'/ONE_HUNDRED_PERCENT_BPS - 1)) / (1 + (T'/ONE_HUNDRED_PERCENT_BPS)*s - s)
-         *  <=> f <= (d * (1-s) * (T' - ONE_HUNDRED_PERCENT_BPS)) / (ONE_HUNDRED_PERCENT_BPS + T'*s - s * ONE_HUNDRED_PERCENT_BPS)
-         *  <=> f <= (d * (1-s) * (T' - ONE_HUNDRED_PERCENT_BPS)) / (T'*s + (1-s)*ONE_HUNDRED_PERCENT_BPS)
          */
 
         // Convert the actual supplied amount to base
