@@ -110,3 +110,7 @@ export const SDS_ROUTER_ID = `${DSTAKE_ROUTER_ID_PREFIX}_sdS`;
 // RedeemerWithFees
 export const DUSD_REDEEMER_WITH_FEES_CONTRACT_ID = "dUSD_RedeemerWithFees";
 export const DS_REDEEMER_WITH_FEES_CONTRACT_ID = "dS_RedeemerWithFees";
+
+// Vesting NFT
+export const ERC20_VESTING_NFT_ID = "ERC20VestingNFT";
+export const DSTAKE_NFT_VESTING_DEPLOYMENT_TAG = "dstake_nft_vesting";
