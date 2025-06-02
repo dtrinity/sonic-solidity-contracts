@@ -24,7 +24,13 @@ The `ERC20VestingNFT` contract implements a "soft locker" system for dSTAKE toke
 - Owner can disable new deposits without affecting existing positions
 - Allows graceful program wind-down while preserving user rights
 
-### 5. NFT Metadata Strategy
+### 5. Minimum Deposit Threshold
+- Owner can set a minimum amount for deposits to prevent micropayments and gas waste
+- Threshold is specified in the constructor and stored in `minDepositAmount`
+- Owner can update the threshold via `setMinDepositAmount`
+- The `deposit` function reverts with `DepositBelowMinimum` if `amount < minDepositAmount`
+
+### 6. NFT Metadata Strategy
 - Each NFT stores: deposit amount, deposit timestamp, and matured status
 - Token URI generation can be implemented to show vesting progress
 - Matured status prevents transfers after withdrawal

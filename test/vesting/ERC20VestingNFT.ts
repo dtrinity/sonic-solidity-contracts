@@ -44,6 +44,7 @@ const createVestingFixture = deployments.createFixture(
           mockDStakeToken.address,
           VESTING_PERIOD,
           MAX_TOTAL_SUPPLY,
+          0,
           deployer,
         ],
         log: false,
@@ -112,6 +113,7 @@ describe("ERC20VestingNFT", function () {
             ZeroAddress,
             VESTING_PERIOD,
             MAX_TOTAL_SUPPLY,
+            0,
             deployer.address,
           ],
           log: false,
@@ -131,6 +133,7 @@ describe("ERC20VestingNFT", function () {
           await dstakeToken.getAddress(),
           VESTING_PERIOD,
           MAX_TOTAL_SUPPLY,
+          0,
           ZeroAddress
         )
       ).to.be.revertedWithCustomError(
@@ -150,6 +153,7 @@ describe("ERC20VestingNFT", function () {
             await dstakeToken.getAddress(),
             0,
             MAX_TOTAL_SUPPLY,
+            0,
             deployer.address,
           ],
           log: false,
@@ -167,6 +171,7 @@ describe("ERC20VestingNFT", function () {
             "TEST",
             await dstakeToken.getAddress(),
             VESTING_PERIOD,
+            0,
             0,
             deployer.address,
           ],
@@ -254,6 +259,21 @@ describe("ERC20VestingNFT", function () {
       const position2 = await vestingNFT.vestingPositions(2);
       expect(position1.amount).to.equal(depositAmount);
       expect(position2.amount).to.equal(depositAmount * 2n);
+    });
+
+    it("Should revert deposit below minimum threshold", async function () {
+      const threshold = ethers.parseUnits("150", 18);
+      await vestingNFT.connect(deployer).setMinDepositAmount(threshold);
+      await expect(
+        vestingNFT.connect(user1).deposit(depositAmount)
+      ).to.be.revertedWithCustomError(vestingNFT, "DepositBelowMinimum");
+    });
+
+    it("Should allow deposit equal to or above minimum threshold", async function () {
+      const threshold = ethers.parseUnits("50", 18);
+      await vestingNFT.connect(deployer).setMinDepositAmount(threshold);
+      await expect(vestingNFT.connect(user1).deposit(depositAmount)).to.not.be
+        .reverted;
     });
   });
 
@@ -565,6 +585,75 @@ describe("ERC20VestingNFT", function () {
           vestingNFT,
           "OwnableUnauthorizedAccount"
         );
+      });
+    });
+
+    describe("setMinDepositAmount", function () {
+      it("Should allow owner to update minimum deposit amount", async function () {
+        const newMinDeposit = ethers.parseUnits("1000", 18);
+        const tx = await vestingNFT
+          .connect(deployer)
+          .setMinDepositAmount(newMinDeposit);
+
+        await expect(tx)
+          .to.emit(vestingNFT, "MinDepositAmountUpdated")
+          .withArgs(newMinDeposit);
+
+        expect(await vestingNFT.minDepositAmount()).to.equal(newMinDeposit);
+      });
+
+      it("Should allow setting minimum deposit to zero", async function () {
+        // First set a non-zero value
+        await vestingNFT
+          .connect(deployer)
+          .setMinDepositAmount(ethers.parseUnits("100", 18));
+
+        // Then set to zero
+        const tx = await vestingNFT.connect(deployer).setMinDepositAmount(0);
+
+        await expect(tx)
+          .to.emit(vestingNFT, "MinDepositAmountUpdated")
+          .withArgs(0);
+
+        expect(await vestingNFT.minDepositAmount()).to.equal(0);
+      });
+
+      it("Should revert if non-owner tries to set minimum deposit amount", async function () {
+        await expect(
+          vestingNFT
+            .connect(user1)
+            .setMinDepositAmount(ethers.parseUnits("1000", 18))
+        ).to.be.revertedWithCustomError(
+          vestingNFT,
+          "OwnableUnauthorizedAccount"
+        );
+      });
+
+      it("Should enforce new minimum deposit amount immediately", async function () {
+        const depositAmount = ethers.parseUnits("100", 18);
+        const newMinDeposit = ethers.parseUnits("150", 18);
+
+        // Setup tokens - need enough for all deposits: 100 + 100 + 150 = 350
+        await dstakeToken.mint(user1.address, ethers.parseUnits("400", 18));
+        await dstakeToken
+          .connect(user1)
+          .approve(await vestingNFT.getAddress(), ethers.parseUnits("400", 18));
+
+        // First deposit should work with default min (0)
+        await expect(vestingNFT.connect(user1).deposit(depositAmount)).to.not.be
+          .reverted;
+
+        // Set new minimum
+        await vestingNFT.connect(deployer).setMinDepositAmount(newMinDeposit);
+
+        // Second deposit should fail
+        await expect(
+          vestingNFT.connect(user1).deposit(depositAmount)
+        ).to.be.revertedWithCustomError(vestingNFT, "DepositBelowMinimum");
+
+        // Deposit with amount >= minimum should work
+        await expect(vestingNFT.connect(user1).deposit(newMinDeposit)).to.not.be
+          .reverted;
       });
     });
   });

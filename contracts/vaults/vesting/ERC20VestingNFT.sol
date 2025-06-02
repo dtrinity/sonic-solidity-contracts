@@ -31,6 +31,9 @@ contract ERC20VestingNFT is ERC721, ERC721Enumerable, Ownable, ReentrancyGuard {
     /// @notice Maximum total dSTAKE supply that can be deposited
     uint256 public maxTotalSupply;
 
+    /// @notice Minimum deposit amount threshold
+    uint256 public minDepositAmount;
+
     /// @notice Current total dSTAKE deposited
     uint256 public totalDeposited;
 
@@ -66,6 +69,7 @@ contract ERC20VestingNFT is ERC721, ERC721Enumerable, Ownable, ReentrancyGuard {
     );
     event DepositsToggled(bool enabled);
     event MaxTotalSupplyUpdated(uint256 newMaxSupply);
+    event MinDepositAmountUpdated(uint256 newMinDepositAmount);
 
     // ============ Errors ============
 
@@ -79,6 +83,7 @@ contract ERC20VestingNFT is ERC721, ERC721Enumerable, Ownable, ReentrancyGuard {
     error VestingAlreadyComplete();
     error TokenAlreadyMatured();
     error TransferOfMaturedToken();
+    error DepositBelowMinimum();
 
     // ============ Constructor ============
 
@@ -89,6 +94,7 @@ contract ERC20VestingNFT is ERC721, ERC721Enumerable, Ownable, ReentrancyGuard {
      * @param _dstakeToken Address of the dSTAKE token
      * @param _vestingPeriod Vesting period in seconds (6 months)
      * @param _maxTotalSupply Maximum total dSTAKE that can be deposited
+     * @param _minDepositAmount Minimum deposit amount threshold
      * @param _initialOwner Initial owner of the contract
      */
     constructor(
@@ -97,6 +103,7 @@ contract ERC20VestingNFT is ERC721, ERC721Enumerable, Ownable, ReentrancyGuard {
         address _dstakeToken,
         uint256 _vestingPeriod,
         uint256 _maxTotalSupply,
+        uint256 _minDepositAmount,
         address _initialOwner
     ) ERC721(_name, _symbol) Ownable(_initialOwner) {
         if (_dstakeToken == address(0)) {
@@ -109,6 +116,7 @@ contract ERC20VestingNFT is ERC721, ERC721Enumerable, Ownable, ReentrancyGuard {
         dstakeToken = IERC20(_dstakeToken);
         vestingPeriod = _vestingPeriod;
         maxTotalSupply = _maxTotalSupply;
+        minDepositAmount = _minDepositAmount;
         depositsEnabled = true;
 
         // Start token IDs from 1
@@ -127,6 +135,7 @@ contract ERC20VestingNFT is ERC721, ERC721Enumerable, Ownable, ReentrancyGuard {
     ) external nonReentrant returns (uint256 tokenId) {
         if (amount == 0) revert ZeroAmount();
         if (!depositsEnabled) revert DepositsDisabled();
+        if (amount < minDepositAmount) revert DepositBelowMinimum();
         if (totalDeposited + amount > maxTotalSupply)
             revert MaxSupplyExceeded();
 
@@ -227,6 +236,17 @@ contract ERC20VestingNFT is ERC721, ERC721Enumerable, Ownable, ReentrancyGuard {
     function setMaxTotalSupply(uint256 newMaxSupply) external onlyOwner {
         maxTotalSupply = newMaxSupply;
         emit MaxTotalSupplyUpdated(newMaxSupply);
+    }
+
+    /**
+     * @notice Set minimum deposit amount threshold
+     * @param newMinDepositAmount New minimum deposit amount
+     */
+    function setMinDepositAmount(
+        uint256 newMinDepositAmount
+    ) external onlyOwner {
+        minDepositAmount = newMinDepositAmount;
+        emit MinDepositAmountUpdated(newMinDepositAmount);
     }
 
     // ============ View Functions ============

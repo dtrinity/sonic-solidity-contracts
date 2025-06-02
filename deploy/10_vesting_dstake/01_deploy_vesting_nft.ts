@@ -67,6 +67,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       config.vesting.dstakeToken,
       config.vesting.vestingPeriod,
       config.vesting.maxTotalSupply,
+      config.vesting.minDepositThreshold,
       config.vesting.initialOwner,
     ],
     log: false,

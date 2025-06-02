@@ -472,6 +472,7 @@ export async function getConfig(
       vestingPeriod: 180 * 24 * 60 * 60, // 6 months in seconds
       maxTotalSupply: "1000000000000000000000000", // 1 million tokens (1e6 * 1e18)
       initialOwner: user1,
+      minDepositThreshold: "100000000000000000000000", // 100,000 tokens
     },
   };
 }
