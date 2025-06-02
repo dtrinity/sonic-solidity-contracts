@@ -87,6 +87,10 @@ abstract contract DLoopRedeemerBase is
         uint256 withdrawnCollateralTokenAmount,
         uint256 minReceiveCollateralTokenAmount
     );
+    error EstimatedCollateralTokenAmountLessThanMinOutputCollateralAmount(
+        uint256 currentCollateralTokenAmount,
+        uint256 minOutputCollateralAmount
+    );
 
     /* Events */
 
@@ -104,9 +108,7 @@ abstract contract DLoopRedeemerBase is
 
     struct FlashLoanParams {
         address owner;
-        address receiver;
         uint256 shares;
-        uint256 collateralToRemoveFromLending;
         bytes collateralToDebtTokenSwapData;
         DLoopCoreBase dLoopCore;
     }
@@ -119,7 +121,7 @@ abstract contract DLoopRedeemerBase is
         flashLender = _flashLender;
     }
 
-    /* Withdraw */
+    /* Redeem */
 
     /**
      * @dev Redeems shares from the core vault with flash loans
@@ -146,17 +148,45 @@ abstract contract DLoopRedeemerBase is
 
         // Do not need to transfer the debt token to repay the lending pool, as it will be done with flash loan
 
-        // This amount is representing the leveraged amount
-        uint256 collateralToRemoveFromLending = dLoopCore.convertToAssets(
-            shares
-        );
+        /**
+         * In redeeming, we do not need to calculate the _calculateEstimatedOverallSlippageBps(), as the
+         * withdrawn collateral token amount is always larger than the flashloan debt token amount (due to the leverage logic):
+         *
+         * According to the formula in DLoopCoreBase.getRepayAmountThatKeepCurrentLeverage():
+         *       y = x * (T-1)/T
+         *   and
+         *       y = x * (T' - ONE_HUNDRED_PERCENT_BPS) / T'
+         *   and
+         *       T = T' / ONE_HUNDRED_PERCENT_BPS
+         * where:
+         *      - x is the collateral token amount
+         *      - y is the debt token amount
+         *      - T is the target leverage
+         *      - T' is the target leverage in basis points unit
+         *
+         * We want find what is the condition of m so that we can withdraw the collateral token and swap
+         * to the debt token which is sufficient to repay the flash loan amount and meet user minimum receiving
+         * collateral amount. We want:
+         *      y <= x * (1-s) - m
+         * where:
+         *      - m is the minimum receiving collateral amount in base currency
+         *      - s is the swap slippage (0.01 means 1%)
+         *
+         * We have:
+         *      y <= x * (1-s) - m
+         *  <=> x * (T-1)/T <= x * (1-s) - m
+         *  <=> x * (1-s) - x * (T-1)/T >= m
+         *  <=> x * (1 - s - (T-1)/T) >= m
+         *  <=> m <= x * (1 - s - (T-1)/T)
+         *
+         * Thus, the only thing to make the transaction works is to adjust the minOutputCollateralAmount
+         * to be larger than the flashloan debt token amount, which is the leveraged amount
+         */
 
         // Create the flash loan params data
         FlashLoanParams memory params = FlashLoanParams(
             owner,
-            receiver,
             shares,
-            collateralToRemoveFromLending,
             collateralToDebtTokenSwapData,
             dLoopCore
         );
@@ -377,9 +407,7 @@ abstract contract DLoopRedeemerBase is
     ) internal pure returns (bytes memory data) {
         data = abi.encode(
             _flashLoanParams.owner,
-            _flashLoanParams.receiver,
             _flashLoanParams.shares,
-            _flashLoanParams.collateralToRemoveFromLending,
             _flashLoanParams.collateralToDebtTokenSwapData,
             _flashLoanParams.dLoopCore
         );
@@ -395,14 +423,9 @@ abstract contract DLoopRedeemerBase is
     ) internal pure returns (FlashLoanParams memory _flashLoanParams) {
         (
             _flashLoanParams.owner,
-            _flashLoanParams.receiver,
             _flashLoanParams.shares,
-            _flashLoanParams.collateralToRemoveFromLending,
             _flashLoanParams.collateralToDebtTokenSwapData,
             _flashLoanParams.dLoopCore
-        ) = abi.decode(
-            data,
-            (address, address, uint256, uint256, bytes, DLoopCoreBase)
-        );
+        ) = abi.decode(data, (address, uint256, bytes, DLoopCoreBase));
     }
 }
