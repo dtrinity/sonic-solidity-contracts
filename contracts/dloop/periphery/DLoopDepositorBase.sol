@@ -82,6 +82,10 @@ abstract contract DLoopDepositorBase is
         uint256 debtTokenUsed,
         uint256 flashLoanFee
     );
+    error LeveragedCollateralAmountLessThanDepositCollateralAmount(
+        uint256 leveragedCollateralAmount,
+        uint256 depositCollateralAmount
+    );
 
     /* Events */
 
@@ -248,6 +252,14 @@ abstract contract DLoopDepositorBase is
         // Make sure the input dLoopCore is compatible with this periphery contract
         if (token != address(debtToken))
             revert IncompatibleDLoopCoreDebtToken(token, address(debtToken));
+
+        if (flashLoanParams
+            .leveragedCollateralAmount < flashLoanParams.depositCollateralAmount) {
+                revert LeveragedCollateralAmountLessThanDepositCollateralAmount(
+                    flashLoanParams.leveragedCollateralAmount,
+                    flashLoanParams.depositCollateralAmount
+                );
+            }
 
         // Calculate the maxDebtInputAmount for slippage protection
         uint256 requiredAdditionalCollateralAmount = flashLoanParams
