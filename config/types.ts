@@ -25,6 +25,12 @@ export interface Config {
     readonly redeemers: {
       odos: DLoopRedeemerOdosConfig;
     };
+    readonly decreaseLeverage?: {
+      odos: DLoopDecreaseLeverageOdosConfig;
+    };
+    readonly increaseLeverage?: {
+      odos: DLoopIncreaseLeverageOdosConfig;
+    };
   };
   readonly dStake?: {
     [key: string]: DStakeInstanceConfig; // e.g., sdUSD, sdS
@@ -79,6 +85,14 @@ export interface DLoopDepositorOdosConfig {
 }
 
 export interface DLoopRedeemerOdosConfig {
+  readonly router: string;
+}
+
+export interface DLoopDecreaseLeverageOdosConfig {
+  readonly router: string;
+}
+
+export interface DLoopIncreaseLeverageOdosConfig {
   readonly router: string;
 }
 

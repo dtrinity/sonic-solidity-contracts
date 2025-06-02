@@ -176,6 +176,16 @@ export async function getConfig(
           router: "0x00000", // dummy address
         },
       },
+      decreaseLeverage: {
+        odos: {
+          router: "0x00000", // dummy address
+        },
+      },
+      increaseLeverage: {
+        odos: {
+          router: "0x00000", // dummy address
+        },
+      },
     },
     oracleAggregators: {
       USD: {

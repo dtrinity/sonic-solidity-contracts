@@ -119,6 +119,16 @@ export async function getConfig(
           router: odoRouterV2Address,
         },
       },
+      decreaseLeverage: {
+        odos: {
+          router: odoRouterV2Address,
+        },
+      },
+      increaseLeverage: {
+        odos: {
+          router: odoRouterV2Address,
+        },
+      },
     },
     oracleAggregators: {
       USD: {

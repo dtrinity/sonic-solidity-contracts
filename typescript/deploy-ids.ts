@@ -86,6 +86,10 @@ export const DLOOP_CORE_DLEND_ID = "DLoopCoreDLend";
 /* dLOOP Periphery */
 export const DLOOP_PERIPHERY_ODOS_DEPOSITOR_ID = "DLoopDepositorOdos";
 export const DLOOP_PERIPHERY_ODOS_REDEEMER_ID = "DLoopRedeemerOdos";
+export const DLOOP_PERIPHERY_ODOS_DECREASE_LEVERAGE_ID =
+  "DLoopDecreaseLeverageOdos";
+export const DLOOP_PERIPHERY_ODOS_INCREASE_LEVERAGE_ID =
+  "DLoopIncreaseLeverageOdos";
 export const DLOOP_PERIPHERY_ODOS_SWAP_LOGIC_ID = "OdosSwapLogic";
 
 // Chainlink Oracle Converters

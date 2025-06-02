@@ -441,6 +441,16 @@ export async function getConfig(
           router: "", // Odos doesn't work on localhost
         },
       },
+      decreaseLeverage: {
+        odos: {
+          router: "", // Odos doesn't work on localhost
+        },
+      },
+      increaseLeverage: {
+        odos: {
+          router: "", // Odos doesn't work on localhost
+        },
+      },
     },
     dStake: {
       sdUSD: {
