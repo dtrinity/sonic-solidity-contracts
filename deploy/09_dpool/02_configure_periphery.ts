@@ -40,11 +40,15 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
     console.log(`  Found periphery: ${peripheryDeployment.address}`);
 
-    // Get periphery contract instance
+    // Determine the correct signer for admin operations (same pattern as dStake)
+    const initialAdmin = dPoolConfig.initialAdmin;
+    const adminSigner = initialAdmin === deployer ? deployer : initialAdmin;
+
+    // Get periphery contract instance with the appropriate signer
     const periphery = await ethers.getContractAt(
       "DPoolCurvePeriphery",
       peripheryDeployment.address,
-      await ethers.getSigner(deployer as string),
+      await ethers.getSigner(adminSigner),
     );
 
     // Get Curve pool deployment
@@ -71,7 +75,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     const curvePool = await ethers.getContractAt(
       "ICurveStableSwapNG",
       curvePoolDeployment.address,
-      await ethers.getSigner(deployer as string),
+      await ethers.getSigner(deployer), // Use deployer for read-only calls
     );
 
     const asset0 = await curvePool.coins(0);

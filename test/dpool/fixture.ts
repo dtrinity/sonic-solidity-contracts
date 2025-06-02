@@ -222,6 +222,14 @@ export async function withdrawToAssetViaPeriphery(
   minAmount: bigint = 0n,
   maxSlippage: number = 100 // 1%
 ): Promise<void> {
+  // Get the vault contract to approve shares
+  const vaultAddress = await periphery.vault();
+  const vault = await ethers.getContractAt("DPoolVaultCurveLP", vaultAddress);
+  
+  // Approve periphery to spend user's vault shares
+  await vault.connect(user).approve(await periphery.getAddress(), shares);
+  
+  // Now call withdrawToAsset
   await periphery.connect(user).withdrawToAsset(
     shares,
     asset,
