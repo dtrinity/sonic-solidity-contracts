@@ -51,7 +51,7 @@ abstract contract DLoopCoreBase is
 
     /* Constants */
 
-    uint32 public immutable targetLeverageBps; // ie. 30000 = 300% over 100% in basis points, means 3x leverage
+    uint32 public immutable targetLeverageBps; // ie. 30000 = 300% in basis points, means 3x leverage
     ERC20 public immutable collateralToken;
     ERC20 public immutable debtToken;
 
