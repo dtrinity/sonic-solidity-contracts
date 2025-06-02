@@ -43,7 +43,7 @@ export async function getConfig(
   const scUSDAddress = "0xd3DCe716f3eF535C5Ff8d041c1A41C3bd89b97aE";
   const WETHAddress = "0x50c42dEAcD8Fc9773493ED674b675bE577f2634b";
   const scETHAddress = "0x3bcE5CB273F0F148010BbEa2470e7b5df84C7812";
-  const wstkscETHAddress = "0xE8a41c62BB4d5863C6eadC96792cFE90A1f37C47"
+  const wstkscETHAddress = "0xE8a41c62BB4d5863C6eadC96792cFE90A1f37C47";
 
   return {
     tokenAddresses: {
