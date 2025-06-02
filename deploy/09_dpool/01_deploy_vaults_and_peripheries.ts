@@ -66,7 +66,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       contract: "DPoolVaultCurveLP",
       from: deployer,
       args: [
-        baseAssetAddress, // baseAsset
+        baseAssetAddress, // baseAsset (for external valuation only)
         curvePoolDeployment.address, // lpToken (curve pool serves as LP token)
         curvePoolDeployment.address, // pool (same as LP token for Curve)
         dPoolConfig.name, // name

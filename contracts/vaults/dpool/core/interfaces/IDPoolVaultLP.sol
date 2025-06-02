@@ -23,8 +23,8 @@ import "@openzeppelin/contracts/access/IAccessControl.sol";
 /**
  * @title IDPoolVaultLP
  * @author dTRINITY Protocol
- * @notice Interface for dPOOL vault that accepts LP tokens and values them in base asset terms
- * @dev Each vault represents a specific LP position on a specific DEX
+ * @notice Interface for dPOOL vault that accepts LP tokens as the primary asset
+ * @dev Each vault represents a specific LP position on a specific DEX. The vault's asset() is the LP token.
  */
 interface IDPoolVaultLP is IERC4626, IAccessControl {
     // --- Events ---
@@ -55,7 +55,7 @@ interface IDPoolVaultLP is IERC4626, IAccessControl {
     // --- Vault Configuration ---
 
     /**
-     * @notice Address of the LP token this vault accepts
+     * @notice Address of the LP token this vault accepts (same as asset())
      * @return The LP token address
      */
     function lpToken() external view returns (address);
@@ -98,16 +98,8 @@ interface IDPoolVaultLP is IERC4626, IAccessControl {
     ) external view returns (uint256 shares);
 
     /**
-     * @notice Preview LP tokens received for asset withdrawal
-     * @param assets Amount of base assets to withdraw
-     * @return lpAmount Amount of LP tokens that would be returned
-     */
-    function previewWithdrawLP(
-        uint256 assets
-    ) external view returns (uint256 lpAmount);
-
-    /**
      * @notice Preview base asset value for a given amount of LP tokens
+     * @dev This is an auxiliary function for external valuation, not used in core ERC4626 mechanics
      * @param lpAmount Amount of LP tokens
      * @return Base asset value
      */

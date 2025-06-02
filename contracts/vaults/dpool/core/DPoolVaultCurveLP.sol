@@ -26,7 +26,7 @@ import "./interfaces/IDPoolVaultLP.sol";
  * @title DPoolVaultCurveLP
  * @author dTRINITY Protocol
  * @notice Curve-specific dPOOL vault implementation
- * @dev Handles Curve LP tokens and uses Curve's calc_withdraw_one_coin for pricing
+ * @dev Handles Curve LP tokens as the primary asset, uses Curve's calc_withdraw_one_coin for external valuation only
  */
 contract DPoolVaultCurveLP is DPoolVaultLP {
     // --- Errors ---
@@ -39,14 +39,14 @@ contract DPoolVaultCurveLP is DPoolVaultLP {
     /// @notice Address of the Curve pool (same as LP token for Curve)
     address public immutable POOL;
 
-    /// @notice Index of the base asset in the Curve pool (0 or 1)
+    /// @notice Index of the base asset in the Curve pool (0 or 1) - used only for previewLPValue
     int128 public immutable BASE_ASSET_INDEX;
 
     // --- Constructor ---
 
     /**
      * @notice Initialize the Curve vault
-     * @param baseAsset Address of the base asset for valuation
+     * @param baseAsset Address of the base asset for external valuation (used only in previewLPValue)
      * @param _lpToken Address of the Curve LP token (same as pool address)
      * @param _pool Address of the Curve pool (same as LP token for Curve)
      * @param name Vault token name
@@ -60,12 +60,12 @@ contract DPoolVaultCurveLP is DPoolVaultLP {
         string memory name,
         string memory symbol,
         address admin
-    ) DPoolVaultLP(baseAsset, _lpToken, name, symbol, admin) {
+    ) DPoolVaultLP(_lpToken, name, symbol, admin) {
         if (_pool == address(0)) revert ZeroAddress();
 
         POOL = _pool;
 
-        // Auto-determine base asset index in pool
+        // Auto-determine base asset index in pool for external valuation
         ICurveStableSwapNG curvePool = ICurveStableSwapNG(_pool);
         address coin0 = curvePool.coins(0);
         address coin1 = curvePool.coins(1);
@@ -80,32 +80,6 @@ contract DPoolVaultCurveLP is DPoolVaultLP {
         }
 
         BASE_ASSET_INDEX = calculatedIndex;
-    }
-
-    // --- Asset valuation ---
-
-    /**
-     * @notice Calculate total assets managed by the vault in base asset terms
-     * @dev Uses Curve's calc_withdraw_one_coin for accurate LP token valuation
-     * @return Total assets in base asset terms
-     */
-    function totalAssets()
-        public
-        view
-        override(ERC4626, IERC4626)
-        returns (uint256)
-    {
-        uint256 lpBalance = IERC20(LP_TOKEN).balanceOf(address(this));
-        if (lpBalance == 0) {
-            return 0;
-        }
-
-        // Use Curve's calc_withdraw_one_coin to get base asset value
-        return
-            ICurveStableSwapNG(POOL).calc_withdraw_one_coin(
-                lpBalance,
-                BASE_ASSET_INDEX
-            );
     }
 
     // --- View functions ---
@@ -128,6 +102,7 @@ contract DPoolVaultCurveLP is DPoolVaultLP {
 
     /**
      * @notice Preview base asset value for a given amount of LP tokens
+     * @dev This is an auxiliary function for external valuation, not used in core ERC4626 mechanics
      * @param lpAmount Amount of LP tokens
      * @return Base asset value
      */

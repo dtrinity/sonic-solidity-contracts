@@ -29,8 +29,8 @@ import "../../../common/BasisPointConstants.sol";
 /**
  * @title DPoolVaultLP
  * @author dTRINITY Protocol
- * @notice Abstract base ERC4626 vault that accepts LP tokens and values them in base asset terms
- * @dev Each vault represents a specific LP position on a specific DEX
+ * @notice Abstract base ERC4626 vault that accepts LP tokens as the primary asset
+ * @dev Each vault represents a specific LP position on a specific DEX. The vault's asset() is the LP token itself.
  */
 abstract contract DPoolVaultLP is
     ERC4626,
@@ -51,7 +51,7 @@ abstract contract DPoolVaultLP is
 
     // --- Immutables ---
 
-    /// @notice Address of the LP token this vault accepts
+    /// @notice Address of the LP token this vault accepts (same as asset())
     address public immutable LP_TOKEN;
 
     // --- State variables ---
@@ -63,20 +63,17 @@ abstract contract DPoolVaultLP is
 
     /**
      * @notice Initialize the vault
-     * @param baseAsset Address of the base asset for consistent valuation
-     * @param _lpToken Address of the LP token this vault accepts
+     * @param _lpToken Address of the LP token this vault accepts (becomes the ERC4626 asset)
      * @param name Vault token name
      * @param symbol Vault token symbol
      * @param admin Address to grant admin role
      */
     constructor(
-        address baseAsset,
         address _lpToken,
         string memory name,
         string memory symbol,
         address admin
-    ) ERC4626(IERC20(baseAsset)) ERC20(name, symbol) {
-        if (baseAsset == address(0)) revert ZeroAddress();
+    ) ERC4626(IERC20(_lpToken)) ERC20(name, symbol) {
         if (_lpToken == address(0)) revert ZeroAddress();
         if (admin == address(0)) revert ZeroAddress();
 
@@ -108,6 +105,7 @@ abstract contract DPoolVaultLP is
 
     /**
      * @notice Preview base asset value for LP tokens - must be implemented by each DEX-specific vault
+     * @dev This is an auxiliary function for external valuation, not used in core ERC4626 mechanics
      * @param lpAmount Amount of LP tokens
      * @return Base asset value
      */
@@ -122,20 +120,16 @@ abstract contract DPoolVaultLP is
         return previewDeposit(lpAmount);
     }
 
-    /// @inheritdoc IDPoolVaultLP
-    function previewWithdrawLP(
-        uint256 assets
-    ) external view returns (uint256 lpAmount) {
-        return previewWithdraw(assets);
-    }
-
     // --- Deposit/withdrawal logic ---
 
     /**
      * @dev Override to handle LP token deposits
+     * @param lpAmount Amount of LP tokens to deposit
+     * @param receiver Address to receive vault shares
+     * @return shares Amount of shares minted
      */
     function deposit(
-        uint256 assets,
+        uint256 lpAmount,
         address receiver
     )
         public
@@ -145,21 +139,25 @@ abstract contract DPoolVaultLP is
         returns (uint256 shares)
     {
         require(
-            assets <= maxDeposit(receiver),
+            lpAmount <= maxDeposit(receiver),
             "ERC4626: deposit more than max"
         );
 
-        shares = previewDeposit(assets);
-        _deposit(_msgSender(), receiver, assets, shares);
+        shares = previewDeposit(lpAmount);
+        _deposit(_msgSender(), receiver, lpAmount, shares);
 
         return shares;
     }
 
     /**
      * @dev Override to handle LP token withdrawals with fees
+     * @param lpAmount Amount of LP tokens to withdraw
+     * @param receiver Address to receive LP tokens
+     * @param owner Address that owns the shares
+     * @return shares Amount of shares burned
      */
     function withdraw(
-        uint256 assets,
+        uint256 lpAmount,
         address receiver,
         address owner
     )
@@ -170,56 +168,65 @@ abstract contract DPoolVaultLP is
         returns (uint256 shares)
     {
         require(
-            assets <= maxWithdraw(owner),
+            lpAmount <= maxWithdraw(owner),
             "ERC4626: withdraw more than max"
         );
 
-        shares = previewWithdraw(assets);
-        _withdraw(_msgSender(), receiver, owner, assets, shares);
+        shares = previewWithdraw(lpAmount);
+        _withdraw(_msgSender(), receiver, owner, lpAmount, shares);
 
         return shares;
     }
 
     /**
      * @dev Internal deposit function
+     * @param caller Address calling the deposit
+     * @param receiver Address to receive shares
+     * @param lpAmount Amount of LP tokens being deposited
+     * @param shares Amount of shares to mint
      */
     function _deposit(
         address caller,
         address receiver,
-        uint256 assets,
+        uint256 lpAmount,
         uint256 shares
     ) internal virtual override {
         // Pull LP tokens from caller
-        IERC20(LP_TOKEN).safeTransferFrom(caller, address(this), assets);
+        IERC20(LP_TOKEN).safeTransferFrom(caller, address(this), lpAmount);
 
         // Mint shares to receiver
         _mint(receiver, shares);
 
-        emit Deposit(caller, receiver, assets, shares);
+        emit Deposit(caller, receiver, lpAmount, shares);
     }
 
     /**
      * @dev Internal withdraw function with fee handling
+     * @param caller Address calling the withdrawal
+     * @param receiver Address to receive LP tokens
+     * @param owner Address that owns the shares
+     * @param lpAmount Amount of LP tokens to withdraw (before fees)
+     * @param shares Amount of shares to burn
      */
     function _withdraw(
         address caller,
         address receiver,
         address owner,
-        uint256 assets,
+        uint256 lpAmount,
         uint256 shares
     ) internal virtual override {
         if (caller != owner) {
             _spendAllowance(owner, caller, shares);
         }
 
-        // Calculate withdrawal fee
-        uint256 fee = (assets * withdrawalFeeBps) /
+        // Calculate withdrawal fee on LP tokens
+        uint256 feeInLP = (lpAmount * withdrawalFeeBps) /
             BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
-        uint256 lpTokensToSend = assets - fee;
+        uint256 lpTokensToSend = lpAmount - feeInLP;
 
         // Check if we have enough LP tokens
         uint256 lpBalance = IERC20(LP_TOKEN).balanceOf(address(this));
-        if (lpBalance < lpTokensToSend) {
+        if (lpBalance < lpAmount) {
             revert InsufficientLPTokens();
         }
 
@@ -229,7 +236,7 @@ abstract contract DPoolVaultLP is
         // Send LP tokens to receiver (minus fees)
         IERC20(LP_TOKEN).safeTransfer(receiver, lpTokensToSend);
 
-        emit Withdraw(caller, receiver, owner, assets, shares);
+        emit Withdraw(caller, receiver, owner, lpAmount, shares);
     }
 
     // --- Fee management ---
