@@ -902,21 +902,6 @@ abstract contract DLoopCoreBase is
          *    <=> y = x*D1 / [D1*T / (T-1)]
          *    <=> y = x * (T-1)/T
          *
-         * We want find what is the condition of m so that we can withdraw the collateral token and swap
-         * to the debt token which is sufficient to repay the flash loan amount and meet user minimum receiving
-         * collateral amount. We want:
-         *      y <= x * (1-s) - m
-         * where:
-         *      - m is the minimum receiving collateral amount in base currency
-         *      - s is the swap slippage (0.01 means 1%)
-         *
-         * We have:
-         *      y <= x * (1-s) - m
-         *  <=> x * (T-1)/T <= x * (1-s) - m
-         *  <=> x * (1-s) - x * (T-1)/T >= m
-         *  <=> x * (1 - s - (T-1)/T) >= m
-         *  <=> m <= x * (1 - s - (T-1)/T)
-         *
          * Suppose that T' = T * ONE_HUNDRED_PERCENT_BPS, then:
          *
          *  => T = T' / ONE_HUNDRED_PERCENT_BPS
