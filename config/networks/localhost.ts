@@ -1,10 +1,12 @@
 import { ZeroAddress } from "ethers";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 
+import { ONE_PERCENT_BPS } from "../../typescript/bps-constants";
 import {
   DS_TOKEN_ID,
   DUSD_TOKEN_ID,
   INCENTIVES_PROXY_ID,
+  SDUSD_DSTAKE_TOKEN_ID,
 } from "../../typescript/deploy-ids";
 import {
   ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT,
@@ -64,6 +66,11 @@ export async function getConfig(
   // Fetch deployed dLend aTokens
   const aTokenDUSDDeployment = await _hre.deployments.getOrNull("dLEND-dUSD");
 
+  // Fetch deployed dSTAKE tokens for vesting
+  const sdUSDDeployment = await _hre.deployments.getOrNull(
+    SDUSD_DSTAKE_TOKEN_ID,
+  );
+
   // Get mock oracle deployments
   const mockOracleNameToAddress: Record<string, string> = {};
 
@@ -84,7 +91,7 @@ export async function getConfig(
   }
 
   // Get the named accounts
-  const { user1 } = await _hre.getNamedAccounts();
+  const { deployer, user1 } = await _hre.getNamedAccounts();
 
   return {
     MOCK_ONLY: {
@@ -185,8 +192,8 @@ export async function getConfig(
       frxUSD: emptyStringIfUndefined(frxUSDDeployment?.address), // Used by dPOOL
     },
     walletAddresses: {
-      governanceMultisig: user1,
-      incentivesVault: user1,
+      governanceMultisig: deployer,
+      incentivesVault: deployer,
     },
     dStables: {
       dUSD: {
@@ -197,6 +204,8 @@ export async function getConfig(
           frxUSDDeployment?.address || ZeroAddress,
           sfrxUSDDeployment?.address || ZeroAddress,
         ],
+        initialFeeReceiver: deployer,
+        initialRedemptionFeeBps: 1 * ONE_PERCENT_BPS,
       },
       dS: {
         collaterals: [
@@ -204,6 +213,8 @@ export async function getConfig(
           wOSTokenDeployment?.address || ZeroAddress,
           stSTokenDeployment?.address || ZeroAddress,
         ],
+        initialFeeReceiver: deployer,
+        initialRedemptionFeeBps: 1 * ONE_PERCENT_BPS,
       },
     },
     oracleAggregators: {
@@ -472,6 +483,14 @@ export async function getConfig(
           initialRewardsManager: user1, // Optional: specific rewards manager role holder
         },
       },
+    },
+    vesting: {
+      name: "dBOOST sdUSD Season 1",
+      symbol: "sdUSD-S1",
+      dstakeToken: emptyStringIfUndefined(sdUSDDeployment?.address), // Use sdUSD as the vesting token
+      vestingPeriod: 180 * 24 * 60 * 60, // 6 months in seconds
+      maxTotalSupply: "1000000000000000000000000", // 1 million tokens (1e6 * 1e18)
+      initialOwner: user1,
     },
     dPool: {
       // Note: In localhost, pool should be the deployment name

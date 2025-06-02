@@ -19,6 +19,7 @@ export interface Config {
   readonly dStake?: {
     [key: string]: DStakeInstanceConfig; // e.g., sdUSD, sdS
   };
+  readonly vesting?: VestingConfig;
   readonly dPool?: {
     [key: string]: DPoolInstanceConfig; // e.g., dUSD-USDC_Curve
   };
@@ -46,6 +47,8 @@ export interface MockConfig {
 
 export interface DStableConfig {
   readonly collaterals: Address[];
+  readonly initialFeeReceiver?: string;
+  readonly initialRedemptionFeeBps?: number;
 }
 
 export interface TokenAddresses {
@@ -182,6 +185,15 @@ export interface DStakeInstanceConfig {
   readonly collateralExchangers: Address[]; // List of allowed exchanger addresses
   readonly collateralVault?: Address; // The DStakeCollateralVault for this instance (needed for adapter deployment)
   readonly dLendRewardManager?: DLendRewardManagerConfig; // Added for dLend rewards
+}
+
+export interface VestingConfig {
+  readonly name: string; // Name of the NFT collection
+  readonly symbol: string; // Symbol of the NFT collection
+  readonly dstakeToken: Address; // Address of the dSTAKE token to vest
+  readonly vestingPeriod: number; // Vesting period in seconds (e.g., 6 months)
+  readonly maxTotalSupply: string; // Maximum total dSTAKE that can be deposited (as string for big numbers)
+  readonly initialOwner: Address; // Initial owner of the vesting contract
 }
 
 // --- dPool Types ---

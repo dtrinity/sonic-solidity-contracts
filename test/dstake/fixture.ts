@@ -252,40 +252,19 @@ export async function executeSetupDLendRewards(
     },
   ]);
 
-  // Approve rewardsController to spend deployer's rewardToken if needed (for depositRewardFrom)
-  // This depends on where rewardAmount is sourced from. If signer (deployer) is funding it.
-  const rewardTokenERC20 = rewardToken as unknown as ERC20; // Cast to ERC20 for approve
-  await rewardTokenERC20
-    .connect(signer)
-    .approve(incentivesProxy.address, rewardAmount);
-
-  // Deposit reward amount via the EmissionManager, as it's the authorized caller
-  // for depositRewardFrom on the RewardsController.
-  // The EmissionManager's depositReward function will internally call
-  // rewardsController.depositRewardFrom with EmissionManager as msg.sender.
-  // The signer (deployer) is the emission admin and owner of EmissionManager,
-  // allowing them to call emissionManager.depositReward.
-
-  // Note: The EmissionManager.depositReward currently takes amount and uses msg.sender as from.
-  // We need to ensure the rewardAmount is transferred to the EmissionManager first
-  // before calling emissionManager.depositReward.
-
-  // Transfer reward tokens from deployer to EmissionManager
-  await rewardTokenERC20
-    .connect(signer)
-    .transfer(await emissionManager.getAddress(), rewardAmount);
-
-  // Call depositReward on EmissionManager (deployer is emission admin)
-  await emissionManager
-    .connect(signer)
-    .depositReward(rewardTokenInfo.address, rewardAmount);
+  // Cast to ERC20 for token operations
+  const rewardTokenERC20 = rewardToken as unknown as ERC20;
 
   // Fund the rewards vault for PullRewardsTransferStrategy and approve
-  const { user1 } = await getNamedAccounts();
+  const pullStrategy = await ethers.getContractAt(
+    "IPullRewardsTransferStrategy",
+    transferStrategyAddress
+  );
+  const rewardsVault = await pullStrategy.getRewardsVault();
   // Transfer reward tokens to the vault address
-  await rewardTokenERC20.connect(signer).transfer(user1, rewardAmount);
-  // Approve the IncentivesController to pull rewards from the vault
-  const vaultSigner = await ethers.getSigner(user1);
+  await rewardTokenERC20.connect(signer).transfer(rewardsVault, rewardAmount);
+  // Approve the PullRewardsTransferStrategy to pull rewards from the vault
+  const vaultSigner = await ethers.getSigner(rewardsVault);
   await rewardTokenERC20
     .connect(vaultSigner)
     .approve(transferStrategyAddress, rewardAmount);
@@ -330,9 +309,8 @@ export const setupDLendRewardsFixture = (
 ) =>
   deployments.createFixture(
     async (hreFixtureEnv: HardhatRuntimeEnvironment) => {
-      // Clean slate: run all default deployment scripts
-      await hreFixtureEnv.deployments.fixture();
       // Execute DStake rewards setup, which includes its own deployments.fixture(allDeploymentTags)
+      // Don't run all deployments to avoid interference from RedeemerWithFees
       return executeSetupDLendRewards(
         {
           deployments: hreFixtureEnv.deployments,
