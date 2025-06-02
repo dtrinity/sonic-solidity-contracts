@@ -112,6 +112,7 @@ export async function getConfig(
           initialSupply: 1e6,
         },
       },
+      curvePools: {},
     },
     tokenAddresses: {
       dUSD: emptyStringIfUndefined(dUSDDeployment?.address),

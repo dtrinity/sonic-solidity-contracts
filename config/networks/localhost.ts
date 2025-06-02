@@ -68,7 +68,7 @@ export async function getConfig(
 
   // Fetch deployed dSTAKE tokens for vesting
   const sdUSDDeployment = await _hre.deployments.getOrNull(
-    SDUSD_DSTAKE_TOKEN_ID
+    SDUSD_DSTAKE_TOKEN_ID,
   );
 
   // Get mock oracle deployments
