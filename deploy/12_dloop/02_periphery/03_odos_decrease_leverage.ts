@@ -6,11 +6,20 @@ import {
   DLOOP_PERIPHERY_ODOS_DECREASE_LEVERAGE_ID,
   DLOOP_PERIPHERY_ODOS_SWAP_LOGIC_ID,
 } from "../../../typescript/deploy-ids";
+import { isLocalNetwork } from "../../../typescript/hardhat/deploy";
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { getNamedAccounts, getChainId } = hre;
   const { deployer } = await getNamedAccounts();
   const chainId = await getChainId();
+
+  // Skip for local networks
+  if (isLocalNetwork(hre.network.name)) {
+    console.log(
+      `Skipping dLOOP Periphery Odos decrease leverage deployment for network ${hre.network.name}.`,
+    );
+    return;
+  }
 
   // Get network config
   const networkConfig = await getConfig(hre);

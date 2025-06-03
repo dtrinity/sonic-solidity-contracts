@@ -32,7 +32,10 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       "StaticATokenFactory",
       staticATokenFactoryDeployment.address,
     );
-    const pool = await ethers.getContractAt("IPool", poolAddress);
+    const pool = await ethers.getContractAt(
+      "contracts/dlend/core/interfaces/IPool.sol:IPool",
+      poolAddress,
+    );
 
     // Get reserves list from the Pool
     const reservesList = await pool.getReservesList();
