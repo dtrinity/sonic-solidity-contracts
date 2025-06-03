@@ -50,9 +50,9 @@
   "add-wstkscUSD-reserve": 1746597765,
   "OdosSwapLogic": 1747222570,
   "transfer_oracle_wrapper_roles_to_multisig": 1747057583,
-  "DLoopCoreDLend": 1748889974,
-  "DLoopDepositorOdos": 1748889977,
-  "DLoopRedeemerOdos": 1748889980,
-  "DLoopDecreaseLeverageOdos": 1748899664,
-  "DLoopIncreaseLeverageOdos": 1748899667
+  "DLoopCoreDLend": 1748928774,
+  "DLoopDepositorOdos": 1748928777,
+  "DLoopRedeemerOdos": 1748928781,
+  "DLoopDecreaseLeverageOdos": 1748928784,
+  "DLoopIncreaseLeverageOdos": 1748928788
 }
