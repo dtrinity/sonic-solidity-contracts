@@ -24,8 +24,8 @@ import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol
 import {IERC3156FlashBorrower} from "./interface/flashloan/IERC3156FlashBorrower.sol";
 import {IERC3156FlashLender} from "./interface/flashloan/IERC3156FlashLender.sol";
 import {DLoopCoreBase} from "../core/DLoopCoreBase.sol";
-import {SwappableVault} from "../libraries/SwappableVault.sol";
-import {RescuableVault} from "../libraries/RescuableVault.sol";
+import {SwappableVault} from "contracts/common/SwappableVault.sol";
+import {RescuableVault} from "contracts/common/RescuableVault.sol";
 import {BasisPointConstants} from "contracts/common/BasisPointConstants.sol";
 
 /**

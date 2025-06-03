@@ -20,9 +20,9 @@ pragma solidity 0.8.20;
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {BasisPointConstants} from "contracts/common/BasisPointConstants.sol";
 import {ERC4626, ERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
-import {Erc20Helper} from "../libraries/Erc20Helper.sol";
+import {Erc20Helper} from "contracts/common/Erc20Helper.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-import {RescuableVault} from "../libraries/RescuableVault.sol";
+import {RescuableVault} from "contracts/common/RescuableVault.sol";
 
 /**
  * @title DLoopCoreBase
