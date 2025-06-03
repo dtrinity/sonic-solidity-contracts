@@ -109,7 +109,7 @@ export function getStandardNamedAccounts(): {
       sonic_testnet: 0,
       sonic_mainnet: 0,
     },
-    dloopDeployer: {
+    deployer: {
       hardhat: 0,
       localhost: 0,
       sonic_testnet: 0,

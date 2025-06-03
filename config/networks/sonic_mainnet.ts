@@ -48,7 +48,7 @@ export async function getConfig(
   //   "dLend_ATokenWrapper_dUSD",
   // );
 
-  const { feeTreasury } = await _hre.getNamedAccounts();
+  const { user1: feeTreasury } = await _hre.getNamedAccounts();
 
   if (!feeTreasury) {
     throw new Error("Fee treasury address not found");

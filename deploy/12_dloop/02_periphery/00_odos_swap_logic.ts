@@ -6,7 +6,7 @@ import { DLOOP_PERIPHERY_ODOS_SWAP_LOGIC_ID } from "../../../typescript/deploy-i
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { getNamedAccounts, getChainId } = hre;
-  const { dloopDeployer } = await getNamedAccounts();
+  const { deployer } = await getNamedAccounts();
   const chainId = await getChainId();
 
   // Get network config
@@ -29,7 +29,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   );
 
   await hre.deployments.deploy(DLOOP_PERIPHERY_ODOS_SWAP_LOGIC_ID, {
-    from: dloopDeployer,
+    from: deployer,
     contract: "OdosSwapLogic",
     args: [],
     log: true,

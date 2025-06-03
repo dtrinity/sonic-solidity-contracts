@@ -16,14 +16,14 @@ import {
  * Deploy dLOOP Core DLend contract
  *
  * @param hre - Hardhat runtime environment
- * @param dloopDeployer - The address of the deployer
+ * @param deployer - The address of the deployer
  * @param dUSDAddress - The dUSD token address
  * @param vaultInfo - The vault information
  * @returns True if the deployment is successful
  */
 async function deployDLoopCoreDLend(
   hre: HardhatRuntimeEnvironment,
-  dloopDeployer: string,
+  deployer: string,
   dUSDAddress: string,
   vaultInfo: DLoopCoreConfig,
 ): Promise<boolean> {
@@ -59,7 +59,7 @@ async function deployDLoopCoreDLend(
   const underlyingTokenContract = await hre.ethers.getContractAt(
     ["function symbol() view returns (string)"],
     vaultInfo.underlyingAsset,
-    await hre.ethers.getSigner(dloopDeployer),
+    await hre.ethers.getSigner(deployer),
   );
   const underlyingTokenSymbol = await underlyingTokenContract.symbol();
 
@@ -89,7 +89,7 @@ async function deployDLoopCoreDLend(
   );
 
   await hre.deployments.deploy(deploymentName, {
-    from: dloopDeployer,
+    from: deployer,
     contract: "DLoopCoreDLend",
     args: [
       vaultInfo.name,
@@ -118,7 +118,7 @@ async function deployDLoopCoreDLend(
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { getNamedAccounts, getChainId } = hre;
-  const { dloopDeployer } = await getNamedAccounts();
+  const { deployer } = await getNamedAccounts();
   const chainId = await getChainId();
 
   // Get network config
@@ -154,7 +154,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
     switch (vaultInfo.venue) {
       case "dlend":
-        await deployDLoopCoreDLend(hre, dloopDeployer, dUSDAddress, vaultInfo);
+        await deployDLoopCoreDLend(hre, deployer, dUSDAddress, vaultInfo);
         break;
       default:
         throw new Error(`Unsupported core vault venue: ${vaultInfo.venue}`);
