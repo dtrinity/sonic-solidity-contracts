@@ -40,7 +40,7 @@ func.tags = [
 ];
 func.dependencies = [
   "dLend:init_reserves",
-  "setup-composite-feeds-for-usd-redstone-oracle-wrapper",
+  "setup-weth-sceth-wstksceth-for-usd-oracle-wrapper",
 ];
 
 export default func;

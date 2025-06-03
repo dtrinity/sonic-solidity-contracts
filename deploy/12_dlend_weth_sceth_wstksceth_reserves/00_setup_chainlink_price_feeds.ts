@@ -373,12 +373,12 @@ func.tags = [
   "oracle-aggregator",
   "oracle-wrapper",
   "usd-redstone-oracle-wrapper",
-  "eth-lst-oracle-feeds",
+  "weth-sceth-wstksceth-chainlink-composite-feed",
 ];
 func.dependencies = [
   USD_REDSTONE_COMPOSITE_WRAPPER_WITH_THRESHOLDING_ID,
   USD_REDSTONE_WRAPPER_WITH_THRESHOLDING_ID,
 ];
-func.id = "setup-eth-lst-oracle-feeds";
+func.id = "setup-weth-sceth-wstksceth-for-usd-oracle-wrapper";
 
 export default func;
