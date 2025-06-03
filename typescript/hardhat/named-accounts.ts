@@ -71,7 +71,7 @@ export function getPrivateKeyFromMnemonic(envNamePostfix: string): string {
 }
 
 /**
- * Get the private key from the environment variable
+ * Get the private key from the environment variable, mostly used for testing
  *
  * @param envNamePostfix - The postfix of the environment variable name (`PK_<POSTFIX>`) in the `.env` file
  * @returns The private key
@@ -81,7 +81,7 @@ export function getPrivateKeyFromEnv(envNamePostfix: string): string {
   const privateKey = process.env[envName];
 
   if (!privateKey || privateKey === "") {
-    console.log(`${envName} is not set in the .env file`);
+    // Do not print because private keys are second class citizens, mostly used for testing
     return "0x0000000000000000000000000000000000000000000000000000000000000000";
   }
   return privateKey;
