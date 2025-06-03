@@ -48,5 +48,6 @@
   "point-usd-oracle-aggregator-for-usd": 1746520591,
   "ChainlinkDecimalConverter_wstkscUSD": 1746529362,
   "add-wstkscUSD-reserve": 1746597765,
-  "transfer_oracle_wrapper_roles_to_multisig": 1747057583
+  "transfer_oracle_wrapper_roles_to_multisig": 1747057583,
+  "ChainlinkDecimalConverter_wstkscETH": 1748993959
 }
