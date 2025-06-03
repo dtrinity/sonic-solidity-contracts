@@ -107,10 +107,10 @@ export const strategyETHLST: IReserveParams = {
 
 export const strategyscETH: IReserveParams = {
   ...strategyETHLST,
-  supplyCap: "500", 
+  supplyCap: "500",
 };
 
 export const strategywstkscETH: IReserveParams = {
   ...strategyETHLST,
-  supplyCap: "200", 
+  supplyCap: "200",
 };

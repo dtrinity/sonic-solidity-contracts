@@ -15,7 +15,6 @@ import {
 import {
   strategyDS,
   strategyDUSD,
-  strategyETHLST,
   strategyscETH,
   strategySfrxUSD,
   strategyStS,

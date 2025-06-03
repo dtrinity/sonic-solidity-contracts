@@ -32,7 +32,6 @@ func.tags = [
   "dlend",
   "dlend-market",
   "dlend-reserves",
-  "dlend-eth-lst-reserves",
   "dlend-WETH",
   "dlend-scETH",
   "dlend-wstkscETH",
