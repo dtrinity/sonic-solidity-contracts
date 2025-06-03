@@ -59,7 +59,7 @@ collect_addresses() {
 format_addresses() {
     local addresses=($@)
     if [ ${#addresses[@]} -eq 0 ]; then
-        echo "[]"
+        echo -n "[]"
     else
         echo "["
         for i in "${!addresses[@]}"; do
@@ -87,6 +87,10 @@ for i in "${!networks[@]}"; do
     if [[ "$network_name" =~ ^\. ]]; then
         continue
     fi
+    # Add skip for 'test-tokens' and 'localhost' networks
+    if [[ "$network_name" == "test-tokens" || "$network_name" == "localhost" ]]; then
+        continue
+    fi
     
     echo "  $network_name: {"
     
@@ -94,18 +98,32 @@ for i in "${!networks[@]}"; do
     redstone_addresses=($(collect_addresses "$network_dir" "Redstone"))
     api3_addresses=($(collect_addresses "$network_dir" "API3"))
     chainlink_addresses=($(collect_addresses "$network_dir" "Chainlink"))
+    curve_api3_addresses=($(collect_addresses "$network_dir" "CurveAPI3"))
+    hard_peg_oracle_addresses=($(collect_addresses "$network_dir" "HardPegOracle"))
     
     # Format and output
     echo -n "    Redstone: "
     format_addresses "${redstone_addresses[@]}"
-    echo ","
-    
+    echo -n ","
+    echo ""
+
     echo -n "    API3: "
     format_addresses "${api3_addresses[@]}"
-    echo ","
-    
+    echo -n ","
+    echo ""
+
     echo -n "    Chainlink: "
     format_addresses "${chainlink_addresses[@]}"
+    echo -n ","
+    echo ""
+
+    echo -n "    CurveAPI3: "
+    format_addresses "${curve_api3_addresses[@]}"
+    echo -n ","
+    echo ""
+
+    echo -n "    HardPegOracle: "
+    format_addresses "${hard_peg_oracle_addresses[@]}"
     echo ""
     
     echo -n "  }"
