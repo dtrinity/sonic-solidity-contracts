@@ -20,7 +20,7 @@ pragma solidity ^0.8.20;
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-import "contracts/common/BasisPointConstants.sol";
+import {BasisPointConstants} from "contracts/common/BasisPointConstants.sol";
 
 /**
  * @title RewardClaimable
@@ -96,11 +96,11 @@ abstract contract RewardClaimable is AccessControl, ReentrancyGuard {
         if (_treasury == address(0)) {
             revert ZeroTreasuryAddress();
         }
-        // Ensure the maximum treasury fee does not exceed 100%
+        // The fee cannot exceed the reward amount (100%)
         if (_maxTreasuryFeeBps > BasisPointConstants.ONE_HUNDRED_PERCENT_BPS) {
             revert MaxTreasuryFeeTooHigh(_maxTreasuryFeeBps);
         }
-        // The initial fee cannot exceed the maximum fee
+        // The initial fee cannot exceed the max fee, which means cannot be greater than 100% as well
         if (_initialTreasuryFeeBps > _maxTreasuryFeeBps) {
             revert TreasuryFeeTooHigh(
                 _initialTreasuryFeeBps,
@@ -232,7 +232,7 @@ abstract contract RewardClaimable is AccessControl, ReentrancyGuard {
             uint256 rewardAmount = rewardAmounts[i];
             uint256 treasuryFee = getTreasuryFee(rewardAmount);
 
-            // Check if treasury fee exceeds reward amount
+            // Overflow protection
             if (treasuryFee > rewardAmount) {
                 revert TreasuryFeeExceedsRewardAmount(
                     treasuryFee,

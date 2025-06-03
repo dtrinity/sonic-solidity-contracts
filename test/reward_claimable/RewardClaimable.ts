@@ -39,7 +39,7 @@ describe("RewardClaimable", function () {
     [admin, treasury, user, targetPool, fakeRewardPool] = await ethers.getSigners();
 
     // Deploy mock ERC20 tokens
-    const RewardClaimableMockERC20Factory = await ethers.getContractFactory("contracts/reward_management/test/RewardClaimableMockERC20.sol:RewardClaimableMockERC20");
+    const RewardClaimableMockERC20Factory = await ethers.getContractFactory("contracts/vaults/rewards_claimable/test/RewardClaimableMockERC20.sol:RewardClaimableMockERC20");
     exchangeAsset = await RewardClaimableMockERC20Factory.connect(admin).deploy("Exchange Asset", "EA") as unknown as RewardClaimableMockERC20;
     rewardToken1 = await RewardClaimableMockERC20Factory.connect(admin).deploy("Reward Token 1", "RT1") as unknown as RewardClaimableMockERC20;
     rewardToken2 = await RewardClaimableMockERC20Factory.connect(admin).deploy("Reward Token 2", "RT2") as unknown as RewardClaimableMockERC20;

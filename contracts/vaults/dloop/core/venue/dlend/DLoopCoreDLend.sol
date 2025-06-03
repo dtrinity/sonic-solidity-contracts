@@ -23,7 +23,7 @@ import {IPoolAddressesProvider} from "./interface/IPoolAddressesProvider.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {DLoopCoreBase} from "../../DLoopCoreBase.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
-import {RewardClaimable} from "contracts/reward_management/RewardClaimable.sol";
+import {RewardClaimable} from "contracts/vaults/rewards_claimable/RewardClaimable.sol";
 import {IRewardsController} from "./interface/IRewardsController.sol";
 
 /**
