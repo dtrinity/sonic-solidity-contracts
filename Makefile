@@ -61,21 +61,6 @@ clean-deployments: ## Clean the deployments for a given network which matches at
 	@echo "Resetting deployments for $(network)"
 	@./scripts/deployment/clean-deployments.sh $(deployment_keywords) $(network)
 
-deploy.dloop:
-	@if [ "$(network)" = "" ]; then \
-		echo "Must provide 'network' argument"; \
-		exit 1; \
-	fi
-	@if [ "$(reset)" = "true" ]; then \
-		if [ "$(deployment_keywords)" = "" ]; then \
-			echo "Must provide 'deployment_keywords' argument when reset=true"; \
-			exit 1; \
-		fi; \
-		echo "Resetting deployments for $(network)"; \
-		./scripts/deployment/clean-deployments.sh $(deployment_keywords) $(network); \
-	fi
-	@yarn hardhat deploy --tags dloop --network $(network)
-
 ####################
 ## Block explorer ##
 ####################
