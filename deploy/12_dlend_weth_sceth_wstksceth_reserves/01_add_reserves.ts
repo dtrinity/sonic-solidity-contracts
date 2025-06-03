@@ -27,8 +27,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   return true;
 };
 
-// Update ID, Tags, and Dependencies
-func.id = `add-eth-lst-reserves`;
+func.id = `add-weth-sceth-wstksceth-reserves`;
 func.tags = [
   "dlend",
   "dlend-market",
