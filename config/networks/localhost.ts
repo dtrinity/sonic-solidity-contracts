@@ -1,7 +1,7 @@
 import { ZeroAddress } from "ethers";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 
-import { ONE_PERCENT_BPS } from "../../typescript/bps-constants";
+import { ONE_PERCENT_BPS } from "../../typescript/common/bps_constants";
 import {
   DS_TOKEN_ID,
   DUSD_TOKEN_ID,
