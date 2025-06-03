@@ -74,7 +74,7 @@ deploy.dloop:
 			exit 1; \
 		fi; \
 		echo "Resetting deployments for $(network)"; \
-		./scripts/sh/clean-deployments.sh $(deployment_keywords) $(network); \
+		./scripts/deployment/clean-deployments.sh $(deployment_keywords) $(network); \
 	fi
 	@yarn hardhat deploy --tags dloop --network $(network)
 
