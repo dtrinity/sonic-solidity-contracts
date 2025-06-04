@@ -47,19 +47,19 @@ export -f process_file
 # Count total files first
 total_files=$(find contracts -name "*.sol" -type f | wc -l)
 
-echo "Calculating NSLOC for $total_files Solidity files in contracts/..."
+echo "Calculating nSLOC for $total_files Solidity files in contracts/..."
 echo "Using parallel processing for faster execution..."
 echo "Output will be saved to: $OUTPUT_FILE"
 echo ""
 
 # Create header for the output file
 {
-    echo "# NSLOC (Non-Source Lines of Code) Report"
+    echo "# nSLOC (normalized Source Lines of Code) Report"
     echo ""
     echo "Generated on: $(date)"
     echo "Total files processed: $total_files"
     echo ""
-    echo "| File Path | NSLOC |"
+    echo "| File Path | nSLOC |"
     echo "|-----------|-------|"
 } > "$OUTPUT_FILE"
 
