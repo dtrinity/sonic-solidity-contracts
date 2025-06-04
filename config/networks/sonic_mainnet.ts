@@ -167,12 +167,12 @@ export async function getConfig(
               fixedPrice: ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT,
             },
             [WETHAddress]: {
-              feed: "0x824364077993847f71293B24ccA8567c00c2de11", // WETH/USD Redstone price feed
+              feed: "0x824364077993847f71293B24ccA8567c00c2de11", // WETH/USD Chainlink price feed
               lowerThreshold: 0n, // No thresholding
               fixedPrice: 0n,
             },
             [scETHAddress]: {
-              feed: "0x19A95E6203A0611b6be322c25b63Ec989fFE15c1", // scETH/USD Redstone price feed
+              feed: "0x19A95E6203A0611b6be322c25b63Ec989fFE15c1", // scETH/USD Chainlink price feed
               lowerThreshold: 0n, // No thresholding
               fixedPrice: 0n,
             },
@@ -217,7 +217,7 @@ export async function getConfig(
             [wstkscETHAddress]: {
               feedAsset: wstkscETHAddress,
               feed1: "0xaA0eA5aa28dCB4280d0469167Bb8Bf99F51427D3", // Our own ChainlinkDecimalConverter which wraps the wstkscETH/stkscETH Chainlink feed and converts 18 -> 8 decimals
-              feed2: "0x19A95E6203A0611b6be322c25b63Ec989fFE15c1", // scETH/USD Redstone price feed
+              feed2: "0x19A95E6203A0611b6be322c25b63Ec989fFE15c1", // scETH/USD Chainlink price feed
               lowerThresholdInBase1: 0n, // No thresholding
               fixedPriceInBase1: 0n,
               lowerThresholdInBase2: 0n, // No thresholding
