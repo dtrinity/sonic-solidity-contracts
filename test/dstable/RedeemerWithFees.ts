@@ -26,7 +26,7 @@ import {
   DS_REDEEMER_WITH_FEES_CONTRACT_ID,
 } from "../../typescript/deploy-ids";
 import { getConfig } from "../../config/config"; // To access deployment config for verification
-import { ONE_HUNDRED_PERCENT_BPS } from "../../typescript/bps-constants";
+import { ONE_HUNDRED_PERCENT_BPS } from "../../typescript/common/bps_constants";
 
 // Helper to calculate expected collateral amount based on oracle prices
 async function calculateExpectedCollateralAmount(

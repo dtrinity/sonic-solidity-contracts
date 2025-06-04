@@ -85,10 +85,10 @@ STAKE_CONFIGS.forEach((cfg) => {
       )) as StaticATokenLM;
       poolAddress = await staticWrapper.POOL();
       pool = (await ethers.getContractAt(
-        "IPool",
+        "contracts/dlend/core/interfaces/IPool.sol:IPool",
         poolAddress,
         deployer
-      )) as IPool;
+      )) as unknown as IPool;
     });
 
     it("should accrue yield over time, improve exchange rate, and allow correct withdrawals", async function () {

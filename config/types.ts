@@ -16,6 +16,22 @@ export interface Config {
   readonly odos?: {
     readonly router: string;
   };
+  readonly dLoop: {
+    readonly dUSDAddress: string;
+    readonly coreVaults: { [vaultName: string]: DLoopCoreConfig };
+    readonly depositors: {
+      odos: DLoopDepositorOdosConfig;
+    };
+    readonly redeemers: {
+      odos: DLoopRedeemerOdosConfig;
+    };
+    readonly decreaseLeverage?: {
+      odos: DLoopDecreaseLeverageOdosConfig;
+    };
+    readonly increaseLeverage?: {
+      odos: DLoopIncreaseLeverageOdosConfig;
+    };
+  };
   readonly dStake?: {
     [key: string]: DStakeInstanceConfig; // e.g., sdUSD, sdS
   };
@@ -49,6 +65,35 @@ export interface DStableConfig {
   readonly collaterals: Address[];
   readonly initialFeeReceiver?: string;
   readonly initialRedemptionFeeBps?: number;
+}
+
+export interface DLoopCoreConfig {
+  readonly venue: "dlend";
+  readonly name: string;
+  readonly symbol: string;
+  readonly underlyingAsset: string;
+  readonly dStable: string;
+  readonly targetLeverageBps: number;
+  readonly lowerBoundTargetLeverageBps: number;
+  readonly upperBoundTargetLeverageBps: number;
+  readonly maxSubsidyBps: number;
+  readonly extraParams: { [key: string]: any }; // Add more params here
+}
+
+export interface DLoopDepositorOdosConfig {
+  readonly router: string;
+}
+
+export interface DLoopRedeemerOdosConfig {
+  readonly router: string;
+}
+
+export interface DLoopDecreaseLeverageOdosConfig {
+  readonly router: string;
+}
+
+export interface DLoopIncreaseLeverageOdosConfig {
+  readonly router: string;
 }
 
 export interface TokenAddresses {

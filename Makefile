@@ -49,6 +49,18 @@ test.hardhat: ## Run the hardhat tests
 deploy: ## Deploy the contracts
 	@yarn hardhat deploy
 
+clean-deployments: ## Clean the deployments for a given network which matches at least one keyword in the deployment_keywords
+	@if [ "$(network)" = "" ]; then \
+		echo "Must provide 'network' argument"; \
+		exit 1; \
+	fi
+	@if [ "$(deployment_keywords)" = "" ]; then \
+		echo "Must provide 'deployment_keywords' argument. Example: 'deployment_keywords=ContractA,ContractB,PrefixC,PostfixD'"; \
+		exit 1; \
+	fi
+	@echo "Resetting deployments for $(network)"
+	@./scripts/deployment/clean-deployments.sh $(deployment_keywords) $(network)
+
 ####################
 ## Block explorer ##
 ####################
@@ -75,3 +87,4 @@ clean: ## When renaming directories or files, run this to clean up
 	@echo "Cleaned solidity cache and artifacts. Remember to recompile."
 
 .PHONY: help compile test deploy clean
+

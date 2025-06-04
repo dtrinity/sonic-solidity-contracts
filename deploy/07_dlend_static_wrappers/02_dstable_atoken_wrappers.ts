@@ -32,12 +32,15 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   }
 
   const poolAddressesProviderContract = await ethers.getContractAt(
-    "IPoolAddressesProvider",
+    "contracts/dlend/core/interfaces/IPoolAddressesProvider.sol:IPoolAddressesProvider",
     poolAddressesProvider.address,
   );
 
   const poolAddress = await poolAddressesProviderContract.getPool();
-  const poolContract = await ethers.getContractAt("IPool", poolAddress);
+  const poolContract = await ethers.getContractAt(
+    "contracts/dlend/core/interfaces/IPool.sol:IPool",
+    poolAddress,
+  );
 
   // Get rewards controller if available
   let rewardsControllerAddress = ethers.ZeroAddress;

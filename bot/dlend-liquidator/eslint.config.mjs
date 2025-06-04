@@ -24,7 +24,6 @@ const compat = new FlatCompat({
 export default [
   {
     ignores: [
-      "!**/.*",
       "**/contracts/",
       "**/node_modules/",
       "**/debug/",

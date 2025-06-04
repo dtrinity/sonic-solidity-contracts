@@ -80,6 +80,18 @@ export const PULL_REWARDS_TRANSFER_STRATEGY_ID = "PullRewardsTransferStrategy";
 export const ORACLE_AGGREGATOR_WRAPPER_BASE_ID =
   "oracle-aggregator-wrapper-base";
 
+// dLOOP
+export const DLOOP_CORE_DLEND_ID = "DLoopCoreDLend";
+
+/* dLOOP Periphery */
+export const DLOOP_PERIPHERY_ODOS_DEPOSITOR_ID = "DLoopDepositorOdos";
+export const DLOOP_PERIPHERY_ODOS_REDEEMER_ID = "DLoopRedeemerOdos";
+export const DLOOP_PERIPHERY_ODOS_DECREASE_LEVERAGE_ID =
+  "DLoopDecreaseLeverageOdos";
+export const DLOOP_PERIPHERY_ODOS_INCREASE_LEVERAGE_ID =
+  "DLoopIncreaseLeverageOdos";
+export const DLOOP_PERIPHERY_ODOS_SWAP_LOGIC_ID = "OdosSwapLogic";
+
 // Chainlink Oracle Converters
 export const CHAINLINK_DECIMAL_CONVERTER_WSTKSCUSD_ID =
   "ChainlinkDecimalConverter_wstkscUSD";
