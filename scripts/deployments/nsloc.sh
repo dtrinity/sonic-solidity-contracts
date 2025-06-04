@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Script to calculate NSLOC (Non-Source Lines of Code) for all Solidity files in contracts/
+# Script to calculate nSLOC (normalized Source Lines of Code) for all Solidity files in contracts/
 # Uses solidity-code-metrics via npx
 # Outputs to nsloc.md by default
 
@@ -19,11 +19,11 @@ fi
 process_file() {
     local file="$1"
     
-    # Run solidity-code-metrics on the file and extract NSLOC
+    # Run solidity-code-metrics on the file and extract nSLOC
     # The tool outputs markdown, so we need to parse it
     output=$(npx solidity-code-metrics "$file" 2>/dev/null || echo "Error processing $file")
     
-    # Extract NSLOC from the output - look for the table row with the file name
+    # Extract nSLOC from the output - look for the table row with the file name
     # The nSLOC is in the 8th column (index 8 when split by |)
     nsloc=$(echo "$output" | grep "| $file |" | head -1 | awk -F'|' '{gsub(/[[:space:]]/, "", $8); print $8}')
     
