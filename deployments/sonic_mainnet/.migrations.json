@@ -55,5 +55,8 @@
   "DLoopRedeemerOdos": 1748928781,
   "DLoopDecreaseLeverageOdos": 1748928784,
   "DLoopIncreaseLeverageOdos": 1748928788,
-  "ChainlinkDecimalConverter_wstkscETH": 1748993959
+  "ChainlinkDecimalConverter_wstkscETH": 1748993959,
+  "setup-weth-sceth-wstksceth-for-usd-oracle-wrapper": 1749137176,
+  "add-weth-sceth-wstksceth-reserves": 1749137187,
+  "dLend_StaticATokenFactory": 1749137198
 }
