@@ -1,22 +1,17 @@
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
 
-import { setupInitialReserves } from "../../typescript/dlend";
+import { setupNewReserves } from "../../typescript/dlend";
 
 const reserveSymbol = "wstkscUSD";
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   console.log(`Starting setup for ${reserveSymbol} reserve using helper...`);
 
-  try {
-    await setupInitialReserves(hre, [reserveSymbol]);
-    console.log(
-      `✅ ${__filename.split("/").slice(-2).join("/")}: ${reserveSymbol} reserve setup complete.`,
-    );
-  } catch (error) {
-    console.error(`❌ Error setting up ${reserveSymbol} reserve:`, error);
-    return false;
-  }
+  await setupNewReserves(hre, [reserveSymbol]);
+  console.log(
+    `✅ ${__filename.split("/").slice(-2).join("/")}: ${reserveSymbol} reserve setup complete.`
+  );
 
   return true;
 };

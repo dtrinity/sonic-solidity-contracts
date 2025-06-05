@@ -3,7 +3,7 @@ import { DeployFunction } from "hardhat-deploy/types";
 
 import { getConfig } from "../../../config/config";
 import { POOL_ADDRESSES_PROVIDER_ID } from "../../../typescript/deploy-ids";
-import { setupInitialReserves } from "../../../typescript/dlend";
+import { setupNewReserves } from "../../../typescript/dlend";
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployer } = await hre.getNamedAccounts();
@@ -12,7 +12,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { rateStrategies, reservesConfig } = config.dLend;
 
   const addressProviderDeployedResult = await hre.deployments.get(
-    POOL_ADDRESSES_PROVIDER_ID,
+    POOL_ADDRESSES_PROVIDER_ID
   );
 
   // Deploy Rate Strategies
@@ -40,10 +40,10 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   }
 
   const allReserveSymbols = Object.keys(reservesConfig);
-  await setupInitialReserves(hre, allReserveSymbols);
+  await setupNewReserves(hre, allReserveSymbols);
 
   console.log(
-    `✅ ${__filename.split("/").slice(-2).join("/")}: Initial reserves setup complete.`,
+    `✅ ${__filename.split("/").slice(-2).join("/")}: Initial reserves setup complete.`
   );
 
   return true;
