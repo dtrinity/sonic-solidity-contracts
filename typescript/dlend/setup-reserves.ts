@@ -15,7 +15,7 @@ import { chunk } from "./helpers"; // Import chunk from the helpers file
 
 /**
  * Initializes and configures a list of reserves based on the dLend configuration.
- * Only configures reserves that were newly initialized in this run.
+ * Only initializes reserves that are not already initialized, but configures all specified target reserves.
  *
  * @param hre - Hardhat Runtime Environment
  * @param reserveSymbolsToSetup - Optional array of reserve symbols (strings) to set up. If null/undefined, sets up all reserves from config.
