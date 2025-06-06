@@ -97,6 +97,8 @@ export const CHAINLINK_DECIMAL_CONVERTER_WSTKSCUSD_ID =
   "ChainlinkDecimalConverter_wstkscUSD";
 export const CHAINLINK_DECIMAL_CONVERTER_WSTKSCETH_ID =
   "ChainlinkDecimalConverter_wstkscETH";
+export const CHAINLINK_DECIMAL_CONVERTER_SFRXUSD_ID =
+  "ChainlinkDecimalConverter_sfrxUSD";
 
 // Wrapped dLEND ATokens
 export const DLEND_STATIC_A_TOKEN_FACTORY_ID = "dLend_StaticATokenFactory";

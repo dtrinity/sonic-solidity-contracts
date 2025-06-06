@@ -10,7 +10,7 @@ const EXPECTED_SOURCE_DECIMALS = 18;
 const TARGET_DECIMALS = 8;
 
 /**
- * Deploys the ChainlinkDecimalConverter for wstkscETH/stkscETH
+ * Deploys the ChainlinkDecimalDownscaler for wstkscETH/stkscETH
  * This converts the feed from 18 decimals to 8 decimals for compatibility
  *
  * @param hre The Hardhat runtime environment.
@@ -19,7 +19,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   // The hard-coded values are only valid for mainnet
   if (!isMainnet(hre.network.name)) {
     console.log(
-      `\n🔑 ${__filename.split("/").slice(-2).join("/")}: Skipping non-mainnet network`,
+      `\n🔑 ${__filename.split("/").slice(-2).join("/")}: Skipping non-mainnet network`
     );
     return true;
   }
@@ -29,7 +29,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   // Connect to the source Chainlink feed
   const sourceFeed = await ethers.getContractAt(
     "AggregatorV3Interface",
-    WSTKSCETH_FEED_ADDRESS,
+    WSTKSCETH_FEED_ADDRESS
   );
 
   // Verify the source feed has the expected number of decimals
@@ -37,15 +37,15 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   if (Number(sourceDecimals) !== EXPECTED_SOURCE_DECIMALS) {
     throw new Error(
-      `Source feed has ${sourceDecimals} decimals, expected ${EXPECTED_SOURCE_DECIMALS}`,
+      `Source feed has ${sourceDecimals} decimals, expected ${EXPECTED_SOURCE_DECIMALS}`
     );
   }
 
-  // Deploy the ChainlinkDecimalConverter
+  // Deploy the ChainlinkDecimalDownscaler
   await deployments.deploy(CHAINLINK_DECIMAL_CONVERTER_WSTKSCETH_ID, {
     from: deployer,
     args: [WSTKSCETH_FEED_ADDRESS, TARGET_DECIMALS],
-    contract: "ChainlinkDecimalConverter",
+    contract: "ChainlinkDecimalDownscaler",
     autoMine: true,
     log: false,
   });

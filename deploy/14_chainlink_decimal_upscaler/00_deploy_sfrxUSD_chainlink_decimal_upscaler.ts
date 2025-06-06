@@ -1,17 +1,17 @@
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
 
-import { CHAINLINK_DECIMAL_CONVERTER_WSTKSCUSD_ID } from "../../typescript/deploy-ids";
+import { CHAINLINK_DECIMAL_CONVERTER_SFRXUSD_ID } from "../../typescript/deploy-ids";
 import { isMainnet } from "../../typescript/hardhat/deploy";
 
 // Source Chainlink feed constants
-const WSTKSCUSD_FEED_ADDRESS = "0xe5bd703E6C4C7679e10D429D87EF4550a9fA6fF4"; // wstkscUSD/stkscUSD Chainlink price feed
-const EXPECTED_SOURCE_DECIMALS = 18;
-const TARGET_DECIMALS = 8;
+const SFRXUSD_FEED_ADDRESS = "0xebE443E20ADf302B59419648c4dbA0c7299cf1A2"; // sfrxUSD/frxUSD Chainlink fundamental feed with 8 decimals
+const EXPECTED_SOURCE_DECIMALS = 8;
+const TARGET_DECIMALS = 18;
 
 /**
- * Deploys the ChainlinkDecimalDownscaler for wstkscUSD/stkscUSD
- * This converts the feed from 18 decimals to 8 decimals for compatibility
+ * Deploys the ChainlinkDecimalUpscaler for the specified oracle
+ * This converts the feed from 8 decimals to 18 decimals for compatibility
  *
  * @param hre The Hardhat runtime environment.
  */
@@ -29,23 +29,23 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   // Connect to the source Chainlink feed
   const sourceFeed = await ethers.getContractAt(
     "AggregatorV3Interface",
-    WSTKSCUSD_FEED_ADDRESS
+    SFRXUSD_FEED_ADDRESS
   );
 
   // Verify the source feed has the expected number of decimals
   const sourceDecimals = await sourceFeed.decimals();
 
-  if (sourceDecimals !== BigInt(EXPECTED_SOURCE_DECIMALS)) {
+  if (Number(sourceDecimals) !== EXPECTED_SOURCE_DECIMALS) {
     throw new Error(
       `Source feed has ${sourceDecimals} decimals, expected ${EXPECTED_SOURCE_DECIMALS}`
     );
   }
 
-  // Deploy the ChainlinkDecimalDownscaler
-  await deployments.deploy(CHAINLINK_DECIMAL_CONVERTER_WSTKSCUSD_ID, {
+  // Deploy the ChainlinkDecimalUpscaler
+  await deployments.deploy(CHAINLINK_DECIMAL_CONVERTER_SFRXUSD_ID, {
     from: deployer,
-    args: [WSTKSCUSD_FEED_ADDRESS, TARGET_DECIMALS],
-    contract: "ChainlinkDecimalDownscaler",
+    args: [SFRXUSD_FEED_ADDRESS, TARGET_DECIMALS],
+    contract: "ChainlinkDecimalUpscaler",
     autoMine: true,
     log: false,
   });
@@ -56,7 +56,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   return true;
 };
 
-func.id = CHAINLINK_DECIMAL_CONVERTER_WSTKSCUSD_ID;
-func.tags = ["wstkscusd", "oracle", "chainlink"];
+func.id = CHAINLINK_DECIMAL_CONVERTER_SFRXUSD_ID;
+func.tags = ["oracle", "chainlink", "upscaler"];
 
 export default func;

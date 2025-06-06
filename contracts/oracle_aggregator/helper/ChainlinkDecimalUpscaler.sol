@@ -20,11 +20,11 @@ pragma solidity ^0.8.20;
 import "../interface/chainlink/IAggregatorV3Interface.sol";
 
 /**
- * @title ChainlinkDecimalConverter
- * @notice Converts between Chainlink price feeds with different decimal precisions
+ * @title ChainlinkDecimalUpscaler
+ * @notice Converts Chainlink price feeds from lower to higher decimal precisions (upscaling only)
  * @dev Implements AggregatorV3Interface to mimic being a Chainlink price feed
  */
-contract ChainlinkDecimalConverter is AggregatorV3Interface {
+contract ChainlinkDecimalUpscaler is AggregatorV3Interface {
     /// @notice Original Chainlink price feed
     AggregatorV3Interface public immutable sourceFeed;
 
@@ -38,27 +38,27 @@ contract ChainlinkDecimalConverter is AggregatorV3Interface {
     int256 private immutable scalingFactor;
 
     /**
-     * @notice Error thrown when target decimals exceed source decimals
+     * @notice Error thrown when target decimals are less than or equal to source decimals
      */
-    error InvalidDecimalsUpscaleNotSupported();
+    error InvalidDecimalsDownscaleNotSupported();
 
     /**
-     * @notice Constructor to initialize the decimal converter
+     * @notice Constructor to initialize the decimal upscaler
      * @param _sourceFeed Address of the source Chainlink price feed
-     * @param _targetDecimals Target decimal precision (must be less than or equal to source decimals)
+     * @param _targetDecimals Target decimal precision (must be greater than source decimals)
      */
     constructor(address _sourceFeed, uint8 _targetDecimals) {
         sourceFeed = AggregatorV3Interface(_sourceFeed);
         sourceDecimals = sourceFeed.decimals();
         decimals = _targetDecimals;
 
-        // We only support downscaling (reducing precision), not upscaling
-        if (_targetDecimals > sourceDecimals) {
-            revert InvalidDecimalsUpscaleNotSupported();
+        // We only support upscaling (increasing precision), not downscaling
+        if (_targetDecimals <= sourceDecimals) {
+            revert InvalidDecimalsDownscaleNotSupported();
         }
 
         // Calculate the scaling factor to convert from source to target decimals
-        uint8 decimalDifference = sourceDecimals - _targetDecimals;
+        uint8 decimalDifference = _targetDecimals - sourceDecimals;
         scalingFactor = int256(10 ** decimalDifference);
     }
 
@@ -103,7 +103,7 @@ contract ChainlinkDecimalConverter is AggregatorV3Interface {
     {
         (roundId, answer, startedAt, updatedAt, answeredInRound) = sourceFeed
             .getRoundData(_roundId);
-        answer = answer / scalingFactor;
+        answer = answer * scalingFactor;
     }
 
     /**
@@ -128,6 +128,6 @@ contract ChainlinkDecimalConverter is AggregatorV3Interface {
     {
         (roundId, answer, startedAt, updatedAt, answeredInRound) = sourceFeed
             .latestRoundData();
-        answer = answer / scalingFactor;
+        answer = answer * scalingFactor;
     }
 }
