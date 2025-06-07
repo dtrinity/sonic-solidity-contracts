@@ -8,12 +8,12 @@ const reserveSymbols = ["WETH", "scETH", "wstkscETH"];
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   console.log(
-    `Starting setup for ${reserveSymbols.join(", ")} reserves using helper...`
+    `Starting setup for ${reserveSymbols.join(", ")} reserves using helper...`,
   );
 
   await setupNewReserves(hre, reserveSymbols);
   console.log(
-    `✅ ${__filename.split("/").slice(-2).join("/")}: ${reserveSymbols.join(", ")} reserves setup complete.`
+    `✅ ${__filename.split("/").slice(-2).join("/")}: ${reserveSymbols.join(", ")} reserves setup complete.`,
   );
 
   return true;

@@ -10,7 +10,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   await setupNewReserves(hre, [reserveSymbol]);
   console.log(
-    `✅ ${__filename.split("/").slice(-2).join("/")}: ${reserveSymbol} reserve setup complete.`
+    `✅ ${__filename.split("/").slice(-2).join("/")}: ${reserveSymbol} reserve setup complete.`,
   );
 
   return true;

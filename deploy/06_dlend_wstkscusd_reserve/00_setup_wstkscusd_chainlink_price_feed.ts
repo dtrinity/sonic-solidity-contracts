@@ -22,7 +22,7 @@ async function performOracleSanityChecks(
   wrapper: any,
   feeds: Record<string, any>,
   baseCurrencyUnit: bigint,
-  wrapperName: string
+  wrapperName: string,
 ): Promise<void> {
   for (const [assetAddress] of Object.entries(feeds)) {
     try {
@@ -31,30 +31,30 @@ async function performOracleSanityChecks(
 
       if (normalizedPrice < 0.99 || normalizedPrice > 2) {
         console.error(
-          `Sanity check failed for asset ${assetAddress} in ${wrapperName}: Normalized price ${normalizedPrice} is outside the range [0.01, 1e6]`
+          `Sanity check failed for asset ${assetAddress} in ${wrapperName}: Normalized price ${normalizedPrice} is outside the range [0.01, 1e6]`,
         );
         throw new Error(
-          `Sanity check failed for asset ${assetAddress} in ${wrapperName}: Normalized price ${normalizedPrice} is outside the range [0.01, 1e6]`
+          `Sanity check failed for asset ${assetAddress} in ${wrapperName}: Normalized price ${normalizedPrice} is outside the range [0.01, 1e6]`,
         );
       } else {
         console.log(
-          `Sanity check passed for asset ${assetAddress} in ${wrapperName}: Normalized price is ${normalizedPrice}`
+          `Sanity check passed for asset ${assetAddress} in ${wrapperName}: Normalized price is ${normalizedPrice}`,
         );
       }
     } catch (error) {
       console.error(
         `Error performing sanity check for asset ${assetAddress} in ${wrapperName}:`,
-        error
+        error,
       );
       throw new Error(
-        `Error performing sanity check for asset ${assetAddress} in ${wrapperName}: ${error}`
+        `Error performing sanity check for asset ${assetAddress} in ${wrapperName}: ${error}`,
       );
     }
   }
 }
 
 const func: DeployFunction = async function (
-  hre: HardhatRuntimeEnvironment
+  hre: HardhatRuntimeEnvironment,
 ): Promise<boolean> {
   const { deployer } = await hre.getNamedAccounts();
   const config = await getConfig(hre);
@@ -65,7 +65,7 @@ const func: DeployFunction = async function (
   }
   const deployerSigner = await hre.ethers.getSigner(deployer);
   const oracleAggregatorDeployment = await hre.deployments.get(
-    USD_ORACLE_AGGREGATOR_ID
+    USD_ORACLE_AGGREGATOR_ID,
   );
 
   if (!oracleAggregatorDeployment) {
@@ -75,24 +75,24 @@ const func: DeployFunction = async function (
   const oracleAggregator = await hre.ethers.getContractAt(
     "OracleAggregator",
     oracleAggregatorDeployment.address,
-    deployerSigner
+    deployerSigner,
   );
 
   const { address: redstoneCompositeWrapperAddress } =
     await hre.deployments.get(
-      USD_REDSTONE_COMPOSITE_WRAPPER_WITH_THRESHOLDING_ID
+      USD_REDSTONE_COMPOSITE_WRAPPER_WITH_THRESHOLDING_ID,
     );
 
   if (!redstoneCompositeWrapperAddress) {
     throw new Error(
-      "RedstoneChainlinkCompositeWrapperWithThresholding artifact not found"
+      "RedstoneChainlinkCompositeWrapperWithThresholding artifact not found",
     );
   }
 
   const redstoneCompositeWrapper = await hre.ethers.getContractAt(
     "RedstoneChainlinkCompositeWrapperWithThresholding",
     redstoneCompositeWrapperAddress,
-    deployerSigner
+    deployerSigner,
   );
 
   const existingFeed =
@@ -100,12 +100,12 @@ const func: DeployFunction = async function (
 
   if (existingFeed.feed1 !== ZeroAddress) {
     console.log(
-      `- Composite feed for wstkscUSD (${wstkscUSDAddress}) already configured. Skipping setup.`
+      `- Composite feed for wstkscUSD (${wstkscUSDAddress}) already configured. Skipping setup.`,
     );
     return true;
   }
   console.log(
-    `- Composite feed for wstkscUSD not found. Proceeding with setup...`
+    `- Composite feed for wstkscUSD not found. Proceeding with setup...`,
   );
 
   const allCompositeFeeds =
@@ -116,7 +116,7 @@ const func: DeployFunction = async function (
 
   if (!feedConfig) {
     throw new Error(
-      `Configuration for wstkscUSD not found in compositeRedstoneOracleWrappersWithThresholding`
+      `Configuration for wstkscUSD not found in compositeRedstoneOracleWrappersWithThresholding`,
     );
   }
 
@@ -125,7 +125,7 @@ const func: DeployFunction = async function (
     redstoneCompositeWrapper,
     { [wstkscUSDAddress]: feedConfig },
     BigInt(10) ** BigInt(config.oracleAggregators.USD.priceDecimals), // Using priceDecimals for USD
-    "wstkscUSD composite feed"
+    "wstkscUSD composite feed",
   );
 
   console.log(`- Adding composite feed for wstkscUSD (${wstkscUSDAddress})...`);
@@ -138,7 +138,7 @@ const func: DeployFunction = async function (
       feedConfig.lowerThresholdInBase1,
       feedConfig.fixedPriceInBase1,
       feedConfig.lowerThresholdInBase2,
-      feedConfig.fixedPriceInBase2
+      feedConfig.fixedPriceInBase2,
     );
     console.log(`- Set composite Redstone feed for asset ${wstkscUSDAddress}`);
   } catch (error) {
@@ -149,10 +149,10 @@ const func: DeployFunction = async function (
   try {
     await oracleAggregator.setOracle(
       feedConfig.feedAsset,
-      redstoneCompositeWrapperAddress
+      redstoneCompositeWrapperAddress,
     );
     console.log(
-      `Set composite Redstone wrapper for asset ${feedConfig.feedAsset} to ${redstoneCompositeWrapperAddress}`
+      `Set composite Redstone wrapper for asset ${feedConfig.feedAsset} to ${redstoneCompositeWrapperAddress}`,
     );
   } catch (error) {
     console.error(`❌ Error setting oracle for wstkscUSD:`, error);
