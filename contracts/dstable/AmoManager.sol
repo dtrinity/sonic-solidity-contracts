@@ -257,6 +257,7 @@ contract AmoManager is AccessControl, OracleAware {
 
     /**
      * @notice Transfers collateral from an AMO vault to the holding vault.
+     * CAUTION: Transferring from an inactive vault will re-activate the vault. This should be better designed in the next version.
      * @param amoVault The address of the AMO vault.
      * @param token The address of the collateral token to transfer.
      * @param amount The amount of collateral to transfer.
@@ -292,6 +293,7 @@ contract AmoManager is AccessControl, OracleAware {
             adjustmentAmount = currentAllocation;
         }
 
+        // CAUTION: This will re-activate the vault if it was inactive
         _amoVaults.set(amoVault, currentAllocation - adjustmentAmount);
         totalAllocated -= adjustmentAmount;
 
