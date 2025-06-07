@@ -109,12 +109,6 @@ export function getStandardNamedAccounts(): {
       sonic_testnet: 0,
       sonic_mainnet: 0,
     },
-    deployer: {
-      hardhat: 0,
-      localhost: 0,
-      sonic_testnet: 0,
-      sonic_mainnet: 0,
-    },
     // For testing ONLY
     user1: {
       hardhat: 1,
