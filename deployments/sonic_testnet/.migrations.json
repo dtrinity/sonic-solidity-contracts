@@ -50,5 +50,11 @@
   "setup-weth-sceth-wstksceth-for-usd-oracle-wrapper": 1749118057,
   "point-usd-oracle-aggregator-for-usd": 1749118059,
   "add-wstkscUSD-reserve": 1749118067,
-  "add-weth-sceth-wstksceth-reserves": 1749118067
+  "add-weth-sceth-wstksceth-reserves": 1749118067,
+  "DLoopCoreDLend": 1749274847,
+  "OdosSwapLogic": 1749274850,
+  "DLoopDepositorOdos": 1749275012,
+  "DLoopRedeemerOdos": 1749275016,
+  "DLoopDecreaseLeverageOdos": 1749275019,
+  "DLoopIncreaseLeverageOdos": 1749275022
 }
