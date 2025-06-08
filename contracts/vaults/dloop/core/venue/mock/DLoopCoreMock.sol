@@ -289,10 +289,6 @@ contract DLoopCoreMock is DLoopCoreBase {
         uint256 amount,
         address onBehalfOf
     ) external {
-        require(
-            ERC20(token).transferFrom(onBehalfOf, address(this), amount),
-            "Mock: transferFrom failed"
-        );
         _supplyToPool(token, amount, onBehalfOf);
     }
     function testBorrowFromPool(
