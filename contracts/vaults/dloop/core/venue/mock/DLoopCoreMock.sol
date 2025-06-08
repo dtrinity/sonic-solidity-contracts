@@ -19,6 +19,9 @@ contract DLoopCoreMock is DLoopCoreBase {
     mapping(address => address[]) private mockDebtTokens; // user => tokens
     address public mockPool;
 
+    // This is used to test the supply, borrow, repay, withdraw wrapper validation
+    uint256 public transferPortionBps;
+
     uint8 public constant PRICE_DECIMALS = 8;
     uint256 public constant PERCENTAGE_FACTOR = 1e4;
     uint256 public constant LIQUIDATION_THRESHOLD = 8500; // 85% in basis points
@@ -60,6 +63,15 @@ contract DLoopCoreMock is DLoopCoreBase {
                 type(uint256).max / 2,
             "Mock: mockPool does not have allowance for this contract for debtToken"
         );
+
+        // Set transfer portion bps to 100% as it is the default value
+        transferPortionBps = BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
+    }
+
+    // Allow setting transfer portion bps for testing
+    function setTransferPortionBps(uint256 _transferPortionBps) external {
+        require(_transferPortionBps <= BasisPointConstants.ONE_HUNDRED_PERCENT_BPS, "Mock: transferPortionBps must be at most 100%");
+        transferPortionBps = _transferPortionBps;
     }
 
     // Allow setting mock prices for assets
@@ -156,17 +168,25 @@ contract DLoopCoreMock is DLoopCoreBase {
         uint256 amount,
         address onBehalfOf
     ) internal override {
+        // Calculate the amount to supply based on transfer portion bps
+        amount = amount * transferPortionBps / BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
+
         // Make sure target user has enough balance to supply
         require(
             ERC20(token).balanceOf(onBehalfOf) >= amount,
             "Mock: not enough balance to supply"
         );
 
-        // Transfer from target user to mockPool
-        require(
-            ERC20(token).transferFrom(onBehalfOf, mockPool, amount),
-            "Mock: transfer to pool failed"
-        );
+        if (amount > 0) {
+            // Transfer from target user to mockPool
+            require(
+                ERC20(token).transferFrom(onBehalfOf, mockPool, amount),
+                "Mock: transfer to pool failed"
+            );
+        }
+
+        // Reset transfer portion bps to 100%
+        transferPortionBps = BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
 
         // Increase collateral after successful transfer
         _setMockCollateral(
@@ -181,17 +201,25 @@ contract DLoopCoreMock is DLoopCoreBase {
         uint256 amount,
         address onBehalfOf
     ) internal override {
+        // Calculate the amount to borrow based on transfer portion bps
+        amount = amount * transferPortionBps / BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
+
         // Make sure having mockPool having enough balance to borrow
         require(
             ERC20(token).balanceOf(mockPool) >= amount,
             "Mock: not enough tokens in pool to borrow"
         );
 
-        // Transfer from mockPool to target user
-        require(
-            ERC20(token).transferFrom(mockPool, onBehalfOf, amount),
-            "Mock: borrow transfer failed"
-        );
+        if (amount > 0) {
+            // Transfer from mockPool to target user
+            require(
+                ERC20(token).transferFrom(mockPool, onBehalfOf, amount),
+                "Mock: borrow transfer failed"
+            );
+        }
+
+        // Reset transfer portion bps to 100%
+        transferPortionBps = BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
 
         // Increase debt after successful transfer
         _setMockDebt(onBehalfOf, token, mockDebt[onBehalfOf][token] + amount);
@@ -202,17 +230,25 @@ contract DLoopCoreMock is DLoopCoreBase {
         uint256 amount,
         address onBehalfOf
     ) internal override {
+        // Calculate the amount to repay based on transfer portion bps
+        amount = amount * transferPortionBps / BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
+
         // Make sure target user has enough debt to repay
         require(
             ERC20(token).balanceOf(onBehalfOf) >= amount,
             "Mock: not enough balance to repay"
         );
 
-        // Transfer from target user to mockPool
-        require(
-            ERC20(token).transferFrom(onBehalfOf, mockPool, amount),
-            "Mock: repay transfer failed"
-        );
+        if (amount > 0) {
+            // Transfer from target user to mockPool
+            require(
+                ERC20(token).transferFrom(onBehalfOf, mockPool, amount),
+                "Mock: repay transfer failed"
+            );
+        }
+
+        // Reset transfer portion bps to 100%
+        transferPortionBps = BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
 
         // Decrease debt after successful transfer
         _setMockDebt(onBehalfOf, token, mockDebt[onBehalfOf][token] - amount);
@@ -223,17 +259,25 @@ contract DLoopCoreMock is DLoopCoreBase {
         uint256 amount,
         address onBehalfOf
     ) internal override {
+        // Calculate the amount to withdraw based on transfer portion bps
+        amount = amount * transferPortionBps / BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
+
         // Make sure mockPool has enough balance to withdraw
         require(
             ERC20(token).balanceOf(mockPool) >= amount,
             "Mock: not enough tokens in pool to withdraw"
         );
 
-        // Transfer from mockPool to target user
-        require(
-            ERC20(token).transferFrom(mockPool, onBehalfOf, amount),
-            "Mock: withdraw transfer failed"
-        );
+        if (amount > 0) {
+            // Transfer from mockPool to target user
+            require(
+                ERC20(token).transferFrom(mockPool, onBehalfOf, amount),
+                "Mock: withdraw transfer failed"
+            );
+        }
+
+        // Reset transfer portion bps to 100%
+        transferPortionBps = BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
 
         // Decrease collateral after successful transfer
         _setMockCollateral(
