@@ -130,4 +130,88 @@ describe("DLoopCoreMock Deposit Tests", function () {
       });
     }
   });
+
+  describe("II. Deposit and price change", function () {
+    const priceChangeTests = [
+      {
+        name: "Collateral price decrease, debt price increase",
+        newCollateralPrice: ethers.parseEther("1.1"),
+        newDebtPrice: ethers.parseEther("0.9"),
+        expectedLeverage: 550 * ONE_PERCENT_BPS,
+      },
+      {
+        name: "Collateral price increase, debt price increase",
+        newCollateralPrice: ethers.parseEther("1.4"),
+        newDebtPrice: ethers.parseEther("0.9"),
+        expectedLeverage: 280 * ONE_PERCENT_BPS,
+      },
+      {
+        name: "Collateral price increase, debt price decrease",
+        newCollateralPrice: ethers.parseEther("1.4"),
+        newDebtPrice: ethers.parseEther("0.6"),
+        expectedLeverage: 175 * ONE_PERCENT_BPS,
+      },
+      {
+        name: "Collateral price decrease, debt price decrease",
+        newCollateralPrice: ethers.parseEther("0.8"),
+        newDebtPrice: ethers.parseEther("0.6"),
+        expectedLeverage: 400 * ONE_PERCENT_BPS,
+      },
+    ];
+
+    for (const testCase of priceChangeTests) {
+      it(`${testCase.name}, leverage ${TARGET_LEVERAGE_BPS / ONE_PERCENT_BPS}% -> ${testCase.expectedLeverage / ONE_PERCENT_BPS}%`, async function () {
+        // Initialize a dLOOP deployment here, with the first deposit and have current leverage at TARGET_LEVERAGE_BPS
+        const targetUser = accounts[1];
+        const depositAmount = ethers.parseEther("100");
+        const initialCollateralPrice = ethers.parseEther("1.2");
+        const initialDebtPrice = ethers.parseEther("0.8");
+
+        // Make sure initial leverage before deposit is 0
+        const initialLeverage = await dloopMock.getCurrentLeverageBps();
+        expect(initialLeverage).to.equal(0);
+
+        // Check initial state
+        expect(await dloopMock.totalSupply()).to.equal(0);
+        expect(await dloopMock.totalAssets()).to.equal(0);
+        expect(await dloopMock.balanceOf(targetUser.address)).to.equal(0);
+
+        // Set collateral and debt price to initial values
+        await dloopMock.setMockPrice(
+          await collateralToken.getAddress(),
+          initialCollateralPrice,
+        );
+        await dloopMock.setMockPrice(
+          await debtToken.getAddress(),
+          initialDebtPrice,
+        );
+
+        // Perform deposit
+        const tx = await dloopMock
+          .connect(targetUser)
+          .deposit(depositAmount, targetUser.address);
+        await tx.wait();
+
+        // Verify leverage is correct
+        expect(await dloopMock.getCurrentLeverageBps()).to.equal(
+          TARGET_LEVERAGE_BPS,
+        );
+
+        // Change the collateral and debt price
+        await dloopMock.setMockPrice(
+          await collateralToken.getAddress(),
+          testCase.newCollateralPrice,
+        );
+        await dloopMock.setMockPrice(
+          await debtToken.getAddress(),
+          testCase.newDebtPrice,
+        );
+
+        // Check current leverage
+        expect(await dloopMock.getCurrentLeverageBps()).to.equal(
+          testCase.expectedLeverage,
+        );
+      });
+    }
+  });
 });
