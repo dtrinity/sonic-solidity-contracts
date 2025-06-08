@@ -3,6 +3,8 @@ import { expect } from "chai";
 import { ethers } from "hardhat";
 
 import { ONE_PERCENT_BPS } from "../../typescript/common/bps_constants";
+import { DLoopCoreMock, TestMintableERC20 } from "../../typechain-types";
+import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 
 // Test constants
 const TARGET_LEVERAGE_BPS = 300 * ONE_PERCENT_BPS; // 3x leverage
@@ -15,15 +17,15 @@ const DEBT_DECIMALS = 18;
 
 describe("DLoopCoreMock Comprehensive Tests", function () {
   // Contract instances and addresses
-  let dloopMock: any;
-  let collateralToken: any;
-  let debtToken: any;
-  let mockPool: any;
+  let dloopMock: DLoopCoreMock;
+  let collateralToken: TestMintableERC20;
+  let debtToken: TestMintableERC20;
+  let mockPool: { getAddress: () => Promise<string> };
   let deployer: string;
   let user1: string;
   let user2: string;
   let user3: string;
-  let accounts: any[];
+  let accounts: HardhatEthersSigner[];
 
   /**
    * Deploy the DLoopCoreMock contract with the mock tokens and mock pool
