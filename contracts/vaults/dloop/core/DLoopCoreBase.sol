@@ -322,12 +322,12 @@ abstract contract DLoopCoreBase is
         // At this step, we assume that the funds from the depositor are already in the vault
 
         uint256 tokenBalanceBeforeSupply = ERC20(token).balanceOf(
-            address(this)
+            onBehalfOf
         );
 
         _supplyToPoolImplementation(token, amount, onBehalfOf);
 
-        uint256 tokenBalanceAfterSupply = ERC20(token).balanceOf(address(this));
+        uint256 tokenBalanceAfterSupply = ERC20(token).balanceOf(onBehalfOf);
         if (tokenBalanceAfterSupply >= tokenBalanceBeforeSupply) {
             revert TokenBalanceNotDecreasedAfterSupply(
                 token,
@@ -362,12 +362,12 @@ abstract contract DLoopCoreBase is
         // At this step, we assume that the funds from the depositor are already in the vault
 
         uint256 tokenBalanceBeforeBorrow = ERC20(token).balanceOf(
-            address(this)
+            onBehalfOf
         );
 
         _borrowFromPoolImplementation(token, amount, onBehalfOf);
 
-        uint256 tokenBalanceAfterBorrow = ERC20(token).balanceOf(address(this));
+        uint256 tokenBalanceAfterBorrow = ERC20(token).balanceOf(onBehalfOf);
         if (tokenBalanceAfterBorrow <= tokenBalanceBeforeBorrow) {
             revert TokenBalanceNotIncreasedAfterBorrow(
                 token,
@@ -401,11 +401,11 @@ abstract contract DLoopCoreBase is
     ) internal {
         // At this step, we assume that the funds from the depositor are already in the vault
 
-        uint256 tokenBalanceBeforeRepay = ERC20(token).balanceOf(address(this));
+        uint256 tokenBalanceBeforeRepay = ERC20(token).balanceOf(onBehalfOf);
 
         _repayDebtToPoolImplementation(token, amount, onBehalfOf);
 
-        uint256 tokenBalanceAfterRepay = ERC20(token).balanceOf(address(this));
+        uint256 tokenBalanceAfterRepay = ERC20(token).balanceOf(onBehalfOf);
 
         if (tokenBalanceAfterRepay >= tokenBalanceBeforeRepay) {
             revert TokenBalanceNotDecreasedAfterRepay(
@@ -441,13 +441,13 @@ abstract contract DLoopCoreBase is
         // At this step, we assume that the funds from the depositor are already in the vault
 
         uint256 tokenBalanceBeforeWithdraw = ERC20(token).balanceOf(
-            address(this)
+            onBehalfOf
         );
 
         _withdrawFromPoolImplementation(token, amount, onBehalfOf);
 
         uint256 tokenBalanceAfterWithdraw = ERC20(token).balanceOf(
-            address(this)
+            onBehalfOf
         );
 
         if (tokenBalanceAfterWithdraw <= tokenBalanceBeforeWithdraw) {
