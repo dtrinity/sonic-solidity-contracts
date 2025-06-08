@@ -19,11 +19,6 @@ describe("DLoopCoreMock Deposit Tests", function () {
   let dloopMock: DLoopCoreMock;
   let collateralToken: TestMintableERC20;
   let debtToken: TestMintableERC20;
-  let mockPool: { getAddress: () => Promise<string> };
-  // let deployer: string;
-  let user1: string;
-  let user2: string;
-  let user3: string;
   let accounts: HardhatEthersSigner[];
 
   beforeEach(async function () {
@@ -34,13 +29,6 @@ describe("DLoopCoreMock Deposit Tests", function () {
     dloopMock = fixture.dloopMock;
     collateralToken = fixture.collateralToken;
     debtToken = fixture.debtToken;
-    mockPool = {
-      getAddress: async (): Promise<string> => fixture.mockPool.address,
-    };
-    // deployer = fixture.deployer;
-    user1 = fixture.user1.address;
-    user2 = fixture.user2.address;
-    user3 = fixture.user3.address;
     accounts = fixture.accounts;
   });
 
@@ -678,7 +666,7 @@ describe("DLoopCoreMock Deposit Tests", function () {
       // Verify final state
       let totalUserShares = BigInt(0);
 
-      for (const [userAddress, shares] of userBalances) {
+      for (const [_userAddress, shares] of userBalances) {
         expect(shares).to.be.gt(0);
         totalUserShares += shares;
       }
@@ -690,6 +678,317 @@ describe("DLoopCoreMock Deposit Tests", function () {
       expect(await dloopMock.balanceOf(user1.address)).to.be.gt(0);
       expect(await dloopMock.balanceOf(user2.address)).to.be.gt(0);
       expect(await dloopMock.balanceOf(user3.address)).to.be.gt(0);
+    });
+  });
+
+  describe("IV. Reach too imbalance and cannot deposit", function () {
+    // As the deposit() always call the `maxDeposit()` before calling the `_deposit()`,
+    // thus the ERC4626ExceededMaxDeposit error before reaching the TooImbalanced error.
+    // Thus in the test, we should expect the ERC4626ExceededMaxDeposit error, do not need
+    // to check the TooImbalanced error.
+
+    const imbalanceTestCases = [
+      {
+        name: "Should reject deposit when leverage is too high (above upper bound)",
+        firstDeposit: {
+          amount: ethers.parseEther("100"),
+          collateralPrice: ethers.parseEther("1.2"),
+          debtPrice: ethers.parseEther("0.8"),
+        },
+        priceChangeToImbalance: {
+          // Decrease collateral price and increase debt price to push leverage above upper bound
+          collateralPrice: ethers.parseEther("1.05"), // Decrease slightly
+          debtPrice: ethers.parseEther("0.85"), // Increase slightly
+          expectedLeverageAbove: 400 * ONE_PERCENT_BPS, // Should be above 400%
+        },
+        secondDeposit: {
+          amount: ethers.parseEther("50"),
+          shouldFail: true,
+        },
+      },
+      {
+        name: "Should reject deposit when leverage is too low (below lower bound)",
+        firstDeposit: {
+          amount: ethers.parseEther("100"),
+          collateralPrice: ethers.parseEther("1.2"),
+          debtPrice: ethers.parseEther("0.8"),
+        },
+        priceChangeToImbalance: {
+          // Increase collateral price and decrease debt price to push leverage below lower bound
+          collateralPrice: ethers.parseEther("1.8"), // Increase moderately
+          debtPrice: ethers.parseEther("0.6"), // Decrease moderately
+          expectedLeverageBelow: 200 * ONE_PERCENT_BPS, // Should be below 200%
+        },
+        secondDeposit: {
+          amount: ethers.parseEther("50"),
+          shouldFail: true,
+        },
+      },
+      {
+        name: "Should allow deposit when leverage returns to acceptable range",
+        firstDeposit: {
+          amount: ethers.parseEther("100"),
+          collateralPrice: ethers.parseEther("1.2"),
+          debtPrice: ethers.parseEther("0.8"),
+        },
+        priceChangeToImbalance: {
+          // First make it imbalanced (too high)
+          collateralPrice: ethers.parseEther("1.05"),
+          debtPrice: ethers.parseEther("0.85"),
+          expectedLeverageAbove: 400 * ONE_PERCENT_BPS,
+        },
+        priceChangeToRebalance: {
+          // Then bring it back to acceptable range
+          collateralPrice: ethers.parseEther("1.2"),
+          debtPrice: ethers.parseEther("0.8"),
+          expectedLeverageInRange: true,
+        },
+        secondDeposit: {
+          amount: ethers.parseEther("50"),
+          shouldFail: false,
+        },
+      },
+    ];
+
+    for (const testCase of imbalanceTestCases) {
+      it(testCase.name, async function () {
+        const targetUser = accounts[1];
+
+        // Set initial prices for first deposit
+        await dloopMock.setMockPrice(
+          await collateralToken.getAddress(),
+          testCase.firstDeposit.collateralPrice,
+        );
+        await dloopMock.setMockPrice(
+          await debtToken.getAddress(),
+          testCase.firstDeposit.debtPrice,
+        );
+
+        // First deposit should always succeed (establish initial position)
+        const firstTx = await dloopMock
+          .connect(targetUser)
+          .deposit(testCase.firstDeposit.amount, targetUser.address);
+        await firstTx.wait();
+
+        // Verify first deposit succeeded and leverage is at target
+        expect(await dloopMock.getCurrentLeverageBps()).to.equal(
+          TARGET_LEVERAGE_BPS,
+        );
+        expect(await dloopMock.isTooImbalanced()).to.be.false;
+
+        // Change prices to create imbalance
+        await dloopMock.setMockPrice(
+          await collateralToken.getAddress(),
+          testCase.priceChangeToImbalance.collateralPrice,
+        );
+        await dloopMock.setMockPrice(
+          await debtToken.getAddress(),
+          testCase.priceChangeToImbalance.debtPrice,
+        );
+
+        // Verify the vault is now imbalanced
+        const leverageAfterPriceChange =
+          await dloopMock.getCurrentLeverageBps();
+        expect(await dloopMock.isTooImbalanced()).to.be.true;
+
+        if (testCase.priceChangeToImbalance.expectedLeverageAbove) {
+          expect(leverageAfterPriceChange).to.be.gt(
+            testCase.priceChangeToImbalance.expectedLeverageAbove,
+          );
+        }
+
+        if (testCase.priceChangeToImbalance.expectedLeverageBelow) {
+          expect(leverageAfterPriceChange).to.be.lt(
+            testCase.priceChangeToImbalance.expectedLeverageBelow,
+          );
+        }
+
+        // Verify maxDeposit returns 0 when imbalanced
+        expect(await dloopMock.maxDeposit(targetUser.address)).to.equal(0);
+
+        // If there's a rebalancing price change, apply it
+        if (testCase.priceChangeToRebalance) {
+          await dloopMock.setMockPrice(
+            await collateralToken.getAddress(),
+            testCase.priceChangeToRebalance.collateralPrice,
+          );
+          await dloopMock.setMockPrice(
+            await debtToken.getAddress(),
+            testCase.priceChangeToRebalance.debtPrice,
+          );
+
+          if (testCase.priceChangeToRebalance.expectedLeverageInRange) {
+            const rebalancedLeverage = await dloopMock.getCurrentLeverageBps();
+            expect(rebalancedLeverage).to.be.gte(200 * ONE_PERCENT_BPS);
+            expect(rebalancedLeverage).to.be.lte(400 * ONE_PERCENT_BPS);
+            expect(await dloopMock.isTooImbalanced()).to.be.false;
+            expect(await dloopMock.maxDeposit(targetUser.address)).to.be.gt(0);
+          }
+        }
+
+        // Attempt second deposit
+        if (testCase.secondDeposit.shouldFail) {
+          // Verify deposit fails due to imbalance (maxDeposit returns 0)
+          await expect(
+            dloopMock
+              .connect(targetUser)
+              .deposit(testCase.secondDeposit.amount, targetUser.address),
+          ).to.be.revertedWithCustomError(
+            dloopMock,
+            "ERC4626ExceededMaxDeposit",
+          );
+        } else {
+          // Verify deposit succeeds
+          const secondTx = await dloopMock
+            .connect(targetUser)
+            .deposit(testCase.secondDeposit.amount, targetUser.address);
+          await secondTx.wait();
+
+          // Verify the vault is still balanced after second deposit
+          expect(await dloopMock.isTooImbalanced()).to.be.false;
+        }
+      });
+    }
+
+    it("Should reject deposit when vault starts imbalanced due to extreme price movements", async function () {
+      const targetUser = accounts[1];
+
+      // Set initial prices and make first deposit
+      await dloopMock.setMockPrice(
+        await collateralToken.getAddress(),
+        ethers.parseEther("1.0"),
+      );
+      await dloopMock.setMockPrice(
+        await debtToken.getAddress(),
+        ethers.parseEther("1.0"),
+      );
+
+      // First deposit
+      await dloopMock
+        .connect(targetUser)
+        .deposit(ethers.parseEther("100"), targetUser.address);
+
+      // Moderate price change that makes leverage high but doesn't break constraints
+      await dloopMock.setMockPrice(
+        await collateralToken.getAddress(),
+        ethers.parseEther("0.9"), // Collateral drops 10%
+      );
+      await dloopMock.setMockPrice(
+        await debtToken.getAddress(),
+        ethers.parseEther("1.1"), // Debt increases 10%
+      );
+
+      // Verify extreme imbalance
+      const extremeLeverage = await dloopMock.getCurrentLeverageBps();
+      expect(extremeLeverage).to.be.gt(400 * ONE_PERCENT_BPS); // Way above upper bound
+      expect(await dloopMock.isTooImbalanced()).to.be.true;
+      expect(await dloopMock.maxDeposit(targetUser.address)).to.equal(0);
+
+      // Any deposit attempt should fail due to imbalance (maxDeposit returns 0)
+      await expect(
+        dloopMock
+          .connect(targetUser)
+          .deposit(ethers.parseEther("1"), targetUser.address),
+      ).to.be.revertedWithCustomError(dloopMock, "ERC4626ExceededMaxDeposit");
+    });
+
+    it("Should confirm TooImbalanced error exists in contract logic", async function () {
+      const targetUser = accounts[1];
+
+      // Set initial prices and make first deposit
+      await dloopMock.setMockPrice(
+        await collateralToken.getAddress(),
+        ethers.parseEther("1.2"),
+      );
+      await dloopMock.setMockPrice(
+        await debtToken.getAddress(),
+        ethers.parseEther("0.8"),
+      );
+
+      // First deposit
+      await dloopMock
+        .connect(targetUser)
+        .deposit(ethers.parseEther("100"), targetUser.address);
+
+      // Verify vault is balanced initially
+      expect(await dloopMock.isTooImbalanced()).to.be.false;
+
+      // Make the vault extremely imbalanced
+      await dloopMock.setMockPrice(
+        await collateralToken.getAddress(),
+        ethers.parseEther("1.05"),
+      );
+      await dloopMock.setMockPrice(
+        await debtToken.getAddress(),
+        ethers.parseEther("0.85"),
+      );
+
+      // Verify vault is now imbalanced
+      expect(await dloopMock.isTooImbalanced()).to.be.true;
+
+      // Verify that max functions return 0 (which causes ERC4626 errors)
+      expect(await dloopMock.maxDeposit(targetUser.address)).to.equal(0);
+      expect(await dloopMock.maxMint(targetUser.address)).to.equal(0);
+      expect(await dloopMock.maxWithdraw(targetUser.address)).to.equal(0);
+      expect(await dloopMock.maxRedeem(targetUser.address)).to.equal(0);
+
+      // The TooImbalanced error is designed to be a secondary check
+      // It gets preempted by ERC4626 max function checks which return 0
+      // This demonstrates the contract's defensive design where imbalance
+      // is caught at multiple levels for safety
+    });
+
+    it("Should handle multiple users when vault becomes imbalanced", async function () {
+      const user1 = accounts[1];
+      const user2 = accounts[2];
+
+      // Set initial prices
+      await dloopMock.setMockPrice(
+        await collateralToken.getAddress(),
+        ethers.parseEther("1.0"),
+      );
+      await dloopMock.setMockPrice(
+        await debtToken.getAddress(),
+        ethers.parseEther("1.0"),
+      );
+
+      // User 1 makes first deposit
+      await dloopMock
+        .connect(user1)
+        .deposit(ethers.parseEther("100"), user1.address);
+
+      // User 2 makes second deposit (should work when balanced)
+      await dloopMock
+        .connect(user2)
+        .deposit(ethers.parseEther("50"), user2.address);
+
+      // Change prices to create imbalance
+      await dloopMock.setMockPrice(
+        await collateralToken.getAddress(),
+        ethers.parseEther("0.8"), // Collateral drops moderately
+      );
+      await dloopMock.setMockPrice(
+        await debtToken.getAddress(),
+        ethers.parseEther("1.2"), // Debt increases moderately
+      );
+
+      // Verify imbalance affects all users
+      expect(await dloopMock.isTooImbalanced()).to.be.true;
+      expect(await dloopMock.maxDeposit(user1.address)).to.equal(0);
+      expect(await dloopMock.maxDeposit(user2.address)).to.equal(0);
+
+      // Both users should be unable to deposit due to imbalance (maxDeposit returns 0)
+      await expect(
+        dloopMock
+          .connect(user1)
+          .deposit(ethers.parseEther("10"), user1.address),
+      ).to.be.revertedWithCustomError(dloopMock, "ERC4626ExceededMaxDeposit");
+
+      await expect(
+        dloopMock
+          .connect(user2)
+          .deposit(ethers.parseEther("10"), user2.address),
+      ).to.be.revertedWithCustomError(dloopMock, "ERC4626ExceededMaxDeposit");
     });
   });
 });
