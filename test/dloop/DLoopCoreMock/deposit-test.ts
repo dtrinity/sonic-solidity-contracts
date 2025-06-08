@@ -242,6 +242,7 @@ describe("DLoopCoreMock Deposit Tests", function () {
           amount: ethers.parseEther("100"),
           collateralPrice: ethers.parseEther("1.2"),
           debtPrice: ethers.parseEther("0.8"),
+          expectedTotalAssets: ethers.parseEther("100"),
           expectedLeverage: 300 * ONE_PERCENT_BPS, // 300% = TARGET_LEVERAGE_BPS
         },
         {
@@ -249,6 +250,7 @@ describe("DLoopCoreMock Deposit Tests", function () {
           amount: ethers.parseEther("80"),
           collateralPrice: ethers.parseEther("1.3"),
           debtPrice: ethers.parseEther("0.8"),
+          expectedTotalAssets: ethers.parseEther("180"),
           expectedLeverage: 276.923 * ONE_PERCENT_BPS, // ~277% leverage after price change
         },
         {
@@ -256,6 +258,7 @@ describe("DLoopCoreMock Deposit Tests", function () {
           amount: ethers.parseEther("60"),
           collateralPrice: ethers.parseEther("1.4"),
           debtPrice: ethers.parseEther("0.8"),
+          expectedTotalAssets: ethers.parseEther("240"),
           expectedLeverage: 257.143 * ONE_PERCENT_BPS, // ~257% leverage
         },
         {
@@ -263,6 +266,7 @@ describe("DLoopCoreMock Deposit Tests", function () {
           amount: ethers.parseEther("40"),
           collateralPrice: ethers.parseEther("1.4"),
           debtPrice: ethers.parseEther("0.9"),
+          expectedTotalAssets: ethers.parseEther("280"),
           expectedLeverage: 288.889 * ONE_PERCENT_BPS, // ~289% leverage
         },
         {
@@ -270,11 +274,16 @@ describe("DLoopCoreMock Deposit Tests", function () {
           amount: ethers.parseEther("20"),
           collateralPrice: ethers.parseEther("1.5"),
           debtPrice: ethers.parseEther("1.0"),
+          expectedTotalAssets: ethers.parseEther("300"),
           expectedLeverage: 300 * ONE_PERCENT_BPS, // Back to ~300% leverage
         },
       ];
 
       let totalDeposited = BigInt(0);
+
+      // Track initial totalAssets (should be 0)
+      const initialTotalAssets = await dloopMock.totalAssets();
+      expect(initialTotalAssets).to.equal(0);
 
       for (let i = 0; i < steps.length; i++) {
         const step = steps[i];
@@ -297,6 +306,14 @@ describe("DLoopCoreMock Deposit Tests", function () {
             .connect(targetUser)
             .deposit(step.amount, targetUser.address);
           totalDeposited += step.amount;
+
+          // Track totalAssets after deposit and verify expected value
+          const totalAssetsAfter = await dloopMock.totalAssets();
+          expect(totalAssetsAfter).to.equal(step.expectedTotalAssets);
+        } else {
+          console.log(
+            `Deposit of ${ethers.formatEther(step.amount)} ETH not allowed - maxDeposit: ${ethers.formatEther(maxDeposit)} ETH`,
+          );
         }
 
         // Verify leverage is within reasonable bounds (200% to 400%)
@@ -339,23 +356,30 @@ describe("DLoopCoreMock Deposit Tests", function () {
           amount: ethers.parseEther("50"),
           collateralPrice: ethers.parseEther("1.25"),
           debtPrice: ethers.parseEther("0.85"),
+          expectedTotalAssets: ethers.parseEther("50"),
           expectedLeverage: 282353, // ~282% leverage after price changes
         },
         {
           amount: ethers.parseEther("75"),
           collateralPrice: ethers.parseEther("1.3"),
           debtPrice: ethers.parseEther("0.9"),
+          expectedTotalAssets: ethers.parseEther("125"),
           expectedLeverage: 260870, // ~261% leverage
         },
         {
           amount: ethers.parseEther("25"),
           collateralPrice: ethers.parseEther("1.35"),
           debtPrice: ethers.parseEther("0.95"),
+          expectedTotalAssets: ethers.parseEther("150"),
           expectedLeverage: 257143, // ~257% leverage
         },
       ];
 
       let totalDeposited = BigInt(0);
+
+      // Track initial totalAssets (should be 0)
+      const initialTotalAssets = await dloopMock.totalAssets();
+      expect(initialTotalAssets).to.equal(0);
 
       for (let i = 0; i < deposits.length; i++) {
         const deposit = deposits[i];
@@ -379,6 +403,10 @@ describe("DLoopCoreMock Deposit Tests", function () {
             .deposit(deposit.amount, targetUser.address);
 
           totalDeposited += deposit.amount;
+
+          // Track totalAssets after deposit and verify expected value
+          const totalAssetsAfter = await dloopMock.totalAssets();
+          expect(totalAssetsAfter).to.equal(deposit.expectedTotalAssets);
         }
 
         // Verify leverage is within reasonable bounds (200% to 400%)
@@ -423,6 +451,7 @@ describe("DLoopCoreMock Deposit Tests", function () {
           amount: ethers.parseEther("100"),
           collateralPrice: ethers.parseEther("1.2"),
           debtPrice: ethers.parseEther("0.8"),
+          expectedTotalAssets: ethers.parseEther("100"),
           expectedLeverage: 300 * ONE_PERCENT_BPS, // 300%
         },
         {
@@ -431,6 +460,7 @@ describe("DLoopCoreMock Deposit Tests", function () {
           amount: ethers.parseEther("80"),
           collateralPrice: ethers.parseEther("1.3"),
           debtPrice: ethers.parseEther("0.8"),
+          expectedTotalAssets: ethers.parseEther("180"),
           expectedLeverage: 276.923 * ONE_PERCENT_BPS, // ~277%
         },
         {
@@ -439,6 +469,7 @@ describe("DLoopCoreMock Deposit Tests", function () {
           amount: ethers.parseEther("60"),
           collateralPrice: ethers.parseEther("1.4"),
           debtPrice: ethers.parseEther("0.8"),
+          expectedTotalAssets: ethers.parseEther("240"),
           expectedLeverage: 257.143 * ONE_PERCENT_BPS, // ~257%
         },
         {
@@ -447,6 +478,7 @@ describe("DLoopCoreMock Deposit Tests", function () {
           amount: ethers.parseEther("30"),
           collateralPrice: ethers.parseEther("1.4"),
           debtPrice: ethers.parseEther("0.9"),
+          expectedTotalAssets: ethers.parseEther("270"),
           expectedLeverage: 288.889 * ONE_PERCENT_BPS, // ~289%
         },
         {
@@ -455,6 +487,7 @@ describe("DLoopCoreMock Deposit Tests", function () {
           amount: ethers.parseEther("40"),
           collateralPrice: ethers.parseEther("1.4"),
           debtPrice: ethers.parseEther("0.9"),
+          expectedTotalAssets: ethers.parseEther("310"),
           expectedLeverage: 288.889 * ONE_PERCENT_BPS, // ~289%
         },
         {
@@ -463,11 +496,16 @@ describe("DLoopCoreMock Deposit Tests", function () {
           amount: ethers.parseEther("25"),
           collateralPrice: ethers.parseEther("1.5"),
           debtPrice: ethers.parseEther("1.0"),
+          expectedTotalAssets: ethers.parseEther("335"),
           expectedLeverage: 300 * ONE_PERCENT_BPS, // Back to 300%
         },
       ];
 
       const userBalances = new Map();
+
+      // Track initial totalAssets (should be 0)
+      const initialTotalAssets = await dloopMock.totalAssets();
+      expect(initialTotalAssets).to.equal(0);
 
       for (let i = 0; i < steps.length; i++) {
         const step = steps[i];
@@ -489,6 +527,10 @@ describe("DLoopCoreMock Deposit Tests", function () {
           await dloopMock
             .connect(step.user)
             .deposit(step.amount, step.user.address);
+
+          // Track totalAssets after deposit and verify expected value
+          const totalAssetsAfter = await dloopMock.totalAssets();
+          expect(totalAssetsAfter).to.equal(step.expectedTotalAssets);
         }
 
         // Track user balance
@@ -532,6 +574,7 @@ describe("DLoopCoreMock Deposit Tests", function () {
           amount: ethers.parseEther("75"),
           collateralPrice: ethers.parseEther("1.25"),
           debtPrice: ethers.parseEther("0.85"),
+          expectedTotalAssets: ethers.parseEther("75"),
           expectedLeverage: 282.353 * ONE_PERCENT_BPS, // ~282% leverage
         },
         {
@@ -539,6 +582,7 @@ describe("DLoopCoreMock Deposit Tests", function () {
           amount: ethers.parseEther("50"),
           collateralPrice: ethers.parseEther("1.3"),
           debtPrice: ethers.parseEther("0.9"),
+          expectedTotalAssets: ethers.parseEther("125"),
           expectedLeverage: 260.87 * ONE_PERCENT_BPS, // ~261% leverage
         },
         {
@@ -546,6 +590,7 @@ describe("DLoopCoreMock Deposit Tests", function () {
           amount: ethers.parseEther("40"),
           collateralPrice: ethers.parseEther("1.35"),
           debtPrice: ethers.parseEther("0.95"),
+          expectedTotalAssets: ethers.parseEther("165"),
           expectedLeverage: 257.143 * ONE_PERCENT_BPS, // ~257% leverage
         },
         {
@@ -553,6 +598,7 @@ describe("DLoopCoreMock Deposit Tests", function () {
           amount: ethers.parseEther("35"),
           collateralPrice: ethers.parseEther("1.4"),
           debtPrice: ethers.parseEther("1.0"),
+          expectedTotalAssets: ethers.parseEther("200"),
           expectedLeverage: 280 * ONE_PERCENT_BPS, // ~280% leverage
         },
         {
@@ -560,6 +606,7 @@ describe("DLoopCoreMock Deposit Tests", function () {
           amount: ethers.parseEther("25"),
           collateralPrice: ethers.parseEther("1.35"),
           debtPrice: ethers.parseEther("0.95"),
+          expectedTotalAssets: ethers.parseEther("225"),
           expectedLeverage: 257.143 * ONE_PERCENT_BPS, // ~257% leverage
         },
         {
@@ -567,6 +614,7 @@ describe("DLoopCoreMock Deposit Tests", function () {
           amount: ethers.parseEther("30"),
           collateralPrice: ethers.parseEther("1.3"),
           debtPrice: ethers.parseEther("0.9"),
+          expectedTotalAssets: ethers.parseEther("255"),
           expectedLeverage: 260.87 * ONE_PERCENT_BPS, // ~261% leverage
         },
       ];
@@ -583,6 +631,10 @@ describe("DLoopCoreMock Deposit Tests", function () {
 
       const userBalances = new Map();
 
+      // Track initial totalAssets (should be 0)
+      const initialTotalAssets = await dloopMock.totalAssets();
+      expect(initialTotalAssets).to.equal(0);
+
       for (let i = 0; i < scenarios.length; i++) {
         const scenario = scenarios[i];
 
@@ -596,9 +648,7 @@ describe("DLoopCoreMock Deposit Tests", function () {
           scenario.debtPrice,
         );
 
-        // Get user's current balance before deposit
         const userAddress = scenario.user.address;
-        const balanceBefore = await dloopMock.balanceOf(userAddress);
 
         // Make deposit (check if allowed first)
         const maxDeposit = await dloopMock.maxDeposit(userAddress);
@@ -607,6 +657,10 @@ describe("DLoopCoreMock Deposit Tests", function () {
           await dloopMock
             .connect(scenario.user)
             .deposit(scenario.amount, userAddress);
+
+          // Track totalAssets after deposit and verify expected value
+          const totalAssetsAfter = await dloopMock.totalAssets();
+          expect(totalAssetsAfter).to.equal(scenario.expectedTotalAssets);
         }
 
         // Get user's balance after deposit
