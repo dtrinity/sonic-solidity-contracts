@@ -17,12 +17,12 @@ export interface DLoopMockFixture {
   dloopMock: DLoopCoreMock;
   collateralToken: TestMintableERC20;
   debtToken: TestMintableERC20;
-  mockPool: { getAddress: () => Promise<string> };
+  mockPool: HardhatEthersSigner;
   accounts: HardhatEthersSigner[];
-  deployer: string;
-  user1: string;
-  user2: string;
-  user3: string;
+  deployer: HardhatEthersSigner;
+  user1: HardhatEthersSigner;
+  user2: HardhatEthersSigner;
+  user3: HardhatEthersSigner;
 }
 
 /**
@@ -32,10 +32,11 @@ export interface DLoopMockFixture {
  */
 export async function deployDLoopMockFixture(): Promise<DLoopMockFixture> {
   const accounts = await ethers.getSigners();
-  const deployer = accounts[0].address;
-  const user1 = accounts[1].address;
-  const user2 = accounts[2].address;
-  const user3 = accounts[3].address;
+  const deployer = accounts[0];
+  const user1 = accounts[1];
+  const user2 = accounts[2];
+  const user3 = accounts[3];
+  const mockPool = accounts[10]; // The mock pool address
 
   // Deploy mock tokens
   const MockERC20 = await ethers.getContractFactory("TestMintableERC20");
@@ -46,13 +47,9 @@ export async function deployDLoopMockFixture(): Promise<DLoopMockFixture> {
   );
   const debtToken = await MockERC20.deploy("Mock Debt", "mDEBT", DEBT_DECIMALS);
 
-  // For the mockPool, we'll use the deployer's address as a simple approach
-  // This way we can control the allowances easily
-  const mockPoolAddress = deployer; // Use deployer as mockPool for simplicity
-
-  // Mint tokens to mock pool (deployer)
-  await collateralToken.mint(mockPoolAddress, ethers.parseEther("1000000"));
-  await debtToken.mint(mockPoolAddress, ethers.parseEther("1000000"));
+  // Mint tokens to mock pool (mockVault)
+  await collateralToken.mint(mockPool, ethers.parseEther("1000000"));
+  await debtToken.mint(mockPool, ethers.parseEther("1000000"));
 
   // Get the exact nonce for deployment and set up allowances correctly
   const DLoopCoreMock = await ethers.getContractFactory("DLoopCoreMock");
@@ -60,7 +57,7 @@ export async function deployDLoopMockFixture(): Promise<DLoopMockFixture> {
 
   // We'll have 2 approve transactions, so deployment will be at currentNonce + 2
   const contractAddress = ethers.getCreateAddress({
-    from: deployer,
+    from: deployer.address,
     nonce: currentNonce + 2,
   });
 
@@ -82,14 +79,14 @@ export async function deployDLoopMockFixture(): Promise<DLoopMockFixture> {
     LOWER_BOUND_BPS,
     UPPER_BOUND_BPS,
     MAX_SUBSIDY_BPS,
-    mockPoolAddress,
+    mockPool,
   );
 
   return {
     dloopMock: dloopMock as unknown as DLoopCoreMock,
     collateralToken,
     debtToken,
-    mockPool: { getAddress: async () => mockPoolAddress }, // Mock the mockPool interface
+    mockPool,
     accounts,
     deployer,
     user1,
@@ -104,8 +101,15 @@ export async function deployDLoopMockFixture(): Promise<DLoopMockFixture> {
  * @param fixture - The fixture object containing the contract instances and addresses
  */
 export async function testSetup(fixture: DLoopMockFixture): Promise<void> {
-  const { dloopMock, collateralToken, debtToken, accounts, user1, user2 } =
-    fixture;
+  const {
+    dloopMock,
+    collateralToken,
+    debtToken,
+    accounts,
+    user1,
+    user2,
+    mockPool,
+  } = fixture;
   // Set default prices
   await dloopMock.setMockPrice(
     await collateralToken.getAddress(),
@@ -129,4 +133,10 @@ export async function testSetup(fixture: DLoopMockFixture): Promise<void> {
     .connect(accounts[2])
     .approve(vaultAddress, ethers.MaxUint256);
   await debtToken.connect(accounts[2]).approve(vaultAddress, ethers.MaxUint256);
+
+  // Set allowance to allow vault to spend tokens from mockPool
+  await collateralToken
+    .connect(mockPool)
+    .approve(vaultAddress, ethers.MaxUint256);
+  await debtToken.connect(mockPool).approve(vaultAddress, ethers.MaxUint256);
 }

@@ -10,10 +10,7 @@ describe("DLoopCoreMock Virtual Methods Tests", function () {
   let dloopMock: DLoopCoreMock;
   let collateralToken: TestMintableERC20;
   let debtToken: TestMintableERC20;
-  let mockPool: { getAddress: () => Promise<string> };
-  let deployer: string;
   let user1: string;
-  let user2: string;
 
   beforeEach(async function () {
     const fixture = await loadFixture(deployDLoopMockFixture);
@@ -22,10 +19,7 @@ describe("DLoopCoreMock Virtual Methods Tests", function () {
     dloopMock = fixture.dloopMock;
     collateralToken = fixture.collateralToken;
     debtToken = fixture.debtToken;
-    mockPool = fixture.mockPool;
-    deployer = fixture.deployer;
-    user1 = fixture.user1;
-    user2 = fixture.user2;
+    user1 = fixture.user1.address;
   });
 
   describe("I. Pool Operations", function () {
