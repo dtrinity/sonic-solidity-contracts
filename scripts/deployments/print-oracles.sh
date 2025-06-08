@@ -38,11 +38,19 @@ extract_address() {
 collect_addresses() {
     local network_dir="$1"
     local pattern="$2"
+    local exclude_pattern="$3"  # Optional exclusion pattern
     local addresses=()
     
     while IFS= read -r -d '' file; do
+        local filename="$(basename "$file")"
+        
         # Skip files with "Mock" in their name
-        if [[ "$(basename "$file")" == *"Mock"* ]]; then
+        if [[ "$filename" == *"Mock"* ]]; then
+            continue
+        fi
+        
+        # Skip files with exclusion pattern in their name (if provided)
+        if [ -n "$exclude_pattern" ] && [[ "$filename" == *"$exclude_pattern"* ]]; then
             continue
         fi
         
@@ -97,7 +105,7 @@ for i in "${!networks[@]}"; do
     # Collect addresses for each oracle type
     redstone_addresses=($(collect_addresses "$network_dir" "Redstone"))
     api3_addresses=($(collect_addresses "$network_dir" "API3"))
-    chainlink_addresses=($(collect_addresses "$network_dir" "Chainlink"))
+    chainlink_addresses=($(collect_addresses "$network_dir" "Chainlink" "Redstone")) # Exclude RedstoneChainlinkWrapper feeds from Chainlink fees because they are actually Redstone feeds
     curve_api3_addresses=($(collect_addresses "$network_dir" "CurveAPI3"))
     hard_peg_oracle_addresses=($(collect_addresses "$network_dir" "HardPegOracle"))
     
