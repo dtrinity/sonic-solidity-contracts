@@ -65,6 +65,22 @@ lint.typescript: ## Run the typescript linter
 ## Running the bot ##
 #####################
 
+liquidate.specific.users:
+	@if [ "$(network)" = "" ]; then \
+		echo "Must provide 'network' argument"; \
+		exit 1; \
+	fi
+	@if [ "$(USER_ADDRESSES)" = "" ]; then \
+		echo "Must provide 'USER_ADDRESSES' argument"; \
+		exit 1; \
+	fi
+	@yarn hardhat run \
+		--network $(network) \
+		typescript/odos_bot/liquidate_specific_users.ts
+
+liquidate.specific.users.sonic_mainnet: network=sonic_mainnet
+liquidate.specific.users.sonic_mainnet: liquidate.specific.users
+
 run.%:
 	@yarn hardhat run \
 		--network $* \
