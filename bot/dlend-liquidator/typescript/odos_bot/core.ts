@@ -331,7 +331,6 @@ export async function runBotBatch(
         userState.success = false;
         userState.error = error;
         userState.errorMessage = error.message;
-        userState.step = "liquidation_error";
 
         const debtTokenDecimals = userState.debtToken?.decimals;
         const debtTokenSymbol = userState.debtToken?.symbol;
