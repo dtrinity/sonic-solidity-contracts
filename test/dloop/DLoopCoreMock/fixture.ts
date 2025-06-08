@@ -122,6 +122,8 @@ export async function testSetup(fixture: DLoopMockFixture): Promise<void> {
   await debtToken.mint(user1, ethers.parseEther("10000"));
   await collateralToken.mint(user2, ethers.parseEther("10000"));
   await debtToken.mint(user2, ethers.parseEther("10000"));
+  await collateralToken.mint(fixture.user3, ethers.parseEther("10000"));
+  await debtToken.mint(fixture.user3, ethers.parseEther("10000"));
 
   // Setup allowances for users to vault
   const vaultAddress = await dloopMock.getAddress();
@@ -133,6 +135,10 @@ export async function testSetup(fixture: DLoopMockFixture): Promise<void> {
     .connect(accounts[2])
     .approve(vaultAddress, ethers.MaxUint256);
   await debtToken.connect(accounts[2]).approve(vaultAddress, ethers.MaxUint256);
+  await collateralToken
+    .connect(accounts[3])
+    .approve(vaultAddress, ethers.MaxUint256);
+  await debtToken.connect(accounts[3]).approve(vaultAddress, ethers.MaxUint256);
 
   // Set allowance to allow vault to spend tokens from mockPool
   await collateralToken
