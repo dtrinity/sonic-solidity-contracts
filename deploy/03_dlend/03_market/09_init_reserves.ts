@@ -12,7 +12,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { rateStrategies, reservesConfig } = config.dLend;
 
   const addressProviderDeployedResult = await hre.deployments.get(
-    POOL_ADDRESSES_PROVIDER_ID
+    POOL_ADDRESSES_PROVIDER_ID,
   );
 
   // Deploy Rate Strategies
@@ -43,7 +43,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   await setupNewReserves(hre, allReserveSymbols);
 
   console.log(
-    `✅ ${__filename.split("/").slice(-2).join("/")}: Initial reserves setup complete.`
+    `✅ ${__filename.split("/").slice(-2).join("/")}: Initial reserves setup complete.`,
   );
 
   return true;

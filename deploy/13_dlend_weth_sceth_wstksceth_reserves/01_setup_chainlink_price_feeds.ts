@@ -13,7 +13,7 @@ import {
 } from "../../typescript/dlend/setup-oracle";
 
 const func: DeployFunction = async function (
-  hre: HardhatRuntimeEnvironment
+  hre: HardhatRuntimeEnvironment,
 ): Promise<boolean> {
   const { deployer } = await hre.getNamedAccounts();
   const config = await getConfig(hre);
@@ -33,7 +33,7 @@ const func: DeployFunction = async function (
 
   const deployerSigner = await hre.ethers.getSigner(deployer);
   const oracleAggregatorDeployment = await hre.deployments.get(
-    USD_ORACLE_AGGREGATOR_ID
+    USD_ORACLE_AGGREGATOR_ID,
   );
 
   if (!oracleAggregatorDeployment) {
@@ -43,7 +43,7 @@ const func: DeployFunction = async function (
   const oracleAggregator = await hre.ethers.getContractAt(
     "OracleAggregator",
     oracleAggregatorDeployment.address,
-    deployerSigner
+    deployerSigner,
   );
 
   const baseCurrencyUnit =
@@ -57,23 +57,23 @@ const func: DeployFunction = async function (
   if (compositeFeedAssets.length > 0) {
     const { address: redstoneCompositeWrapperAddress } =
       await hre.deployments.get(
-        USD_REDSTONE_COMPOSITE_WRAPPER_WITH_THRESHOLDING_ID
+        USD_REDSTONE_COMPOSITE_WRAPPER_WITH_THRESHOLDING_ID,
       );
 
     if (!redstoneCompositeWrapperAddress) {
       throw new Error(
-        "RedstoneChainlinkCompositeWrapperWithThresholding artifact not found"
+        "RedstoneChainlinkCompositeWrapperWithThresholding artifact not found",
       );
     }
 
     const redstoneCompositeWrapper = await hre.ethers.getContractAt(
       "RedstoneChainlinkCompositeWrapperWithThresholding",
       redstoneCompositeWrapperAddress,
-      deployerSigner
+      deployerSigner,
     );
 
     console.log(
-      `🔮 Setting up composite feeds for ${compositeFeedAssets.length} assets...`
+      `🔮 Setting up composite feeds for ${compositeFeedAssets.length} assets...`,
     );
 
     await setupRedstoneCompositeFeedsForAssets(
@@ -84,30 +84,30 @@ const func: DeployFunction = async function (
       baseCurrencyUnit,
       ETH_MIN_PRICE,
       ETH_MAX_PRICE,
-      deployer
+      deployer,
     );
   }
 
   // Setup simple feeds
   if (simpleFeedAssets.length > 0) {
     const { address: redstoneWrapperAddress } = await hre.deployments.get(
-      USD_REDSTONE_WRAPPER_WITH_THRESHOLDING_ID
+      USD_REDSTONE_WRAPPER_WITH_THRESHOLDING_ID,
     );
 
     if (!redstoneWrapperAddress) {
       throw new Error(
-        "RedstoneChainlinkWrapperWithThresholding artifact not found"
+        "RedstoneChainlinkWrapperWithThresholding artifact not found",
       );
     }
 
     const redstoneWrapper = await hre.ethers.getContractAt(
       "RedstoneChainlinkWrapperWithThresholding",
       redstoneWrapperAddress,
-      deployerSigner
+      deployerSigner,
     );
 
     console.log(
-      `🔮 Setting up simple feeds for ${simpleFeedAssets.length} assets...`
+      `🔮 Setting up simple feeds for ${simpleFeedAssets.length} assets...`,
     );
 
     await setupRedstoneSimpleFeedsForAssets(
@@ -118,7 +118,7 @@ const func: DeployFunction = async function (
       baseCurrencyUnit,
       ETH_MIN_PRICE,
       ETH_MAX_PRICE,
-      deployer
+      deployer,
     );
   }
 
