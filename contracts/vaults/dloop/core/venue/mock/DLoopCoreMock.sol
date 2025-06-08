@@ -17,7 +17,6 @@ contract DLoopCoreMock is DLoopCoreBase {
     mapping(address => address[]) private mockCollateralTokens; // user => tokens
     mapping(address => mapping(address => uint256)) private mockDebt; // user => token => amount
     mapping(address => address[]) private mockDebtTokens; // user => tokens
-    mapping(address => uint256) private mockPoolBalances; // token => amount (tracked separately from real balances)
     address public mockPool;
 
     uint8 public constant PRICE_DECIMALS = 8;
@@ -47,20 +46,25 @@ contract DLoopCoreMock is DLoopCoreBase {
         )
     {
         mockPool = _mockPool;
+        
+        // Require large allowance from mockPool to this contract as this mock contract will
+        // transfer tokens to mockPool when supply, repay. It will take the token from mockPool
+        // and send back to the contract when withdraw, borrow.
+        require(
+            ERC20(collateralToken).allowance(mockPool, address(this)) >=
+                type(uint256).max / 2,
+            "Mock: mockPool does not have allowance for this contract for collateralToken"
+        );
+        require(
+            ERC20(debtToken).allowance(mockPool, address(this)) >=
+                type(uint256).max / 2,
+            "Mock: mockPool does not have allowance for this contract for debtToken"
+        );
     }
 
     // Allow setting mock prices for assets
     function setMockPrice(address asset, uint256 price) external {
         mockPrices[asset] = price;
-    }
-
-    // Allow setting mock pool balances
-    function setMockPoolBalance(address token, uint256 amount) external {
-        mockPoolBalances[token] = amount;
-    }
-
-    function getMockPoolBalance(address token) external view returns (uint256) {
-        return mockPoolBalances[token];
     }
 
     // Allow setting mock collateral and debt for a user
@@ -152,20 +156,23 @@ contract DLoopCoreMock is DLoopCoreBase {
         uint256 amount,
         address onBehalfOf
     ) internal override {
-        // Mimic: increase collateral for onBehalfOf, transfer token to pool
+        // Make sure target user has enough balance to supply
+        require(
+            ERC20(token).balanceOf(onBehalfOf) >= amount,
+            "Mock: not enough balance to supply"
+        );
 
-        if (token == address(debtToken)) {
-            revert("Mock: debtToken is not supported as collateral");
-        }
+        // Transfer from target user to mockPool
+        require(
+            ERC20(token).transferFrom(onBehalfOf, mockPool, amount),
+            "Mock: transfer to pool failed"
+        );
 
+        // Increase collateral after successful transfer
         _setMockCollateral(
             onBehalfOf,
             token,
             mockCollateral[onBehalfOf][token] + amount
-        );
-        require(
-            ERC20(token).transfer(mockPool, amount),
-            "Mock: transfer to pool failed"
         );
     }
 
@@ -174,22 +181,19 @@ contract DLoopCoreMock is DLoopCoreBase {
         uint256 amount,
         address onBehalfOf
     ) internal override {
-        // Check mock pool balance (separate from real token balance)
+        // Make sure having mockPool having enough balance to borrow
         require(
-            mockPoolBalances[token] >= amount,
+            ERC20(token).balanceOf(mockPool) >= amount,
             "Mock: not enough tokens in pool to borrow"
         );
 
-        // Transfer from vault to user (simulating pool lending)
+        // Transfer from mockPool to target user
         require(
-            ERC20(token).transfer(onBehalfOf, amount),
+            ERC20(token).transferFrom(mockPool, onBehalfOf, amount),
             "Mock: borrow transfer failed"
         );
 
-        // Decrease mock pool balance to simulate pool lending
-        mockPoolBalances[token] -= amount;
-
-        // Set debt after successful transfer
+        // Increase debt after successful transfer
         _setMockDebt(onBehalfOf, token, mockDebt[onBehalfOf][token] + amount);
     }
 
@@ -198,16 +202,20 @@ contract DLoopCoreMock is DLoopCoreBase {
         uint256 amount,
         address onBehalfOf
     ) internal override {
-        // Mimic: decrease debt for onBehalfOf, transfer token from onBehalfOf to pool
-        if (mockDebt[onBehalfOf][token] < amount) {
-            revert("Mock: repay exceeds debt");
-        }
+        // Make sure target user has enough debt to repay
+        require(
+            ERC20(token).balanceOf(onBehalfOf) >= amount,
+            "Mock: not enough balance to repay"
+        );
 
-        _setMockDebt(onBehalfOf, token, mockDebt[onBehalfOf][token] - amount);
+        // Transfer from target user to mockPool
         require(
             ERC20(token).transferFrom(onBehalfOf, mockPool, amount),
             "Mock: repay transfer failed"
         );
+
+        // Decrease debt after successful transfer
+        _setMockDebt(onBehalfOf, token, mockDebt[onBehalfOf][token] - amount);
     }
 
     function _withdrawFromPoolImplementation(
@@ -215,28 +223,23 @@ contract DLoopCoreMock is DLoopCoreBase {
         uint256 amount,
         address onBehalfOf
     ) internal override {
-        // Mimic: decrease collateral for onBehalfOf, transfer token from pool to onBehalfOf
-
-        if (token == address(debtToken)) {
-            revert("Mock: debtToken is not supported as collateral");
-        }
-        if (mockCollateral[onBehalfOf][token] < amount) {
-            revert("Mock: not enough collateral to withdraw");
-        }
-
-        _setMockCollateral(
-            onBehalfOf,
-            token,
-            mockCollateral[onBehalfOf][token] - amount
-        );
+        // Make sure mockPool has enough balance to withdraw
         require(
             ERC20(token).balanceOf(mockPool) >= amount,
             "Mock: not enough tokens in pool to withdraw"
         );
-        // Transfer from vault (this contract) to onBehalfOf, simulating pool behavior
+
+        // Transfer from mockPool to target user
         require(
-            ERC20(token).transfer(onBehalfOf, amount),
+            ERC20(token).transferFrom(mockPool, onBehalfOf, amount),
             "Mock: withdraw transfer failed"
+        );
+
+        // Decrease collateral after successful transfer
+        _setMockCollateral(
+            onBehalfOf,
+            token,
+            mockCollateral[onBehalfOf][token] - amount
         );
     }
 
