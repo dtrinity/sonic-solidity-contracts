@@ -321,9 +321,7 @@ abstract contract DLoopCoreBase is
     ) internal {
         // At this step, we assume that the funds from the depositor are already in the vault
 
-        uint256 tokenBalanceBeforeSupply = ERC20(token).balanceOf(
-            onBehalfOf
-        );
+        uint256 tokenBalanceBeforeSupply = ERC20(token).balanceOf(onBehalfOf);
 
         _supplyToPoolImplementation(token, amount, onBehalfOf);
 
@@ -361,9 +359,7 @@ abstract contract DLoopCoreBase is
     ) internal {
         // At this step, we assume that the funds from the depositor are already in the vault
 
-        uint256 tokenBalanceBeforeBorrow = ERC20(token).balanceOf(
-            onBehalfOf
-        );
+        uint256 tokenBalanceBeforeBorrow = ERC20(token).balanceOf(onBehalfOf);
 
         _borrowFromPoolImplementation(token, amount, onBehalfOf);
 
@@ -440,15 +436,11 @@ abstract contract DLoopCoreBase is
     ) internal {
         // At this step, we assume that the funds from the depositor are already in the vault
 
-        uint256 tokenBalanceBeforeWithdraw = ERC20(token).balanceOf(
-            onBehalfOf
-        );
+        uint256 tokenBalanceBeforeWithdraw = ERC20(token).balanceOf(onBehalfOf);
 
         _withdrawFromPoolImplementation(token, amount, onBehalfOf);
 
-        uint256 tokenBalanceAfterWithdraw = ERC20(token).balanceOf(
-            onBehalfOf
-        );
+        uint256 tokenBalanceAfterWithdraw = ERC20(token).balanceOf(onBehalfOf);
 
         if (tokenBalanceAfterWithdraw <= tokenBalanceBeforeWithdraw) {
             revert TokenBalanceNotIncreasedAfterWithdraw(
@@ -1065,12 +1057,12 @@ abstract contract DLoopCoreBase is
         uint256 subsidyBps = getCurrentSubsidyBps();
 
         // Calculate the amount of debt token to repay
-        uint256 requiredDebtTokenAmountInBase = (totalCollateralBase -
+        uint256 requiredDebtTokenAmountInBase = (totalCollateralBase *
+            BasisPointConstants.ONE_HUNDRED_PERCENT_BPS -
             targetLeverageBps *
             (totalCollateralBase - totalDebtBase)) /
-            (1 +
-                (targetLeverageBps * subsidyBps) /
-                BasisPointConstants.ONE_HUNDRED_PERCENT_BPS);
+            (BasisPointConstants.ONE_HUNDRED_PERCENT_BPS +
+                (targetLeverageBps * subsidyBps));
 
         // Convert to token unit
         uint256 requiredDebtTokenAmount = convertFromBaseCurrencyToToken(
@@ -1134,10 +1126,23 @@ abstract contract DLoopCoreBase is
          *  <=> x*(1 + T*k) = T*C - T*D - C
          *  <=> x = (T*(C - D) - C) / (1 + T*k)
          *
+         * Suppose that T' = T * ONE_HUNDRED_PERCENT_BPS, then:
+         *
+         *  => T = T' / ONE_HUNDRED_PERCENT_BPS
+         * where:
+         *      - T' is the target leverage in basis points unit
+         *
+         * We have:
+         *      x = (T*(C - D) - C) / (1 + T*k)
+         *  <=> x = (T'*(C - D) / ONE_HUNDRED_PERCENT_BPS - C) / (1 + T'*k / ONE_HUNDRED_PERCENT_BPS)
+         *  <=> x = (T'*(C - D) - C*ONE_HUNDRED_PERCENT_BPS) / (ONE_HUNDRED_PERCENT_BPS + T'*k)
+         *
          * If x > 0, it means the user should increase the leverage, so the direction is 1
          *    => x = (T*(C - D) - C) / (1 + T*k)
+         *    => x = (T'*(C - D) - C*ONE_HUNDRED_PERCENT_BPS) / (ONE_HUNDRED_PERCENT_BPS + T'*k)
          * If x < 0, it means the user should decrease the leverage, so the direction is -1
          *    => x = (C - T*(C - D)) / (1 + T*k)
+         *    => x = (C*ONE_HUNDRED_PERCENT_BPS - T'*(C - D)) / (ONE_HUNDRED_PERCENT_BPS + T'*k)
          * If x = 0, it means the user should not rebalance, so the direction is 0
          */
 
