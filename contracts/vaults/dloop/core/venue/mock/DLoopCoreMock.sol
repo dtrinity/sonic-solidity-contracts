@@ -7,7 +7,6 @@ import {BasisPointConstants} from "contracts/common/BasisPointConstants.sol";
 import {PercentageMath} from "contracts/dlend/core/protocol/libraries/math/PercentageMath.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
-
 /**
  * @title DLoopCoreMock
  * @dev Simple mock implementation of DLoopCoreBase for testing
@@ -61,7 +60,10 @@ contract DLoopCoreMock is DLoopCoreBase {
 
     // Allow setting transfer portion bps for testing
     function setTransferPortionBps(uint256 _transferPortionBps) external {
-        require(_transferPortionBps <= BasisPointConstants.ONE_HUNDRED_PERCENT_BPS, "Mock: transferPortionBps must be at most 100%");
+        require(
+            _transferPortionBps <= BasisPointConstants.ONE_HUNDRED_PERCENT_BPS,
+            "Mock: transferPortionBps must be at most 100%"
+        );
         transferPortionBps = _transferPortionBps;
     }
 
@@ -133,7 +135,7 @@ contract DLoopCoreMock is DLoopCoreBase {
 
     // Check all required allowances for mockPool to this contract
     // so that the vault can spend tokens from mockPool
-    function _checkRequiredAllowance() view internal {
+    function _checkRequiredAllowance() internal view {
         require(
             ERC20(collateralToken).allowance(mockPool, address(this)) >=
                 type(uint256).max / 2,
@@ -177,7 +179,9 @@ contract DLoopCoreMock is DLoopCoreBase {
         _checkRequiredAllowance();
 
         // Calculate the amount to supply based on transfer portion bps
-        amount = amount * transferPortionBps / BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
+        amount =
+            (amount * transferPortionBps) /
+            BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
 
         // Make sure target user has enough balance to supply
         require(
@@ -193,8 +197,7 @@ contract DLoopCoreMock is DLoopCoreBase {
                     ERC20(token).transfer(mockPool, amount),
                     "Mock: supply transfer failed (onBehalfOf is the vault itself)"
                 );
-            }
-            else {
+            } else {
                 // Transfer from target user to mockPool
                 require(
                     ERC20(token).transferFrom(onBehalfOf, mockPool, amount),
@@ -221,7 +224,9 @@ contract DLoopCoreMock is DLoopCoreBase {
         _checkRequiredAllowance();
 
         // Calculate the amount to borrow based on transfer portion bps
-        amount = amount * transferPortionBps / BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
+        amount =
+            (amount * transferPortionBps) /
+            BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
 
         // Make sure having mockPool having enough balance to borrow
         require(
@@ -252,7 +257,9 @@ contract DLoopCoreMock is DLoopCoreBase {
         _checkRequiredAllowance();
 
         // Calculate the amount to repay based on transfer portion bps
-        amount = amount * transferPortionBps / BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
+        amount =
+            (amount * transferPortionBps) /
+            BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
 
         // Make sure target user has enough debt to repay
         require(
@@ -268,8 +275,7 @@ contract DLoopCoreMock is DLoopCoreBase {
                     ERC20(token).transfer(mockPool, amount),
                     "Mock: repay transfer failed (onBehalfOf is the vault itself)"
                 );
-            }
-            else {
+            } else {
                 // Transfer from target user to mockPool
                 require(
                     ERC20(token).transferFrom(onBehalfOf, mockPool, amount),
@@ -293,7 +299,9 @@ contract DLoopCoreMock is DLoopCoreBase {
         _checkRequiredAllowance();
 
         // Calculate the amount to withdraw based on transfer portion bps
-        amount = amount * transferPortionBps / BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
+        amount =
+            (amount * transferPortionBps) /
+            BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
 
         // Make sure mockPool has enough balance to withdraw
         require(
@@ -546,6 +554,49 @@ contract DLoopCoreMock is DLoopCoreBase {
         returns (address[] memory)
     {
         return getRestrictedRescueTokens();
+    }
+
+    /**
+     * @dev Test wrapper for _getCollateralTokenAmountToReachTargetLeverage
+     */
+    function testGetCollateralTokenAmountToReachTargetLeverage(
+        bool useVaultTokenBalance
+    ) external view returns (uint256) {
+        return
+            _getCollateralTokenAmountToReachTargetLeverage(
+                useVaultTokenBalance
+            );
+    }
+
+    /**
+     * @dev Test wrapper for _getDebtTokenAmountToReachTargetLeverage
+     */
+    function testGetDebtTokenAmountToReachTargetLeverage(
+        bool useVaultTokenBalance
+    ) external view returns (uint256) {
+        return _getDebtTokenAmountToReachTargetLeverage(useVaultTokenBalance);
+    }
+
+    /**
+     * @dev Test wrapper for _getRequiredCollateralTokenAmountToRebalance
+     */
+    function testGetRequiredCollateralTokenAmountToRebalance(
+        uint256 additionalCollateralTokenAmount
+    ) external view returns (uint256) {
+        return
+            _getRequiredCollateralTokenAmountToRebalance(
+                additionalCollateralTokenAmount
+            );
+    }
+
+    /**
+     * @dev Test wrapper for _getRequiredDebtTokenAmountToRebalance
+     */
+    function testGetRequiredDebtTokenAmountToRebalance(
+        uint256 additionalDebtTokenAmount
+    ) external view returns (uint256) {
+        return
+            _getRequiredDebtTokenAmountToRebalance(additionalDebtTokenAmount);
     }
 
     // --- Mock State Getters for Testing ---
