@@ -828,19 +828,45 @@ describe("DLoopCoreMock Rebalance Calculation Tests", function () {
         totalCollateralBase: bigint;
         totalDebtBase: bigint;
         subsidy: bigint;
-        useVaultTokenBalance: boolean;
-        expectedAmount: bigint;
-        expectedRevertError?: string;
-        expectedRevertPanic?: string;
+        whenUseVaultTokenBalance: {
+          vaultDebtBalance: bigint;
+          expectedAmount: bigint;
+          expectedRevertError?: string;
+          expectedRevertPanic?: string;
+        };
+        whenNotUseVaultTokenBalance: {
+          expectedAmount: bigint;
+          expectedRevertError?: string;
+          expectedRevertPanic?: string;
+        };
       }[] = [
+        {
+          name: "Should calculate debt to repay for above-target leverage (400% to 300%)",
+          targetLeverage: BigInt(TARGET_LEVERAGE_BPS), // 300%
+          totalCollateralBase: ethers.parseUnits("400", 8), // $400
+          totalDebtBase: ethers.parseUnits("300", 8), // $300, gives 400% leverage
+          subsidy: 0n,
+          whenUseVaultTokenBalance: {
+            vaultDebtBalance: ethers.parseUnits("50", 18),
+            expectedAmount: ethers.parseUnits("50", 18), // 100 - 50 = 50
+          },
+          whenNotUseVaultTokenBalance: {
+            expectedAmount: ethers.parseUnits("100", 18), // Actual: 100000000000000000000
+          },
+        },
         {
           name: "Should return 0 when at target leverage",
           targetLeverage: BigInt(TARGET_LEVERAGE_BPS), // 300%
           totalCollateralBase: ethers.parseUnits("300", 8), // $300
           totalDebtBase: ethers.parseUnits("200", 8), // $200, gives exactly 300% leverage
           subsidy: 0n,
-          useVaultTokenBalance: false,
-          expectedAmount: 0n,
+          whenUseVaultTokenBalance: {
+            vaultDebtBalance: ethers.parseUnits("10", 18),
+            expectedAmount: 0n,
+          },
+          whenNotUseVaultTokenBalance: {
+            expectedAmount: 0n,
+          },
         },
         {
           name: "Should handle zero position",
@@ -848,9 +874,15 @@ describe("DLoopCoreMock Rebalance Calculation Tests", function () {
           totalCollateralBase: 0n,
           totalDebtBase: 0n,
           subsidy: 0n,
-          useVaultTokenBalance: false,
-          expectedAmount: 0n,
-          expectedRevertError: "TotalCollateralBaseIsZero",
+          whenUseVaultTokenBalance: {
+            vaultDebtBalance: 0n,
+            expectedAmount: 0n,
+            expectedRevertError: "TotalCollateralBaseIsZero",
+          },
+          whenNotUseVaultTokenBalance: {
+            expectedAmount: 0n,
+            expectedRevertError: "TotalCollateralBaseIsZero",
+          },
         },
         {
           name: "Should throw for low leverage scenario requiring debt increase (this method is only used for decreasing leverage)",
@@ -858,185 +890,245 @@ describe("DLoopCoreMock Rebalance Calculation Tests", function () {
           totalCollateralBase: ethers.parseUnits("600", 8), // $600
           totalDebtBase: ethers.parseUnits("100", 8), // $100, gives 120% leverage
           subsidy: 0n,
-          useVaultTokenBalance: false,
-          expectedAmount: 0n,
-          expectedRevertPanic: "0x11", // Arithmetic operation overflowed
+          whenUseVaultTokenBalance: {
+            vaultDebtBalance: ethers.parseUnits("10", 18),
+            expectedAmount: 0n,
+            expectedRevertPanic: "0x11", // Arithmetic operation overflowed
+          },
+          whenNotUseVaultTokenBalance: {
+            expectedAmount: 0n,
+            expectedRevertPanic: "0x11", // Arithmetic operation overflowed
+          },
         },
         {
-          name: "Should handle vault token balance mode with low leverage",
-          targetLeverage: BigInt(TARGET_LEVERAGE_BPS), // 300%
-          totalCollateralBase: ethers.parseUnits("400", 8), // $400
-          totalDebtBase: ethers.parseUnits("100", 8), // $100, gives 125% leverage
-          subsidy: 0n,
-          useVaultTokenBalance: true,
-          expectedAmount: 0n,
-        },
-        {
-          name: "Should handle small fractional amounts",
-          targetLeverage: BigInt(TARGET_LEVERAGE_BPS), // 300%
-          totalCollateralBase: ethers.parseUnits("450.5", 8), // $450.5
-          totalDebtBase: ethers.parseUnits("120.1", 8), // $120.1, gives ~136% leverage
-          subsidy: 0n,
-          useVaultTokenBalance: false,
-          expectedAmount: 0n,
-        },
-        {
-          name: "Should handle large amounts",
-          targetLeverage: BigInt(TARGET_LEVERAGE_BPS), // 300%
-          totalCollateralBase: ethers.parseUnits("500000", 8), // $500,000
-          totalDebtBase: ethers.parseUnits("100000", 8), // $100,000, gives 125% leverage
-          subsidy: 0n,
-          useVaultTokenBalance: false,
-          expectedAmount: 0n,
-        },
-        {
-          name: "Should handle near-target with vault balance",
-          targetLeverage: BigInt(TARGET_LEVERAGE_BPS), // 300%
-          totalCollateralBase: ethers.parseUnits("305", 8), // $305
-          totalDebtBase: ethers.parseUnits("195", 8), // $195, gives ~277% leverage
-          subsidy: 0n,
-          useVaultTokenBalance: true,
-          expectedAmount: 0n,
-        },
-        {
-          name: "Should handle moderate leverage gap",
-          targetLeverage: BigInt(TARGET_LEVERAGE_BPS), // 300%
-          totalCollateralBase: ethers.parseUnits("450", 8), // $450
-          totalDebtBase: ethers.parseUnits("150", 8), // $150, gives 150% leverage
-          subsidy: 0n,
-          useVaultTokenBalance: false,
-          expectedAmount: 0n,
-        },
-        {
-          name: "Should handle different target leverage scenarios",
-          targetLeverage: BigInt(400 * ONE_PERCENT_BPS), // 400%
-          totalCollateralBase: ethers.parseUnits("400", 8), // $400
-          totalDebtBase: ethers.parseUnits("100", 8), // $100, gives 133% leverage, target 400%
-          subsidy: ethers.parseUnits("200", 8), // 2% subsidy
-          useVaultTokenBalance: false,
-          expectedAmount: 0n,
-        },
-        {
-          name: "Should handle high collateral, low debt scenario",
-          targetLeverage: BigInt(TARGET_LEVERAGE_BPS), // 300%
-          totalCollateralBase: ethers.parseUnits("900", 8), // $900
-          totalDebtBase: ethers.parseUnits("50", 8), // $50, gives ~106% leverage
-          subsidy: 0n,
-          useVaultTokenBalance: false,
-          expectedAmount: 0n,
-        },
-        {
-          name: "Should handle with subsidy - below target leverage",
+          name: "Should handle high leverage scenario (500% to 300%)",
           targetLeverage: BigInt(TARGET_LEVERAGE_BPS), // 300%
           totalCollateralBase: ethers.parseUnits("500", 8), // $500
-          totalDebtBase: ethers.parseUnits("100", 8), // $100, gives 125% leverage
-          subsidy: ethers.parseUnits("1000", 8), // 10% subsidy
-          useVaultTokenBalance: false,
-          expectedAmount: 0n,
-        },
-        {
-          name: "Should handle vault mode with different leverage target",
-          targetLeverage: BigInt(500 * ONE_PERCENT_BPS), // 500%
-          totalCollateralBase: ethers.parseUnits("300", 8), // $300
-          totalDebtBase: ethers.parseUnits("100", 8), // $100, gives 150% leverage
+          totalDebtBase: ethers.parseUnits("400", 8), // $400, gives 500% leverage
           subsidy: 0n,
-          useVaultTokenBalance: true,
-          expectedAmount: 0n,
+          whenUseVaultTokenBalance: {
+            vaultDebtBalance: ethers.parseUnits("100", 18),
+            expectedAmount: ethers.parseUnits("100", 18), // 200 - 100 = 100
+          },
+          whenNotUseVaultTokenBalance: {
+            expectedAmount: ethers.parseUnits("200", 18), // Actual: 200000000000000000000
+          },
         },
         {
-          name: "Should handle edge case - very high target leverage",
-          targetLeverage: BigInt(1000 * ONE_PERCENT_BPS), // 1000%
-          totalCollateralBase: ethers.parseUnits("200", 8), // $200
-          totalDebtBase: ethers.parseUnits("50", 8), // $50, gives 200% leverage
-          subsidy: 0n,
-          useVaultTokenBalance: false,
-          expectedAmount: 0n,
-        },
-        {
-          name: "Should handle minimal amounts with subsidy",
-          targetLeverage: BigInt(TARGET_LEVERAGE_BPS), // 300%
-          totalCollateralBase: ethers.parseUnits("2", 8), // $2
-          totalDebtBase: ethers.parseUnits("0.5", 8), // $0.5, gives ~111% leverage
-          subsidy: ethers.parseUnits("500", 8), // 5% subsidy
-          useVaultTokenBalance: false,
-          expectedAmount: 0n,
-        },
-        {
-          name: "Should handle vault mode with high subsidy",
+          name: "Should handle very high leverage scenario (1000% to 300%)",
           targetLeverage: BigInt(TARGET_LEVERAGE_BPS), // 300%
           totalCollateralBase: ethers.parseUnits("1000", 8), // $1000
-          totalDebtBase: ethers.parseUnits("200", 8), // $200, gives 125% leverage
-          subsidy: ethers.parseUnits("2000", 8), // 20% subsidy
-          useVaultTokenBalance: true,
-          expectedAmount: 0n,
+          totalDebtBase: ethers.parseUnits("900", 8), // $900, gives 1000% leverage
+          subsidy: 0n,
+          whenUseVaultTokenBalance: {
+            vaultDebtBalance: ethers.parseUnits("300", 18),
+            expectedAmount: ethers.parseUnits("400", 18), // 700 - 300 = 400
+          },
+          whenNotUseVaultTokenBalance: {
+            expectedAmount: ethers.parseUnits("700", 18), // Actual: 700000000000000000000
+          },
+        },
+        {
+          name: "Should handle with subsidy - above target leverage",
+          targetLeverage: BigInt(TARGET_LEVERAGE_BPS), // 300%
+          totalCollateralBase: ethers.parseUnits("600", 8), // $600
+          totalDebtBase: ethers.parseUnits("500", 8), // $500, gives 600% leverage
+          subsidy: ethers.parseUnits("500", 8), // 5% subsidy
+          whenUseVaultTokenBalance: {
+            vaultDebtBalance: ethers.parseUnits("0.001", 18),
+            expectedAmount: ethers.parseUnits("0.001", 18), // 0.00199998 - 0.001 ≈ 0.001
+          },
+          whenNotUseVaultTokenBalance: {
+            expectedAmount: ethers.parseUnits("0.00199998", 18), // Actual: 1999980000000000
+          },
+        },
+        {
+          name: "Should handle fractional amounts - above target",
+          targetLeverage: BigInt(TARGET_LEVERAGE_BPS), // 300%
+          totalCollateralBase: ethers.parseUnits("123.45", 8), // $123.45
+          totalDebtBase: ethers.parseUnits("100.5", 8), // $100.5, gives ~538% leverage
+          subsidy: 0n,
+          whenUseVaultTokenBalance: {
+            vaultDebtBalance: ethers.parseUnits("20", 18),
+            expectedAmount: ethers.parseUnits("34.6", 18), // 54.6 - 20 = 34.6
+          },
+          whenNotUseVaultTokenBalance: {
+            expectedAmount: ethers.parseUnits("54.6", 18), // Actual: 54600000000000000000
+          },
+        },
+        {
+          name: "Should handle large amounts - above target",
+          targetLeverage: BigInt(TARGET_LEVERAGE_BPS), // 300%
+          totalCollateralBase: ethers.parseUnits("100000", 8), // $100,000
+          totalDebtBase: ethers.parseUnits("80000", 8), // $80,000, gives 500% leverage
+          subsidy: 0n,
+          whenUseVaultTokenBalance: {
+            vaultDebtBalance: ethers.parseUnits("10000", 18),
+            expectedAmount: ethers.parseUnits("30000", 18), // 40000 - 10000 = 30000
+          },
+          whenNotUseVaultTokenBalance: {
+            expectedAmount: ethers.parseUnits("40000", 18), // Actual: 40000000000000000000000
+          },
+        },
+        {
+          name: "Should handle different target leverage (400% current to 200% target)",
+          targetLeverage: BigInt(200 * ONE_PERCENT_BPS), // 200%
+          totalCollateralBase: ethers.parseUnits("400", 8), // $400
+          totalDebtBase: ethers.parseUnits("300", 8), // $300, gives 400% leverage
+          subsidy: 0n,
+          whenUseVaultTokenBalance: {
+            vaultDebtBalance: ethers.parseUnits("50", 18),
+            expectedAmount: ethers.parseUnits("150", 18), // 200 - 50 = 150
+          },
+          whenNotUseVaultTokenBalance: {
+            expectedAmount: ethers.parseUnits("200", 18), // Actual: 200000000000000000000
+          },
+        },
+        {
+          name: "Should handle high subsidy with above-target leverage",
+          targetLeverage: BigInt(TARGET_LEVERAGE_BPS), // 300%
+          totalCollateralBase: ethers.parseUnits("800", 8), // $800
+          totalDebtBase: ethers.parseUnits("700", 8), // $700, gives 800% leverage
+          subsidy: ethers.parseUnits("1000", 8), // 10% subsidy
+          whenUseVaultTokenBalance: {
+            vaultDebtBalance: ethers.parseUnits("0.0001", 18),
+            expectedAmount: ethers.parseUnits("0.00156666", 18), // Actual: 1566660000000000
+          },
+          whenNotUseVaultTokenBalance: {
+            expectedAmount: ethers.parseUnits("0.00166666", 18), // Actual: 1666660000000000
+          },
+        },
+        {
+          name: "Should handle edge case - extremely high leverage (2000% to 300%)",
+          targetLeverage: BigInt(TARGET_LEVERAGE_BPS), // 300%
+          totalCollateralBase: ethers.parseUnits("200", 8), // $200
+          totalDebtBase: ethers.parseUnits("190", 8), // $190, gives 2000% leverage
+          subsidy: 0n,
+          whenUseVaultTokenBalance: {
+            vaultDebtBalance: ethers.parseUnits("70", 18),
+            expectedAmount: ethers.parseUnits("100", 18), // 170 - 70 = 100
+          },
+          whenNotUseVaultTokenBalance: {
+            expectedAmount: ethers.parseUnits("170", 18), // Actual: 170000000000000000000
+          },
+        },
+        {
+          name: "Should handle minimal amounts with above-target leverage",
+          targetLeverage: BigInt(TARGET_LEVERAGE_BPS), // 300%
+          totalCollateralBase: ethers.parseUnits("3", 8), // $3
+          totalDebtBase: ethers.parseUnits("2.5", 8), // $2.5, gives 600% leverage
+          subsidy: 0n,
+          whenUseVaultTokenBalance: {
+            vaultDebtBalance: ethers.parseUnits("0.5", 18),
+            expectedAmount: ethers.parseUnits("1", 18), // 1.5 - 0.5 = 1
+          },
+          whenNotUseVaultTokenBalance: {
+            expectedAmount: ethers.parseUnits("1.5", 18), // Actual: 1500000000000000000
+          },
+        },
+        {
+          name: "Should handle vault mode with subsidy and above-target leverage",
+          targetLeverage: BigInt(TARGET_LEVERAGE_BPS), // 300%
+          totalCollateralBase: ethers.parseUnits("1000", 8), // $1000
+          totalDebtBase: ethers.parseUnits("850", 8), // $850, gives ~588% leverage
+          subsidy: ethers.parseUnits("200", 8), // 2% subsidy
+          whenUseVaultTokenBalance: {
+            vaultDebtBalance: ethers.parseUnits("0.005", 18),
+            expectedAmount: ethers.parseUnits("0.004166510", 18), // Actual: 4166510000000000
+          },
+          whenNotUseVaultTokenBalance: {
+            expectedAmount: ethers.parseUnits("0.00916651", 18), // Actual: 9166510000000000
+          },
         },
       ];
 
       for (const testCase of testCases) {
-        it(testCase.name, async function () {
-          // Set up prices
-          const collateralPrice = ethers.parseUnits("1", 8); // $1 per token
-          const debtPrice = ethers.parseUnits("1", 8); // $1 per token
+        for (const useVaultTokenBalance of [true, false]) {
+          it(`${testCase.name} ${useVaultTokenBalance ? "(useVaultTokenBalance)" : ""}`, async function () {
+            // Set up prices
+            const collateralPrice = ethers.parseUnits("1", 8); // $1 per token
+            const debtPrice = ethers.parseUnits("1", 8); // $1 per token
 
-          await dloopMock.setMockPrice(
-            await collateralToken.getAddress(),
-            collateralPrice,
-          );
-          await dloopMock.setMockPrice(await debtToken.getAddress(), debtPrice);
-
-          if (testCase.expectedRevertError) {
-            await expect(
-              dloopMock.testGetDebtTokenAmountToReachTargetLeverage(
-                testCase.targetLeverage,
-                testCase.totalCollateralBase,
-                testCase.totalDebtBase,
-                testCase.subsidy,
-                testCase.useVaultTokenBalance,
-              ),
-            ).to.be.revertedWithCustomError(
-              dloopMock,
-              testCase.expectedRevertError,
+            await dloopMock.setMockPrice(
+              await collateralToken.getAddress(),
+              collateralPrice,
             );
-          } else if (testCase.expectedRevertPanic) {
-            await expect(
-              dloopMock.testGetDebtTokenAmountToReachTargetLeverage(
-                testCase.targetLeverage,
-                testCase.totalCollateralBase,
-                testCase.totalDebtBase,
-                testCase.subsidy,
-                testCase.useVaultTokenBalance,
-              ),
-            ).to.be.revertedWithPanic(testCase.expectedRevertPanic);
-          } else {
-            const result =
-              await dloopMock.testGetDebtTokenAmountToReachTargetLeverage(
-                testCase.targetLeverage,
-                testCase.totalCollateralBase,
-                testCase.totalDebtBase,
-                testCase.subsidy,
-                testCase.useVaultTokenBalance,
-              );
+            await dloopMock.setMockPrice(
+              await debtToken.getAddress(),
+              debtPrice,
+            );
 
-            // Check amount with ±0.5% tolerance
-            if (testCase.expectedAmount === 0n) {
-              expect(result).to.equal(0n);
-            } else {
-              const expectedAmount = testCase.expectedAmount;
-              const tolerance = (expectedAmount * 5n) / 1000n; // 0.5% tolerance
-              const minAmount = expectedAmount - tolerance;
-              const maxAmount = expectedAmount + tolerance;
-
-              expect(result).to.be.gte(
-                minAmount,
-                `Amount ${result} should be >= ${minAmount}`,
-              );
-              expect(result).to.be.lte(
-                maxAmount,
-                `Amount ${result} should be <= ${maxAmount}`,
-              );
+            if (useVaultTokenBalance) {
+              if (testCase.whenUseVaultTokenBalance.vaultDebtBalance) {
+                await debtToken.mint(
+                  await dloopMock.getAddress(),
+                  testCase.whenUseVaultTokenBalance.vaultDebtBalance,
+                );
+              }
             }
-          }
-        });
+
+            const testExpectedResult: {
+              expectedRevertError?: string;
+              expectedRevertPanic?: string;
+              expectedAmount: bigint;
+            } = useVaultTokenBalance
+              ? testCase.whenUseVaultTokenBalance
+              : testCase.whenNotUseVaultTokenBalance;
+
+            if (testExpectedResult.expectedRevertError) {
+              await expect(
+                dloopMock.testGetDebtTokenAmountToReachTargetLeverage(
+                  testCase.targetLeverage,
+                  testCase.totalCollateralBase,
+                  testCase.totalDebtBase,
+                  testCase.subsidy,
+                  useVaultTokenBalance,
+                ),
+              ).to.be.revertedWithCustomError(
+                dloopMock,
+                testExpectedResult.expectedRevertError,
+              );
+            } else if (testExpectedResult.expectedRevertPanic) {
+              await expect(
+                dloopMock.testGetDebtTokenAmountToReachTargetLeverage(
+                  testCase.targetLeverage,
+                  testCase.totalCollateralBase,
+                  testCase.totalDebtBase,
+                  testCase.subsidy,
+                  useVaultTokenBalance,
+                ),
+              ).to.be.revertedWithPanic(testExpectedResult.expectedRevertPanic);
+            } else {
+              const result =
+                await dloopMock.testGetDebtTokenAmountToReachTargetLeverage(
+                  testCase.targetLeverage,
+                  testCase.totalCollateralBase,
+                  testCase.totalDebtBase,
+                  testCase.subsidy,
+                  useVaultTokenBalance,
+                );
+
+              // Check amount with ±0.5% tolerance
+              if (testExpectedResult.expectedAmount === 0n) {
+                expect(result).to.equal(0n);
+              } else {
+                const expectedAmount = testExpectedResult.expectedAmount;
+                const tolerance = (expectedAmount * 5n) / 1000n; // 0.5% tolerance
+                const minAmount = expectedAmount - tolerance;
+                const maxAmount = expectedAmount + tolerance;
+
+                expect(result).to.be.gte(
+                  minAmount,
+                  `Amount ${result} should be >= ${minAmount}`,
+                );
+                expect(result).to.be.lte(
+                  maxAmount,
+                  `Amount ${result} should be <= ${maxAmount}`,
+                );
+              }
+            }
+          });
+        }
       }
     });
   });
