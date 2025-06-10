@@ -1006,10 +1006,10 @@ abstract contract DLoopCoreBase is
         // Calculate the amount of collateral token to supply
         uint256 requiredCollateralTokenAmountInBase = (targetLeverageBps *
             (totalCollateralBase - totalDebtBase) -
-            totalCollateralBase) /
-            (1 +
-                (targetLeverageBps * subsidyBps) /
-                BasisPointConstants.ONE_HUNDRED_PERCENT_BPS);
+            totalCollateralBase *
+            BasisPointConstants.ONE_HUNDRED_PERCENT_BPS) /
+            (BasisPointConstants.ONE_HUNDRED_PERCENT_BPS +
+                (targetLeverageBps * subsidyBps));
 
         // Convert to token unit
         uint256 requiredCollateralTokenAmount = convertFromBaseCurrencyToToken(
