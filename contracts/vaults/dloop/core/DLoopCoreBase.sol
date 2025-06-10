@@ -993,6 +993,7 @@ abstract contract DLoopCoreBase is
 
     /**
      * @dev Gets the collateral token amount to reach the target leverage
+     *      - This method is only being called for increasing the leverage quote in getAmountToReachTargetLeverage()
      * @param expectedTargetLeverageBps The expected target leverage in basis points unit
      * @param totalCollateralBase The total collateral base
      * @param totalDebtBase The total debt base
@@ -1068,6 +1069,7 @@ abstract contract DLoopCoreBase is
 
     /**
      * @dev Gets the debt token amount to reach the target leverage
+     *      - This method is only being called for decreasing the leverage quote in getAmountToReachTargetLeverage()
      * @param expectedTargetLeverageBps The expected target leverage in basis points unit
      * @param totalCollateralBase The total collateral base
      * @param totalDebtBase The total debt base
