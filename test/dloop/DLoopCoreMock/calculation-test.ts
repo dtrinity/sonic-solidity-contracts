@@ -803,6 +803,193 @@ describe("DLoopCoreMock Calculation Tests", function () {
           expectedAmount: "positive",
           useVaultTokenBalance: false,
         },
+
+        // Additional test cases for expectedDirection: -1 (decrease leverage)
+        {
+          name: "Should return decrease direction when leverage is above target",
+          currentCollateral: ethers.parseEther("300"), // $300
+          currentDebt: ethers.parseEther("225"), // $225
+          // Current leverage: 300/(300-225) = 300/75 = 400%
+          expectedDirection: -1, // Decrease
+          expectedAmount: "positive",
+          useVaultTokenBalance: false,
+        },
+        {
+          name: "Should handle high leverage scenario requiring decrease",
+          currentCollateral: ethers.parseEther("400"), // $400
+          currentDebt: ethers.parseEther("300"), // $300
+          // Current leverage: 400/(400-300) = 400/100 = 400%
+          expectedDirection: -1, // Decrease
+          expectedAmount: "positive",
+          useVaultTokenBalance: false,
+        },
+        {
+          name: "Should handle moderate above-target leverage requiring decrease",
+          currentCollateral: ethers.parseEther("500"), // $500
+          currentDebt: ethers.parseEther("375"), // $375
+          // Current leverage: 500/(500-375) = 500/125 = 400%
+          expectedDirection: -1, // Decrease
+          expectedAmount: "positive",
+          useVaultTokenBalance: false,
+        },
+        {
+          name: "Should handle extreme high leverage requiring decrease",
+          currentCollateral: ethers.parseEther("1000"), // $1000
+          currentDebt: ethers.parseEther("900"), // $900
+          // Current leverage: 1000/(1000-900) = 1000/100 = 1000%
+          expectedDirection: -1, // Decrease
+          expectedAmount: "positive",
+          useVaultTokenBalance: false,
+        },
+        {
+          name: "Should handle slightly above target leverage",
+          currentCollateral: ethers.parseEther("300"), // $300
+          currentDebt: ethers.parseEther("201"), // $201
+          // Current leverage: 300/(300-201) = 300/99 ≈ 303%
+          expectedDirection: -1, // Decrease
+          expectedAmount: "positive",
+          useVaultTokenBalance: false,
+        },
+        {
+          name: "Should handle above-target leverage with vault balance",
+          currentCollateral: ethers.parseEther("350"), // $350
+          currentDebt: ethers.parseEther("280"), // $280
+          // Current leverage: 350/(350-280) = 350/70 = 500%
+          vaultDebtBalance: ethers.parseEther("5"),
+          expectedDirection: -1, // Decrease
+          expectedAmount: "positive",
+          useVaultTokenBalance: true,
+        },
+        {
+          name: "Should handle high leverage with sufficient vault debt balance",
+          currentCollateral: ethers.parseEther("400"), // $400
+          currentDebt: ethers.parseEther("320"), // $320
+          // Current leverage: 400/(400-320) = 400/80 = 500%
+          vaultDebtBalance: ethers.parseEther("100"), // Large vault balance
+          expectedDirection: -1, // Decrease
+          expectedAmount: "positive", // May be 0 if vault has enough
+          useVaultTokenBalance: true,
+        },
+        {
+          name: "Should handle large amounts requiring decrease",
+          currentCollateral: ethers.parseEther("100000"), // $100,000
+          currentDebt: ethers.parseEther("80000"), // $80,000
+          // Current leverage: 100000/(100000-80000) = 100000/20000 = 500%
+          expectedDirection: -1, // Decrease
+          expectedAmount: "positive",
+          useVaultTokenBalance: false,
+        },
+        {
+          name: "Should handle fractional amounts requiring decrease",
+          currentCollateral: ethers.parseEther("123.45"), // $123.45
+          currentDebt: ethers.parseEther("100.5"), // $100.5
+          // Current leverage: 123.45/(123.45-100.5) = 123.45/22.95 ≈ 538%
+          expectedDirection: -1, // Decrease
+          expectedAmount: "positive",
+          useVaultTokenBalance: false,
+        },
+
+        // Additional test cases for expectedDirection: 0 (no rebalance)
+        {
+          name: "Should handle exact target leverage with different amounts",
+          currentCollateral: ethers.parseEther("600"), // $600
+          currentDebt: ethers.parseEther("400"), // $400
+          // Current leverage: 600/(600-400) = 600/200 = 300%
+          expectedDirection: 0, // No rebalance
+          expectedAmount: 0n,
+          useVaultTokenBalance: false,
+        },
+        {
+          name: "Should handle target leverage with fractional amounts",
+          currentCollateral: ethers.parseEther("150"), // $150
+          currentDebt: ethers.parseEther("100"), // $100
+          // Current leverage: 150/(150-100) = 150/50 = 300%
+          expectedDirection: 0, // No rebalance
+          expectedAmount: 0n,
+          useVaultTokenBalance: false,
+        },
+        {
+          name: "Should handle target leverage with large amounts",
+          currentCollateral: ethers.parseEther("30000"), // $30,000
+          currentDebt: ethers.parseEther("20000"), // $20,000
+          // Current leverage: 30000/(30000-20000) = 30000/10000 = 300%
+          expectedDirection: 0, // No rebalance
+          expectedAmount: 0n,
+          useVaultTokenBalance: false,
+        },
+        {
+          name: "Should handle target leverage with vault collateral balance",
+          currentCollateral: ethers.parseEther("450"), // $450
+          currentDebt: ethers.parseEther("300"), // $300
+          // Current leverage: 450/(450-300) = 450/150 = 300%
+          vaultCollateralBalance: ethers.parseEther("10"),
+          expectedDirection: 0, // No rebalance
+          expectedAmount: 0n,
+          useVaultTokenBalance: true,
+        },
+        {
+          name: "Should handle target leverage with vault debt balance",
+          currentCollateral: ethers.parseEther("750"), // $750
+          currentDebt: ethers.parseEther("500"), // $500
+          // Current leverage: 750/(750-500) = 750/250 = 300%
+          vaultDebtBalance: ethers.parseEther("8"),
+          expectedDirection: 0, // No rebalance
+          expectedAmount: 0n,
+          useVaultTokenBalance: true,
+        },
+
+        // Additional test cases for useVaultTokenBalance: true
+        {
+          name: "Should handle low leverage with large vault collateral balance",
+          currentCollateral: ethers.parseEther("100"), // $100
+          currentDebt: ethers.parseEther("10"), // $10
+          // Current leverage: 100/(100-10) = 100/90 ≈ 111%
+          vaultCollateralBalance: ethers.parseEther("50"), // Large vault balance
+          expectedDirection: 1, // Increase
+          expectedAmount: "positive", // May be 0 if vault has enough
+          useVaultTokenBalance: true,
+        },
+        {
+          name: "Should handle medium leverage with vault collateral balance",
+          currentCollateral: ethers.parseEther("250"), // $250
+          currentDebt: ethers.parseEther("125"), // $125
+          // Current leverage: 250/(250-125) = 250/125 = 200%
+          vaultCollateralBalance: ethers.parseEther("15"),
+          expectedDirection: 1, // Increase
+          expectedAmount: "positive",
+          useVaultTokenBalance: true,
+        },
+        {
+          name: "Should handle high leverage with small vault debt balance",
+          currentCollateral: ethers.parseEther("200"), // $200
+          currentDebt: ethers.parseEther("175"), // $175
+          // Current leverage: 200/(200-175) = 200/25 = 800%
+          vaultDebtBalance: ethers.parseEther("2"), // Small vault balance
+          expectedDirection: -1, // Decrease
+          expectedAmount: "positive",
+          useVaultTokenBalance: true,
+        },
+        {
+          name: "Should handle high leverage with large vault debt balance",
+          currentCollateral: ethers.parseEther("500"), // $500
+          currentDebt: ethers.parseEther("450"), // $450
+          // Current leverage: 500/(500-450) = 500/50 = 1000%
+          vaultDebtBalance: ethers.parseEther("200"), // Very large vault balance
+          expectedDirection: -1, // Decrease
+          expectedAmount: "positive", // May be 0 if vault has enough
+          useVaultTokenBalance: true,
+        },
+        {
+          name: "Should handle vault balance with both collateral and debt tokens",
+          currentCollateral: ethers.parseEther("350"), // $350
+          currentDebt: ethers.parseEther("100"), // $100
+          // Current leverage: 350/(350-100) = 350/250 = 140%
+          vaultCollateralBalance: ethers.parseEther("20"),
+          vaultDebtBalance: ethers.parseEther("5"), // Both vault balances
+          expectedDirection: 1, // Increase
+          expectedAmount: "positive",
+          useVaultTokenBalance: true,
+        },
       ];
 
       for (const testCase of testCases) {
