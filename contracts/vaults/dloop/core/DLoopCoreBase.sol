@@ -1231,10 +1231,18 @@ abstract contract DLoopCoreBase is
 
     /**
      * @dev Gets the required collateral token amount to reach the target leverage
+     * @param expectedTargetLeverageBps The expected target leverage in basis points unit
+     * @param totalCollateralBase The total collateral base
+     * @param totalDebtBase The total debt base
+     * @param subsidyBps The subsidy in basis points unit
      * @param additionalCollateralTokenAmount The additional collateral token amount to supply
      * @return requiredCollateralTokenAmount The required collateral token amount to reach the target leverage
      */
     function _getRequiredCollateralTokenAmountToRebalance(
+        uint256 expectedTargetLeverageBps,
+        uint256 totalCollateralBase,
+        uint256 totalDebtBase,
+        uint256 subsidyBps,
         uint256 additionalCollateralTokenAmount
     ) internal view returns (uint256 requiredCollateralTokenAmount) {
         /* If the additional collateral token amount is 0, it means the expected collateral token amount to reach the target leverage
@@ -1247,7 +1255,14 @@ abstract contract DLoopCoreBase is
          * This function is only being used internally
          */
         if (additionalCollateralTokenAmount == 0) {
-            return _getCollateralTokenAmountToReachTargetLeverage(false);
+            return
+                _getCollateralTokenAmountToReachTargetLeverage(
+                    expectedTargetLeverageBps,
+                    totalCollateralBase,
+                    totalDebtBase,
+                    subsidyBps,
+                    false
+                );
         }
 
         // Otherwise, it means the expected collateral token amount to reach the target leverage
@@ -1260,10 +1275,18 @@ abstract contract DLoopCoreBase is
 
     /**
      * @dev Gets the required debt token amount to reach the target leverage
+     * @param expectedTargetLeverageBps The expected target leverage in basis points unit
+     * @param totalCollateralBase The total collateral base
+     * @param totalDebtBase The total debt base
+     * @param subsidyBps The subsidy in basis points unit
      * @param additionalDebtTokenAmount The additional debt token amount to repay
      * @return requiredDebtTokenAmount The required debt token amount to reach the target leverage
      */
     function _getRequiredDebtTokenAmountToRebalance(
+        uint256 expectedTargetLeverageBps,
+        uint256 totalCollateralBase,
+        uint256 totalDebtBase,
+        uint256 subsidyBps,
         uint256 additionalDebtTokenAmount
     ) internal view returns (uint256 requiredDebtTokenAmount) {
         /* If the additional debt token amount is 0, it means the expected debt token amount to reach the target leverage
@@ -1276,7 +1299,14 @@ abstract contract DLoopCoreBase is
          * This function is only being used internally
          */
         if (additionalDebtTokenAmount == 0) {
-            return _getDebtTokenAmountToReachTargetLeverage(false);
+            return
+                _getDebtTokenAmountToReachTargetLeverage(
+                    expectedTargetLeverageBps,
+                    totalCollateralBase,
+                    totalDebtBase,
+                    subsidyBps,
+                    false
+                );
         }
 
         uint256 debtTokenBalanceInVault = debtToken.balanceOf(address(this));
@@ -1319,6 +1349,12 @@ abstract contract DLoopCoreBase is
          *    - Leverage: 300,000 / (300,000 - 140,000) = 1.875x
          */
 
+        (
+            uint256 totalCollateralBase,
+            uint256 totalDebtBase
+        ) = getTotalCollateralAndDebtOfUserInBase(address(this));
+        uint256 subsidyBps = getCurrentSubsidyBps();
+
         // Make sure only increase the leverage if it is below the target leverage
         uint256 currentLeverageBps = getCurrentLeverageBps();
         if (currentLeverageBps >= targetLeverageBps) {
@@ -1328,6 +1364,10 @@ abstract contract DLoopCoreBase is
         // Need to calculate the required collateral token amount before transferring the additional collateral token
         // to the vault as it will change the current collateral token balance in the vault
         uint256 requiredCollateralTokenAmount = _getRequiredCollateralTokenAmountToRebalance(
+                targetLeverageBps,
+                totalCollateralBase,
+                totalDebtBase,
+                subsidyBps,
                 additionalCollateralTokenAmount
             );
 
@@ -1350,14 +1390,8 @@ abstract contract DLoopCoreBase is
         // The amount of debt token to borrow (in base currency) is equal to the amount of collateral token supplied
         // plus the subsidy (bonus for the caller)
         uint256 borrowedDebtTokenInBase = (requiredCollateralTokenAmountInBase *
-            (BasisPointConstants.ONE_HUNDRED_PERCENT_BPS +
-                getCurrentSubsidyBps())) /
+            (BasisPointConstants.ONE_HUNDRED_PERCENT_BPS + subsidyBps)) /
             BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
-
-        (
-            uint256 totalCollateralBase,
-            uint256 totalDebtBase
-        ) = getTotalCollateralAndDebtOfUserInBase(address(this));
 
         // Calculate the new leverage after increasing the leverage
         uint256 newLeverageBps = ((totalCollateralBase +
@@ -1450,6 +1484,13 @@ abstract contract DLoopCoreBase is
          *    - Leverage: 180,000 / (180,000 - 130,000) = 3.6x
          */
         // Make sure only decrease the leverage if it is above the target leverage
+
+        (
+            uint256 totalCollateralBase,
+            uint256 totalDebtBase
+        ) = getTotalCollateralAndDebtOfUserInBase(address(this));
+        uint256 subsidyBps = getCurrentSubsidyBps();
+
         uint256 currentLeverageBps = getCurrentLeverageBps();
         if (currentLeverageBps <= targetLeverageBps) {
             revert LeverageBelowTarget(currentLeverageBps, targetLeverageBps);
@@ -1458,6 +1499,10 @@ abstract contract DLoopCoreBase is
         // Need to calculate the required debt token amount before transferring the additional debt token
         // to the vault as it will change the current debt token balance in the vault
         uint256 requiredDebtTokenAmount = _getRequiredDebtTokenAmountToRebalance(
+                targetLeverageBps,
+                totalCollateralBase,
+                totalDebtBase,
+                subsidyBps,
                 additionalDebtTokenAmount
             );
 
@@ -1480,14 +1525,8 @@ abstract contract DLoopCoreBase is
         // The amount of collateral asset to withdraw is equal to the amount of debt token repaid
         // plus the subsidy (bonus for the caller)
         uint256 withdrawCollateralTokenInBase = (requiredDebtTokenAmountInBase *
-            (BasisPointConstants.ONE_HUNDRED_PERCENT_BPS +
-                getCurrentSubsidyBps())) /
+            (BasisPointConstants.ONE_HUNDRED_PERCENT_BPS + subsidyBps)) /
             BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
-
-        (
-            uint256 totalCollateralBase,
-            uint256 totalDebtBase
-        ) = getTotalCollateralAndDebtOfUserInBase(address(this));
 
         // Calculate the new leverage after decreasing the leverage
         uint256 newLeverageBps = ((totalCollateralBase -
