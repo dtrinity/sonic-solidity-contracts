@@ -286,6 +286,9 @@ describe("DLoopCoreMock Deposit Tests", function () {
           step.debtPrice,
         );
 
+        // Get leverage before deposit (after price change)
+        const leverageBeforeDeposit = await dloopMock.getCurrentLeverageBps();
+
         // Make deposit if allowed
         const maxDeposit = await dloopMock.maxDeposit(targetUser.address);
 
@@ -298,6 +301,25 @@ describe("DLoopCoreMock Deposit Tests", function () {
           // Track totalAssets after deposit and verify expected value
           const totalAssetsAfter = await dloopMock.totalAssets();
           expect(totalAssetsAfter).to.equal(step.expectedTotalAssets);
+
+          // Get leverage after deposit
+          const leverageAfterDeposit = await dloopMock.getCurrentLeverageBps();
+
+          // Check leverage preservation: after deposit, leverage should remain the same as before deposit
+          // Exception: first deposit from 0 collateral establishes target leverage
+          if (i === 0) {
+            // First deposit should establish target leverage
+            expect(leverageAfterDeposit).to.be.closeTo(
+              BigInt(TARGET_LEVERAGE_BPS),
+              BigInt(ONE_PERCENT_BPS), // Allow 1% tolerance
+            );
+          } else {
+            // Subsequent deposits should preserve the leverage from before the deposit
+            expect(leverageAfterDeposit).to.be.closeTo(
+              leverageBeforeDeposit,
+              BigInt(ONE_PERCENT_BPS), // Allow 1% tolerance
+            );
+          }
         } else {
           console.log(
             `Deposit of ${ethers.formatEther(step.amount)} ETH not allowed - maxDeposit: ${ethers.formatEther(maxDeposit)} ETH`,
@@ -382,6 +404,9 @@ describe("DLoopCoreMock Deposit Tests", function () {
           deposit.debtPrice,
         );
 
+        // Get leverage before deposit (after price change)
+        const leverageBeforeDeposit = await dloopMock.getCurrentLeverageBps();
+
         // Make deposit (check if allowed first)
         const maxDeposit = await dloopMock.maxDeposit(targetUser.address);
 
@@ -395,6 +420,25 @@ describe("DLoopCoreMock Deposit Tests", function () {
           // Track totalAssets after deposit and verify expected value
           const totalAssetsAfter = await dloopMock.totalAssets();
           expect(totalAssetsAfter).to.equal(deposit.expectedTotalAssets);
+
+          // Get leverage after deposit
+          const leverageAfterDeposit = await dloopMock.getCurrentLeverageBps();
+
+          // Check leverage preservation: after deposit, leverage should remain the same as before deposit
+          // Exception: first deposit from 0 collateral establishes target leverage
+          if (i === 0) {
+            // First deposit should establish target leverage
+            expect(leverageAfterDeposit).to.be.closeTo(
+              BigInt(TARGET_LEVERAGE_BPS),
+              BigInt(ONE_PERCENT_BPS), // Allow 1% tolerance
+            );
+          } else {
+            // Subsequent deposits should preserve the leverage from before the deposit
+            expect(leverageAfterDeposit).to.be.closeTo(
+              leverageBeforeDeposit,
+              BigInt(ONE_PERCENT_BPS), // Allow 1% tolerance
+            );
+          }
         }
 
         // Verify leverage is within reasonable bounds (200% to 400%)
@@ -495,6 +539,9 @@ describe("DLoopCoreMock Deposit Tests", function () {
       const initialTotalAssets = await dloopMock.totalAssets();
       expect(initialTotalAssets).to.equal(0);
 
+      // Track if this is the first deposit overall (from 0 collateral)
+      let isFirstDepositOverall = true;
+
       for (let i = 0; i < steps.length; i++) {
         const step = steps[i];
 
@@ -508,6 +555,9 @@ describe("DLoopCoreMock Deposit Tests", function () {
           step.debtPrice,
         );
 
+        // Get leverage before deposit (after price change)
+        const leverageBeforeDeposit = await dloopMock.getCurrentLeverageBps();
+
         // Make deposit if allowed
         const maxDeposit = await dloopMock.maxDeposit(step.user.address);
 
@@ -519,6 +569,26 @@ describe("DLoopCoreMock Deposit Tests", function () {
           // Track totalAssets after deposit and verify expected value
           const totalAssetsAfter = await dloopMock.totalAssets();
           expect(totalAssetsAfter).to.equal(step.expectedTotalAssets);
+
+          // Get leverage after deposit
+          const leverageAfterDeposit = await dloopMock.getCurrentLeverageBps();
+
+          // Check leverage preservation: after deposit, leverage should remain the same as before deposit
+          // Exception: first deposit from 0 collateral establishes target leverage
+          if (isFirstDepositOverall) {
+            // First deposit should establish target leverage
+            expect(leverageAfterDeposit).to.be.closeTo(
+              BigInt(TARGET_LEVERAGE_BPS),
+              BigInt(ONE_PERCENT_BPS), // Allow 1% tolerance
+            );
+            isFirstDepositOverall = false;
+          } else {
+            // Subsequent deposits should preserve the leverage from before the deposit
+            expect(leverageAfterDeposit).to.be.closeTo(
+              leverageBeforeDeposit,
+              BigInt(ONE_PERCENT_BPS), // Allow 1% tolerance
+            );
+          }
         }
 
         // Track user balance
@@ -623,6 +693,9 @@ describe("DLoopCoreMock Deposit Tests", function () {
       const initialTotalAssets = await dloopMock.totalAssets();
       expect(initialTotalAssets).to.equal(0);
 
+      // Track if this is the first deposit overall (from 0 collateral)
+      let isFirstDepositOverall = true;
+
       for (let i = 0; i < scenarios.length; i++) {
         const scenario = scenarios[i];
 
@@ -638,6 +711,9 @@ describe("DLoopCoreMock Deposit Tests", function () {
 
         const userAddress = scenario.user.address;
 
+        // Get leverage before deposit (after price change)
+        const leverageBeforeDeposit = await dloopMock.getCurrentLeverageBps();
+
         // Make deposit (check if allowed first)
         const maxDeposit = await dloopMock.maxDeposit(userAddress);
 
@@ -649,6 +725,26 @@ describe("DLoopCoreMock Deposit Tests", function () {
           // Track totalAssets after deposit and verify expected value
           const totalAssetsAfter = await dloopMock.totalAssets();
           expect(totalAssetsAfter).to.equal(scenario.expectedTotalAssets);
+
+          // Get leverage after deposit
+          const leverageAfterDeposit = await dloopMock.getCurrentLeverageBps();
+
+          // Check leverage preservation: after deposit, leverage should remain the same as before deposit
+          // Exception: first deposit from 0 collateral establishes target leverage
+          if (isFirstDepositOverall) {
+            // First deposit should establish target leverage
+            expect(leverageAfterDeposit).to.be.closeTo(
+              BigInt(TARGET_LEVERAGE_BPS),
+              BigInt(ONE_PERCENT_BPS), // Allow 1% tolerance
+            );
+            isFirstDepositOverall = false;
+          } else {
+            // Subsequent deposits should preserve the leverage from before the deposit
+            expect(leverageAfterDeposit).to.be.closeTo(
+              leverageBeforeDeposit,
+              BigInt(ONE_PERCENT_BPS), // Allow 1% tolerance
+            );
+          }
         }
 
         // Get user's balance after deposit
@@ -838,11 +934,25 @@ describe("DLoopCoreMock Deposit Tests", function () {
             "ERC4626ExceededMaxDeposit",
           );
         } else {
+          // Get leverage before second deposit (after rebalancing)
+          const leverageBeforeSecondDeposit =
+            await dloopMock.getCurrentLeverageBps();
+
           // Verify deposit succeeds
           const secondTx = await dloopMock
             .connect(targetUser)
             .deposit(testCase.secondDeposit.amount, targetUser.address);
           await secondTx.wait();
+
+          // Get leverage after second deposit
+          const leverageAfterSecondDeposit =
+            await dloopMock.getCurrentLeverageBps();
+
+          // Check leverage preservation: after deposit, leverage should remain the same as before deposit
+          expect(leverageAfterSecondDeposit).to.be.closeTo(
+            leverageBeforeSecondDeposit,
+            BigInt(ONE_PERCENT_BPS), // Allow 1% tolerance
+          );
 
           // Verify the vault is still balanced after second deposit
           expect(await dloopMock.isTooImbalanced()).to.be.false;
@@ -957,10 +1067,31 @@ describe("DLoopCoreMock Deposit Tests", function () {
         .connect(user1)
         .deposit(ethers.parseEther("100"), user1.address);
 
+      // Get leverage after first deposit (should be target leverage)
+      const leverageAfterFirstDeposit = await dloopMock.getCurrentLeverageBps();
+      expect(leverageAfterFirstDeposit).to.be.closeTo(
+        BigInt(TARGET_LEVERAGE_BPS),
+        BigInt(ONE_PERCENT_BPS), // Allow 1% tolerance
+      );
+
+      // Get leverage before User 2's deposit
+      const leverageBeforeSecondDeposit =
+        await dloopMock.getCurrentLeverageBps();
+
       // User 2 makes second deposit (should work when balanced)
       await dloopMock
         .connect(user2)
         .deposit(ethers.parseEther("50"), user2.address);
+
+      // Get leverage after User 2's deposit
+      const leverageAfterSecondDeposit =
+        await dloopMock.getCurrentLeverageBps();
+
+      // Check leverage preservation: after deposit, leverage should remain the same as before deposit
+      expect(leverageAfterSecondDeposit).to.be.closeTo(
+        leverageBeforeSecondDeposit,
+        BigInt(ONE_PERCENT_BPS), // Allow 1% tolerance
+      );
 
       // Change prices to create imbalance
       await dloopMock.setMockPrice(
