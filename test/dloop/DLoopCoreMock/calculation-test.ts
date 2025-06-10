@@ -100,9 +100,7 @@ describe("DLoopCoreMock Calculation Tests", function () {
 
       for (const testCase of testCases) {
         it(testCase.name, async function () {
-          const result = await dloopMock.testGetLeveragedAssets(
-            testCase.assets,
-          );
+          const result = await dloopMock.getLeveragedAssets(testCase.assets);
           expect(result).to.equal(testCase.expectedLeveraged);
         });
       }
@@ -312,7 +310,7 @@ describe("DLoopCoreMock Calculation Tests", function () {
             testCase.tokenPrice,
           );
 
-          const result = await dloopMock.testConvertFromBaseCurrencyToToken(
+          const result = await dloopMock.convertFromBaseCurrencyToToken(
             testCase.amountInBase,
             await testToken.getAddress(),
           );
@@ -418,11 +416,10 @@ describe("DLoopCoreMock Calculation Tests", function () {
             testCase.tokenPrice,
           );
 
-          const result =
-            await dloopMock.testConvertFromTokenAmountToBaseCurrency(
-              testCase.amountInToken,
-              await testToken.getAddress(),
-            );
+          const result = await dloopMock.convertFromTokenAmountToBaseCurrency(
+            testCase.amountInToken,
+            await testToken.getAddress(),
+          );
 
           expect(result).to.equal(testCase.expectedAmount);
         });
@@ -548,13 +545,12 @@ describe("DLoopCoreMock Calculation Tests", function () {
             testCase.debtPrice,
           );
 
-          const result =
-            await dloopMock.testGetBorrowAmountThatKeepCurrentLeverage(
-              await collateralToken.getAddress(),
-              await testDebtToken.getAddress(),
-              testCase.suppliedCollateralAmount,
-              testCase.leverageBpsBeforeSupply,
-            );
+          const result = await dloopMock.getBorrowAmountThatKeepCurrentLeverage(
+            await collateralToken.getAddress(),
+            await testDebtToken.getAddress(),
+            testCase.suppliedCollateralAmount,
+            testCase.leverageBpsBeforeSupply,
+          );
 
           if (testCase.expectedBorrowAmount > 0) {
             expect(result).to.be.closeTo(
@@ -685,13 +681,12 @@ describe("DLoopCoreMock Calculation Tests", function () {
             testCase.debtPrice,
           );
 
-          const result =
-            await dloopMock.testGetRepayAmountThatKeepCurrentLeverage(
-              await collateralToken.getAddress(),
-              await testDebtToken.getAddress(),
-              testCase.targetWithdrawAmount,
-              testCase.leverageBpsBeforeRepayDebt,
-            );
+          const result = await dloopMock.getRepayAmountThatKeepCurrentLeverage(
+            await collateralToken.getAddress(),
+            await testDebtToken.getAddress(),
+            testCase.targetWithdrawAmount,
+            testCase.leverageBpsBeforeRepayDebt,
+          );
 
           if (testCase.expectedRepayAmount > 0) {
             expect(result).to.be.closeTo(
@@ -1032,7 +1027,7 @@ describe("DLoopCoreMock Calculation Tests", function () {
           }
 
           const [tokenAmount, direction] =
-            await dloopMock.testGetAmountToReachTargetLeverage(
+            await dloopMock.getAmountToReachTargetLeverage(
               testCase.useVaultTokenBalance,
             );
 

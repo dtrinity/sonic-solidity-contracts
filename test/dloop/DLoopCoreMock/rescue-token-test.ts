@@ -53,8 +53,8 @@ describe("DLoopCoreMock Rescue Token Tests", function () {
       expect(restrictedTokens[1]).to.equal(await debtToken.getAddress());
     });
 
-    it("Should use testGetRestrictedRescueTokens wrapper correctly", async function () {
-      const restrictedTokens = await dloopMock.testGetRestrictedRescueTokens();
+    it("Should use getRestrictedRescueTokens correctly", async function () {
+      const restrictedTokens = await dloopMock.getRestrictedRescueTokens();
 
       // Should match the public method
       const publicRestrictedTokens =
@@ -72,7 +72,8 @@ describe("DLoopCoreMock Rescue Token Tests", function () {
       expect(restrictedTokens.length).to.equal(2);
 
       // Verify the additional rescue tokens implementation returns empty array
-      const additionalTokens = await dloopMock.testGetAdditionalRescueTokens();
+      const additionalTokens =
+        await dloopMock.testGetAdditionalRescueTokensImplementation();
       expect(additionalTokens.length).to.equal(0);
     });
   });
@@ -481,7 +482,8 @@ describe("DLoopCoreMock Rescue Token Tests", function () {
       expect(restrictedTokens[1]).to.equal(await debtToken.getAddress());
 
       // Mock implementation returns no additional restricted tokens
-      const additionalTokens = await dloopMock.testGetAdditionalRescueTokens();
+      const additionalTokens =
+        await dloopMock.testGetAdditionalRescueTokensImplementation();
       expect(additionalTokens.length).to.equal(0);
     });
   });

@@ -158,7 +158,7 @@ describe("DLoopCoreMock Virtual Methods Tests", function () {
         const newToken = await MockERC20.deploy("New Token", "NEW", 18);
 
         await expect(
-          dloopMock.testGetAssetPriceFromOracle(await newToken.getAddress()),
+          dloopMock.getAssetPriceFromOracle(await newToken.getAddress()),
         ).to.be.revertedWith("Mock price not set");
       });
 

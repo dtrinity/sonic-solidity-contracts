@@ -403,21 +403,8 @@ contract DLoopCoreMock is DLoopCoreBase {
     /**
      * @dev Test wrapper for _getAdditionalRescueTokensImplementation
      */
-    function testGetAdditionalRescueTokens()
-        external
-        pure
-        returns (address[] memory)
-    {
+    function testGetAdditionalRescueTokensImplementation() external pure returns (address[] memory) {
         return _getAdditionalRescueTokensImplementation();
-    }
-
-    /**
-     * @dev Test wrapper for _getAssetPriceFromOracleImplementation
-     */
-    function testGetAssetPriceFromOracle(
-        address asset
-    ) external view returns (uint256) {
-        return _getAssetPriceFromOracleImplementation(asset);
     }
 
     /**
@@ -462,98 +449,6 @@ contract DLoopCoreMock is DLoopCoreBase {
         address onBehalfOf
     ) external {
         _withdrawFromPoolImplementation(token, amount, onBehalfOf);
-    }
-
-    /**
-     * @dev Test wrapper for convertFromBaseCurrencyToToken
-     */
-    function testConvertFromBaseCurrencyToToken(
-        uint256 amountInBase,
-        address token
-    ) external view returns (uint256) {
-        return convertFromBaseCurrencyToToken(amountInBase, token);
-    }
-
-    /**
-     * @dev Test wrapper for convertFromTokenAmountToBaseCurrency
-     */
-    function testConvertFromTokenAmountToBaseCurrency(
-        uint256 amountInToken,
-        address token
-    ) external view returns (uint256) {
-        return convertFromTokenAmountToBaseCurrency(amountInToken, token);
-    }
-
-    /**
-     * @dev Test wrapper for getBorrowAmountThatKeepCurrentLeverage
-     */
-    function testGetBorrowAmountThatKeepCurrentLeverage(
-        address collateralAsset,
-        address debtAsset,
-        uint256 suppliedCollateralAmount,
-        uint256 leverageBpsBeforeSupply
-    ) external view returns (uint256) {
-        return
-            getBorrowAmountThatKeepCurrentLeverage(
-                collateralAsset,
-                debtAsset,
-                suppliedCollateralAmount,
-                leverageBpsBeforeSupply
-            );
-    }
-
-    /**
-     * @dev Test wrapper for getRepayAmountThatKeepCurrentLeverage
-     */
-    function testGetRepayAmountThatKeepCurrentLeverage(
-        address collateralAsset,
-        address debtAsset,
-        uint256 targetWithdrawAmount,
-        uint256 leverageBpsBeforeRepayDebt
-    ) external view returns (uint256) {
-        return
-            getRepayAmountThatKeepCurrentLeverage(
-                collateralAsset,
-                debtAsset,
-                targetWithdrawAmount,
-                leverageBpsBeforeRepayDebt
-            );
-    }
-
-    /**
-     * @dev Test wrapper for getAmountToReachTargetLeverage
-     */
-    function testGetAmountToReachTargetLeverage(
-        bool useVaultTokenBalance
-    ) external view returns (uint256 tokenAmount, int8 direction) {
-        return getAmountToReachTargetLeverage(useVaultTokenBalance);
-    }
-
-    /**
-     * @dev Test wrapper for isTooImbalanced
-     */
-    function testIsTooImbalanced() external view returns (bool) {
-        return isTooImbalanced();
-    }
-
-    /**
-     * @dev Test wrapper for getLeveragedAssets
-     */
-    function testGetLeveragedAssets(
-        uint256 assets
-    ) external view returns (uint256) {
-        return getLeveragedAssets(assets);
-    }
-
-    /**
-     * @dev Test wrapper for getRestrictedRescueTokens
-     */
-    function testGetRestrictedRescueTokens()
-        external
-        view
-        returns (address[] memory)
-    {
-        return getRestrictedRescueTokens();
     }
 
     /**
