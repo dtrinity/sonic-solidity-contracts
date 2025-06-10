@@ -1053,6 +1053,56 @@ describe("DLoopCoreMock Calculation Tests", function () {
               `Amount ${tokenAmount} should be <= ${maxAmount}`,
             );
           }
+
+          // Get the current subsidy bps
+          const subsidyBps = await dloopMock.getCurrentSubsidyBps();
+
+          // Make sure the expected amount leads to the target leverage
+          const [totalCollateralInBase, totalDebtInBase] =
+            await dloopMock.getTotalCollateralAndDebtOfUserInBase(
+              await dloopMock.getAddress(),
+            );
+
+          let rebalanceAmount = tokenAmount;
+
+          // If useVaultTokenBalance is true, we need to add the vault token balance to the rebalance amount
+          // because the vault token balance is already included in the formula
+          // of getAmountToReachTargetLeverage
+          if (testCase.useVaultTokenBalance) {
+            if (direction > 0) {
+              const valutCollateralBalanceInBase =
+                await dloopMock.convertFromTokenAmountToBaseCurrency(
+                  testCase.vaultCollateralBalance ?? 0n,
+                  await collateralToken.getAddress(),
+                );
+              rebalanceAmount += valutCollateralBalanceInBase;
+            } else if (direction < 0) {
+              const valutDebtBalanceInBase =
+                await dloopMock.convertFromTokenAmountToBaseCurrency(
+                  testCase.vaultDebtBalance ?? 0n,
+                  await debtToken.getAddress(),
+                );
+              rebalanceAmount += valutDebtBalanceInBase;
+            }
+          }
+
+          if (direction !== 0n) {
+            const oneHundredPercentBps = BigInt(ONE_HUNDRED_PERCENT_BPS);
+            const newLeverage =
+              ((totalCollateralInBase + direction * rebalanceAmount) *
+                oneHundredPercentBps) /
+              (totalCollateralInBase +
+                direction * rebalanceAmount -
+                totalDebtInBase -
+                (direction *
+                  rebalanceAmount *
+                  (oneHundredPercentBps + subsidyBps)) /
+                  oneHundredPercentBps);
+            expect(newLeverage).to.be.closeTo(
+              BigInt(TARGET_LEVERAGE_BPS),
+              ONE_BPS_UNIT, // very small tolerance
+            );
+          }
         });
       }
     });
