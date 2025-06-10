@@ -303,44 +303,16 @@ abstract contract DLoopDepositorBase is
             );
         }
 
-        /**
-         * Make sure the shares minted is not less than the minimum output shares
-         * for slippage protection
-         *
-         * We only perform slippage protection outside of the flash loan callback
-         * as we only need to care about the last state after the flash loan
-         */
-        shares = sharesAfterDeposit - sharesBeforeDeposit;
-        if (shares < minOutputShares) {
-            revert ReceivedSharesNotMetMinReceiveAmount(
-                shares,
+        // Finalize deposit and transfer shares
+        return
+            _finalizeDepositAndTransfer(
+                dLoopCore,
+                debtToken,
+                receiver,
+                sharesBeforeDeposit,
+                sharesAfterDeposit,
                 minOutputShares
             );
-        }
-
-        // There is no leftover collateral token, as all swapped collateral token
-        // (using flash loaned debt token) is used to deposit to the core contract
-
-        // Handle any leftover debt tokens and transfer them to the dLoopCore contract
-        uint256 leftoverAmount = debtToken.balanceOf(address(this));
-        if (
-            leftoverAmount >
-            minLeftoverDebtTokenAmount[address(dLoopCore)][address(debtToken)]
-        ) {
-            // Transfer any leftover debt tokens to the core contract
-            debtToken.safeTransfer(address(dLoopCore), leftoverAmount);
-            emit LeftoverDebtTokensTransferred(
-                address(dLoopCore),
-                address(debtToken),
-                leftoverAmount
-            );
-        }
-
-        // Transfer the minted shares to the receiver
-        SafeERC20.safeTransferFrom(dLoopCore, address(this), receiver, shares);
-
-        // Return the shares minted
-        return shares;
     }
 
     /* Flash loan entrypoint */
@@ -374,21 +346,10 @@ abstract contract DLoopDepositorBase is
         if (token != address(debtToken))
             revert IncompatibleDLoopCoreDebtToken(token, address(debtToken));
 
-        // Calculate the required additional collateral amount to reach the leveraged amount
-        // and make sure the overall slippage is included, which is to make sure the output
-        // shares can be at least the min output shares (proven with formula)
-        if (
-            flashLoanParams.leveragedCollateralAmount <
-            flashLoanParams.depositCollateralAmount
-        ) {
-            revert LeveragedCollateralAmountLessThanDepositCollateralAmount(
-                flashLoanParams.leveragedCollateralAmount,
-                flashLoanParams.depositCollateralAmount
+        // Calculate and validate the required additional collateral amount
+        uint256 requiredAdditionalCollateralAmount = _calculateRequiredAdditionalCollateral(
+                flashLoanParams
             );
-        }
-        uint256 requiredAdditionalCollateralAmount = (flashLoanParams
-            .leveragedCollateralAmount -
-            flashLoanParams.depositCollateralAmount);
 
         /**
          * Swap the flash loan debt token to the collateral token
@@ -407,6 +368,106 @@ abstract contract DLoopDepositorBase is
             flashLoanParams.debtTokenToCollateralSwapData
         );
 
+        // Execute deposit and validate debt token received
+        _executeDepositAndValidate(
+            flashLoanParams,
+            collateralToken,
+            debtToken,
+            debtTokenAmountUsedInSwap,
+            flashLoanFee
+        );
+
+        // Return the success bytes
+        return FLASHLOAN_CALLBACK;
+    }
+
+    /* Setters */
+
+    /**
+     * @dev Sets the minimum leftover debt token amount for a given dLoopCore and debt token
+     * @param dLoopCore Address of the dLoopCore contract
+     * @param debtToken Address of the debt token
+     * @param minAmount Minimum leftover debt token amount for the given dLoopCore and debt token
+     */
+    function setMinLeftoverDebtTokenAmount(
+        address dLoopCore,
+        address debtToken,
+        uint256 minAmount
+    ) external nonReentrant onlyOwner {
+        minLeftoverDebtTokenAmount[dLoopCore][debtToken] = minAmount;
+        if (!_existingDebtTokensMap[debtToken]) {
+            _existingDebtTokensMap[debtToken] = true;
+            existingDebtTokens.push(debtToken);
+        }
+        emit MinLeftoverDebtTokenAmountSet(dLoopCore, debtToken, minAmount);
+    }
+
+    /* Internal helpers */
+
+    /**
+     * @dev Handles leftover debt tokens by transferring them to the dLoopCore contract if above minimum threshold
+     * @param dLoopCore The dLoopCore contract
+     * @param debtToken The debt token to handle
+     */
+    function _handleLeftoverDebtTokens(
+        DLoopCoreBase dLoopCore,
+        ERC20 debtToken
+    ) internal {
+        uint256 leftoverAmount = debtToken.balanceOf(address(this));
+        if (
+            leftoverAmount >
+            minLeftoverDebtTokenAmount[address(dLoopCore)][address(debtToken)]
+        ) {
+            // Transfer any leftover debt tokens to the core contract
+            debtToken.safeTransfer(address(dLoopCore), leftoverAmount);
+            emit LeftoverDebtTokensTransferred(
+                address(dLoopCore),
+                address(debtToken),
+                leftoverAmount
+            );
+        }
+    }
+
+    /**
+     * @dev Calculates and validates the required additional collateral amount
+     * @param flashLoanParams Flash loan parameters
+     * @return requiredAdditionalCollateralAmount The required additional collateral amount
+     */
+    function _calculateRequiredAdditionalCollateral(
+        FlashLoanParams memory flashLoanParams
+    ) internal pure returns (uint256 requiredAdditionalCollateralAmount) {
+        // Calculate the required additional collateral amount to reach the leveraged amount
+        // and make sure the overall slippage is included, which is to make sure the output
+        // shares can be at least the min output shares (proven with formula)
+        if (
+            flashLoanParams.leveragedCollateralAmount <
+            flashLoanParams.depositCollateralAmount
+        ) {
+            revert LeveragedCollateralAmountLessThanDepositCollateralAmount(
+                flashLoanParams.leveragedCollateralAmount,
+                flashLoanParams.depositCollateralAmount
+            );
+        }
+        requiredAdditionalCollateralAmount = (flashLoanParams
+            .leveragedCollateralAmount -
+            flashLoanParams.depositCollateralAmount);
+    }
+
+    /**
+     * @dev Executes deposit to dLoop core and validates debt token received
+     * @param flashLoanParams Flash loan parameters
+     * @param collateralToken The collateral token
+     * @param debtToken The debt token
+     * @param debtTokenAmountUsedInSwap Amount of debt token used in swap
+     * @param flashLoanFee Flash loan fee
+     */
+    function _executeDepositAndValidate(
+        FlashLoanParams memory flashLoanParams,
+        ERC20 collateralToken,
+        ERC20 debtToken,
+        uint256 debtTokenAmountUsedInSwap,
+        uint256 flashLoanFee
+    ) internal {
         // This value is used to check if the debt token balance increased after the deposit
         uint256 debtTokenBalanceBeforeDeposit = debtToken.balanceOf(
             address(this)
@@ -421,10 +482,10 @@ abstract contract DLoopDepositorBase is
          * The minted shares will be sent to the receiver later (outside of the flash loan callback)
          */
         collateralToken.forceApprove(
-            address(dLoopCore),
+            address(flashLoanParams.dLoopCore),
             flashLoanParams.leveragedCollateralAmount
         );
-        dLoopCore.deposit(
+        flashLoanParams.dLoopCore.deposit(
             flashLoanParams.leveragedCollateralAmount,
             address(this)
         );
@@ -458,30 +519,49 @@ abstract contract DLoopDepositorBase is
                 flashLoanFee
             );
         }
-
-        // Return the success bytes
-        return FLASHLOAN_CALLBACK;
     }
 
-    /* Setters */
-
     /**
-     * @dev Sets the minimum leftover debt token amount for a given dLoopCore and debt token
-     * @param dLoopCore Address of the dLoopCore contract
-     * @param debtToken Address of the debt token
-     * @param minAmount Minimum leftover debt token amount for the given dLoopCore and debt token
+     * @dev Finalizes deposit by validating shares and transferring to receiver
+     * @param dLoopCore The dLoopCore contract
+     * @param debtToken The debt token
+     * @param receiver Address to receive the shares
+     * @param sharesBeforeDeposit Shares before deposit
+     * @param sharesAfterDeposit Shares after deposit
+     * @param minOutputShares Minimum output shares for slippage protection
+     * @return shares Amount of shares minted
      */
-    function setMinLeftoverDebtTokenAmount(
-        address dLoopCore,
-        address debtToken,
-        uint256 minAmount
-    ) external nonReentrant onlyOwner {
-        minLeftoverDebtTokenAmount[dLoopCore][debtToken] = minAmount;
-        if (!_existingDebtTokensMap[debtToken]) {
-            _existingDebtTokensMap[debtToken] = true;
-            existingDebtTokens.push(debtToken);
+    function _finalizeDepositAndTransfer(
+        DLoopCoreBase dLoopCore,
+        ERC20 debtToken,
+        address receiver,
+        uint256 sharesBeforeDeposit,
+        uint256 sharesAfterDeposit,
+        uint256 minOutputShares
+    ) internal returns (uint256 shares) {
+        /**
+         * Make sure the shares minted is not less than the minimum output shares
+         * for slippage protection
+         *
+         * We only perform slippage protection outside of the flash loan callback
+         * as we only need to care about the last state after the flash loan
+         */
+        shares = sharesAfterDeposit - sharesBeforeDeposit;
+        if (shares < minOutputShares) {
+            revert ReceivedSharesNotMetMinReceiveAmount(
+                shares,
+                minOutputShares
+            );
         }
-        emit MinLeftoverDebtTokenAmountSet(dLoopCore, debtToken, minAmount);
+
+        // There is no leftover collateral token, as all swapped collateral token
+        // (using flash loaned debt token) is used to deposit to the core contract
+
+        // Handle any leftover debt tokens and transfer them to the dLoopCore contract
+        _handleLeftoverDebtTokens(dLoopCore, debtToken);
+
+        // Transfer the minted shares to the receiver
+        SafeERC20.safeTransferFrom(dLoopCore, address(this), receiver, shares);
     }
 
     /* Data encoding/decoding helpers */

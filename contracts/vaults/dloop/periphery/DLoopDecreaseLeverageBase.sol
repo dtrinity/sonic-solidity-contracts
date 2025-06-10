@@ -119,6 +119,17 @@ abstract contract DLoopDecreaseLeverageBase is
         DLoopCoreBase dLoopCore;
     }
 
+    // Struct to group decrease leverage operation state to reduce stack depth
+    struct DecreaseLeverageState {
+        uint256 leverageBeforeDecrease;
+        uint256 leverageAfterDecrease;
+        uint256 collateralTokenBalanceBeforeDecrease;
+        uint256 collateralTokenBalanceAfterDecrease;
+        uint256 requiredFlashLoanAmount;
+        uint256 debtFromUser;
+        uint256 requiredDebtFromFlashLoan;
+    }
+
     /**
      * @dev Constructor for the DLoopDecreaseLeverageBase contract
      * @param _flashLender Address of the flash loan provider
@@ -182,31 +193,37 @@ abstract contract DLoopDecreaseLeverageBase is
             revert("Current leverage is already at or below target");
         }
 
+        // Use struct to group related variables and reduce stack depth
+        DecreaseLeverageState memory state;
+
         // Calculate how much we need from flash loan
-        uint256 debtFromUser = additionalDebtFromUser +
+        state.debtFromUser =
+            additionalDebtFromUser +
             debtToken.balanceOf(address(this));
-        if (requiredDebtAmount > debtFromUser) {
-            uint256 requiredDebtFromFlashLoan = requiredDebtAmount -
-                debtFromUser;
+        if (requiredDebtAmount > state.debtFromUser) {
+            state.requiredDebtFromFlashLoan =
+                requiredDebtAmount -
+                state.debtFromUser;
 
             // Convert debt amount to collateral token amount for flash loan
-            uint256 requiredFlashLoanAmount = dLoopCore
+            state.requiredFlashLoanAmount = dLoopCore
                 .convertFromTokenAmountToBaseCurrency(
-                    requiredDebtFromFlashLoan,
+                    state.requiredDebtFromFlashLoan,
                     address(debtToken)
                 );
-            requiredFlashLoanAmount = dLoopCore.convertFromBaseCurrencyToToken(
-                requiredFlashLoanAmount,
-                address(collateralToken)
-            );
+            state.requiredFlashLoanAmount = dLoopCore
+                .convertFromBaseCurrencyToToken(
+                    state.requiredFlashLoanAmount,
+                    address(collateralToken)
+                );
 
             // Check if flash loan amount is available
             uint256 maxFlashLoanAmount = flashLender.maxFlashLoan(
                 address(collateralToken)
             );
-            if (requiredFlashLoanAmount > maxFlashLoanAmount) {
+            if (state.requiredFlashLoanAmount > maxFlashLoanAmount) {
                 revert FlashLoanAmountExceedsMaxAvailable(
-                    requiredFlashLoanAmount,
+                    state.requiredFlashLoanAmount,
                     maxFlashLoanAmount
                 );
             }
@@ -222,19 +239,19 @@ abstract contract DLoopDecreaseLeverageBase is
             bytes memory data = _encodeParamsToData(params);
 
             // Record initial leverage
-            uint256 leverageBeforeDecrease = dLoopCore.getCurrentLeverageBps();
+            state.leverageBeforeDecrease = dLoopCore.getCurrentLeverageBps();
 
             // This value is used to check if the collateral token balance increased after decrease leverage
-            uint256 collateralTokenBalanceBeforeDecrease = collateralToken
+            state.collateralTokenBalanceBeforeDecrease = collateralToken
                 .balanceOf(address(this));
 
             // Approve flash lender to spend collateral tokens
             collateralToken.forceApprove(
                 address(flashLender),
-                requiredFlashLoanAmount +
+                state.requiredFlashLoanAmount +
                     flashLender.flashFee(
                         address(collateralToken),
-                        requiredFlashLoanAmount
+                        state.requiredFlashLoanAmount
                     )
             );
 
@@ -242,43 +259,43 @@ abstract contract DLoopDecreaseLeverageBase is
             flashLender.flashLoan(
                 this,
                 address(collateralToken),
-                requiredFlashLoanAmount,
+                state.requiredFlashLoanAmount,
                 data
             );
 
             // Verify leverage decreased
-            uint256 leverageAfterDecrease = dLoopCore.getCurrentLeverageBps();
-            if (leverageAfterDecrease >= leverageBeforeDecrease) {
+            state.leverageAfterDecrease = dLoopCore.getCurrentLeverageBps();
+            if (state.leverageAfterDecrease >= state.leverageBeforeDecrease) {
                 revert LeverageNotDecreased(
-                    leverageBeforeDecrease,
-                    leverageAfterDecrease
+                    state.leverageBeforeDecrease,
+                    state.leverageAfterDecrease
                 );
             }
 
             // Calculate received collateral tokens
-            uint256 collateralTokenBalanceAfterDecrease = collateralToken
+            state.collateralTokenBalanceAfterDecrease = collateralToken
                 .balanceOf(address(this));
             if (
-                collateralTokenBalanceAfterDecrease <=
-                collateralTokenBalanceBeforeDecrease
+                state.collateralTokenBalanceAfterDecrease <=
+                state.collateralTokenBalanceBeforeDecrease
             ) {
                 revert CollateralTokenBalanceNotIncreasedAfterDecreaseLeverage(
-                    collateralTokenBalanceBeforeDecrease,
-                    collateralTokenBalanceAfterDecrease
+                    state.collateralTokenBalanceBeforeDecrease,
+                    state.collateralTokenBalanceAfterDecrease
                 );
             }
 
             receivedCollateralTokenAmount =
-                collateralTokenBalanceAfterDecrease -
-                collateralTokenBalanceBeforeDecrease;
+                state.collateralTokenBalanceAfterDecrease -
+                state.collateralTokenBalanceBeforeDecrease;
         } else {
             // No flash loan needed, direct decrease leverage
-            uint256 leverageBeforeDecrease = dLoopCore.getCurrentLeverageBps();
-            uint256 collateralTokenBalanceBeforeDecrease = collateralToken
+            state.leverageBeforeDecrease = dLoopCore.getCurrentLeverageBps();
+            state.collateralTokenBalanceBeforeDecrease = collateralToken
                 .balanceOf(address(this));
 
             // Approve debt token for core contract
-            debtToken.forceApprove(address(dLoopCore), debtFromUser);
+            debtToken.forceApprove(address(dLoopCore), state.debtFromUser);
 
             // Call decrease leverage directly
             dLoopCore.decreaseLeverage(
@@ -287,30 +304,30 @@ abstract contract DLoopDecreaseLeverageBase is
             );
 
             // Verify leverage decreased
-            uint256 leverageAfterDecrease = dLoopCore.getCurrentLeverageBps();
-            if (leverageAfterDecrease >= leverageBeforeDecrease) {
+            state.leverageAfterDecrease = dLoopCore.getCurrentLeverageBps();
+            if (state.leverageAfterDecrease >= state.leverageBeforeDecrease) {
                 revert LeverageNotDecreased(
-                    leverageBeforeDecrease,
-                    leverageAfterDecrease
+                    state.leverageBeforeDecrease,
+                    state.leverageAfterDecrease
                 );
             }
 
             // Calculate received collateral tokens
-            uint256 collateralTokenBalanceAfterDecrease = collateralToken
+            state.collateralTokenBalanceAfterDecrease = collateralToken
                 .balanceOf(address(this));
             if (
-                collateralTokenBalanceAfterDecrease <=
-                collateralTokenBalanceBeforeDecrease
+                state.collateralTokenBalanceAfterDecrease <=
+                state.collateralTokenBalanceBeforeDecrease
             ) {
                 revert CollateralTokenBalanceNotIncreasedAfterDecreaseLeverage(
-                    collateralTokenBalanceBeforeDecrease,
-                    collateralTokenBalanceAfterDecrease
+                    state.collateralTokenBalanceBeforeDecrease,
+                    state.collateralTokenBalanceAfterDecrease
                 );
             }
 
             receivedCollateralTokenAmount =
-                collateralTokenBalanceAfterDecrease -
-                collateralTokenBalanceBeforeDecrease;
+                state.collateralTokenBalanceAfterDecrease -
+                state.collateralTokenBalanceBeforeDecrease;
         }
 
         // Slippage protection

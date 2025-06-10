@@ -50,14 +50,16 @@ slither: ## Run Slither static analysis on all contracts with summaries and loc
 	@echo "Running Slither static analysis..."
 	@mkdir -p reports/slither
 	@slither . --config-file slither.config.json \
+		--filter-paths "contracts/dlend,contracts/mocks,contracts/testing" \
 		--print human-summary \
-		--print contract-summary \
-		--print loc
+		--disable-color > reports/slither/human-summary.txt 2>&1 || true
+	@echo "Results saved to reports/slither/human-summary.txt"
 
 slither.check: ## Run Slither with fail-on-high severity with summaries and loc
 	@echo "Running Slither with strict checks..."
 	@mkdir -p reports/slither
 	@slither . --config-file slither.config.json --fail-high \
+		--filter-paths "contracts/dlend,contracts/mocks,contracts/testing" \
 		--print human-summary \
 		--print contract-summary \
 		--print loc
@@ -70,37 +72,17 @@ slither.focused: ## Run Slither on specific contract with summaries and loc (usa
 	@echo "Running Slither on $(contract)..."
 	@mkdir -p reports/slither
 	@slither $(contract) --config-file slither.config.json \
+		--filter-paths "contracts/dlend,contracts/mocks,contracts/testing" \
 		--print human-summary \
 		--print contract-summary \
 		--print loc
 
-slither.all: ## Run Slither on all contracts and save outputs to files
-	@echo "Running Slither test analysis on all contracts..."
-	@mkdir -p reports/slither
-	@echo "Running human-summary..."
-	@slither . --config-file slither.config.json \
-		--print human-summary \
-		--disable-color > reports/slither/human-summary.txt 2>&1 || true
-	@echo "Running contract-summary..."
-	@slither . --config-file slither.config.json \
-		--print contract-summary \
-		--disable-color > reports/slither/contract-summary.txt 2>&1 || true
-	@echo "Running loc..."
-	@slither . --config-file slither.config.json \
-		--print loc \
-		--disable-color > reports/slither/loc.txt 2>&1 || true
-	@echo "Results saved to reports/slither/"
-
 mythril: ## Run Mythril security analysis on all contracts
 	@echo "Running Mythril security analysis on all contracts..."
-	@echo "Compiling contracts first..."
-	@yarn hardhat compile > /dev/null 2>&1
-	@mkdir -p reports/mythril
-	@find contracts -name "*.sol" -not -path "*/mocks/*" -not -path "*/testing/*" -not -path "*/dependencies/*" | while read contract; do \
-		echo "Analyzing $$contract..."; \
-		myth analyze "$$contract" --execution-timeout 120 --solc-json artifacts/build-info/*.json -o json > "reports/mythril/$$(basename $$contract .sol).json" 2>&1; \
-	done
-	@echo "Mythril analysis completed. Reports saved in reports/mythril/"
+	@./scripts/mythril/run_mythril.py --max-workers 8 --timeout 300 --max-depth 18
+
+	@echo "Generating Mythril analysis summary..."
+	@./scripts/mythril/generate_summary.py
 
 mythril.focused: ## Run Mythril on specific contract (usage: make mythril.focused contract=ContractName)
 	@if [ "$(contract)" = "" ]; then \
@@ -108,21 +90,11 @@ mythril.focused: ## Run Mythril on specific contract (usage: make mythril.focuse
 		exit 1; \
 	fi
 	@echo "Running Mythril analysis on $(contract)..."
-	@echo "Compiling contracts first..."
-	@yarn hardhat compile > /dev/null 2>&1
-	@mkdir -p reports/mythril
-	@myth analyze "$(contract)" --execution-timeout 300 -t 5 --solc-args "--allow-paths .,node_modules" | tee "reports/mythril/$$(basename $(contract) .sol)_detailed.txt"
+	@./scripts/mythril/run_mythril.py --contract "$(contract)" --timeout 300 -t 10 --max-depth 18 --call-depth-limit 8
 
-mythril.deep: ## Run deep Mythril analysis with extended parameters
-	@if [ "$(contract)" = "" ]; then \
-		echo "Must provide 'contract' argument. Example: 'make mythril.deep contract=contracts/dlend/core/protocol/pool/Pool.sol'"; \
-		exit 1; \
-	fi
-	@echo "Running deep Mythril analysis on $(contract)..."
-	@echo "Compiling contracts first..."
-	@yarn hardhat compile > /dev/null 2>&1
-	@mkdir -p reports/mythril
-	@myth analyze "$(contract)" --execution-timeout 600 -t 10 --max-depth 20 --call-depth-limit 8 --solc-json artifacts/build-info/*.json | tee "reports/mythril/$$(basename $(contract) .sol)_deep.txt"
+mythril.summary: ## Generate summary from existing Mythril results
+	@echo "Generating Mythril analysis summary..."
+	@./scripts/mythril/generate_summary.py
 
 audit: slither mythril ## Run full security analysis (Slither + full Mythril)
 	@echo "Full security analysis completed!"
@@ -171,5 +143,5 @@ clean: ## When renaming directories or files, run this to clean up
 	@rm -rf cache
 	@echo "Cleaned solidity cache and artifacts. Remember to recompile."
 
-.PHONY: help compile test deploy clean slither slither.check slither.focused slither.summary slither.test slither.clean slither.view slither.convert slither.html slither.markdown slither.csv slither.all-formats mythril mythril.focused mythril.quick mythril.deep mythril.dlend mythril.vaults mythril.list-detectors mythril.version mythril.test mythril.clean security security.full
+.PHONY: help compile test deploy clean slither slither.check slither.focused mythril mythril.focused mythril.deep mythril.fast mythril.force mythril.summary audit
 

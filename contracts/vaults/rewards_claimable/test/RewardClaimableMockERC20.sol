@@ -19,7 +19,7 @@
 // It is a simple ERC20 token that allows for minting and burning of tokens
 // It allows burning directly from anyone to simplify testing
 
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
