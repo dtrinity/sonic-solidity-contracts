@@ -988,28 +988,44 @@ abstract contract DLoopCoreBase is
 
     /**
      * @dev Gets the collateral token amount to reach the target leverage
+     * @param expectedTargetLeverageBps The expected target leverage in basis points unit
+     * @param totalCollateralBase The total collateral base
+     * @param totalDebtBase The total debt base
+     * @param subsidyBps The subsidy in basis points unit
      * @param useVaultTokenBalance Whether to use the current token balance in the vault as the amount to rebalance
      * @return collateralTokenAmount The collateral token amount to reach the target leverage
      */
     function _getCollateralTokenAmountToReachTargetLeverage(
+        uint256 expectedTargetLeverageBps,
+        uint256 totalCollateralBase,
+        uint256 totalDebtBase,
+        uint256 subsidyBps,
         bool useVaultTokenBalance
     ) internal view returns (uint256) {
-        // The formula is at getAmountToReachTargetLeverage()
+        /**
+         * The formula is at getAmountToReachTargetLeverage()
+         *
+         * Calculate the amount of collateral token to supply
+         * The original formula is:
+         *      x = (T'*(C - D) - C*ONE_HUNDRED_PERCENT_BPS) * ONE_HUNDRED_PERCENT_BPS / (ONE_HUNDRED_PERCENT_BPS^2 + T' * k')
+         *
+         * However, the calculation of ONE_HUNDRED_PERCENT_BPS^2 causes arithmetic overflow,
+         * so we need to simplify the formula to avoid the overflow.
+         *
+         * So, the transformed formula is:
+         *      x = (T'*(C - D) - C*ONE_HUNDRED_PERCENT_BPS) / (ONE_HUNDRED_PERCENT_BPS + T' * k' / ONE_HUNDRED_PERCENT_BPS)
+         */
+        require(
+            totalCollateralBase > 0,
+            "Total collateral base must be greater than 0"
+        );
 
-        (
-            uint256 totalCollateralBase,
-            uint256 totalDebtBase
-        ) = getTotalCollateralAndDebtOfUserInBase(address(this));
-
-        uint256 subsidyBps = getCurrentSubsidyBps();
-
-        // Calculate the amount of collateral token to supply
-        uint256 requiredCollateralTokenAmountInBase = (targetLeverageBps *
+        uint256 requiredCollateralTokenAmountInBase = (expectedTargetLeverageBps *
                 (totalCollateralBase - totalDebtBase) -
                 totalCollateralBase *
                 BasisPointConstants.ONE_HUNDRED_PERCENT_BPS) /
                 (BasisPointConstants.ONE_HUNDRED_PERCENT_BPS +
-                    ((targetLeverageBps * subsidyBps) /
+                    ((expectedTargetLeverageBps * subsidyBps) /
                         BasisPointConstants.ONE_HUNDRED_PERCENT_BPS));
 
         // Convert to token unit
@@ -1042,28 +1058,44 @@ abstract contract DLoopCoreBase is
 
     /**
      * @dev Gets the debt token amount to reach the target leverage
+     * @param expectedTargetLeverageBps The expected target leverage in basis points unit
+     * @param totalCollateralBase The total collateral base
+     * @param totalDebtBase The total debt base
+     * @param subsidyBps The subsidy in basis points unit
      * @param useVaultTokenBalance Whether to use the current token balance in the vault as the amount to rebalance
      * @return requiredDebtTokenAmount The debt token amount to reach the target leverage
      */
     function _getDebtTokenAmountToReachTargetLeverage(
+        uint256 expectedTargetLeverageBps,
+        uint256 totalCollateralBase,
+        uint256 totalDebtBase,
+        uint256 subsidyBps,
         bool useVaultTokenBalance
     ) internal view returns (uint256) {
-        // The formula is at getAmountToReachTargetLeverage()
+        /**
+         * The formula is at getAmountToReachTargetLeverage()
+         *
+         * Calculate the amount of debt token to repay
+         * The original formula is:
+         *      x = (C*ONE_HUNDRED_PERCENT_BPS - T'*(C - D)) * ONE_HUNDRED_PERCENT_BPS / (ONE_HUNDRED_PERCENT_BPS^2 + T' * k')
+         *
+         * However, the calculation of ONE_HUNDRED_PERCENT_BPS^2 causes arithmetic overflow,
+         * so we need to simplify the formula to avoid the overflow.
+         *
+         * So, the transformed formula is:
+         *      x = (C*ONE_HUNDRED_PERCENT_BPS - T'*(C - D)) / (ONE_HUNDRED_PERCENT_BPS + T' * k' / ONE_HUNDRED_PERCENT_BPS)
+         */
+        require(
+            totalCollateralBase > 0,
+            "Total collateral base must be greater than 0"
+        );
 
-        (
-            uint256 totalCollateralBase,
-            uint256 totalDebtBase
-        ) = getTotalCollateralAndDebtOfUserInBase(address(this));
-
-        uint256 subsidyBps = getCurrentSubsidyBps();
-
-        // Calculate the amount of debt token to repay
         uint256 requiredDebtTokenAmountInBase = (totalCollateralBase *
             BasisPointConstants.ONE_HUNDRED_PERCENT_BPS -
-            targetLeverageBps *
+            expectedTargetLeverageBps *
             (totalCollateralBase - totalDebtBase)) /
             (BasisPointConstants.ONE_HUNDRED_PERCENT_BPS +
-                (targetLeverageBps * subsidyBps) /
+                (expectedTargetLeverageBps * subsidyBps) /
                 BasisPointConstants.ONE_HUNDRED_PERCENT_BPS);
 
         // Convert to token unit
@@ -1128,32 +1160,52 @@ abstract contract DLoopCoreBase is
          *  <=> x*(1 + T*k) = T*C - T*D - C
          *  <=> x = (T*(C - D) - C) / (1 + T*k)
          *
-         * Suppose that T' = T * ONE_HUNDRED_PERCENT_BPS, then:
-         *
-         *  => T = T' / ONE_HUNDRED_PERCENT_BPS
+         * Suppose that:
+         *      T' = T * ONE_HUNDRED_PERCENT_BPS
+         *      k' = k * ONE_HUNDRED_PERCENT_BPS
+         * then:
+         *      T = T' / ONE_HUNDRED_PERCENT_BPS
+         *      k = k' / ONE_HUNDRED_PERCENT_BPS
          * where:
          *      - T' is the target leverage in basis points unit
+         *      - k' is the subsidy in basis points unit
          *
          * We have:
          *      x = (T*(C - D) - C) / (1 + T*k)
          *  <=> x = (T'*(C - D) / ONE_HUNDRED_PERCENT_BPS - C) / (1 + T'*k / ONE_HUNDRED_PERCENT_BPS)
          *  <=> x = (T'*(C - D) - C*ONE_HUNDRED_PERCENT_BPS) / (ONE_HUNDRED_PERCENT_BPS + T'*k)
+         *  <=> x = (T'*(C - D) - C*ONE_HUNDRED_PERCENT_BPS) / (ONE_HUNDRED_PERCENT_BPS + T' * k' / ONE_HUNDRED_PERCENT_BPS)
+         *  <=> x = (T'*(C - D) - C*ONE_HUNDRED_PERCENT_BPS) * ONE_HUNDRED_PERCENT_BPS / (ONE_HUNDRED_PERCENT_BPS^2 + T' * k')
          *
          * If x > 0, it means the user should increase the leverage, so the direction is 1
          *    => x = (T*(C - D) - C) / (1 + T*k)
-         *    => x = (T'*(C - D) - C*ONE_HUNDRED_PERCENT_BPS) / (ONE_HUNDRED_PERCENT_BPS + T'*k)
+         *    => x = (T'*(C - D) - C*ONE_HUNDRED_PERCENT_BPS) * ONE_HUNDRED_PERCENT_BPS / (ONE_HUNDRED_PERCENT_BPS^2 + T' * k')
          * If x < 0, it means the user should decrease the leverage, so the direction is -1
          *    => x = (C - T*(C - D)) / (1 + T*k)
-         *    => x = (C*ONE_HUNDRED_PERCENT_BPS - T'*(C - D)) / (ONE_HUNDRED_PERCENT_BPS + T'*k)
+         *    => x = (C*ONE_HUNDRED_PERCENT_BPS - T'*(C - D)) * ONE_HUNDRED_PERCENT_BPS / (ONE_HUNDRED_PERCENT_BPS^2 + T' * k')
          * If x = 0, it means the user should not rebalance, so the direction is 0
          */
 
         uint256 currentLeverageBps = getCurrentLeverageBps();
+        uint256 subsidyBps = getCurrentSubsidyBps();
+        (
+            uint256 totalCollateralBase,
+            uint256 totalDebtBase
+        ) = getTotalCollateralAndDebtOfUserInBase(address(this));
+
+        if (totalCollateralBase == 0) {
+            // No collateral means no debt and no leverage, so no rebalance is needed
+            return (0, 0);
+        }
 
         // If the current leverage is below the target leverage, the user should increase the leverage
         if (currentLeverageBps < targetLeverageBps) {
             return (
                 _getCollateralTokenAmountToReachTargetLeverage(
+                    targetLeverageBps,
+                    totalCollateralBase,
+                    totalDebtBase,
+                    subsidyBps,
                     useVaultTokenBalance
                 ),
                 1
@@ -1162,7 +1214,13 @@ abstract contract DLoopCoreBase is
         // If the current leverage is above the target leverage, the user should decrease the leverage
         else if (currentLeverageBps > targetLeverageBps) {
             return (
-                _getDebtTokenAmountToReachTargetLeverage(useVaultTokenBalance),
+                _getDebtTokenAmountToReachTargetLeverage(
+                    targetLeverageBps,
+                    totalCollateralBase,
+                    totalDebtBase,
+                    subsidyBps,
+                    useVaultTokenBalance
+                ),
                 -1
             );
         }

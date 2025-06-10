@@ -744,15 +744,15 @@ describe("DLoopCoreMock Calculation Tests", function () {
           currentDebt: ethers.parseEther("10"), // $10
           // Current leverage: 1000/(1000-10) ≈ 101%
           expectedDirection: 1, // Increase to reach 300%
-          expectedAmount: ethers.parseUnits("0.065664477850738308", 18),
+          expectedAmount: ethers.parseUnits("1912.621359223300970873", 18),
           useVaultTokenBalance: false,
         },
         {
           name: "Should handle zero collateral and debt",
           currentCollateral: 0n,
           currentDebt: 0n,
-          expectedDirection: 1, // Contract treats no position as needing to increase leverage
-          expectedAmount: 0n, // But amount is 0 when no position exists
+          expectedDirection: 0, // No rebalance needed
+          expectedAmount: 0n,
           useVaultTokenBalance: false,
         },
         {
