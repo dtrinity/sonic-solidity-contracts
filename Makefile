@@ -3,7 +3,7 @@
 
 help: ## Show this help menu
 	@echo "Usage:"
-	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2}'
+	@grep -E '^[a-zA-Z_.-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2}'
 
 #############
 ## Linting ##
@@ -41,6 +41,91 @@ test.typescript.integ: ## Run the typescript integration tests
 
 test.hardhat: ## Run the hardhat tests
 	@yarn hardhat test
+
+######################
+## Static Analysis ##
+######################
+
+slither: ## Run Slither static analysis on all contracts with summaries and loc
+	@echo "Running Slither static analysis..."
+	@mkdir -p reports/slither
+	@slither . --config-file slither.config.json \
+		--print human-summary \
+		--print contract-summary \
+		--print loc
+
+slither.check: ## Run Slither with fail-on-high severity with summaries and loc
+	@echo "Running Slither with strict checks..."
+	@mkdir -p reports/slither
+	@slither . --config-file slither.config.json --fail-high \
+		--print human-summary \
+		--print contract-summary \
+		--print loc
+
+slither.focused: ## Run Slither on specific contract with summaries and loc (usage: make slither.focused contract=ContractName)
+	@if [ "$(contract)" = "" ]; then \
+		echo "Must provide 'contract' argument. Example: 'make slither.focused contract=contracts/dlend/core/protocol/pool/Pool.sol'"; \
+		exit 1; \
+	fi
+	@echo "Running Slither on $(contract)..."
+	@mkdir -p reports/slither
+	@slither $(contract) --config-file slither.config.json \
+		--print human-summary \
+		--print contract-summary \
+		--print loc
+
+slither.all: ## Run Slither on all contracts and save outputs to files
+	@echo "Running Slither test analysis on all contracts..."
+	@mkdir -p reports/slither
+	@echo "Running human-summary..."
+	@slither . --config-file slither.config.json \
+		--print human-summary \
+		--disable-color > reports/slither/human-summary.txt 2>&1 || true
+	@echo "Running contract-summary..."
+	@slither . --config-file slither.config.json \
+		--print contract-summary \
+		--disable-color > reports/slither/contract-summary.txt 2>&1 || true
+	@echo "Running loc..."
+	@slither . --config-file slither.config.json \
+		--print loc \
+		--disable-color > reports/slither/loc.txt 2>&1 || true
+	@echo "Results saved to reports/slither/"
+
+mythril: ## Run Mythril security analysis on all contracts
+	@echo "Running Mythril security analysis on all contracts..."
+	@echo "Compiling contracts first..."
+	@yarn hardhat compile > /dev/null 2>&1
+	@mkdir -p reports/mythril
+	@find contracts -name "*.sol" -not -path "*/mocks/*" -not -path "*/testing/*" -not -path "*/dependencies/*" | while read contract; do \
+		echo "Analyzing $$contract..."; \
+		myth analyze "$$contract" --execution-timeout 120 --solc-json artifacts/build-info/*.json -o json > "reports/mythril/$$(basename $$contract .sol).json" 2>&1; \
+	done
+	@echo "Mythril analysis completed. Reports saved in reports/mythril/"
+
+mythril.focused: ## Run Mythril on specific contract (usage: make mythril.focused contract=ContractName)
+	@if [ "$(contract)" = "" ]; then \
+		echo "Must provide 'contract' argument. Example: 'make mythril.focused contract=contracts/dlend/core/protocol/pool/Pool.sol'"; \
+		exit 1; \
+	fi
+	@echo "Running Mythril analysis on $(contract)..."
+	@echo "Compiling contracts first..."
+	@yarn hardhat compile > /dev/null 2>&1
+	@mkdir -p reports/mythril
+	@myth analyze "$(contract)" --execution-timeout 300 -t 5 --solc-args "--allow-paths .,node_modules" | tee "reports/mythril/$$(basename $(contract) .sol)_detailed.txt"
+
+mythril.deep: ## Run deep Mythril analysis with extended parameters
+	@if [ "$(contract)" = "" ]; then \
+		echo "Must provide 'contract' argument. Example: 'make mythril.deep contract=contracts/dlend/core/protocol/pool/Pool.sol'"; \
+		exit 1; \
+	fi
+	@echo "Running deep Mythril analysis on $(contract)..."
+	@echo "Compiling contracts first..."
+	@yarn hardhat compile > /dev/null 2>&1
+	@mkdir -p reports/mythril
+	@myth analyze "$(contract)" --execution-timeout 600 -t 10 --max-depth 20 --call-depth-limit 8 --solc-json artifacts/build-info/*.json | tee "reports/mythril/$$(basename $(contract) .sol)_deep.txt"
+
+audit: slither mythril ## Run full security analysis (Slither + full Mythril)
+	@echo "Full security analysis completed!"
 
 ################
 ## Deployment ##
@@ -86,5 +171,5 @@ clean: ## When renaming directories or files, run this to clean up
 	@rm -rf cache
 	@echo "Cleaned solidity cache and artifacts. Remember to recompile."
 
-.PHONY: help compile test deploy clean
+.PHONY: help compile test deploy clean slither slither.check slither.focused slither.summary slither.test slither.clean slither.view slither.convert slither.html slither.markdown slither.csv slither.all-formats mythril mythril.focused mythril.quick mythril.deep mythril.dlend mythril.vaults mythril.list-detectors mythril.version mythril.test mythril.clean security security.full
 
