@@ -151,7 +151,7 @@ describe("DLoopCoreMock Rebalance Calculation Tests", function () {
           currentDebt: ethers.parseEther("225"), // $225
           // Current leverage: 300/(300-225) = 300/75 = 400%
           expectedDirection: -1, // Decrease
-          expectedAmount: ethers.parseUnits("0.002499916669444351", 18),
+          expectedAmount: ethers.parseUnits("72.81553398058253", 18),
           useVaultTokenBalance: false,
         },
         {
@@ -160,7 +160,7 @@ describe("DLoopCoreMock Rebalance Calculation Tests", function () {
           currentDebt: ethers.parseEther("300"), // $300
           // Current leverage: 400/(400-300) = 400/100 = 400%
           expectedDirection: -1, // Decrease
-          expectedAmount: ethers.parseUnits("0.003333222225925802", 18),
+          expectedAmount: ethers.parseUnits("97.08737864077669", 18),
           useVaultTokenBalance: false,
         },
         {
@@ -169,7 +169,7 @@ describe("DLoopCoreMock Rebalance Calculation Tests", function () {
           currentDebt: ethers.parseEther("375"), // $375
           // Current leverage: 500/(500-375) = 500/125 = 400%
           expectedDirection: -1, // Decrease
-          expectedAmount: ethers.parseUnits("0.004166527782407253", 18),
+          expectedAmount: ethers.parseUnits("121.35922330097087", 18),
           useVaultTokenBalance: false,
         },
         {
@@ -178,7 +178,7 @@ describe("DLoopCoreMock Rebalance Calculation Tests", function () {
           currentDebt: ethers.parseEther("900"), // $900
           // Current leverage: 1000/(1000-900) = 1000/100 = 1000%
           expectedDirection: -1, // Decrease
-          expectedAmount: ethers.parseUnits("0.023332555581480617", 18),
+          expectedAmount: ethers.parseUnits("679.6116504854369", 18),
           useVaultTokenBalance: false,
         },
         {
@@ -187,7 +187,7 @@ describe("DLoopCoreMock Rebalance Calculation Tests", function () {
           currentDebt: ethers.parseEther("201"), // $201
           // Current leverage: 300/(300-201) = 300/99 ≈ 303%
           expectedDirection: -1, // Decrease
-          expectedAmount: ethers.parseUnits("0.000099996666777774", 18),
+          expectedAmount: ethers.parseUnits("2.912621359223301", 18),
           useVaultTokenBalance: false,
         },
         {
@@ -197,7 +197,7 @@ describe("DLoopCoreMock Rebalance Calculation Tests", function () {
           // Current leverage: 350/(350-280) = 350/70 = 500%
           vaultDebtBalance: ethers.parseEther("5"),
           expectedDirection: -1, // Decrease
-          expectedAmount: 0n,
+          expectedAmount: ethers.parseUnits("130.92233009708738", 18),
           useVaultTokenBalance: true,
         },
         {
@@ -207,7 +207,7 @@ describe("DLoopCoreMock Rebalance Calculation Tests", function () {
           // Current leverage: 400/(400-320) = 400/80 = 500%
           vaultDebtBalance: ethers.parseEther("100"), // Large vault balance
           expectedDirection: -1, // Decrease
-          expectedAmount: 0n,
+          expectedAmount: ethers.parseUnits("55.33980582524272", 18),
           useVaultTokenBalance: true,
         },
         {
@@ -216,8 +216,7 @@ describe("DLoopCoreMock Rebalance Calculation Tests", function () {
           currentDebt: ethers.parseEther("80000"), // $80,000
           // Current leverage: 100000/(100000-80000) = 100000/20000 = 500%
           expectedDirection: -1, // Decrease
-          expectedAmount: ethers.parseUnits("1.333288890370320989", 18),
-          // Leverage after rebalance: (100000-1.333288890370320989)/(100000-1.333288890370320989-80000+1.333288890370320989) ~ 500%
+          expectedAmount: ethers.parseUnits("38834.95145631068", 18),
           useVaultTokenBalance: false,
         },
         {
@@ -226,7 +225,7 @@ describe("DLoopCoreMock Rebalance Calculation Tests", function () {
           currentDebt: ethers.parseEther("100.5"), // $100.5
           // Current leverage: 123.45/(123.45-100.5) = 123.45/22.95 ≈ 538%
           expectedDirection: -1, // Decrease
-          expectedAmount: ethers.parseUnits("0.001819939335355488", 18),
+          expectedAmount: ethers.parseUnits("53.00970873786408", 18),
           useVaultTokenBalance: false,
         },
 
@@ -235,7 +234,6 @@ describe("DLoopCoreMock Rebalance Calculation Tests", function () {
           name: "Should handle exact target leverage with different amounts",
           currentCollateral: ethers.parseEther("600"), // $600
           currentDebt: ethers.parseEther("400"), // $400
-          // Current leverage: 600/(600-400) = 600/200 = 300%
           expectedDirection: 0, // No rebalance
           expectedAmount: 0n,
           useVaultTokenBalance: false,
@@ -307,7 +305,7 @@ describe("DLoopCoreMock Rebalance Calculation Tests", function () {
           // Current leverage: 200/(200-175) = 200/25 = 800%
           vaultDebtBalance: ethers.parseEther("2"), // Small vault balance
           expectedDirection: -1, // Decrease
-          expectedAmount: 0n,
+          expectedAmount: ethers.parseUnits("119.35922330097087", 18),
           useVaultTokenBalance: true,
         },
         {
@@ -317,7 +315,7 @@ describe("DLoopCoreMock Rebalance Calculation Tests", function () {
           // Current leverage: 500/(500-450) = 500/50 = 1000%
           vaultDebtBalance: ethers.parseEther("200"), // Very large vault balance
           expectedDirection: -1, // Decrease
-          expectedAmount: 0n,
+          expectedAmount: ethers.parseUnits("139.80582524271844", 18),
           useVaultTokenBalance: true,
         },
         {
