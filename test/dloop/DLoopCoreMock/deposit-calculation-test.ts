@@ -4,8 +4,12 @@ import { expect } from "chai";
 import { ethers } from "hardhat";
 
 import { DLoopCoreMock, TestMintableERC20 } from "../../../typechain-types";
-import { ONE_PERCENT_BPS } from "../../../typescript/common/bps_constants";
+import {
+  ONE_BPS_UNIT,
+  ONE_PERCENT_BPS,
+} from "../../../typescript/common/bps_constants";
 import { deployDLoopMockFixture, testSetup } from "./fixture";
+import { getCorrespondingTotalDebtInBase, getNewLeverageBps } from "./helper";
 
 describe("DLoopCoreMock Calculation Tests", function () {
   // Contract instances and addresses
@@ -50,40 +54,40 @@ describe("DLoopCoreMock Calculation Tests", function () {
           name: "Should calculate borrow amount for 300% leverage",
           suppliedCollateralAmount: ethers.parseEther("100"), // 100 collateral tokens
           leverageBpsBeforeSupply: BigInt(300 * ONE_PERCENT_BPS), // 300%
-          collateralPrice: ethers.parseEther("1"), // $1 per collateral
-          debtPrice: ethers.parseEther("1"), // $1 per debt
+          collateralPrice: ethers.parseUnits("1", 8), // $1 per collateral
+          debtPrice: ethers.parseUnits("1", 8), // $1 per debt
           expectedBorrowAmount: ethers.parseEther("66.666666666666666666"), // 100 * (300-100)/300 ≈ 66.67
         },
         {
           name: "Should calculate borrow amount for 200% leverage",
           suppliedCollateralAmount: ethers.parseEther("100"),
           leverageBpsBeforeSupply: BigInt(200 * ONE_PERCENT_BPS), // 200%
-          collateralPrice: ethers.parseEther("1"),
-          debtPrice: ethers.parseEther("1"),
+          collateralPrice: ethers.parseUnits("1", 8),
+          debtPrice: ethers.parseUnits("1", 8),
           expectedBorrowAmount: ethers.parseEther("50"), // 100 * (200-100)/200 = 50
         },
         {
           name: "Should calculate borrow amount for 500% leverage",
           suppliedCollateralAmount: ethers.parseEther("100"),
           leverageBpsBeforeSupply: BigInt(500 * ONE_PERCENT_BPS), // 500%
-          collateralPrice: ethers.parseEther("1"),
-          debtPrice: ethers.parseEther("1"),
+          collateralPrice: ethers.parseUnits("1", 8),
+          debtPrice: ethers.parseUnits("1", 8),
           expectedBorrowAmount: ethers.parseEther("80"), // 100 * (500-100)/500 = 80
         },
         {
           name: "Should handle different token prices",
           suppliedCollateralAmount: ethers.parseEther("100"),
           leverageBpsBeforeSupply: BigInt(300 * ONE_PERCENT_BPS),
-          collateralPrice: ethers.parseEther("2"), // $2 per collateral
-          debtPrice: ethers.parseEther("0.5"), // $0.5 per debt
+          collateralPrice: ethers.parseUnits("2", 8), // $2 per collateral
+          debtPrice: ethers.parseUnits("0.5", 8), // $0.5 per debt
           expectedBorrowAmount: ethers.parseEther("266.666666666666666666"), // (100*2) * (300-100)/300 / 0.5 ≈ 266.67
         },
         {
           name: "Should handle 6 decimal debt token",
           suppliedCollateralAmount: ethers.parseEther("100"),
           leverageBpsBeforeSupply: BigInt(300 * ONE_PERCENT_BPS),
-          collateralPrice: ethers.parseEther("1"),
-          debtPrice: ethers.parseEther("1"),
+          collateralPrice: ethers.parseUnits("1", 8),
+          debtPrice: ethers.parseUnits("1", 8),
           expectedBorrowAmount: ethers.parseUnits("66.666666", 6), // Different decimals
           debtTokenDecimals: 6,
         },
@@ -91,40 +95,40 @@ describe("DLoopCoreMock Calculation Tests", function () {
           name: "Should handle very high leverage (1000%)",
           suppliedCollateralAmount: ethers.parseEther("100"),
           leverageBpsBeforeSupply: BigInt(1000 * ONE_PERCENT_BPS),
-          collateralPrice: ethers.parseEther("1"),
-          debtPrice: ethers.parseEther("1"),
+          collateralPrice: ethers.parseUnits("1", 8),
+          debtPrice: ethers.parseUnits("1", 8),
           expectedBorrowAmount: ethers.parseEther("90"), // 100 * (1000-100)/1000 = 90
         },
         {
           name: "Should handle zero collateral supply",
           suppliedCollateralAmount: 0n,
           leverageBpsBeforeSupply: BigInt(300 * ONE_PERCENT_BPS),
-          collateralPrice: ethers.parseEther("1"),
-          debtPrice: ethers.parseEther("1"),
+          collateralPrice: ethers.parseUnits("1", 8),
+          debtPrice: ethers.parseUnits("1", 8),
           expectedBorrowAmount: 0n,
         },
         {
           name: "Should handle 100% leverage (no borrowing)",
           suppliedCollateralAmount: ethers.parseEther("100"),
           leverageBpsBeforeSupply: BigInt(100 * ONE_PERCENT_BPS),
-          collateralPrice: ethers.parseEther("1"),
-          debtPrice: ethers.parseEther("1"),
+          collateralPrice: ethers.parseUnits("1", 8),
+          debtPrice: ethers.parseUnits("1", 8),
           expectedBorrowAmount: 0n, // 100 * (100-100)/100 = 0
         },
         {
           name: "Should handle small supply amounts",
           suppliedCollateralAmount: ethers.parseEther("0.1"),
           leverageBpsBeforeSupply: BigInt(300 * ONE_PERCENT_BPS),
-          collateralPrice: ethers.parseEther("1"),
-          debtPrice: ethers.parseEther("1"),
+          collateralPrice: ethers.parseUnits("1", 8),
+          debtPrice: ethers.parseUnits("1", 8),
           expectedBorrowAmount: ethers.parseEther("0.066666666666666666"), // 0.1 * (300-100)/300
         },
         {
           name: "Should handle large supply amounts",
           suppliedCollateralAmount: ethers.parseEther("10000"),
           leverageBpsBeforeSupply: BigInt(400 * ONE_PERCENT_BPS),
-          collateralPrice: ethers.parseEther("1"),
-          debtPrice: ethers.parseEther("1"),
+          collateralPrice: ethers.parseUnits("1", 8),
+          debtPrice: ethers.parseUnits("1", 8),
           expectedBorrowAmount: ethers.parseEther("7500"), // 10000 * (400-100)/400 = 7500
         },
       ];
@@ -167,6 +171,43 @@ describe("DLoopCoreMock Calculation Tests", function () {
             );
           } else {
             expect(result).to.equal(testCase.expectedBorrowAmount);
+          }
+
+          // These sub tests are to make sure the new leverage is correct
+          const testStates: {
+            totalCollateralInBase: bigint;
+          }[] = [
+            {
+              totalCollateralInBase: ethers.parseUnits("100", 8),
+            },
+            {
+              totalCollateralInBase: ethers.parseUnits("20000", 8),
+            },
+            {
+              totalCollateralInBase: ethers.parseUnits("1000000", 8),
+            },
+          ];
+
+          for (const testState of testStates) {
+            const newLeverage = getNewLeverageBps(
+              testState.totalCollateralInBase,
+              getCorrespondingTotalDebtInBase(
+                testState.totalCollateralInBase,
+                testCase.leverageBpsBeforeSupply,
+              ),
+              await dloopMock.convertFromTokenAmountToBaseCurrency(
+                testCase.suppliedCollateralAmount,
+                await collateralToken.getAddress(),
+              ),
+              await dloopMock.convertFromTokenAmountToBaseCurrency(
+                result,
+                await testDebtToken.getAddress(),
+              ),
+            );
+            expect(newLeverage).to.be.closeTo(
+              testCase.leverageBpsBeforeSupply,
+              ONE_BPS_UNIT,
+            );
           }
         });
       }
