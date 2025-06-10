@@ -164,6 +164,11 @@ abstract contract DLoopCoreBase is
         uint256 minReceivedAmount
     );
     error InvalidLeverage(uint256 leverageBps);
+    error TotalCollateralBaseIsZero();
+    error TotalCollateralBaseIsLessThanTotalDebtBase(
+        uint256 totalCollateralBase,
+        uint256 totalDebtBase
+    );
 
     /**
      * @dev Constructor for the DLoopCore contract
@@ -1015,10 +1020,15 @@ abstract contract DLoopCoreBase is
          * So, the transformed formula is:
          *      x = (T'*(C - D) - C*ONE_HUNDRED_PERCENT_BPS) / (ONE_HUNDRED_PERCENT_BPS + T' * k' / ONE_HUNDRED_PERCENT_BPS)
          */
-        require(
-            totalCollateralBase > 0,
-            "Total collateral base must be greater than 0"
-        );
+        if (totalCollateralBase == 0) {
+            revert TotalCollateralBaseIsZero();
+        }
+        if (totalCollateralBase < totalDebtBase) {
+            revert TotalCollateralBaseIsLessThanTotalDebtBase(
+                totalCollateralBase,
+                totalDebtBase
+            );
+        }
 
         uint256 requiredCollateralTokenAmountInBase = (expectedTargetLeverageBps *
                 (totalCollateralBase - totalDebtBase) -
@@ -1085,10 +1095,15 @@ abstract contract DLoopCoreBase is
          * So, the transformed formula is:
          *      x = (C*ONE_HUNDRED_PERCENT_BPS - T'*(C - D)) / (ONE_HUNDRED_PERCENT_BPS + T' * k' / ONE_HUNDRED_PERCENT_BPS)
          */
-        require(
-            totalCollateralBase > 0,
-            "Total collateral base must be greater than 0"
-        );
+        if (totalCollateralBase == 0) {
+            revert TotalCollateralBaseIsZero();
+        }
+        if (totalCollateralBase < totalDebtBase) {
+            revert TotalCollateralBaseIsLessThanTotalDebtBase(
+                totalCollateralBase,
+                totalDebtBase
+            );
+        }
 
         uint256 requiredDebtTokenAmountInBase = (totalCollateralBase *
             BasisPointConstants.ONE_HUNDRED_PERCENT_BPS -
