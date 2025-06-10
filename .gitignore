@@ -22,6 +22,7 @@ ignition/deployments/chain-31337
 # Script outputs
 contract-addresses_*.md
 nsloc.md
+watchlist_*.csv
 
 # Certora
 certora # python virtual environment
