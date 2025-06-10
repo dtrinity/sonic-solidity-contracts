@@ -4,49 +4,9 @@
 
 ## Overview
 
-- **Compilation Error**: 2 contracts (5.3%)
 - **Success (1 Issues)**: 2 contracts (5.3%)
 - **Success (7 Issues)**: 1 contracts (2.6%)
-- **Success (No Issues)**: 33 contracts (86.8%)
-
-## Compilation Error
-
-*2 contract(s)*
-
-### DLoopDepositorOdos
-
-❌ **Status**: Compilation Error
-
-**Error Details:**
-```
-Solc experienced a fatal error.
-
-CompilerError: Stack too deep. Try compiling with `--via-ir` (cli) or the equivalent `viaIR: true` (standard JSON) while enabling the optimizer. Otherwise, try removing local variables.
-   --> /Users/dazheng/workspace/dtrinity/sonic-solidity-contracts/contracts/vaults/dloop/periphery/DLoopDepositorBase.sol:311:17:
-    |
-311 |                 receiver,
-    |                 ^^^^^^^^
-
-
-```
-
-### DLoopRedeemerOdos
-
-❌ **Status**: Compilation Error
-
-**Error Details:**
-```
-Solc experienced a fatal error.
-
-CompilerError: Stack too deep. Try compiling with `--via-ir` (cli) or the equivalent `viaIR: true` (standard JSON) while enabling the optimizer. Otherwise, try removing local variables.
-   --> /Users/dazheng/workspace/dtrinity/sonic-solidity-contracts/contracts/vaults/dloop/periphery/DLoopRedeemerBase.sol:251:17:
-    |
-251 |                 receiver,
-    |                 ^^^^^^^^
-
-
-```
-
+- **Success (No Issues)**: 35 contracts (92.1%)
 
 ## Success (1 Issues)
 
@@ -87,7 +47,7 @@ CompilerError: Stack too deep. Try compiling with `--via-ir` (cli) or the equiva
 
 ## Success (No Issues)
 
-*33 contract(s)*
+*35 contract(s)*
 
 ### API3CompositeWrapperWithThresholding
 
@@ -121,7 +81,15 @@ CompilerError: Stack too deep. Try compiling with `--via-ir` (cli) or the equiva
 
 ✅ **Status**: Analysis completed successfully with no issues found.
 
+### DLoopDepositorOdos
+
+✅ **Status**: Analysis completed successfully with no issues found.
+
 ### DLoopIncreaseLeverageOdos
+
+✅ **Status**: Analysis completed successfully with no issues found.
+
+### DLoopRedeemerOdos
 
 ✅ **Status**: Analysis completed successfully with no issues found.
 
@@ -223,15 +191,7 @@ CompilerError: Stack too deep. Try compiling with `--via-ir` (cli) or the equiva
 
 ## Recommendations
 
-### Compilation Issues (2 contracts)
-
-Several contracts failed to compile. Common issues and solutions:
-
-- **Stack too deep errors**: Add `--via-ir` flag when compiling or enable optimizer
-- **Missing dependencies**: Ensure all OpenZeppelin contracts are properly installed
-- **Version mismatches**: Check Solidity version requirements in pragma statements
-
-### Successfully Analyzed (33 contracts)
+### Successfully Analyzed (35 contracts)
 
 These contracts compiled and analyzed successfully with no security issues detected by Mythril.
 
@@ -241,4 +201,4 @@ Review the detailed results above for specific security issues that need attenti
 
 ---
 
-*Report generated on 2025-06-10 21:53:58*
+*Report generated on 2025-06-10 23:44:22*
