@@ -405,46 +405,18 @@ describe("DLoopCoreMock Rebalance Calculation Tests", function () {
               await dloopMock.getAddress(),
             );
 
-          let rebalanceAmount = tokenAmount;
-
-          // If useVaultTokenBalance is true, we need to add the vault token balance to the rebalance amount
-          // because the vault token balance is already included in the formula
-          // of getAmountToReachTargetLeverage
-          if (testCase.useVaultTokenBalance) {
-            if (direction > 0) {
-              const valutCollateralBalanceInBase =
-                await dloopMock.convertFromTokenAmountToBaseCurrency(
-                  testCase.vaultCollateralBalance ?? 0n,
-                  await collateralToken.getAddress(),
-                );
-              rebalanceAmount += valutCollateralBalanceInBase;
-            } else if (direction < 0) {
-              const valutDebtBalanceInBase =
-                await dloopMock.convertFromTokenAmountToBaseCurrency(
-                  testCase.vaultDebtBalance ?? 0n,
-                  await debtToken.getAddress(),
-                );
-              rebalanceAmount += valutDebtBalanceInBase;
-            }
-          }
-
-          if (direction !== 0n) {
-            const oneHundredPercentBps = BigInt(ONE_HUNDRED_PERCENT_BPS);
-            const newLeverage =
-              ((totalCollateralInBase + direction * rebalanceAmount) *
-                oneHundredPercentBps) /
-              (totalCollateralInBase +
-                direction * rebalanceAmount -
-                totalDebtInBase -
-                (direction *
-                  rebalanceAmount *
-                  (oneHundredPercentBps + subsidyBps)) /
-                  oneHundredPercentBps);
-            expect(newLeverage).to.be.closeTo(
-              BigInt(TARGET_LEVERAGE_BPS),
-              ONE_BPS_UNIT, // very small tolerance
-            );
-          }
+          // Leverage validation to make sure the new leverage is close to the target leverage
+          await validateRebalanceLeverage(
+            dloopMock,
+            testCase.vaultCollateralBalance ?? 0n,
+            testCase.vaultDebtBalance ?? 0n,
+            direction,
+            tokenAmount,
+            totalCollateralInBase,
+            totalDebtInBase,
+            subsidyBps,
+            BigInt(TARGET_LEVERAGE_BPS),
+          );
         });
       }
     });
@@ -813,6 +785,24 @@ describe("DLoopCoreMock Rebalance Calculation Tests", function () {
                   `Amount ${result} should be <= ${maxAmount}`,
                 );
               }
+
+              const vaultCollateralBalance = useVaultTokenBalance
+                ? (testCase.whenUseVaultTokenBalance.vaultCollateralBalance ??
+                  0n)
+                : 0n;
+
+              // Validate the new leverage
+              await validateRebalanceLeverage(
+                dloopMock,
+                vaultCollateralBalance,
+                0n, // No vault debt balance required for increasing leverage
+                1n,
+                result,
+                testCase.totalCollateralBase,
+                testCase.totalDebtBase,
+                testCase.subsidy,
+                testCase.targetLeverage,
+              );
             }
           });
         }
@@ -1124,6 +1114,23 @@ describe("DLoopCoreMock Rebalance Calculation Tests", function () {
                   `Amount ${result} should be <= ${maxAmount}`,
                 );
               }
+
+              const vaultDebtBalance = useVaultTokenBalance
+                ? (testCase.whenUseVaultTokenBalance.vaultDebtBalance ?? 0n)
+                : 0n;
+
+              // Validate the new leverage
+              await validateRebalanceLeverage(
+                dloopMock,
+                0n, // No vault collateral balance required for decreasing leverage
+                vaultDebtBalance,
+                -1n,
+                result,
+                testCase.totalCollateralBase,
+                testCase.totalDebtBase,
+                testCase.subsidy,
+                testCase.targetLeverage,
+              );
             }
           });
         }
@@ -1131,3 +1138,82 @@ describe("DLoopCoreMock Rebalance Calculation Tests", function () {
     });
   });
 });
+
+/**
+ * Validate the new leverage after rebalance
+ *
+ * @param dloopMock - the dloop mock contract
+ * @param vaultCollateralBalance - the vault collateral balance
+ * @param vaultDebtBalance - the vault debt balance
+ * @param direction -1: decrease, 1: increase
+ * @param tokenAmount - the required token amount from user
+ * @param totalCollateralInBase - the total collateral in base currency
+ * @param totalDebtInBase - the total debt in base currency
+ * @param subsidyBps - the subsidy in basis points
+ * @param targetLeverage - the target leverage in basis points
+ */
+async function validateRebalanceLeverage(
+  dloopMock: DLoopCoreMock,
+  vaultCollateralBalance: bigint,
+  vaultDebtBalance: bigint,
+  direction: bigint,
+  tokenAmount: bigint,
+  totalCollateralInBase: bigint,
+  totalDebtInBase: bigint,
+  subsidyBps: bigint,
+  targetLeverage: bigint,
+): Promise<void> {
+  if (direction === 0n) {
+    // If no rebalance is needed, there is no rebalance and no validation is needed
+    return;
+  }
+
+  expect(direction).to.be.oneOf([-1n, 1n]);
+  let rebalanceAmount = tokenAmount;
+
+  const collateralToken = await ethers.getContractAt(
+    "TestMintableERC20",
+    await dloopMock.collateralToken(),
+  );
+  const debtToken = await ethers.getContractAt(
+    "TestMintableERC20",
+    await dloopMock.debtToken(),
+  );
+
+  // If useVaultTokenBalance is true, we need to add the vault token balance to the rebalance amount
+  // because the vault token balance is already included in the formula
+  // of getAmountToReachTargetLeverage
+  if (direction > 0) {
+    if (vaultCollateralBalance > 0n) {
+      const valutCollateralBalanceInBase =
+        await dloopMock.convertFromTokenAmountToBaseCurrency(
+          vaultCollateralBalance,
+          await collateralToken.getAddress(),
+        );
+      rebalanceAmount += valutCollateralBalanceInBase;
+    }
+  } else if (direction < 0) {
+    if (vaultDebtBalance > 0n) {
+      const valutDebtBalanceInBase =
+        await dloopMock.convertFromTokenAmountToBaseCurrency(
+          vaultDebtBalance,
+          await debtToken.getAddress(),
+        );
+      rebalanceAmount += valutDebtBalanceInBase;
+    }
+  }
+
+  const oneHundredPercentBps = BigInt(ONE_HUNDRED_PERCENT_BPS);
+  const newLeverage =
+    ((totalCollateralInBase + direction * rebalanceAmount) *
+      oneHundredPercentBps) /
+    (totalCollateralInBase +
+      direction * rebalanceAmount -
+      totalDebtInBase -
+      (direction * rebalanceAmount * (oneHundredPercentBps + subsidyBps)) /
+        oneHundredPercentBps);
+  expect(newLeverage).to.be.closeTo(
+    targetLeverage,
+    ONE_BPS_UNIT, // very small tolerance
+  );
+}
