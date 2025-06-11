@@ -435,5 +435,161 @@ dstableConfigs.forEach((config) => {
         ).to.be.reverted;
       });
     });
+
+    /* -------------------------------------------------------------------------- */
+    /*                           exchangeCollateral tests                         */
+    /* -------------------------------------------------------------------------- */
+
+    // These tests require at least two collateral assets so that one can be de-listed
+    if (config.peggedCollaterals.length >= 2) {
+      describe("exchangeCollateral", () => {
+        const fromIndex = 1; // second collateral stays supported
+        const toIndex = 0; // first collateral will be de-listed (deprecated)
+
+        let fromInfo: TokenInfo;
+        let toInfo: TokenInfo;
+        let fromContract: TestERC20;
+        let toContract: TestERC20;
+
+        beforeEach(async function () {
+          fromInfo = collateralInfos.get(
+            config.peggedCollaterals[fromIndex]
+          ) as TokenInfo;
+          toInfo = collateralInfos.get(
+            config.peggedCollaterals[toIndex]
+          ) as TokenInfo;
+
+          fromContract = collateralContracts.get(
+            config.peggedCollaterals[fromIndex]
+          ) as TestERC20;
+          toContract = collateralContracts.get(
+            config.peggedCollaterals[toIndex]
+          ) as TestERC20;
+
+          // 1. Deposit some `toCollateral` into the vault so it has balance to send out later
+          const initialVaultToCollateral = hre.ethers.parseUnits(
+            "1000",
+            toInfo.decimals
+          );
+          await toContract.approve(
+            await collateralVaultContract.getAddress(),
+            initialVaultToCollateral
+          );
+          await collateralVaultContract.deposit(
+            initialVaultToCollateral,
+            toInfo.address
+          );
+
+          // 2. De-list `toCollateral` so it is no longer supported
+          await collateralVaultContract.disallowCollateral(toInfo.address);
+
+          // Sanity: make sure `fromCollateral` is still supported
+          const isSupported =
+            await collateralVaultContract.isCollateralSupported(
+              fromInfo.address
+            );
+          assert.isTrue(isSupported, "fromCollateral should remain supported");
+
+          // 3. Grant COLLATERAL_STRATEGY_ROLE to user1 so they can call exchangeCollateral
+          const COLLATERAL_STRATEGY_ROLE =
+            await collateralVaultContract.COLLATERAL_STRATEGY_ROLE();
+          await collateralVaultContract.grantRole(
+            COLLATERAL_STRATEGY_ROLE,
+            user1
+          );
+        });
+
+        it("reverts when fromCollateral is not supported", async function () {
+          // Use the now-unsupported toCollateral as the input (fromCollateral)
+          const fromAmount = hre.ethers.parseUnits("10", toInfo.decimals);
+
+          // user1 approves vault to pull the unsupported token (they still hold it)
+          await toContract
+            .connect(await hre.ethers.getSigner(user1))
+            .approve(await collateralVaultContract.getAddress(), fromAmount);
+
+          await expect(
+            collateralVaultContract
+              .connect(await hre.ethers.getSigner(user1))
+              .exchangeCollateral(
+                fromAmount,
+                toInfo.address, // unsupported
+                1n, // dummy amount; should revert before checked
+                fromInfo.address // supported token going out
+              )
+          ).to.be.revertedWith("Unsupported collateral");
+        });
+
+        it("allows swapping unsupported vault collateral for supported collateral in", async function () {
+          // user1 will send in supported collateral (fromCollateral)
+          const fromAmount = hre.ethers.parseUnits("50", fromInfo.decimals);
+
+          // Calculate how much toCollateral user1 should receive
+          const toAmount: bigint =
+            await collateralVaultContract.maxExchangeAmount(
+              fromAmount,
+              fromInfo.address,
+              toInfo.address
+            );
+
+          // Approve transfer of fromCollateral to vault
+          await fromContract
+            .connect(await hre.ethers.getSigner(user1))
+            .approve(await collateralVaultContract.getAddress(), fromAmount);
+
+          // Record balances before
+          const userFromBefore = await fromContract.balanceOf(user1);
+          const userToBefore = await toContract.balanceOf(user1);
+          const vaultFromBefore = await fromContract.balanceOf(
+            await collateralVaultContract.getAddress()
+          );
+          const vaultToBefore = await toContract.balanceOf(
+            await collateralVaultContract.getAddress()
+          );
+
+          // Execute exchange
+          await collateralVaultContract
+            .connect(await hre.ethers.getSigner(user1))
+            .exchangeCollateral(
+              fromAmount,
+              fromInfo.address,
+              toAmount,
+              toInfo.address
+            );
+
+          // Balances after
+          const userFromAfter = await fromContract.balanceOf(user1);
+          const userToAfter = await toContract.balanceOf(user1);
+          const vaultFromAfter = await fromContract.balanceOf(
+            await collateralVaultContract.getAddress()
+          );
+          const vaultToAfter = await toContract.balanceOf(
+            await collateralVaultContract.getAddress()
+          );
+
+          // Assertions
+          assert.equal(
+            userFromBefore - userFromAfter,
+            fromAmount,
+            "User should have sent fromCollateral"
+          );
+          assert.equal(
+            userToAfter - userToBefore,
+            toAmount,
+            "User should have received toCollateral"
+          );
+          assert.equal(
+            vaultFromAfter - vaultFromBefore,
+            fromAmount,
+            "Vault should have received fromCollateral"
+          );
+          assert.equal(
+            vaultToBefore - vaultToAfter,
+            toAmount,
+            "Vault should have sent out toCollateral"
+          );
+        });
+      });
+    }
   });
 });

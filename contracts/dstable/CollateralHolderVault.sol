@@ -53,9 +53,11 @@ contract CollateralHolderVault is CollateralVault {
         uint256 toCollateralAmount,
         address toCollateral
     ) public onlyRole(COLLATERAL_STRATEGY_ROLE) {
-        // We must take in a collateral that is supported
+        // The collateral being received by the vault (fromCollateral) must still be supported
+        // `toCollateral` may have been de-listed (disallowed) in order to let the vault gradually
+        // swap it out, so we intentionally do NOT enforce the check on `toCollateral`.
         require(
-            _supportedCollaterals.contains(toCollateral),
+            _supportedCollaterals.contains(fromCollateral),
             "Unsupported collateral"
         );
         uint256 maxAmount = maxExchangeAmount(
