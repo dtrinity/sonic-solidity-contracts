@@ -355,6 +355,49 @@ dstableConfigs.forEach((config) => {
           `Base value to ${config.symbol} conversion is incorrect`
         );
       });
+
+      it("reverts when issuing with unsupported collateral", async function () {
+        // Deploy a brand-new ERC20 token that has NOT been whitelisted as collateral
+        const TestERC20Factory = await hre.ethers.getContractFactory(
+          "TestERC20",
+          await hre.ethers.getSigner(deployer)
+        );
+        const unsupportedCollateralContract = await TestERC20Factory.deploy(
+          "RogueToken",
+          "RGT",
+          18
+        );
+        await unsupportedCollateralContract.waitForDeployment();
+
+        // Fetch token info manually (since this token isn't part of the fixture map)
+        const unsupportedCollateralInfo = {
+          address: await unsupportedCollateralContract.getAddress(),
+          symbol: "RGT",
+          name: "RogueToken",
+          decimals: 18,
+        } as const;
+
+        // Transfer some of the unsupported collateral to user1 so they can attempt to use it
+        const unsupportedAmount = hre.ethers.parseUnits("1000", 18);
+        await unsupportedCollateralContract.transfer(user1, unsupportedAmount);
+
+        // Approve the Issuer to pull the unsupported collateral
+        await unsupportedCollateralContract
+          .connect(await hre.ethers.getSigner(user1))
+          .approve(await issuerContract.getAddress(), unsupportedAmount);
+
+        // Attempt to issue – should revert with the custom error defined in CollateralVault
+        await expect(
+          issuerContract
+            .connect(await hre.ethers.getSigner(user1))
+            .issue(unsupportedAmount, unsupportedCollateralInfo.address, 0)
+        )
+          .to.be.revertedWithCustomError(
+            issuerContract,
+            "UnsupportedCollateral"
+          )
+          .withArgs(unsupportedCollateralInfo.address);
+      });
     });
 
     describe("Permissioned issuance", () => {

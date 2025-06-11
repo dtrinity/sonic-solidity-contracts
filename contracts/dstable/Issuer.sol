@@ -104,6 +104,11 @@ contract Issuer is AccessControl, OracleAware {
         address collateralAsset,
         uint256 minDStable
     ) external {
+        // Ensure the collateral asset is supported by the vault before any further processing
+        if (!collateralVault.isCollateralSupported(collateralAsset)) {
+            revert CollateralVault.UnsupportedCollateral(collateralAsset);
+        }
+
         uint8 collateralDecimals = IERC20Metadata(collateralAsset).decimals();
         uint256 baseValue = (oracle.getAssetPrice(collateralAsset) *
             collateralAmount) / (10 ** collateralDecimals);
