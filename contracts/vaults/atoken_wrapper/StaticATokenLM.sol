@@ -22,6 +22,7 @@ import {ERC20} from "./ERC20.sol";
 import {StaticATokenErrors} from "./StaticATokenErrors.sol";
 import {RayMathExplicitRounding, Rounding} from "./RayMathExplicitRounding.sol";
 import {IERC4626} from "./interfaces/IERC4626.sol";
+import {ECDSA} from "./ECDSA.sol";
 
 /**
  * @title StaticATokenLM
@@ -141,7 +142,12 @@ contract StaticATokenLM is ERC20, IStaticATokenLM, IERC4626 {
             nonces[depositor] = nonce + 1;
             require(
                 depositor ==
-                    ecrecover(digest, sigParams.v, sigParams.r, sigParams.s),
+                    ECDSA.recover(
+                        digest,
+                        sigParams.v,
+                        sigParams.r,
+                        sigParams.s
+                    ),
                 StaticATokenErrors.INVALID_SIGNATURE
             );
         }
@@ -215,7 +221,12 @@ contract StaticATokenLM is ERC20, IStaticATokenLM, IERC4626 {
             nonces[owner] = nonce + 1;
             require(
                 owner ==
-                    ecrecover(digest, sigParams.v, sigParams.r, sigParams.s),
+                    ECDSA.recover(
+                        digest,
+                        sigParams.v,
+                        sigParams.r,
+                        sigParams.s
+                    ),
                 StaticATokenErrors.INVALID_SIGNATURE
             );
         }
