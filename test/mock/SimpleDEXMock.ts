@@ -194,6 +194,7 @@ describe("SimpleDEXMock Tests", function () {
         inputToken: "A",
         outputToken: "B",
         amountIn: ethers.parseEther("100"),
+        executionSlippage: EXECUTION_SLIPPAGE_BPS,
         expectedRate: DEFAULT_EXCHANGE_RATE,
         userIndex: 1,
         expectedOutput: ethers.parseUnits("147", TOKEN_B_DECIMALS), // 150 * 0.98 (2% slippage)
@@ -203,6 +204,7 @@ describe("SimpleDEXMock Tests", function () {
         inputToken: "B",
         outputToken: "A",
         amountIn: ethers.parseUnits("150", TOKEN_B_DECIMALS), // 150 B tokens
+        executionSlippage: EXECUTION_SLIPPAGE_BPS,
         expectedRate: REVERSE_EXCHANGE_RATE,
         userIndex: 1,
         expectedOutput: ethers.parseEther("97.999999999999999902"), // ~98 A tokens after slippage
@@ -212,6 +214,7 @@ describe("SimpleDEXMock Tests", function () {
         inputToken: "A",
         outputToken: "C",
         amountIn: ethers.parseEther("50"),
+        executionSlippage: EXECUTION_SLIPPAGE_BPS,
         expectedRate: ethers.parseEther("2.0"),
         userIndex: 2,
         expectedOutput: ethers.parseUnits("98", TOKEN_C_DECIMALS), // 100 * 0.98 (2% slippage)
@@ -221,6 +224,7 @@ describe("SimpleDEXMock Tests", function () {
         inputToken: "A",
         outputToken: "B",
         amountIn: ethers.parseEther("0.1"),
+        executionSlippage: EXECUTION_SLIPPAGE_BPS,
         expectedRate: DEFAULT_EXCHANGE_RATE,
         userIndex: 2,
         expectedOutput: ethers.parseUnits("0.147", TOKEN_B_DECIMALS), // 0.15 * 0.98 (2% slippage)
@@ -230,6 +234,7 @@ describe("SimpleDEXMock Tests", function () {
         inputToken: "A",
         outputToken: "B",
         amountIn: ethers.parseEther("1000"),
+        executionSlippage: EXECUTION_SLIPPAGE_BPS,
         expectedRate: DEFAULT_EXCHANGE_RATE,
         userIndex: 3,
         expectedOutput: ethers.parseUnits("1470", TOKEN_B_DECIMALS), // 1500 * 0.98 (2% slippage)
@@ -239,6 +244,7 @@ describe("SimpleDEXMock Tests", function () {
         inputToken: "A",
         outputToken: "B",
         amountIn: ethers.parseEther("100"),
+        executionSlippage: EXECUTION_SLIPPAGE_BPS,
         expectedRate: ethers.parseEther("3.0"), // 1 A = 3 B
         userIndex: 1,
         expectedOutput: ethers.parseUnits("294", TOKEN_B_DECIMALS), // 300 * 0.98 (2% slippage)
@@ -248,6 +254,7 @@ describe("SimpleDEXMock Tests", function () {
         inputToken: "A",
         outputToken: "B",
         amountIn: ethers.parseEther("200"),
+        executionSlippage: EXECUTION_SLIPPAGE_BPS,
         expectedRate: ethers.parseEther("0.5"), // 1 A = 0.5 B
         userIndex: 2,
         expectedOutput: ethers.parseUnits("98", TOKEN_B_DECIMALS), // 100 * 0.98 (2% slippage)
@@ -257,6 +264,7 @@ describe("SimpleDEXMock Tests", function () {
         inputToken: "A",
         outputToken: "C",
         amountIn: ethers.parseEther("80"),
+        executionSlippage: EXECUTION_SLIPPAGE_BPS,
         expectedRate: ethers.parseEther("0.75"), // 1 A = 0.75 C
         userIndex: 3,
         expectedOutput: ethers.parseUnits("58.8", TOKEN_C_DECIMALS), // 60 * 0.98 (2% slippage)
@@ -266,6 +274,7 @@ describe("SimpleDEXMock Tests", function () {
         inputToken: "B",
         outputToken: "A",
         amountIn: ethers.parseUnits("50", TOKEN_B_DECIMALS),
+        executionSlippage: EXECUTION_SLIPPAGE_BPS,
         expectedRate: ethers.parseEther("10.0"), // 1 B = 10 A
         userIndex: 1,
         expectedOutput: ethers.parseEther("490"), // 500 * 0.98 (2% slippage)
@@ -275,9 +284,61 @@ describe("SimpleDEXMock Tests", function () {
         inputToken: "B",
         outputToken: "C",
         amountIn: ethers.parseUnits("40", TOKEN_B_DECIMALS),
+        executionSlippage: EXECUTION_SLIPPAGE_BPS,
         expectedRate: ethers.parseEther("1.25"), // 1 B = 1.25 C
         userIndex: 2,
         expectedOutput: ethers.parseUnits("49", TOKEN_C_DECIMALS), // 50 * 0.98 (2% slippage)
+      },
+      // New test cases with different execution slippage
+      {
+        name: "No slippage swap A->B (0%)",
+        inputToken: "A",
+        outputToken: "B",
+        amountIn: ethers.parseEther("100"),
+        executionSlippage: 0,
+        expectedRate: DEFAULT_EXCHANGE_RATE,
+        userIndex: 1,
+        expectedOutput: ethers.parseUnits("150", TOKEN_B_DECIMALS), // 150 * 1.0 (0% slippage)
+      },
+      {
+        name: "Low slippage swap A->B (0.5%)",
+        inputToken: "A",
+        outputToken: "B",
+        amountIn: ethers.parseEther("100"),
+        executionSlippage: 0.005 * ONE_PERCENT_BPS, // 0.005% = 50 basis points
+        expectedRate: DEFAULT_EXCHANGE_RATE,
+        userIndex: 2,
+        expectedOutput: ethers.parseUnits("149.9925", TOKEN_B_DECIMALS), // 150 * 0.9995 (0.5% slippage)
+      },
+      {
+        name: "Medium slippage swap A->B (1%)",
+        inputToken: "A",
+        outputToken: "B",
+        amountIn: ethers.parseEther("100"),
+        executionSlippage: 0.01 * ONE_PERCENT_BPS, // 0.01% = 100 basis points
+        expectedRate: DEFAULT_EXCHANGE_RATE,
+        userIndex: 3,
+        expectedOutput: ethers.parseUnits("149.985", TOKEN_B_DECIMALS), // 150 * 0.999 (1% slippage)
+      },
+      {
+        name: "High slippage swap A->B (5%)",
+        inputToken: "A",
+        outputToken: "B",
+        amountIn: ethers.parseEther("100"),
+        executionSlippage: 0.05 * ONE_PERCENT_BPS, // 0.05% = 500 basis points
+        expectedRate: DEFAULT_EXCHANGE_RATE,
+        userIndex: 1,
+        expectedOutput: ethers.parseUnits("149.925", TOKEN_B_DECIMALS), // 150 * 0.9995 (5% slippage)
+      },
+      {
+        name: "Very high slippage swap A->B (10%)",
+        inputToken: "A",
+        outputToken: "B",
+        amountIn: ethers.parseEther("100"),
+        executionSlippage: 0.1 * ONE_PERCENT_BPS, // 0.1% = 1000 basis points
+        expectedRate: DEFAULT_EXCHANGE_RATE,
+        userIndex: 2,
+        expectedOutput: ethers.parseUnits("149.85", TOKEN_B_DECIMALS), // 150 * 0.999 (10% slippage)
       },
     ];
 
@@ -297,6 +358,9 @@ describe("SimpleDEXMock Tests", function () {
           await outputToken.getAddress(),
           testCase.expectedRate
         );
+
+        // Set execution slippage
+        await dexMock.setExecutionSlippage(testCase.executionSlippage);
 
         // Preview the swap
         const estimatedOutput = await dexMock.previewSwapExactInput(
@@ -362,13 +426,17 @@ describe("SimpleDEXMock Tests", function () {
         );
         
         // Restore slippage
-        await dexMock.setExecutionSlippage(EXECUTION_SLIPPAGE_BPS);
+        await dexMock.setExecutionSlippage(testCase.executionSlippage);
         
-        // Verify slippage was applied (output with slippage should be less)
-        expect(estimatedOutput).to.be.lt(outputNoSlippage);
+        // Verify slippage was applied (output with slippage should be less unless no slippage)
+        if (testCase.executionSlippage > 0) {
+          expect(estimatedOutput).to.be.lt(outputNoSlippage);
+        } else {
+          expect(estimatedOutput).to.equal(outputNoSlippage);
+        }
         
         // Calculate expected slippage reduction
-        const expectedSlippedOutput = (outputNoSlippage * BigInt(ONE_HUNDRED_PERCENT_BPS - EXECUTION_SLIPPAGE_BPS)) / 
+        const expectedSlippedOutput = (outputNoSlippage * BigInt(ONE_HUNDRED_PERCENT_BPS - testCase.executionSlippage)) / 
                                     BigInt(ONE_HUNDRED_PERCENT_BPS);
         expect(estimatedOutput).to.be.closeTo(expectedSlippedOutput, 1);
       });
@@ -412,6 +480,7 @@ describe("SimpleDEXMock Tests", function () {
         inputToken: "A",
         outputToken: "B", 
         amountOut: ethers.parseUnits("150", TOKEN_B_DECIMALS),
+        executionSlippage: EXECUTION_SLIPPAGE_BPS,
         expectedRate: DEFAULT_EXCHANGE_RATE,
         userIndex: 1,
         expectedInput: ethers.parseEther("102.040816"), // Calculated based on slippage math
@@ -421,6 +490,7 @@ describe("SimpleDEXMock Tests", function () {
         inputToken: "B",
         outputToken: "A",
         amountOut: ethers.parseEther("100"),
+        executionSlippage: EXECUTION_SLIPPAGE_BPS,
         expectedRate: REVERSE_EXCHANGE_RATE,
         userIndex: 1,
         expectedInput: ethers.parseUnits("153.061224", TOKEN_B_DECIMALS), // Calculated based on slippage math
@@ -430,6 +500,7 @@ describe("SimpleDEXMock Tests", function () {
         inputToken: "A",
         outputToken: "C",
         amountOut: ethers.parseUnits("100", TOKEN_C_DECIMALS),
+        executionSlippage: EXECUTION_SLIPPAGE_BPS,
         expectedRate: ethers.parseEther("2.0"),
         userIndex: 2,
         expectedInput: ethers.parseEther("51.02040816"), // Calculated based on slippage math
@@ -439,6 +510,7 @@ describe("SimpleDEXMock Tests", function () {
         inputToken: "A",
         outputToken: "B",
         amountOut: ethers.parseUnits("0.15", TOKEN_B_DECIMALS),
+        executionSlippage: EXECUTION_SLIPPAGE_BPS,
         expectedRate: DEFAULT_EXCHANGE_RATE,
         userIndex: 2,
         expectedInput: ethers.parseEther("0.102040666666666666"), // Calculated based on slippage math
@@ -448,6 +520,7 @@ describe("SimpleDEXMock Tests", function () {
         inputToken: "A",
         outputToken: "B",
         amountOut: ethers.parseUnits("1500", TOKEN_B_DECIMALS),
+        executionSlippage: EXECUTION_SLIPPAGE_BPS,
         expectedRate: DEFAULT_EXCHANGE_RATE,
         userIndex: 3,
         expectedInput: ethers.parseEther("1020.408162666666666666"), // Calculated based on slippage math
@@ -457,6 +530,7 @@ describe("SimpleDEXMock Tests", function () {
         inputToken: "A",
         outputToken: "B",
         amountOut: ethers.parseUnits("300", TOKEN_B_DECIMALS),
+        executionSlippage: EXECUTION_SLIPPAGE_BPS,
         expectedRate: ethers.parseEther("3.0"),
         userIndex: 1,
         expectedInput: ethers.parseEther("102.040816"), // 300/(3*0.98) = ~102.04
@@ -466,9 +540,41 @@ describe("SimpleDEXMock Tests", function () {
         inputToken: "A",
         outputToken: "B",
         amountOut: ethers.parseUnits("100", TOKEN_B_DECIMALS),
+        executionSlippage: EXECUTION_SLIPPAGE_BPS,
         expectedRate: ethers.parseEther("0.5"),
         userIndex: 2,
         expectedInput: ethers.parseEther("204.081632"), // 100/(0.5*0.98) = ~204.08
+      },
+      // New test cases with different execution slippage
+      {
+        name: "No slippage exact output A->B (0%)",
+        inputToken: "A",
+        outputToken: "B",
+        amountOut: ethers.parseUnits("150", TOKEN_B_DECIMALS),
+        executionSlippage: 0,
+        expectedRate: DEFAULT_EXCHANGE_RATE,
+        userIndex: 1,
+        expectedInput: ethers.parseEther("100"), // 150/1.5 with no slippage
+      },
+      {
+        name: "Low slippage exact output A->B (1%)",
+        inputToken: "A",
+        outputToken: "B",
+        amountOut: ethers.parseUnits("150", TOKEN_B_DECIMALS),
+        executionSlippage: 0.01 * ONE_PERCENT_BPS, // 0.01% = 100 basis points
+        expectedRate: DEFAULT_EXCHANGE_RATE,
+        userIndex: 2,
+        expectedInput: ethers.parseEther("100.010000666666666666"), // Based on actual contract calculation
+      },
+      {
+        name: "High slippage exact output A->B (5%)",
+        inputToken: "A",
+        outputToken: "B",
+        amountOut: ethers.parseUnits("150", TOKEN_B_DECIMALS),
+        executionSlippage: 0.05 * ONE_PERCENT_BPS, // 0.05% = 500 basis points
+        expectedRate: DEFAULT_EXCHANGE_RATE,
+        userIndex: 3,
+        expectedInput: ethers.parseEther("100.050024666666666666"), // Based on actual contract calculation
       },
     ];
 
@@ -488,6 +594,9 @@ describe("SimpleDEXMock Tests", function () {
           await outputToken.getAddress(),
           testCase.expectedRate
         );
+
+        // Set execution slippage
+        await dexMock.setExecutionSlippage(testCase.executionSlippage);
 
         // Preview the swap
         const estimatedInput = await dexMock.previewSwapExactOutput(
@@ -571,6 +680,7 @@ describe("SimpleDEXMock Tests", function () {
           inputToken: tokenA,
           outputToken: tokenB,
           amountIn: ethers.parseEther("100"),
+          executionSlippage: EXECUTION_SLIPPAGE_BPS,
           expectedRate: DEFAULT_EXCHANGE_RATE,
           swapType: "exactInput" as const,
           expectedInput: ethers.parseEther("100"),
@@ -581,6 +691,7 @@ describe("SimpleDEXMock Tests", function () {
           inputToken: tokenB,
           outputToken: tokenA,
           amountOut: ethers.parseEther("50"),
+          executionSlippage: EXECUTION_SLIPPAGE_BPS,
           expectedRate: REVERSE_EXCHANGE_RATE,
           swapType: "exactOutput" as const,
           expectedInput: ethers.parseUnits("76.530612", TOKEN_B_DECIMALS), // Calculated with slippage
@@ -591,6 +702,7 @@ describe("SimpleDEXMock Tests", function () {
           inputToken: tokenA,
           outputToken: tokenC,
           amountIn: ethers.parseEther("75"),
+          executionSlippage: EXECUTION_SLIPPAGE_BPS,
           expectedRate: ethers.parseEther("2.0"),
           swapType: "exactInput" as const,
           expectedInput: ethers.parseEther("75"),
@@ -613,6 +725,9 @@ describe("SimpleDEXMock Tests", function () {
           await scenario.outputToken.getAddress(),
           scenario.expectedRate
         );
+
+        // Set execution slippage for this scenario
+        await dexMock.setExecutionSlippage(scenario.executionSlippage);
         
         // Use predefined expected amounts from test case
         expectedAmounts.set(`${userAddr}_expectedInput`, scenario.expectedInput);
@@ -671,7 +786,7 @@ describe("SimpleDEXMock Tests", function () {
       }
     });
 
-    it("Should handle swaps with different execution slippage rates", async function () {
+    it("Should handle swaps with different execution slippage rates independently", async function () {
       const slippageTestCases = [
         { slippageBps: 0, description: "No slippage" },
         { slippageBps: ONE_PERCENT_BPS, description: "1% slippage" },
