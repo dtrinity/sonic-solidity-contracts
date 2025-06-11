@@ -49,20 +49,28 @@ test.hardhat: ## Run the hardhat tests
 slither: ## Run Slither static analysis on all contracts with summaries and loc
 	@echo "Running Slither static analysis..."
 	@mkdir -p reports/slither
+	@mkdir -p reports
+	@echo "Generating JSON report..."
+	@slither . --config-file slither.config.json \
+		--filter-paths "contracts/dlend,contracts/mocks,contracts/testing" \
+		--json reports/slither/slither-report.json || true
+	@echo "Generating human-readable summary..."
 	@slither . --config-file slither.config.json \
 		--filter-paths "contracts/dlend,contracts/mocks,contracts/testing" \
 		--print human-summary \
-		--disable-color > reports/slither/human-summary.txt 2>&1 || true
-	@echo "Results saved to reports/slither/human-summary.txt"
+		--disable-color > reports/slither-summary.md 2>&1 || true
+	@echo "Results saved to reports/slither/slither-report.json and reports/slither-summary.md"
 
 slither.check: ## Run Slither with fail-on-high severity with summaries and loc
 	@echo "Running Slither with strict checks..."
 	@mkdir -p reports/slither
+	@mkdir -p reports
 	@slither . --config-file slither.config.json --fail-high \
 		--filter-paths "contracts/dlend,contracts/mocks,contracts/testing" \
 		--print human-summary \
 		--print contract-summary \
-		--print loc
+		--print loc \
+		--json reports/slither/slither-report.json
 
 slither.focused: ## Run Slither on specific contract with summaries and loc (usage: make slither.focused contract=ContractName)
 	@if [ "$(contract)" = "" ]; then \
@@ -71,11 +79,13 @@ slither.focused: ## Run Slither on specific contract with summaries and loc (usa
 	fi
 	@echo "Running Slither on $(contract)..."
 	@mkdir -p reports/slither
+	@mkdir -p reports
 	@slither $(contract) --config-file slither.config.json \
 		--filter-paths "contracts/dlend,contracts/mocks,contracts/testing" \
 		--print human-summary \
 		--print contract-summary \
-		--print loc
+		--print loc \
+		--json reports/slither/slither-focused-report.json
 
 mythril: ## Run Mythril security analysis on all contracts
 	@echo "Running Mythril security analysis on all contracts..."

@@ -30,7 +30,6 @@ certora # python virtual environment
 .DS_Store
 
 # Slither analysis reports
-slither-report.json
 reports/slither/
 
 # Mythril analysis reports
