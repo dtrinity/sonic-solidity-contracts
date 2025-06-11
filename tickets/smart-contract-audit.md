@@ -2,6 +2,10 @@
 
 Please audit the smart contracts in the provided directory. Think like a professional smart contract auditor. Embody OpenZeppelin's best practices and recommendations. Consider code vulnerabilities, economic attack vectors, counterparty risk, and edge cases.
 
+Helpful resources:
+- `reports/mythril_summary.md`
+- `reports/slither-summary.md`
+
 When you audit a contract, please do the following.
 1. Seek to gain a full understanding of what the contract's purpose is.
    1. Sometimes there are markdown files which describe the design of the contract ecosystem, reading it will give you a high level overview and is a good place to start.
