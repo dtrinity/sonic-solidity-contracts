@@ -33,9 +33,9 @@ import {BasisPointConstants} from "contracts/common/BasisPointConstants.sol";
  * @dev A helper contract for decreasing leverage with flash loans
  *      - Suppose the core contract current leverage is 4x, target leverage is 3x, collateral token is WETH, debt token is dUSD
  *      - User wants to decrease leverage to target (3x) but doesn't have enough debt tokens
- *      - This contract will flashloan collateral tokens, call decreaseLeverage on core to get more collateral tokens,
+ *      - This contract will flashloan debt tokens, call decreaseLeverage on core to get collateral tokens,
  *        swap the received collateral tokens to debt tokens, and use the debt tokens to repay the flashloan
- *      - Example: Flash loan 25 WETH -> call decreaseLeverage with 50,000 dUSD -> receive 25+ WETH -> swap to 50,000+ dUSD -> repay flash loan
+ *      - Example: Flash loan 50,000 dUSD -> call decreaseLeverage with 50,000 dUSD -> receive 25+ WETH -> swap to 50,000+ dUSD -> repay flash loan
  */
 abstract contract DLoopDecreaseLeverageBase is
     IERC3156FlashBorrower,
@@ -65,23 +65,13 @@ abstract contract DLoopDecreaseLeverageBase is
 
     error UnknownLender(address msgSender, address flashLender);
     error UnknownInitiator(address initiator, address thisContract);
-    error IncompatibleDLoopCoreCollateralToken(
-        address currentCollateralToken,
-        address dLoopCoreCollateralToken
+    error IncompatibleDLoopCoreDebtToken(
+        address currentDebtToken,
+        address dLoopCoreDebtToken
     );
     error CollateralTokenBalanceNotIncreasedAfterDecreaseLeverage(
         uint256 collateralTokenBalanceBeforeDecrease,
         uint256 collateralTokenBalanceAfterDecrease
-    );
-    error CollateralTokenReceivedNotMetUsedAmountWithFlashLoanFee(
-        uint256 collateralTokenReceived,
-        uint256 collateralTokenUsed,
-        uint256 flashLoanFee
-    );
-    error RequiredDebtAmountExceedsUserBalance(
-        uint256 requiredDebtAmount,
-        uint256 userDebtBalance,
-        uint256 additionalDebtFromUser
     );
     error FlashLoanAmountExceedsMaxAvailable(
         uint256 requiredFlashLoanAmount,
@@ -95,6 +85,7 @@ abstract contract DLoopDecreaseLeverageBase is
         uint256 receivedCollateralTokenAmount,
         uint256 minOutputCollateralTokenAmount
     );
+    error FlashLenderNotSameAsDebtToken(address flashLender, address debtToken);
 
     /* Events */
 
@@ -148,7 +139,7 @@ abstract contract DLoopDecreaseLeverageBase is
 
     /**
      * @dev Decreases leverage with flash loans
-     *      - Flash loans collateral tokens, calls decreaseLeverage, swaps received collateral tokens to debt tokens, uses debt tokens to repay flash loan
+     *      - Flash loans debt tokens, calls decreaseLeverage, swaps received collateral tokens to debt tokens, uses debt tokens to repay flash loan
      * @param additionalDebtFromUser Additional debt token amount from user (can be 0)
      * @param minOutputCollateralTokenAmount Minimum amount of collateral token to receive (slippage protection)
      * @param collateralToDebtTokenSwapData Swap data from collateral token to debt token
@@ -189,24 +180,13 @@ abstract contract DLoopDecreaseLeverageBase is
             uint256 requiredDebtFromFlashLoan = requiredDebtAmount -
                 debtFromUser;
 
-            // Convert debt amount to collateral token amount for flash loan
-            uint256 requiredFlashLoanAmount = dLoopCore
-                .convertFromTokenAmountToBaseCurrency(
-                    requiredDebtFromFlashLoan,
-                    address(debtToken)
-                );
-            requiredFlashLoanAmount = dLoopCore.convertFromBaseCurrencyToToken(
-                requiredFlashLoanAmount,
-                address(collateralToken)
-            );
-
             // Check if flash loan amount is available
             uint256 maxFlashLoanAmount = flashLender.maxFlashLoan(
-                address(collateralToken)
+                address(debtToken)
             );
-            if (requiredFlashLoanAmount > maxFlashLoanAmount) {
+            if (requiredDebtFromFlashLoan > maxFlashLoanAmount) {
                 revert FlashLoanAmountExceedsMaxAvailable(
-                    requiredFlashLoanAmount,
+                    requiredDebtFromFlashLoan,
                     maxFlashLoanAmount
                 );
             }
@@ -228,21 +208,29 @@ abstract contract DLoopDecreaseLeverageBase is
             uint256 collateralTokenBalanceBeforeDecrease = collateralToken
                 .balanceOf(address(this));
 
-            // Approve flash lender to spend collateral tokens
-            collateralToken.forceApprove(
+            // Approve flash lender to spend debt tokens for repayment
+            debtToken.forceApprove(
                 address(flashLender),
-                requiredFlashLoanAmount +
+                requiredDebtFromFlashLoan +
                     flashLender.flashFee(
-                        address(collateralToken),
-                        requiredFlashLoanAmount
+                        address(debtToken),
+                        requiredDebtFromFlashLoan
                     )
             );
+
+            // Make sure the flashLender is the same as the debt token
+            if (address(flashLender) != address(debtToken)) {
+                revert FlashLenderNotSameAsDebtToken(
+                    address(flashLender),
+                    address(debtToken)
+                );
+            }
 
             // Execute flash loan - main logic in onFlashLoan
             flashLender.flashLoan(
                 this,
-                address(collateralToken),
-                requiredFlashLoanAmount,
+                address(debtToken),
+                requiredDebtFromFlashLoan,
                 data
             );
 
@@ -356,7 +344,7 @@ abstract contract DLoopDecreaseLeverageBase is
     function onFlashLoan(
         address initiator,
         address token,
-        uint256 /* amount */,
+        uint256, // amount (flash loan amount)
         uint256 fee,
         bytes calldata data
     ) external override returns (bytes32) {
@@ -376,26 +364,8 @@ abstract contract DLoopDecreaseLeverageBase is
         ERC20 debtToken = dLoopCore.debtToken();
 
         // Verify token compatibility
-        if (token != address(collateralToken))
-            revert IncompatibleDLoopCoreCollateralToken(
-                token,
-                address(collateralToken)
-            );
-
-        // Swap flash loaned collateral tokens to debt tokens
-        uint256 requiredDebtFromFlashLoan = flashLoanParams.requiredDebtAmount -
-            flashLoanParams.additionalDebtFromUser -
-            debtToken.balanceOf(address(this));
-
-        uint256 collateralTokenUsedInSwap = _swapExactOutput(
-            collateralToken,
-            debtToken,
-            requiredDebtFromFlashLoan,
-            type(uint256).max, // No slippage protection here
-            address(this),
-            block.timestamp,
-            flashLoanParams.collateralToDebtTokenSwapData
-        );
+        if (token != address(debtToken))
+            revert IncompatibleDLoopCoreDebtToken(token, address(debtToken));
 
         // Record collateral token balance before decrease leverage
         uint256 collateralTokenBalanceBeforeDecrease = collateralToken
@@ -413,7 +383,7 @@ abstract contract DLoopDecreaseLeverageBase is
             0 // No min amount check here, will be checked in main function
         );
 
-        // Verify we received enough collateral tokens to repay flash loan
+        // Verify we received collateral tokens
         uint256 collateralTokenBalanceAfterDecrease = collateralToken.balanceOf(
             address(this)
         );
@@ -427,17 +397,20 @@ abstract contract DLoopDecreaseLeverageBase is
             );
         }
 
-        uint256 collateralTokenReceived = collateralTokenBalanceAfterDecrease -
-            collateralTokenBalanceBeforeDecrease;
+        // Swap collateral tokens to debt tokens to repay flash loan
+        uint256 requiredDebtFromFlashLoan = flashLoanParams.requiredDebtAmount -
+            flashLoanParams.additionalDebtFromUser -
+            debtToken.balanceOf(address(this));
 
-        // Ensure we can repay flash loan
-        if (collateralTokenReceived < collateralTokenUsedInSwap + fee) {
-            revert CollateralTokenReceivedNotMetUsedAmountWithFlashLoanFee(
-                collateralTokenReceived,
-                collateralTokenUsedInSwap,
-                fee
-            );
-        }
+        _swapExactOutput(
+            collateralToken,
+            debtToken,
+            requiredDebtFromFlashLoan + fee,
+            type(uint256).max, // No slippage protection here
+            address(this),
+            block.timestamp,
+            flashLoanParams.collateralToDebtTokenSwapData
+        );
 
         return FLASHLOAN_CALLBACK;
     }
