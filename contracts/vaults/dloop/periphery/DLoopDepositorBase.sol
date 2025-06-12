@@ -245,7 +245,7 @@ abstract contract DLoopDepositorBase is
 
         // Make sure the estimated overall slippage bps does not exceed 100%
         if (
-            estimatedOverallSlippageBps >=
+            estimatedOverallSlippageBps >
             BasisPointConstants.ONE_HUNDRED_PERCENT_BPS
         ) {
             revert EstimatedOverallSlippageBpsCannotExceedOneHundredPercent(
