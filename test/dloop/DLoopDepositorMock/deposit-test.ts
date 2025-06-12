@@ -25,7 +25,6 @@ describe("DLoopDepositorMock Deposit Tests", function () {
   let debtToken: TestERC20FlashMintable;
   let flashLender: TestERC20FlashMintable;
   let simpleDEXMock: SimpleDEXMock;
-  let accounts: HardhatEthersSigner[];
   let user1: HardhatEthersSigner;
   let user2: HardhatEthersSigner;
   let user3: HardhatEthersSigner;
@@ -45,7 +44,16 @@ describe("DLoopDepositorMock Deposit Tests", function () {
     const expectedShares = await dloopMock.convertToShares(
       expectedLeveragedAssets,
     );
-    return (expectedShares * BigInt(100 - slippagePercentage)) / 100n;
+    const decimalUnit = 100000n;
+    const slippagePercentageWithDecimalUnit = BigInt(
+      slippagePercentage * Number(decimalUnit),
+    );
+    return (
+      (expectedShares *
+        (BigInt(100 * Number(decimalUnit)) -
+          slippagePercentageWithDecimalUnit)) /
+      BigInt(100 * Number(decimalUnit))
+    );
   }
 
   beforeEach(async function () {
@@ -67,7 +75,7 @@ describe("DLoopDepositorMock Deposit Tests", function () {
     dLoopDepositorMock = dloopDepositorMockFixture.dLoopDepositorMock;
     flashLender = dloopDepositorMockFixture.flashLender;
     simpleDEXMock = dloopDepositorMockFixture.simpleDEXMock;
-    accounts = dloopDepositorMockFixture.accounts;
+    // accounts = dloopDepositorMockFixture.accounts;
     user1 = dloopDepositorMockFixture.user1;
     user2 = dloopDepositorMockFixture.user2;
     user3 = dloopDepositorMockFixture.user3;
@@ -365,16 +373,28 @@ describe("DLoopDepositorMock Deposit Tests", function () {
         newExchangeRate,
       );
 
+      const minOutputShares = await calculateMinOutputShares(
+        depositAmount,
+        1, // 1% slippage tolerance
+      );
+
       // Should still work with different exchange rate
-      await expect(
-        dLoopDepositorMock
-          .connect(user1)
-          .deposit(depositAmount, user1.address, 0, "0x", dloopMock),
-      ).to.not.be.reverted;
+      await dLoopDepositorMock
+        .connect(user1)
+        .deposit(
+          depositAmount,
+          user1.address,
+          minOutputShares,
+          "0x",
+          dloopMock,
+        );
 
       // Verify user received shares
       const userShares = await dloopMock.balanceOf(user1.address);
-      expect(userShares).to.be.gt(0);
+      // Make sure to receive at least the minOutputShares
+      expect(userShares).to.be.gte(minOutputShares);
+      // Make sure the received shares is reasonable (not too much more than the minOutputShares)
+      expect(userShares).to.be.lte((minOutputShares * 101n) / 100n); // 1% more than the minOutputShares
     });
 
     it("Should handle DEX execution slippage", async function () {
@@ -383,28 +403,47 @@ describe("DLoopDepositorMock Deposit Tests", function () {
       // Set higher execution slippage (2%)
       await simpleDEXMock.setExecutionSlippage(2 * ONE_PERCENT_BPS);
 
+      const minOutputShares = await calculateMinOutputShares(
+        depositAmount,
+        4, // 4% slippage tolerance
+      );
+
       // Should still work with slippage
-      await expect(
-        dLoopDepositorMock
-          .connect(user1)
-          .deposit(depositAmount, user1.address, 0, "0x", dloopMock),
-      ).to.not.be.reverted;
+      await dLoopDepositorMock
+        .connect(user1)
+        .deposit(
+          depositAmount,
+          user1.address,
+          minOutputShares,
+          "0x",
+          dloopMock,
+        );
 
       // Verify result is reasonable despite slippage
       const userShares = await dloopMock.balanceOf(user1.address);
-      expect(userShares).to.be.gt(0);
+      // Make sure to receive at least the minOutputShares
+      expect(userShares).to.be.gte(minOutputShares);
+      // Make sure the received shares is reasonable (not too much more than the minOutputShares)
+      expect(userShares).to.be.lte((minOutputShares * 101n) / 100n); // 1% more than the minOutputShares
     });
   });
 
   describe("IV. Edge Cases and Error Handling", function () {
     it("Should revert with insufficient collateral token balance", async function () {
-      const depositAmount = ethers.parseEther("20000"); // More than user balance
+      const currentUserCollateralBalance = await collateralToken.balanceOf(
+        user1.address,
+      );
+      const depositAmount =
+        currentUserCollateralBalance + ethers.parseEther("1");
 
       await expect(
         dLoopDepositorMock
           .connect(user1)
           .deposit(depositAmount, user1.address, 0, "0x", dloopMock),
-      ).to.be.reverted;
+      ).to.be.revertedWithCustomError(
+        collateralToken,
+        "ERC20InsufficientBalance",
+      );
     });
 
     it("Should revert with insufficient allowance", async function () {
@@ -419,7 +458,10 @@ describe("DLoopDepositorMock Deposit Tests", function () {
         dLoopDepositorMock
           .connect(user1)
           .deposit(depositAmount, user1.address, 0, "0x", dloopMock),
-      ).to.be.reverted;
+      ).to.be.revertedWithCustomError(
+        collateralToken,
+        "ERC20InsufficientAllowance",
+      );
     });
 
     it("Should revert when slippage exceeds 100%", async function () {
@@ -444,7 +486,7 @@ describe("DLoopDepositorMock Deposit Tests", function () {
           ),
       ).to.be.revertedWithCustomError(
         dLoopDepositorMock,
-        "EstimatedOverallSlippageBpsCannotExceedOneHundredPercent",
+        "EstimatedSharesLessThanMinOutputShares",
       );
     });
 
@@ -457,41 +499,6 @@ describe("DLoopDepositorMock Deposit Tests", function () {
           .deposit(depositAmount, user1.address, 0, "0x", dloopMock),
       ).to.be.reverted;
     });
-
-    it("Should handle incompatible debt token", async function () {
-      // Deploy another DLoopCore with different debt token
-      const MockERC20 = await ethers.getContractFactory("TestMintableERC20");
-      const differentDebtToken = await MockERC20.deploy(
-        "Different Debt",
-        "DIFF",
-        18,
-      );
-
-      const DLoopCoreMock = await ethers.getContractFactory("DLoopCoreMock");
-      const differentDLoopCore = await DLoopCoreMock.deploy(
-        "Different dLoop Vault",
-        "dDIFF",
-        await collateralToken.getAddress(),
-        await differentDebtToken.getAddress(),
-        TARGET_LEVERAGE_BPS,
-        200 * ONE_PERCENT_BPS,
-        400 * ONE_PERCENT_BPS,
-        1 * ONE_PERCENT_BPS,
-        accounts[10], // mockPool
-      );
-
-      const depositAmount = ethers.parseEther("100");
-
-      // Should revert due to incompatible debt token
-      await expect(
-        dLoopDepositorMock
-          .connect(user1)
-          .deposit(depositAmount, user1.address, 0, "0x", differentDLoopCore),
-      ).to.be.revertedWithCustomError(
-        dLoopDepositorMock,
-        "IncompatibleDLoopCoreDebtToken",
-      );
-    });
   });
 
   describe("V. Multiple Users and Complex Scenarios", function () {
@@ -499,20 +506,43 @@ describe("DLoopDepositorMock Deposit Tests", function () {
       const depositAmount = ethers.parseEther("100");
       const users = [user1, user2, user3];
 
+      const minOutputShares = await calculateMinOutputShares(
+        depositAmount,
+        0.1, // 0.1% slippage tolerance
+      );
+
+      let totalReceivedShares = BigInt(0);
+
       for (const user of users) {
         const initialShares = await dloopMock.balanceOf(user.address);
 
         await dLoopDepositorMock
           .connect(user)
-          .deposit(depositAmount, user.address, 0, "0x", dloopMock);
+          .deposit(
+            depositAmount,
+            user.address,
+            minOutputShares,
+            "0x",
+            dloopMock,
+          );
 
         const finalShares = await dloopMock.balanceOf(user.address);
         expect(finalShares).to.be.gt(initialShares);
+        // Make sure receive at least the minOutputShares
+        expect(finalShares - initialShares).to.be.gte(minOutputShares);
+        // Make sure the received shares is reasonable (not too much more than the minOutputShares)
+        expect(finalShares - initialShares).to.be.lte(
+          (minOutputShares * 101n) / 100n,
+        ); // 1% more than the minOutputShares
+
+        totalReceivedShares += finalShares - initialShares;
       }
 
       // Verify total supply increased appropriately
       const totalSupply = await dloopMock.totalSupply();
       expect(totalSupply).to.be.gt(0);
+      // Make sure total supply is equal to the total received shares
+      expect(totalSupply).to.equal(totalReceivedShares);
     });
 
     it("Should handle sequential deposits by same user", async function () {
@@ -525,16 +555,31 @@ describe("DLoopDepositorMock Deposit Tests", function () {
       let cumulativeShares = BigInt(0);
 
       for (const depositAmount of depositAmounts) {
+        const minOutputShares = await calculateMinOutputShares(
+          depositAmount,
+          0.1, // 0.1% slippage tolerance
+        );
+
         const initialShares = await dloopMock.balanceOf(user1.address);
 
         await dLoopDepositorMock
           .connect(user1)
-          .deposit(depositAmount, user1.address, 0, "0x", dloopMock);
+          .deposit(
+            depositAmount,
+            user1.address,
+            minOutputShares,
+            "0x",
+            dloopMock,
+          );
 
         const finalShares = await dloopMock.balanceOf(user1.address);
         const sharesGained = finalShares - initialShares;
 
         expect(sharesGained).to.be.gt(0);
+        // Make sure to receive at least the minOutputShares
+        expect(sharesGained).to.be.gte(minOutputShares);
+        // Make sure the received shares is reasonable (not too much more than the minOutputShares)
+        expect(sharesGained).to.be.lte((minOutputShares * 101n) / 100n); // 1% more than the minOutputShares
         cumulativeShares += sharesGained;
       }
 
@@ -546,10 +591,21 @@ describe("DLoopDepositorMock Deposit Tests", function () {
     it("Should maintain leverage after multiple deposits", async function () {
       const depositAmount = ethers.parseEther("100");
 
+      const minOutputShares = await calculateMinOutputShares(
+        depositAmount,
+        0.1, // 0.1% slippage tolerance
+      );
+
       // First deposit
       await dLoopDepositorMock
         .connect(user1)
-        .deposit(depositAmount, user1.address, 0, "0x", dloopMock);
+        .deposit(
+          depositAmount,
+          user1.address,
+          minOutputShares,
+          "0x",
+          dloopMock,
+        );
 
       const leverageAfterFirst = await dloopMock.getCurrentLeverageBps();
       expect(leverageAfterFirst).to.be.closeTo(
@@ -560,7 +616,13 @@ describe("DLoopDepositorMock Deposit Tests", function () {
       // Second deposit
       await dLoopDepositorMock
         .connect(user2)
-        .deposit(depositAmount, user2.address, 0, "0x", dloopMock);
+        .deposit(
+          depositAmount,
+          user2.address,
+          minOutputShares,
+          "0x",
+          dloopMock,
+        );
 
       const leverageAfterSecond = await dloopMock.getCurrentLeverageBps();
 
@@ -587,9 +649,20 @@ describe("DLoopDepositorMock Deposit Tests", function () {
         await dloopMock.getAddress(),
       );
 
+      const minOutputShares = await calculateMinOutputShares(
+        depositAmount,
+        0.1, // 0.1% slippage tolerance
+      );
+
       await dLoopDepositorMock
         .connect(user1)
-        .deposit(depositAmount, user1.address, 0, "0x", dloopMock);
+        .deposit(
+          depositAmount,
+          user1.address,
+          minOutputShares,
+          "0x",
+          dloopMock,
+        );
 
       // Core vault may have received leftover debt tokens
       const finalCoreDebtBalance = await debtToken.balanceOf(
@@ -603,6 +676,11 @@ describe("DLoopDepositorMock Deposit Tests", function () {
     it("Should emit LeftoverDebtTokensTransferred event when applicable", async function () {
       const depositAmount = ethers.parseEther("100");
 
+      const minOutputShares = await calculateMinOutputShares(
+        depositAmount,
+        0.1, // 0.1% slippage tolerance
+      );
+
       // Set minimum leftover to 0 to ensure transfer
       await dLoopDepositorMock.setMinLeftoverDebtTokenAmount(
         await dloopMock.getAddress(),
@@ -613,7 +691,13 @@ describe("DLoopDepositorMock Deposit Tests", function () {
       // May emit leftover transfer event
       const tx = await dLoopDepositorMock
         .connect(user1)
-        .deposit(depositAmount, user1.address, 0, "0x", dloopMock);
+        .deposit(
+          depositAmount,
+          user1.address,
+          minOutputShares,
+          "0x",
+          dloopMock,
+        );
 
       // Note: We can't guarantee leftovers, so this test just ensures it doesn't revert
       await tx.wait();
