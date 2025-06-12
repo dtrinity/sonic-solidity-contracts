@@ -99,6 +99,7 @@ abstract contract DLoopDepositorBase is
         uint256 estimatedOverallSlippageBps
     );
     error FlashLenderNotSameAsDebtToken(address flashLender, address debtToken);
+    error SlippageBpsCannotExceedOneHundredPercent(uint256 slippageBps);
 
     /* Events */
 
@@ -149,6 +150,33 @@ abstract contract DLoopDepositorBase is
     }
 
     /* Deposit */
+
+    /**
+     * @dev Calculates the minimum output shares for a given deposit amount and slippage bps
+     * @param depositAmount Amount of collateral token to deposit
+     * @param slippageBps Slippage bps
+     * @param dLoopCore Address of the DLoopCore contract
+     * @return minOutputShares Minimum output shares
+     */
+    function calculateMinOutputShares(
+        uint256 depositAmount,
+        uint256 slippageBps,
+        DLoopCoreBase dLoopCore
+    ) public view returns (uint256) {
+        if (slippageBps > BasisPointConstants.ONE_HUNDRED_PERCENT_BPS) {
+            revert SlippageBpsCannotExceedOneHundredPercent(slippageBps);
+        }
+        uint256 expectedLeveragedAssets = dLoopCore.getLeveragedAssets(
+            depositAmount
+        );
+        uint256 expectedShares = dLoopCore.convertToShares(
+            expectedLeveragedAssets
+        );
+        return
+            (expectedShares *
+                (BasisPointConstants.ONE_HUNDRED_PERCENT_BPS - slippageBps)) /
+            BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
+    }
 
     /**
      * @dev Calculates the estimated overall slippage bps
