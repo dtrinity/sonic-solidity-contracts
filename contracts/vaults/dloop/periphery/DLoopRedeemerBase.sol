@@ -113,7 +113,6 @@ abstract contract DLoopRedeemerBase is
     /* Structs */
 
     struct FlashLoanParams {
-        address owner;
         uint256 shares;
         bytes collateralToDebtTokenSwapData;
         DLoopCoreBase dLoopCore;
@@ -163,11 +162,8 @@ abstract contract DLoopRedeemerBase is
         bytes calldata collateralToDebtTokenSwapData,
         DLoopCoreBase dLoopCore
     ) public nonReentrant returns (uint256 assets) {
-        // We assume the owner is always the msg.sender, means you cannot redeem shares on behalf of others
-        address owner = msg.sender;
-
         // Transfer the shares to the periphery contract to prepare for the redeeming process
-        SafeERC20.safeTransferFrom(dLoopCore, owner, address(this), shares);
+        SafeERC20.safeTransferFrom(dLoopCore, msg.sender, address(this), shares);
 
         // Do not need to transfer the debt token to repay the lending pool, as it will be done with flash loan
 
@@ -208,7 +204,6 @@ abstract contract DLoopRedeemerBase is
 
         // Create the flash loan params data
         FlashLoanParams memory params = FlashLoanParams(
-            owner,
             shares,
             collateralToDebtTokenSwapData,
             dLoopCore
@@ -221,7 +216,7 @@ abstract contract DLoopRedeemerBase is
         );
 
         // This value is used to calculate the shares burned after the flash loan
-        uint256 sharesBeforeRedeem = dLoopCore.balanceOf(owner);
+        uint256 sharesBeforeRedeem = dLoopCore.balanceOf(address(this));
 
         // This value is used to calculate the received collateral token amount after the flash loan
         uint256 collateralTokenBalanceBefore = collateralToken.balanceOf(
@@ -252,7 +247,7 @@ abstract contract DLoopRedeemerBase is
         );
 
         // Check if the shares decreased after the flash loan
-        uint256 sharesAfterRedeem = dLoopCore.balanceOf(owner);
+        uint256 sharesAfterRedeem = dLoopCore.balanceOf(address(this));
         if (sharesAfterRedeem >= sharesBeforeRedeem) {
             revert SharesNotDecreasedAfterFlashLoan(
                 sharesBeforeRedeem,
@@ -376,7 +371,8 @@ abstract contract DLoopRedeemerBase is
         dLoopCore.redeem(
             flashLoanParams.shares,
             address(this), // receiver
-            flashLoanParams.owner // owner
+            // the owner is the periphery contract as the shares were transferred from the owner to the periphery contract
+            address(this) // owner
         );
         // Approve back to 0 to avoid any potential exploits later
         debtToken.forceApprove(address(dLoopCore), 0);
@@ -455,7 +451,6 @@ abstract contract DLoopRedeemerBase is
         FlashLoanParams memory _flashLoanParams
     ) internal pure returns (bytes memory data) {
         data = abi.encode(
-            _flashLoanParams.owner,
             _flashLoanParams.shares,
             _flashLoanParams.collateralToDebtTokenSwapData,
             _flashLoanParams.dLoopCore
@@ -471,10 +466,9 @@ abstract contract DLoopRedeemerBase is
         bytes memory data
     ) internal pure returns (FlashLoanParams memory _flashLoanParams) {
         (
-            _flashLoanParams.owner,
             _flashLoanParams.shares,
             _flashLoanParams.collateralToDebtTokenSwapData,
             _flashLoanParams.dLoopCore
-        ) = abi.decode(data, (address, uint256, bytes, DLoopCoreBase));
+        ) = abi.decode(data, (uint256, bytes, DLoopCoreBase));
     }
 }
