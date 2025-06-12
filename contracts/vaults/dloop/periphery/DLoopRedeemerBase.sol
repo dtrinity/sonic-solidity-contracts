@@ -96,6 +96,7 @@ abstract contract DLoopRedeemerBase is
         uint256 minOutputCollateralAmount
     );
     error FlashLenderNotSameAsDebtToken(address flashLender, address debtToken);
+    error SlippageBpsCannotExceedOneHundredPercent(uint256 slippageBps);
 
     /* Events */
 
@@ -146,6 +147,31 @@ abstract contract DLoopRedeemerBase is
     /* Redeem */
 
     /**
+     * @dev Calculates the minimum output collateral amount for a given shares and slippage bps
+     * @param shares Amount of shares to redeem
+     * @param slippageBps Slippage bps
+     * @param dLoopCore Address of the DLoopCore contract
+     * @return minOutputCollateralAmount Minimum output collateral amount
+     */
+    function calculateMinOutputCollateral(
+        uint256 shares,
+        uint256 slippageBps,
+        DLoopCoreBase dLoopCore
+    ) public view returns (uint256) {
+        if (slippageBps > BasisPointConstants.ONE_HUNDRED_PERCENT_BPS) {
+            revert SlippageBpsCannotExceedOneHundredPercent(slippageBps);
+        }
+        uint256 expectedLeverageCollateral = dLoopCore.previewRedeem(shares);
+        uint256 unleveragedCollateral = dLoopCore.getUnleveragedAssets(
+            expectedLeverageCollateral
+        );
+        return
+            (unleveragedCollateral *
+                (BasisPointConstants.ONE_HUNDRED_PERCENT_BPS - slippageBps)) /
+            BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
+    }
+
+    /**
      * @dev Redeems shares from the core vault with flash loans
      *      - The required debt token to withdraw will be flash loaned from the flash lender
      * @param shares Amount of shares to redeem
@@ -163,7 +189,12 @@ abstract contract DLoopRedeemerBase is
         DLoopCoreBase dLoopCore
     ) public nonReentrant returns (uint256 assets) {
         // Transfer the shares to the periphery contract to prepare for the redeeming process
-        SafeERC20.safeTransferFrom(dLoopCore, msg.sender, address(this), shares);
+        SafeERC20.safeTransferFrom(
+            dLoopCore,
+            msg.sender,
+            address(this),
+            shares
+        );
 
         // Do not need to transfer the debt token to repay the lending pool, as it will be done with flash loan
 
