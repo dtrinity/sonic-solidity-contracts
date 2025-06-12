@@ -126,9 +126,9 @@ abstract contract SwappableVault {
         // as it is not a risk for the caller
 
         // Make sure the received output token amount is exactly the amount out
-        if (outputTokenBalanceAfter < outputTokenBalanceBefore) {
-            uint256 receivedOutputTokenAmount = outputTokenBalanceBefore -
-                outputTokenBalanceAfter;
+        if (outputTokenBalanceAfter > outputTokenBalanceBefore) {
+            uint256 receivedOutputTokenAmount = outputTokenBalanceAfter -
+                outputTokenBalanceBefore;
             if (receivedOutputTokenAmount != amountOut) {
                 revert ReceivedOutputTokenAmountNotEqualAmountOut(
                     receivedOutputTokenAmount,
