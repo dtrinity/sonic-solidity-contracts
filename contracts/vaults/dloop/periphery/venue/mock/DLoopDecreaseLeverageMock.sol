@@ -67,4 +67,4 @@ contract DLoopDecreaseLeverageMock is DLoopDecreaseLeverageBase {
                 receiver
             );
     }
-} 
+}
