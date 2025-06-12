@@ -52,6 +52,12 @@ contract DLoopDecreaseLeverageMock is DLoopDecreaseLeverageBase {
         uint256, // deadline
         bytes memory // collateralToDebtTokenSwapData
     ) internal override returns (uint256) {
+        // Approve the SimpleDEXMock to spend the input token
+        require(
+            inputToken.approve(address(simpleDEXMock), amountInMaximum),
+            "Approve simpleDEXMock to spend input token failed"
+        );
+
         return
             simpleDEXMock.executeSwapExactOutput(
                 IERC20Metadata(address(inputToken)),
