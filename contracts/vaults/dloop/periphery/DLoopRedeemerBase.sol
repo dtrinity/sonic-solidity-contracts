@@ -327,7 +327,11 @@ abstract contract DLoopRedeemerBase is
         uint256, // amount (flash loan amount)
         uint256 flashLoanFee, // fee (flash loan fee)
         bytes calldata data
-    ) external override nonReentrant returns (bytes32) {
+    ) external override returns (bytes32) {
+        // This function does not need nonReentrant as the flash loan will be called by redeem() public
+        // function, which is already protected by nonReentrant
+        // Moreover, this function is only be able to be called by the address(this) (check the initiator condition)
+        // thus even though the flash loan is public and not protected by nonReentrant, it is still safe
         if (msg.sender != address(flashLender))
             revert UnknownLender(msg.sender, address(flashLender));
         if (initiator != address(this))
