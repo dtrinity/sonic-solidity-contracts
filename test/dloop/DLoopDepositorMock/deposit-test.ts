@@ -10,7 +10,10 @@ import {
   TestERC20FlashMintable,
   TestMintableERC20,
 } from "../../../typechain-types";
-import { ONE_PERCENT_BPS } from "../../../typescript/common/bps_constants";
+import {
+  ONE_HUNDRED_PERCENT_BPS,
+  ONE_PERCENT_BPS,
+} from "../../../typescript/common/bps_constants";
 import {
   deployDLoopDepositorMockFixture,
   TARGET_LEVERAGE_BPS,
@@ -28,33 +31,6 @@ describe("DLoopDepositorMock Deposit Tests", function () {
   let user1: HardhatEthersSigner;
   let user2: HardhatEthersSigner;
   let user3: HardhatEthersSigner;
-
-  /**
-   * Helper function to calculate reasonable minOutputShares with slippage tolerance
-   *
-   * @param depositAmount - The amount of collateral token to deposit
-   * @param slippagePercentage - The slippage percentage to allow (default 5%)
-   */
-  async function calculateMinOutputShares(
-    depositAmount: bigint,
-    slippagePercentage: number = 5, // Default 5% slippage tolerance
-  ): Promise<bigint> {
-    const expectedLeveragedAssets =
-      await dloopMock.getLeveragedAssets(depositAmount);
-    const expectedShares = await dloopMock.convertToShares(
-      expectedLeveragedAssets,
-    );
-    const decimalUnit = 100000n;
-    const slippagePercentageWithDecimalUnit = BigInt(
-      slippagePercentage * Number(decimalUnit),
-    );
-    return (
-      (expectedShares *
-        (BigInt(100 * Number(decimalUnit)) -
-          slippagePercentageWithDecimalUnit)) /
-      BigInt(100 * Number(decimalUnit))
-    );
-  }
 
   beforeEach(async function () {
     // Reset the deployment before each test
@@ -85,42 +61,42 @@ describe("DLoopDepositorMock Deposit Tests", function () {
       {
         name: "Should handle small leveraged deposit",
         depositAmount: ethers.parseEther("10"),
-        slippagePercentage: 5,
+        slippagePercentage: 5 * ONE_PERCENT_BPS,
         userIndex: 1,
         expectedLeverageBps: TARGET_LEVERAGE_BPS,
-        toleranceBps: ONE_PERCENT_BPS,
+        expectedReceivedShares: ethers.parseEther("28.5"),
       },
       {
         name: "Should handle medium leveraged deposit",
         depositAmount: ethers.parseEther("100"),
-        slippagePercentage: 5,
+        slippagePercentage: 5 * ONE_PERCENT_BPS,
         userIndex: 1,
         expectedLeverageBps: TARGET_LEVERAGE_BPS,
-        toleranceBps: ONE_PERCENT_BPS,
+        expectedReceivedShares: ethers.parseEther("285"),
       },
       {
         name: "Should handle large leveraged deposit",
         depositAmount: ethers.parseEther("500"),
-        slippagePercentage: 5,
+        slippagePercentage: 5 * ONE_PERCENT_BPS,
         userIndex: 1,
         expectedLeverageBps: TARGET_LEVERAGE_BPS,
-        toleranceBps: ONE_PERCENT_BPS,
+        expectedReceivedShares: ethers.parseEther("1425"),
       },
       {
         name: "Should handle deposit with minimal slippage tolerance",
         depositAmount: ethers.parseEther("100"),
-        slippagePercentage: 0.1,
+        slippagePercentage: 0.1 * ONE_PERCENT_BPS,
         userIndex: 2,
         expectedLeverageBps: TARGET_LEVERAGE_BPS,
-        toleranceBps: ONE_PERCENT_BPS,
+        expectedReceivedShares: ethers.parseEther("299.7"),
       },
       {
         name: "Should handle deposit with higher slippage tolerance",
         depositAmount: ethers.parseEther("100"),
-        slippagePercentage: 10,
+        slippagePercentage: 10 * ONE_PERCENT_BPS,
         userIndex: 3,
         expectedLeverageBps: TARGET_LEVERAGE_BPS,
-        toleranceBps: ONE_PERCENT_BPS,
+        expectedReceivedShares: ethers.parseEther("270"),
       },
     ];
 
@@ -140,10 +116,12 @@ describe("DLoopDepositorMock Deposit Tests", function () {
         const expectedShares = await dloopMock.convertToShares(
           expectedLeveragedAssets,
         );
-        const minOutputShares = await calculateMinOutputShares(
-          testCase.depositAmount,
-          testCase.slippagePercentage,
-        );
+        const minOutputShares =
+          await dLoopDepositorMock.calculateMinOutputShares(
+            testCase.depositAmount,
+            testCase.slippagePercentage,
+            dloopMock,
+          );
 
         // Get initial balances
         const initialUserCollateralBalance = await collateralToken.balanceOf(
@@ -177,6 +155,11 @@ describe("DLoopDepositorMock Deposit Tests", function () {
         const actualShares = finalUserShareBalance - initialUserShareBalance;
         expect(actualShares).to.be.gte(minOutputShares);
         expect(actualShares).to.be.lte((expectedShares * 101n) / 100n); // No more than 1% above expected
+        expect(actualShares).to.be.closeTo(
+          testCase.expectedReceivedShares,
+          (testCase.expectedReceivedShares * BigInt(ONE_PERCENT_BPS)) /
+            BigInt(0.1 * ONE_HUNDRED_PERCENT_BPS), // 0.1% tolerance for slippage and fees
+        );
 
         // Verify core vault received leveraged collateral amount
         const finalCoreCollateral = await dloopMock.getMockCollateral(
@@ -196,7 +179,7 @@ describe("DLoopDepositorMock Deposit Tests", function () {
         const currentLeverage = await dloopMock.getCurrentLeverageBps();
         expect(currentLeverage).to.be.closeTo(
           BigInt(testCase.expectedLeverageBps),
-          BigInt(testCase.toleranceBps),
+          BigInt(0.1 * ONE_HUNDRED_PERCENT_BPS), // 0.1% tolerance
         );
 
         // Verify shares are reasonable compared to deposit amount
@@ -210,20 +193,23 @@ describe("DLoopDepositorMock Deposit Tests", function () {
       {
         name: "Should utilize flash loans for small deposit",
         depositAmount: ethers.parseEther("50"),
-        slippagePercentage: 5,
+        slippagePercentage: 5 * ONE_PERCENT_BPS,
         userIndex: 1,
+        expectedReceivedShares: ethers.parseEther("142.5"),
       },
       {
         name: "Should utilize flash loans for medium deposit",
         depositAmount: ethers.parseEther("100"),
-        slippagePercentage: 5,
+        slippagePercentage: 5 * ONE_PERCENT_BPS,
         userIndex: 1,
+        expectedReceivedShares: ethers.parseEther("285"),
       },
       {
         name: "Should utilize flash loans for large deposit",
         depositAmount: ethers.parseEther("200"),
-        slippagePercentage: 5,
+        slippagePercentage: 5 * ONE_PERCENT_BPS,
         userIndex: 2,
+        expectedReceivedShares: ethers.parseEther("570"),
       },
     ];
 
@@ -242,11 +228,16 @@ describe("DLoopDepositorMock Deposit Tests", function () {
           await flashLender.getAddress(),
         );
 
+        // Get initial user share balance
+        const initialUserShareBalance = await dloopMock.balanceOf(user.address);
+
         // Calculate reasonable minOutputShares
-        const minOutputShares = await calculateMinOutputShares(
-          testCase.depositAmount,
-          testCase.slippagePercentage,
-        );
+        const minOutputShares =
+          await dLoopDepositorMock.calculateMinOutputShares(
+            testCase.depositAmount,
+            testCase.slippagePercentage,
+            dloopMock,
+          );
 
         // Perform leveraged deposit
         await dLoopDepositorMock
@@ -258,6 +249,16 @@ describe("DLoopDepositorMock Deposit Tests", function () {
             "0x",
             dloopMock,
           );
+
+        // Verify user received expected shares
+        const finalUserShareBalance = await dloopMock.balanceOf(user.address);
+        const actualShares = finalUserShareBalance - initialUserShareBalance;
+        expect(actualShares).to.be.gte(minOutputShares);
+        expect(actualShares).to.be.closeTo(
+          testCase.expectedReceivedShares,
+          (testCase.expectedReceivedShares * BigInt(ONE_PERCENT_BPS)) /
+            BigInt(0.1 * ONE_HUNDRED_PERCENT_BPS), // 0.1% tolerance for slippage and fees
+        );
 
         // Flash lender balance should return to approximately the same level
         // (may have small fee differences)
@@ -288,9 +289,12 @@ describe("DLoopDepositorMock Deposit Tests", function () {
         expect(flashFee).to.equal(testCase.expectedFee);
 
         // Calculate reasonable minOutputShares
-        const minOutputShares = await calculateMinOutputShares(
-          testCase.depositAmount,
-        );
+        const minOutputShares =
+          await dLoopDepositorMock.calculateMinOutputShares(
+            testCase.depositAmount,
+            0.1 * ONE_PERCENT_BPS,
+            dloopMock,
+          );
 
         // Should succeed even with zero fees
         await expect(
@@ -324,44 +328,50 @@ describe("DLoopDepositorMock Deposit Tests", function () {
       {
         name: "Should swap debt tokens to collateral tokens for small amount",
         depositAmount: ethers.parseEther("50"),
-        slippagePercentage: 5,
+        slippagePercentage: 5 * ONE_PERCENT_BPS,
         exchangeRate: ethers.parseEther("1.0"), // 1:1 rate
         executionSlippage: 0,
+        expectedReceivedShares: ethers.parseEther("142.5"),
       },
       {
         name: "Should swap debt tokens to collateral tokens for medium amount",
         depositAmount: ethers.parseEther("100"),
-        slippagePercentage: 5,
+        slippagePercentage: 5 * ONE_PERCENT_BPS,
         exchangeRate: ethers.parseEther("1.0"), // 1:1 rate
         executionSlippage: 0,
+        expectedReceivedShares: ethers.parseEther("285"),
       },
       {
         name: "Should handle different exchange rates (1:1.5)",
         depositAmount: ethers.parseEther("100"),
-        slippagePercentage: 1,
+        slippagePercentage: 1 * ONE_PERCENT_BPS,
         exchangeRate: ethers.parseEther("1.5"), // 1 debt = 1.5 collateral
         executionSlippage: 0,
+        expectedReceivedShares: ethers.parseEther("297"),
       },
       {
         name: "Should handle different exchange rates (1:1.2)",
         depositAmount: ethers.parseEther("100"),
-        slippagePercentage: 5,
+        slippagePercentage: 5 * ONE_PERCENT_BPS,
         exchangeRate: ethers.parseEther("1.2"), // 1 debt = 1.2 collateral
         executionSlippage: 0,
+        expectedReceivedShares: ethers.parseEther("285"),
       },
       {
         name: "Should handle DEX execution slippage (1%)",
         depositAmount: ethers.parseEther("100"),
-        slippagePercentage: 4,
+        slippagePercentage: 4 * ONE_PERCENT_BPS,
         exchangeRate: ethers.parseEther("1.0"),
         executionSlippage: ONE_PERCENT_BPS,
+        expectedReceivedShares: ethers.parseEther("288"),
       },
       {
         name: "Should handle DEX execution slippage (2%)",
         depositAmount: ethers.parseEther("100"),
-        slippagePercentage: 4,
+        slippagePercentage: 4 * ONE_PERCENT_BPS,
         exchangeRate: ethers.parseEther("1.0"),
         executionSlippage: 2 * ONE_PERCENT_BPS,
+        expectedReceivedShares: ethers.parseEther("288"),
       },
     ];
 
@@ -389,11 +399,18 @@ describe("DLoopDepositorMock Deposit Tests", function () {
           await simpleDEXMock.getAddress(),
         );
 
-        // Calculate reasonable minOutputShares
-        const minOutputShares = await calculateMinOutputShares(
-          testCase.depositAmount,
-          testCase.slippagePercentage,
+        // Get initial user share balance
+        const initialUserShareBalance = await dloopMock.balanceOf(
+          user1.address,
         );
+
+        // Calculate reasonable minOutputShares
+        const minOutputShares =
+          await dLoopDepositorMock.calculateMinOutputShares(
+            testCase.depositAmount,
+            testCase.slippagePercentage,
+            dloopMock,
+          );
 
         // Perform leveraged deposit
         await dLoopDepositorMock
@@ -418,10 +435,15 @@ describe("DLoopDepositorMock Deposit Tests", function () {
         expect(finalDexCollateralBalance).to.be.lt(initialDexCollateralBalance);
         expect(finalDexDebtBalance).to.be.gt(initialDexDebtBalance);
 
-        // Verify user received shares within expected range
-        const userShares = await dloopMock.balanceOf(user1.address);
-        expect(userShares).to.be.gte(minOutputShares);
-        expect(userShares).to.be.lte((minOutputShares * 101n) / 100n); // 1% more than minOutputShares
+        // Verify user received expected shares
+        const finalUserShareBalance = await dloopMock.balanceOf(user1.address);
+        const actualShares = finalUserShareBalance - initialUserShareBalance;
+        expect(actualShares).to.be.gte(minOutputShares);
+        expect(actualShares).to.be.closeTo(
+          testCase.expectedReceivedShares,
+          (testCase.expectedReceivedShares * BigInt(ONE_PERCENT_BPS)) /
+            BigInt(0.1 * ONE_HUNDRED_PERCENT_BPS), // 0.1% tolerance for slippage and fees
+        );
 
         // Reset to default values for next test
         if (testCase.exchangeRate !== ethers.parseEther("1.0")) {
@@ -556,7 +578,7 @@ describe("DLoopDepositorMock Deposit Tests", function () {
         name: "Should handle deposits from multiple users with same amount",
         users: [1, 2, 3],
         depositAmount: ethers.parseEther("100"),
-        slippagePercentage: 0.1,
+        slippagePercentage: 0.1 * ONE_PERCENT_BPS,
         expectedMinTotalSupply: ethers.parseEther("300"), // 3 users * 100 ETH leverage
       },
       {
@@ -567,7 +589,7 @@ describe("DLoopDepositorMock Deposit Tests", function () {
           ethers.parseEther("100"),
           ethers.parseEther("200"),
         ],
-        slippagePercentage: 0.1,
+        slippagePercentage: 0.1 * ONE_PERCENT_BPS,
         expectedMinTotalSupply: ethers.parseEther("350"), // Sum of leveraged amounts
       },
     ];
@@ -585,10 +607,12 @@ describe("DLoopDepositorMock Deposit Tests", function () {
             ? testCase.depositAmounts[i]
             : testCase.depositAmount;
 
-          const minOutputShares = await calculateMinOutputShares(
-            depositAmount,
-            testCase.slippagePercentage,
-          );
+          const minOutputShares =
+            await dLoopDepositorMock.calculateMinOutputShares(
+              depositAmount,
+              testCase.slippagePercentage,
+              dloopMock,
+            );
 
           const initialShares = await dloopMock.balanceOf(user.address);
 
@@ -633,7 +657,7 @@ describe("DLoopDepositorMock Deposit Tests", function () {
             ethers.parseEther("75"),
             ethers.parseEther("25"),
           ],
-          slippagePercentage: 0.1,
+          slippagePercentage: 0.1 * ONE_PERCENT_BPS,
           expectedMinFinalShares: ethers.parseEther("150"), // Sum of deposit amounts
         },
       ];
@@ -642,10 +666,12 @@ describe("DLoopDepositorMock Deposit Tests", function () {
         let cumulativeShares = BigInt(0);
 
         for (const depositAmount of testCase.depositAmounts) {
-          const minOutputShares = await calculateMinOutputShares(
-            depositAmount,
-            testCase.slippagePercentage,
-          );
+          const minOutputShares =
+            await dLoopDepositorMock.calculateMinOutputShares(
+              depositAmount,
+              testCase.slippagePercentage,
+              dloopMock,
+            );
 
           const initialShares = await dloopMock.balanceOf(user1.address);
 
@@ -680,7 +706,6 @@ describe("DLoopDepositorMock Deposit Tests", function () {
           firstDeposit: { amount: ethers.parseEther("100"), user: 1 },
           secondDeposit: { amount: ethers.parseEther("100"), user: 2 },
           expectedLeverageBps: TARGET_LEVERAGE_BPS,
-          toleranceBps: ONE_PERCENT_BPS,
         },
       ];
 
@@ -688,14 +713,18 @@ describe("DLoopDepositorMock Deposit Tests", function () {
         const firstUser = testCase.firstDeposit.user === 1 ? user1 : user2;
         const secondUser = testCase.secondDeposit.user === 1 ? user1 : user2;
 
-        const minOutputShares1 = await calculateMinOutputShares(
-          testCase.firstDeposit.amount,
-          0.1,
-        );
-        const minOutputShares2 = await calculateMinOutputShares(
-          testCase.secondDeposit.amount,
-          0.1,
-        );
+        const minOutputShares1 =
+          await dLoopDepositorMock.calculateMinOutputShares(
+            testCase.firstDeposit.amount,
+            0.1 * ONE_PERCENT_BPS,
+            dloopMock,
+          );
+        const minOutputShares2 =
+          await dLoopDepositorMock.calculateMinOutputShares(
+            testCase.secondDeposit.amount,
+            0.1 * ONE_PERCENT_BPS,
+            dloopMock,
+          );
 
         // First deposit
         await dLoopDepositorMock
@@ -711,7 +740,7 @@ describe("DLoopDepositorMock Deposit Tests", function () {
         const leverageAfterFirst = await dloopMock.getCurrentLeverageBps();
         expect(leverageAfterFirst).to.be.closeTo(
           BigInt(testCase.expectedLeverageBps),
-          BigInt(testCase.toleranceBps),
+          BigInt(0.1 * ONE_HUNDRED_PERCENT_BPS), // 0.1% tolerance
         );
 
         // Second deposit
@@ -730,7 +759,7 @@ describe("DLoopDepositorMock Deposit Tests", function () {
         // Leverage should be maintained close to target
         expect(leverageAfterSecond).to.be.closeTo(
           leverageAfterFirst,
-          BigInt(testCase.toleranceBps),
+          BigInt(0.1 * ONE_HUNDRED_PERCENT_BPS), // 0.1% tolerance
         );
       }
     });
@@ -741,23 +770,26 @@ describe("DLoopDepositorMock Deposit Tests", function () {
       {
         name: "Should handle leftover debt tokens for small deposit",
         depositAmount: ethers.parseEther("50"),
-        slippagePercentage: 0.1,
+        slippagePercentage: 0.1 * ONE_PERCENT_BPS,
         setMinLeftover: true,
         minLeftoverAmount: 0,
+        expectedReceivedShares: ethers.parseEther("149.85"),
       },
       {
         name: "Should handle leftover debt tokens for medium deposit",
         depositAmount: ethers.parseEther("100"),
-        slippagePercentage: 0.1,
+        slippagePercentage: 0.1 * ONE_PERCENT_BPS,
         setMinLeftover: true,
         minLeftoverAmount: 0,
+        expectedReceivedShares: ethers.parseEther("299.7"),
       },
       {
         name: "Should handle leftover debt tokens for large deposit",
         depositAmount: ethers.parseEther("200"),
-        slippagePercentage: 0.1,
+        slippagePercentage: 0.1 * ONE_PERCENT_BPS,
         setMinLeftover: true,
         minLeftoverAmount: 0,
+        expectedReceivedShares: ethers.parseEther("599.4"),
       },
     ];
 
@@ -776,10 +808,17 @@ describe("DLoopDepositorMock Deposit Tests", function () {
           await dloopMock.getAddress(),
         );
 
-        const minOutputShares = await calculateMinOutputShares(
-          testCase.depositAmount,
-          testCase.slippagePercentage,
+        // Get initial user share balance
+        const initialUserShareBalance = await dloopMock.balanceOf(
+          user1.address,
         );
+
+        const minOutputShares =
+          await dLoopDepositorMock.calculateMinOutputShares(
+            testCase.depositAmount,
+            testCase.slippagePercentage,
+            dloopMock,
+          );
 
         await dLoopDepositorMock
           .connect(user1)
@@ -790,6 +829,16 @@ describe("DLoopDepositorMock Deposit Tests", function () {
             "0x",
             dloopMock,
           );
+
+        // Verify user received expected shares
+        const finalUserShareBalance = await dloopMock.balanceOf(user1.address);
+        const actualShares = finalUserShareBalance - initialUserShareBalance;
+        expect(actualShares).to.be.gte(minOutputShares);
+        expect(actualShares).to.be.closeTo(
+          testCase.expectedReceivedShares,
+          (testCase.expectedReceivedShares * BigInt(ONE_PERCENT_BPS)) /
+            BigInt(0.1 * ONE_HUNDRED_PERCENT_BPS), // 0.1% tolerance for slippage and fees
+        );
 
         // Core vault may have received leftover debt tokens
         const finalCoreDebtBalance = await debtToken.balanceOf(
@@ -805,16 +854,18 @@ describe("DLoopDepositorMock Deposit Tests", function () {
       const eventTests = [
         {
           depositAmount: ethers.parseEther("100"),
-          slippagePercentage: 0.1,
+          slippagePercentage: 0.1 * ONE_PERCENT_BPS,
           minLeftoverAmount: 0,
         },
       ];
 
       for (const testCase of eventTests) {
-        const minOutputShares = await calculateMinOutputShares(
-          testCase.depositAmount,
-          testCase.slippagePercentage,
-        );
+        const minOutputShares =
+          await dLoopDepositorMock.calculateMinOutputShares(
+            testCase.depositAmount,
+            testCase.slippagePercentage,
+            dloopMock,
+          );
 
         // Set minimum leftover to 0 to ensure transfer
         await dLoopDepositorMock.setMinLeftoverDebtTokenAmount(
