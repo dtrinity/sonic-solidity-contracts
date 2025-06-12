@@ -95,6 +95,7 @@ abstract contract DLoopIncreaseLeverageBase is
         uint256 receivedDebtTokenAmount,
         uint256 minOutputDebtTokenAmount
     );
+    error FlashLenderNotSameAsDebtToken(address flashLender, address debtToken);
 
     /* Events */
 
@@ -238,6 +239,14 @@ abstract contract DLoopIncreaseLeverageBase is
                         requiredFlashLoanAmount
                     )
             );
+
+            // Make sure the flashLender is the same as the debt token
+            if (address(flashLender) != address(debtToken)) {
+                revert FlashLenderNotSameAsDebtToken(
+                    address(flashLender),
+                    address(debtToken)
+                );
+            }
 
             // Execute flash loan - main logic in onFlashLoan
             flashLender.flashLoan(

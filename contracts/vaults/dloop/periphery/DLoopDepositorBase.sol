@@ -98,6 +98,7 @@ abstract contract DLoopDepositorBase is
     error EstimatedOverallSlippageBpsCannotExceedOneHundredPercent(
         uint256 estimatedOverallSlippageBps
     );
+    error FlashLenderNotSameAsDebtToken(address flashLender, address debtToken);
 
     /* Events */
 
@@ -284,6 +285,14 @@ abstract contract DLoopDepositorBase is
                 flashLender.flashFee(address(debtToken), maxFlashLoanAmount)
         );
 
+        // Make sure the flashLender is the same as the debt token
+        if (address(flashLender) != address(debtToken)) {
+            revert FlashLenderNotSameAsDebtToken(
+                address(flashLender),
+                address(debtToken)
+            );
+        }
+
         // The main logic will be done in the onFlashLoan function
         flashLender.flashLoan(
             this,
@@ -337,7 +346,7 @@ abstract contract DLoopDepositorBase is
         }
 
         // Transfer the minted shares to the receiver
-        SafeERC20.safeTransferFrom(dLoopCore, address(this), receiver, shares);
+        SafeERC20.safeTransfer(dLoopCore, receiver, shares);
 
         // Return the shares minted
         return shares;
