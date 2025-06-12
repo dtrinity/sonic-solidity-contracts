@@ -513,6 +513,19 @@ abstract contract DLoopCoreBase is
     }
 
     /**
+     * @dev Calculates the unleveraged amount of the assets
+     * @param leveragedAssets Amount of leveraged assets
+     * @return unleveragedAssets Amount of unleveraged assets
+     */
+    function getUnleveragedAssets(
+        uint256 leveragedAssets
+    ) public view returns (uint256) {
+        return
+            (leveragedAssets * BasisPointConstants.ONE_HUNDRED_PERCENT_BPS) /
+            targetLeverageBps;
+    }
+
+    /**
      * @dev Gets the asset price from the oracle
      * @param asset Address of the asset
      * @return uint256 Price of the asset
