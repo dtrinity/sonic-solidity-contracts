@@ -484,7 +484,7 @@ describe("DLoopCoreMock Rebalance Calculation Tests", function () {
           totalDebtBase: ethers.parseUnits("200", 8), // $200, gives exactly 300% leverage
           subsidy: 0n,
           whenUseVaultTokenBalance: {
-            vaultCollateralBalance: ethers.parseUnits("100", 18),
+            vaultCollateralBalance: ethers.parseUnits("0", 18),
             expectedAmount: 0n,
           },
           whenNotUseVaultTokenBalance: {
@@ -542,8 +542,8 @@ describe("DLoopCoreMock Rebalance Calculation Tests", function () {
           totalDebtBase: ethers.parseUnits("199.33", 8), // $199.33, close to 300% leverage
           subsidy: 0n,
           whenUseVaultTokenBalance: {
-            vaultCollateralBalance: ethers.parseUnits("0.1", 18),
-            expectedAmount: ethers.parseUnits("0", 18), // max(0.01-0.1, 0) = 0
+            vaultCollateralBalance: ethers.parseUnits("0.02", 18),
+            expectedAmount: ethers.parseUnits("0", 18), // max(0.01-0.02, 0) = 0
           },
           whenNotUseVaultTokenBalance: {
             expectedAmount: ethers.parseUnits("0.01", 18),
@@ -582,13 +582,13 @@ describe("DLoopCoreMock Rebalance Calculation Tests", function () {
           targetLeverage: BigInt(TARGET_LEVERAGE_BPS), // 300%
           totalCollateralBase: ethers.parseUnits("200", 8), // $200
           totalDebtBase: ethers.parseUnits("50", 8), // $50
-          subsidy: ethers.parseUnits("500", 8), // 5% subsidy
+          subsidy: BigInt(5 * ONE_PERCENT_BPS), // 5% subsidy
           whenUseVaultTokenBalance: {
             vaultCollateralBalance: ethers.parseUnits("100", 18),
-            expectedAmount: ethers.parseUnits("0", 18), // max(0.00066665-100, 0) = 0
+            expectedAmount: ethers.parseUnits("117.39130434", 18),
           },
           whenNotUseVaultTokenBalance: {
-            expectedAmount: ethers.parseUnits("0.00166665", 18),
+            expectedAmount: ethers.parseUnits("217.39130434", 18),
           },
         },
         {
@@ -596,13 +596,13 @@ describe("DLoopCoreMock Rebalance Calculation Tests", function () {
           targetLeverage: BigInt(TARGET_LEVERAGE_BPS), // 300%
           totalCollateralBase: ethers.parseUnits("400", 8), // $400
           totalDebtBase: ethers.parseUnits("100", 8), // $100, gives 133% leverage
-          subsidy: ethers.parseUnits("1000", 8), // 10% subsidy
+          subsidy: BigInt(10 * ONE_PERCENT_BPS), // 10% subsidy
           whenUseVaultTokenBalance: {
             vaultCollateralBalance: 0n, // zero vault collateral balance
-            expectedAmount: ethers.parseUnits("0.00166666", 18),
+            expectedAmount: ethers.parseUnits("384.61538461000004", 18),
           },
           whenNotUseVaultTokenBalance: {
-            expectedAmount: ethers.parseUnits("0.00166666", 18),
+            expectedAmount: ethers.parseUnits("384.61538461000004", 18),
           },
         },
         {
@@ -626,7 +626,7 @@ describe("DLoopCoreMock Rebalance Calculation Tests", function () {
           totalDebtBase: ethers.parseUnits("200", 8), // $200
           subsidy: 0n,
           whenUseVaultTokenBalance: {
-            vaultCollateralBalance: ethers.parseUnits("100", 18),
+            vaultCollateralBalance: ethers.parseUnits("0", 18),
             expectedAmount: 0n,
           },
           whenNotUseVaultTokenBalance: {
@@ -638,13 +638,13 @@ describe("DLoopCoreMock Rebalance Calculation Tests", function () {
           targetLeverage: BigInt(TARGET_LEVERAGE_BPS), // 300%
           totalCollateralBase: ethers.parseUnits("250", 8), // $250
           totalDebtBase: ethers.parseUnits("100", 8), // $100, gives 167% leverage
-          subsidy: ethers.parseUnits("200", 8), // 2% subsidy
+          subsidy: BigInt(2 * ONE_PERCENT_BPS), // 2% subsidy
           whenUseVaultTokenBalance: {
             vaultCollateralBalance: ethers.parseUnits("0.003", 18),
-            expectedAmount: ethers.parseUnits("0.00033327", 18), // 0.00333327 - 0.003 = 0.00033327
+            expectedAmount: ethers.parseUnits("188.67624528", 18),
           },
           whenNotUseVaultTokenBalance: {
-            expectedAmount: ethers.parseUnits("0.00333327", 18),
+            expectedAmount: ethers.parseUnits("188.67924528", 18),
           },
         },
         {
@@ -724,13 +724,13 @@ describe("DLoopCoreMock Rebalance Calculation Tests", function () {
           targetLeverage: BigInt(TARGET_LEVERAGE_BPS), // 300%
           totalCollateralBase: ethers.parseUnits("500", 8), // $500
           totalDebtBase: ethers.parseUnits("200", 8), // $200, gives 167% leverage
-          subsidy: ethers.parseUnits("1500", 8), // 15% subsidy
+          subsidy: BigInt(15 * ONE_PERCENT_BPS), // 15% subsidy
           whenUseVaultTokenBalance: {
             vaultCollateralBalance: ethers.parseUnits("0.0008", 18),
-            expectedAmount: ethers.parseUnits("0.00008888", 18), // 0.00088888 - 0.0008 = 0.00008888
+            expectedAmount: ethers.parseUnits("275.86126896", 18),
           },
           whenNotUseVaultTokenBalance: {
-            expectedAmount: ethers.parseUnits("0.00088888", 18),
+            expectedAmount: ethers.parseUnits("275.86206896000004", 18),
           },
         },
       ];
@@ -872,7 +872,7 @@ describe("DLoopCoreMock Rebalance Calculation Tests", function () {
           totalDebtBase: ethers.parseUnits("200", 8), // $200, gives exactly 300% leverage
           subsidy: 0n,
           whenUseVaultTokenBalance: {
-            vaultDebtBalance: ethers.parseUnits("10", 18),
+            vaultDebtBalance: ethers.parseUnits("0", 18),
             expectedAmount: 0n,
           },
           whenNotUseVaultTokenBalance: {
@@ -1169,7 +1169,7 @@ describe("DLoopCoreMock Rebalance Calculation Tests", function () {
  * @param vaultCollateralBalance - the vault collateral balance
  * @param vaultDebtBalance - the vault debt balance
  * @param direction -1: decrease, 1: increase
- * @param tokenAmount - the required token amount from user
+ * @param requiredCollateralTokenAmount - the required token amount from user
  * @param totalCollateralInBase - the total collateral in base currency
  * @param totalDebtInBase - the total debt in base currency
  * @param subsidyBps - the subsidy in basis points
@@ -1180,7 +1180,7 @@ async function validateRebalanceLeverage(
   vaultCollateralBalance: bigint,
   vaultDebtBalance: bigint,
   direction: bigint,
-  tokenAmount: bigint,
+  requiredCollateralTokenAmount: bigint,
   totalCollateralInBase: bigint,
   totalDebtInBase: bigint,
   subsidyBps: bigint,
@@ -1192,7 +1192,6 @@ async function validateRebalanceLeverage(
   }
 
   expect(direction).to.be.oneOf([-1n, 1n]);
-  let rebalanceAmount = tokenAmount;
 
   const collateralToken = await ethers.getContractAt(
     "TestMintableERC20",
@@ -1202,6 +1201,13 @@ async function validateRebalanceLeverage(
     "TestMintableERC20",
     await dloopMock.debtToken(),
   );
+
+  let rebalanceAmount = requiredCollateralTokenAmount;
+  let rebalanceAmountInBase =
+    await dloopMock.convertFromTokenAmountToBaseCurrency(
+      requiredCollateralTokenAmount,
+      await collateralToken.getAddress(),
+    );
 
   // If useVaultTokenBalance is true, we need to add the vault token balance to the rebalance amount
   // because the vault token balance is already included in the formula
@@ -1213,7 +1219,7 @@ async function validateRebalanceLeverage(
           vaultCollateralBalance,
           await collateralToken.getAddress(),
         );
-      rebalanceAmount += valutCollateralBalanceInBase;
+      rebalanceAmountInBase += valutCollateralBalanceInBase;
     }
   } else if (direction < 0) {
     if (vaultDebtBalance > 0n) {
@@ -1222,18 +1228,29 @@ async function validateRebalanceLeverage(
           vaultDebtBalance,
           await debtToken.getAddress(),
         );
-      rebalanceAmount += valutDebtBalanceInBase;
+      rebalanceAmountInBase += valutDebtBalanceInBase;
     }
   }
 
+  console.log("direction", direction);
+  console.log("rebalanceAmount", rebalanceAmount);
+  console.log("rebalanceAmountInBase", rebalanceAmountInBase);
+  console.log("totalCollateralInBase", totalCollateralInBase);
+  console.log("totalDebtInBase", totalDebtInBase);
+  console.log("subsidyBps", subsidyBps);
+  console.log("targetLeverage", targetLeverage);
+
   const oneHundredPercentBps = BigInt(ONE_HUNDRED_PERCENT_BPS);
+  console.log("oneHundredPercentBps", oneHundredPercentBps);
   const newLeverage =
-    ((totalCollateralInBase + direction * rebalanceAmount) *
+    ((totalCollateralInBase + direction * rebalanceAmountInBase) *
       oneHundredPercentBps) /
     (totalCollateralInBase +
-      direction * rebalanceAmount -
+      direction * rebalanceAmountInBase -
       totalDebtInBase -
-      (direction * rebalanceAmount * (oneHundredPercentBps + subsidyBps)) /
+      (direction *
+        rebalanceAmountInBase *
+        (oneHundredPercentBps + subsidyBps)) /
         oneHundredPercentBps);
   expect(newLeverage).to.be.closeTo(
     targetLeverage,
