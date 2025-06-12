@@ -290,6 +290,9 @@ abstract contract DLoopRedeemerBase is
             );
         }
 
+        // Transfer the received collateral token to the receiver
+        collateralToken.safeTransfer(receiver, receivedCollateralTokenAmount);
+
         // There is no leftover debt token, as all flash loaned debt token is used to repay the debt
         // when calling the redeem() function
 
@@ -313,9 +316,6 @@ abstract contract DLoopRedeemerBase is
                 leftoverCollateralTokenAmount
             );
         }
-
-        // Transfer the received collateral token to the receiver
-        collateralToken.safeTransfer(receiver, receivedCollateralTokenAmount);
 
         // Return the received collateral token amount
         return receivedCollateralTokenAmount;
