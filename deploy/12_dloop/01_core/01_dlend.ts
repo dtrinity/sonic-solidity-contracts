@@ -93,8 +93,8 @@ async function deployDLoopCoreDLend(
     from: deployer,
     contract: "DLoopCoreDLend",
     args: [
-      vaultInfo.name,
-      vaultInfo.symbol,
+      assertNotEmpty(vaultInfo.name),
+      assertNotEmpty(vaultInfo.symbol),
       assertNotEmpty(vaultInfo.underlyingAsset),
       assertNotEmpty(dUSDAddress),
       assertNotEmpty(lendingPoolAddressesProviderAddress),
@@ -102,13 +102,13 @@ async function deployDLoopCoreDLend(
       vaultInfo.lowerBoundTargetLeverageBps,
       vaultInfo.upperBoundTargetLeverageBps,
       vaultInfo.maxSubsidyBps,
-      incentivesProxyDeployment.address, // _rewardsController
-      aTokenAddress, // _dLendAssetToClaimFor
-      targetStaticATokenWrapper, // _targetStaticATokenWrapper
-      treasury, // _treasury
-      maxTreasuryFeeBps, // _maxTreasuryFeeBps
-      initialTreasuryFeeBps, // _initialTreasuryFeeBps
-      initialExchangeThreshold, // _initialExchangeThreshold
+      assertNotEmpty(incentivesProxyDeployment.address), // _rewardsController
+      assertNotEmpty(aTokenAddress), // _dLendAssetToClaimFor
+      assertNotEmpty(targetStaticATokenWrapper), // _targetStaticATokenWrapper
+      assertNotEmpty(treasury), // _treasury
+      assertNotEmpty(maxTreasuryFeeBps), // _maxTreasuryFeeBps
+      assertNotEmpty(initialTreasuryFeeBps), // _initialTreasuryFeeBps
+      assertNotEmpty(initialExchangeThreshold), // _initialExchangeThreshold
     ],
     log: true,
     autoMine: true,

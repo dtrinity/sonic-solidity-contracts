@@ -60,6 +60,8 @@ export async function getConfig(
     );
   }
 
+  const { deployer } = await _hre.getNamedAccounts();
+
   return {
     MOCK_ONLY: {
       tokens: {
@@ -158,32 +160,33 @@ export async function getConfig(
           upperBoundTargetLeverageBps: 400 * ONE_PERCENT_BPS, // 400% leverage, meaning 4x leverage
           maxSubsidyBps: 2 * ONE_PERCENT_BPS, // 2% subsidy
           extraParams: {
-            targetStaticATokenWrapper: "",
-            treasury: "0x0000000000000000000000000000000000000000",
-            maxTreasuryFeeBps: 1000,
-            initialTreasuryFeeBps: 500,
+            targetStaticATokenWrapper:
+              "0x0000000000000000000000000000000000000000", // TODO: add real mock address
+            treasury: deployer,
+            maxTreasuryFeeBps: "1000",
+            initialTreasuryFeeBps: "500",
             initialExchangeThreshold: "100",
           },
         },
       },
       depositors: {
         odos: {
-          router: "0x0000000", // dummy address
+          router: "0x0000000000000000000000000000000000000000", // dummy address
         },
       },
       redeemers: {
         odos: {
-          router: "0x00000", // dummy address
+          router: "0x0000000000000000000000000000000000000000", // dummy address
         },
       },
       decreaseLeverage: {
         odos: {
-          router: "0x00000", // dummy address
+          router: "0x0000000000000000000000000000000000000000", // dummy address
         },
       },
       increaseLeverage: {
         odos: {
-          router: "0x00000", // dummy address
+          router: "0x0000000000000000000000000000000000000000", // dummy address
         },
       },
     },
