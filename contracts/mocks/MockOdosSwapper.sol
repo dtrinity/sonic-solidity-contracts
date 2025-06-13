@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: GNU AGPLv3
 pragma solidity ^0.8.20;
 
-import "./OdosSwapUtils.sol";
-import "./interface/IOdosRouterV2.sol";
+import "../odos/OdosSwapUtils.sol";
+import "../odos/interface/IOdosRouterV2.sol";
 import "@rari-capital/solmate/src/utils/SafeTransferLib.sol";
 
 /**
- * @title OdosSwapper
- * @notice Contract for executing Odos swaps using OdosSwapUtils library
+ * @title OdosSwapper (Mock)
+ * @notice Mock contract for executing Odos swaps using OdosSwapUtils library. Placed under /mocks for testing purposes only.
  */
 contract OdosSwapper {
     using OdosSwapUtils for *;
@@ -20,11 +20,11 @@ contract OdosSwapper {
     }
 
     /**
-     * @notice Performs an swap operation using Odos router with swap data
-     * @param inputToken Input token
-     * @param maxIn Maximum input amount
-     * @param exactOut Exact output amount
-     * @param swapData Encoded swap path data
+     * @notice Performs a swap operation using Odos router with provided swap data
+     * @param inputToken Address of the input token
+     * @param maxIn Maximum input amount approved for the swap
+     * @param exactOut Exact amount of output token expected
+     * @param swapData Encoded swap path data for Odos router
      */
     function executeSwapOperation(
         address inputToken,
