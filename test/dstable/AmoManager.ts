@@ -623,6 +623,56 @@ async function runTestsForDStable(
           "CannotTransferDStable"
         );
       });
+
+      it("does not reactivate a disabled vault when transferring collateral", async function () {
+        const amoVault = await mockAmoVault.getAddress();
+
+        const collateralAmount = hre.ethers.parseUnits(
+          "50",
+          testCollateralInfo.decimals
+        );
+
+        // Ensure vault starts enabled so we can move some collateral into it
+        await ensureVaultEnabled(amoVault);
+
+        // Transfer collateral into the AMO vault directly (simulate profits / balances)
+        await testCollateralToken.transfer(amoVault, collateralAmount);
+
+        // Disable the vault
+        await amoManagerContract.disableAmoVault(amoVault);
+        expect(await amoManagerContract.isAmoActive(amoVault)).to.be.false;
+
+        // Record holding vault balance before withdrawal
+        const initialHoldingBalance = await testCollateralToken.balanceOf(
+          await collateralVaultContract.getAddress()
+        );
+
+        // Withdraw collateral from the (now inactive) vault
+        await amoManagerContract.transferFromAmoVaultToHoldingVault(
+          amoVault,
+          await testCollateralToken.getAddress(),
+          collateralAmount
+        );
+
+        // Check vault remains inactive
+        expect(await amoManagerContract.isAmoActive(amoVault)).to.be.false;
+
+        // Check collateral landed in the holding vault
+        const finalHoldingBalance = await testCollateralToken.balanceOf(
+          await collateralVaultContract.getAddress()
+        );
+        expect(finalHoldingBalance - initialHoldingBalance).to.equal(
+          collateralAmount
+        );
+
+        // Verify that attempting to allocate to this vault now reverts
+        await expect(
+          amoManagerContract.allocateAmo(
+            amoVault,
+            hre.ethers.parseUnits("10", dstableInfo.decimals)
+          )
+        ).to.be.revertedWithCustomError(amoManagerContract, "InactiveAmoVault");
+      });
     });
 
     describe("Profit Management", () => {

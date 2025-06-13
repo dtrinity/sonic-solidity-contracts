@@ -54,6 +54,10 @@ contract AmoManager is AccessControl, OracleAware {
     /* Core state */
 
     EnumerableMap.AddressToUintMap private _amoVaults;
+    // Separate map to track whether a vault is considered active. This decouples
+    // allocation bookkeeping (which may change when moving collateral) from the
+    // governance‐controlled active status of a vault.
+    mapping(address => bool) private _isAmoActive;
     uint256 public totalAllocated;
     IMintableERC20 public dstable;
     CollateralVault public collateralHolderVault;
@@ -208,7 +212,7 @@ contract AmoManager is AccessControl, OracleAware {
      * @return True if the AMO vault is active, false otherwise.
      */
     function isAmoActive(address amoVault) public view returns (bool) {
-        return _amoVaults.contains(amoVault);
+        return _isAmoActive[amoVault];
     }
 
     /**
@@ -238,10 +242,13 @@ contract AmoManager is AccessControl, OracleAware {
     function enableAmoVault(
         address amoVault
     ) public onlyRole(DEFAULT_ADMIN_ROLE) {
-        if (_amoVaults.contains(amoVault)) {
+        if (_isAmoActive[amoVault]) {
             revert AmoVaultAlreadyEnabled(amoVault);
         }
-        _amoVaults.set(amoVault, 0);
+        // Ensure the vault is tracked in the allocation map (initial allocation may be zero)
+        (, uint256 currentAllocation) = _amoVaults.tryGet(amoVault);
+        _amoVaults.set(amoVault, currentAllocation);
+        _isAmoActive[amoVault] = true;
         emit AmoVaultSet(amoVault, true);
     }
 
@@ -252,10 +259,10 @@ contract AmoManager is AccessControl, OracleAware {
     function disableAmoVault(
         address amoVault
     ) public onlyRole(DEFAULT_ADMIN_ROLE) {
-        if (!_amoVaults.contains(amoVault)) {
+        if (!_isAmoActive[amoVault]) {
             revert InactiveAmoVault(amoVault);
         }
-        _amoVaults.remove(amoVault);
+        _isAmoActive[amoVault] = false;
         emit AmoVaultSet(amoVault, false);
     }
 
@@ -278,7 +285,6 @@ contract AmoManager is AccessControl, OracleAware {
 
     /**
      * @notice Transfers collateral from an AMO vault to the holding vault.
-     * CAUTION: Transferring from an inactive vault will re-activate the vault. This should be better designed in the next version.
      * @param amoVault The address of the AMO vault.
      * @param token The address of the collateral token to transfer.
      * @param amount The amount of collateral to transfer.
@@ -314,7 +320,7 @@ contract AmoManager is AccessControl, OracleAware {
             adjustmentAmount = currentAllocation;
         }
 
-        // CAUTION: This will re-activate the vault if it was inactive
+        // Bookkeeping: adjust the vault's allocation. This does NOT change the vault's active status.
         _amoVaults.set(amoVault, currentAllocation - adjustmentAmount);
         totalAllocated -= adjustmentAmount;
 
@@ -340,7 +346,7 @@ contract AmoManager is AccessControl, OracleAware {
         if (token == address(dstable)) {
             revert CannotTransferDStable();
         }
-        if (!_amoVaults.contains(amoVault)) {
+        if (!_isAmoActive[amoVault]) {
             revert InactiveAmoVault(amoVault);
         }
 
