@@ -1332,6 +1332,7 @@ describe("SimpleDEXMock Tests", function () {
             0,
             user1.address,
           );
+        // eslint-disable-next-line unused-imports/no-unused-vars -- error is not used
       } catch (error) {
         // If the extreme decimal difference causes arithmetic issues,
         // that's acceptable for this edge case test
