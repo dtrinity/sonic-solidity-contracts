@@ -24,7 +24,7 @@ library OdosSwapUtils {
      * @param exactOut Exact output amount
      * @param swapData Encoded swap path data
      */
-    function excuteSwapOperation(
+    function executeSwapOperation(
         IOdosRouterV2 router,
         address inputToken,
         uint256 maxIn,

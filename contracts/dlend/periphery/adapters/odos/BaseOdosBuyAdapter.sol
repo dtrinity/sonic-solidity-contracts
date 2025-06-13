@@ -92,7 +92,7 @@ abstract contract BaseOdosBuyAdapter is BaseOdosSwapAdapter {
         }
 
         // Execute the swap using OdosSwapUtils
-        uint256 actualAmountOut = OdosSwapUtils.excuteSwapOperation(
+        uint256 actualAmountOut = OdosSwapUtils.executeSwapOperation(
             swapRouter,
             tokenIn,
             amountSold,

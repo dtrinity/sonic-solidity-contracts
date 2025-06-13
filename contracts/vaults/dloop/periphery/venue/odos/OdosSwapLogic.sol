@@ -50,7 +50,7 @@ library OdosSwapLogic {
         IOdosRouterV2 odosRouter
     ) external returns (uint256) {
         // Use the OdosSwapUtils library to execute the swap
-        uint256 actualAmountOut = OdosSwapUtils.excuteSwapOperation(
+        uint256 actualAmountOut = OdosSwapUtils.executeSwapOperation(
             odosRouter,
             address(inputToken),
             amountInMaximum,
