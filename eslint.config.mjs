@@ -31,6 +31,11 @@ export default [
       "**/.github/",
       "**/.yarn/",
       "**/bot/**",
+      "**/artifacts/**",
+      "**/cache/**",
+      "**/deployments/**",
+      "**/reports/**",
+      "**/.certora_internal/**",
     ],
   },
   {

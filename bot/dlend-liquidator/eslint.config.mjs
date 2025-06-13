@@ -30,6 +30,11 @@ export default [
       "**/typechain-types/",
       "**/.github/",
       "**/.yarn/",
+      "**/artifacts/**",
+      "**/cache/**",
+      "**/deployments/**",
+      "**/reports/**",
+      "**/.certora_internal/**",
     ],
     files: [
       "*.ts",
@@ -46,7 +51,7 @@ export default [
   ...compat.extends(
     "plugin:jsdoc/recommended",
     "plugin:eslint-comments/recommended",
-    "prettier",
+    "prettier"
   ),
   {
     plugins: {

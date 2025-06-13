@@ -1,5 +1,5 @@
 import { expect } from "chai";
-import { ethers } from "hardhat";
+
 import { deployDLoopMockFixture, testSetup } from "./fixture";
 
 describe("DLoopCoreMock – tolerant balance differences", function () {
@@ -14,7 +14,7 @@ describe("DLoopCoreMock – tolerant balance differences", function () {
     await dloopMock.testBorrowFromPool(
       await debtToken.getAddress(),
       100n,
-      vault
+      vault,
     );
 
     const poolBalBefore = await debtToken.balanceOf(mockPool.address);
@@ -25,7 +25,7 @@ describe("DLoopCoreMock – tolerant balance differences", function () {
 
     // Should not revert when the observed diff is within tolerance (1 wei)
     await expect(
-      dloopMock.testRepayDebtToPool(await debtToken.getAddress(), 100n, vault)
+      dloopMock.testRepayDebtToPool(await debtToken.getAddress(), 100n, vault),
     ).to.not.be.reverted;
 
     // Ensure pool received 99 wei (difference) and vault kept the dust
@@ -38,13 +38,13 @@ describe("DLoopCoreMock – tolerant balance differences", function () {
     await dloopMock.testBorrowFromPool(
       await debtToken.getAddress(),
       100n,
-      vault
+      vault,
     );
     // Set transferPortionBps to create a 2-wei difference (98/100)
     await dloopMock.setTransferPortionBps(980000); // 98.00%
 
     await expect(
-      dloopMock.testRepayDebtToPool(await debtToken.getAddress(), 100n, vault)
+      dloopMock.testRepayDebtToPool(await debtToken.getAddress(), 100n, vault),
     ).to.be.reverted;
   });
 
@@ -61,7 +61,7 @@ describe("DLoopCoreMock – tolerant balance differences", function () {
     await dloopMock.setTransferPortionBps(990000); // 99.00%
 
     await expect(
-      dloopMock.testBorrowFromPool(await debtToken.getAddress(), 100n, vault)
+      dloopMock.testBorrowFromPool(await debtToken.getAddress(), 100n, vault),
     ).to.not.be.reverted;
 
     const poolBalAfterFirst = await debtToken.balanceOf(mockPool.address);
@@ -72,7 +72,7 @@ describe("DLoopCoreMock – tolerant balance differences", function () {
     await dloopMock.setTransferPortionBps(980000); // 98.00%
 
     await expect(
-      dloopMock.testBorrowFromPool(await debtToken.getAddress(), 100n, vault)
+      dloopMock.testBorrowFromPool(await debtToken.getAddress(), 100n, vault),
     ).to.be.reverted;
   });
 });
