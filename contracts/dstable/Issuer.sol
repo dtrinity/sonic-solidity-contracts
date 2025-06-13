@@ -20,6 +20,7 @@ pragma solidity ^0.8.20;
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 import "contracts/common/IAaveOracle.sol";
 import "contracts/common/IMintableERC20.sol";
@@ -31,7 +32,7 @@ import "./OracleAware.sol";
  * @title Issuer
  * @notice Contract responsible for issuing dStable tokens
  */
-contract Issuer is AccessControl, OracleAware {
+contract Issuer is AccessControl, OracleAware, ReentrancyGuard {
     using SafeERC20 for IERC20Metadata;
 
     /* Core state */
@@ -103,7 +104,7 @@ contract Issuer is AccessControl, OracleAware {
         uint256 collateralAmount,
         address collateralAsset,
         uint256 minDStable
-    ) external {
+    ) external nonReentrant {
         // Ensure the collateral asset is supported by the vault before any further processing
         if (!collateralVault.isCollateralSupported(collateralAsset)) {
             revert CollateralVault.UnsupportedCollateral(collateralAsset);
