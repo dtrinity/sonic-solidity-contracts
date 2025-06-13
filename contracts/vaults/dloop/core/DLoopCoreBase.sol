@@ -55,6 +55,8 @@ abstract contract DLoopCoreBase is
     ERC20 public immutable collateralToken;
     ERC20 public immutable debtToken;
 
+    uint256 public constant BALANCE_DIFF_TOLERANCE = 1;
+
     /* Errors */
 
     error TooImbalanced(
@@ -378,15 +380,34 @@ abstract contract DLoopCoreBase is
             );
         }
 
-        // Now, as balance before must be less than balance after, we can just check if the difference is the expected amount
-        if (tokenBalanceAfterBorrow - tokenBalanceBeforeBorrow != amount) {
-            revert UnexpectedBorrowAmountFromPool(
-                token,
-                tokenBalanceBeforeBorrow,
-                tokenBalanceAfterBorrow,
-                amount
-            );
+        // Allow a 1-wei rounding tolerance when comparing the observed balance change with `amount`
+        uint256 observedDiffBorrow = tokenBalanceAfterBorrow -
+            tokenBalanceBeforeBorrow;
+        if (observedDiffBorrow > amount) {
+            if (observedDiffBorrow - amount > BALANCE_DIFF_TOLERANCE) {
+                revert UnexpectedBorrowAmountFromPool(
+                    token,
+                    tokenBalanceBeforeBorrow,
+                    tokenBalanceAfterBorrow,
+                    amount
+                );
+            }
+        } else {
+            if (amount - observedDiffBorrow > BALANCE_DIFF_TOLERANCE) {
+                revert UnexpectedBorrowAmountFromPool(
+                    token,
+                    tokenBalanceBeforeBorrow,
+                    tokenBalanceAfterBorrow,
+                    amount
+                );
+            }
         }
+
+        // Now, as balance before must be less than balance after, we can just check if the difference is the expected amount
+        // NOTE: A second strict equality comparison is no longer necessary.
+        // The tolerance enforcement performed above (±BALANCE_DIFF_TOLERANCE)
+        // already guarantees that any rounding variance is within an
+        // acceptable 1-wei window, so we purposefully avoid reverting here.
     }
 
     /**
@@ -408,6 +429,7 @@ abstract contract DLoopCoreBase is
 
         uint256 tokenBalanceAfterRepay = ERC20(token).balanceOf(onBehalfOf);
 
+        // Ensure the balance actually decreased
         if (tokenBalanceAfterRepay >= tokenBalanceBeforeRepay) {
             revert TokenBalanceNotDecreasedAfterRepay(
                 token,
@@ -417,14 +439,27 @@ abstract contract DLoopCoreBase is
             );
         }
 
-        // Now, as balance before must be greater than balance after, we can just check if the difference is the expected amount
-        if (tokenBalanceBeforeRepay - tokenBalanceAfterRepay != amount) {
-            revert UnexpectedRepayAmountToPool(
-                token,
-                tokenBalanceBeforeRepay,
-                tokenBalanceAfterRepay,
-                amount
-            );
+        // Now, allow a 1-wei rounding tolerance on the observed balance decrease.
+        uint256 observedDiffRepay = tokenBalanceBeforeRepay -
+            tokenBalanceAfterRepay;
+        if (observedDiffRepay > amount) {
+            if (observedDiffRepay - amount > BALANCE_DIFF_TOLERANCE) {
+                revert UnexpectedRepayAmountToPool(
+                    token,
+                    tokenBalanceBeforeRepay,
+                    tokenBalanceAfterRepay,
+                    amount
+                );
+            }
+        } else {
+            if (amount - observedDiffRepay > BALANCE_DIFF_TOLERANCE) {
+                revert UnexpectedRepayAmountToPool(
+                    token,
+                    tokenBalanceBeforeRepay,
+                    tokenBalanceAfterRepay,
+                    amount
+                );
+            }
         }
     }
 
@@ -447,6 +482,7 @@ abstract contract DLoopCoreBase is
 
         uint256 tokenBalanceAfterWithdraw = ERC20(token).balanceOf(onBehalfOf);
 
+        // Ensure the balance actually increased
         if (tokenBalanceAfterWithdraw <= tokenBalanceBeforeWithdraw) {
             revert TokenBalanceNotIncreasedAfterWithdraw(
                 token,
@@ -456,14 +492,27 @@ abstract contract DLoopCoreBase is
             );
         }
 
-        // Now, as balance before must be less than balance after, we can just check if the difference is the expected amount
-        if (tokenBalanceAfterWithdraw - tokenBalanceBeforeWithdraw != amount) {
-            revert UnexpectedWithdrawAmountFromPool(
-                token,
-                tokenBalanceBeforeWithdraw,
-                tokenBalanceAfterWithdraw,
-                amount
-            );
+        // Allow a 1-wei rounding tolerance on the observed balance increase
+        uint256 observedDiffWithdraw = tokenBalanceAfterWithdraw -
+            tokenBalanceBeforeWithdraw;
+        if (observedDiffWithdraw > amount) {
+            if (observedDiffWithdraw - amount > BALANCE_DIFF_TOLERANCE) {
+                revert UnexpectedWithdrawAmountFromPool(
+                    token,
+                    tokenBalanceBeforeWithdraw,
+                    tokenBalanceAfterWithdraw,
+                    amount
+                );
+            }
+        } else {
+            if (amount - observedDiffWithdraw > BALANCE_DIFF_TOLERANCE) {
+                revert UnexpectedWithdrawAmountFromPool(
+                    token,
+                    tokenBalanceBeforeWithdraw,
+                    tokenBalanceAfterWithdraw,
+                    amount
+                );
+            }
         }
     }
 
