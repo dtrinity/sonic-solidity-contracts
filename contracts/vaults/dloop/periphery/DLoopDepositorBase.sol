@@ -98,6 +98,8 @@ abstract contract DLoopDepositorBase is
     error EstimatedOverallSlippageBpsCannotExceedOneHundredPercent(
         uint256 estimatedOverallSlippageBps
     );
+    error FlashLenderNotSameAsDebtToken(address flashLender, address debtToken);
+    error SlippageBpsCannotExceedOneHundredPercent(uint256 slippageBps);
 
     /* Events */
 
@@ -148,6 +150,33 @@ abstract contract DLoopDepositorBase is
     }
 
     /* Deposit */
+
+    /**
+     * @dev Calculates the minimum output shares for a given deposit amount and slippage bps
+     * @param depositAmount Amount of collateral token to deposit
+     * @param slippageBps Slippage bps
+     * @param dLoopCore Address of the DLoopCore contract
+     * @return minOutputShares Minimum output shares
+     */
+    function calculateMinOutputShares(
+        uint256 depositAmount,
+        uint256 slippageBps,
+        DLoopCoreBase dLoopCore
+    ) public view returns (uint256) {
+        if (slippageBps > BasisPointConstants.ONE_HUNDRED_PERCENT_BPS) {
+            revert SlippageBpsCannotExceedOneHundredPercent(slippageBps);
+        }
+        uint256 expectedLeveragedAssets = dLoopCore.getLeveragedAssets(
+            depositAmount
+        );
+        uint256 expectedShares = dLoopCore.convertToShares(
+            expectedLeveragedAssets
+        );
+        return
+            (expectedShares *
+                (BasisPointConstants.ONE_HUNDRED_PERCENT_BPS - slippageBps)) /
+            BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
+    }
 
     /**
      * @dev Calculates the estimated overall slippage bps
@@ -244,7 +273,7 @@ abstract contract DLoopDepositorBase is
 
         // Make sure the estimated overall slippage bps does not exceed 100%
         if (
-            estimatedOverallSlippageBps >=
+            estimatedOverallSlippageBps >
             BasisPointConstants.ONE_HUNDRED_PERCENT_BPS
         ) {
             revert EstimatedOverallSlippageBpsCannotExceedOneHundredPercent(
@@ -283,6 +312,14 @@ abstract contract DLoopDepositorBase is
             maxFlashLoanAmount +
                 flashLender.flashFee(address(debtToken), maxFlashLoanAmount)
         );
+
+        // Make sure the flashLender is the same as the debt token
+        if (address(flashLender) != address(debtToken)) {
+            revert FlashLenderNotSameAsDebtToken(
+                address(flashLender),
+                address(debtToken)
+            );
+        }
 
         // The main logic will be done in the onFlashLoan function
         flashLender.flashLoan(
@@ -330,7 +367,11 @@ abstract contract DLoopDepositorBase is
         uint256, // amount (flash loan amount)
         uint256 flashLoanFee, // fee (flash loan fee)
         bytes calldata data
-    ) external override nonReentrant returns (bytes32) {
+    ) external override returns (bytes32) {
+        // This function does not need nonReentrant as the flash loan will be called by deposit() public
+        // function, which is already protected by nonReentrant
+        // Moreover, this function is only be able to be called by the address(this) (check the initiator condition)
+        // thus even though the flash loan is public and not protected by nonReentrant, it is still safe
         if (msg.sender != address(flashLender))
             revert UnknownLender(msg.sender, address(flashLender));
         if (initiator != address(this))
@@ -561,7 +602,7 @@ abstract contract DLoopDepositorBase is
         _handleLeftoverDebtTokens(dLoopCore, debtToken);
 
         // Transfer the minted shares to the receiver
-        SafeERC20.safeTransferFrom(dLoopCore, address(this), receiver, shares);
+        SafeERC20.safeTransfer(dLoopCore, receiver, shares);
     }
 
     /* Data encoding/decoding helpers */

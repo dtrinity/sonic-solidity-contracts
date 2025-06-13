@@ -29,7 +29,7 @@ export async function getConfig(): Promise<Config> {
       healthFactorThreshold: 1,
       healthFactorBatchSize: 5,
       reserveBatchSize: 5,
-      profitableThresholdInUSD: 0.00000001,
+      profitableThresholdInUSD: 0.001,
       liquidatingBatchSize: 200,
       graphConfig: {
         url: "https://graph-node-sonic.dtrinity.org/subgraphs/name/dtrinity-aave-sonic",

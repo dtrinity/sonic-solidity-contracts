@@ -9,3 +9,4 @@ alwaysApply: false
 - Ensure that tests cover both functionality and security considerations
 - You can lint first with `make lint`
 - You can run all tests with `make test`
+- Use `yarn hardhat test` when running Hardhat test instead of using `npx`

@@ -9,3 +9,4 @@ alwaysApply: false
 - Verify that security best practices are met, think about potential exploits, attacks, and mistakes that can be made
 - Add test coverage when creating new logic, or modify existing tests when making edits. Hardhat tests are under the `test/` directory and mirror the contracts directory structure
 - Import "hardhat/console.sol" when using `console.log` in the contract code for debugging
+- Use `yarn hardhat test` when running Hardhat test instead of using `npx`

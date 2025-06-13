@@ -48,15 +48,15 @@
   "point-usd-oracle-aggregator-for-usd": 1746520591,
   "ChainlinkDecimalConverter_wstkscUSD": 1746529362,
   "add-wstkscUSD-reserve": 1746597765,
-  "OdosSwapLogic": 1747222570,
   "transfer_oracle_wrapper_roles_to_multisig": 1747057583,
-  "DLoopCoreDLend": 1748928774,
-  "DLoopDepositorOdos": 1748928777,
-  "DLoopRedeemerOdos": 1748928781,
-  "DLoopDecreaseLeverageOdos": 1748928784,
-  "DLoopIncreaseLeverageOdos": 1748928788,
   "ChainlinkDecimalConverter_wstkscETH": 1748993959,
   "setup-weth-sceth-wstksceth-for-usd-oracle-wrapper": 1749137176,
   "add-weth-sceth-wstksceth-reserves": 1749137187,
-  "dLend_StaticATokenFactory": 1749137198
+  "dLend_StaticATokenFactory": 1749137198,
+  "DLoopCoreDLend": 1749751509,
+  "OdosSwapLogic": 1749751512,
+  "DLoopDepositorOdos": 1749751516,
+  "DLoopRedeemerOdos": 1749751519,
+  "DLoopDecreaseLeverageOdos": 1749751522,
+  "DLoopIncreaseLeverageOdos": 1749751526
 }

@@ -184,7 +184,6 @@ dstableConfigs.forEach((config) => {
       const REDEMPTION_MANAGER_ROLE =
         await redeemerContract.REDEMPTION_MANAGER_ROLE();
       await redeemerContract.grantRole(REDEMPTION_MANAGER_ROLE, user1);
-      console.log(`Granted REDEMPTION_MANAGER_ROLE to user1 (${user1})`);
     });
 
     describe("Basic redemption", () => {
