@@ -4,14 +4,12 @@ import { expect } from "chai";
 import { ethers } from "hardhat";
 
 import { DLoopCoreMock, TestMintableERC20 } from "../../../typechain-types";
-import { ONE_HUNDRED_PERCENT_BPS } from "../../../typescript/common/bps_constants";
 import { deployDLoopMockFixture, testSetup } from "./fixture";
 
 describe("DLoopCoreMock - Inflation Attack Tests", function () {
   // Contract instances and addresses
   let dloopMock: DLoopCoreMock;
   let collateralToken: TestMintableERC20;
-  let debtToken: TestMintableERC20;
   let accounts: HardhatEthersSigner[];
 
   beforeEach(async function () {
@@ -21,7 +19,7 @@ describe("DLoopCoreMock - Inflation Attack Tests", function () {
 
     dloopMock = fixture.dloopMock;
     collateralToken = fixture.collateralToken;
-    debtToken = fixture.debtToken;
+    // debtToken = fixture.debtToken;
     accounts = fixture.accounts;
   });
 
@@ -36,10 +34,12 @@ describe("DLoopCoreMock - Inflation Attack Tests", function () {
 
         // Expect the deposit to revert with the exact custom error
         await expect(
-          dloopMock.connect(attacker).deposit(attackerDeposit, attacker.address)
+          dloopMock
+            .connect(attacker)
+            .deposit(attackerDeposit, attacker.address),
         ).to.be.revertedWithCustomError(
           dloopMock,
-          "TokenBalanceNotIncreasedAfterBorrow"
+          "TokenBalanceNotIncreasedAfterBorrow",
         );
 
         // State assertions – vault metrics must remain unchanged after the revert
@@ -52,7 +52,7 @@ describe("DLoopCoreMock - Inflation Attack Tests", function () {
 
         // A subsequent non-minimal deposit preview should be positive (vault can mint shares once deposit succeeds)
         const previewShares = await dloopMock.previewDeposit(
-          ethers.parseEther("100")
+          ethers.parseEther("100"),
         );
         expect(previewShares).to.be.gt(0n);
       });
@@ -101,16 +101,18 @@ describe("DLoopCoreMock - Inflation Attack Tests", function () {
 
         // Victim deposit should either revert with TooImbalanced or succeed but not gift attacker profit.
         let victimDepositReverted = false;
+
         try {
           await dloopMock
             .connect(victim)
             .deposit(victimDepositAmount, victim.address);
+          // eslint-disable-next-line unused-imports/no-unused-vars -- error is not used
         } catch (err) {
           victimDepositReverted = true;
           await expect(
             dloopMock
               .connect(victim)
-              .deposit(victimDepositAmount, victim.address)
+              .deposit(victimDepositAmount, victim.address),
           ).to.be.revertedWithCustomError(dloopMock, "TooImbalanced");
         }
 
@@ -174,7 +176,7 @@ describe("DLoopCoreMock - Inflation Attack Tests", function () {
 
         // A small deposit preview should still be possible (non-zero shares).
         const previewAfterImbalance = await dloopMock.previewDeposit(
-          ethers.parseEther("1")
+          ethers.parseEther("1"),
         );
         expect(previewAfterImbalance).to.be.gt(0n);
       });
@@ -244,7 +246,7 @@ describe("DLoopCoreMock - Inflation Attack Tests", function () {
 
           // Victim preview
           const previewShares = await dloopMock.previewDeposit(
-            ethers.parseEther("100")
+            ethers.parseEther("100"),
           );
 
           expect(previewShares).to.be.gt(0n);
@@ -270,10 +272,10 @@ describe("DLoopCoreMock - Inflation Attack Tests", function () {
             await expect(
               dloopMock
                 .connect(attacker)
-                .deposit(firstDeposit, attacker.address)
+                .deposit(firstDeposit, attacker.address),
             ).to.be.revertedWithCustomError(
               dloopMock,
-              "TokenBalanceNotIncreasedAfterBorrow"
+              "TokenBalanceNotIncreasedAfterBorrow",
             );
           } else {
             await dloopMock
@@ -336,7 +338,7 @@ describe("DLoopCoreMock - Inflation Attack Tests", function () {
 
       // After manipulation vault should still produce shares >0 for new deposit previews.
       const previewBlocked = await dloopMock.previewDeposit(
-        ethers.parseEther("1")
+        ethers.parseEther("1"),
       );
       expect(previewBlocked).to.be.gt(0n);
     });
