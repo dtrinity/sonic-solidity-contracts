@@ -3,21 +3,21 @@
 'npx hardhat compile --force' running (wd: /Users/dazheng/workspace/dtrinity/sonic-solidity-contracts)
 
 Compiled with Builder
-Total number of contracts in source files: 253
-Number of contracts in dependencies: 58
-Number of contracts in tests       : 12
-Source lines of code (SLOC) in source files: 24109
-Source lines of code (SLOC) in dependencies: 4114
-Source lines of code (SLOC) in tests       : 821
+Total number of contracts in source files: 252
+Number of contracts in dependencies: 59
+Number of contracts in tests       : 19
+Source lines of code (SLOC) in source files: 24690
+Source lines of code (SLOC) in dependencies: 4166
+Source lines of code (SLOC) in tests       : 1007
 Number of  assembly lines: 0
-Number of optimization issues: 10
-Number of informational issues: 42
-Number of low issues: 116
-Number of medium issues: 36
-Number of high issues: 20
+Number of optimization issues: 11
+Number of informational issues: 5
+Number of low issues: 62
+Number of medium issues: 15
+Number of high issues: 6
 
 Use: Openzeppelin-Ownable, Openzeppelin-ERC20, Openzeppelin-ERC721
-ERCs: ERC20, ERC2612, ERC1363, ERC165, ERC721, ERC4626
+ERCs: ERC165, ERC1363, ERC721, ERC2612, ERC20, ERC4626
 
 +---------------------------------------------------+-------------+-----------------------+--------------------+--------------+--------------------+
 | Name                                              | # functions | ERCS                  | ERC20 info         | Complex code | Features           |
@@ -25,8 +25,6 @@ ERCs: ERC20, ERC2612, ERC1363, ERC165, ERC721, ERC4626
 | BasisPointConstants                               | 1           |                       |                    | No           |                    |
 | Erc20Helper                                       | 1           |                       |                    | No           | Tokens interaction |
 | IPriceOracleGetter                                | 3           |                       |                    | No           |                    |
-| PriceGetter                                       | 1           |                       |                    | No           |                    |
-| SwapHelper                                        | 3           |                       |                    | No           | Tokens interaction |
 | AggregatorInterface                               | 5           |                       |                    | No           |                    |
 | GPv2SafeERC20                                     | 4           |                       |                    | No           | Assembly           |
 | Address                                           | 11          |                       |                    | No           | Send ETH           |
@@ -167,6 +165,7 @@ ERCs: ERC20, ERC2612, ERC1363, ERC165, ERC721, ERC4626
 |                                                   |             |                       |                    |              | Assembly           |
 | SafeERC20                                         | 6           |                       |                    | No           | Send ETH           |
 |                                                   |             |                       |                    |              | Tokens interaction |
+| IAmoVault                                         | 5           |                       |                    | No           |                    |
 | AmoManager                                        | 44          | ERC165                |                    | No           | Tokens interaction |
 | ICollateralSum                                    | 1           |                       |                    | No           |                    |
 | CollateralHolderVault                             | 43          | ERC165                |                    | No           | Tokens interaction |
@@ -197,7 +196,7 @@ ERCs: ERC20, ERC2612, ERC1363, ERC165, ERC721, ERC4626
 |                                                   |             |                       | Approve Race Cond. |              | Tokens interaction |
 |                                                   |             |                       |                    |              |                    |
 | IAToken                                           | 4           |                       |                    | No           |                    |
-| DLoopCoreDLend                                    | 168         | ERC20,ERC165,ERC4626  | ∞ Minting          | No           | Tokens interaction |
+| DLoopCoreDLend                                    | 169         | ERC20,ERC165,ERC4626  | ∞ Minting          | No           | Tokens interaction |
 |                                                   |             |                       | Approve Race Cond. |              |                    |
 |                                                   |             |                       |                    |              |                    |
 | IPool                                             | 44          |                       |                    | No           |                    |
@@ -207,9 +206,9 @@ ERCs: ERC20, ERC2612, ERC1363, ERC165, ERC721, ERC4626
 | DataTypes                                         | 0           |                       |                    | No           |                    |
 | IERC3156FlashLender                               | 3           |                       |                    | No           |                    |
 | DLoopDecreaseLeverageOdos                         | 28          |                       |                    | Yes          | Tokens interaction |
-| DLoopDepositorOdos                                | 29          |                       |                    | No           | Tokens interaction |
-| DLoopIncreaseLeverageOdos                         | 28          |                       |                    | Yes          | Tokens interaction |
-| DLoopRedeemerOdos                                 | 28          |                       |                    | No           | Tokens interaction |
+| DLoopDepositorOdos                                | 34          |                       |                    | No           | Tokens interaction |
+| DLoopIncreaseLeverageOdos                         | 29          |                       |                    | No           | Tokens interaction |
+| DLoopRedeemerOdos                                 | 32          |                       |                    | No           | Tokens interaction |
 | OdosSwapLogic                                     | 1           |                       |                    | No           | Tokens interaction |
 | DPoolVaultCurveLP                                 | 127         | ERC20,ERC165,ERC4626  | ∞ Minting          | No           | Tokens interaction |
 |                                                   |             |                       | Approve Race Cond. |              |                    |
@@ -225,5 +224,4 @@ ERCs: ERC20, ERC2612, ERC1363, ERC165, ERC721, ERC4626
 | DStakeRewardManagerDLend                          | 39          | ERC165                |                    | No           | Tokens interaction |
 | ERC20VestingNFT                                   | 86          | ERC165,ERC721         |                    | No           |                    |
 +---------------------------------------------------+-------------+-----------------------+--------------------+--------------+--------------------+
-. analyzed (323 contracts)
-INFO:Slither:slither-report.json exists already, the overwrite is prevented
+. analyzed (330 contracts)

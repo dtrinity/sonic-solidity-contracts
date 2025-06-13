@@ -1,53 +1,14 @@
 # Mythril Analysis Summary
 
-**Total contracts analyzed:** 38
+**Total contracts analyzed:** 37
 
 ## Overview
 
-- **Success (1 Issues)**: 2 contracts (5.3%)
-- **Success (7 Issues)**: 1 contracts (2.6%)
-- **Success (No Issues)**: 35 contracts (92.1%)
-
-## Success (1 Issues)
-
-*2 contract(s)*
-
-### DStakeCollateralVault
-
-⚠️ **Status**: Analysis completed with **1 security issues** found.
-
-**Issues found:**
-1. **External Call To User-Supplied Address** (Severity: Low)
-
-### ERC20StablecoinUpgradeable
-
-⚠️ **Status**: Analysis completed with **1 security issues** found.
-
-**Issues found:**
-1. **Dependence on predictable environment variable** (Severity: Low)
-
-
-## Success (7 Issues)
-
-*1 contract(s)*
-
-### WrappedDLendConversionAdapter
-
-⚠️ **Status**: Analysis completed with **7 security issues** found.
-
-**Issues found:**
-1. **External Call To User-Supplied Address** (Severity: Low)
-2. **Multiple Calls in a Single Transaction** (Severity: Low)
-3. **External Call To User-Supplied Address** (Severity: Low)
-4. **External Call To User-Supplied Address** (Severity: Low)
-5. **External Call To User-Supplied Address** (Severity: Low)
-6. **External Call To User-Supplied Address** (Severity: Low)
-7. **Multiple Calls in a Single Transaction** (Severity: Low)
-
+- **Success (No Issues)**: 37 contracts (100.0%)
 
 ## Success (No Issues)
 
-*35 contract(s)*
+*37 contract(s)*
 
 ### API3CompositeWrapperWithThresholding
 
@@ -101,6 +62,10 @@
 
 ✅ **Status**: Analysis completed successfully with no issues found.
 
+### DStakeCollateralVault
+
+✅ **Status**: Analysis completed successfully with no issues found.
+
 ### DStakeRewardManagerDLend
 
 ✅ **Status**: Analysis completed successfully with no issues found.
@@ -114,6 +79,10 @@
 ✅ **Status**: Analysis completed successfully with no issues found.
 
 ### ECDSA
+
+✅ **Status**: Analysis completed successfully with no issues found.
+
+### ERC20StablecoinUpgradeable
 
 ✅ **Status**: Analysis completed successfully with no issues found.
 
@@ -185,20 +154,16 @@
 
 ✅ **Status**: Analysis completed successfully with no issues found.
 
-### SwapHelper
+### WrappedDLendConversionAdapter
 
 ✅ **Status**: Analysis completed successfully with no issues found.
 
 ## Recommendations
 
-### Successfully Analyzed (35 contracts)
+### Successfully Analyzed (37 contracts)
 
 These contracts compiled and analyzed successfully with no security issues detected by Mythril.
 
-### Security Issues Found (3 contracts)
-
-Review the detailed results above for specific security issues that need attention.
-
 ---
 
-*Report generated on 2025-06-10 23:44:22*
+*Report generated on 2025-06-13 12:25:38*
