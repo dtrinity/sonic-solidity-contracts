@@ -58,6 +58,16 @@ contract DStakeRouterDLend is IDStakeRouter, AccessControl {
     mapping(address => address) public vaultAssetToAdapter; // vaultAsset => adapterAddress
     address public defaultDepositVaultAsset; // Default strategy for deposits
 
+    // Struct used to pack local variables in functions prone to "stack too deep" compiler errors
+    struct ExchangeLocals {
+        address fromAdapterAddress;
+        address toAdapterAddress;
+        IDStableConversionAdapter fromAdapter;
+        IDStableConversionAdapter toAdapter;
+        uint256 dStableValueIn;
+        uint256 calculatedToVaultAssetAmount;
+    }
+
     // --- Constructor ---
     constructor(address _dStakeToken, address _collateralVault) {
         if (_dStakeToken == address(0) || _collateralVault == address(0)) {
@@ -89,25 +99,84 @@ contract DStakeRouterDLend is IDStakeRouter, AccessControl {
             revert AdapterNotFound(defaultDepositVaultAsset);
         }
 
-        // 1. Pull dStableAmount from DStakeToken (caller)
+        (
+            address vaultAssetExpected,
+            uint256 expectedShares
+        ) = IDStableConversionAdapter(adapterAddress)
+                .previewConvertToVaultAsset(dStableAmount);
+
+        uint256 mintedShares = _executeDeposit(
+            adapterAddress,
+            vaultAssetExpected,
+            dStableAmount
+        );
+
+        if (mintedShares < expectedShares) {
+            revert SlippageCheckFailed(
+                vaultAssetExpected,
+                mintedShares,
+                expectedShares
+            );
+        }
+
+        emit Deposited(
+            vaultAssetExpected,
+            mintedShares,
+            dStableAmount,
+            receiver
+        );
+    }
+
+    /**
+     * @dev Performs the actual pull-approve-convert sequence and returns the number of shares
+     *      minted to the collateral vault.
+     * @param adapterAddress The adapter to use for conversion.
+     * @param vaultAssetExpected The vault asset that the adapter should mint.
+     * @param dStableAmount The amount of dStable being deposited.
+     * @return mintedShares The number of vault asset shares minted.
+     */
+    function _executeDeposit(
+        address adapterAddress,
+        address vaultAssetExpected,
+        uint256 dStableAmount
+    ) private returns (uint256 mintedShares) {
+        uint256 beforeBal = IERC20(vaultAssetExpected).balanceOf(
+            address(collateralVault)
+        );
+
+        // Pull dStable from caller (DStakeToken)
         IERC20(dStable).safeTransferFrom(
             msg.sender,
             address(this),
             dStableAmount
         );
 
-        // 2. Approve adapter (set required allowance using standard approve)
+        // Approve adapter to spend dStable
         IERC20(dStable).approve(adapterAddress, dStableAmount);
 
-        // 3. Call adapter to convert and deposit to vault
+        // Convert dStable to vault asset (minted directly to collateral vault)
         (
-            address vaultAsset,
-            uint256 vaultAssetAmount
+            address vaultAssetActual,
+            uint256 reportedShares
         ) = IDStableConversionAdapter(adapterAddress).convertToVaultAsset(
                 dStableAmount
             );
 
-        emit Deposited(vaultAsset, vaultAssetAmount, dStableAmount, receiver);
+        if (vaultAssetActual != vaultAssetExpected) {
+            revert AdapterAssetMismatch(
+                adapterAddress,
+                vaultAssetExpected,
+                vaultAssetActual
+            );
+        }
+
+        mintedShares =
+            IERC20(vaultAssetExpected).balanceOf(address(collateralVault)) -
+            beforeBal;
+
+        if (mintedShares != reportedShares) {
+            revert InconsistentState("Adapter mis-reported shares");
+        }
     }
 
     /**
@@ -263,71 +332,73 @@ contract DStakeRouterDLend is IDStakeRouter, AccessControl {
             revert ZeroAddress();
         }
 
-        address fromAdapterAddress = vaultAssetToAdapter[fromVaultAsset];
-        address toAdapterAddress = vaultAssetToAdapter[toVaultAsset];
-        if (fromAdapterAddress == address(0))
+        ExchangeLocals memory locals;
+
+        // Resolve adapters
+        locals.fromAdapterAddress = vaultAssetToAdapter[fromVaultAsset];
+        locals.toAdapterAddress = vaultAssetToAdapter[toVaultAsset];
+
+        if (locals.fromAdapterAddress == address(0))
             revert AdapterNotFound(fromVaultAsset);
-        if (toAdapterAddress == address(0))
+        if (locals.toAdapterAddress == address(0))
             revert AdapterNotFound(toVaultAsset);
 
-        IDStableConversionAdapter fromAdapter = IDStableConversionAdapter(
-            fromAdapterAddress
+        locals.fromAdapter = IDStableConversionAdapter(
+            locals.fromAdapterAddress
         );
-        IDStableConversionAdapter toAdapter = IDStableConversionAdapter(
-            toAdapterAddress
-        );
+        locals.toAdapter = IDStableConversionAdapter(locals.toAdapterAddress);
 
-        // Calculate the dStable value received from the solver's input asset
-        uint256 dStableValueIn = fromAdapter.previewConvertFromVaultAsset(
+        // Calculate dStable received for the input asset
+        locals.dStableValueIn = locals.fromAdapter.previewConvertFromVaultAsset(
             fromVaultAssetAmount
         );
-        if (dStableValueIn == 0)
+        if (locals.dStableValueIn == 0) {
             revert ZeroInputDStableValue(fromVaultAsset, fromVaultAssetAmount);
+        }
 
-        // Calculate the expected output vault asset amount based on the dStable value received
-        (
-            address expectedToAsset,
-            uint256 calculatedToVaultAssetAmount
-        ) = toAdapter.previewConvertToVaultAsset(dStableValueIn);
+        // Calculate expected output vault asset amount
+        (address expectedToAsset, uint256 tmpToAmount) = locals
+            .toAdapter
+            .previewConvertToVaultAsset(locals.dStableValueIn);
 
-        // Sanity check: ensure the adapter is for the correct target asset
         if (expectedToAsset != toVaultAsset) {
             revert AdapterAssetMismatch(
-                toAdapterAddress,
+                locals.toAdapterAddress,
                 toVaultAsset,
                 expectedToAsset
             );
         }
 
-        // Slippage check: ensure calculated output meets minimum requirement
-        if (calculatedToVaultAssetAmount < minToVaultAssetAmount) {
+        locals.calculatedToVaultAssetAmount = tmpToAmount;
+
+        // Slippage check
+        if (locals.calculatedToVaultAssetAmount < minToVaultAssetAmount) {
             revert SlippageCheckFailed(
                 toVaultAsset,
-                calculatedToVaultAssetAmount,
+                locals.calculatedToVaultAssetAmount,
                 minToVaultAssetAmount
             );
         }
-        // --- End Value Calculation and Slippage Check ---
 
-        // 1. Pull fromVaultAsset from solver (msg.sender) to this contract
+        // --- Asset movements ---
+
+        // 1. Pull `fromVaultAsset` from solver to this contract
         IERC20(fromVaultAsset).safeTransferFrom(
             msg.sender,
             address(this),
             fromVaultAssetAmount
         );
 
-        // 2. Deposit fromVaultAsset into the collateralVault
-        // Directly transfer the asset to the vault
+        // 2. Transfer the asset into the collateral vault
         IERC20(fromVaultAsset).safeTransfer(
             address(collateralVault),
             fromVaultAssetAmount
         );
 
-        // 3. Send toVaultAsset from collateralVault to solver (msg.sender)
-        // Use the calculated amount that met the slippage check
+        // 3. Send the calculated amount of `toVaultAsset` to the solver
         collateralVault.sendAsset(
             toVaultAsset,
-            calculatedToVaultAssetAmount,
+            locals.calculatedToVaultAssetAmount,
             msg.sender
         );
 
@@ -335,8 +406,8 @@ contract DStakeRouterDLend is IDStakeRouter, AccessControl {
             fromVaultAsset,
             toVaultAsset,
             fromVaultAssetAmount,
-            calculatedToVaultAssetAmount,
-            dStableValueIn,
+            locals.calculatedToVaultAssetAmount,
+            locals.dStableValueIn,
             msg.sender
         );
     }

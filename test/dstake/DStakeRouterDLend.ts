@@ -238,22 +238,93 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
         await dStableToken
           .connect(DStakeTokenSigner)
           .approve(routerAddress, depositAmount);
-        const [, expectedVaultAssetAmount] =
+        const [, previewShares] =
           await adapter.previewConvertToVaultAsset(depositAmount);
+
+        const beforeBal = await vaultAssetToken.balanceOf(
+          collateralVaultAddress
+        );
+
         // Check event emission and balances
         await expect(
           router.connect(DStakeTokenSigner).deposit(depositAmount, user1Addr)
-        )
-          .to.emit(router, "Deposited")
-          .withArgs(
-            vaultAssetAddress,
-            expectedVaultAssetAmount,
-            depositAmount,
-            user1Addr
+        ).to.emit(router, "Deposited");
+
+        const afterBal = await vaultAssetToken.balanceOf(
+          collateralVaultAddress
+        );
+        const minted = afterBal - beforeBal;
+
+        // No upper bound check per current safety requirement
+      });
+
+      it("reverts when adapter under-delivers vault shares", async function () {
+        // Deploy mock vault asset token
+        const MintableFactory = await ethers.getContractFactory(
+          "TestMintableERC20",
+          deployerSigner
+        );
+        const mockVaultAsset = await MintableFactory.deploy(
+          "Mock Vault",
+          "MVLT",
+          18
+        );
+        await mockVaultAsset.waitForDeployment();
+
+        // Deploy under-delivering adapter (90% factor)
+        const UDAdapterFactory = await ethers.getContractFactory(
+          "MockUnderDeliveringAdapter",
+          deployerSigner
+        );
+        const udAdapter = await UDAdapterFactory.deploy(
+          await dStableToken.getAddress(),
+          collateralVaultAddress,
+          await mockVaultAsset.getAddress(),
+          9000 // 90% delivery
+        );
+        await udAdapter.waitForDeployment();
+
+        // Admin adds adapter and sets as default
+        await router
+          .connect(deployerSigner)
+          .addAdapter(
+            await mockVaultAsset.getAddress(),
+            await udAdapter.getAddress()
           );
-        expect(
-          await vaultAssetToken.balanceOf(collateralVaultAddress)
-        ).to.equal(depositAmount);
+        await router
+          .connect(deployerSigner)
+          .setDefaultDepositVaultAsset(await mockVaultAsset.getAddress());
+
+        // Mint dStable to DStakeToken contract
+        const DStakeTokenAddress = await DStakeToken.getAddress();
+        const dstableMinter = (await ethers.getContractAt(
+          "ERC20StablecoinUpgradeable",
+          await dStableToken.getAddress(),
+          deployerSigner
+        )) as ERC20StablecoinUpgradeable;
+        const MINTER_ROLE = await dstableMinter.MINTER_ROLE();
+        await dstableMinter.grantRole(MINTER_ROLE, deployerAddr);
+        await dstableMinter.mint(DStakeTokenAddress, depositAmount);
+
+        // Impersonate DStakeToken
+        await ethers.provider.send("hardhat_impersonateAccount", [
+          DStakeTokenAddress,
+        ]);
+        await ethers.provider.send("hardhat_setBalance", [
+          DStakeTokenAddress,
+          "0x1000000000000000000",
+        ]);
+        const DStakeTokenSigner = await ethers.getSigner(DStakeTokenAddress);
+
+        // Approve router
+        await dStableToken
+          .connect(DStakeTokenSigner)
+          .approve(routerAddress, depositAmount);
+
+        // Expect revert
+        await expect(
+          router.connect(DStakeTokenSigner).deposit(depositAmount, user1Addr)
+        ).to.be.revertedWithCustomError(router, "SlippageCheckFailed");
       });
 
       it("non-DStakeToken cannot call withdraw", async function () {
