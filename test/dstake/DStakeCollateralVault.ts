@@ -199,232 +199,7 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
     });
 
     describe("Adapter Management", function () {
-      let testAdapterAddress: string;
-      let testVaultAssetAddress: string;
-
-      beforeEach(async function () {
-        testVaultAssetAddress = vaultAssetAddress;
-        testAdapterAddress = adapterAddress;
-
-        if (
-          (await collateralVault.adapterForAsset(testVaultAssetAddress)) !==
-          ZeroAddress
-        ) {
-          const balance = await vaultAssetToken.balanceOf(
-            collateralVaultAddress
-          );
-          if (balance > 0n) {
-            await collateralVault
-              .connect(routerSigner)
-              .sendAsset(testVaultAssetAddress, balance, deployer.address);
-          }
-          await collateralVault
-            .connect(deployer)
-            .removeAdapter(testVaultAssetAddress);
-        }
-        expect(
-          await collateralVault.adapterForAsset(testVaultAssetAddress)
-        ).to.equal(ZeroAddress);
-      });
-
-      it("Should only allow admin to add/remove adapter", async function () {
-        if (!adapter) this.skip();
-
-        if (await collateralVault.hasRole(adminRole, user1.address)) {
-          await collateralVault
-            .connect(deployer)
-            .revokeRole(adminRole, user1.address);
-        }
-
-        await expect(
-          collateralVault
-            .connect(user1)
-            .addAdapter(testVaultAssetAddress, testAdapterAddress)
-        ).to.be.revertedWithCustomError(
-          collateralVault,
-          "AccessControlUnauthorizedAccount"
-        );
-
-        await collateralVault
-          .connect(deployer)
-          .addAdapter(testVaultAssetAddress, testAdapterAddress);
-
-        await expect(
-          collateralVault.connect(user1).removeAdapter(testVaultAssetAddress)
-        ).to.be.revertedWithCustomError(
-          collateralVault,
-          "AccessControlUnauthorizedAccount"
-        );
-
-        await expect(
-          collateralVault.connect(deployer).removeAdapter(testVaultAssetAddress)
-        ).to.not.be.reverted;
-      });
-
-      it("addAdapter: Should revert for zero addresses", async function () {
-        if (!adapter) this.skip();
-        await expect(
-          collateralVault
-            .connect(deployer)
-            .addAdapter(testVaultAssetAddress, ZeroAddress)
-        ).to.be.revertedWithCustomError(collateralVault, "ZeroAddress");
-        await expect(
-          collateralVault
-            .connect(deployer)
-            .addAdapter(ZeroAddress, testAdapterAddress)
-        ).to.be.revertedWithCustomError(collateralVault, "ZeroAddress");
-      });
-
-      it("addAdapter: Should revert for invalid adapter (EOA)", async function () {
-        const eoaAddress = user1.address;
-        await expect(
-          collateralVault
-            .connect(deployer)
-            .addAdapter(testVaultAssetAddress, eoaAddress)
-        ).to.be.reverted;
-      });
-
-      it("addAdapter: Should revert on adapter asset mismatch", async function () {
-        if (!adapter) this.skip();
-        const differentAssetAddress = dStableTokenAddress;
-
-        await expect(
-          collateralVault
-            .connect(deployer)
-            .addAdapter(differentAssetAddress, testAdapterAddress)
-        )
-          .to.be.revertedWithCustomError(collateralVault, "AdapterMismatch")
-          .withArgs(differentAssetAddress, testVaultAssetAddress);
-      });
-
-      it("addAdapter: Should add a valid adapter correctly", async function () {
-        if (!adapter) this.skip();
-
-        await expect(
-          collateralVault
-            .connect(deployer)
-            .addAdapter(testVaultAssetAddress, testAdapterAddress)
-        )
-          .to.emit(collateralVault, "AdapterAdded")
-          .withArgs(testVaultAssetAddress, testAdapterAddress);
-
-        expect(
-          await collateralVault.adapterForAsset(testVaultAssetAddress)
-        ).to.equal(testAdapterAddress);
-
-        let found = false;
-        let idx = 0;
-        try {
-          while (true) {
-            const asset = await collateralVault.supportedAssets(idx);
-            if (asset === testVaultAssetAddress) {
-              found = true;
-              break;
-            }
-            idx++;
-          }
-        } catch (e) {
-          // Reached end of array
-        }
-        expect(found).to.be.true;
-      });
-
-      it("addAdapter: Should revert when adding a duplicate asset", async function () {
-        if (!adapter) this.skip();
-        await collateralVault
-          .connect(deployer)
-          .addAdapter(testVaultAssetAddress, testAdapterAddress);
-        await expect(
-          collateralVault
-            .connect(deployer)
-            .addAdapter(testVaultAssetAddress, testAdapterAddress)
-        )
-          .to.be.revertedWithCustomError(
-            collateralVault,
-            "AssetAlreadySupported"
-          )
-          .withArgs(testVaultAssetAddress);
-      });
-
-      it("removeAdapter: Should revert if asset not supported", async function () {
-        const nonSupportedAsset = user1.address;
-        await expect(
-          collateralVault.connect(deployer).removeAdapter(nonSupportedAsset)
-        )
-          .to.be.revertedWithCustomError(collateralVault, "AssetNotSupported")
-          .withArgs(nonSupportedAsset);
-      });
-
-      it("removeAdapter: Should revert if vault has non-zero balance of asset", async function () {
-        if (!adapter) this.skip();
-        await collateralVault
-          .connect(deployer)
-          .addAdapter(testVaultAssetAddress, testAdapterAddress);
-
-        const dStableAmountToDeposit = parseUnits("100", dStableDecimals);
-        // Mint dStable for deployer
-        await stable.mint(deployer.address, dStableAmountToDeposit);
-        // Approve DStakeToken to spend dStable for deposit
-        await dStableToken
-          .connect(deployer)
-          .approve(DStakeTokenAddress, dStableAmountToDeposit);
-        // Deposit via DStakeToken to fund collateral vault
-        await DStakeToken.connect(deployer).deposit(
-          dStableAmountToDeposit,
-          deployer.address
-        );
-        const amount = await vaultAssetToken.balanceOf(collateralVaultAddress);
-
-        expect(amount).to.be.gt(0);
-
-        // Should revert removal when vault has non-zero balance
-        await expect(
-          collateralVault.connect(deployer).removeAdapter(testVaultAssetAddress)
-        )
-          .to.be.revertedWithCustomError(collateralVault, "NonZeroBalance")
-          .withArgs(testVaultAssetAddress);
-
-        // Cleanup: send asset back to deployer
-        await collateralVault
-          .connect(routerSigner)
-          .sendAsset(testVaultAssetAddress, amount, deployer.address);
-      });
-
-      it("removeAdapter: Should remove adapter correctly when balance is zero", async function () {
-        if (!adapter) this.skip();
-        await collateralVault
-          .connect(deployer)
-          .addAdapter(testVaultAssetAddress, testAdapterAddress);
-        expect(
-          await vaultAssetToken.balanceOf(collateralVaultAddress)
-        ).to.equal(0);
-
-        await expect(
-          collateralVault.connect(deployer).removeAdapter(testVaultAssetAddress)
-        )
-          .to.emit(collateralVault, "AdapterRemoved")
-          .withArgs(testVaultAssetAddress);
-
-        expect(
-          await collateralVault.adapterForAsset(testVaultAssetAddress)
-        ).to.equal(ZeroAddress);
-
-        let found = false;
-        let idx = 0;
-        try {
-          while (true) {
-            const asset = await collateralVault.supportedAssets(idx);
-            if (asset === testVaultAssetAddress) {
-              found = true;
-              break;
-            }
-            idx++;
-          }
-        } catch (e) {
-          // Reached end of array
-        }
-        expect(found).to.be.false;
-      });
+      // Adapter management is now delegated to the Router. Vault-level adapter tests removed.
     });
 
     describe("Asset Transfer (sendAsset)", function () {
@@ -555,10 +330,9 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
 
     describe("Value Calculation (totalValueInDStable)", function () {
       beforeEach(async function () {
-        if (
-          (await collateralVault.adapterForAsset(vaultAssetAddress)) !==
-          ZeroAddress
-        ) {
+        const currentAdapter =
+          await router.vaultAssetToAdapter(vaultAssetAddress);
+        if (currentAdapter !== ZeroAddress) {
           const balance = await vaultAssetToken.balanceOf(
             collateralVaultAddress
           );
@@ -567,9 +341,7 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
               .connect(routerSigner)
               .sendAsset(vaultAssetAddress, balance, deployer.address);
           }
-          await collateralVault
-            .connect(deployer)
-            .removeAdapter(vaultAssetAddress);
+          await router.connect(deployer).removeAdapter(vaultAssetAddress);
         }
       });
 
@@ -579,7 +351,7 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
 
       it("Should return 0 if supported asset has zero balance", async function () {
         if (!adapter) this.skip();
-        await collateralVault
+        await router
           .connect(deployer)
           .addAdapter(vaultAssetAddress, adapterAddress);
         expect(
@@ -590,7 +362,7 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
 
       it("Should return correct value for a single asset with balance", async function () {
         if (!adapter) this.skip();
-        await collateralVault
+        await router
           .connect(deployer)
           .addAdapter(vaultAssetAddress, adapterAddress);
 
@@ -619,9 +391,7 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
         const actualValue = await collateralVault.totalValueInDStable();
         expect(actualValue).to.equal(expectedValue);
 
-        await collateralVault
-          .connect(routerSigner)
-          .sendAsset(vaultAssetAddress, vaultBalance, deployer.address);
+        await router.connect(deployer).removeAdapter(vaultAssetAddress);
       });
 
       it("Should sum values correctly for multiple supported assets (if possible to set up)", async function () {
@@ -630,7 +400,7 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
 
       it("Should return 0 after asset balance is removed and adapter is removed", async function () {
         if (!adapter) this.skip();
-        await collateralVault
+        await router
           .connect(deployer)
           .addAdapter(vaultAssetAddress, adapterAddress);
 
@@ -653,8 +423,8 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
         const vaultBalanceForRemoval = await vaultAssetToken.balanceOf(
           collateralVaultAddress
         );
-        await collateralVault
-          .connect(routerSigner)
+        await router
+          .connect(deployer)
           .sendAsset(
             vaultAssetAddress,
             vaultBalanceForRemoval,
@@ -662,9 +432,7 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
           );
         expect(await collateralVault.totalValueInDStable()).to.equal(0);
 
-        await collateralVault
-          .connect(deployer)
-          .removeAdapter(vaultAssetAddress);
+        await router.connect(deployer).removeAdapter(vaultAssetAddress);
         expect(await collateralVault.totalValueInDStable()).to.equal(0);
       });
     });

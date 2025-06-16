@@ -183,22 +183,22 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       const adapterDeployment = await get(adapterDeploymentName);
       const vaultAssetAddress = adapterConfig.vaultAsset;
       const existingAdapter =
-        await collateralVault.adapterForAsset(vaultAssetAddress);
+        await routerContract.vaultAssetToAdapter(vaultAssetAddress);
 
       if (existingAdapter === ethers.ZeroAddress) {
-        await collateralVault
+        await routerContract
           .connect(await ethers.getSigner(adminSigner))
           .addAdapter(vaultAssetAddress, adapterDeployment.address);
         console.log(
-          `    ➕ Added adapter ${adapterDeploymentName} for asset ${vaultAssetAddress} to ${collateralVaultDeploymentName}`,
+          `    ➕ Added adapter ${adapterDeploymentName} for asset ${vaultAssetAddress} to ${routerDeploymentName}`,
         );
       } else if (existingAdapter !== adapterDeployment.address) {
         throw new Error(
-          `⚠️ Adapter for asset ${vaultAssetAddress} in ${collateralVaultDeploymentName} is already set to ${existingAdapter} but config expects ${adapterDeployment.address}. Manual intervention may be required.`,
+          `⚠️ Adapter for asset ${vaultAssetAddress} in router is already set to ${existingAdapter} but config expects ${adapterDeployment.address}. Manual intervention may be required.`,
         );
       } else {
         console.log(
-          `    👍 Adapter ${adapterDeploymentName} for asset ${vaultAssetAddress} already configured correctly in ${collateralVaultDeploymentName}`,
+          `    👍 Adapter ${adapterDeploymentName} for asset ${vaultAssetAddress} already configured correctly in ${routerDeploymentName}`,
         );
       }
     }

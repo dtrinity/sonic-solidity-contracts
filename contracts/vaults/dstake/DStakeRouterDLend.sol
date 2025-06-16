@@ -445,6 +445,10 @@ contract DStakeRouterDLend is IDStakeRouter, AccessControl {
             );
         }
         vaultAssetToAdapter[vaultAsset] = adapterAddress;
+
+        // Inform the collateral vault of the new supported asset list (no-op if already added)
+        try collateralVault.addSupportedAsset(vaultAsset) {} catch {}
+
         emit AdapterSet(vaultAsset, adapterAddress);
     }
 
@@ -463,6 +467,10 @@ contract DStakeRouterDLend is IDStakeRouter, AccessControl {
             revert AdapterNotFound(vaultAsset);
         }
         delete vaultAssetToAdapter[vaultAsset];
+
+        // Inform the collateral vault to remove supported asset (ignore if not present)
+        try collateralVault.removeSupportedAsset(vaultAsset) {} catch {}
+
         emit AdapterRemoved(vaultAsset, adapterAddress);
     }
 

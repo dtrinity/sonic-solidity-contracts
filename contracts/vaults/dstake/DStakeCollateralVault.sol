@@ -15,12 +15,6 @@ interface IAdapterProvider {
     function vaultAssetToAdapter(address) external view returns (address);
 }
 
-// Minimal subset of the router interface used for adapter management. Keeps
-// the vault compile-time decoupled from the full router contract.
-interface IRouterAdapterManager {
-    // Deprecated interface removed – no longer needed.
-}
-
 /**
  * @title DStakeCollateralVault
  * @notice Holds various yield-bearing/convertible ERC20 tokens (`vault assets`) managed by dSTAKE.
@@ -166,6 +160,7 @@ contract DStakeCollateralVault is IDStakeCollateralVault, AccessControl {
 
         _grantRole(ROUTER_ROLE, _newRouter);
         router = _newRouter;
+        emit RouterSet(_newRouter);
     }
 
     // --- Internal Utilities ---
