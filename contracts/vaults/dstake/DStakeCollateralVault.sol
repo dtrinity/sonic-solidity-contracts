@@ -82,16 +82,6 @@ contract DStakeCollateralVault is IDStakeCollateralVault, AccessControl {
         return totalValue;
     }
 
-    /**
-     * @notice Returns the adapter address for a given vault asset by querying the router.
-     * @dev Maintained for backwards-compatibility so that external callers/tests don't break.
-     */
-    function adapterForAsset(
-        address vaultAsset
-    ) external view returns (address) {
-        return IAdapterProvider(router).vaultAssetToAdapter(vaultAsset);
-    }
-
     // --- External Functions (Router Interactions) ---
 
     /**

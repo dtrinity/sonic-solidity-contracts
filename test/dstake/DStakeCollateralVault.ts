@@ -119,9 +119,9 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
         expect(adapterAddress).to.not.equal(ZeroAddress);
         expect(await adapter.vaultAsset()).to.equal(vaultAssetAddress);
       } else {
-        expect(
-          await collateralVault.adapterForAsset(vaultAssetAddress)
-        ).to.equal(ZeroAddress);
+        expect(await router.vaultAssetToAdapter(vaultAssetAddress)).to.equal(
+          ZeroAddress
+        );
       }
     });
 
@@ -198,10 +198,6 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
       });
     });
 
-    describe("Adapter Management", function () {
-      // Adapter management is now delegated to the Router. Vault-level adapter tests removed.
-    });
-
     describe("Asset Transfer (sendAsset)", function () {
       const amountToSend = parseUnits("1", 18);
 
@@ -211,10 +207,9 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
         }
 
         if (
-          (await collateralVault.adapterForAsset(vaultAssetAddress)) ===
-          ZeroAddress
+          (await router.vaultAssetToAdapter(vaultAssetAddress)) === ZeroAddress
         ) {
-          await collateralVault
+          await router
             .connect(deployer)
             .addAdapter(vaultAssetAddress, adapterAddress);
         }
@@ -423,8 +418,8 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
         const vaultBalanceForRemoval = await vaultAssetToken.balanceOf(
           collateralVaultAddress
         );
-        await router
-          .connect(deployer)
+        await collateralVault
+          .connect(routerSigner)
           .sendAsset(
             vaultAssetAddress,
             vaultBalanceForRemoval,

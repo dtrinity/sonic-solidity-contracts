@@ -81,15 +81,4 @@ interface IDStakeCollateralVault {
      * @notice Emitted when a vault asset is removed from the supported list.
      */
     event SupportedAssetRemoved(address indexed vaultAsset);
-
-    // Legacy events kept for compatibility with earlier deployments/tests
-    event AdapterAdded(address indexed vaultAsset, address indexed adapter);
-    event AdapterRemoved(address indexed vaultAsset);
-
-    /**
-     * @notice Returns the adapter address for a given vault asset (queried from the router).
-     */
-    function adapterForAsset(
-        address vaultAsset
-    ) external view returns (address);
 }
