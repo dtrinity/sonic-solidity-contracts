@@ -37,6 +37,11 @@ interface IDStakeCollateralVault {
     function supportedAssets(uint256 index) external view returns (address);
 
     /**
+     * @notice Returns the entire list of supported vault assets. Convenient for UIs & off-chain analytics.
+     */
+    function getSupportedAssets() external view returns (address[] memory);
+
+    /**
      * @notice Transfers `amount` of `vaultAsset` from this vault to the `recipient`.
      * @dev Only callable by the registered router.
      * @param vaultAsset The address of the vault asset to send.

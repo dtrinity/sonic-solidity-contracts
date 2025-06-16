@@ -6,6 +6,7 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {IDStakeCollateralVault} from "./interfaces/IDStakeCollateralVault.sol";
 import {IDStableConversionAdapter} from "./interfaces/IDStableConversionAdapter.sol";
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
+import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
 // ---------------------------------------------------------------------------
 // Internal interface to query the router's public mapping without importing the
@@ -25,6 +26,7 @@ interface IAdapterProvider {
  */
 contract DStakeCollateralVault is IDStakeCollateralVault, AccessControl {
     using SafeERC20 for IERC20;
+    using EnumerableSet for EnumerableSet.AddressSet;
 
     // --- Roles ---
     bytes32 public constant ROUTER_ROLE = keccak256("ROUTER_ROLE");
@@ -41,7 +43,7 @@ contract DStakeCollateralVault is IDStakeCollateralVault, AccessControl {
 
     address public router; // The DStakeRouter allowed to interact
 
-    address[] public supportedAssets; // List of supported vault assets
+    EnumerableSet.AddressSet private _supportedAssets; // Set of supported vault assets
 
     // --- Constructor ---
     constructor(address _dStakeVaultShare, address _dStableAsset) {
@@ -67,8 +69,9 @@ contract DStakeCollateralVault is IDStakeCollateralVault, AccessControl {
         returns (uint256 dStableValue)
     {
         uint256 totalValue = 0;
-        for (uint i = 0; i < supportedAssets.length; i++) {
-            address vaultAsset = supportedAssets[i];
+        uint256 len = _supportedAssets.length();
+        for (uint256 i = 0; i < len; i++) {
+            address vaultAsset = _supportedAssets.at(i);
             address adapterAddress = IAdapterProvider(router)
                 .vaultAssetToAdapter(vaultAsset);
             if (adapterAddress != address(0)) {
@@ -106,7 +109,8 @@ contract DStakeCollateralVault is IDStakeCollateralVault, AccessControl {
         if (vaultAsset == address(0)) revert ZeroAddress();
         if (_isSupported(vaultAsset)) revert AssetAlreadySupported(vaultAsset);
 
-        supportedAssets.push(vaultAsset);
+        _supportedAssets.add(vaultAsset);
+        emit SupportedAssetAdded(vaultAsset);
     }
 
     /**
@@ -121,15 +125,8 @@ contract DStakeCollateralVault is IDStakeCollateralVault, AccessControl {
             revert NonZeroBalance(vaultAsset);
         }
 
-        for (uint256 i = 0; i < supportedAssets.length; i++) {
-            if (supportedAssets[i] == vaultAsset) {
-                supportedAssets[i] = supportedAssets[
-                    supportedAssets.length - 1
-                ];
-                supportedAssets.pop();
-                break;
-            }
-        }
+        _supportedAssets.remove(vaultAsset);
+        emit SupportedAssetRemoved(vaultAsset);
     }
 
     // --- Governance Functions ---
@@ -156,11 +153,25 @@ contract DStakeCollateralVault is IDStakeCollateralVault, AccessControl {
     // --- Internal Utilities ---
 
     function _isSupported(address asset) private view returns (bool) {
-        for (uint256 i = 0; i < supportedAssets.length; i++) {
-            if (supportedAssets[i] == asset) {
-                return true;
-            }
-        }
-        return false;
+        return _supportedAssets.contains(asset);
+    }
+
+    // --- External Views ---
+
+    /**
+     * @notice Returns the vault asset at `index` from the internal supported set.
+     *         Kept for backwards-compatibility with the previous public array getter.
+     */
+    function supportedAssets(
+        uint256 index
+    ) external view override returns (address) {
+        return _supportedAssets.at(index);
+    }
+
+    /**
+     * @notice Returns the entire list of supported vault assets. Useful for UIs & off-chain tooling.
+     */
+    function getSupportedAssets() external view returns (address[] memory) {
+        return _supportedAssets.values();
     }
 }
