@@ -154,6 +154,30 @@ contract DStakeToken is
 
     /**
      * @inheritdoc ERC4626Upgradeable
+     * @dev Override to ensure the withdrawal fee is deducted only once.
+     *      The `shares` parameter is converted to its equivalent gross asset value, then the
+     *      internal _withdraw handles fee calculation. The returned value is the net assets
+     *      actually received by the `receiver`, matching previewRedeem().
+     */
+    function redeem(
+        uint256 shares,
+        address receiver,
+        address owner
+    ) public virtual override returns (uint256 assets) {
+        uint256 grossAssets = convertToAssets(shares); // shares → gross assets before fee
+
+        require(shares <= maxRedeem(owner), "ERC4626: redeem more than max");
+
+        // Perform withdrawal using gross assets so that _withdraw computes the correct fee once
+        _withdraw(_msgSender(), receiver, owner, grossAssets, shares);
+
+        // Net assets the user effectively receives
+        assets = _getNetAmountAfterFee(grossAssets);
+        return assets;
+    }
+
+    /**
+     * @inheritdoc ERC4626Upgradeable
      * @dev Calculates withdrawal fee, then delegates the core withdrawal logic
      *      (converting vault assets back to dSTABLE) to the router.
      *      The `assets` parameter is now the gross amount that needs to be withdrawn from the vault.

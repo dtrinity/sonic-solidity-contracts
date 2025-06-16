@@ -590,9 +590,12 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
       });
 
       it("should redeem shares with fee deducted", async () => {
+        // previewRedeem already returns the net amount the user should receive.
         const previewAssets = await DStakeToken.previewRedeem(shares);
-        const fee = (previewAssets * 10000n) / 1000000n;
-        const netAssets = previewAssets - fee;
+
+        // Calculate the expected fee on the **gross** assets (convertToAssets(shares)).
+        const grossAssets = await DStakeToken.convertToAssets(shares);
+        const fee = (grossAssets * 10000n) / 1000000n;
         await expect(
           DStakeToken.connect(user1).redeem(
             shares,
@@ -602,7 +605,10 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
         )
           .to.emit(DStakeToken, "WithdrawalFee")
           .withArgs(user1.address, user1.address, fee);
-        expect(await dStableToken.balanceOf(user1.address)).to.equal(netAssets);
+        // User balance should increase by the previewRedeem amount (net assets)
+        expect(await dStableToken.balanceOf(user1.address)).to.equal(
+          previewAssets
+        );
         expect(await DStakeToken.balanceOf(user1.address)).to.equal(0n);
       });
 
