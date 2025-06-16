@@ -295,11 +295,6 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
           .connect(deployerSigner)
           .setDefaultDepositVaultAsset(await mockVaultAsset.getAddress());
 
-        // Ensure the collateral vault recognizes and can price the new asset
-        await collateralVault
-          .connect(deployerSigner)
-          .addAdapter(await mockVaultAsset.getAddress(), await udAdapter.getAddress());
-
         // Mint dStable to DStakeToken contract
         const DStakeTokenAddress = await DStakeToken.getAddress();
         const dstableMinter = (await ethers.getContractAt(
@@ -383,14 +378,9 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
           .connect(deployerSigner)
           .setDefaultDepositVaultAsset(bonusVaultAsset);
 
-        // Ensure the collateral vault recognizes and can price the new asset
-        await collateralVault
-          .connect(deployerSigner)
-          .addAdapter(bonusVaultAsset, bonusAdapterAddr);
-
         // 3. Mint dStable to user1 and deposit through DStakeToken
-        
-        const depositAmt = ethers.parseUnits("100",18);
+
+        const depositAmt = ethers.parseUnits("100", 18);
         const dstableMinter = (await ethers.getContractAt(
           "ERC20StablecoinUpgradeable",
           await dStableToken.getAddress(),
