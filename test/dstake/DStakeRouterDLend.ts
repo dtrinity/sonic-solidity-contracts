@@ -295,6 +295,11 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
           .connect(deployerSigner)
           .setDefaultDepositVaultAsset(await mockVaultAsset.getAddress());
 
+        // Ensure the collateral vault recognizes and can price the new asset
+        await collateralVault
+          .connect(deployerSigner)
+          .addAdapter(await mockVaultAsset.getAddress(), await udAdapter.getAddress());
+
         // Mint dStable to DStakeToken contract
         const DStakeTokenAddress = await DStakeToken.getAddress();
         const dstableMinter = (await ethers.getContractAt(
@@ -353,6 +358,81 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
         ).to.emit(router, "Withdrawn");
         const finalBal = await dStableToken.balanceOf(user1Addr);
         expect(finalBal - initial).to.equal(depositAmount);
+      });
+
+      it("captures surplus on positive slippage (bonus redeem adapter)", async function () {
+        // 1. Deploy mock adapter that returns 10 % extra dStable on redeem
+        const AdapterFactory = await ethers.getContractFactory(
+          "MockAdapterPositiveSlippage",
+          deployerSigner
+        );
+        const bonusAdapter = await AdapterFactory.deploy(
+          await dStableToken.getAddress(),
+          collateralVaultAddress
+        );
+        await bonusAdapter.waitForDeployment();
+
+        const bonusVaultAsset = await bonusAdapter.vaultAsset();
+        const bonusAdapterAddr = await bonusAdapter.getAddress();
+
+        // 2. Register adapter and make it default strategy
+        await router
+          .connect(deployerSigner)
+          .addAdapter(bonusVaultAsset, bonusAdapterAddr);
+        await router
+          .connect(deployerSigner)
+          .setDefaultDepositVaultAsset(bonusVaultAsset);
+
+        // Ensure the collateral vault recognizes and can price the new asset
+        await collateralVault
+          .connect(deployerSigner)
+          .addAdapter(bonusVaultAsset, bonusAdapterAddr);
+
+        // 3. Mint dStable to user1 and deposit through DStakeToken
+        
+        const depositAmt = ethers.parseUnits("100",18);
+        const dstableMinter = (await ethers.getContractAt(
+          "ERC20StablecoinUpgradeable",
+          await dStableToken.getAddress(),
+          deployerSigner
+        )) as ERC20StablecoinUpgradeable;
+        const MINTER_ROLE = await dstableMinter.MINTER_ROLE();
+        await dstableMinter.grantRole(MINTER_ROLE, deployerAddr);
+        await dstableMinter.mint(user1Addr, depositAmt);
+
+        // user1 deposit
+        await dStableToken
+          .connect(user1Signer)
+          .approve(await DStakeToken.getAddress(), depositAmt);
+        await DStakeToken.connect(user1Signer).deposit(depositAmt, user1Addr);
+
+        // 4. Withdraw half – router should keep surplus bonus
+        const userShares = await DStakeToken.balanceOf(user1Addr);
+        const sharesToRedeem = userShares / 2n;
+        let withdrawAmt = await DStakeToken.previewRedeem(sharesToRedeem);
+        withdrawAmt -= 1n; // stay below returned amount by 1 wei
+
+        const vaultToken = await ethers.getContractAt(
+          "MockERC4626Simple",
+          bonusVaultAsset
+        );
+
+        const beforeShares = await vaultToken.balanceOf(collateralVaultAddress);
+        const beforeUserBal = await dStableToken.balanceOf(user1Addr);
+
+        await DStakeToken.connect(user1Signer).withdraw(
+          withdrawAmt,
+          user1Addr,
+          user1Addr
+        );
+
+        const afterUserBal = await dStableToken.balanceOf(user1Addr);
+        expect(afterUserBal - beforeUserBal).to.equal(withdrawAmt);
+
+        const afterShares = await vaultToken.balanceOf(collateralVaultAddress);
+        expect(afterShares).to.be.lt(beforeShares); // shares burned more than bonus minted
+        const delta = beforeShares - afterShares;
+        expect(delta).to.be.lte(sharesToRedeem);
       });
     });
 

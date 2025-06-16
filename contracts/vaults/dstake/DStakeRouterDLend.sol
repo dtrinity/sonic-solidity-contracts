@@ -214,15 +214,36 @@ contract DStakeRouterDLend is IDStakeRouter, AccessControl {
         uint256 receivedDStable = adapter.convertFromVaultAsset(
             vaultAssetAmount
         );
-        IERC20(dStable).safeTransfer(receiver, receivedDStable);
 
-        // Sanity check: Ensure received amount is sufficient
+        // Sanity check: Ensure adapter returned at least the requested amount
         if (receivedDStable < dStableAmount) {
             revert InsufficientDStableFromAdapter(
                 vaultAsset,
                 dStableAmount,
                 receivedDStable
             );
+        }
+
+        // 5. Transfer ONLY the requested amount to the user
+        IERC20(dStable).safeTransfer(receiver, dStableAmount);
+
+        // 6. If adapter over-delivered, immediately convert the surplus dStable
+        //    back into vault-asset shares so the value is reflected in
+        //    totalAssets() for all shareholders.
+        uint256 surplus = receivedDStable - dStableAmount;
+        if (surplus > 0) {
+            // Give the adapter allowance to pull the surplus
+            IERC20(dStable).approve(adapterAddress, surplus);
+
+            // Convert surplus dStable → vault asset (minted directly to the vault)
+            (address mintedAsset, ) = adapter.convertToVaultAsset(surplus);
+
+            // Sanity: adapter must mint the same asset we just redeemed from
+            if (mintedAsset != vaultAsset) {
+                revert AdapterAssetMismatch(adapterAddress, vaultAsset, mintedAsset);
+            }
+
+            // Shares minted directly to collateralVault; surplus value now captured in accounting
         }
 
         emit Withdrawn(
