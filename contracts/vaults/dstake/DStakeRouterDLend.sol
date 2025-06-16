@@ -332,9 +332,10 @@ contract DStakeRouterDLend is IDStakeRouter, AccessControl {
         uint256 resultingDStableEquivalent = toAdapter
             .previewConvertFromVaultAsset(resultingToVaultAssetAmount);
 
-        uint256 minRequiredDStable = dStableAmountEquivalent > dustTolerance
-            ? dStableAmountEquivalent - dustTolerance
-            : 0;
+        // Rely on Solidity 0.8 checked arithmetic: if `dustTolerance` is greater than
+        // `dStableAmountEquivalent`, the subtraction will underflow and the transaction
+        // will revert automatically. This saves gas compared to a ternary guard.
+        uint256 minRequiredDStable = dStableAmountEquivalent - dustTolerance;
 
         if (resultingDStableEquivalent < minRequiredDStable) {
             revert SlippageCheckFailed(
