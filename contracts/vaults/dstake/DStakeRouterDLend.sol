@@ -44,11 +44,6 @@ contract DStakeRouterDLend is IDStakeRouter, AccessControl {
         uint256 minAmount
     );
     error InconsistentState(string message);
-    error ValueParityCheckFailed(
-        uint256 inDStableAmount,
-        uint256 outDStableAmount,
-        uint256 tolerance
-    );
 
     // --- Roles ---
     bytes32 public constant DSTAKE_TOKEN_ROLE = keccak256("DSTAKE_TOKEN_ROLE");
@@ -337,13 +332,15 @@ contract DStakeRouterDLend is IDStakeRouter, AccessControl {
         uint256 resultingDStableEquivalent = toAdapter
             .previewConvertFromVaultAsset(resultingToVaultAssetAmount);
 
-        if (
-            resultingDStableEquivalent + dustTolerance < dStableAmountEquivalent
-        ) {
-            revert ValueParityCheckFailed(
-                dStableAmountEquivalent,
+        uint256 minRequiredDStable = dStableAmountEquivalent > dustTolerance
+            ? dStableAmountEquivalent - dustTolerance
+            : 0;
+
+        if (resultingDStableEquivalent < minRequiredDStable) {
+            revert SlippageCheckFailed(
+                dStable,
                 resultingDStableEquivalent,
-                dustTolerance
+                minRequiredDStable
             );
         }
 
