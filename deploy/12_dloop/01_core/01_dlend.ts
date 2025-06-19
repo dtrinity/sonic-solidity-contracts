@@ -11,7 +11,6 @@ import {
   POOL_ADDRESSES_PROVIDER_ID,
   POOL_DATA_PROVIDER_ID,
 } from "../../../typescript/deploy-ids";
-import { isLocalNetwork } from "../../../typescript/hardhat/deploy";
 
 /**
  * Deploy dLOOP Core DLend contract
@@ -122,13 +121,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployer } = await getNamedAccounts();
   const chainId = await getChainId();
 
-  // Skip for local networks
-  if (isLocalNetwork(hre.network.name)) {
-    console.log(
-      `Skipping dLOOP Core DLend deployment for network ${hre.network.name}.`,
-    );
-    return;
-  }
   // Get network config
   const networkConfig = await getConfig(hre);
   const dloopConfig = networkConfig.dLoop;
