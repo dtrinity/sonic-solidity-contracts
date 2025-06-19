@@ -3,7 +3,9 @@ import { HardhatRuntimeEnvironment } from "hardhat/types";
 
 import { ONE_PERCENT_BPS } from "../../typescript/common/bps_constants";
 import {
+  DS_A_TOKEN_WRAPPER_ID,
   DS_TOKEN_ID,
+  DUSD_A_TOKEN_WRAPPER_ID,
   DUSD_TOKEN_ID,
   INCENTIVES_PROXY_ID,
   SDUSD_DSTAKE_TOKEN_ID,
@@ -53,10 +55,10 @@ export async function getConfig(
 
   // Fetch deployed dLend StaticATokenLM wrappers
   const dLendATokenWrapperDUSDDeployment = await _hre.deployments.getOrNull(
-    "dLend_ATokenWrapper_dUSD",
+    DUSD_A_TOKEN_WRAPPER_ID,
   );
   const dLendATokenWrapperDSDeployment = await _hre.deployments.getOrNull(
-    "dLend_ATokenWrapper_dS",
+    DS_A_TOKEN_WRAPPER_ID,
   );
 
   // Fetch deployed dLend RewardsController
@@ -229,9 +231,17 @@ export async function getConfig(
         },
         redstoneOracleAssets: {
           plainRedstoneOracleWrappers: {
-            [wSTokenDeployment?.address || ""]:
-              mockOracleNameToAddress["wS_USD"],
-            [dSDeployment?.address || ""]: mockOracleNameToAddress["wS_USD"], // Peg dS to S
+            ...(wSTokenDeployment?.address && mockOracleNameToAddress["wS_USD"]
+              ? {
+                  [wSTokenDeployment.address]:
+                    mockOracleNameToAddress["wS_USD"],
+                }
+              : {}),
+            ...(dSDeployment?.address && mockOracleNameToAddress["wS_USD"]
+              ? {
+                  [dSDeployment.address]: mockOracleNameToAddress["wS_USD"], // Peg dS to S
+                }
+              : {}),
           },
           redstoneOracleWrappersWithThresholding: {
             ...(USDCDeployment?.address && mockOracleNameToAddress["USDC_USD"]
@@ -351,8 +361,12 @@ export async function getConfig(
         },
         redstoneOracleAssets: {
           plainRedstoneOracleWrappers: {
-            [stSTokenDeployment?.address || ""]:
-              mockOracleNameToAddress["stS_S"],
+            ...(stSTokenDeployment?.address && mockOracleNameToAddress["stS_S"]
+              ? {
+                  [stSTokenDeployment.address]:
+                    mockOracleNameToAddress["stS_S"],
+                }
+              : {}),
           },
           redstoneOracleWrappersWithThresholding: {
             ...(OSTokenDeployment?.address && mockOracleNameToAddress["OS_S"]
@@ -423,10 +437,10 @@ export async function getConfig(
           maxSubsidyBps: 2 * ONE_PERCENT_BPS, // 2% subsidy
           extraParams: {
             targetStaticATokenWrapper:
-              dLendATokenWrapperDUSDDeployment?.address,
+              dLendATokenWrapperDUSDDeployment?.address || "not-existing",
             treasury: user1,
-            maxTreasuryFeeBps: 1000,
-            initialTreasuryFeeBps: 500,
+            maxTreasuryFeeBps: "1000",
+            initialTreasuryFeeBps: "500",
             initialExchangeThreshold: "100",
           },
         },
