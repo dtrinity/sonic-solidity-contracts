@@ -79,32 +79,15 @@ abstract contract BaseOdosBuyAdapter is BaseOdosSwapAdapter {
         address tokenIn = address(assetToSwapFrom);
         address tokenOut = address(assetToSwapTo);
 
-        // Add a buffer to the maxAmountToSwap to account for potential slippage
-        amountSold =
-            (maxAmountToSwap *
-                (BasisPointConstants.ONE_HUNDRED_PERCENT_BPS +
-                    SLIPPAGE_BUFFER_BPS)) /
-            BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
-
-        // Ensure estimated amount is within limits
-        if (amountSold > maxAmountToSwap) {
-            revert EstimatedAmountExceedsMaximum(amountSold, maxAmountToSwap);
-        }
-
-        // Execute the swap using OdosSwapUtils
-        uint256 actualAmountOut = OdosSwapUtils.executeSwapOperation(
+        amountSold = OdosSwapUtils.executeSwapOperation(
             swapRouter,
             tokenIn,
-            amountSold,
+            tokenOut,
+            maxAmountToSwap,
             amountToReceive,
             swapData
         );
 
-        // Calculate the actual amount sold based on balance difference
-        amountSold =
-            balanceBeforeAssetFrom -
-            assetToSwapFrom.balanceOf(address(this));
-
-        emit Bought(tokenIn, tokenOut, amountSold, actualAmountOut);
+        emit Bought(tokenIn, tokenOut, amountSold, amountToReceive);
     }
 }
