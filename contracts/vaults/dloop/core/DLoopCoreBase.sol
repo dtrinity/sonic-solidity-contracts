@@ -705,7 +705,7 @@ abstract contract DLoopCoreBase is
             );
         }
 
-        uint256 debtAssetBorrowed = _depositToPoolImplementation(
+        uint256 debtAssetBorrowed = _supplyAndBorrowFromPoolImplementation(
             caller,
             assets
         );
@@ -725,7 +725,7 @@ abstract contract DLoopCoreBase is
      * @param supplyAssetAmount Amount of assets to supply
      * @return debtAssetAmountToBorrow Amount of debt asset to borrow
      */
-    function _depositToPoolImplementation(
+    function _supplyAndBorrowFromPoolImplementation(
         address caller,
         uint256 supplyAssetAmount // supply amount
     ) private returns (uint256) {
@@ -752,11 +752,15 @@ abstract contract DLoopCoreBase is
             );
         }
 
+        // In this case, the vault is user of the lending pool
+        // So, we need to supply the collateral token to the pool on behalf of the vault
+        // and then borrow the debt token from the pool on behalf of the vault
+
         // Supply the collateral token to the lending pool
         _supplyToPool(
             address(collateralToken),
             supplyAssetAmount,
-            address(this)
+            address(this) // the vault is the supplier
         );
 
         // Get the amount of debt token to borrow that keeps the current leverage
@@ -774,7 +778,7 @@ abstract contract DLoopCoreBase is
         _borrowFromPool(
             address(debtToken),
             debtTokenAmountToBorrow,
-            address(this)
+            address(this) // the vault is the borrower
         );
 
         return debtTokenAmountToBorrow;
@@ -857,7 +861,7 @@ abstract contract DLoopCoreBase is
         // Withdraw the collateral from the lending pool
         // After this step, the _withdrawFromPool wrapper function will also assert that
         // the withdrawn amount is exactly the amount requested.
-        _withdrawFromPoolImplementation(caller, assets);
+        _repayDebtAndWithdrawFromPoolImplementation(caller, assets);
 
         // Transfer the asset to the receiver
         collateralToken.safeTransfer(receiver, assets);
@@ -874,7 +878,7 @@ abstract contract DLoopCoreBase is
      * @param collateralTokenToWithdraw The amount of collateral token to withdraw
      * @return repaidDebtTokenAmount The amount of debt token repaid
      */
-    function _withdrawFromPoolImplementation(
+    function _repayDebtAndWithdrawFromPoolImplementation(
         address caller,
         uint256 collateralTokenToWithdraw
     ) private returns (uint256 repaidDebtTokenAmount) {
@@ -909,11 +913,15 @@ abstract contract DLoopCoreBase is
             repaidDebtTokenAmount
         );
 
+        // In this case, the vault is user of the lending pool
+        // So, we need to repay the debt to the pool on behalf of the vault
+        // and then withdraw the collateral from the pool on behalf of the vault
+
         // Repay the debt to withdraw the collateral
         _repayDebtToPool(
             address(debtToken),
             repaidDebtTokenAmount,
-            address(this)
+            address(this) // the vault is the borrower
         );
 
         // Withdraw the collateral
@@ -922,7 +930,7 @@ abstract contract DLoopCoreBase is
         _withdrawFromPool(
             address(collateralToken),
             collateralTokenToWithdraw,
-            address(this)
+            address(this) // the vault is the receiver
         );
 
         return repaidDebtTokenAmount;
