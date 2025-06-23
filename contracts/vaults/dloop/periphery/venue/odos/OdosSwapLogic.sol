@@ -49,22 +49,27 @@ library OdosSwapLogic {
         bytes memory swapData,
         IOdosRouterV2 odosRouter
     ) external returns (uint256) {
+        uint256 outputBalanceBefore = ERC20(outputToken).balanceOf(address(receiver));
+
         // Use the OdosSwapUtils library to execute the swap
-        uint256 actualAmountOut = OdosSwapUtils.executeSwapOperation(
+        uint256 amountSpent = OdosSwapUtils.executeSwapOperation(
             odosRouter,
             address(inputToken),
+            address(outputToken),
             amountInMaximum,
             amountOut,
             swapData
         );
 
-        // If we received more than requested, transfer the surplus to the receiver
-        if (actualAmountOut > amountOut && receiver != address(this)) {
-            uint256 surplus = actualAmountOut - amountOut;
-            ERC20(outputToken).safeTransfer(receiver, surplus);
+        uint256 outputBalanceAfter = ERC20(outputToken).balanceOf(address(receiver));
+        uint256 actualOutputReceived = outputBalanceAfter - outputBalanceBefore;
+
+        // We already make sure amountOut is greater than _amount in swap operation, so we can just subtract the amount
+        if (actualOutputReceived > amountOut) {
+            uint256 leftover = actualOutputReceived - amountOut;
+            ERC20(outputToken).safeTransfer(receiver, leftover);
         }
 
-        // Return the actual output amount
-        return actualAmountOut;
+        return amountSpent;
     }
 }
