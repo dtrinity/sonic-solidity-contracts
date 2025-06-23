@@ -388,7 +388,10 @@ async function runTestsForDStable(
 
         await expect(
           amoManagerContract.deallocateAmo(amoVault, deallocateAmount)
-        ).to.be.reverted;
+        ).to.be.revertedWithCustomError(
+          amoManagerContract,
+          "InsufficientAllocation"
+        );
 
         // Stop impersonating
         await hre.network.provider.request({
@@ -672,6 +675,42 @@ async function runTestsForDStable(
             hre.ethers.parseUnits("10", dstableInfo.decimals)
           )
         ).to.be.revertedWithCustomError(amoManagerContract, "InactiveAmoVault");
+      });
+
+      it("emits AllocationSurplus when collateral value exceeds allocation", async function () {
+        const amoVault = await mockAmoVault.getAddress();
+
+        // Enable the vault but do NOT allocate any dStable so currentAllocation = 0
+        await ensureVaultEnabled(amoVault);
+
+        const collateralAmount = hre.ethers.parseUnits(
+          "25",
+          testCollateralInfo.decimals
+        );
+
+        // Transfer collateral to the AMO vault from deployer (simulate profit)
+        await testCollateralToken.transfer(amoVault, collateralAmount);
+
+        // Compute expected surplus in dStable equivalent
+        const collateralBaseValue =
+          await collateralVaultContract.assetValueFromAmount(
+            collateralAmount,
+            await testCollateralToken.getAddress()
+          );
+        const collateralInDstable =
+          await amoManagerContract.baseValueToDstableAmount(
+            collateralBaseValue
+          );
+
+        await expect(
+          amoManagerContract.transferFromAmoVaultToHoldingVault(
+            amoVault,
+            await testCollateralToken.getAddress(),
+            collateralAmount
+          )
+        )
+          .to.emit(amoManagerContract, "AllocationSurplus")
+          .withArgs(amoVault, collateralInDstable);
       });
     });
 
