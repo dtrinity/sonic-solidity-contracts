@@ -377,6 +377,43 @@ dstableConfigs.forEach((config) => {
             "SlippageTooHigh"
           );
         });
+
+        it("reverts when redeeming an unsupported collateral asset", async function () {
+          const TestERC20Factory = await hre.ethers.getContractFactory(
+            "TestERC20",
+            await hre.ethers.getSigner(deployer)
+          );
+          const unsupportedCollateralContract = await TestERC20Factory.deploy(
+            "Unsupported Token",
+            "UNSUP",
+            18
+          );
+          await unsupportedCollateralContract.waitForDeployment();
+
+          const userSigner = await hre.ethers.getSigner(user1);
+
+          // Give the user some allowance of dStable for redemption
+          const redeemAmount = hre.ethers.parseUnits("1", dstableInfo.decimals);
+          await dstableContract
+            .connect(userSigner)
+            .approve(await redeemerWithFeesContract.getAddress(), redeemAmount);
+
+          // Expect revert due to unsupported collateral
+          await expect(
+            redeemerWithFeesContract
+              .connect(userSigner)
+              .redeem(
+                redeemAmount,
+                await unsupportedCollateralContract.getAddress(),
+                0
+              )
+          )
+            .to.be.revertedWithCustomError(
+              collateralVaultContract,
+              "UnsupportedCollateral"
+            )
+            .withArgs(await unsupportedCollateralContract.getAddress());
+        });
       });
     });
 

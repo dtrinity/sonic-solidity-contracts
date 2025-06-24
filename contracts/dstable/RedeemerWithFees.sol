@@ -134,6 +134,11 @@ contract RedeemerWithFees is AccessControl, OracleAware {
         address collateralAsset,
         uint256 minNetCollateral
     ) external {
+        // Ensure the requested collateral asset is supported by the vault
+        if (!collateralVault.isCollateralSupported(collateralAsset)) {
+            revert CollateralVault.UnsupportedCollateral(collateralAsset);
+        }
+
         uint256 dstableValue = dstableAmountToBaseValue(dstableAmount);
         uint256 totalCollateral = collateralVault.assetAmountFromValue(
             dstableValue,
