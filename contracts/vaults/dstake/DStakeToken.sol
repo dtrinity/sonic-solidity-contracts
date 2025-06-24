@@ -270,7 +270,7 @@ contract DStakeToken is
     /**
      * @notice Sets the withdrawal fee in basis points.
      * @dev Requires FEE_MANAGER_ROLE.
-     * @param _feeBps The new withdrawal fee (e.g., 10 = 0.1%).
+     * @param _feeBps The new withdrawal fee (e.g., 1000 = 0.1%).
      */
     function setWithdrawalFee(
         uint256 _feeBps
