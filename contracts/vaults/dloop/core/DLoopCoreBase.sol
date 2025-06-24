@@ -1691,7 +1691,7 @@ abstract contract DLoopCoreBase is
         uint256 leverageBps = ((totalCollateralBase *
             BasisPointConstants.ONE_HUNDRED_PERCENT_BPS) /
             (totalCollateralBase - totalDebtBase));
-        if (leverageBps <= BasisPointConstants.ONE_HUNDRED_PERCENT_BPS) {
+        if (leverageBps < BasisPointConstants.ONE_HUNDRED_PERCENT_BPS) {
             revert InvalidLeverage(leverageBps);
         }
         return leverageBps;
