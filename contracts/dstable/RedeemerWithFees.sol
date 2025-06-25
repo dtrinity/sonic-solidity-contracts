@@ -134,6 +134,11 @@ contract RedeemerWithFees is AccessControl, OracleAware {
         address collateralAsset,
         uint256 minNetCollateral
     ) external {
+        // Ensure the requested collateral asset is supported by the vault
+        if (!collateralVault.isCollateralSupported(collateralAsset)) {
+            revert CollateralVault.UnsupportedCollateral(collateralAsset);
+        }
+
         uint256 dstableValue = dstableAmountToBaseValue(dstableAmount);
         uint256 totalCollateral = collateralVault.assetAmountFromValue(
             dstableValue,
@@ -288,7 +293,7 @@ contract RedeemerWithFees is AccessControl, OracleAware {
 
     /**
      * @notice Sets the default redemption fee in basis points.
-     * @param _newFeeBps The new default redemption fee (e.g., 100 for 1%).
+     * @param _newFeeBps The new default redemption fee (e.g., 10000 for 1%).
      */
     function setDefaultRedemptionFee(
         uint256 _newFeeBps
@@ -304,7 +309,7 @@ contract RedeemerWithFees is AccessControl, OracleAware {
     /**
      * @notice Sets the redemption fee for a specific collateral asset in basis points.
      * @param _collateralAsset The address of the collateral asset.
-     * @param _newFeeBps The new redemption fee for the specified asset (e.g., 100 for 1%).
+     * @param _newFeeBps The new redemption fee for the specified asset (e.g., 10000 for 1%).
      */
     function setCollateralRedemptionFee(
         address _collateralAsset,

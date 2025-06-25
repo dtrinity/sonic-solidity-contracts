@@ -206,8 +206,8 @@ contract DStakeToken is
         // Router is responsible for ensuring `amountToSend` of dSTABLE reaches the `receiver`.
         router.withdraw(amountToSend, receiver, owner);
 
-        // Emit ERC4626 Withdraw event
-        emit Withdraw(caller, receiver, owner, assets, shares);
+        // Emit ERC4626 Withdraw event with the NET assets that were actually sent
+        emit Withdraw(caller, receiver, owner, amountToSend, shares);
 
         // Optional: Emit fee event
         if (fee > 0) {
@@ -270,7 +270,7 @@ contract DStakeToken is
     /**
      * @notice Sets the withdrawal fee in basis points.
      * @dev Requires FEE_MANAGER_ROLE.
-     * @param _feeBps The new withdrawal fee (e.g., 10 = 0.1%).
+     * @param _feeBps The new withdrawal fee (e.g., 1000 = 0.1%).
      */
     function setWithdrawalFee(
         uint256 _feeBps

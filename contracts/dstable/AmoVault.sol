@@ -80,6 +80,20 @@ abstract contract AmoVault is CollateralVault, IRecoverable, ReentrancyGuard {
     }
 
     /**
+     * @notice Updates the dStable allowance granted to the current AmoManager
+     * @dev Resets the existing allowance to 0 first to accommodate non-standard ERC20 tokens that require
+     *      the allowance to be set to zero before changing it.
+     * @param amount The new allowance amount to grant.
+     */
+    function setAmoManagerApproval(
+        uint256 amount
+    ) public onlyRole(DEFAULT_ADMIN_ROLE) {
+        // Reset to zero first for safety with tokens that enforce the ERC20 race-condition mitigation
+        dstable.approve(address(amoManager), 0);
+        dstable.approve(address(amoManager), amount);
+    }
+
+    /**
      * @notice Sets a new AmoManager address
      * @param _newAmoManager The address of the new AmoManager
      * @dev Only callable by an account with the DEFAULT_ADMIN_ROLE
@@ -88,6 +102,9 @@ abstract contract AmoVault is CollateralVault, IRecoverable, ReentrancyGuard {
         address _newAmoManager
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         if (_newAmoManager == address(0)) revert InvalidAmoManager();
+
+        // Revoke allowance from the previous AmoManager to prevent it from spending vault funds
+        dstable.approve(address(amoManager), 0);
 
         // Set new AMO manager
         amoManager = AmoManager(_newAmoManager);
