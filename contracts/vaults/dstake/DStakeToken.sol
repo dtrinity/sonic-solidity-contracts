@@ -93,7 +93,21 @@ contract DStakeToken is
 
     /**
      * @inheritdoc ERC4626Upgradeable
-     * @dev Delegates call to the collateralVault to get the total value of managed assets.
+     * @dev
+     * IMPORTANT: When all vault shares have been redeemed, the router intentionally
+     * leaves up to `dustTolerance` (1 wei by default) of wrapper tokens in the
+     * `DStakeCollateralVault`. These wrapper tokens continue to accrue
+     * yield via an ever-increasing price-per-share. As a result, it is
+     * theoretically possible for `totalSupply() == 0` while `totalAssets()`
+     * returns a non-zero value.
+     *
+     * The protocol explicitly accepts that the **first depositor after such a
+     * complete withdrawal will receive whatever residual value has
+     * accumulated**.  Given the minuscule starting balance (≤ 1 wei) and slow
+     * growth rate, the team judged that the gas cost of enforcing a strict
+     * invariant outweighed the negligible windfall.
+     *
+     * Please keep this in mind if `dustTolerance` is increased to a non-negligible value.
      */
     function totalAssets() public view virtual override returns (uint256) {
         if (address(collateralVault) == address(0)) {
@@ -103,7 +117,6 @@ contract DStakeToken is
     }
 
     /**
-     * @inheritdoc ERC4626Upgradeable
      * @dev Pulls dSTABLE asset from depositor, then delegates the core deposit logic
      *      (converting dSTABLE to vault assets) to the router.
      */
@@ -131,7 +144,6 @@ contract DStakeToken is
     }
 
     /**
-     * @inheritdoc ERC4626Upgradeable
      * @dev Override to handle withdrawals with fees correctly.
      *      The `assets` parameter is the net amount of assets the user wants to receive.
      */
@@ -153,7 +165,6 @@ contract DStakeToken is
     }
 
     /**
-     * @inheritdoc ERC4626Upgradeable
      * @dev Override to ensure the withdrawal fee is deducted only once.
      *      The `shares` parameter is converted to its equivalent gross asset value, then the
      *      internal _withdraw handles fee calculation. The returned value is the net assets
@@ -177,7 +188,6 @@ contract DStakeToken is
     }
 
     /**
-     * @inheritdoc ERC4626Upgradeable
      * @dev Calculates withdrawal fee, then delegates the core withdrawal logic
      *      (converting vault assets back to dSTABLE) to the router.
      *      The `assets` parameter is now the gross amount that needs to be withdrawn from the vault.
@@ -216,7 +226,6 @@ contract DStakeToken is
     }
 
     /**
-     * @inheritdoc ERC4626Upgradeable
      * @dev Preview withdraw including withdrawal fee.
      */
     function previewWithdraw(
@@ -227,7 +236,6 @@ contract DStakeToken is
     }
 
     /**
-     * @inheritdoc ERC4626Upgradeable
      * @dev Preview redeem including withdrawal fee.
      */
     function previewRedeem(
