@@ -524,7 +524,7 @@ dstableConfigs.forEach((config) => {
     describe("Utility functions", () => {
       it("dstableAmountToBaseValue returns correct base value", async function () {
         const amount = hre.ethers.parseUnits("1", dstableInfo.decimals);
-        const baseUnit = await redeemerWithFeesContract.BASE_UNIT();
+        const baseUnit = await redeemerWithFeesContract.baseCurrencyUnit();
         const expected =
           (amount * baseUnit) / 10n ** BigInt(dstableInfo.decimals);
         assert.equal(

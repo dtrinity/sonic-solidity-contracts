@@ -32,7 +32,6 @@ contract RedeemerWithFees is AccessControl, OracleAware {
     IMintableERC20 public dstable;
     uint8 public immutable dstableDecimals;
     CollateralVault public collateralVault;
-    uint256 public immutable BASE_UNIT;
 
     /* Fee related state */
     address public feeReceiver;
@@ -109,7 +108,6 @@ contract RedeemerWithFees is AccessControl, OracleAware {
         collateralVault = CollateralVault(_collateralVault);
         dstable = IMintableERC20(_dstable);
         dstableDecimals = dstable.decimals();
-        BASE_UNIT = _oracle.BASE_CURRENCY_UNIT();
 
         feeReceiver = _initialFeeReceiver;
         defaultRedemptionFeeBps = _initialRedemptionFeeBps;
@@ -258,7 +256,7 @@ contract RedeemerWithFees is AccessControl, OracleAware {
     function dstableAmountToBaseValue(
         uint256 _dstableAmount
     ) public view returns (uint256) {
-        return (_dstableAmount * BASE_UNIT) / (10 ** dstableDecimals);
+        return (_dstableAmount * baseCurrencyUnit) / (10 ** dstableDecimals);
     }
 
     /* Admin Functions */
