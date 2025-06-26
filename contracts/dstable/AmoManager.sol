@@ -63,8 +63,6 @@ contract AmoManager is AccessControl, OracleAware, ReentrancyGuard {
     IMintableERC20 public dstable;
     CollateralVault public collateralHolderVault;
 
-    uint256 public immutable BASE_UNIT;
-
     /* Events */
 
     event AmoVaultSet(address indexed amoVault, bool isActive);
@@ -108,8 +106,6 @@ contract AmoManager is AccessControl, OracleAware, ReentrancyGuard {
     ) OracleAware(_oracle, _oracle.BASE_CURRENCY_UNIT()) {
         dstable = IMintableERC20(_dstable);
         collateralHolderVault = CollateralVault(_collateralHolderVault);
-
-        BASE_UNIT = oracle.BASE_CURRENCY_UNIT();
 
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         grantRole(AMO_ALLOCATOR_ROLE, msg.sender);

@@ -42,8 +42,6 @@ contract Issuer is AccessControl, OracleAware, ReentrancyGuard {
     CollateralVault public collateralVault;
     AmoManager public amoManager;
 
-    uint256 public immutable BASE_UNIT;
-
     /* Events */
 
     event CollateralVaultSet(address indexed collateralVault);
@@ -84,8 +82,6 @@ contract Issuer is AccessControl, OracleAware, ReentrancyGuard {
         dstable = IMintableERC20(_dstable);
         dstableDecimals = dstable.decimals();
         amoManager = AmoManager(_amoManager);
-
-        BASE_UNIT = oracle.BASE_CURRENCY_UNIT();
 
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         grantRole(AMO_MANAGER_ROLE, msg.sender);
@@ -199,7 +195,7 @@ contract Issuer is AccessControl, OracleAware, ReentrancyGuard {
     function baseValueToDstableAmount(
         uint256 baseValue
     ) public view returns (uint256) {
-        return (baseValue * (10 ** dstableDecimals)) / BASE_UNIT;
+        return (baseValue * (10 ** dstableDecimals)) / baseCurrencyUnit;
     }
 
     /* Admin */
