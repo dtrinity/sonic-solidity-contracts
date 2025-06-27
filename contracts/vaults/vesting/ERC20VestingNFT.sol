@@ -275,7 +275,7 @@ contract ERC20VestingNFT is ERC721, ERC721Enumerable, Ownable, ReentrancyGuard {
     function getRemainingVestingTime(
         uint256 tokenId
     ) external view returns (uint256) {
-        if (!_tokenExists(tokenId)) return 0;
+        if (!_tokenExists(tokenId)) revert TokenNotExists();
         VestingPosition memory position = vestingPositions[tokenId];
         uint256 vestingEndTime = position.depositTime + vestingPeriod;
         if (block.timestamp >= vestingEndTime) return 0;
