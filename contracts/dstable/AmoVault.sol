@@ -68,7 +68,7 @@ abstract contract AmoVault is CollateralVault, IRecoverable, ReentrancyGuard {
         _grantRole(DEFAULT_ADMIN_ROLE, _admin);
         grantRole(COLLATERAL_WITHDRAWER_ROLE, _collateralWithdrawer);
         grantRole(RECOVERER_ROLE, _recoverer);
-        approveAmoManager();
+        dstable.approve(address(amoManager), type(uint256).max);
     }
 
     /**
