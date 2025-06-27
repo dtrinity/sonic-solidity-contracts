@@ -249,7 +249,7 @@ contract RedeemerWithFees is AccessControl, OracleAware {
     /* Value Calculation */
 
     /**
-     * @notice Converts an amount of dStable tokens to its equivalent base value using the oracle.
+     * @notice Converts an amount of dStable tokens to its equivalent base value.
      * @param _dstableAmount The amount of dStable tokens to convert.
      * @return The equivalent base value.
      */
