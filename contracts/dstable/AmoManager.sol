@@ -474,9 +474,8 @@ contract AmoManager is AccessControl, OracleAware, ReentrancyGuard {
         uint256 baseValue
     ) public view returns (uint256) {
         uint8 dstableDecimals = dstable.decimals();
-        return
-            (baseValue * (10 ** dstableDecimals)) /
-            (oracle.getAssetPrice(address(dstable)));
+        // Align valuation with Issuer/Redeemer: assume 1 dStable == baseCurrencyUnit
+        return (baseValue * (10 ** dstableDecimals)) / baseCurrencyUnit;
     }
 
     /**
@@ -488,9 +487,8 @@ contract AmoManager is AccessControl, OracleAware, ReentrancyGuard {
         uint256 dstableAmount
     ) public view returns (uint256) {
         uint8 dstableDecimals = dstable.decimals();
-        return
-            (dstableAmount * oracle.getAssetPrice(address(dstable))) /
-            (10 ** dstableDecimals);
+        // Align valuation with Issuer/Redeemer: assume 1 dStable == baseCurrencyUnit
+        return (dstableAmount * baseCurrencyUnit) / (10 ** dstableDecimals);
     }
 
     /* Admin */
