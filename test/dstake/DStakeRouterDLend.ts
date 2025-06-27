@@ -255,7 +255,9 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
         );
         const minted = afterBal - beforeBal;
 
-        // No upper bound check per current safety requirement
+        // Ensure the adapter minted exactly the number of shares predicted by the preview call.
+        // This guards against the slippage condition described in Issue #225.
+        expect(minted).to.equal(previewShares);
       });
 
       it("reverts when adapter under-delivers vault shares", async function () {
