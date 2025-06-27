@@ -279,7 +279,8 @@ abstract contract DPoolVaultLP is
         _burn(owner, shares);
         IERC20(LP_TOKEN).safeTransfer(receiver, lpTokensToSend);
 
-        emit Withdraw(caller, receiver, owner, grossLpAmount, shares);
+        // Emit ERC4626 Withdraw event with the NET LP tokens that were actually sent to the receiver
+        emit Withdraw(caller, receiver, owner, lpTokensToSend, shares);
     }
 
     // --- Fee management ---
