@@ -180,7 +180,7 @@ abstract contract FlashMintLiquidatorAaveBorrowRepayBase is
             // If isUnstakeCollateralToken is true, we need to unstake the collateral to its underlying token
             if (_flashLoanParams.isUnstakeCollateralToken) {
                 // Approve to burn the shares
-                ERC20(_flashLoanParams.collateralUnderlying).approve(
+                ERC20(_flashLoanParams.collateralUnderlying).forceApprove(
                     proxyContract,
                     actualCollateralAmount
                 );
