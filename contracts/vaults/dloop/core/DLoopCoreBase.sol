@@ -551,27 +551,51 @@ abstract contract DLoopCoreBase is
     /* Helper Functions */
 
     /**
-     * @dev Calculates the leveraged amount of the assets
+     * @dev Calculates the leveraged amount of the assets with the target leverage
      * @param assets Amount of assets
      * @return leveragedAssets Amount of leveraged assets
      */
-    function getLeveragedAssets(uint256 assets) public view returns (uint256) {
+    function getTargetLeveragedAssets(uint256 assets) public view returns (uint256) {
         return
             (assets * targetLeverageBps) /
             BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
     }
 
     /**
-     * @dev Calculates the unleveraged amount of the assets
+     * @dev Calculates the leveraged amount of the assets with the current leverage
+     * @param assets Amount of assets
+     * @return leveragedAssets Amount of leveraged assets
+     */
+    function getCurrentLeveragedAssets(uint256 assets) public view returns (uint256) {
+        return
+            (assets * getCurrentLeverageBps()) /
+            BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
+    }
+
+    /**
+     * @dev Calculates the unleveraged amount of the assets with the target leverage
      * @param leveragedAssets Amount of leveraged assets
      * @return unleveragedAssets Amount of unleveraged assets
      */
-    function getUnleveragedAssets(
+    function getUnleveragedAssetsWithTargetLeverage(
         uint256 leveragedAssets
     ) public view returns (uint256) {
         return
             (leveragedAssets * BasisPointConstants.ONE_HUNDRED_PERCENT_BPS) /
             targetLeverageBps;
+    }
+
+    /**
+     * @dev Calculates the unleveraged amount of the assets with the current leverage
+     * @param leveragedAssets Amount of leveraged assets
+     * @return unleveragedAssets Amount of unleveraged assets
+     */
+    function getUnleveragedAssetsWithCurrentLeverage(
+        uint256 leveragedAssets
+    ) public view returns (uint256) {
+        return
+            (leveragedAssets * BasisPointConstants.ONE_HUNDRED_PERCENT_BPS) /
+            getCurrentLeverageBps();
     }
 
     /**
