@@ -152,16 +152,36 @@ contract DStakeToken is
         address receiver,
         address owner
     ) public virtual override returns (uint256 shares) {
-        shares = previewWithdraw(assets); // Calculate shares needed for net amount
-        uint256 grossAssets = convertToAssets(shares); // Calculate gross amount from shares
+        // Calculate how many shares correspond to the desired NET `assets` amount.
+        shares = previewWithdraw(assets);
 
-        require(
-            grossAssets <= maxWithdraw(owner),
-            "ERC4626: withdraw more than max"
-        );
+        // Ensure the owner has enough shares to cover the withdrawal (checks in share terms rather than assets).
+        require(shares <= maxRedeem(owner), "ERC4626: withdraw more than max");
 
-        _withdraw(_msgSender(), receiver, owner, grossAssets, shares); // Pass GROSS amount to _withdraw
+        // Translate the shares back into the GROSS asset amount that needs to be withdrawn
+        // so that the internal logic can compute the fee only once.
+        uint256 grossAssets = convertToAssets(shares);
+
+        _withdraw(_msgSender(), receiver, owner, grossAssets, shares);
         return shares;
+    }
+
+    /**
+     * @notice Returns the maximum NET assets that `owner` can withdraw taking the current
+     *         withdrawal fee into account.
+     *
+     *         OpenZeppelin's reference implementation returns the owner's share balance
+     *         converted to assets (i.e. a gross value).  In a fee-charging vault that
+     *         exposes `withdraw(netAssets)`, the intuitive expectation is that
+     *         `maxWithdraw` already reflects what the user will actually receive after
+     *         fees.  We therefore convert the share balance to GROSS assets first and then
+     *         subtract the fee.
+     */
+    function maxWithdraw(
+        address owner
+    ) public view virtual override returns (uint256) {
+        uint256 grossAssets = convertToAssets(balanceOf(owner));
+        return _getNetAmountAfterFee(grossAssets);
     }
 
     /**
