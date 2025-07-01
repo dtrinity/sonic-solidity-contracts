@@ -61,7 +61,8 @@ export async function getConfig(
   //   "dLend_ATokenWrapper_dUSD",
   // );
 
-  const { deployer: feeTreasury } = await _hre.getNamedAccounts();
+  const { deployer } = await _hre.getNamedAccounts();
+  const feeTreasury = deployer;
 
   if (!feeTreasury) {
     throw new Error("Fee treasury address not found");
@@ -118,9 +119,13 @@ export async function getConfig(
           USDCeAddress,
           scUSDAddress,
         ],
+        initialFeeReceiver: "please_fill_multisig_address",
+        initialRedemptionFeeBps: 1 * ONE_PERCENT_BPS,
       },
       dS: {
         collaterals: [wSAddress, stSAddress],
+        initialFeeReceiver: "please_fill_multisig_address",
+        initialRedemptionFeeBps: 1 * ONE_PERCENT_BPS,
       },
     },
     dLoop: {

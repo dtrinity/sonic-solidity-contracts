@@ -137,6 +137,8 @@ export async function getConfig(
           frxUSDDeployment?.address || ZeroAddress,
           sfrxUSDDeployment?.address || ZeroAddress,
         ],
+        initialFeeReceiver: deployer,
+        initialRedemptionFeeBps: 1 * ONE_PERCENT_BPS,
       },
       dS: {
         collaterals: [
@@ -144,6 +146,8 @@ export async function getConfig(
           wOSTokenDeployment?.address || ZeroAddress,
           stSTokenDeployment?.address || ZeroAddress,
         ],
+        initialFeeReceiver: deployer,
+        initialRedemptionFeeBps: 1 * ONE_PERCENT_BPS,
       },
     },
     dLoop: {

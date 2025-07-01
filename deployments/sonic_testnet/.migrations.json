@@ -56,5 +56,6 @@
   "DLoopDepositorOdos": 1749751554,
   "DLoopRedeemerOdos": 1749751557,
   "DLoopDecreaseLeverageOdos": 1749751561,
-  "DLoopIncreaseLeverageOdos": 1749751564
+  "DLoopIncreaseLeverageOdos": 1749751564,
+  "deploy_redeemer_with_fees": 1750317243
 }
