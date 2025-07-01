@@ -88,6 +88,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   );
 
   if (!dUSDHasRole) {
+    console.log("Granting role for dUSD RedeemerWithFees.");
     await dUSDCollateralVaultContract.grantRole(
       dUSDWithdrawerRole,
       dUSDRedeemerWithFeesDeployment.address,
