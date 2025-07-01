@@ -16,10 +16,13 @@ import {
 import {
   strategyDS,
   strategyDUSD,
+  strategyPTaUSDC,
+  strategyPTwstkscUSD,
   strategyscETH,
   strategySfrxUSD,
   strategyStS,
   strategyWETH,
+  strategywOS,
   strategywstkscETH,
   strategyWstkscUSD,
   // strategyWstkscUSD,
@@ -331,6 +334,9 @@ export async function getConfig(
         WETH: strategyWETH,
         scETH: strategyscETH,
         wstkscETH: strategywstkscETH,
+        PTaUSDC: strategyPTaUSDC,
+        PTwstkscUSD: strategyPTwstkscUSD,
+        wOS: strategywOS,
       },
     },
     odos: {
