@@ -978,6 +978,12 @@ abstract contract DLoopCoreBase is
                 collateralAsset
             );
 
+        // Short-circuit when leverageBpsBeforeRepayDebt == 0
+        if (leverageBpsBeforeRepayDebt == 0) {
+            // no debt yet – nothing to repay
+            return 0;
+        }
+
         // Calculate the repay amount in base
         uint256 repayAmountInBase = (targetWithdrawAmountInBase *
             (leverageBpsBeforeRepayDebt -
@@ -1041,6 +1047,12 @@ abstract contract DLoopCoreBase is
                 suppliedCollateralAmount,
                 collateralAsset
             );
+
+        // Short-circuit when leverageBpsBeforeSupply == 0
+        if (leverageBpsBeforeSupply == 0) {
+            // no debt yet – nothing to borrow
+            return 0;
+        }
 
         // Calculate the borrow amount in base currency that keeps the current leverage
         uint256 borrowAmountInBase = (suppliedCollateralAmountInBase *

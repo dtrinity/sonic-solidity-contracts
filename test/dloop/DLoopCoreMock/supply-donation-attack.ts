@@ -64,16 +64,15 @@ describe("DLoopCoreMock - Supply/Donation Attack & Division-by-Zero Tests", func
           // by directly testing getRepayAmountThatKeepCurrentLeverage with leverageBps = 0
           const withdrawAmount = ethers.parseEther("10");
 
-          // This should cause arithmetic underflow in getRepayAmountThatKeepCurrentLeverage
-          // When leverageBpsBeforeRepayDebt = 0, the calculation (0 - 10000) underflows
-          await expect(
-            dloopMock.getRepayAmountThatKeepCurrentLeverage(
+          // With the fix, this should return 0 instead of reverting
+          const repayAmount =
+            await dloopMock.getRepayAmountThatKeepCurrentLeverage(
               await collateralToken.getAddress(),
               await debtToken.getAddress(),
               withdrawAmount,
-              0, // leverageBpsBeforeRepayDebt = 0, causing underflow
-            ),
-          ).to.be.revertedWithPanic(0x11); // 0x11 is arithmetic underflow panic code
+              0, // leverageBpsBeforeRepayDebt = 0
+            );
+          expect(repayAmount).to.equal(0); // Should return 0 with the fix
 
           return; // Test passed, exit early
         }
@@ -86,29 +85,31 @@ describe("DLoopCoreMock - Supply/Donation Attack & Division-by-Zero Tests", func
 
         const withdrawAmount = ethers.parseEther("10");
 
-        // This should trigger the arithmetic underflow issue in _withdrawFromPoolImplementation
-        await expect(
-          dloopMock
-            .connect(user)
-            .withdraw(withdrawAmount, user.address, user.address),
-        ).to.be.revertedWithPanic(0x11); // Arithmetic underflow panic
+        // With the fix, withdrawal should now work correctly instead of reverting
+        // The fix ensures getRepayAmountThatKeepCurrentLeverage returns 0 when leverage is 0
+        await dloopMock
+          .connect(user)
+          .withdraw(withdrawAmount, user.address, user.address);
+
+        // Verify the withdrawal was successful
+        const userBalance = await collateralToken.balanceOf(user.address);
+        expect(userBalance).to.be.gte(withdrawAmount);
       });
 
       it("Should directly test division-by-zero in getRepayAmountThatKeepCurrentLeverage", async function () {
         // Direct test of the vulnerable function with leverageBpsBeforeRepayDebt = 0
         const withdrawAmount = ethers.parseEther("100");
 
-        // This should cause arithmetic underflow in the formula:
-        // repayAmountInBase = (targetWithdrawAmountInBase * (leverageBpsBeforeRepayDebt - ONE_HUNDRED_PERCENT_BPS)) / leverageBpsBeforeRepayDebt
-        // When leverageBpsBeforeRepayDebt = 0, (0 - 10000) underflows
-        await expect(
-          dloopMock.getRepayAmountThatKeepCurrentLeverage(
+        // With the fix, this should return 0 instead of causing underflow:
+        // The fix checks if leverageBpsBeforeRepayDebt == 0 and returns 0 early
+        const repayAmount =
+          await dloopMock.getRepayAmountThatKeepCurrentLeverage(
             await collateralToken.getAddress(),
             await debtToken.getAddress(),
             withdrawAmount,
             0, // leverageBpsBeforeRepayDebt = 0
-          ),
-        ).to.be.revertedWithPanic(0x11); // 0x11 is arithmetic underflow panic code
+          );
+        expect(repayAmount).to.equal(0); // Should return 0 with the fix
       });
 
       it("Should demonstrate the issue occurs when leverage calculation returns zero", async function () {
@@ -132,15 +133,30 @@ describe("DLoopCoreMock - Supply/Donation Attack & Division-by-Zero Tests", func
         // (This simulates the bug scenario)
         const withdrawAmount = ethers.parseEther("100");
 
-        // Test the vulnerable path directly
-        await expect(
-          dloopMock.getRepayAmountThatKeepCurrentLeverage(
+        // Test the vulnerable path directly - should now work with the fix
+        const repayAmount =
+          await dloopMock.getRepayAmountThatKeepCurrentLeverage(
             await collateralToken.getAddress(),
             await debtToken.getAddress(),
             withdrawAmount,
-            0, // This zero causes underflow
-          ),
-        ).to.be.revertedWithPanic(0x11); // Arithmetic underflow
+            0, // This zero should now return 0 with the fix
+          );
+        expect(repayAmount).to.equal(0); // Should return 0 with the fix
+      });
+
+      it("Should also fix getBorrowAmountThatKeepCurrentLeverage with zero leverage", async function () {
+        // Test that the similar function getBorrowAmountThatKeepCurrentLeverage is also fixed
+        const supplyAmount = ethers.parseEther("100");
+
+        // This should also return 0 instead of causing underflow when leverage is 0
+        const borrowAmount =
+          await dloopMock.getBorrowAmountThatKeepCurrentLeverage(
+            await collateralToken.getAddress(),
+            await debtToken.getAddress(),
+            supplyAmount,
+            0, // leverageBpsBeforeSupply = 0
+          );
+        expect(borrowAmount).to.equal(0); // Should return 0 with the fix
       });
     });
 
