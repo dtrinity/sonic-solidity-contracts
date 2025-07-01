@@ -14,6 +14,10 @@ export const USD_REDSTONE_COMPOSITE_WRAPPER_WITH_THRESHOLDING_ID =
 // Pendle PT Oracles
 export const PENDLE_CHAINLINK_ORACLE_FACTORY_ID =
   "PendleChainlinkOracleFactory";
+export const PENDLE_PT_AUSDC_DECIMAL_CONVERTER_ID =
+  "ChainlinkDecimalConverter_PT_aUSDC_14AUG2025";
+export const PENDLE_PT_WSTKSCUSD_DECIMAL_CONVERTER_ID =
+  "ChainlinkDecimalConverter_PT_wstkscUSD_18DEC2025";
 
 // S Oracles
 export const S_ORACLE_AGGREGATOR_ID = "S_OracleAggregator";
