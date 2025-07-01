@@ -137,6 +137,7 @@ contract DStakeToken is
         super._deposit(caller, receiver, assets, shares); // This handles the ERC20 transfer
 
         // Approve router to spend the received assets (necessary because super._deposit transfers to this contract)
+        // Use standard approve for trusted protocol token (dStable) and trusted protocol contract (router)
         IERC20(asset()).approve(address(router), assets);
 
         // Delegate conversion and vault update logic to router

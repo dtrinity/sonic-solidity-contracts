@@ -213,6 +213,7 @@ contract DStakeRewardManagerDLend is RewardClaimable {
         );
 
         // Approve the adapter to spend the dStable held by this contract
+        // Use standard approve for trusted protocol token (dStable/exchangeAsset)
         IERC20(exchangeAsset).approve(adapterAddress, amountDStableToCompound);
 
         // The adapter's convertToVaultAsset function is expected to:

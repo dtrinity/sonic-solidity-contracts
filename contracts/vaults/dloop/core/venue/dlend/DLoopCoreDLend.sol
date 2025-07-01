@@ -170,6 +170,7 @@ contract DLoopCoreDLend is DLoopCoreBase, RewardClaimable {
         ILendingPool lendingPool = getLendingPool();
 
         // Approve the lending pool to spend the token
+        // Use standard approve for trusted protocol tokens and trusted protocol contract (dLEND pool)
         require(
             ERC20(token).approve(address(lendingPool), amount),
             "approve failed for lending pool in supply"
@@ -213,6 +214,7 @@ contract DLoopCoreDLend is DLoopCoreBase, RewardClaimable {
         ILendingPool lendingPool = getLendingPool();
 
         // Approve the lending pool to spend the token
+        // Use standard approve for trusted protocol tokens and trusted protocol contract (dLEND pool)
         require(
             ERC20(token).approve(address(lendingPool), amount),
             "approve failed for lending pool in repay"

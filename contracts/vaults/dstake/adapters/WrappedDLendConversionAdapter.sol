@@ -83,6 +83,7 @@ contract WrappedDLendConversionAdapter is IDStableConversionAdapter {
         );
 
         // 2. Approve the StaticATokenLM wrapper to pull the dStable
+        // Use standard approve for trusted protocol token (dStable) and trusted protocol wrapper (StaticATokenLM)
         IERC20(dStable).approve(address(wrappedDLendToken), dStableAmount);
 
         // 3. Deposit dStable into the StaticATokenLM wrapper, minting wrappedDLendToken to collateralVault
