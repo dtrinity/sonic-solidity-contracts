@@ -18,6 +18,9 @@ export const PENDLE_PT_AUSDC_DECIMAL_CONVERTER_ID =
   "ChainlinkDecimalConverter_PT_aUSDC_14AUG2025";
 export const PENDLE_PT_WSTKSCUSD_DECIMAL_CONVERTER_ID =
   "ChainlinkDecimalConverter_PT_wstkscUSD_18DEC2025";
+export const OS_TO_S_DECIMAL_CONVERTER_ID = "ChainlinkDecimalConverter_OS_to_S";
+export const WOS_TO_OS_DECIMAL_CONVERTER_ID =
+  "ChainlinkDecimalConverter_wOS_to_OS";
 
 // S Oracles
 export const S_ORACLE_AGGREGATOR_ID = "S_OracleAggregator";
