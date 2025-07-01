@@ -427,6 +427,14 @@ contract AmoManager is AccessControl, OracleAware, ReentrancyGuard {
         );
 
         // Make sure we are withdrawing less than the available profit
+        //
+        // TECHNICAL NOTE:
+        // `takeProfitValueInBase` is a `uint256` while `_availableProfitInBase` is an `int256`.
+        // The explicit cast below will wrap if `takeProfitValueInBase` exceeds
+        // `type(int256).max` (≈ 5.8e76), causing the comparison to evaluate to `false`.
+        // Such a value is unachievable on-chain and the function is restricted to the
+        // trusted `FEE_COLLECTOR_ROLE`, so the edge-case is not considered a practical
+        // risk.
         if (
             _availableProfitInBase <= 0 ||
             int256(takeProfitValueInBase) > _availableProfitInBase
