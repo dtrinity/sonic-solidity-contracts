@@ -159,6 +159,9 @@ export interface OracleAggregatorConfig {
       };
     };
   };
+  readonly chainlinkCompositeWrapperAggregator?: {
+    [assetAddress: string]: ChainlinkCompositeWrapperConfig;
+  };
 }
 
 export interface IInterestRateStrategyParams {
@@ -271,4 +274,17 @@ export interface PTTokenConfig {
 export interface PendleConfig {
   readonly ptYtLpOracleAddress: Address; // Universal Pendle PT/YT/LP Oracle address (0x9a9Fa8338dd5E5B2188006f1Cd2Ef26d921650C2)
   readonly ptTokens: PTTokenConfig[]; // List of PT tokens to configure
+}
+
+// --- Chainlink Composite Wrapper Types ---
+
+export interface ChainlinkCompositeWrapperConfig {
+  readonly name: string; // Name of the composite wrapper (e.g., "OS_S_USD")
+  readonly feedAsset: Address; // Address of the asset being priced (e.g., wOS address)
+  readonly sourceFeed1: Address; // Address of the first Chainlink price feed (e.g., OS/S)
+  readonly sourceFeed2: Address; // Address of the second Chainlink price feed (e.g., S/USD)
+  readonly lowerThresholdInBase1: bigint; // Lower threshold for sourceFeed1 (e.g., 99000000n for 0.99)
+  readonly fixedPriceInBase1: bigint; // Fixed price for sourceFeed1 when threshold is exceeded (e.g., 100000000n for 1.00)
+  readonly lowerThresholdInBase2: bigint; // Lower threshold for sourceFeed2 (e.g., 98000000n for 0.98)
+  readonly fixedPriceInBase2: bigint; // Fixed price for sourceFeed2 when threshold is exceeded (e.g., 100000000n for 1.00)
 }

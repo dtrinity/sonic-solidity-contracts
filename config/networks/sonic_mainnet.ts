@@ -50,6 +50,7 @@ export async function getConfig(
   const ptaUSDCAddress = "0x930441Aa7Ab17654dF5663781CA0C02CC17e6643";
   const ptwstkscUSDAddress = "0x0Fb682C9692AddCc1769f4D4d938c54420D54fA3";
   const wOSAddress = "0x9F0dF7799f6FDAd409300080cfF680f5A23df4b1";
+  const osAddress = "0xb1e25689D55734FD3ffFc939c4C3Eb52DFf8A794";
 
   const odoRouterV2Address = "0xaC041Df48dF9791B0654f1Dbbf2CC8450C5f2e9D"; // OdoRouterV2
 
@@ -80,6 +81,7 @@ export async function getConfig(
       PTaUSDC: ptaUSDCAddress,
       PTwstkscUSD: ptwstkscUSDAddress,
       wOS: wOSAddress,
+      OS: osAddress,
     },
     walletAddresses: {
       governanceMultisig: "0xE83c188a7BE46B90715C757A06cF917175f30262", // Created via Safe
@@ -250,7 +252,7 @@ export async function getConfig(
             },
             [ptaUSDCAddress]: {
               feedAsset: ptaUSDCAddress,
-              feed1: "0x9EcC4051FbC1AE2025E1d338284554C1E8dD9042", // Our own ChainlinkDecimalConverter which wraps the PT-aUSDC/USDC Pendle Chainlink feed and converts 18 -> 8 decimals
+              feed1: "0xc65F6b9dBAFa2A9243CeceDbf80EE9a79d6ADf09", // Our own ChainlinkDecimalConverter which wraps the PT-aUSDC/USDC Pendle Chainlink feed and converts 18 -> 8 decimals
               feed2: "0x3587a73AA02519335A8a6053a97657BECe0bC2Cc", // USDC/USD Redstone price feed
               lowerThresholdInBase1: 0n, // No thresholding
               fixedPriceInBase1: 0n,
@@ -259,13 +261,34 @@ export async function getConfig(
             },
             [ptwstkscUSDAddress]: {
               feedAsset: ptwstkscUSDAddress,
-              feed1: "0x4897E811480dE3cdDDAAf2B421987D8d995ca0B6", // Our own ChainlinkDecimalConverter which wraps the PT-wstkscUSD/SY-wstkscUSD Pendle Chainlink feed and converts 18 -> 8 decimals
+              feed1: "0x2EfEb81d6A0E5638bfe917C6cFCeb42989058d08", // Our own ChainlinkDecimalConverter which wraps the PT-wstkscUSD/scUSD Pendle Chainlink feed and converts 18 -> 8 decimals
               feed2: "0xACE5e348a341a740004304c2c228Af1A4581920F", // scUSD/USD Chainlink price feed
               lowerThresholdInBase1: 0n, // No thresholding
               fixedPriceInBase1: 0n,
               lowerThresholdInBase2: ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT, // Only threshold scUSD/USD
               fixedPriceInBase2: ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT,
             },
+            [wOSAddress]: {
+              feedAsset: wOSAddress,
+              feed1: "0x19E84B1f41d1Eb2ff22baC55797bD767558585De", // Our own ChainlinkDecimalConverter which wraps the wOS/OS Chainlink feed and converts 18 -> 8 decimals
+              feed2: "0xf864406E4bb1e159e2DC5C1C98364edBfe762D13", // Our own ChainlinkCompositeWrapper which composes OS/S and S/USD
+              lowerThresholdInBase1: 0n, // No thresholding
+              fixedPriceInBase1: 0n,
+              lowerThresholdInBase2: 0n, // No thresholding
+              fixedPriceInBase2: 0n,
+            },
+          },
+        },
+        chainlinkCompositeWrapperAggregator: {
+          [osAddress]: {
+            name: "OS_S_USD",
+            feedAsset: osAddress,
+            sourceFeed1: "0x125629732C21A403Ae1eFf159467971ee01470a6", // Our own ChainlinkDecimalConverter which wraps the OS/S Chainlink feed and converts 18 -> 8 decimals
+            sourceFeed2: "0xc76dFb89fF298145b417d221B2c747d84952e01d", // S/USD Chainlink price feed
+            lowerThresholdInBase1: 0n, // No thresholding for OS/S
+            fixedPriceInBase1: 0n,
+            lowerThresholdInBase2: 0n, // No thresholding for S/USD
+            fixedPriceInBase2: 0n,
           },
         },
       },

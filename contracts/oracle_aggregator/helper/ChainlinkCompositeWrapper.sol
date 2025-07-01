@@ -143,10 +143,9 @@ contract ChainlinkCompositeWrapper is AggregatorV3Interface, ThresholdingUtils {
             // roundId2,
             int256 answer2,
             uint256 startedAt2,
-            uint256 updatedAt2,
+            uint256 updatedAt2, // answeredInRound2
 
-        ) = // answeredInRound2
-            sourceFeed2.getRoundData(_roundId);
+        ) = sourceFeed2.getRoundData(_roundId);
 
         // Use the latest timestamp from both feeds
         uint256 latestUpdatedAt = updatedAt1 > updatedAt2
@@ -202,10 +201,9 @@ contract ChainlinkCompositeWrapper is AggregatorV3Interface, ThresholdingUtils {
             // roundId2,
             int256 answer2,
             uint256 startedAt2,
-            uint256 updatedAt2,
+            uint256 updatedAt2, // answeredInRound2
 
-        ) = // answeredInRound2
-            sourceFeed2.latestRoundData();
+        ) = sourceFeed2.latestRoundData();
 
         // Check if prices are stale
         if (

@@ -61,5 +61,6 @@
   "DLoopIncreaseLeverageOdos": 1749751526,
   "PendleChainlinkOracles:PT-aUSDC:PT-wstkscUSD": 1751377033,
   "PendleDecimalConverters:PT-aUSDC:PT-wstkscUSD": 1751377285,
-  "OSWOSDecimalConverters": 1751378990
+  "OSWOSDecimalConverters": 1751378990,
+  "ChainlinkCompositeWrapper_OS_S_USD": 1751387142
 }
