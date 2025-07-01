@@ -209,7 +209,10 @@ describe("DLoopRedeemerMock Redeem Tests", function () {
         const expectedLeveragedCollateral =
           await dloopMock.previewRedeem(sharesToRedeem);
         const expectedUnleveragedCollateral =
-          await dloopMock.getUnleveragedAssets(expectedLeveragedCollateral);
+          await dLoopRedeemerMock.getUnleveragedAssets(
+            expectedLeveragedCollateral,
+            dloopMock,
+          );
 
         expect(actualCollateralReceived).to.be.closeTo(
           expectedUnleveragedCollateral,
@@ -1098,6 +1101,48 @@ describe("DLoopRedeemerMock Redeem Tests", function () {
         // Note: We can't guarantee leftovers, so this test just ensures it doesn't revert
         await tx.wait();
       }
+    });
+  });
+
+  describe("Helper Calculation Functions With Existing Leverage", function () {
+    it("getUnleveragedAssets should use current leverage when > 0", async function () {
+      // Create an existing position: collateral 300, debt 200 (3x -> 300/100?) Wait leverage formula: leverage = C / (C-D). 300:(100) but debt 200 means C-D=100; 300/100=3x. Let's use 2x case again.
+      const mockCollateral = ethers.parseEther("200");
+      const mockDebt = ethers.parseEther("100");
+
+      await dloopMock.setMockPrice(
+        await collateralToken.getAddress(),
+        ethers.parseEther("1"),
+      );
+      await dloopMock.setMockPrice(
+        await debtToken.getAddress(),
+        ethers.parseEther("1"),
+      );
+
+      await dloopMock.setMockCollateral(
+        await dloopMock.getAddress(),
+        await collateralToken.getAddress(),
+        mockCollateral,
+      );
+      await dloopMock.setMockDebt(
+        await dloopMock.getAddress(),
+        await debtToken.getAddress(),
+        mockDebt,
+      );
+
+      const leverageBps = await dloopMock.getCurrentLeverageBps();
+      expect(leverageBps).to.equal(2n * BigInt(ONE_HUNDRED_PERCENT_BPS)); // 200%
+
+      const leveragedAssets = ethers.parseEther("20");
+      const expectedUnleveraged =
+        (leveragedAssets * BigInt(ONE_HUNDRED_PERCENT_BPS)) / leverageBps; // 20/2 =10
+
+      const actual = await dLoopRedeemerMock.getUnleveragedAssets(
+        leveragedAssets,
+        dloopMock,
+      );
+
+      expect(actual).to.equal(expectedUnleveraged);
     });
   });
 });
