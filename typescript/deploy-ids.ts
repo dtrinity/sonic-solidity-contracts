@@ -11,6 +11,10 @@ export const USD_REDSTONE_WRAPPER_WITH_THRESHOLDING_ID =
 export const USD_REDSTONE_COMPOSITE_WRAPPER_WITH_THRESHOLDING_ID =
   "USD_RedstoneChainlinkCompositeWrapperWithThresholding";
 
+// Pendle PT Oracles
+export const PENDLE_CHAINLINK_ORACLE_FACTORY_ID =
+  "PendleChainlinkOracleFactory";
+
 // S Oracles
 export const S_ORACLE_AGGREGATOR_ID = "S_OracleAggregator";
 export const S_API3_ORACLE_WRAPPER_ID = "S_API3Wrapper";

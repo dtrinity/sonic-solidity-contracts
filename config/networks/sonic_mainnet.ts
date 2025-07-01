@@ -47,6 +47,7 @@ export async function getConfig(
   const WETHAddress = "0x50c42dEAcD8Fc9773493ED674b675bE577f2634b";
   const scETHAddress = "0x3bcE5CB273F0F148010BbEa2470e7b5df84C7812";
   const wstkscETHAddress = "0xE8a41c62BB4d5863C6eadC96792cFE90A1f37C47";
+  const usdcAddress = "0x29219dd400f2Bf60E5a23d13Be72B486D4038894";
 
   const odoRouterV2Address = "0xaC041Df48dF9791B0654f1Dbbf2CC8450C5f2e9D"; // OdoRouterV2
 
@@ -74,10 +75,30 @@ export async function getConfig(
       WETH: WETHAddress,
       scETH: scETHAddress,
       wstkscETH: wstkscETHAddress,
+      USDC: usdcAddress,
     },
     walletAddresses: {
       governanceMultisig: "0xE83c188a7BE46B90715C757A06cF917175f30262", // Created via Safe
       incentivesVault: "0x4B4B5cC616be4cd1947B93f2304d36b3e80D3ef6", // TODO: Add incentives vault address
+    },
+    pendle: {
+      ptYtLpOracleAddress: "0x9a9Fa8338dd5E5B2188006f1Cd2Ef26d921650C2", // Universal Pendle PT/YT/LP Oracle address
+      ptTokens: [
+        {
+          name: "PT-aUSDC-14AUG2025",
+          ptToken: "0x930441Aa7Ab17654dF5663781CA0C02CC17e6643",
+          market: "0x3f5ea53d1160177445b1898afbb16da111182418",
+          oracleType: "PT_TO_ASSET", // Quote price of USDC directly
+          twapDuration: 900,
+        },
+        {
+          name: "PT-wstkscUSD-18DEC2025",
+          ptToken: "0x0Fb682C9692AddCc1769f4D4d938c54420D54fA3",
+          market: "0x004f76045b42ef3e89814b12b37e69da19c8a212",
+          oracleType: "PT_TO_SY", // Quote price to SY, then composite with asset price
+          twapDuration: 900,
+        },
+      ],
     },
     dStables: {
       dUSD: {

@@ -58,5 +58,6 @@
   "DLoopDepositorOdos": 1749751516,
   "DLoopRedeemerOdos": 1749751519,
   "DLoopDecreaseLeverageOdos": 1749751522,
-  "DLoopIncreaseLeverageOdos": 1749751526
+  "DLoopIncreaseLeverageOdos": 1749751526,
+  "PendleChainlinkOracles": 1751373688
 }

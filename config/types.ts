@@ -16,6 +16,7 @@ export interface Config {
   readonly odos?: {
     readonly router: string;
   };
+  readonly pendle?: PendleConfig;
   readonly dLoop: {
     readonly dUSDAddress: string;
     readonly coreVaults: { [vaultName: string]: DLoopCoreConfig };
@@ -255,4 +256,19 @@ export interface DPoolInstanceConfig {
   // - localhost: "USDC_USDS_CurvePool" (deployment name)
   // - testnet: "0x742d35Cc6634C0532925a3b8D404fEdF6Caf9cd5" (actual pool address)
   // - mainnet: "0xA5407eAE9Ba41422680e2e00537571bcC53efBfD" (actual pool address)
+}
+
+// --- Pendle PT Token Types ---
+
+export interface PTTokenConfig {
+  readonly name: string; // Human-readable name (e.g., "PT-aUSDC-14AUG2025")
+  readonly ptToken: Address; // PT token address
+  readonly market: Address; // Pendle market address
+  readonly oracleType: "PT_TO_ASSET" | "PT_TO_SY"; // Oracle pricing type
+  readonly twapDuration: number; // TWAP duration in seconds (e.g., 900)
+}
+
+export interface PendleConfig {
+  readonly ptYtLpOracleAddress: Address; // Universal Pendle PT/YT/LP Oracle address (0x9a9Fa8338dd5E5B2188006f1Cd2Ef26d921650C2)
+  readonly ptTokens: PTTokenConfig[]; // List of PT tokens to configure
 }
