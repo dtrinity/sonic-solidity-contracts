@@ -122,11 +122,12 @@ contract DStakeRouterDLend is IDStakeRouter, AccessControl {
             );
         }
 
-        emit Deposited(
+        emit RouterDeposit(
+            adapterAddress,
             vaultAssetExpected,
+            receiver,
             mintedShares,
-            dStableAmount,
-            receiver
+            dStableAmount
         );
     }
 
@@ -535,11 +536,12 @@ contract DStakeRouterDLend is IDStakeRouter, AccessControl {
     }
 
     // --- Events ---
-    event Deposited(
+    event RouterDeposit(
+        address indexed adapter,
         address indexed vaultAsset,
+        address indexed dStakeReceiver,
         uint256 vaultAssetAmount,
-        uint256 dStableAmount,
-        address receiver
+        uint256 dStableAmount
     );
     event Withdrawn(
         address indexed vaultAsset,
