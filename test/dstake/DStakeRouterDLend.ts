@@ -227,9 +227,8 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
       });
 
       it("non-DStakeToken cannot call deposit", async function () {
-        await expect(
-          router.connect(user1Signer).deposit(depositAmount, user1Addr)
-        ).to.be.reverted;
+        await expect(router.connect(user1Signer).deposit(depositAmount)).to.be
+          .reverted;
       });
 
       it("DStakeToken can deposit, emits event and deposits vault asset to collateralVault", async function () {
@@ -247,8 +246,8 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
 
         // Check event emission and balances
         await expect(
-          router.connect(DStakeTokenSigner).deposit(depositAmount, user1Addr)
-        ).to.emit(router, "Deposited");
+          router.connect(DStakeTokenSigner).deposit(depositAmount)
+        ).to.emit(router, "RouterDeposit");
 
         const afterBal = await vaultAssetToken.balanceOf(
           collateralVaultAddress
@@ -325,7 +324,7 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
 
         // Expect revert
         await expect(
-          router.connect(DStakeTokenSigner).deposit(depositAmount, user1Addr)
+          router.connect(DStakeTokenSigner).deposit(depositAmount)
         ).to.be.revertedWithCustomError(router, "SlippageCheckFailed");
       });
 
@@ -343,9 +342,7 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
         await dStableToken
           .connect(DStakeTokenSigner)
           .approve(routerAddress, depositAmount);
-        await router
-          .connect(DStakeTokenSigner)
-          .deposit(depositAmount, routerAddress);
+        await router.connect(DStakeTokenSigner).deposit(depositAmount);
         const initial = await dStableToken.balanceOf(user1Addr);
         // Check event emission and balance
         await expect(
@@ -456,9 +453,7 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
         await dStableToken
           .connect(DStakeTokenSigner)
           .approve(routerAddress, depositAmount);
-        await router
-          .connect(DStakeTokenSigner)
-          .deposit(depositAmount, routerAddress);
+        await router.connect(DStakeTokenSigner).deposit(depositAmount);
         await router
           .connect(deployerSigner)
           .grantRole(await router.COLLATERAL_EXCHANGER_ROLE(), user1Addr);
@@ -538,9 +533,7 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
         await dStableToken
           .connect(DStakeTokenSigner)
           .approve(routerAddress, depositAmount);
-        await router
-          .connect(DStakeTokenSigner)
-          .deposit(depositAmount, routerAddress);
+        await router.connect(DStakeTokenSigner).deposit(depositAmount);
         await router
           .connect(deployerSigner)
           .grantRole(await router.COLLATERAL_EXCHANGER_ROLE(), user1Addr);

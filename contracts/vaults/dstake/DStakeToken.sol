@@ -140,7 +140,7 @@ contract DStakeToken is
         IERC20(asset()).approve(address(router), assets);
 
         // Delegate conversion and vault update logic to router
-        router.deposit(assets, receiver);
+        router.deposit(assets);
     }
 
     /**

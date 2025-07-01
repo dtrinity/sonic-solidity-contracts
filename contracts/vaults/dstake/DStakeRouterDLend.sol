@@ -94,8 +94,7 @@ contract DStakeRouterDLend is IDStakeRouter, AccessControl {
      * @inheritdoc IDStakeRouter
      */
     function deposit(
-        uint256 dStableAmount,
-        address receiver
+        uint256 dStableAmount
     ) external override onlyRole(DSTAKE_TOKEN_ROLE) {
         address adapterAddress = vaultAssetToAdapter[defaultDepositVaultAsset];
         if (adapterAddress == address(0)) {
@@ -125,7 +124,7 @@ contract DStakeRouterDLend is IDStakeRouter, AccessControl {
         emit RouterDeposit(
             adapterAddress,
             vaultAssetExpected,
-            receiver,
+            msg.sender,
             mintedShares,
             dStableAmount
         );
@@ -539,7 +538,7 @@ contract DStakeRouterDLend is IDStakeRouter, AccessControl {
     event RouterDeposit(
         address indexed adapter,
         address indexed vaultAsset,
-        address indexed dStakeReceiver,
+        address indexed dStakeToken,
         uint256 vaultAssetAmount,
         uint256 dStableAmount
     );
