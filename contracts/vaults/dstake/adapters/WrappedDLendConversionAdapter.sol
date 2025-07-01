@@ -20,7 +20,6 @@ contract WrappedDLendConversionAdapter is IDStableConversionAdapter {
     // --- Errors ---
     error ZeroAddress();
     error InvalidAmount();
-    error TransferFailed();
     error InconsistentState(string message);
 
     // --- State ---
@@ -83,13 +82,9 @@ contract WrappedDLendConversionAdapter is IDStableConversionAdapter {
         );
 
         // 2. Approve the StaticATokenLM wrapper to pull the dStable
-        // Use standard approve for trusted protocol token (dStable) and trusted protocol wrapper (StaticATokenLM)
         IERC20(dStable).approve(address(wrappedDLendToken), dStableAmount);
 
         // 3. Deposit dStable into the StaticATokenLM wrapper, minting wrappedDLendToken to collateralVault
-        (_vaultAsset, vaultAssetAmount) = previewConvertToVaultAsset(
-            dStableAmount
-        );
         vaultAssetAmount = IERC4626(address(wrappedDLendToken)).deposit(
             dStableAmount,
             collateralVault
@@ -110,29 +105,25 @@ contract WrappedDLendConversionAdapter is IDStableConversionAdapter {
             revert InvalidAmount();
         }
 
-        // 1. Preview the dStable amount to be received
-        dStableAmount = previewConvertFromVaultAsset(vaultAssetAmount);
-        if (dStableAmount == 0) {
-            revert InvalidAmount();
-        }
-
-        // 2. Pull wrappedDLendToken (shares) from caller (Router)
+        // 1. Pull wrappedDLendToken (shares) from caller (Router)
         IERC20(address(wrappedDLendToken)).safeTransferFrom(
             msg.sender,
             address(this),
             vaultAssetAmount
         );
 
-        // 3. Withdraw from StaticATokenLM, sending dStable to msg.sender
-        uint256 withdrawn = IERC4626(address(wrappedDLendToken)).redeem(
+        // 2. Withdraw from StaticATokenLM, sending dStable to msg.sender
+        dStableAmount = IERC4626(address(wrappedDLendToken)).redeem(
             vaultAssetAmount,
             msg.sender,
             address(this)
         );
-        if (withdrawn < dStableAmount) {
-            revert InconsistentState("StaticATokenLM redeem mismatch");
+
+        if (dStableAmount == 0) {
+            revert InvalidAmount();
         }
-        return withdrawn;
+
+        return dStableAmount;
     }
 
     /**
@@ -143,10 +134,9 @@ contract WrappedDLendConversionAdapter is IDStableConversionAdapter {
         address _vaultAsset,
         uint256 vaultAssetAmount
     ) external view override returns (uint256 dStableValue) {
-        require(
-            _vaultAsset == address(wrappedDLendToken),
-            "Incorrect vault asset address"
-        );
+        if (_vaultAsset != address(wrappedDLendToken)) {
+            revert InconsistentState("Incorrect vault asset address");
+        }
         // previewRedeem takes shares (vaultAssetAmount) and returns assets (dStableValue)
         return
             IERC4626(address(wrappedDLendToken)).previewRedeem(
