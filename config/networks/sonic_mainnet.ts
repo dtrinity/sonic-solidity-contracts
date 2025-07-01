@@ -47,7 +47,9 @@ export async function getConfig(
   const WETHAddress = "0x50c42dEAcD8Fc9773493ED674b675bE577f2634b";
   const scETHAddress = "0x3bcE5CB273F0F148010BbEa2470e7b5df84C7812";
   const wstkscETHAddress = "0xE8a41c62BB4d5863C6eadC96792cFE90A1f37C47";
-  const usdcAddress = "0x29219dd400f2Bf60E5a23d13Be72B486D4038894";
+  const ptaUSDCAddress = "0x930441Aa7Ab17654dF5663781CA0C02CC17e6643";
+  const ptwstkscUSDAddress = "0x0Fb682C9692AddCc1769f4D4d938c54420D54fA3";
+  const wOSAddress = "0x9F0dF7799f6FDAd409300080cfF680f5A23df4b1";
 
   const odoRouterV2Address = "0xaC041Df48dF9791B0654f1Dbbf2CC8450C5f2e9D"; // OdoRouterV2
 
@@ -75,7 +77,9 @@ export async function getConfig(
       WETH: WETHAddress,
       scETH: scETHAddress,
       wstkscETH: wstkscETHAddress,
-      USDC: usdcAddress,
+      PTaUSDC: ptaUSDCAddress,
+      PTwstkscUSD: ptwstkscUSDAddress,
+      wOS: wOSAddress,
     },
     walletAddresses: {
       governanceMultisig: "0xE83c188a7BE46B90715C757A06cF917175f30262", // Created via Safe
@@ -95,7 +99,7 @@ export async function getConfig(
           name: "PT-wstkscUSD-18DEC2025",
           ptToken: "0x0Fb682C9692AddCc1769f4D4d938c54420D54fA3",
           market: "0x004f76045b42ef3e89814b12b37e69da19c8a212",
-          oracleType: "PT_TO_SY", // Quote price to SY, then composite with asset price
+          oracleType: "PT_TO_ASSET", // Quote price of scUSD directly
           twapDuration: 900,
         },
       ],
@@ -243,6 +247,24 @@ export async function getConfig(
               fixedPriceInBase1: 0n,
               lowerThresholdInBase2: 0n, // No thresholding
               fixedPriceInBase2: 0n,
+            },
+            [ptaUSDCAddress]: {
+              feedAsset: ptaUSDCAddress,
+              feed1: "0x9EcC4051FbC1AE2025E1d338284554C1E8dD9042", // Our own ChainlinkDecimalConverter which wraps the PT-aUSDC/USDC Pendle Chainlink feed and converts 18 -> 8 decimals
+              feed2: "0x3587a73AA02519335A8a6053a97657BECe0bC2Cc", // USDC/USD Redstone price feed
+              lowerThresholdInBase1: 0n, // No thresholding
+              fixedPriceInBase1: 0n,
+              lowerThresholdInBase2: ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT, // Only threshold USDC/USD
+              fixedPriceInBase2: ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT,
+            },
+            [ptwstkscUSDAddress]: {
+              feedAsset: ptwstkscUSDAddress,
+              feed1: "0x4897E811480dE3cdDDAAf2B421987D8d995ca0B6", // Our own ChainlinkDecimalConverter which wraps the PT-wstkscUSD/SY-wstkscUSD Pendle Chainlink feed and converts 18 -> 8 decimals
+              feed2: "0xACE5e348a341a740004304c2c228Af1A4581920F", // scUSD/USD Chainlink price feed
+              lowerThresholdInBase1: 0n, // No thresholding
+              fixedPriceInBase1: 0n,
+              lowerThresholdInBase2: ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT, // Only threshold scUSD/USD
+              fixedPriceInBase2: ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT,
             },
           },
         },

@@ -51,7 +51,7 @@ async function deployPendleDecimalConverters(
     "PT-wstkscUSD-18DEC2025": {
       converterId: PENDLE_PT_WSTKSCUSD_DECIMAL_CONVERTER_ID,
       oracleDeploymentName:
-        "PT-wstkscUSD-18DEC2025_PT_TO_SY_PendleChainlinkOracle",
+        "PT-wstkscUSD-18DEC2025_PT_TO_ASSET_PendleChainlinkOracle",
     },
   };
 
