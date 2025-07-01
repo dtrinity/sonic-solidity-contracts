@@ -213,7 +213,14 @@ export interface DLendRewardManagerConfig {
   readonly treasury: Address; // Address for treasury fees
   readonly maxTreasuryFeeBps: number;
   readonly initialTreasuryFeeBps: number;
-  readonly initialExchangeThreshold: number; // Min dStable amount to trigger compounding
+  /**
+   * Minimum dStable amount (in token's smallest units) required to trigger automatic compounding.
+   * Can be expressed as:
+   *   • number   – for values within JavaScript safe-integer range ( < 2^53 )
+   *   • bigint   – for very large values
+   *   • string   – human readable value that ethers can parse as BigNumberish
+   */
+  readonly initialExchangeThreshold: number | bigint | string;
   readonly initialAdmin?: Address; // Optional: admin for this DStakeRewardManagerDLend instance
   readonly initialRewardsManager?: Address; // Optional: holder of REWARDS_MANAGER_ROLE for this instance
 }

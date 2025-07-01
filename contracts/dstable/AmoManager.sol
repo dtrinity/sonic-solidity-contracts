@@ -280,7 +280,8 @@ contract AmoManager is AccessControl, OracleAware, ReentrancyGuard {
         for (uint256 i = 0; i < _amoVaults.length(); i++) {
             (address vaultAddress, ) = _amoVaults.at(i);
             if (isAmoActive(vaultAddress)) {
-                totalBaseValue += IAmoVault(vaultAddress).totalCollateralValue();
+                totalBaseValue += IAmoVault(vaultAddress)
+                    .totalCollateralValue();
             }
         }
         return totalBaseValue;

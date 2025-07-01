@@ -2,7 +2,11 @@ import { ZeroAddress } from "ethers";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 
 import { ONE_PERCENT_BPS } from "../../typescript/common/bps_constants";
-import { DS_TOKEN_ID, DUSD_TOKEN_ID } from "../../typescript/deploy-ids";
+import {
+  DS_TOKEN_ID,
+  DUSD_TOKEN_ID,
+  INCENTIVES_PROXY_ID,
+} from "../../typescript/deploy-ids";
 import {
   ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT,
   ORACLE_AGGREGATOR_PRICE_DECIMALS,
@@ -15,6 +19,7 @@ import {
 } from "../dlend/interest-rate-strategies";
 import {
   strategyDS,
+  strategyDUSD,
   strategySfrxUSD,
   strategyStS,
   strategyWstkscUSD,
@@ -48,6 +53,18 @@ export async function getConfig(
   const mockOracleAddressesDeployment = await _hre.deployments.getOrNull(
     "MockOracleNameToAddress",
   );
+
+  // Fetch deployed dLend StaticATokenLM wrappers
+  const dLendATokenWrapperDUSDDeployment = await _hre.deployments.getOrNull(
+    "dLend_ATokenWrapper_dUSD",
+  );
+
+  // Fetch deployed dLend aTokens
+  const aTokenDUSDDeployment = await _hre.deployments.getOrNull("dLEND-dUSD");
+
+  // Fetch deployed dLend RewardsController
+  const rewardsControllerDeployment =
+    await _hre.deployments.getOrNull(INCENTIVES_PROXY_ID);
 
   if (mockOracleAddressesDeployment?.linkedData) {
     Object.assign(
@@ -369,7 +386,7 @@ export async function getConfig(
         rateStrategyMediumLiquidityStable,
       ],
       reservesConfig: {
-        dUSD: strategyDS,
+        dUSD: strategyDUSD,
         dS: strategyDS,
         stS: strategyStS,
         sfrxUSD: strategySfrxUSD,
@@ -378,6 +395,46 @@ export async function getConfig(
     },
     odos: {
       router: "", // Odos doesn't work on sonic testnet
+    },
+    dStake: {
+      sdUSD: {
+        dStable: emptyStringIfUndefined(dUSDDeployment?.address),
+        name: "Staked dUSD",
+        symbol: "sdUSD",
+        initialAdmin: deployer,
+        initialFeeManager: deployer,
+        initialWithdrawalFeeBps: 10,
+        adapters: [
+          {
+            vaultAsset: emptyStringIfUndefined(
+              dLendATokenWrapperDUSDDeployment?.address,
+            ),
+            adapterContract: "WrappedDLendConversionAdapter",
+          },
+        ],
+        defaultDepositVaultAsset: emptyStringIfUndefined(
+          dLendATokenWrapperDUSDDeployment?.address,
+        ),
+        collateralVault: "DStakeCollateralVault_sdUSD",
+        collateralExchangers: [deployer],
+        dLendRewardManager: {
+          managedVaultAsset: emptyStringIfUndefined(
+            dLendATokenWrapperDUSDDeployment?.address,
+          ), // This should be the deployed StaticATokenLM address for dUSD
+          dLendAssetToClaimFor: emptyStringIfUndefined(
+            aTokenDUSDDeployment?.address,
+          ), // Use the deployed dLEND-dUSD aToken address
+          dLendRewardsController: emptyStringIfUndefined(
+            rewardsControllerDeployment?.address,
+          ), // This will be fetched after dLend incentives deployment
+          treasury: deployer, // Or a dedicated treasury address
+          maxTreasuryFeeBps: 5 * ONE_PERCENT_BPS, // Example: 5%
+          initialTreasuryFeeBps: 1 * ONE_PERCENT_BPS, // Example: 1%
+          initialExchangeThreshold: 1000n * 10n ** 18n, // 1000 dStable
+          initialAdmin: deployer, // Optional: specific admin for this reward manager
+          initialRewardsManager: deployer, // Optional: specific rewards manager role holder
+        },
+      },
     },
   };
 }

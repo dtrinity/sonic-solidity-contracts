@@ -56,5 +56,11 @@
   "DLoopDepositorOdos": 1749751554,
   "DLoopRedeemerOdos": 1749751557,
   "DLoopDecreaseLeverageOdos": 1749751561,
-  "DLoopIncreaseLeverageOdos": 1749751564
+  "DLoopIncreaseLeverageOdos": 1749751564,
+  "transfer_oracle_wrapper_roles_to_multisig": 1751355426,
+  "ChainlinkDecimalConverter_wstkscUSD": 1751355426,
+  "dLend_StaticATokenFactory": 1751355435,
+  "dStableATokenWrappers": 1751355866,
+  "deploy_redeemer_with_fees": 1751355872,
+  "ChainlinkDecimalConverter_wstkscETH": 1751355872
 }
