@@ -448,6 +448,6 @@ const func: DeployFunction = async function (
 
 func.tags = ["pendle", "pendle-pt-oracles"];
 func.dependencies = [];
-func.id = "PendleChainlinkOracles";
+func.id = "PendleChainlinkOracles:PT-aUSDC:PT-wstkscUSD";
 
 export default func;
