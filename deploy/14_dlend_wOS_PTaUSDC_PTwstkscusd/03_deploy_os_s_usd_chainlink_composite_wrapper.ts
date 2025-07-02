@@ -129,7 +129,7 @@ const func: DeployFunction = async function (
 
   if (!usdOracleConfig) {
     console.log("❌ No USD oracle aggregator configuration found");
-    return false;
+    return true;
   }
 
   const chainlinkCompositeConfigs =
@@ -139,7 +139,7 @@ const func: DeployFunction = async function (
     console.log(
       "❌ No ChainlinkCompositeWrapper configurations found in USD oracle aggregator",
     );
-    return false;
+    return true;
   }
 
   console.log("🚀 Starting ChainlinkCompositeWrapper deployment...");

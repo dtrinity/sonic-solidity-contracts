@@ -5,6 +5,7 @@ import {
   OS_TO_S_DECIMAL_CONVERTER_ID,
   WOS_TO_OS_DECIMAL_CONVERTER_ID,
 } from "../../typescript/deploy-ids";
+import { isMainnet } from "../../typescript/hardhat/deploy";
 
 /**
  * This script deploys ChainlinkDecimalConverter contracts for OS/S and wOS/OS feeds.
@@ -137,6 +138,13 @@ async function deployOSWOSDecimalConverters(
 const func: DeployFunction = async function (
   hre: HardhatRuntimeEnvironment,
 ): Promise<boolean> {
+  if (!isMainnet(hre.network.name)) {
+    console.log(
+      `⏭️  Skipping OS/S and wOS/OS decimal converter deployment on ${hre.network.name}`,
+    );
+    return true;
+  }
+
   console.log(`🔧 Deploying OS/S and wOS/OS decimal converters...`);
 
   // Deploy decimal converters for OS/S and wOS/OS feeds (18 to 8 decimals)
