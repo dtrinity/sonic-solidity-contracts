@@ -446,30 +446,6 @@ abstract contract DLoopDepositorBase is
     /* Internal helpers */
 
     /**
-     * @dev Handles leftover debt tokens by transferring them to the dLoopCore contract if above minimum threshold
-     * @param dLoopCore The dLoopCore contract
-     * @param debtToken The debt token to handle
-     */
-    function _handleLeftoverDebtTokens(
-        DLoopCoreBase dLoopCore,
-        ERC20 debtToken
-    ) internal {
-        uint256 leftoverAmount = debtToken.balanceOf(address(this));
-        if (
-            leftoverAmount >
-            minLeftoverDebtTokenAmount[address(dLoopCore)][address(debtToken)]
-        ) {
-            // Transfer any leftover debt tokens to the core contract
-            debtToken.safeTransfer(address(dLoopCore), leftoverAmount);
-            emit LeftoverDebtTokensTransferred(
-                address(dLoopCore),
-                address(debtToken),
-                leftoverAmount
-            );
-        }
-    }
-
-    /**
      * @dev Calculates and validates the required additional collateral amount
      * @param flashLoanParams Flash loan parameters
      * @return requiredAdditionalCollateralAmount The required additional collateral amount
@@ -548,11 +524,16 @@ abstract contract DLoopDepositorBase is
         uint256 debtTokenReceivedAfterDeposit = debtTokenBalanceAfterDeposit -
             debtTokenBalanceBeforeDeposit;
 
-        // Make sure the debt token received after the deposit is not less than the debt token used in the swap
-        // to allow repaying the flash loan
+        uint256 tolerance = flashLoanParams.dLoopCore.BALANCE_DIFF_TOLERANCE();
+        // For multi-user scenarios, use a percentage-based tolerance to account for share price changes
+        uint256 expectedAmount = debtTokenAmountUsedInSwap + flashLoanFee;
+        uint256 percentageTolerance = expectedAmount / 1000; // 0.1% tolerance
+        uint256 effectiveTolerance = tolerance > percentageTolerance
+            ? tolerance
+            : percentageTolerance;
+
         if (
-            debtTokenReceivedAfterDeposit <
-            debtTokenAmountUsedInSwap + flashLoanFee
+            debtTokenReceivedAfterDeposit + effectiveTolerance < expectedAmount
         ) {
             revert DebtTokenReceivedNotMetUsedAmountWithFlashLoanFee(
                 debtTokenReceivedAfterDeposit,
@@ -560,6 +541,9 @@ abstract contract DLoopDepositorBase is
                 flashLoanFee
             );
         }
+
+        // (Surplus repayment is now handled in _finalizeDepositAndTransfer after the
+        //  flash-loan principal + fee have been pulled by the lender.)
     }
 
     /**
@@ -595,11 +579,29 @@ abstract contract DLoopDepositorBase is
             );
         }
 
-        // There is no leftover collateral token, as all swapped collateral token
-        // (using flash loaned debt token) is used to deposit to the core contract
+        /* ------------------------------------------------------------------ */
+        /*  Surplus debt-token handling                                       */
+        /* ------------------------------------------------------------------ */
 
-        // Handle any leftover debt tokens and transfer them to the dLoopCore contract
-        _handleLeftoverDebtTokens(dLoopCore, debtToken);
+        // After the flash-loan has been settled the contract may still hold
+        // a positive balance of `debtToken` due to favourable swap execution
+        // (positive slippage). Forward any such surplus back to the core
+        // vault and immediately reduce outstanding debt so the economic
+        // benefit accrues to *all* shareholders proportionally – including
+        // the depositor who will receive `shares` momentarily.
+        uint256 surplusDebt = debtToken.balanceOf(address(this));
+        if (surplusDebt > 0) {
+            debtToken.forceApprove(address(dLoopCore), surplusDebt);
+            dLoopCore.repay(surplusDebt);
+        }
+
+        // There is no leftover collateral token because all swapped collateral token
+        // (using flash-loaned debt token) has already been deposited into the core.
+
+        // Sanity-check: the surplus handler above should leave zero balance.
+        if (debtToken.balanceOf(address(this)) > 0) {
+            revert("Unexpected leftover debt tokens after finalization");
+        }
 
         // Transfer the minted shares to the receiver
         SafeERC20.safeTransfer(dLoopCore, receiver, shares);
