@@ -80,6 +80,7 @@ contract DLoopCoreMock is DLoopCoreBase {
     ) external {
         _setMockCollateral(user, token, amount);
     }
+
     function _setMockCollateral(
         address user,
         address token,
@@ -108,6 +109,7 @@ contract DLoopCoreMock is DLoopCoreBase {
     function setMockDebt(address user, address token, uint256 amount) external {
         _setMockDebt(user, token, amount);
     }
+
     function _setMockDebt(
         address user,
         address token,
@@ -216,11 +218,12 @@ contract DLoopCoreMock is DLoopCoreBase {
             mockCollateral[onBehalfOf][token] + amount
         );
     }
+
     function _borrowFromPoolImplementation(
         address token,
         uint256 amount,
         address onBehalfOf
-    ) internal override {
+    ) internal virtual override {
         _checkRequiredAllowance();
 
         // Calculate the amount to borrow based on transfer portion bps
@@ -295,7 +298,7 @@ contract DLoopCoreMock is DLoopCoreBase {
         address token,
         uint256 amount,
         address onBehalfOf
-    ) internal override {
+    ) internal virtual override {
         _checkRequiredAllowance();
 
         // Calculate the amount to withdraw based on transfer portion bps
@@ -376,6 +379,7 @@ contract DLoopCoreMock is DLoopCoreBase {
     ) external {
         _supplyToPool(token, amount, onBehalfOf);
     }
+
     function testBorrowFromPool(
         address token,
         uint256 amount,
@@ -383,6 +387,7 @@ contract DLoopCoreMock is DLoopCoreBase {
     ) external {
         _borrowFromPool(token, amount, onBehalfOf);
     }
+
     function testRepayDebtToPool(
         address token,
         uint256 amount,
@@ -390,6 +395,7 @@ contract DLoopCoreMock is DLoopCoreBase {
     ) external {
         _repayDebtToPool(token, amount, onBehalfOf);
     }
+
     function testWithdrawFromPool(
         address token,
         uint256 amount,
