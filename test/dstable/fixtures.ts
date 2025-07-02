@@ -1,6 +1,4 @@
-import { ZeroAddress } from "ethers";
 import hre, { deployments } from "hardhat";
-import { HardhatRuntimeEnvironment } from "hardhat/types";
 
 import {
   USD_ORACLE_AGGREGATOR_ID,
