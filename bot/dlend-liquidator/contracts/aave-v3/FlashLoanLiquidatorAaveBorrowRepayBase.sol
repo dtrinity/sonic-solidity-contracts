@@ -192,7 +192,7 @@ abstract contract FlashLoanLiquidatorAaveBorrowRepayBase is
 
             if (_flashLoanParams.isUnstakeCollateralToken) {
                 // Approve to burn the shares
-                ERC20(_flashLoanParams.collateralUnderlying).approve(
+                ERC20(_flashLoanParams.collateralUnderlying).forceApprove(
                     proxyContract,
                     actualCollateralAmount
                 );

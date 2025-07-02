@@ -20,12 +20,15 @@ pragma solidity 0.8.20;
 import {DLoopIncreaseLeverageBase, ERC20, IERC3156FlashLender} from "../../DLoopIncreaseLeverageBase.sol";
 import {SimpleDEXMock} from "contracts/testing/dex/SimpleDEXMock.sol";
 import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 /**
  * @title DLoopIncreaseLeverageMock
  * @dev Implementation of DLoopIncreaseLeverageBase with SimpleDEXMock swap functionality
  */
 contract DLoopIncreaseLeverageMock is DLoopIncreaseLeverageBase {
+    using SafeERC20 for ERC20;
+
     SimpleDEXMock public immutable simpleDEXMock;
 
     /**
@@ -53,10 +56,7 @@ contract DLoopIncreaseLeverageMock is DLoopIncreaseLeverageBase {
         bytes memory // debtTokenToCollateralSwapData
     ) internal override returns (uint256) {
         // Approve the SimpleDEXMock to spend the input token
-        require(
-            inputToken.approve(address(simpleDEXMock), amountInMaximum),
-            "Approve simpleDEXMock to spend input token failed"
-        );
+        inputToken.forceApprove(address(simpleDEXMock), amountInMaximum);
 
         return
             simpleDEXMock.executeSwapExactOutput(

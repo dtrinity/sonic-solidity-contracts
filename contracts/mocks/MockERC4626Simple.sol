@@ -23,12 +23,12 @@ contract MockERC4626Simple is ERC4626 {
 
     // ---------- Redemption path (adds 10 % bonus) ---------- //
 
-    function previewRedeem(uint256 shares) public view override returns (uint256) {
+    function previewRedeem(uint256 shares) public pure override returns (uint256) {
         // users get 110 % of the nominal assets represented by `shares`
         return (shares * BONUS_BPS) / BASIS_POINTS;
     }
 
-    function previewWithdraw(uint256 assets) public view override returns (uint256) {
+    function previewWithdraw(uint256 assets) public pure override returns (uint256) {
         // inverse of previewRedeem (ceil division to avoid under-funding)
         return (assets * BASIS_POINTS + BONUS_BPS - 1) / BONUS_BPS;
     }
