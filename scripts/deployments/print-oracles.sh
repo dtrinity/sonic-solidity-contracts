@@ -38,28 +38,36 @@ extract_address() {
 collect_addresses() {
     local network_dir="$1"
     local pattern="$2"
-    local exclude_pattern="$3"  # Optional exclusion pattern
+    shift 2
+    local exclude_patterns=("$@")  # Remaining arguments are exclusion patterns
     local addresses=()
-    
+
     while IFS= read -r -d '' file; do
         local filename="$(basename "$file")"
-        
+
         # Skip files with "Mock" in their name
         if [[ "$filename" == *"Mock"* ]]; then
             continue
         fi
-        
-        # Skip files with exclusion pattern in their name (if provided)
-        if [ -n "$exclude_pattern" ] && [[ "$filename" == *"$exclude_pattern"* ]]; then
+
+        # Skip files that match any of the exclusion patterns
+        local skip=false
+        for ex in "${exclude_patterns[@]}"; do
+            if [[ -n "$ex" && "$filename" == *"$ex"* ]]; then
+                skip=true
+                break
+            fi
+        done
+        if [[ "$skip" == true ]]; then
             continue
         fi
-        
+
         address=$(extract_address "$file")
         if [ -n "$address" ] && [ "$address" != "null" ]; then
             addresses+=("'$address'")
         fi
     done < <(find "$network_dir" -maxdepth 1 -name "*${pattern}*.json" -print0 2>/dev/null)
-    
+
     echo "${addresses[@]}"
 }
 
@@ -105,7 +113,8 @@ for i in "${!networks[@]}"; do
     # Collect addresses for each oracle type
     redstone_addresses=($(collect_addresses "$network_dir" "Redstone"))
     api3_addresses=($(collect_addresses "$network_dir" "API3"))
-    chainlink_addresses=($(collect_addresses "$network_dir" "Chainlink" "Redstone")) # Exclude RedstoneChainlinkWrapper feeds from Chainlink fees because they are actually Redstone feeds
+    # Exclude Redstone wrappers and Factory contracts from Chainlink category
+    chainlink_addresses=($(collect_addresses "$network_dir" "Chainlink" "Redstone" "Factory"))
     curve_api3_addresses=($(collect_addresses "$network_dir" "CurveAPI3"))
     hard_peg_oracle_addresses=($(collect_addresses "$network_dir" "HardPegOracle"))
     
