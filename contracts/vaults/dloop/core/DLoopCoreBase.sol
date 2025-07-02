@@ -1815,4 +1815,29 @@ abstract contract DLoopCoreBase is
         }
         return super.maxRedeem(_user);
     }
+
+    /* --------------------------------------------------------------------- */
+    /*  External debt-management helpers                                     */
+    /* --------------------------------------------------------------------- */
+
+    /**
+     * @dev Allows an external caller to forward debt tokens to the vault so that the vault
+     *      can immediately repay its own outstanding debt in the lending pool. This is
+     *      primarily used by periphery contracts (e.g. DLoopDepositor*) to cleanly handle
+     *      any surplus debt tokens remaining after a leveraged deposit flow.
+     *      ‑ The caller **must** have approved the vault to spend at least `amount` of
+     *        the debt token beforehand (see ERC20 `approve`).
+     * @param amount The exact amount of `debtToken` to repay.
+     */
+    function repay(uint256 amount) external nonReentrant {
+        if (amount == 0) revert("Repay amount cannot be zero");
+
+        // Pull the debt tokens from the caller into the vault.
+        debtToken.safeTransferFrom(msg.sender, address(this), amount);
+
+        // Use the internal helper to perform the actual repayment inside the
+        // underlying lending pool. The repayment is done on behalf of the vault
+        // itself (address(this)).
+        _repayDebtToPool(address(debtToken), amount, address(this));
+    }
 }
