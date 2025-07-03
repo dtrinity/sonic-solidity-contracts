@@ -159,8 +159,8 @@ export interface OracleAggregatorConfig {
       };
     };
   };
-  readonly chainlinkCompositeWrapperAggregator?: {
-    [assetAddress: string]: ChainlinkCompositeWrapperConfig;
+  readonly chainlinkCompositeAggregator?: {
+    [assetAddress: string]: ChainlinkCompositeAggregatorConfig;
   };
 }
 
@@ -278,7 +278,7 @@ export interface PendleConfig {
 
 // --- Chainlink Composite Wrapper Types ---
 
-export interface ChainlinkCompositeWrapperConfig {
+export interface ChainlinkCompositeAggregatorConfig {
   readonly name: string; // Name of the composite wrapper (e.g., "OS_S_USD")
   readonly feedAsset: Address; // Address of the asset being priced (e.g., wOS address)
   readonly sourceFeed1: Address; // Address of the first Chainlink price feed (e.g., OS/S)

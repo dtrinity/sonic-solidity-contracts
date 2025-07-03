@@ -279,7 +279,7 @@ export async function getConfig(
             [wOSAddress]: {
               feedAsset: wOSAddress,
               feed1: "0x19E84B1f41d1Eb2ff22baC55797bD767558585De", // Our own ChainlinkDecimalConverter which wraps the wOS/OS Chainlink feed and converts 18 -> 8 decimals
-              feed2: "0xf864406E4bb1e159e2DC5C1C98364edBfe762D13", // Our own ChainlinkCompositeWrapper which composes OS/S and S/USD
+              feed2: "0xF6819756b86678dEd7A0aECD983697c4F7D42bbc", // Our own ChainlinkCompositeAggregator which composes OS/S and S/USD
               lowerThresholdInBase1: 0n, // No thresholding
               fixedPriceInBase1: 0n,
               lowerThresholdInBase2: 0n, // No thresholding
@@ -287,7 +287,7 @@ export async function getConfig(
             },
           },
         },
-        chainlinkCompositeWrapperAggregator: {
+        chainlinkCompositeAggregator: {
           [osAddress]: {
             name: "OS_S_USD",
             feedAsset: osAddress,

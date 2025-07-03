@@ -21,23 +21,26 @@ import "../interface/chainlink/IAggregatorV3Interface.sol";
 import "../wrapper/ThresholdingUtils.sol";
 
 /**
- * @title ChainlinkCompositeWrapper
+ * @title ChainlinkCompositeAggregator
  * @notice Composes prices from two Chainlink price feeds with thresholding
  * @dev Implements AggregatorV3Interface to mimic being a Chainlink price feed
  *      Uses the same composition logic as RedstoneChainlinkCompositeWrapperWithThresholding
  */
-contract ChainlinkCompositeWrapper is AggregatorV3Interface, ThresholdingUtils {
+contract ChainlinkCompositeAggregator is
+    AggregatorV3Interface,
+    ThresholdingUtils
+{
     /// @notice First source Chainlink price feed
     AggregatorV3Interface public immutable sourceFeed1;
 
     /// @notice Second source Chainlink price feed
     AggregatorV3Interface public immutable sourceFeed2;
 
-    /// @notice Target decimals for composite price (same as base currency unit decimals)
-    uint8 public immutable override decimals;
+    /// @notice Target decimals for composite price (Chainlink standard: 8)
+    uint8 public constant override decimals = 8;
 
-    /// @notice Base currency unit for price normalization (same as Redstone wrapper)
-    uint256 public immutable baseCurrencyUnit;
+    /// @notice Base currency unit for price normalization (10^8)
+    uint256 public constant CHAINLINK_BASE_CURRENCY_UNIT = 10 ** 8;
 
     /// @notice Primary threshold configuration for sourceFeed1
     ThresholdConfig public primaryThreshold;
@@ -51,32 +54,32 @@ contract ChainlinkCompositeWrapper is AggregatorV3Interface, ThresholdingUtils {
     /// @notice Heartbeat stale time limit (additional buffer)
     uint256 public constant heartbeatStaleTimeLimit = 3600; // 1 hour
 
-    /**
-     * @notice Error thrown when price is stale
-     */
+    /// @notice Error thrown when price is stale
     error PriceIsStale();
+
+    /// @notice Error thrown when a feed address is zero
+    error ZeroFeedAddress();
 
     /**
      * @notice Constructor to initialize the composite wrapper
      * @param _sourceFeed1 Address of the first source Chainlink price feed
      * @param _sourceFeed2 Address of the second source Chainlink price feed
-     * @param _targetDecimals Target decimal precision for composite price
-     * @param _baseCurrencyUnit Base currency unit for price normalization
      * @param _primaryThreshold Primary threshold configuration for feed1
      * @param _secondaryThreshold Secondary threshold configuration for feed2
      */
     constructor(
         address _sourceFeed1,
         address _sourceFeed2,
-        uint8 _targetDecimals,
-        uint256 _baseCurrencyUnit,
         ThresholdConfig memory _primaryThreshold,
         ThresholdConfig memory _secondaryThreshold
     ) {
+        // Validate feed addresses
+        if (_sourceFeed1 == address(0) || _sourceFeed2 == address(0)) {
+            revert ZeroFeedAddress();
+        }
+
         sourceFeed1 = AggregatorV3Interface(_sourceFeed1);
         sourceFeed2 = AggregatorV3Interface(_sourceFeed2);
-        decimals = _targetDecimals;
-        baseCurrencyUnit = _baseCurrencyUnit;
         primaryThreshold = _primaryThreshold;
         secondaryThreshold = _secondaryThreshold;
     }
@@ -103,68 +106,6 @@ contract ChainlinkCompositeWrapper is AggregatorV3Interface, ThresholdingUtils {
      */
     function version() external pure override returns (uint256) {
         return 1;
-    }
-
-    /**
-     * @notice Gets data for a specific round
-     * @param _roundId The round ID to retrieve data for
-     * @return roundId The round ID
-     * @return answer The composite price with target decimals
-     * @return startedAt The timestamp when the round started
-     * @return updatedAt The timestamp when the round was updated
-     * @return answeredInRound The round in which the answer was computed
-     */
-    function getRoundData(
-        uint80 _roundId
-    )
-        external
-        view
-        override
-        returns (
-            uint80 roundId,
-            int256 answer,
-            uint256 startedAt,
-            uint256 updatedAt,
-            uint80 answeredInRound
-        )
-    {
-        // Get data from both feeds for the same round
-        (
-            ,
-            // roundId1,
-            int256 answer1,
-            uint256 startedAt1,
-            uint256 updatedAt1,
-            uint80 answeredInRound1
-        ) = sourceFeed1.getRoundData(_roundId);
-
-        (
-            ,
-            // roundId2,
-            int256 answer2,
-            uint256 startedAt2,
-            uint256 updatedAt2, // answeredInRound2
-
-        ) = sourceFeed2.getRoundData(_roundId);
-
-        // Use the latest timestamp from both feeds
-        uint256 latestUpdatedAt = updatedAt1 > updatedAt2
-            ? updatedAt1
-            : updatedAt2;
-        uint256 latestStartedAt = startedAt1 > startedAt2
-            ? startedAt1
-            : startedAt2;
-
-        // Calculate composite price using the same logic as Redstone wrapper
-        uint256 compositePrice = _calculateCompositePrice(answer1, answer2);
-
-        return (
-            _roundId,
-            int256(compositePrice),
-            latestStartedAt,
-            latestUpdatedAt,
-            answeredInRound1 // Use the first feed's answeredInRound
-        );
     }
 
     /**
@@ -236,6 +177,36 @@ contract ChainlinkCompositeWrapper is AggregatorV3Interface, ThresholdingUtils {
     }
 
     /**
+     * @notice Gets data for a specific round
+     * @dev IMPORTANT: Due to Chainlink round ID divergence between feeds, this aggregator only supports latest data.
+     *      Historical round queries are not supported and will always return the latest available data.
+     *      Use latestRoundData() for the most recent price information.
+     * @param roundId (ignored, always returns latest data)
+     * @return roundId The round ID
+     * @return answer The composite price with target decimals
+     * @return startedAt The timestamp when the round started
+     * @return updatedAt The timestamp when the round was updated
+     * @return answeredInRound The round in which the answer was computed
+     */
+    function getRoundData(
+        uint80 /* _roundId */
+    )
+        external
+        view
+        override
+        returns (
+            uint80 roundId,
+            int256 answer,
+            uint256 startedAt,
+            uint256 updatedAt,
+            uint80 answeredInRound
+        )
+    {
+        // Delegate to latestRoundData to avoid round ID divergence issues
+        return this.latestRoundData();
+    }
+
+    /**
      * @notice Calculate composite price using the same logic as Redstone wrapper
      * @param answer1 Price from first feed
      * @param answer2 Price from second feed
@@ -268,7 +239,7 @@ contract ChainlinkCompositeWrapper is AggregatorV3Interface, ThresholdingUtils {
         }
 
         // Calculate composite price: (price1 * price2) / baseCurrencyUnit
-        return (priceInBase1 * priceInBase2) / baseCurrencyUnit;
+        return (priceInBase1 * priceInBase2) / CHAINLINK_BASE_CURRENCY_UNIT;
     }
 
     /**
@@ -280,7 +251,7 @@ contract ChainlinkCompositeWrapper is AggregatorV3Interface, ThresholdingUtils {
     function _convertToBaseCurrencyUnit(
         uint256 price,
         uint8 sourceDecimals
-    ) internal view returns (uint256) {
+    ) internal pure returns (uint256) {
         if (sourceDecimals > decimals) {
             // Scale down to target decimals
             return price / (10 ** (sourceDecimals - decimals));

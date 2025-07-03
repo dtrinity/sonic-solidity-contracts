@@ -31,34 +31,14 @@ const PENDLE_ORACLE_TYPE = {
   PT_TO_ASSET: 1,
 } as const;
 
-// Block times per network (used for cardinality calculation)
-const NETWORK_BLOCK_TIMES: Record<string, number> = {
-  mainnet: 12,
-  ethereum: 12,
-  arbitrum: 1,
-  arbitrumOne: 1,
-  base: 2,
-  optimism: 2,
-  // eslint-disable-next-line camelcase -- Network names are not in camelCase
-  sonic_mainnet: 1,
-  // eslint-disable-next-line camelcase -- Network names are not in camelCase
-  sonic_testnet: 1,
-  localhost: 1,
-  hardhat: 1,
-};
-
 /**
  * Calculate required cardinality based on TWAP duration and network block time
  *
  * @param duration - TWAP duration in seconds
- * @param networkName - Network name to determine block time
  */
-function calculateCardinalityRequired(
-  duration: number,
-  networkName: string,
-): number {
-  const blockTime = NETWORK_BLOCK_TIMES[networkName] || 12; // Default to Ethereum
-  return Math.ceil(duration / Math.max(blockTime, 1));
+function calculateCardinalityRequired(duration: number): number {
+  // Always use block time = 1 for supported networks
+  return Math.ceil(duration / 1);
 }
 
 /**
@@ -203,10 +183,7 @@ async function deployPendleChainlinkOracles(
 
       if (oracleStatus.needsInit) {
         console.log(`🔧 Initializing market oracle for ${config.market}...`);
-        const cardinality = calculateCardinalityRequired(
-          config.twapDuration,
-          hre.network.name,
-        );
+        const cardinality = calculateCardinalityRequired(config.twapDuration);
 
         try {
           const market = await ethers.getContractAt(
