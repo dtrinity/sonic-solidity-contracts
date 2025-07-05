@@ -91,6 +91,8 @@ contract AmoManager is AccessControl, OracleAware {
         uint256 takeProfitValueInBase,
         int256 availableProfitInBase
     );
+    error NotEnoughVaultAllocation(uint256 current, uint256 requested);
+    error NotEnoughTotalAllocation(uint256 totalAllocated, uint256 requested);
 
     /**
      * @notice Initializes the AmoManager contract.
@@ -164,15 +166,29 @@ contract AmoManager is AccessControl, OracleAware {
 
         // We don't require that the vault is active or has allocation, since we want to allow withdrawing from inactive vaults
 
-        // If the vault is still active, make sure it has enough allocation and decrease it
-        (, uint256 currentAllocation) = _amoVaults.tryGet(amoVault);
-        if (currentAllocation > 0) {
-            // Update the allocation for this vault
-            _amoVaults.set(amoVault, currentAllocation - dstableAmount);
+        // ------------------------------------------------------------------
+        // Bounds checks – prevent over-deallocation that would break accounting
+        // ------------------------------------------------------------------
+
+        // Ensure we are not trying to remove more than the global allocation
+        if (dstableAmount > totalAllocated) {
+            revert NotEnoughTotalAllocation(totalAllocated, dstableAmount);
         }
 
-        // Make the withdrawal
+        // Ensure the vault has sufficient allocation for the requested amount
+        (, uint256 currentAllocation) = _amoVaults.tryGet(amoVault);
+        if (dstableAmount > currentAllocation) {
+            revert NotEnoughVaultAllocation(currentAllocation, dstableAmount);
+        }
+
+        // ------------------------------------------------------------------
+        // Book-keeping – update vault allocation first, then global total
+        // ------------------------------------------------------------------
+
+        _amoVaults.set(amoVault, currentAllocation - dstableAmount);
         totalAllocated -= dstableAmount;
+
+        // Execute the transfer after the state changes to keep invariants clear
         dstable.transferFrom(amoVault, address(this), dstableAmount);
 
         // Check invariants
@@ -277,8 +293,7 @@ contract AmoManager is AccessControl, OracleAware {
         for (uint256 i = 0; i < _amoVaults.length(); i++) {
             (address vaultAddress, ) = _amoVaults.at(i);
             if (isAmoActive(vaultAddress)) {
-                totalBaseValue += IAmoVault(vaultAddress)
-                    .totalCollateralValue();
+                totalBaseValue += IAmoVault(vaultAddress).totalCollateralValue();
             }
         }
         return totalBaseValue;
