@@ -1169,13 +1169,26 @@ abstract contract DLoopCoreBase is
             );
         }
 
+        // Denominator derivation:
+        //   For a deleverage we repay `y` debt and withdraw `(1+k)*y` collateral.
+        //   Target equation  (C - (1+k)y) / (C - D - k*y) = T  ⇒
+        //     y  = (T*D  -  (T-1)*C) / (1 + k - T*k)
+        //   After substituting T' (bps) and k' (bps) we obtain the denominator
+        //     ONE_HUNDRED_PERCENT_BPS  +  subsidyBps  -  (expectedTargetLeverageBps * subsidyBps) / ONE_HUNDRED_PERCENT_BPS
+        uint256 denominatorBps = BasisPointConstants.ONE_HUNDRED_PERCENT_BPS +
+            subsidyBps -
+            (expectedTargetLeverageBps * subsidyBps) /
+            BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
+
+        // Sanity-check: denominator must be positive to avoid division by zero or negative values
+        if (denominatorBps == 0) {
+            revert("Invalid parameters: denominator is zero");
+        }
+
         uint256 requiredDebtTokenAmountInBase = (totalCollateralBase *
             BasisPointConstants.ONE_HUNDRED_PERCENT_BPS -
             expectedTargetLeverageBps *
-            (totalCollateralBase - totalDebtBase)) /
-            (BasisPointConstants.ONE_HUNDRED_PERCENT_BPS +
-                (expectedTargetLeverageBps * subsidyBps) /
-                BasisPointConstants.ONE_HUNDRED_PERCENT_BPS);
+            (totalCollateralBase - totalDebtBase)) / denominatorBps;
 
         // Convert to token unit
         uint256 requiredDebtTokenAmount = convertFromBaseCurrencyToToken(
@@ -1388,8 +1401,29 @@ abstract contract DLoopCoreBase is
                 );
         }
 
+        // When the caller provides additional debt tokens, we should NOT blindly
+        // repay the whole balance that the vault holds because doing so could
+        // overshoot the target leverage and cause arithmetic under-/overflow.
+
         uint256 debtTokenBalanceInVault = debtToken.balanceOf(address(this));
-        return debtTokenBalanceInVault + additionalDebtTokenAmount;
+        uint256 totalDebtTokenAvailable = debtTokenBalanceInVault +
+            additionalDebtTokenAmount;
+
+        // Calculate the *exact* amount required to reach the target leverage.
+        uint256 exactRequiredDebtTokenAmount = _getDebtTokenAmountToReachTargetLeverage(
+                expectedTargetLeverageBps,
+                totalCollateralBase,
+                totalDebtBase,
+                subsidyBps,
+                false
+            );
+
+        // Use the smaller of (exact amount) vs (what is available) to avoid overshooting.
+        if (totalDebtTokenAvailable > exactRequiredDebtTokenAmount) {
+            return exactRequiredDebtTokenAmount;
+        }
+
+        return totalDebtTokenAvailable;
     }
 
     /**
@@ -1618,7 +1652,7 @@ abstract contract DLoopCoreBase is
 
         // Make sure the new leverage is decreasing and is not below the target leverage
         if (
-            newLeverageBps < targetLeverageBps ||
+            newLeverageBps + BasisPointConstants.ONE_BPS < targetLeverageBps ||
             newLeverageBps >= currentLeverageBps
         ) {
             revert DecreaseLeverageOutOfRange(
