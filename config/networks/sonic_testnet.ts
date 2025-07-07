@@ -35,7 +35,7 @@ const wSAddress = "0x039e2fB66102314Ce7b64Ce5Ce3E5183bc94aD38";
  * @returns The configuration for the network
  */
 export async function getConfig(
-  _hre: HardhatRuntimeEnvironment
+  _hre: HardhatRuntimeEnvironment,
 ): Promise<Config> {
   // Token info will only be populated after their deployment
   const dUSDDeployment = await _hre.deployments.getOrNull(DUSD_TOKEN_ID);
@@ -51,7 +51,7 @@ export async function getConfig(
 
   // Fetch deployed dLend StaticATokenLM wrapper (optional, may be undefined on testnet)
   const dLendATokenWrapperDUSDDeployment = await _hre.deployments.getOrNull(
-    "dLend_ATokenWrapper_dUSD"
+    "dLend_ATokenWrapper_dUSD",
   );
 
   // Fetch deployed dLend RewardsController (optional)
@@ -63,22 +63,22 @@ export async function getConfig(
 
   // Fetch deployed dSTAKE token for sdUSD (optional)
   const sdUSDDeployment = await _hre.deployments.getOrNull(
-    SDUSD_DSTAKE_TOKEN_ID
+    SDUSD_DSTAKE_TOKEN_ID,
   );
   // Get mock oracle deployments
   const mockOracleNameToAddress: Record<string, string> = {};
   const mockOracleAddressesDeployment = await _hre.deployments.getOrNull(
-    "MockOracleNameToAddress"
+    "MockOracleNameToAddress",
   );
 
   if (mockOracleAddressesDeployment?.linkedData) {
     Object.assign(
       mockOracleNameToAddress,
-      mockOracleAddressesDeployment.linkedData
+      mockOracleAddressesDeployment.linkedData,
     );
   } else {
     console.warn(
-      "WARN: MockOracleNameToAddress deployment not found or has no linkedData. Oracle configuration might be incomplete."
+      "WARN: MockOracleNameToAddress deployment not found or has no linkedData. Oracle configuration might be incomplete.",
     );
   }
 
@@ -160,7 +160,16 @@ export async function getConfig(
           sfrxUSDDeployment?.address || ZeroAddress,
         ],
         initialFeeReceiver: deployer,
-        initialRedemptionFeeBps: 1 * ONE_PERCENT_BPS,
+        initialRedemptionFeeBps: 0.4 * ONE_PERCENT_BPS, // Default for stablecoins
+        collateralRedemptionFees: {
+          // Stablecoins: 0.4%
+          [USDCDeployment?.address || ZeroAddress]: 0.4 * ONE_PERCENT_BPS,
+          [USDSDeployment?.address || ZeroAddress]: 0.4 * ONE_PERCENT_BPS,
+          [frxUSDDeployment?.address || ZeroAddress]: 0.4 * ONE_PERCENT_BPS,
+          // Yield bearing stablecoins: 0.5%
+          [sUSDSDeployment?.address || ZeroAddress]: 0.5 * ONE_PERCENT_BPS,
+          [sfrxUSDDeployment?.address || ZeroAddress]: 0.5 * ONE_PERCENT_BPS,
+        },
       },
       dS: {
         collaterals: [
@@ -169,7 +178,14 @@ export async function getConfig(
           stSTokenDeployment?.address || ZeroAddress,
         ],
         initialFeeReceiver: deployer,
-        initialRedemptionFeeBps: 1 * ONE_PERCENT_BPS,
+        initialRedemptionFeeBps: 0.4 * ONE_PERCENT_BPS, // Default for stablecoins
+        collateralRedemptionFees: {
+          // Stablecoins: 0.4%
+          [wSAddress]: 0.4 * ONE_PERCENT_BPS,
+          [wOSTokenDeployment?.address || ZeroAddress]: 0.4 * ONE_PERCENT_BPS,
+          // Yield bearing stablecoins: 0.5%
+          [stSTokenDeployment?.address || ZeroAddress]: 0.5 * ONE_PERCENT_BPS,
+        },
       },
     },
     dLoop: {
@@ -413,25 +429,25 @@ export async function getConfig(
         adapters: [
           {
             vaultAsset: emptyStringIfUndefined(
-              dLendATokenWrapperDUSDDeployment?.address
+              dLendATokenWrapperDUSDDeployment?.address,
             ),
             adapterContract: "WrappedDLendConversionAdapter",
           },
         ],
         defaultDepositVaultAsset: emptyStringIfUndefined(
-          dLendATokenWrapperDUSDDeployment?.address
+          dLendATokenWrapperDUSDDeployment?.address,
         ),
         collateralVault: "DStakeCollateralVault_sdUSD",
         collateralExchangers: [deployer],
         dLendRewardManager: {
           managedVaultAsset: emptyStringIfUndefined(
-            dLendATokenWrapperDUSDDeployment?.address
+            dLendATokenWrapperDUSDDeployment?.address,
           ),
           dLendAssetToClaimFor: emptyStringIfUndefined(
-            aTokenDUSDDeployment?.address
+            aTokenDUSDDeployment?.address,
           ),
           dLendRewardsController: emptyStringIfUndefined(
-            rewardsControllerDeployment?.address
+            rewardsControllerDeployment?.address,
           ),
           treasury: deployer,
           maxTreasuryFeeBps: 500,

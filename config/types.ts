@@ -66,6 +66,9 @@ export interface DStableConfig {
   readonly collaterals: Address[];
   readonly initialFeeReceiver?: string;
   readonly initialRedemptionFeeBps?: number;
+  readonly collateralRedemptionFees?: {
+    [collateralAddress: string]: number;
+  };
 }
 
 export interface DLoopCoreConfig {
