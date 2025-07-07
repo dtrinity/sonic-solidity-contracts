@@ -1,4 +1,4 @@
-# DoS in `decreaseLeverage()` caused by external debt-token transfers
+# DoS in `increaseLeverage()` / `decreaseLeverage()` caused by external token transfers
 
 ## Context / Problem Statement
 
@@ -80,6 +80,51 @@ necessary.
 * Internal source: `contracts/vaults/dloop/core/DLoopCoreBase.sol` lines
   ~1370-1386.
 * Original bug report: <https://github.com/hats-finance/dTRINITY-0xee5c6f15e8d0b55a5eff84bb66beeee0e6140ffe/issues/302>
+
+## Parallel Exploit: DoS in `increaseLeverage()` via external collateral-token transfers
+
+### Context / Problem Statement
+
+`increaseLeverage()` suffers from the **mirror-image bug** discussed above, but on the collateral side.  Its helper
+`_getRequiredCollateralTokenAmountToRebalance()` naïvely does:
+
+```solidity
+uint256 collateralTokenBalanceInVault = collateralToken.balanceOf(address(this));
+return collateralTokenBalanceInVault + additionalCollateralTokenAmount;
+```
+
+Any user can grief the vault by donating arbitrary amounts of the collateral ERC-20 (e.g. WETH).  These unsolicited
+funds do **not** affect the borrower’s accounting inside Aave, yet the helper assumes the entire balance must be
+supplied in the upcoming leverage operation.  When a keeper calls `increaseLeverage()`, the simulated post-action
+leverage shoots **above** `targetLeverageBps`, so the function reverts with `IncreaseLeverageOutOfRange`.
+
+The vault lacks a mechanism to burn or refund the stray collateral, rendering `increaseLeverage()` unusable until
+governance intervenes.
+
+### Severity
+High – Denial-of-service of the opposite rebalancing direction; together with the debt-token variant it can freeze
+both leverage adjustments entirely.
+
+### Reproduction Steps (Hardhat / Foundry)
+1. Deploy a `DLoopCore*` vault whose leverage is **below** `targetLeverageBps`.
+2. Attacker executes `collateralToken.transfer(vault, X)` where `X` is large.
+3. Keeper attempts `increaseLeverage(required, 0)`.
+4. Call reverts with `IncreaseLeverageOutOfRange`, blocking all further lever-ups.
+
+### Suggested Remedy
+* Apply the *same* fix pattern: ignore or cap unsolicited collateral when computing `requiredCollateralTokenAmount` so
+  the simulated leverage can **never** exceed `targetLeverageBps`.
+* Recommended implementation: make both `_getRequiredDebtTokenAmountToRebalance()` and
+  `_getRequiredCollateralTokenAmountToRebalance()` return `max(calculated, additionalAmount)` rather than summing the
+  vault’s token balance.
+
+### Additional To-Dos
+- [ ] Unit test the collateral-token grief scenario.
+- [ ] Ensure shared helper logic covers both paths without regression.
+
+## References (additional)
+* Internal source: `contracts/vaults/dloop/core/DLoopCoreBase.sol` lines ~1320-1336.
+* Original bug report: <https://github.com/hats-finance/dTRINITY-0xee5c6f15e8d0b55a5eff84bb66beeee0e6140ffe/issues/303>
 
 ---
 Owner: TBD  
