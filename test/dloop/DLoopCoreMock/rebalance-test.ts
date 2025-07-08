@@ -781,6 +781,106 @@ describe("DLoopCoreMock Rebalance Tests", function () {
         expect(executedOperations).to.include(testCase.operation);
       });
     }
+
+    // Test to capture the issue with the underflow
+    for (const testCase of multiUserTests) {
+      it(testCase.name, async function () {
+        // Use a single user with multiple scenarios sequentially
+        const user = accounts[1];
+
+        const executedOperations: string[] = [];
+
+        for (const scenario of testCase.scenarios) {
+          // Set initial prices
+          await dloopMock.setMockPrice(
+            await collateralToken.getAddress(),
+            scenario.prices.collateral,
+          );
+          await dloopMock.setMockPrice(
+            await debtToken.getAddress(),
+            scenario.prices.debt,
+          );
+
+          // User makes deposit (only once)
+          // If user already deposited in the previous scenario, skip deposit
+          const currentShares = await dloopMock.balanceOf(user.address);
+
+          if (currentShares === 0n) {
+            await dloopMock
+              .connect(user)
+              .deposit(ethers.parseEther("100"), user.address);
+          }
+
+          // Create imbalance
+          await dloopMock.setMockPrice(
+            await collateralToken.getAddress(),
+            scenario.priceChange.collateral,
+          );
+          await dloopMock.setMockPrice(
+            await debtToken.getAddress(),
+            scenario.priceChange.debt,
+          );
+
+          const leverageAfterPriceChange =
+            await dloopMock.getCurrentLeverageBps();
+
+          if (leverageAfterPriceChange < TARGET_LEVERAGE_BPS) {
+            // Get user balance before operation
+            const userBalanceBefore = await debtToken.balanceOf(user.address);
+
+            // Run increase leverage
+            await dloopMock.connect(user).increaseLeverage(scenario.amount, 0);
+
+            // Verify user received tokens after increase leverage
+            const userBalanceAfter = await debtToken.balanceOf(user.address);
+            expect(userBalanceAfter).to.be.gt(userBalanceBefore);
+
+            // Track executed operation
+            executedOperations.push("increase");
+          } else if (leverageAfterPriceChange > TARGET_LEVERAGE_BPS) {
+            // Give the system 100 "debt tokens" directly to mess with leverage calc
+            await debtToken.mint(
+              await dloopMock.getAddress(),
+              ethers.parseEther("100"),
+            );
+
+            const contractDebtBalance = await debtToken.balanceOf(
+              await dloopMock.getAddress(),
+            );
+            console.log(
+              "Debt token  balance before in dloopMock:",
+              ethers.formatEther(contractDebtBalance),
+            );
+
+            // Get user balance before operation
+            const userBalanceBefore = await collateralToken.balanceOf(
+              user.address,
+            );
+
+            const leverageBefore = await dloopMock.getCurrentLeverageBps();
+            console.log("my test leverageBefore", leverageBefore);
+
+            // Run decrease leverage
+            await dloopMock.connect(user).decreaseLeverage(0, 0);
+
+            const leverageAfter = await dloopMock.getCurrentLeverageBps();
+            console.log("my test leverageAfter", leverageAfter);
+
+            // Verify user received tokens after decrease leverage
+            const userBalanceAfter = await collateralToken.balanceOf(
+              user.address,
+            );
+            expect(userBalanceAfter).to.be.gt(userBalanceBefore);
+
+            // Track executed operation
+            executedOperations.push("decrease");
+          }
+        }
+
+        // Make sure that the executed operations are the same as the expected operations
+        expect(executedOperations).to.include(testCase.operation);
+      });
+    }
   });
 
   describe("VI. Rebalance with Vault Token Balance", function () {
