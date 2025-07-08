@@ -40,7 +40,6 @@ contract MockAdapterPositiveSlippage is IDStableConversionAdapter {
             address(this),
             vaultAssetAmount
         );
-        // Mock contract: Use standard approve for testing purposes
         IERC20(address(vaultToken)).approve(
             address(vaultToken),
             vaultAssetAmount

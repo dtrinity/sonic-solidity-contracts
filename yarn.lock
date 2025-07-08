@@ -398,6 +398,18 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@chainlink/contracts@npm:^0.8.0":
+  version: 0.8.0
+  resolution: "@chainlink/contracts@npm:0.8.0"
+  dependencies:
+    "@eth-optimism/contracts": "npm:^0.5.21"
+    "@openzeppelin/contracts": "npm:~4.3.3"
+    "@openzeppelin/contracts-upgradeable-4.7.3": "npm:@openzeppelin/contracts-upgradeable@v4.7.3"
+    "@openzeppelin/contracts-v0.7": "npm:@openzeppelin/contracts@v3.4.2"
+  checksum: 10c0/ecca110d5723c4c717a438dfaa8e767af76d70e2e6ea78d85ccf7a21161b2a464fb7a85c28536d1cf43dbd3822b5f5a8578a46ddfa366eeb56a3ce7777cce094
+  languageName: node
+  linkType: hard
+
 "@colors/colors@npm:1.5.0":
   version: 1.5.0
   resolution: "@colors/colors@npm:1.5.0"
@@ -520,6 +532,43 @@ __metadata:
     "@eslint/core": "npm:^0.13.0"
     levn: "npm:^0.4.1"
   checksum: 10c0/554847c8f2b6bfe0e634f317fc43d0b54771eea0015c4f844f75915fdb9e6170c830c004291bad57db949d61771732e459f36ed059f45cf750af223f77357c5c
+  languageName: node
+  linkType: hard
+
+"@eth-optimism/contracts@npm:^0.5.21":
+  version: 0.5.40
+  resolution: "@eth-optimism/contracts@npm:0.5.40"
+  dependencies:
+    "@eth-optimism/core-utils": "npm:0.12.0"
+    "@ethersproject/abstract-provider": "npm:^5.7.0"
+    "@ethersproject/abstract-signer": "npm:^5.7.0"
+  peerDependencies:
+    ethers: ^5
+  checksum: 10c0/f003e027b2732ff4d137707511f5f9a61c9467466f1e26cd0a1925422a25d01de2efd779b6ea1fcc92a161e82f2437567b02b940c2889e10ff756ada67dfcd93
+  languageName: node
+  linkType: hard
+
+"@eth-optimism/core-utils@npm:0.12.0":
+  version: 0.12.0
+  resolution: "@eth-optimism/core-utils@npm:0.12.0"
+  dependencies:
+    "@ethersproject/abi": "npm:^5.7.0"
+    "@ethersproject/abstract-provider": "npm:^5.7.0"
+    "@ethersproject/address": "npm:^5.7.0"
+    "@ethersproject/bignumber": "npm:^5.7.0"
+    "@ethersproject/bytes": "npm:^5.7.0"
+    "@ethersproject/constants": "npm:^5.7.0"
+    "@ethersproject/contracts": "npm:^5.7.0"
+    "@ethersproject/hash": "npm:^5.7.0"
+    "@ethersproject/keccak256": "npm:^5.7.0"
+    "@ethersproject/properties": "npm:^5.7.0"
+    "@ethersproject/providers": "npm:^5.7.0"
+    "@ethersproject/rlp": "npm:^5.7.0"
+    "@ethersproject/transactions": "npm:^5.7.0"
+    "@ethersproject/web": "npm:^5.7.0"
+    bufio: "npm:^1.0.7"
+    chai: "npm:^4.3.4"
+  checksum: 10c0/d9ef647b9e858adf9b6f4aa4804d4321dc3c710c5141005695154bdaac3a8472b5a5ab6a02e673e475d254b8236e70e664305b6337729223a611597dc43988b4
   languageName: node
   linkType: hard
 
@@ -1057,7 +1106,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@ethersproject/providers@npm:5.8.0, @ethersproject/providers@npm:^5.7.2":
+"@ethersproject/providers@npm:5.8.0, @ethersproject/providers@npm:^5.7.0, @ethersproject/providers@npm:^5.7.2":
   version: 5.8.0
   resolution: "@ethersproject/providers@npm:5.8.0"
   dependencies:
@@ -2167,6 +2216,20 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@openzeppelin/contracts-upgradeable-4.7.3@npm:@openzeppelin/contracts-upgradeable@v4.7.3":
+  version: 4.7.3
+  resolution: "@openzeppelin/contracts-upgradeable@npm:4.7.3"
+  checksum: 10c0/8379684b04492ede34d5c1c77b2cb6d746bb5f3db988a4595952d91a76c4f7a4d07ae2663a5da37fad65b5414d0442544e1a9a7d0912e6612d08ba2078430203
+  languageName: node
+  linkType: hard
+
+"@openzeppelin/contracts-upgradeable@npm:4.9.3":
+  version: 4.9.3
+  resolution: "@openzeppelin/contracts-upgradeable@npm:4.9.3"
+  checksum: 10c0/e20ea16956cd33ca746a8ca274725f32541d947e787eea2f50116b92f458f33292ce40d3148e603ec731539cd833a75986dc346cc1189057bcd5c3755e95d600
+  languageName: node
+  linkType: hard
+
 "@openzeppelin/contracts-upgradeable@npm:^5.2.0":
   version: 5.3.0
   resolution: "@openzeppelin/contracts-upgradeable@npm:5.3.0"
@@ -2176,10 +2239,43 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@openzeppelin/contracts-v0.7@npm:@openzeppelin/contracts@v3.4.2":
+  version: 3.4.2
+  resolution: "@openzeppelin/contracts@npm:3.4.2"
+  checksum: 10c0/92e7047d889d9beb6675951d07f4bde8c0ca4f20d93d50c7f7b6bb1cd7dd072c88bf71c4f0be8ad9a28ad1031b8e471463fb338936914514e74cd32bf287ad1f
+  languageName: node
+  linkType: hard
+
+"@openzeppelin/contracts@npm:4.9.3":
+  version: 4.9.3
+  resolution: "@openzeppelin/contracts@npm:4.9.3"
+  checksum: 10c0/3d22eca3a13314f1950bde5738b12a56ebb0a2538a07769ea68a1130bbb21e28a46961130d1acce6e9bd3c40ff81cddd88b6644e10e12c2efec31b37ed6afc81
+  languageName: node
+  linkType: hard
+
 "@openzeppelin/contracts@npm:^5.2.0":
   version: 5.3.0
   resolution: "@openzeppelin/contracts@npm:5.3.0"
   checksum: 10c0/b8a2d97413c24635c92de4b2a1188fa58ab252515aff38eabce4fa66bd3d8ae1649010d17fccaeb4e266bf8314c8bd92757fedca97bf643b6b98e11dea3fa83d
+  languageName: node
+  linkType: hard
+
+"@openzeppelin/contracts@npm:~4.3.3":
+  version: 4.3.3
+  resolution: "@openzeppelin/contracts@npm:4.3.3"
+  checksum: 10c0/5d871396e6a985c0ea8a36f475443eb3a20f728f85b5ef7e280d33fdb765d942764b25b3d04cb8d5108cd32912a3624aad0354a3d6311ea99e5dc1c8cfb20ed1
+  languageName: node
+  linkType: hard
+
+"@pendle/core-v2@npm:^5.4.0":
+  version: 5.10.2
+  resolution: "@pendle/core-v2@npm:5.10.2"
+  dependencies:
+    "@chainlink/contracts": "npm:^0.8.0"
+    "@openzeppelin/contracts": "npm:4.9.3"
+    "@openzeppelin/contracts-upgradeable": "npm:4.9.3"
+    ethers: "npm:^5.7.2"
+  checksum: 10c0/f8a586d15127930d538254dde05a26a9b27d1f59c4498832201d1c7cbdf037c51f231e7e6c36cc33f6dcd8e6eb79a0e7945fad0e7756903abef9ef765a526ae0
   languageName: node
   linkType: hard
 
@@ -3591,6 +3687,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"bufio@npm:^1.0.7":
+  version: 1.2.3
+  resolution: "bufio@npm:1.2.3"
+  checksum: 10c0/50c48a43acd4a300b32fed25194bcc6fafa6ae1f3d92779934ad5cd8ab94116728577e6fd416e606b476a18dc893a16ab2a9614724911cfbd8ac7f5c1696bdb5
+  languageName: node
+  linkType: hard
+
 "bytes@npm:3.1.2":
   version: 3.1.2
   resolution: "bytes@npm:3.1.2"
@@ -3729,7 +3832,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"chai@npm:^4.3.7":
+"chai@npm:^4.3.4, chai@npm:^4.3.7":
   version: 4.5.0
   resolution: "chai@npm:4.5.0"
   dependencies:
@@ -5001,6 +5104,7 @@ __metadata:
     "@nomicfoundation/ignition-core": "npm:^0.15.9"
     "@openzeppelin/contracts": "npm:^5.2.0"
     "@openzeppelin/contracts-upgradeable": "npm:^5.2.0"
+    "@pendle/core-v2": "npm:^5.4.0"
     "@rari-capital/solmate": "npm:^6.4.0"
     "@typechain/ethers-v6": "npm:^0.5.1"
     "@typechain/hardhat": "npm:^9.1.0"
@@ -5049,7 +5153,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"ethers@npm:^5.7.0":
+"ethers@npm:^5.7.0, ethers@npm:^5.7.2":
   version: 5.8.0
   resolution: "ethers@npm:5.8.0"
   dependencies:

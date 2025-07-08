@@ -58,5 +58,13 @@
   "DLoopDepositorOdos": 1749751516,
   "DLoopRedeemerOdos": 1749751519,
   "DLoopDecreaseLeverageOdos": 1749751522,
-  "DLoopIncreaseLeverageOdos": 1749751526
+  "PendleChainlinkOracles:PT-aUSDC:PT-wstkscUSD": 1751377033,
+  "PendleDecimalConverters:PT-aUSDC:PT-wstkscUSD": 1751377285,
+  "OSWOSDecimalConverters": 1751378990,
+  "ChainlinkCompositeAggregator_OS_S_USD": 1751543595,
+  "setup-ptausdc-ptwstkscusd-wos-for-usd-oracle-wrapper": 1751603100,
+  "add-ptausdc-ptwstkscusd-wos-reserves": 1751603488,
+  "dStableATokenWrappers": 1751603495,
+  "deploy_redeemer_with_fees": 1751603729,
+  "DLoopIncreaseLeverageOdos": 1751603734
 }

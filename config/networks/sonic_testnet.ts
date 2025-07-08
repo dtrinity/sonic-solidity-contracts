@@ -6,6 +6,7 @@ import {
   DS_TOKEN_ID,
   DUSD_TOKEN_ID,
   INCENTIVES_PROXY_ID,
+  SDUSD_DSTAKE_TOKEN_ID,
 } from "../../typescript/deploy-ids";
 import {
   ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT,
@@ -35,7 +36,7 @@ const wSAddress = "0x039e2fB66102314Ce7b64Ce5Ce3E5183bc94aD38";
  * @returns The configuration for the network
  */
 export async function getConfig(
-  _hre: HardhatRuntimeEnvironment,
+  _hre: HardhatRuntimeEnvironment
 ): Promise<Config> {
   // Token info will only be populated after their deployment
   const dUSDDeployment = await _hre.deployments.getOrNull(DUSD_TOKEN_ID);
@@ -48,10 +49,27 @@ export async function getConfig(
   const wOSTokenDeployment = await _hre.deployments.getOrNull("wOS");
   const stSTokenDeployment = await _hre.deployments.getOrNull("stS");
   const wstkscUSDDeployment = await _hre.deployments.getOrNull("wstkscUSD");
+
+  // Fetch deployed dLend StaticATokenLM wrapper (optional, may be undefined on testnet)
+  const dLendATokenWrapperDUSDDeployment = await _hre.deployments.getOrNull(
+    "dLend_ATokenWrapper_dUSD"
+  );
+
+  // Fetch deployed dLend RewardsController (optional)
+  const rewardsControllerDeployment =
+    await _hre.deployments.getOrNull(INCENTIVES_PROXY_ID);
+
+  // Fetch deployed dLend aToken for dUSD (optional)
+  const aTokenDUSDDeployment = await _hre.deployments.getOrNull("dLEND-dUSD");
+
+  // Fetch deployed dSTAKE token for sdUSD (optional)
+  const sdUSDDeployment = await _hre.deployments.getOrNull(
+    SDUSD_DSTAKE_TOKEN_ID
+  );
   // Get mock oracle deployments
   const mockOracleNameToAddress: Record<string, string> = {};
   const mockOracleAddressesDeployment = await _hre.deployments.getOrNull(
-    "MockOracleNameToAddress",
+    "MockOracleNameToAddress"
   );
 
   // Fetch deployed dLend StaticATokenLM wrappers
@@ -69,11 +87,11 @@ export async function getConfig(
   if (mockOracleAddressesDeployment?.linkedData) {
     Object.assign(
       mockOracleNameToAddress,
-      mockOracleAddressesDeployment.linkedData,
+      mockOracleAddressesDeployment.linkedData
     );
   } else {
     console.warn(
-      "WARN: MockOracleNameToAddress deployment not found or has no linkedData. Oracle configuration might be incomplete.",
+      "WARN: MockOracleNameToAddress deployment not found or has no linkedData. Oracle configuration might be incomplete."
     );
   }
 
@@ -154,6 +172,8 @@ export async function getConfig(
           frxUSDDeployment?.address || ZeroAddress,
           sfrxUSDDeployment?.address || ZeroAddress,
         ],
+        initialFeeReceiver: deployer,
+        initialRedemptionFeeBps: 1 * ONE_PERCENT_BPS,
       },
       dS: {
         collaterals: [
@@ -161,6 +181,8 @@ export async function getConfig(
           wOSTokenDeployment?.address || ZeroAddress,
           stSTokenDeployment?.address || ZeroAddress,
         ],
+        initialFeeReceiver: deployer,
+        initialRedemptionFeeBps: 1 * ONE_PERCENT_BPS,
       },
     },
     dLoop: {
@@ -392,6 +414,55 @@ export async function getConfig(
         sfrxUSD: strategySfrxUSD,
         wstkscUSD: strategyWstkscUSD,
       },
+    },
+    dStake: {
+      sdUSD: {
+        dStable: emptyStringIfUndefined(dUSDDeployment?.address),
+        name: "Staked dUSD",
+        symbol: "sdUSD",
+        initialAdmin: deployer,
+        initialFeeManager: deployer,
+        initialWithdrawalFeeBps: 10,
+        adapters: [
+          {
+            vaultAsset: emptyStringIfUndefined(
+              dLendATokenWrapperDUSDDeployment?.address
+            ),
+            adapterContract: "WrappedDLendConversionAdapter",
+          },
+        ],
+        defaultDepositVaultAsset: emptyStringIfUndefined(
+          dLendATokenWrapperDUSDDeployment?.address
+        ),
+        collateralVault: "DStakeCollateralVault_sdUSD",
+        collateralExchangers: [deployer],
+        dLendRewardManager: {
+          managedVaultAsset: emptyStringIfUndefined(
+            dLendATokenWrapperDUSDDeployment?.address
+          ),
+          dLendAssetToClaimFor: emptyStringIfUndefined(
+            aTokenDUSDDeployment?.address
+          ),
+          dLendRewardsController: emptyStringIfUndefined(
+            rewardsControllerDeployment?.address
+          ),
+          treasury: deployer,
+          maxTreasuryFeeBps: 500,
+          initialTreasuryFeeBps: 100,
+          initialExchangeThreshold: 1e6,
+          initialAdmin: deployer,
+          initialRewardsManager: deployer,
+        },
+      },
+    },
+    vesting: {
+      name: "dBOOST sdUSD Season 1",
+      symbol: "sdUSD-S1",
+      dstakeToken: emptyStringIfUndefined(sdUSDDeployment?.address),
+      vestingPeriod: 180 * 24 * 60 * 60, // 6 months
+      maxTotalSupply: _hre.ethers.parseUnits("20000000", 18).toString(), // 20M tokens
+      initialOwner: deployer,
+      minDepositThreshold: _hre.ethers.parseUnits("250000", 18).toString(), // 250k tokens
     },
     odos: {
       router: "", // Odos doesn't work on sonic testnet

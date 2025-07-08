@@ -1,3 +1,4 @@
+import { isAddress } from "ethers";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
 
@@ -25,7 +26,10 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const missingConfigs: string[] = [];
 
   // Check dUSD configuration
-  if (!dUSDConfig?.initialFeeReceiver) {
+  if (
+    !dUSDConfig?.initialFeeReceiver ||
+    !isAddress(dUSDConfig.initialFeeReceiver)
+  ) {
     missingConfigs.push("dStables.dUSD.initialFeeReceiver");
   }
 
@@ -34,7 +38,10 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   }
 
   // Check dS configuration
-  if (!dSConfig?.initialFeeReceiver) {
+  if (
+    !dSConfig?.initialFeeReceiver ||
+    !isAddress(dSConfig.initialFeeReceiver)
+  ) {
     missingConfigs.push("dStables.dS.initialFeeReceiver");
   }
 
@@ -88,6 +95,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   );
 
   if (!dUSDHasRole) {
+    console.log("Granting role for dUSD RedeemerWithFees.");
     await dUSDCollateralVaultContract.grantRole(
       dUSDWithdrawerRole,
       dUSDRedeemerWithFeesDeployment.address,
