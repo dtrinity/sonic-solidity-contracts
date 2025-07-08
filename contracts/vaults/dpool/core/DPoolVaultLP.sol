@@ -62,6 +62,7 @@ abstract contract DPoolVaultLP is
     // --- Errors ---
     // ZeroAddress and InsufficientLPTokens are inherited from IDPoolVaultLP interface
     // FeeExceedsMaxFee and InitialFeeExceedsMaxFee are inherited from SupportsWithdrawalFee
+    error ZeroShares();
 
     // --- Constructor ---
 
@@ -244,6 +245,9 @@ abstract contract DPoolVaultLP is
         uint256 lpAmount,
         uint256 shares
     ) internal virtual override {
+        if (shares == 0) {
+            revert ZeroShares();
+        }
         IERC20(LP_TOKEN).safeTransferFrom(caller, address(this), lpAmount);
         _mint(receiver, shares);
         emit Deposit(caller, receiver, lpAmount, shares);

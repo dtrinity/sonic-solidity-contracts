@@ -171,6 +171,7 @@ abstract contract DLoopCoreBase is
         uint256 totalCollateralBase,
         uint256 totalDebtBase
     );
+    error ZeroShares();
 
     /**
      * @dev Constructor for the DLoopCore contract
@@ -675,6 +676,9 @@ abstract contract DLoopCoreBase is
         uint256 assets,
         uint256 shares
     ) internal override nonReentrant {
+        if (shares == 0) {
+            revert ZeroShares();
+        }
         /**
          * Example of how this function works:
          *
