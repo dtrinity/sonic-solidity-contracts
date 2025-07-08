@@ -26,6 +26,7 @@ contract DStakeToken is
 
     // --- Errors ---
     error ZeroAddress();
+    error ZeroShares();
 
     // --- State ---
     IDStakeCollateralVault public collateralVault;
@@ -113,6 +114,10 @@ contract DStakeToken is
         uint256 assets,
         uint256 shares
     ) internal virtual override {
+        // Revert early if the calculated share amount is zero to prevent depositing assets without receiving shares
+        if (shares == 0) {
+            revert ZeroShares();
+        }
         if (
             address(router) == address(0) ||
             address(collateralVault) == address(0)
