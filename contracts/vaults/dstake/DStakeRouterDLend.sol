@@ -514,9 +514,7 @@ contract DStakeRouterDLend is IDStakeRouter, AccessControl {
         }
         delete vaultAssetToAdapter[vaultAsset];
 
-        // Inform the collateral vault to remove supported asset. The call is expected to
-        // succeed after the collateral vault's DoS fix; if it fails we propagate the error
-        // to avoid leaving TVL accounting in an inconsistent state.
+        // Inform the collateral vault to remove supported asset.
         collateralVault.removeSupportedAsset(vaultAsset);
 
         emit AdapterRemoved(vaultAsset, adapterAddress);
