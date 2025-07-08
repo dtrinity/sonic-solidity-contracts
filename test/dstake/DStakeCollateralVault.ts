@@ -431,5 +431,76 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
         expect(await collateralVault.totalValueInDStable()).to.equal(0);
       });
     });
+
+    describe("Supported Asset Removal without Zero Balance", function () {
+      beforeEach(async function () {
+        if (!adapter) {
+          this.skip();
+        }
+        // Ensure adapter added
+        if (
+          (await router.vaultAssetToAdapter(vaultAssetAddress)) === ZeroAddress
+        ) {
+          await router
+            .connect(deployer)
+            .addAdapter(vaultAssetAddress, adapterAddress);
+        }
+        // Ensure vault holds a positive balance of the asset
+        const currentBal = await vaultAssetToken.balanceOf(
+          collateralVaultAddress
+        );
+        if (currentBal === 0n) {
+          const depositAmount = ethers.parseUnits("100", dStableDecimals);
+          await stable.mint(deployer.address, depositAmount);
+          await dStableToken
+            .connect(deployer)
+            .approve(DStakeTokenAddress, depositAmount);
+          await DStakeToken.connect(deployer).deposit(
+            depositAmount,
+            deployer.address
+          );
+          expect(
+            await vaultAssetToken.balanceOf(collateralVaultAddress)
+          ).to.be.gt(0n);
+        }
+      });
+
+      it("Should allow removeSupportedAsset even when balance > 0", async function () {
+        // Verify balance > 0
+        const balBefore = await vaultAssetToken.balanceOf(
+          collateralVaultAddress
+        );
+        expect(balBefore).to.be.gt(0n);
+
+        // Remove supported asset via routerSigner
+        await expect(
+          collateralVault
+            .connect(routerSigner)
+            .removeSupportedAsset(vaultAssetAddress)
+        )
+          .to.emit(collateralVault, "SupportedAssetRemoved")
+          .withArgs(vaultAssetAddress);
+
+        // Asset should no longer be in supported list
+        const supported = await collateralVault.getSupportedAssets();
+        expect(supported).to.not.include(vaultAssetAddress);
+      });
+
+      it("Should revert sendAsset after asset is removed but balance remains", async function () {
+        // Remove asset first
+        await collateralVault
+          .connect(routerSigner)
+          .removeSupportedAsset(vaultAssetAddress);
+
+        // Attempt to send should revert due to AssetNotSupported
+        await expect(
+          collateralVault
+            .connect(routerSigner)
+            .sendAsset(vaultAssetAddress, 1n, deployer.address)
+        )
+          .to.be.revertedWithCustomError(collateralVault, "AssetNotSupported")
+          .withArgs(vaultAssetAddress);
+      });
+    });
   });
 });

@@ -74,12 +74,18 @@ contract DStakeCollateralVault is IDStakeCollateralVault, AccessControl {
             address vaultAsset = _supportedAssets.at(i);
             address adapterAddress = IAdapterProvider(router)
                 .vaultAssetToAdapter(vaultAsset);
-            if (adapterAddress != address(0)) {
-                uint256 balance = IERC20(vaultAsset).balanceOf(address(this));
-                if (balance > 0) {
-                    totalValue += IDStableConversionAdapter(adapterAddress)
-                        .assetValueInDStable(vaultAsset, balance);
-                }
+
+            if (adapterAddress == address(0)) {
+                // If there is no adapter configured, simply skip this asset to
+                // preserve liveness. Anyone can dust this vault and we cannot
+                // enforce that all assets have adapters before removal
+                continue;
+            }
+
+            uint256 balance = IERC20(vaultAsset).balanceOf(address(this));
+            if (balance > 0) {
+                totalValue += IDStableConversionAdapter(adapterAddress)
+                    .assetValueInDStable(vaultAsset, balance);
             }
         }
         return totalValue;
@@ -115,15 +121,15 @@ contract DStakeCollateralVault is IDStakeCollateralVault, AccessControl {
 
     /**
      * @notice Removes a supported vault asset. Can only be invoked by the router.
-     *         Requires the vault to hold zero balance of the asset.
      */
     function removeSupportedAsset(
         address vaultAsset
     ) external onlyRole(ROUTER_ROLE) {
         if (!_isSupported(vaultAsset)) revert AssetNotSupported(vaultAsset);
-        if (IERC20(vaultAsset).balanceOf(address(this)) > 0) {
-            revert NonZeroBalance(vaultAsset);
-        }
+        // NOTE: Previously this function reverted if the vault still held a
+        // non-zero balance of the asset, causing a griefing / DoS vector:
+        // anyone could deposit 1 wei of the token to block removal. The
+        // check has been removed so governance can always delist an asset.
 
         _supportedAssets.remove(vaultAsset);
         emit SupportedAssetRemoved(vaultAsset);
