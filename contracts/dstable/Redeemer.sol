@@ -18,6 +18,7 @@
 pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/access/AccessControl.sol";
+import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
 import "contracts/common/IMintableERC20.sol";
 import "./CollateralVault.sol";
@@ -109,7 +110,7 @@ contract Redeemer is AccessControl, OracleAware {
     function dstableAmountToBaseValue(
         uint256 dstableAmount
     ) public view returns (uint256) {
-        return (dstableAmount * BASE_UNIT) / (10 ** dstableDecimals);
+        return Math.mulDiv(dstableAmount, BASE_UNIT, 10 ** dstableDecimals);
     }
 
     /* Admin */

@@ -22,6 +22,7 @@ import "@openzeppelin/contracts/utils/structs/EnumerableMap.sol";
 import "contracts/common/IMintableERC20.sol";
 import "./CollateralVault.sol";
 import "./OracleAware.sol";
+import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
 // Forward declaration interface for AmoVault instead of importing the full contract
 interface IAmoVault {
@@ -277,8 +278,7 @@ contract AmoManager is AccessControl, OracleAware {
         for (uint256 i = 0; i < _amoVaults.length(); i++) {
             (address vaultAddress, ) = _amoVaults.at(i);
             if (isAmoActive(vaultAddress)) {
-                totalBaseValue += IAmoVault(vaultAddress)
-                    .totalCollateralValue();
+                totalBaseValue += IAmoVault(vaultAddress).totalCollateralValue();
             }
         }
         return totalBaseValue;
@@ -468,8 +468,11 @@ contract AmoManager is AccessControl, OracleAware {
     ) public view returns (uint256) {
         uint8 dstableDecimals = dstable.decimals();
         return
-            (baseValue * (10 ** dstableDecimals)) /
-            (oracle.getAssetPrice(address(dstable)));
+            Math.mulDiv(
+                baseValue,
+                10 ** dstableDecimals,
+                oracle.getAssetPrice(address(dstable))
+            );
     }
 
     /**
@@ -482,8 +485,11 @@ contract AmoManager is AccessControl, OracleAware {
     ) public view returns (uint256) {
         uint8 dstableDecimals = dstable.decimals();
         return
-            (dstableAmount * oracle.getAssetPrice(address(dstable))) /
-            (10 ** dstableDecimals);
+            Math.mulDiv(
+                dstableAmount,
+                oracle.getAssetPrice(address(dstable)),
+                10 ** dstableDecimals
+            );
     }
 
     /* Admin */
