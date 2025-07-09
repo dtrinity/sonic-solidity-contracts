@@ -1298,6 +1298,10 @@ describe("DLoopCoreMock Rebalance Tests", function () {
               .deposit(ethers.parseEther("100"), user.address);
           }
 
+          // Get the current leverage
+          // const currentLeverage = await dloopMock.getCurrentLeverageBps();
+          // console.log("currentLeverage", currentLeverage);
+
           // Create imbalance
           await dloopMock.setMockPrice(
             await collateralToken.getAddress(),
@@ -1319,10 +1323,13 @@ describe("DLoopCoreMock Rebalance Tests", function () {
             ethers.parseEther("100"),
           );
 
-          // Run decrease leverage and expect it to revert with panic code 0x11
-          await expect(
-            dloopMock.connect(user).decreaseLeverage(0, 0),
-          ).to.be.revertedWithPanic(0x11); // 0x11 is the panic code for underflow
+          // // Run decrease leverage and expect it to revert with panic code 0x11
+          // await expect(
+          //   dloopMock.connect(user).decreaseLeverage(0, 0),
+          // ).to.be.revertedWithPanic(0x11); // 0x11 is the panic code for underflow
+
+          // After fixing the underflow, the leverage should be at target
+          await dloopMock.connect(user).decreaseLeverage(0, 0);
         });
       }
     });

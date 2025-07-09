@@ -171,6 +171,18 @@ abstract contract DLoopCoreBase is
         uint256 totalCollateralBase,
         uint256 totalDebtBase
     );
+    error WithdrawCollateralTokenInBaseGreaterThanTotalCollateralBase(
+        uint256 withdrawCollateralTokenInBase,
+        uint256 totalCollateralBase
+    );
+    error RequiredDebtTokenAmountInBaseGreaterThanTotalDebtBase(
+        uint256 requiredDebtTokenAmountInBase,
+        uint256 totalDebtBase
+    );
+    error NewTotalCollateralBaseLessThanNewTotalDebtBase(
+        uint256 newTotalCollateralBase,
+        uint256 newTotalDebtBase
+    );
 
     /**
      * @dev Constructor for the DLoopCore contract
@@ -1607,14 +1619,61 @@ abstract contract DLoopCoreBase is
             (BasisPointConstants.ONE_HUNDRED_PERCENT_BPS + subsidyBps)) /
             BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
 
+        // Calculate the new total collateral base to avoid potential underflow
+        if (withdrawCollateralTokenInBase > totalCollateralBase) {
+            revert WithdrawCollateralTokenInBaseGreaterThanTotalCollateralBase(
+                withdrawCollateralTokenInBase,
+                totalCollateralBase
+            );
+        }
+        uint256 newTotalCollateralBase = totalCollateralBase - withdrawCollateralTokenInBase;
+
+        // Calculate the new total debt base to avoid potential underflow
+        if (requiredDebtTokenAmountInBase > totalDebtBase) {
+            revert RequiredDebtTokenAmountInBaseGreaterThanTotalDebtBase(
+                requiredDebtTokenAmountInBase,
+                totalDebtBase
+            );
+        }
+        uint256 newTotalDebtBase = totalDebtBase - requiredDebtTokenAmountInBase;
+
+        // Make sure the new total collateral base is greater than the new total debt base
+        if (newTotalCollateralBase < newTotalDebtBase) {
+            revert NewTotalCollateralBaseLessThanNewTotalDebtBase(
+                newTotalCollateralBase,
+                newTotalDebtBase
+            );
+        }
+
+        /**
+         * Instead of calculating the denominator as:
+         * denominator = (totalCollateralBase -
+         *                 withdrawCollateralTokenInBase -
+         *                 totalDebtBase +
+         *                 requiredDebtTokenAmountInBase)
+         *
+         * We can calculate the denominator as:
+         * denominator = (newTotalCollateralBase - newTotalDebtBase)
+         * 
+         * where:
+         *   - newTotalCollateralBase = totalCollateralBase - withdrawCollateralTokenInBase
+         *   - newTotalDebtBase = totalDebtBase - requiredDebtTokenAmountInBase
+         *
+         * This is to avoid potential underflow of the series of subtraction:
+         *          (totalCollateralBase - withdrawCollateralTokenInBase - totalDebtBase)
+         *
+         * For example, if the total collateral base is 100, the withdraw collateral token amount is 100,
+         * and the total debt base is 10, the series of subtraction will be:
+         *          100 - 100 - 10 = -10
+         *
+         * This will cause the new leverage to be negative, which will be reverted due to underflow.
+         */
+
         // Calculate the new leverage after decreasing the leverage
         uint256 newLeverageBps = ((totalCollateralBase -
             withdrawCollateralTokenInBase) *
             BasisPointConstants.ONE_HUNDRED_PERCENT_BPS) /
-            (totalCollateralBase -
-                withdrawCollateralTokenInBase -
-                totalDebtBase +
-                requiredDebtTokenAmountInBase);
+            (newTotalCollateralBase - newTotalDebtBase);
 
         // Make sure the new leverage is decreasing and is not below the target leverage
         if (
