@@ -1330,6 +1330,13 @@ describe("DLoopCoreMock Rebalance Tests", function () {
 
           // After fixing the underflow, the leverage should be at target
           await dloopMock.connect(user).decreaseLeverage(0, 0);
+
+          // Verify that the leverage is at target
+          const leverageAfter = await dloopMock.getCurrentLeverageBps();
+          expect(leverageAfter).to.be.closeTo(
+            TARGET_LEVERAGE_BPS,
+            TARGET_LEVERAGE_BPS * 0.01, // 1% tolerance
+          );
         });
       }
     });
