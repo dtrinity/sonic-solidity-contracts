@@ -98,6 +98,9 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       from: deployer,
       contract: "DStakeToken",
       proxy: {
+        // Use a dedicated ProxyAdmin so dSTAKE is isolated from the global DefaultProxyAdmin
+        viaAdminContract: "DStakeProxyAdmin", // this will be deployed automatically the first time it is needed
+        owner: instanceConfig.initialAdmin, // Governance multisig (configured in network config)
         proxyContract: "OpenZeppelinTransparentProxy",
         execute: {
           init: {

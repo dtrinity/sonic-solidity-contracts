@@ -140,7 +140,8 @@ export async function getConfig(
           USDCeAddress,
           scUSDAddress,
         ],
-        initialFeeReceiver: "please_fill_multisig_address",
+        // TODO: review – set to governance multisig for now
+        initialFeeReceiver: "0xE83c188a7BE46B90715C757A06cF917175f30262", // governanceMultisig
         initialRedemptionFeeBps: 0.4 * ONE_PERCENT_BPS, // Default for stablecoins
         collateralRedemptionFees: {
           // Stablecoins: 0.4%
@@ -154,7 +155,8 @@ export async function getConfig(
       },
       dS: {
         collaterals: [wSAddress, stSAddress],
-        initialFeeReceiver: "please_fill_multisig_address",
+        // TODO: review – set to governance multisig for now
+        initialFeeReceiver: "0xE83c188a7BE46B90715C757A06cF917175f30262", // governanceMultisig
         initialRedemptionFeeBps: 0.4 * ONE_PERCENT_BPS, // Default for stablecoins
         collateralRedemptionFees: {
           // Stablecoins: 0.4%
@@ -387,8 +389,9 @@ export async function getConfig(
         dStable: emptyStringIfUndefined(dUSDDeployment?.address),
         name: "Staked dUSD",
         symbol: "sdUSD",
-        initialAdmin: deployer, // TODO: Temporary for QA
-        initialFeeManager: deployer, // TODO: Temporary for QA
+        // TODO: review – switched to governance multisig so deployer doesn’t keep long-term control
+        initialAdmin: "0xE83c188a7BE46B90715C757A06cF917175f30262", // governanceMultisig
+        initialFeeManager: "0xE83c188a7BE46B90715C757A06cF917175f30262", // governanceMultisig
         initialWithdrawalFeeBps: 0.1 * ONE_PERCENT_BPS, // 0.1%
         adapters: [
           {
@@ -403,7 +406,7 @@ export async function getConfig(
         ),
         collateralVault: "DStakeCollateralVault_sdUSD", // Keep in sync with deploy ID constants
         collateralExchangers: [
-          deployer, // TODO: Temporary for QA
+          "0xE83c188a7BE46B90715C757A06cF917175f30262", // governanceMultisig – review
         ],
         dLendRewardManager: {
           managedVaultAsset: emptyStringIfUndefined(
@@ -415,7 +418,7 @@ export async function getConfig(
           dLendRewardsController: emptyStringIfUndefined(
             rewardsControllerDeployment?.address,
           ), // RewardsController proxy
-          treasury: deployer, // TODO: Temporary for QA
+          treasury: "0xE83c188a7BE46B90715C757A06cF917175f30262", // governanceMultisig – review
           maxTreasuryFeeBps: 5 * ONE_PERCENT_BPS, // 5%
           initialTreasuryFeeBps: 1 * ONE_PERCENT_BPS, // 1%
           initialExchangeThreshold: 1n * 10n ** BigInt(dUSDDecimals), // TODO: 1 dStable token (fetched from contract decimals), for QA ONLY
