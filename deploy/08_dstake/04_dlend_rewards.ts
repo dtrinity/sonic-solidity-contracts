@@ -111,8 +111,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       maxTreasuryFeeBps < 0 ||
       typeof initialTreasuryFeeBps !== "number" ||
       initialTreasuryFeeBps < 0 ||
-      typeof initialExchangeThreshold !== "number" ||
-      initialExchangeThreshold < 0
+      typeof initialExchangeThreshold !== "bigint" ||
+      initialExchangeThreshold < 0n
     ) {
       throw new Error(
         `Invalid fee/threshold numbers in dLendRewardManager config for ${instanceKey}.`,

@@ -443,7 +443,7 @@ export async function getConfig(
             treasury: user1,
             maxTreasuryFeeBps: 1000,
             initialTreasuryFeeBps: 500,
-            initialExchangeThreshold: "100",
+            initialExchangeThreshold: 100n,
           },
         },
       },
@@ -502,7 +502,7 @@ export async function getConfig(
           treasury: user1, // Or a dedicated treasury address
           maxTreasuryFeeBps: 500, // Example: 5%
           initialTreasuryFeeBps: 100, // Example: 1%
-          initialExchangeThreshold: 1e6, // Example: 1 dStable (adjust based on dStable decimals)
+          initialExchangeThreshold: 1_000_000n, // Example: 1 dStable (adjust based on dStable decimals)
           initialAdmin: user1, // Optional: specific admin for this reward manager
           initialRewardsManager: user1, // Optional: specific rewards manager role holder
         },
@@ -538,7 +538,7 @@ export async function getConfig(
           treasury: user1, // Or a dedicated treasury address
           maxTreasuryFeeBps: 500, // Example: 5%
           initialTreasuryFeeBps: 100, // Example: 1%
-          initialExchangeThreshold: 1e6, // Example: 1 dStable (adjust based on dStable decimals)
+          initialExchangeThreshold: 1_000_000n, // Example: 1 dStable (adjust based on dStable decimals)
           initialAdmin: user1, // Optional: specific admin for this reward manager
           initialRewardsManager: user1, // Optional: specific rewards manager role holder
         },
