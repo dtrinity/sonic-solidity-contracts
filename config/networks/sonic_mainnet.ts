@@ -62,6 +62,8 @@ export async function getConfig(
 
   const odoRouterV2Address = "0xaC041Df48dF9791B0654f1Dbbf2CC8450C5f2e9D"; // OdoRouterV2
 
+  const governanceSafeMultisig = "0xE83c188a7BE46B90715C757A06cF917175f30262";
+
   // Fetch deployed dLend StaticATokenLM wrapper, aToken and RewardsController (may be undefined prior to deployment)
   const dLendATokenWrapperDUSDDeployment = await _hre.deployments.getOrNull(
     "dLend_ATokenWrapper_dUSD",
@@ -109,7 +111,7 @@ export async function getConfig(
       OS: osAddress,
     },
     walletAddresses: {
-      governanceMultisig: "0xE83c188a7BE46B90715C757A06cF917175f30262", // Created via Safe
+      governanceMultisig: governanceSafeMultisig, // Created via Safe
       incentivesVault: "0x4B4B5cC616be4cd1947B93f2304d36b3e80D3ef6", // TODO: Add incentives vault address
     },
     pendle: {
@@ -140,7 +142,8 @@ export async function getConfig(
           USDCeAddress,
           scUSDAddress,
         ],
-        initialFeeReceiver: "please_fill_multisig_address",
+        // TODO: review – set to governance multisig for now
+        initialFeeReceiver: governanceSafeMultisig, // governanceMultisig
         initialRedemptionFeeBps: 0.4 * ONE_PERCENT_BPS, // Default for stablecoins
         collateralRedemptionFees: {
           // Stablecoins: 0.4%
@@ -154,7 +157,8 @@ export async function getConfig(
       },
       dS: {
         collaterals: [wSAddress, stSAddress],
-        initialFeeReceiver: "please_fill_multisig_address",
+        // TODO: review – set to governance multisig for now
+        initialFeeReceiver: governanceSafeMultisig, // governanceMultisig
         initialRedemptionFeeBps: 0.4 * ONE_PERCENT_BPS, // Default for stablecoins
         collateralRedemptionFees: {
           // Stablecoins: 0.4%
