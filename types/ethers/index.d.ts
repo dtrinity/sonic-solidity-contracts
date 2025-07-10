@@ -1,3 +1,6 @@
 declare module "ethers" {
-  export = any;
+  export const ethers: any;
+  export const ZeroAddress: string;
+  const _default: any;
+  export default _default;
 }
