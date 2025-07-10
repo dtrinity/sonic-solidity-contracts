@@ -176,7 +176,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     }
   }
 
-  console.log(`🥩 ${__filename.split("/").slice(-2).join("/")}: ✅`);
+  console.log("  08_dstake/01_deploy_dstake_core.ts: ✅");
 };
 
 export default func;
