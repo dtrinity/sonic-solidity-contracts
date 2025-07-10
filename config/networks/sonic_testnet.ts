@@ -160,7 +160,16 @@ export async function getConfig(
           sfrxUSDDeployment?.address || ZeroAddress,
         ],
         initialFeeReceiver: deployer,
-        initialRedemptionFeeBps: 1 * ONE_PERCENT_BPS,
+        initialRedemptionFeeBps: 0.4 * ONE_PERCENT_BPS, // Default for stablecoins
+        collateralRedemptionFees: {
+          // Stablecoins: 0.4%
+          [USDCDeployment?.address || ZeroAddress]: 0.4 * ONE_PERCENT_BPS,
+          [USDSDeployment?.address || ZeroAddress]: 0.4 * ONE_PERCENT_BPS,
+          [frxUSDDeployment?.address || ZeroAddress]: 0.4 * ONE_PERCENT_BPS,
+          // Yield bearing stablecoins: 0.5%
+          [sUSDSDeployment?.address || ZeroAddress]: 0.5 * ONE_PERCENT_BPS,
+          [sfrxUSDDeployment?.address || ZeroAddress]: 0.5 * ONE_PERCENT_BPS,
+        },
       },
       dS: {
         collaterals: [
@@ -169,7 +178,14 @@ export async function getConfig(
           stSTokenDeployment?.address || ZeroAddress,
         ],
         initialFeeReceiver: deployer,
-        initialRedemptionFeeBps: 1 * ONE_PERCENT_BPS,
+        initialRedemptionFeeBps: 0.4 * ONE_PERCENT_BPS, // Default for stablecoins
+        collateralRedemptionFees: {
+          // Stablecoins: 0.4%
+          [wSAddress]: 0.4 * ONE_PERCENT_BPS,
+          [wOSTokenDeployment?.address || ZeroAddress]: 0.4 * ONE_PERCENT_BPS,
+          // Yield bearing stablecoins: 0.5%
+          [stSTokenDeployment?.address || ZeroAddress]: 0.5 * ONE_PERCENT_BPS,
+        },
       },
     },
     dLoop: {
