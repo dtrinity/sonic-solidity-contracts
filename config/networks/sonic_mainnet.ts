@@ -2,11 +2,16 @@ import { ZeroAddress } from "ethers";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 
 import { ONE_PERCENT_BPS } from "../../typescript/common/bps_constants";
-import { DS_TOKEN_ID, DUSD_TOKEN_ID } from "../../typescript/deploy-ids";
+import {
+  DS_TOKEN_ID,
+  DUSD_TOKEN_ID,
+  INCENTIVES_PROXY_ID,
+} from "../../typescript/deploy-ids";
 import {
   ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT,
   ORACLE_AGGREGATOR_PRICE_DECIMALS,
 } from "../../typescript/oracle_aggregator/constants";
+import { fetchTokenInfo } from "../../typescript/token/utils";
 import {
   rateStrategyHighLiquidityStable,
   rateStrategyHighLiquidityVolatile,
@@ -57,15 +62,33 @@ export async function getConfig(
 
   const odoRouterV2Address = "0xaC041Df48dF9791B0654f1Dbbf2CC8450C5f2e9D"; // OdoRouterV2
 
-  // const dLendATokenWrapperDUSDDeployment = await _hre.deployments.getOrNull(
-  //   "dLend_ATokenWrapper_dUSD",
-  // );
+  const governanceSafeMultisig = "0xE83c188a7BE46B90715C757A06cF917175f30262";
+
+  // Fetch deployed dLend StaticATokenLM wrapper, aToken and RewardsController (may be undefined prior to deployment)
+  const dLendATokenWrapperDUSDDeployment = await _hre.deployments.getOrNull(
+    "dLend_ATokenWrapper_dUSD",
+  );
+  const rewardsControllerDeployment =
+    await _hre.deployments.getOrNull(INCENTIVES_PROXY_ID);
+  const aTokenDUSDDeployment = await _hre.deployments.getOrNull("dLEND-dUSD");
 
   const { deployer } = await _hre.getNamedAccounts();
   const feeTreasury = deployer;
 
   if (!feeTreasury) {
     throw new Error("Fee treasury address not found");
+  }
+
+  // Fetch dUSD token decimals from the contract if deployed
+  let dUSDDecimals = 0;
+
+  if (dUSDDeployment?.address) {
+    const dUSDTokenInfo = await fetchTokenInfo(_hre, dUSDDeployment.address);
+    dUSDDecimals = dUSDTokenInfo.decimals;
+
+    if (dUSDDecimals < 1) {
+      throw Error("dUSD token decimals must be greater than 0");
+    }
   }
 
   return {
@@ -88,7 +111,7 @@ export async function getConfig(
       OS: osAddress,
     },
     walletAddresses: {
-      governanceMultisig: "0xE83c188a7BE46B90715C757A06cF917175f30262", // Created via Safe
+      governanceMultisig: governanceSafeMultisig, // Created via Safe
       incentivesVault: "0x4B4B5cC616be4cd1947B93f2304d36b3e80D3ef6", // TODO: Add incentives vault address
     },
     pendle: {
@@ -119,7 +142,8 @@ export async function getConfig(
           USDCeAddress,
           scUSDAddress,
         ],
-        initialFeeReceiver: "please_fill_multisig_address",
+        // TODO: review – set to governance multisig for now
+        initialFeeReceiver: governanceSafeMultisig, // governanceMultisig
         initialRedemptionFeeBps: 0.4 * ONE_PERCENT_BPS, // Default for stablecoins
         collateralRedemptionFees: {
           // Stablecoins: 0.4%
@@ -133,7 +157,8 @@ export async function getConfig(
       },
       dS: {
         collaterals: [wSAddress, stSAddress],
-        initialFeeReceiver: "please_fill_multisig_address",
+        // TODO: review – set to governance multisig for now
+        initialFeeReceiver: governanceSafeMultisig, // governanceMultisig
         initialRedemptionFeeBps: 0.4 * ONE_PERCENT_BPS, // Default for stablecoins
         collateralRedemptionFees: {
           // Stablecoins: 0.4%
@@ -147,6 +172,7 @@ export async function getConfig(
       dUSDAddress: dUSDDeployment?.address || "",
       coreVaults: {
         "3x_sFRAX_dUSD": {
+          // TODO: ALL dLOOP values are for QA ONLY. Reset them before mainnet
           venue: "dlend",
           name: "Leveraged sFRAX-dUSD Vault",
           symbol: "FRAX-dUSD-3x",
@@ -157,14 +183,12 @@ export async function getConfig(
           upperBoundTargetLeverageBps: 400 * ONE_PERCENT_BPS, // 400% leverage, meaning 4x leverage
           maxSubsidyBps: 2 * ONE_PERCENT_BPS, // 2% subsidy
           extraParams: {
-            // targetStaticATokenWrapper:
-            //   dLendATokenWrapperDUSDDeployment?.address,
             targetStaticATokenWrapper:
-              "0x0000000000000000000000000000000000000000", // TODO: add real targetStaticATokenWrapper address
+              dLendATokenWrapperDUSDDeployment?.address,
             treasury: feeTreasury,
             maxTreasuryFeeBps: "1000",
             initialTreasuryFeeBps: "500",
-            initialExchangeThreshold: "100",
+            initialExchangeThreshold: 1n * 10n ** BigInt(dUSDDecimals), // TODO: 1 dStable token (fetched from contract decimals), for QA ONLY
           },
         },
       },
@@ -362,27 +386,46 @@ export async function getConfig(
     odos: {
       router: odoRouterV2Address,
     },
-    // dStake: {
-    //   // TODO: Add dStake configuration for mainnet
-    //   // sdUSD: {
-    //   //   dStable: dUSDDeployment?.address || "",
-    //   //   name: "Staked dUSD",
-    //   //   symbol: "sdUSD",
-    //   //   initialAdmin: "please_fill_multisig_address",
-    //   //   initialFeeManager: "please_fill_multisig_address",
-    //   //   initialWithdrawalFeeBps: 0.1 * ONE_PERCENT_BPS, // dSTAKE: 0.1%
-    //   //   // ... other config
-    //   // },
-    //   // sdS: {
-    //   //   dStable: dSDeployment?.address || "",
-    //   //   name: "Staked dS",
-    //   //   symbol: "sdS",
-    //   //   initialAdmin: "please_fill_multisig_address",
-    //   //   initialFeeManager: "please_fill_multisig_address",
-    //   //   initialWithdrawalFeeBps: 0.1 * ONE_PERCENT_BPS, // dSTAKE: 0.1%
-    //   //   // ... other config
-    //   // },
-    // },
+    dStake: {
+      sdUSD: {
+        dStable: emptyStringIfUndefined(dUSDDeployment?.address),
+        name: "Staked dUSD",
+        symbol: "sdUSD",
+        initialAdmin: deployer, // TODO: Temporary for QA
+        initialFeeManager: deployer, // TODO: Temporary for QA
+        initialWithdrawalFeeBps: 0.1 * ONE_PERCENT_BPS, // 0.1%
+        adapters: [
+          {
+            vaultAsset: emptyStringIfUndefined(
+              dLendATokenWrapperDUSDDeployment?.address,
+            ),
+            adapterContract: "WrappedDLendConversionAdapter",
+          },
+        ],
+        defaultDepositVaultAsset: emptyStringIfUndefined(
+          dLendATokenWrapperDUSDDeployment?.address,
+        ),
+        collateralVault: "DStakeCollateralVault_sdUSD", // Keep in sync with deploy ID constants
+        collateralExchangers: [
+          deployer, // TODO: Temporary for QA
+        ],
+        dLendRewardManager: {
+          managedVaultAsset: emptyStringIfUndefined(
+            dLendATokenWrapperDUSDDeployment?.address,
+          ), // StaticATokenLM wrapper
+          dLendAssetToClaimFor: emptyStringIfUndefined(
+            aTokenDUSDDeployment?.address,
+          ), // dLEND aToken for dUSD
+          dLendRewardsController: emptyStringIfUndefined(
+            rewardsControllerDeployment?.address,
+          ), // RewardsController proxy
+          treasury: deployer, // TODO: Temporary for QA
+          maxTreasuryFeeBps: 5 * ONE_PERCENT_BPS, // 5%
+          initialTreasuryFeeBps: 1 * ONE_PERCENT_BPS, // 1%
+          initialExchangeThreshold: 1n * 10n ** BigInt(dUSDDecimals), // TODO: 1 dStable token (fetched from contract decimals), for QA ONLY
+        },
+      },
+    },
   };
 }
 

@@ -220,7 +220,7 @@ export interface DLendRewardManagerConfig {
   readonly treasury: Address; // Address for treasury fees
   readonly maxTreasuryFeeBps: number;
   readonly initialTreasuryFeeBps: number;
-  readonly initialExchangeThreshold: number; // Min dStable amount to trigger compounding
+  readonly initialExchangeThreshold: bigint; // Min dStable amount to trigger compounding
   readonly initialAdmin?: Address; // Optional: admin for this DStakeRewardManagerDLend instance
   readonly initialRewardsManager?: Address; // Optional: holder of REWARDS_MANAGER_ROLE for this instance
 }
