@@ -9,6 +9,10 @@
     "resolveJsonModule": true,
     "moduleResolution": "node",
     "types": ["node", "hardhat", "hardhat-deploy", "ethers"],
-    "typeRoots": ["./types", "./node_modules/@types"]
+    "typeRoots": ["./types", "./node_modules/@types"],
+    "paths": {
+      "hardhat/*": ["./node_modules/hardhat/*"],
+      "hardhat-deploy/*": ["./node_modules/hardhat-deploy/*"]
+    }
   }
 }

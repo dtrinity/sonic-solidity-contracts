@@ -1,4 +1,4 @@
-import { ethers } from "ethers";
+import { ethers as ethersV6 } from "ethers";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 
 import { ONE_PERCENT_BPS } from "../../typescript/common/bps_constants";
@@ -213,7 +213,7 @@ export async function getConfig(
     },
     oracleAggregators: {
       USD: {
-        baseCurrency: ethers.ZeroAddress, // Note that USD is represented by the zero address, per Aave's convention
+        baseCurrency: ethersV6.ZeroAddress, // Note that USD is represented by the zero address, per Aave's convention
         hardDStablePeg: 10n ** BigInt(ORACLE_AGGREGATOR_PRICE_DECIMALS),
         priceDecimals: ORACLE_AGGREGATOR_PRICE_DECIMALS,
         api3OracleAssets: {
