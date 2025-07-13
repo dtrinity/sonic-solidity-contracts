@@ -101,22 +101,19 @@ export async function getPTOdosSwapQuote(
   console.log("Estimated PT amount needed:", estimatedPTAmount);
   console.log("Formatted PT amount:", formattedPTAmount);
 
-  // Get the underlying asset from PT token using Pendle SDK
-  const underlyingAsset = await getUnderlyingAssetFromPT(
-    effectivePTAddress,
-    chainId,
-  );
-  console.log("Underlying asset from PT:", underlyingAsset);
+  const syAddress = await getSyAddressFromPT(effectivePTAddress);
+
+  const ytAddress = await getYtAddressFromSy(syAddress);
 
   // Call Pendle SDK to get PT -> underlying swap data
   const pendleResponse = await callSDK<RedeemPyData>(
-    `v2/sdk/${chainId}/redeem`,
+    `v2/sdk/${chainId}/redeem-sy`,
     {
       receiver: liquidatorAccountAddress, // Contract will receive underlying
-      slippage: 0.005, // 0.5% slippage tolerance
-      yt: effectivePTAddress, // PT token to redeem
+      slippage: 0.01, // 1% slippage tolerance
+      sy: syAddress, // PT token to redeem
       amountIn: formattedPTAmount, // Amount of PT to swap
-      tokenOut: underlyingAsset, // Want underlying asset
+      tokenOut: ytAddress, // Want underlying asset
     },
   );
 
@@ -133,7 +130,7 @@ export async function getPTOdosSwapQuote(
   let odosTarget = "";
   let odosCalldata = "";
 
-  if (underlyingAsset.toLowerCase() !== borrowTokenAddress.toLowerCase()) {
+  if (ytAddress.toLowerCase() !== borrowTokenAddress.toLowerCase()) {
     console.log("Different tokens - need Odos swap from underlying to target");
 
     // Use the exact expected output from Pendle as input for Odos
@@ -143,7 +140,7 @@ export async function getPTOdosSwapQuote(
       chainId: chainId,
       inputTokens: [
         {
-          tokenAddress: underlyingAsset,
+          tokenAddress: ytAddress,
           amount: underlyingAmountFromPendle,
         },
       ],
@@ -173,7 +170,7 @@ export async function getPTOdosSwapQuote(
 
   // Step 3: Create PTSwapData structure
   const ptSwapData: PTSwapData = {
-    underlyingAsset: underlyingAsset,
+    underlyingAsset: ytAddress,
     expectedUnderlying: pendleData.data.amountOut,
     pendleTarget: pendleData.tx.to,
     pendleCalldata: pendleData.tx.data,
@@ -239,6 +236,40 @@ async function estimatePTInputAmount(
 }
 
 /**
+ * Get the SY address from a PT token
+ *
+ * @param ptTokenAddress - PT token address
+ * @returns SY address
+ */
+export async function getSyAddressFromPT(
+  ptTokenAddress: string,
+): Promise<string> {
+  const ptContract = await hre.ethers.getContractAt(
+    ["function SY() external view returns (address)"],
+    ptTokenAddress,
+  );
+  const syAddress = await ptContract.SY();
+  return syAddress;
+}
+
+/**
+ * Get the YT address from a SY token
+ *
+ * @param syAddress - SY token address
+ * @returns YT address
+ */
+export async function getYtAddressFromSy(syAddress: string): Promise<string> {
+  // Get underlying from SY token
+  const syContract = await hre.ethers.getContractAt(
+    ["function yieldToken() external view returns (address)"],
+    syAddress,
+  );
+
+  const ytAddress = await syContract.yieldToken();
+  return ytAddress;
+}
+
+/**
  * Get the underlying asset address from a PT token
  * This function tries multiple methods to determine the underlying asset
  *
@@ -252,20 +283,10 @@ async function getUnderlyingAssetFromPT(
 ): Promise<string> {
   try {
     // Method 1: Try to call SY() method on PT token
-    const ptContract = await hre.ethers.getContractAt(
-      ["function SY() external view returns (address)"],
-      ptTokenAddress,
-    );
-
-    const syAddress = await ptContract.SY();
+    const syAddress = await getSyAddressFromPT(ptTokenAddress);
 
     // Get underlying from SY token
-    const syContract = await hre.ethers.getContractAt(
-      ["function yieldToken() external view returns (address)"],
-      syAddress,
-    );
-
-    const underlyingAddress = await syContract.yieldToken();
+    const underlyingAddress = await getYtAddressFromSy(syAddress);
     console.log("Found underlying asset via SY method:", underlyingAddress);
     return underlyingAddress;
   } catch (syError) {
