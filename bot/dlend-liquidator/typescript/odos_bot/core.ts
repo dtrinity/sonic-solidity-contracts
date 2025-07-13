@@ -33,6 +33,8 @@ import {
   getUserLiquidationParams,
 } from "./liquidation";
 import { sendSlackMessage } from "./notification";
+import { checkIfPTToken } from "./pendle/check";
+import { performPTOdosLiquidationDefault } from "./pendle/core";
 import { getAssembledQuote, getOdosSwapQuote } from "./quote";
 
 // Load environment variables
@@ -202,6 +204,7 @@ export async function runBotBatch(
       step: "",
       error: "",
       errorMessage: "",
+      extraInfo: {},
     };
 
     try {
@@ -284,16 +287,42 @@ export async function runBotBatch(
           userState.lastTrial = Date.now();
           userState.success = false;
 
-          const txHash = await performOdosLiquidationDefault(
-            liquidationParams.userAddress,
-            deployer,
-            liquidationParams.debtToken.reserveTokenInfo.address,
+          const isPTToken = await checkIfPTToken(
             liquidationParams.collateralToken.reserveTokenInfo.address,
-            liquidationParams.toRepayAmount.toBigInt(),
           );
+          userState.extraInfo["isPTToken"] = isPTToken.toString();
 
-          userState.step = "successful_liquidation";
-          userState.success = true;
+          let txHash = "<none>";
+
+          if (isPTToken) {
+            printLog(
+              index,
+              `Collateral token ${liquidationParams.collateralToken.reserveTokenInfo.symbol} is a PT token, performing PT liquidation`,
+            );
+            txHash = await performPTOdosLiquidationDefault(
+              liquidationParams.userAddress,
+              deployer,
+              liquidationParams.debtToken.reserveTokenInfo.address,
+              liquidationParams.collateralToken.reserveTokenInfo.address,
+              liquidationParams.toRepayAmount.toBigInt(),
+            );
+            userState.step = "successful_pt_liquidation";
+            userState.success = true;
+          } else {
+            printLog(
+              index,
+              `Collateral token ${liquidationParams.collateralToken.reserveTokenInfo.symbol} is not a PT token, performing Odos liquidation`,
+            );
+            txHash = await performOdosLiquidationDefault(
+              liquidationParams.userAddress,
+              deployer,
+              liquidationParams.debtToken.reserveTokenInfo.address,
+              liquidationParams.collateralToken.reserveTokenInfo.address,
+              liquidationParams.toRepayAmount.toBigInt(),
+            );
+            userState.step = "successful_non_pt_liquidation";
+            userState.success = true;
+          }
 
           const successMessage =
             `<!channel> 🎯 *Successful Liquidation via Odos DEX* 🎯\n\n` +
@@ -347,7 +376,8 @@ export async function runBotBatch(
             debtTokenDecimals,
           )} ${debtTokenSymbol}\n` +
           `• Profit (USD): $${Number(userState.profitInUSD).toFixed(6)}\n` +
-          `• Step: ${userState.step}`;
+          `• Step: ${userState.step}\n` +
+          `• Extra Info: ${JSON.stringify(userState.extraInfo)}`;
 
         await sendSlackMessage(errorMessage);
       }

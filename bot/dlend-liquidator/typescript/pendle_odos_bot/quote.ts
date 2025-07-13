@@ -1,10 +1,6 @@
-import { BigNumber } from "@ethersproject/bignumber";
-import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 import hre from "hardhat";
 
-import { approveAllowanceIfNeeded } from "../common/erc20";
 import { OdosClient } from "../odos/client";
-import { QuoteResponse } from "../odos/types";
 import { callSDK, RedeemPyData } from "../pendle/sdk";
 import { getERC4626UnderlyingAsset } from "../token/erc4626";
 
@@ -12,12 +8,12 @@ import { getERC4626UnderlyingAsset } from "../token/erc4626";
  * Interface for PT swap data that will be encoded for the contract
  */
 export interface PTSwapData {
-  underlyingAsset: string;      // Underlying asset from PT swap
-  expectedUnderlying: string;   // Expected underlying amount from Pendle SDK  
-  pendleTarget: string;         // Target contract for Pendle transaction
-  pendleCalldata: string;       // Transaction data from Pendle SDK
-  odosTarget: string;           // Target contract for Odos transaction (can be zero address)
-  odosCalldata: string;         // Transaction data from Odos API (can be empty)
+  underlyingAsset: string; // Underlying asset from PT swap
+  expectedUnderlying: string; // Expected underlying amount from Pendle SDK
+  pendleTarget: string; // Target contract for Pendle transaction
+  pendleCalldata: string; // Transaction data from Pendle SDK
+  odosTarget: string; // Target contract for Odos transaction (can be zero address)
+  odosCalldata: string; // Transaction data from Odos API (can be empty)
 }
 
 /**
@@ -55,7 +51,7 @@ export async function getPTOdosSwapQuote(
     ],
     collateralTokenAddress,
   );
-  
+
   const borrowToken = await hre.ethers.getContractAt(
     ["function decimals() view returns (uint8)"],
     borrowTokenAddress,
@@ -70,13 +66,15 @@ export async function getPTOdosSwapQuote(
   let effectivePTAddress = collateralTokenAddress;
 
   if (isUnstakeToken) {
-    effectivePTAddress = await getERC4626UnderlyingAsset(collateralTokenAddress);
+    effectivePTAddress = await getERC4626UnderlyingAsset(
+      collateralTokenAddress,
+    );
     console.log("Using unstaked PT token for quote:", effectivePTAddress);
   }
 
   // Step 1: Get PT swap quote from Pendle SDK
   console.log("Step 1: Getting PT swap quote from Pendle SDK");
-  
+
   const readableRepayAmount = OdosClient.parseTokenAmount(
     repayAmount.toString(),
     Number(borrowDecimals),
@@ -85,7 +83,7 @@ export async function getPTOdosSwapQuote(
   // Calculate input amount for PT swap (we need to estimate how much PT to swap)
   // For now, we'll use a conservative estimate and let slippage protection handle precision
   const swapSlippageBufferPercentage = 1.0; // 1% buffer for PT swaps
-  
+
   const estimatedPTAmount = await estimatePTInputAmount(
     effectivePTAddress,
     borrowTokenAddress,
@@ -104,17 +102,23 @@ export async function getPTOdosSwapQuote(
   console.log("Formatted PT amount:", formattedPTAmount);
 
   // Get the underlying asset from PT token using Pendle SDK
-  const underlyingAsset = await getUnderlyingAssetFromPT(effectivePTAddress, chainId);
+  const underlyingAsset = await getUnderlyingAssetFromPT(
+    effectivePTAddress,
+    chainId,
+  );
   console.log("Underlying asset from PT:", underlyingAsset);
 
   // Call Pendle SDK to get PT -> underlying swap data
-  const pendleResponse = await callSDK<RedeemPyData>(`v2/sdk/${chainId}/redeem`, {
-    receiver: liquidatorAccountAddress,    // Contract will receive underlying
-    slippage: 0.005,                      // 0.5% slippage tolerance  
-    yt: effectivePTAddress,               // PT token to redeem
-    amountIn: formattedPTAmount,          // Amount of PT to swap
-    tokenOut: underlyingAsset,            // Want underlying asset
-  });
+  const pendleResponse = await callSDK<RedeemPyData>(
+    `v2/sdk/${chainId}/redeem`,
+    {
+      receiver: liquidatorAccountAddress, // Contract will receive underlying
+      slippage: 0.005, // 0.5% slippage tolerance
+      yt: effectivePTAddress, // PT token to redeem
+      amountIn: formattedPTAmount, // Amount of PT to swap
+      tokenOut: underlyingAsset, // Want underlying asset
+    },
+  );
 
   const pendleData = pendleResponse.data;
   console.log("Pendle SDK response:", {
@@ -125,13 +129,13 @@ export async function getPTOdosSwapQuote(
 
   // Step 2: Get Odos quote for underlying -> target token (if needed)
   console.log("Step 2: Getting Odos quote for underlying -> target");
-  
+
   let odosTarget = "";
   let odosCalldata = "";
 
   if (underlyingAsset.toLowerCase() !== borrowTokenAddress.toLowerCase()) {
     console.log("Different tokens - need Odos swap from underlying to target");
-    
+
     const underlyingToken = await hre.ethers.getContractAt(
       ["function decimals() view returns (uint8)"],
       underlyingAsset,
@@ -140,7 +144,7 @@ export async function getPTOdosSwapQuote(
 
     // Use the exact expected output from Pendle as input for Odos
     const underlyingAmountFromPendle = pendleData.data.amountOut;
-    
+
     const odosQuoteRequest = {
       chainId: chainId,
       inputTokens: [
@@ -173,10 +177,10 @@ export async function getPTOdosSwapQuote(
     };
 
     const assembled = await odosClient.assembleTransaction(assembleRequest);
-    
+
     odosTarget = assembled.transaction.to;
     odosCalldata = assembled.transaction.data;
-    
+
     console.log("Odos assembled transaction:", {
       to: odosTarget,
       dataLength: odosCalldata.length,
@@ -229,8 +233,11 @@ async function estimatePTInputAmount(
 ): Promise<number> {
   try {
     // Get underlying asset first
-    const underlyingAsset = await getUnderlyingAssetFromPT(ptTokenAddress, chainId);
-    
+    const underlyingAsset = await getUnderlyingAssetFromPT(
+      ptTokenAddress,
+      chainId,
+    );
+
     // If target is the same as underlying, we can estimate 1:1 (plus buffer)
     if (underlyingAsset.toLowerCase() === targetTokenAddress.toLowerCase()) {
       return targetAmount * (1 + slippageBuffer / 100);
@@ -249,7 +256,10 @@ async function estimatePTInputAmount(
     // Add an additional buffer for PT price impact
     return estimatedUnderlyingNeeded * 1.1; // 10% additional buffer for PT
   } catch (error) {
-    console.warn("Could not estimate PT input amount, using conservative fallback:", error);
+    console.warn(
+      "Could not estimate PT input amount, using conservative fallback:",
+      error,
+    );
     // Fallback: use a conservative estimate
     return targetAmount * 1.5; // 50% buffer as fallback
   }
@@ -273,53 +283,58 @@ async function getUnderlyingAssetFromPT(
       ["function SY() external view returns (address)"],
       ptTokenAddress,
     );
-    
+
     const syAddress = await ptContract.SY();
-    
+
     // Get underlying from SY token
     const syContract = await hre.ethers.getContractAt(
       ["function yieldToken() external view returns (address)"],
       syAddress,
     );
-    
+
     const underlyingAddress = await syContract.yieldToken();
     console.log("Found underlying asset via SY method:", underlyingAddress);
     return underlyingAddress;
   } catch (syError) {
     console.log("SY method failed, trying alternative approach:", syError);
-    
+
     try {
       // Method 2: Query Pendle markets API to find the underlying
-      const response = await fetch(`https://api.pendle.finance/core/v1/markets/${chainId}`);
-      const markets = await response.json();
-      
-      // Find market where PT matches our token
-      const market = markets.find((m: any) => 
-        m.pt.toLowerCase() === ptTokenAddress.toLowerCase()
+      const response = await fetch(
+        `https://api.pendle.finance/core/v1/markets/${chainId}`,
       );
-      
+      const markets = await response.json();
+
+      // Find market where PT matches our token
+      const market = markets.find(
+        (m: any) => m.pt.toLowerCase() === ptTokenAddress.toLowerCase(),
+      );
+
       if (market && market.underlyingAsset) {
         console.log("Found underlying asset via API:", market.underlyingAsset);
         return market.underlyingAsset;
       }
-      
+
       throw new Error("Market not found in API");
     } catch (apiError) {
       console.error("Both methods failed to get underlying asset:", apiError);
-      
+
       // Method 3: Hardcoded fallback for known PT tokens (based on config)
       const knownPTTokens: Record<string, string> = {
         // Add known PT token mappings here based on your configuration
         // These should be populated from the PT token registry
       };
-      
+
       const fallbackUnderlying = knownPTTokens[ptTokenAddress.toLowerCase()];
+
       if (fallbackUnderlying) {
         console.log("Using hardcoded fallback underlying:", fallbackUnderlying);
         return fallbackUnderlying;
       }
-      
-      throw new Error(`Could not determine underlying asset for PT token: ${ptTokenAddress}`);
+
+      throw new Error(
+        `Could not determine underlying asset for PT token: ${ptTokenAddress}`,
+      );
     }
   }
 }
@@ -364,20 +379,20 @@ export function validatePTSwapData(ptSwapData: PTSwapData): boolean {
   if (!ptSwapData.underlyingAsset || ptSwapData.underlyingAsset === "") {
     throw new Error("Missing underlying asset in PT swap data");
   }
-  
+
   if (!ptSwapData.expectedUnderlying || ptSwapData.expectedUnderlying === "0") {
     throw new Error("Missing or zero expected underlying amount");
   }
-  
+
   if (!ptSwapData.pendleTarget || ptSwapData.pendleTarget === "") {
     throw new Error("Missing Pendle target contract");
   }
-  
+
   if (!ptSwapData.pendleCalldata || ptSwapData.pendleCalldata === "0x") {
     throw new Error("Missing Pendle transaction data");
   }
-  
+
   // Odos target and calldata are optional (for direct case)
-  
+
   return true;
-} 
+}
