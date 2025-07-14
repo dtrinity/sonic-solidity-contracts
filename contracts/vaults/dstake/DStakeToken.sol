@@ -220,6 +220,10 @@ contract DStakeToken is
         uint256 assets, // This is now the GROSS amount
         uint256 shares
     ) internal virtual override {
+        if (caller != owner) {
+            _spendAllowance(owner, caller, shares);
+        }
+
         if (
             address(router) == address(0) ||
             address(collateralVault) == address(0)

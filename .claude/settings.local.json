@@ -8,6 +8,13 @@
       "Bash(npx hardhat:*)",
       "Bash(find:*)",
       "Bash(yarn test:*)"
+      "Bash(npm run:*)",
+      "Bash(yarn run:*)",
+      "Bash(npx hardhat test:*)",
+      "Bash(make:*)",
+      "Bash(npx hardhat compile:*)",
+      "Bash(mkdir:*)",
+      "Bash(mv:*)"
     ],
     "deny": []
   }
