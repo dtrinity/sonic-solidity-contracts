@@ -7,6 +7,7 @@ import {IDStakeCollateralVault} from "./interfaces/IDStakeCollateralVault.sol";
 import {IDStableConversionAdapter} from "./interfaces/IDStableConversionAdapter.sol";
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 // ---------------------------------------------------------------------------
 // Internal interface to query the router's public mapping without importing the
@@ -24,7 +25,7 @@ interface IAdapterProvider {
  *      DStakeToken governance.
  *      Uses AccessControl for role-based access control.
  */
-contract DStakeCollateralVault is IDStakeCollateralVault, AccessControl {
+contract DStakeCollateralVault is IDStakeCollateralVault, AccessControl, ReentrancyGuard {
     using SafeERC20 for IERC20;
     using EnumerableSet for EnumerableSet.AddressSet;
 
@@ -36,6 +37,11 @@ contract DStakeCollateralVault is IDStakeCollateralVault, AccessControl {
     error AssetNotSupported(address asset);
     error AssetAlreadySupported(address asset);
     error NonZeroBalance(address asset);
+    error CannotRescueRestrictedToken(address token);
+
+    // --- Events ---
+    event TokenRescued(address indexed token, address indexed receiver, uint256 amount);
+    event ETHRescued(address indexed receiver, uint256 amount);
 
     // --- State ---
     address public immutable dStakeToken; // The DStakeToken this vault serves
@@ -180,4 +186,76 @@ contract DStakeCollateralVault is IDStakeCollateralVault, AccessControl {
     function getSupportedAssets() external view returns (address[] memory) {
         return _supportedAssets.values();
     }
+
+    // --- Recovery Functions ---
+
+    /**
+     * @notice Rescues tokens accidentally sent to the contract
+     * @dev Cannot rescue supported vault assets or the dStable token
+     * @param token Address of the token to rescue
+     * @param receiver Address to receive the rescued tokens
+     * @param amount Amount of tokens to rescue
+     */
+    function rescueToken(
+        address token,
+        address receiver,
+        uint256 amount
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) nonReentrant {
+        if (receiver == address(0)) revert ZeroAddress();
+        
+        // Check if token is a supported asset
+        if (_isSupported(token)) {
+            revert CannotRescueRestrictedToken(token);
+        }
+        
+        // Check if token is the dStable token
+        if (token == dStable) {
+            revert CannotRescueRestrictedToken(token);
+        }
+        
+        // Rescue the token
+        IERC20(token).safeTransfer(receiver, amount);
+        emit TokenRescued(token, receiver, amount);
+    }
+
+    /**
+     * @notice Rescues ETH accidentally sent to the contract
+     * @param receiver Address to receive the rescued ETH
+     * @param amount Amount of ETH to rescue
+     */
+    function rescueETH(
+        address receiver,
+        uint256 amount
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) nonReentrant {
+        if (receiver == address(0)) revert ZeroAddress();
+        
+        (bool success, ) = receiver.call{value: amount}("");
+        require(success, "ETH transfer failed");
+        
+        emit ETHRescued(receiver, amount);
+    }
+
+    /**
+     * @notice Returns the list of tokens that cannot be rescued
+     * @return restrictedTokens Array of restricted token addresses
+     */
+    function getRestrictedRescueTokens() external view returns (address[] memory) {
+        address[] memory assets = _supportedAssets.values();
+        address[] memory restrictedTokens = new address[](assets.length + 1);
+        
+        // Add all supported assets
+        for (uint256 i = 0; i < assets.length; i++) {
+            restrictedTokens[i] = assets[i];
+        }
+        
+        // Add dStable token
+        restrictedTokens[assets.length] = dStable;
+        
+        return restrictedTokens;
+    }
+
+    /**
+     * @notice Allows the contract to receive ETH
+     */
+    receive() external payable {}
 }
