@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx hardhat clean:*)",
+      "Bash(npx solc:*)",
+      "Bash(npm test:*)",
+      "Bash(ls:*)",
+      "Bash(npx hardhat:*)",
+      "Bash(find:*)",
+      "Bash(yarn test:*)"
+    ],
+    "deny": []
+  }
+}
