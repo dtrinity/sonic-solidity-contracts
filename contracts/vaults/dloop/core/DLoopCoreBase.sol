@@ -1186,13 +1186,16 @@ abstract contract DLoopCoreBase is
          *
          * Calculate the amount of debt token to repay
          * The original formula is:
-         *      x = (C*ONE_HUNDRED_PERCENT_BPS - T'*(C - D)) * ONE_HUNDRED_PERCENT_BPS / (ONE_HUNDRED_PERCENT_BPS^2 + T' * k')
+         *      y = ((C*ONE_HUNDRED_PERCENT_BPS - TT*(C - D)) * ONE_HUNDRED_PERCENT_BPS) / (ONE_HUNDRED_PERCENT_BPS^2 + (ONE_HUNDRED_PERCENT_BPS - TT) * kk)
          *
          * However, the calculation of ONE_HUNDRED_PERCENT_BPS^2 causes arithmetic overflow,
          * so we need to simplify the formula to avoid the overflow.
          *
          * So, the transformed formula is:
-         *      x = (C*ONE_HUNDRED_PERCENT_BPS - T'*(C - D)) / (ONE_HUNDRED_PERCENT_BPS + T' * k' / ONE_HUNDRED_PERCENT_BPS)
+         *      y = (C*ONE_HUNDRED_PERCENT_BPS - TT*(C - D)) / (ONE_HUNDRED_PERCENT_BPS + (ONE_HUNDRED_PERCENT_BPS - TT) * kk / ONE_HUNDRED_PERCENT_BPS)
+         *
+         * Moreover, (ONE_HUNDRED_PERCENT_BPS - TT) will cause underflow, so we need to use the following formula:
+         *      y = (C*ONE_HUNDRED_PERCENT_BPS - TT*(C - D)) / (ONE_HUNDRED_PERCENT_BPS + kk - TT * kk / ONE_HUNDRED_PERCENT_BPS)
          */
         if (totalCollateralBase == 0) {
             revert TotalCollateralBaseIsZero();
@@ -1209,6 +1212,7 @@ abstract contract DLoopCoreBase is
             expectedTargetLeverageBps *
             (totalCollateralBase - totalDebtBase)) /
             (BasisPointConstants.ONE_HUNDRED_PERCENT_BPS +
+                subsidyBps -
                 (expectedTargetLeverageBps * subsidyBps) /
                 BasisPointConstants.ONE_HUNDRED_PERCENT_BPS);
 
@@ -1264,40 +1268,43 @@ abstract contract DLoopCoreBase is
          * - y: change amount of debt in base currency
          *
          * We have:
-         *      y = x*(1+k)
+         *      x = y*(1+k)
+         *
          *      (C + x) / (C + x - D - y) = T
-         *  <=> (C + x) / (C + x - D - x*(1+k)) = T
-         *  <=> (C + x) = T * (C + x - D - x*(1+k))
-         *  <=> C + x = T*C + T*x - T*D - T*x - T*x*k
-         *  <=> C + x = T*C - T*D - T*x*k
-         *  <=> x + T*x*k = T*C - T*D - C
-         *  <=> x*(1 + T*k) = T*C - T*D - C
-         *  <=> x = (T*(C - D) - C) / (1 + T*k)
+         *  <=> (C + x) / (C + x - D - y) = T
+         *  <=> C + y*(1+k) = T * (C + y*(1+k) - D - y)
+         *  <=> C + y*(1+k) = T * (C + y*k - D)
+         *  <=> y*(1+k) = T*C + T*y*k - T*D - C
+         *  <=> y*(1+k) - T*y*k = T*C - T*D - C
+         *  <=> y*(1 + k - T*k) = T*(C - D) - C
+         *  <=> y = (T*(C - D) - C) / (1 + (1 - T)*k)
          *
          * Suppose that:
-         *      T' = T * ONE_HUNDRED_PERCENT_BPS
-         *      k' = k * ONE_HUNDRED_PERCENT_BPS
+         *      TT = T * ONE_HUNDRED_PERCENT_BPS
+         *      kk = k * ONE_HUNDRED_PERCENT_BPS
          * then:
-         *      T = T' / ONE_HUNDRED_PERCENT_BPS
-         *      k = k' / ONE_HUNDRED_PERCENT_BPS
+         *      T = TT / ONE_HUNDRED_PERCENT_BPS
+         *      k = kk / ONE_HUNDRED_PERCENT_BPS
          * where:
-         *      - T' is the target leverage in basis points unit
-         *      - k' is the subsidy in basis points unit
+         *      - TT is the target leverage in basis points unit
+         *      - kk is the subsidy in basis points unit
          *
          * We have:
-         *      x = (T*(C - D) - C) / (1 + T*k)
-         *  <=> x = (T'*(C - D) / ONE_HUNDRED_PERCENT_BPS - C) / (1 + T'*k / ONE_HUNDRED_PERCENT_BPS)
-         *  <=> x = (T'*(C - D) - C*ONE_HUNDRED_PERCENT_BPS) / (ONE_HUNDRED_PERCENT_BPS + T'*k)
-         *  <=> x = (T'*(C - D) - C*ONE_HUNDRED_PERCENT_BPS) / (ONE_HUNDRED_PERCENT_BPS + T' * k' / ONE_HUNDRED_PERCENT_BPS)
-         *  <=> x = (T'*(C - D) - C*ONE_HUNDRED_PERCENT_BPS) * ONE_HUNDRED_PERCENT_BPS / (ONE_HUNDRED_PERCENT_BPS^2 + T' * k')
+         *      y = (T*(C - D) - C) / (1 + (1 - T)*k)
+         *  <=> y = (TT*(C - D) / ONE_HUNDRED_PERCENT_BPS - C) / (1 + (1 - TT / ONE_HUNDRED_PERCENT_BPS) * k)
+         *  <=> y = (TT*(C - D) - C*ONE_HUNDRED_PERCENT_BPS) / (ONE_HUNDRED_PERCENT_BPS + (ONE_HUNDRED_PERCENT_BPS - TT) * k)
+         *  <=> y = (TT*(C - D) - C*ONE_HUNDRED_PERCENT_BPS) / (ONE_HUNDRED_PERCENT_BPS + (ONE_HUNDRED_PERCENT_BPS - TT) * kk / ONE_HUNDRED_PERCENT_BPS)
+         *  <=> y = ((TT*(C - D) - C*ONE_HUNDRED_PERCENT_BPS) * ONE_HUNDRED_PERCENT_BPS) / (ONE_HUNDRED_PERCENT_BPS^2 + (ONE_HUNDRED_PERCENT_BPS - TT) * kk)
          *
-         * If x > 0, it means the user should increase the leverage, so the direction is 1
-         *    => x = (T*(C - D) - C) / (1 + T*k)
-         *    => x = (T'*(C - D) - C*ONE_HUNDRED_PERCENT_BPS) * ONE_HUNDRED_PERCENT_BPS / (ONE_HUNDRED_PERCENT_BPS^2 + T' * k')
-         * If x < 0, it means the user should decrease the leverage, so the direction is -1
-         *    => x = (C - T*(C - D)) / (1 + T*k)
-         *    => x = (C*ONE_HUNDRED_PERCENT_BPS - T'*(C - D)) * ONE_HUNDRED_PERCENT_BPS / (ONE_HUNDRED_PERCENT_BPS^2 + T' * k')
-         * If x = 0, it means the user should not rebalance, so the direction is 0
+         * If y > 0, it means the user should increase the leverage, so the direction is 1
+         *    => y = (T*(C - D) - C) / (1 + (1 - T)*k)
+         *    => y = ((TT*(C - D) - C*ONE_HUNDRED_PERCENT_BPS) * ONE_HUNDRED_PERCENT_BPS) / (ONE_HUNDRED_PERCENT_BPS^2 + (ONE_HUNDRED_PERCENT_BPS - TT) * kk)
+         *
+         * If y < 0, it means the user should decrease the leverage, so the direction is -1
+         *    => y = (C - T*(C - D)) / (1 + (1 - T)*k)
+         *    => y = ((C*ONE_HUNDRED_PERCENT_BPS - TT*(C - D)) * ONE_HUNDRED_PERCENT_BPS) / (ONE_HUNDRED_PERCENT_BPS^2 + (ONE_HUNDRED_PERCENT_BPS - TT) * kk)
+         *
+         * If y = 0, it means the user should not rebalance, so the direction is 0
          */
 
         uint256 currentLeverageBps = getCurrentLeverageBps();
@@ -1649,7 +1656,8 @@ abstract contract DLoopCoreBase is
                 totalCollateralBase
             );
         }
-        uint256 newTotalCollateralBase = totalCollateralBase - withdrawCollateralTokenInBase;
+        uint256 newTotalCollateralBase = totalCollateralBase -
+            withdrawCollateralTokenInBase;
 
         // Calculate the new total debt base to avoid potential underflow
         if (requiredDebtTokenAmountInBase > totalDebtBase) {
@@ -1658,7 +1666,8 @@ abstract contract DLoopCoreBase is
                 totalDebtBase
             );
         }
-        uint256 newTotalDebtBase = totalDebtBase - requiredDebtTokenAmountInBase;
+        uint256 newTotalDebtBase = totalDebtBase -
+            requiredDebtTokenAmountInBase;
 
         // Make sure the new total collateral base is greater than the new total debt base
         if (newTotalCollateralBase < newTotalDebtBase) {
@@ -1677,7 +1686,7 @@ abstract contract DLoopCoreBase is
          *
          * We can calculate the denominator as:
          * denominator = (newTotalCollateralBase - newTotalDebtBase)
-         * 
+         *
          * where:
          *   - newTotalCollateralBase = totalCollateralBase - withdrawCollateralTokenInBase
          *   - newTotalDebtBase = totalDebtBase - requiredDebtTokenAmountInBase
