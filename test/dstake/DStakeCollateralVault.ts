@@ -431,5 +431,474 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
         expect(await collateralVault.totalValueInDStable()).to.equal(0);
       });
     });
+
+    describe("Supported Asset Removal without Zero Balance", function () {
+      beforeEach(async function () {
+        if (!adapter) {
+          this.skip();
+        }
+        // Ensure adapter added
+        if (
+          (await router.vaultAssetToAdapter(vaultAssetAddress)) === ZeroAddress
+        ) {
+          await router
+            .connect(deployer)
+            .addAdapter(vaultAssetAddress, adapterAddress);
+        }
+        // Ensure vault holds a positive balance of the asset
+        const currentBal = await vaultAssetToken.balanceOf(
+          collateralVaultAddress
+        );
+        if (currentBal === 0n) {
+          const depositAmount = ethers.parseUnits("100", dStableDecimals);
+          await stable.mint(deployer.address, depositAmount);
+          await dStableToken
+            .connect(deployer)
+            .approve(DStakeTokenAddress, depositAmount);
+          await DStakeToken.connect(deployer).deposit(
+            depositAmount,
+            deployer.address
+          );
+          expect(
+            await vaultAssetToken.balanceOf(collateralVaultAddress)
+          ).to.be.gt(0n);
+        }
+      });
+
+      it("Should allow removeSupportedAsset even when balance > 0", async function () {
+        // Verify balance > 0
+        const balBefore = await vaultAssetToken.balanceOf(
+          collateralVaultAddress
+        );
+        expect(balBefore).to.be.gt(0n);
+
+        // Remove supported asset via routerSigner
+        await expect(
+          collateralVault
+            .connect(routerSigner)
+            .removeSupportedAsset(vaultAssetAddress)
+        )
+          .to.emit(collateralVault, "SupportedAssetRemoved")
+          .withArgs(vaultAssetAddress);
+
+        // Asset should no longer be in supported list
+        const supported = await collateralVault.getSupportedAssets();
+        expect(supported).to.not.include(vaultAssetAddress);
+      });
+
+      it("Should revert sendAsset after asset is removed but balance remains", async function () {
+        // Remove asset first
+        await collateralVault
+          .connect(routerSigner)
+          .removeSupportedAsset(vaultAssetAddress);
+
+        // Attempt to send should revert due to AssetNotSupported
+        await expect(
+          collateralVault
+            .connect(routerSigner)
+            .sendAsset(vaultAssetAddress, 1n, deployer.address)
+        )
+          .to.be.revertedWithCustomError(collateralVault, "AssetNotSupported")
+          .withArgs(vaultAssetAddress);
+      });
+    });
+
+    describe("Recovery Functions", function () {
+      let mockToken: ERC20;
+      let mockTokenAddress: string;
+      const testAmount = parseUnits("100", 18);
+
+      beforeEach(async function () {
+        // Deploy a mock ERC20 token for testing rescue functionality
+        const MockERC20 = await ethers.getContractFactory("MockERC20");
+        mockToken = (await MockERC20.deploy(
+          "Mock Token",
+          "MOCK",
+          parseUnits("1000000", 18)
+        )) as ERC20;
+        mockTokenAddress = await mockToken.getAddress();
+
+        // Send some mock tokens to the vault to test rescue
+        await mockToken
+          .connect(deployer)
+          .transfer(collateralVaultAddress, testAmount);
+      });
+
+      describe("rescueToken", function () {
+        it("Should successfully rescue non-restricted tokens", async function () {
+          const receiverInitialBalance = await mockToken.balanceOf(
+            user1.address
+          );
+          const vaultInitialBalance = await mockToken.balanceOf(
+            collateralVaultAddress
+          );
+
+          await expect(
+            collateralVault
+              .connect(deployer)
+              .rescueToken(mockTokenAddress, user1.address, testAmount)
+          )
+            .to.emit(collateralVault, "TokenRescued")
+            .withArgs(mockTokenAddress, user1.address, testAmount);
+
+          expect(await mockToken.balanceOf(user1.address)).to.equal(
+            receiverInitialBalance + testAmount
+          );
+          expect(await mockToken.balanceOf(collateralVaultAddress)).to.equal(
+            vaultInitialBalance - testAmount
+          );
+        });
+
+        it("Should rescue partial balance", async function () {
+          const partialAmount = testAmount / 2n;
+
+          await expect(
+            collateralVault
+              .connect(deployer)
+              .rescueToken(mockTokenAddress, user1.address, partialAmount)
+          )
+            .to.emit(collateralVault, "TokenRescued")
+            .withArgs(mockTokenAddress, user1.address, partialAmount);
+
+          expect(await mockToken.balanceOf(collateralVaultAddress)).to.equal(
+            testAmount - partialAmount
+          );
+        });
+
+        it("Should revert when trying to rescue supported vault assets", async function () {
+          if (!adapter) this.skip();
+
+          // Ensure the vault asset is supported
+          if (
+            (await router.vaultAssetToAdapter(vaultAssetAddress)) ===
+            ZeroAddress
+          ) {
+            await router
+              .connect(deployer)
+              .addAdapter(vaultAssetAddress, adapterAddress);
+          }
+
+          await expect(
+            collateralVault
+              .connect(deployer)
+              .rescueToken(vaultAssetAddress, user1.address, 1n)
+          )
+            .to.be.revertedWithCustomError(
+              collateralVault,
+              "CannotRescueRestrictedToken"
+            )
+            .withArgs(vaultAssetAddress);
+        });
+
+        it("Should revert when trying to rescue dStable token", async function () {
+          // Send some dStable to the vault
+          await stable.mint(collateralVaultAddress, testAmount);
+
+          await expect(
+            collateralVault
+              .connect(deployer)
+              .rescueToken(dStableTokenAddress, user1.address, testAmount)
+          )
+            .to.be.revertedWithCustomError(
+              collateralVault,
+              "CannotRescueRestrictedToken"
+            )
+            .withArgs(dStableTokenAddress);
+        });
+
+        it("Should only allow DEFAULT_ADMIN_ROLE to call rescueToken", async function () {
+          await expect(
+            collateralVault
+              .connect(user1)
+              .rescueToken(mockTokenAddress, user1.address, testAmount)
+          ).to.be.revertedWithCustomError(
+            collateralVault,
+            "AccessControlUnauthorizedAccount"
+          );
+        });
+
+        it("Should revert with zero address receiver", async function () {
+          await expect(
+            collateralVault
+              .connect(deployer)
+              .rescueToken(mockTokenAddress, ZeroAddress, testAmount)
+          ).to.be.revertedWithCustomError(collateralVault, "ZeroAddress");
+        });
+
+        it("Should handle rescue when token balance is insufficient", async function () {
+          const excessiveAmount = testAmount * 2n;
+          await expect(
+            collateralVault
+              .connect(deployer)
+              .rescueToken(mockTokenAddress, user1.address, excessiveAmount)
+          ).to.be.reverted;
+        });
+      });
+
+      describe("rescueETH", function () {
+        const ethAmount = parseUnits("1", 18);
+
+        beforeEach(async function () {
+          // Send ETH to the vault
+          await deployer.sendTransaction({
+            to: collateralVaultAddress,
+            value: ethAmount,
+          });
+        });
+
+        it("Should successfully rescue ETH", async function () {
+          const receiverInitialBalance = await ethers.provider.getBalance(
+            user1.address
+          );
+          const vaultInitialBalance = await ethers.provider.getBalance(
+            collateralVaultAddress
+          );
+
+          await expect(
+            collateralVault
+              .connect(deployer)
+              .rescueETH(user1.address, ethAmount)
+          )
+            .to.emit(collateralVault, "ETHRescued")
+            .withArgs(user1.address, ethAmount);
+
+          expect(await ethers.provider.getBalance(user1.address)).to.equal(
+            receiverInitialBalance + ethAmount
+          );
+          expect(
+            await ethers.provider.getBalance(collateralVaultAddress)
+          ).to.equal(vaultInitialBalance - ethAmount);
+        });
+
+        it("Should only allow DEFAULT_ADMIN_ROLE to call rescueETH", async function () {
+          await expect(
+            collateralVault.connect(user1).rescueETH(user1.address, ethAmount)
+          ).to.be.revertedWithCustomError(
+            collateralVault,
+            "AccessControlUnauthorizedAccount"
+          );
+        });
+
+        it("Should revert with zero address receiver", async function () {
+          await expect(
+            collateralVault
+              .connect(deployer)
+              .rescueETH(ZeroAddress, ethAmount)
+          ).to.be.revertedWithCustomError(collateralVault, "ZeroAddress");
+        });
+
+        it("Should revert when contract has insufficient ETH", async function () {
+          const excessiveAmount = ethAmount * 2n;
+          await expect(
+            collateralVault
+              .connect(deployer)
+              .rescueETH(user1.address, excessiveAmount)
+          ).to.be.revertedWith("ETH transfer failed");
+        });
+
+        it("Should handle rescue when contract has no ETH", async function () {
+          // First rescue all ETH
+          await collateralVault
+            .connect(deployer)
+            .rescueETH(user1.address, ethAmount);
+
+          // Try to rescue again when balance is 0
+          await expect(
+            collateralVault.connect(deployer).rescueETH(user1.address, 1n)
+          ).to.be.revertedWith("ETH transfer failed");
+        });
+      });
+
+      describe("getRestrictedRescueTokens", function () {
+        it("Should return dStable token when no assets are supported", async function () {
+          // Remove all supported assets
+          const supportedAssets = await collateralVault.getSupportedAssets();
+          for (const asset of supportedAssets) {
+            await collateralVault
+              .connect(routerSigner)
+              .removeSupportedAsset(asset);
+          }
+
+          const restrictedTokens =
+            await collateralVault.getRestrictedRescueTokens();
+          expect(restrictedTokens).to.have.lengthOf(1);
+          expect(restrictedTokens[0]).to.equal(dStableTokenAddress);
+        });
+
+        it("Should return all supported assets plus dStable", async function () {
+          if (!adapter) this.skip();
+
+          // Ensure at least one asset is supported
+          if (
+            (await router.vaultAssetToAdapter(vaultAssetAddress)) ===
+            ZeroAddress
+          ) {
+            await router
+              .connect(deployer)
+              .addAdapter(vaultAssetAddress, adapterAddress);
+          }
+
+          const supportedAssets = await collateralVault.getSupportedAssets();
+          const restrictedTokens =
+            await collateralVault.getRestrictedRescueTokens();
+
+          expect(restrictedTokens).to.have.lengthOf(supportedAssets.length + 1);
+          
+          // Check all supported assets are in restricted list
+          for (const asset of supportedAssets) {
+            expect(restrictedTokens).to.include(asset);
+          }
+          
+          // Check dStable is in restricted list
+          expect(restrictedTokens).to.include(dStableTokenAddress);
+        });
+
+        it("Should update when assets are added/removed", async function () {
+          if (!adapter) this.skip();
+
+          // Start with no supported assets
+          const supportedAssets = await collateralVault.getSupportedAssets();
+          for (const asset of supportedAssets) {
+            await collateralVault
+              .connect(routerSigner)
+              .removeSupportedAsset(asset);
+          }
+
+          let restrictedTokens =
+            await collateralVault.getRestrictedRescueTokens();
+          expect(restrictedTokens).to.have.lengthOf(1);
+
+          // Add an asset
+          await router
+            .connect(deployer)
+            .addAdapter(vaultAssetAddress, adapterAddress);
+
+          restrictedTokens = await collateralVault.getRestrictedRescueTokens();
+          expect(restrictedTokens).to.have.lengthOf(2);
+          expect(restrictedTokens).to.include(vaultAssetAddress);
+          expect(restrictedTokens).to.include(dStableTokenAddress);
+
+          // Remove the asset
+          await collateralVault
+            .connect(routerSigner)
+            .removeSupportedAsset(vaultAssetAddress);
+
+          restrictedTokens = await collateralVault.getRestrictedRescueTokens();
+          expect(restrictedTokens).to.have.lengthOf(1);
+          expect(restrictedTokens[0]).to.equal(dStableTokenAddress);
+        });
+      });
+
+      describe("Integration tests", function () {
+        it("Should allow contract to receive ETH via receive function", async function () {
+          const initialBalance = await ethers.provider.getBalance(
+            collateralVaultAddress
+          );
+          const sendAmount = parseUnits("0.5", 18);
+
+          await deployer.sendTransaction({
+            to: collateralVaultAddress,
+            value: sendAmount,
+          });
+
+          expect(
+            await ethers.provider.getBalance(collateralVaultAddress)
+          ).to.equal(initialBalance + sendAmount);
+        });
+
+        it("Should rescue multiple different tokens", async function () {
+          // Deploy another mock token
+          const MockERC20 = await ethers.getContractFactory("MockERC20");
+          const mockToken2 = (await MockERC20.deploy(
+            "Mock Token 2",
+            "MOCK2",
+            parseUnits("1000000", 18)
+          )) as ERC20;
+          const mockToken2Address = await mockToken2.getAddress();
+
+          // Send both tokens to vault
+          await mockToken2
+            .connect(deployer)
+            .transfer(collateralVaultAddress, testAmount);
+
+          // Rescue first token
+          await expect(
+            collateralVault
+              .connect(deployer)
+              .rescueToken(mockTokenAddress, user1.address, testAmount)
+          )
+            .to.emit(collateralVault, "TokenRescued")
+            .withArgs(mockTokenAddress, user1.address, testAmount);
+
+          // Rescue second token
+          await expect(
+            collateralVault
+              .connect(deployer)
+              .rescueToken(mockToken2Address, user1.address, testAmount)
+          )
+            .to.emit(collateralVault, "TokenRescued")
+            .withArgs(mockToken2Address, user1.address, testAmount);
+
+          expect(await mockToken.balanceOf(user1.address)).to.equal(testAmount);
+          expect(await mockToken2.balanceOf(user1.address)).to.equal(
+            testAmount
+          );
+        });
+
+        it("Should prevent rescue of newly added supported assets", async function () {
+          if (!adapter) this.skip();
+
+          // Initially the vault asset should not be supported if adapter is not set
+          if (
+            (await router.vaultAssetToAdapter(vaultAssetAddress)) ===
+            ZeroAddress
+          ) {
+            // Send vault asset to the contract
+            const amount = parseUnits("10", vaultAssetDecimals);
+            if (vaultAssetAddress !== ZeroAddress && vaultAssetToken) {
+              // Mint or transfer vault asset to the vault
+              const dStableDepositAmount = parseUnits("100", dStableDecimals);
+              await stable.mint(deployer.address, dStableDepositAmount);
+              await dStableToken
+                .connect(deployer)
+                .approve(DStakeTokenAddress, dStableDepositAmount);
+              await DStakeToken.connect(deployer).deposit(
+                dStableDepositAmount,
+                deployer.address
+              );
+            }
+
+            // Should be able to rescue before it's supported
+            const vaultBalance = await vaultAssetToken.balanceOf(
+              collateralVaultAddress
+            );
+            if (vaultBalance > 0n) {
+              await expect(
+                collateralVault
+                  .connect(deployer)
+                  .rescueToken(vaultAssetAddress, user1.address, 1n)
+              ).to.not.be.reverted;
+            }
+
+            // Add adapter to make it supported
+            await router
+              .connect(deployer)
+              .addAdapter(vaultAssetAddress, adapterAddress);
+
+            // Now should not be able to rescue
+            await expect(
+              collateralVault
+                .connect(deployer)
+                .rescueToken(vaultAssetAddress, user1.address, 1n)
+            )
+              .to.be.revertedWithCustomError(
+                collateralVault,
+                "CannotRescueRestrictedToken"
+              )
+              .withArgs(vaultAssetAddress);
+          }
+        });
+      });
+    });
   });
 });

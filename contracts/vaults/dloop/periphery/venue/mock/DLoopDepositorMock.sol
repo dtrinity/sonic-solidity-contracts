@@ -52,7 +52,7 @@ contract DLoopDepositorMock is DLoopDepositorBase {
         uint256, // deadline
         bytes memory // dStableToUnderlyingSwapData
     ) internal override returns (uint256) {
-        // Approve the SimpleDEXMock to spend the input token
+        // Mock contract: Approve the SimpleDEXMock to spend the input token for testing
         require(
             inputToken.approve(address(simpleDEXMock), amountInMaximum),
             "Approve simpleDEXMock to spend input token failed"

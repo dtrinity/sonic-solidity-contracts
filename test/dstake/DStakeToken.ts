@@ -632,6 +632,34 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
           expectedAssets
         );
       });
+
+      it("maxWithdraw returns net amount after fee and allows full withdrawal", async () => {
+        // The maximum a user can withdraw (net) should be 100 assets in this setup
+        const netMax = await DStakeToken.maxWithdraw(user1.address);
+        expect(netMax).to.equal(assetsToDeposit);
+
+        const sharesToBurn = await DStakeToken.previewWithdraw(netMax);
+
+        await expect(
+          DStakeToken.connect(user1).withdraw(
+            netMax,
+            user1.address,
+            user1.address
+          )
+        )
+          .to.emit(DStakeToken, "Withdraw")
+          .withArgs(
+            user1.address,
+            user1.address,
+            user1.address,
+            netMax,
+            sharesToBurn
+          );
+
+        // User should now hold zero shares and exactly `netMax` more assets.
+        expect(await DStakeToken.balanceOf(user1.address)).to.equal(0n);
+        expect(await dStableToken.balanceOf(user1.address)).to.equal(netMax);
+      });
     });
 
     describe("Security: Unauthorized withdrawal protection", () => {

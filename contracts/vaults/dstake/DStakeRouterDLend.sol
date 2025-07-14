@@ -94,8 +94,7 @@ contract DStakeRouterDLend is IDStakeRouter, AccessControl {
      * @inheritdoc IDStakeRouter
      */
     function deposit(
-        uint256 dStableAmount,
-        address receiver
+        uint256 dStableAmount
     ) external override onlyRole(DSTAKE_TOKEN_ROLE) {
         address adapterAddress = vaultAssetToAdapter[defaultDepositVaultAsset];
         if (adapterAddress == address(0)) {
@@ -122,11 +121,12 @@ contract DStakeRouterDLend is IDStakeRouter, AccessControl {
             );
         }
 
-        emit Deposited(
+        emit RouterDeposit(
+            adapterAddress,
             vaultAssetExpected,
+            msg.sender,
             mintedShares,
-            dStableAmount,
-            receiver
+            dStableAmount
         );
     }
 
@@ -155,6 +155,7 @@ contract DStakeRouterDLend is IDStakeRouter, AccessControl {
         );
 
         // Approve adapter to spend dStable
+        // Use standard approve for trusted protocol token (dStable)
         IERC20(dStable).approve(adapterAddress, dStableAmount);
 
         // Convert dStable to vault asset (minted directly to collateral vault)
@@ -209,8 +210,8 @@ contract DStakeRouterDLend is IDStakeRouter, AccessControl {
         // 2. Pull vaultAsset from collateral vault
         collateralVault.sendAsset(vaultAsset, vaultAssetAmount, address(this));
 
-        // 3. Approve adapter (set required allowance using standard approve)
-        IERC20(vaultAsset).approve(adapterAddress, vaultAssetAmount);
+        // 3. Approve adapter (use forceApprove for external vault assets)
+        IERC20(vaultAsset).forceApprove(adapterAddress, vaultAssetAmount);
 
         // 4. Call adapter to convert and send dStable to receiver
         // Temporarily transfer to this contract, then forward to receiver if needed
@@ -235,7 +236,7 @@ contract DStakeRouterDLend is IDStakeRouter, AccessControl {
         //    totalAssets() for all shareholders.
         uint256 surplus = receivedDStable - dStableAmount;
         if (surplus > 0) {
-            // Give the adapter allowance to pull the surplus
+            // Give the adapter allowance to pull the surplus (standard approve for trusted dStable)
             IERC20(dStable).approve(adapterAddress, surplus);
 
             // Convert surplus dStable → vault asset (minted directly to the vault)
@@ -303,8 +304,8 @@ contract DStakeRouterDLend is IDStakeRouter, AccessControl {
             address(this)
         );
 
-        // 3. Approve fromAdapter & Convert fromVaultAsset -> dStable (sent to this router)
-        IERC20(fromVaultAsset).approve(
+        // 3. Approve fromAdapter (use forceApprove for external vault assets) & Convert fromVaultAsset -> dStable (sent to this router)
+        IERC20(fromVaultAsset).forceApprove(
             fromAdapterAddress,
             fromVaultAssetAmount
         );
@@ -312,7 +313,7 @@ contract DStakeRouterDLend is IDStakeRouter, AccessControl {
             fromVaultAssetAmount
         );
 
-        // 4. Approve toAdapter & Convert dStable -> toVaultAsset (sent to collateralVault)
+        // 4. Approve toAdapter (standard approve for trusted dStable) & Convert dStable -> toVaultAsset (sent to collateralVault)
         IERC20(dStable).approve(toAdapterAddress, receivedDStable);
         (
             address actualToVaultAsset,
@@ -513,8 +514,8 @@ contract DStakeRouterDLend is IDStakeRouter, AccessControl {
         }
         delete vaultAssetToAdapter[vaultAsset];
 
-        // Inform the collateral vault to remove supported asset (ignore if not present)
-        try collateralVault.removeSupportedAsset(vaultAsset) {} catch {}
+        // Inform the collateral vault to remove supported asset.
+        collateralVault.removeSupportedAsset(vaultAsset);
 
         emit AdapterRemoved(vaultAsset, adapterAddress);
     }
@@ -535,11 +536,12 @@ contract DStakeRouterDLend is IDStakeRouter, AccessControl {
     }
 
     // --- Events ---
-    event Deposited(
+    event RouterDeposit(
+        address indexed adapter,
         address indexed vaultAsset,
+        address indexed dStakeToken,
         uint256 vaultAssetAmount,
-        uint256 dStableAmount,
-        address receiver
+        uint256 dStableAmount
     );
     event Withdrawn(
         address indexed vaultAsset,

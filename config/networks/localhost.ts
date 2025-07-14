@@ -536,9 +536,9 @@ export async function getConfig(
             rewardsControllerDeployment?.address,
           ), // This will be fetched after dLend incentives deployment
           treasury: user1, // Or a dedicated treasury address
-          maxTreasuryFeeBps: 500, // Example: 5%
-          initialTreasuryFeeBps: 100, // Example: 1%
-          initialExchangeThreshold: 1e6, // Example: 1 dStable (adjust based on dStable decimals)
+          maxTreasuryFeeBps: 5 * ONE_PERCENT_BPS, // Example: 5%
+          initialTreasuryFeeBps: 1 * ONE_PERCENT_BPS, // Example: 1%
+          initialExchangeThreshold: 1000n * 10n ** 18n, // 1000 dStable
           initialAdmin: user1, // Optional: specific admin for this reward manager
           initialRewardsManager: user1, // Optional: specific rewards manager role holder
         },
