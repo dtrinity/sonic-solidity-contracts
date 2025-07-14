@@ -25,7 +25,11 @@ interface IAdapterProvider {
  *      DStakeToken governance.
  *      Uses AccessControl for role-based access control.
  */
-contract DStakeCollateralVault is IDStakeCollateralVault, AccessControl, ReentrancyGuard {
+contract DStakeCollateralVault is
+    IDStakeCollateralVault,
+    AccessControl,
+    ReentrancyGuard
+{
     using SafeERC20 for IERC20;
     using EnumerableSet for EnumerableSet.AddressSet;
 
@@ -40,7 +44,11 @@ contract DStakeCollateralVault is IDStakeCollateralVault, AccessControl, Reentra
     error CannotRescueRestrictedToken(address token);
 
     // --- Events ---
-    event TokenRescued(address indexed token, address indexed receiver, uint256 amount);
+    event TokenRescued(
+        address indexed token,
+        address indexed receiver,
+        uint256 amount
+    );
     event ETHRescued(address indexed receiver, uint256 amount);
 
     // --- State ---
@@ -202,17 +210,17 @@ contract DStakeCollateralVault is IDStakeCollateralVault, AccessControl, Reentra
         uint256 amount
     ) external onlyRole(DEFAULT_ADMIN_ROLE) nonReentrant {
         if (receiver == address(0)) revert ZeroAddress();
-        
+
         // Check if token is a supported asset
         if (_isSupported(token)) {
             revert CannotRescueRestrictedToken(token);
         }
-        
+
         // Check if token is the dStable token
         if (token == dStable) {
             revert CannotRescueRestrictedToken(token);
         }
-        
+
         // Rescue the token
         IERC20(token).safeTransfer(receiver, amount);
         emit TokenRescued(token, receiver, amount);
@@ -228,10 +236,10 @@ contract DStakeCollateralVault is IDStakeCollateralVault, AccessControl, Reentra
         uint256 amount
     ) external onlyRole(DEFAULT_ADMIN_ROLE) nonReentrant {
         if (receiver == address(0)) revert ZeroAddress();
-        
+
         (bool success, ) = receiver.call{value: amount}("");
         require(success, "ETH transfer failed");
-        
+
         emit ETHRescued(receiver, amount);
     }
 
@@ -239,18 +247,22 @@ contract DStakeCollateralVault is IDStakeCollateralVault, AccessControl, Reentra
      * @notice Returns the list of tokens that cannot be rescued
      * @return restrictedTokens Array of restricted token addresses
      */
-    function getRestrictedRescueTokens() external view returns (address[] memory) {
+    function getRestrictedRescueTokens()
+        external
+        view
+        returns (address[] memory)
+    {
         address[] memory assets = _supportedAssets.values();
         address[] memory restrictedTokens = new address[](assets.length + 1);
-        
+
         // Add all supported assets
         for (uint256 i = 0; i < assets.length; i++) {
             restrictedTokens[i] = assets[i];
         }
-        
+
         // Add dStable token
         restrictedTokens[assets.length] = dStable;
-        
+
         return restrictedTokens;
     }
 

@@ -111,7 +111,11 @@ contract PendleSwapPOC {
      * @param to Recipient address
      * @param amount Amount to withdraw
      */
-    function withdrawTokens(address token, address to, uint256 amount) external {
+    function withdrawTokens(
+        address token,
+        address to,
+        uint256 amount
+    ) external {
         ERC20(token).safeTransfer(to, amount);
         console.log("Withdrawn", amount, "tokens to", to);
     }
@@ -128,4 +132,4 @@ contract PendleSwapPOC {
             console.log("Emergency withdrawn", balance, "tokens to", to);
         }
     }
-} 
+}
