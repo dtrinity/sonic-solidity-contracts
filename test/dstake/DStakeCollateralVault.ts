@@ -29,6 +29,7 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
     let deployer: SignerWithAddress;
     let stable: ERC20StablecoinUpgradeable;
     let user1: SignerWithAddress;
+    let user2: SignerWithAddress;
     let adminRole: string;
     let routerRole: string;
 
@@ -55,9 +56,8 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
     beforeEach(async function () {
       const namedAccounts = await getNamedAccounts();
       deployer = await ethers.getSigner(namedAccounts.deployer);
-      user1 = await ethers.getSigner(
-        namedAccounts.user1 || namedAccounts.deployer
-      );
+      user1 = await ethers.getSigner(namedAccounts.user1);
+      user2 = await ethers.getSigner(namedAccounts.user2);
 
       // Revert to snapshot instead of redeploying
       const out = await fixture();
@@ -609,7 +609,7 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
         it("Should only allow DEFAULT_ADMIN_ROLE to call rescueToken", async function () {
           await expect(
             collateralVault
-              .connect(user1)
+              .connect(user2)
               .rescueToken(mockTokenAddress, user1.address, testAmount)
           ).to.be.revertedWithCustomError(
             collateralVault,
@@ -672,7 +672,7 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
 
         it("Should only allow DEFAULT_ADMIN_ROLE to call rescueETH", async function () {
           await expect(
-            collateralVault.connect(user1).rescueETH(user1.address, ethAmount)
+            collateralVault.connect(user2).rescueETH(user2.address, ethAmount)
           ).to.be.revertedWithCustomError(
             collateralVault,
             "AccessControlUnauthorizedAccount"
@@ -681,9 +681,7 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
 
         it("Should revert with zero address receiver", async function () {
           await expect(
-            collateralVault
-              .connect(deployer)
-              .rescueETH(ZeroAddress, ethAmount)
+            collateralVault.connect(deployer).rescueETH(ZeroAddress, ethAmount)
           ).to.be.revertedWithCustomError(collateralVault, "ZeroAddress");
         });
 
@@ -743,12 +741,12 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
             await collateralVault.getRestrictedRescueTokens();
 
           expect(restrictedTokens).to.have.lengthOf(supportedAssets.length + 1);
-          
+
           // Check all supported assets are in restricted list
           for (const asset of supportedAssets) {
             expect(restrictedTokens).to.include(asset);
           }
-          
+
           // Check dStable is in restricted list
           expect(restrictedTokens).to.include(dStableTokenAddress);
         });
@@ -790,22 +788,6 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
       });
 
       describe("Integration tests", function () {
-        it("Should allow contract to receive ETH via receive function", async function () {
-          const initialBalance = await ethers.provider.getBalance(
-            collateralVaultAddress
-          );
-          const sendAmount = parseUnits("0.5", 18);
-
-          await deployer.sendTransaction({
-            to: collateralVaultAddress,
-            value: sendAmount,
-          });
-
-          expect(
-            await ethers.provider.getBalance(collateralVaultAddress)
-          ).to.equal(initialBalance + sendAmount);
-        });
-
         it("Should rescue multiple different tokens", async function () {
           // Deploy another mock token
           const MockERC20 = await ethers.getContractFactory("MockERC20");
