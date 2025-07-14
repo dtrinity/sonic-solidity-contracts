@@ -120,12 +120,27 @@ export async function getConfig(
           scUSDAddress,
         ],
         initialFeeReceiver: "please_fill_multisig_address",
-        initialRedemptionFeeBps: 1 * ONE_PERCENT_BPS,
+        initialRedemptionFeeBps: 0.4 * ONE_PERCENT_BPS, // Default for stablecoins
+        collateralRedemptionFees: {
+          // Stablecoins: 0.4%
+          [frxUSDAddress]: 0.4 * ONE_PERCENT_BPS,
+          [USDCeAddress]: 0.4 * ONE_PERCENT_BPS,
+          [scUSDAddress]: 0.4 * ONE_PERCENT_BPS,
+          // Yield bearing stablecoins: 0.5%
+          [sfrxUSDAddress]: 0.5 * ONE_PERCENT_BPS,
+          [wstkscUSDAddress]: 0.5 * ONE_PERCENT_BPS,
+        },
       },
       dS: {
         collaterals: [wSAddress, stSAddress],
         initialFeeReceiver: "please_fill_multisig_address",
-        initialRedemptionFeeBps: 1 * ONE_PERCENT_BPS,
+        initialRedemptionFeeBps: 0.4 * ONE_PERCENT_BPS, // Default for stablecoins
+        collateralRedemptionFees: {
+          // Stablecoins: 0.4%
+          [wSAddress]: 0.4 * ONE_PERCENT_BPS,
+          // Yield bearing stablecoins: 0.5%
+          [stSAddress]: 0.5 * ONE_PERCENT_BPS,
+        },
       },
     },
     dLoop: {
@@ -347,6 +362,27 @@ export async function getConfig(
     odos: {
       router: odoRouterV2Address,
     },
+    // dStake: {
+    //   // TODO: Add dStake configuration for mainnet
+    //   // sdUSD: {
+    //   //   dStable: dUSDDeployment?.address || "",
+    //   //   name: "Staked dUSD",
+    //   //   symbol: "sdUSD",
+    //   //   initialAdmin: "please_fill_multisig_address",
+    //   //   initialFeeManager: "please_fill_multisig_address",
+    //   //   initialWithdrawalFeeBps: 0.1 * ONE_PERCENT_BPS, // dSTAKE: 0.1%
+    //   //   // ... other config
+    //   // },
+    //   // sdS: {
+    //   //   dStable: dSDeployment?.address || "",
+    //   //   name: "Staked dS",
+    //   //   symbol: "sdS",
+    //   //   initialAdmin: "please_fill_multisig_address",
+    //   //   initialFeeManager: "please_fill_multisig_address",
+    //   //   initialWithdrawalFeeBps: 0.1 * ONE_PERCENT_BPS, // dSTAKE: 0.1%
+    //   //   // ... other config
+    //   // },
+    // },
   };
 }
 

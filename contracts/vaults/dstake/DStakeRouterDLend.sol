@@ -94,8 +94,7 @@ contract DStakeRouterDLend is IDStakeRouter, AccessControl {
      * @inheritdoc IDStakeRouter
      */
     function deposit(
-        uint256 dStableAmount,
-        address receiver
+        uint256 dStableAmount
     ) external override onlyRole(DSTAKE_TOKEN_ROLE) {
         address adapterAddress = vaultAssetToAdapter[defaultDepositVaultAsset];
         if (adapterAddress == address(0)) {
@@ -122,11 +121,12 @@ contract DStakeRouterDLend is IDStakeRouter, AccessControl {
             );
         }
 
-        emit Deposited(
+        emit RouterDeposit(
+            adapterAddress,
             vaultAssetExpected,
+            msg.sender,
             mintedShares,
-            dStableAmount,
-            receiver
+            dStableAmount
         );
     }
 
@@ -155,6 +155,7 @@ contract DStakeRouterDLend is IDStakeRouter, AccessControl {
         );
 
         // Approve adapter to spend dStable
+        // Use standard approve for trusted protocol token (dStable)
         IERC20(dStable).approve(adapterAddress, dStableAmount);
 
         // Convert dStable to vault asset (minted directly to collateral vault)
@@ -209,8 +210,8 @@ contract DStakeRouterDLend is IDStakeRouter, AccessControl {
         // 2. Pull vaultAsset from collateral vault
         collateralVault.sendAsset(vaultAsset, vaultAssetAmount, address(this));
 
-        // 3. Approve adapter (set required allowance using standard approve)
-        IERC20(vaultAsset).approve(adapterAddress, vaultAssetAmount);
+        // 3. Approve adapter (use forceApprove for external vault assets)
+        IERC20(vaultAsset).forceApprove(adapterAddress, vaultAssetAmount);
 
         // 4. Call adapter to convert and send dStable to receiver
         // Temporarily transfer to this contract, then forward to receiver if needed
@@ -235,22 +236,28 @@ contract DStakeRouterDLend is IDStakeRouter, AccessControl {
         //    totalAssets() for all shareholders.
         uint256 surplus = receivedDStable - dStableAmount;
         if (surplus > 0) {
-            // Give the adapter allowance to pull the surplus
+            // Give the adapter allowance to pull the surplus (standard approve for trusted dStable)
             IERC20(dStable).approve(adapterAddress, surplus);
 
-            // Convert surplus dStable → vault asset (minted directly to the vault)
-            (address mintedAsset, ) = adapter.convertToVaultAsset(surplus);
-
-            // Sanity: adapter must mint the same asset we just redeemed from
-            if (mintedAsset != vaultAsset) {
-                revert AdapterAssetMismatch(
-                    adapterAddress,
-                    vaultAsset,
-                    mintedAsset
-                );
+            // Attempt to recycle surplus; on failure hold it in the router
+            try adapter.convertToVaultAsset(surplus) returns (
+                address mintedAsset,
+                uint256 /* mintedAmount */
+            ) {
+                // Sanity: adapter must mint the same asset we just redeemed from
+                if (mintedAsset != vaultAsset) {
+                    revert AdapterAssetMismatch(
+                        adapterAddress,
+                        vaultAsset,
+                        mintedAsset
+                    );
+                }
+            } catch {
+                // Clear approval in case of revert and keep surplus inside router
+                IERC20(dStable).approve(adapterAddress, 0);
+                emit SurplusHeld(surplus);
             }
-
-            // Shares minted directly to collateralVault; surplus value now captured in accounting
+            // If success: shares minted directly to collateralVault; surplus value captured
         }
 
         emit Withdrawn(
@@ -303,8 +310,8 @@ contract DStakeRouterDLend is IDStakeRouter, AccessControl {
             address(this)
         );
 
-        // 3. Approve fromAdapter & Convert fromVaultAsset -> dStable (sent to this router)
-        IERC20(fromVaultAsset).approve(
+        // 3. Approve fromAdapter (use forceApprove for external vault assets) & Convert fromVaultAsset -> dStable (sent to this router)
+        IERC20(fromVaultAsset).forceApprove(
             fromAdapterAddress,
             fromVaultAssetAmount
         );
@@ -312,7 +319,7 @@ contract DStakeRouterDLend is IDStakeRouter, AccessControl {
             fromVaultAssetAmount
         );
 
-        // 4. Approve toAdapter & Convert dStable -> toVaultAsset (sent to collateralVault)
+        // 4. Approve toAdapter (standard approve for trusted dStable) & Convert dStable -> toVaultAsset (sent to collateralVault)
         IERC20(dStable).approve(toAdapterAddress, receivedDStable);
         (
             address actualToVaultAsset,
@@ -513,8 +520,8 @@ contract DStakeRouterDLend is IDStakeRouter, AccessControl {
         }
         delete vaultAssetToAdapter[vaultAsset];
 
-        // Inform the collateral vault to remove supported asset (ignore if not present)
-        try collateralVault.removeSupportedAsset(vaultAsset) {} catch {}
+        // Inform the collateral vault to remove supported asset.
+        collateralVault.removeSupportedAsset(vaultAsset);
 
         emit AdapterRemoved(vaultAsset, adapterAddress);
     }
@@ -535,11 +542,12 @@ contract DStakeRouterDLend is IDStakeRouter, AccessControl {
     }
 
     // --- Events ---
-    event Deposited(
+    event RouterDeposit(
+        address indexed adapter,
         address indexed vaultAsset,
+        address indexed dStakeToken,
         uint256 vaultAssetAmount,
-        uint256 dStableAmount,
-        address receiver
+        uint256 dStableAmount
     );
     event Withdrawn(
         address indexed vaultAsset,
@@ -560,6 +568,8 @@ contract DStakeRouterDLend is IDStakeRouter, AccessControl {
     event AdapterRemoved(address indexed vaultAsset, address adapterAddress);
     event DefaultDepositVaultAssetSet(address indexed vaultAsset);
     event DustToleranceSet(uint256 newDustTolerance);
+    event SurplusHeld(uint256 amount);
+    event SurplusSwept(uint256 amount, address vaultAsset);
 
     // --- Governance setters ---
 
@@ -573,5 +583,42 @@ contract DStakeRouterDLend is IDStakeRouter, AccessControl {
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         dustTolerance = _dustTolerance;
         emit DustToleranceSet(_dustTolerance);
+    }
+
+    /**
+     * @notice Sweeps any dSTABLE surplus held by the router back into the default vault asset.
+     * @param maxAmount Maximum amount of dSTABLE to sweep (use 0 to sweep full balance).
+     */
+    function sweepSurplus(
+        uint256 maxAmount
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        uint256 balance = IERC20(dStable).balanceOf(address(this));
+        if (balance == 0) revert ZeroInputDStableValue(dStable, 0);
+
+        uint256 amountToSweep = (maxAmount == 0 || maxAmount > balance)
+            ? balance
+            : maxAmount;
+
+        address adapterAddress = vaultAssetToAdapter[defaultDepositVaultAsset];
+        if (adapterAddress == address(0))
+            revert AdapterNotFound(defaultDepositVaultAsset);
+
+        IDStableConversionAdapter adapter = IDStableConversionAdapter(
+            adapterAddress
+        );
+        address vaultAsset = adapter.vaultAsset();
+
+        IERC20(dStable).approve(adapterAddress, amountToSweep);
+        (address mintedAsset, ) = adapter.convertToVaultAsset(amountToSweep);
+
+        if (mintedAsset != vaultAsset) {
+            revert AdapterAssetMismatch(
+                adapterAddress,
+                vaultAsset,
+                mintedAsset
+            );
+        }
+
+        emit SurplusSwept(amountToSweep, mintedAsset);
     }
 }

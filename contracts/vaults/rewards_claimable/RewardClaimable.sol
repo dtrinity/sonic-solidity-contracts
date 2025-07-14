@@ -140,7 +140,7 @@ abstract contract RewardClaimable is AccessControl, ReentrancyGuard {
 
     /**
      * @dev Sets the treasury fee in basis points
-     * @param newTreasuryFeeBps New treasury fee in basis points (1/100 of 1%)
+     * @param newTreasuryFeeBps New treasury fee in basis points (100 = 1bps = 0.01%)
      */
     function setTreasuryFeeBps(
         uint256 newTreasuryFeeBps

@@ -100,7 +100,7 @@ contract SimpleDEXMock {
 
     /**
      * @notice Set execution slippage in basis points
-     * @param slippageBps The execution slippage (e.g., 200 = 2%)
+     * @param slippageBps The execution slippage (e.g., 20000 = 2%)
      */
     function setExecutionSlippage(uint256 slippageBps) external {
         if (slippageBps >= BasisPointConstants.ONE_HUNDRED_PERCENT_BPS) {

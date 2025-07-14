@@ -25,6 +25,7 @@ contract MockAdapterPositiveSlippage is IDStableConversionAdapter {
         returns (address _vaultAsset, uint256 vaultAssetAmount)
     {
         IERC20(dStable).transferFrom(msg.sender, address(this), dStableAmount);
+        // Mock contract: Use standard approve for testing purposes
         IERC20(dStable).approve(address(vaultToken), dStableAmount);
         vaultAssetAmount = vaultToken.deposit(dStableAmount, collateralVault);
         return (address(vaultToken), vaultAssetAmount);

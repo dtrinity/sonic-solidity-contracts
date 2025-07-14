@@ -31,8 +31,6 @@ contract Redeemer is AccessControl, OracleAware {
     uint8 public immutable dstableDecimals;
     CollateralVault public collateralVault;
 
-    uint256 public immutable BASE_UNIT;
-
     /* Roles */
 
     bytes32 public constant REDEMPTION_MANAGER_ROLE =
@@ -57,7 +55,6 @@ contract Redeemer is AccessControl, OracleAware {
         collateralVault = CollateralVault(_collateralVault);
         dstable = IMintableERC20(_dstable);
         dstableDecimals = dstable.decimals();
-        BASE_UNIT = _oracle.BASE_CURRENCY_UNIT();
 
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         grantRole(REDEMPTION_MANAGER_ROLE, msg.sender);
@@ -103,14 +100,15 @@ contract Redeemer is AccessControl, OracleAware {
     }
 
     /**
-     * @notice Converts an amount of dStable tokens to its equivalent base value
-     * @param dstableAmount The amount of dStable tokens to convert
-     * @return The equivalent base value
+     * @notice Converts an amount of dStable tokens to its equivalent base value.
+     * @param dstableAmount The amount of dStable tokens to convert.
+     * @return The equivalent base value.
      */
     function dstableAmountToBaseValue(
         uint256 dstableAmount
     ) public view returns (uint256) {
-        return Math.mulDiv(dstableAmount, BASE_UNIT, 10 ** dstableDecimals);
+        return
+            Math.mulDiv(dstableAmount, baseCurrencyUnit, 10 ** dstableDecimals);
     }
 
     /* Admin */

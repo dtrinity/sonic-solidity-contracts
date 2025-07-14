@@ -23,6 +23,7 @@ import "contracts/common/IMintableERC20.sol";
 import "./CollateralVault.sol";
 import "./OracleAware.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 // Forward declaration interface for AmoVault instead of importing the full contract
 interface IAmoVault {
@@ -49,7 +50,7 @@ interface IAmoVault {
  * @dev Manages AMOs for dStable
  * Handles allocation, deallocation, collateral management, and profit management for AMO vaults.
  */
-contract AmoManager is AccessControl, OracleAware {
+contract AmoManager is AccessControl, OracleAware, ReentrancyGuard {
     using EnumerableMap for EnumerableMap.AddressToUintMap;
 
     /* Core state */
@@ -63,14 +64,13 @@ contract AmoManager is AccessControl, OracleAware {
     IMintableERC20 public dstable;
     CollateralVault public collateralHolderVault;
 
-    uint256 public immutable BASE_UNIT;
-
     /* Events */
 
     event AmoVaultSet(address indexed amoVault, bool isActive);
     event AmoAllocated(address indexed amoVault, uint256 dstableAmount);
     event AmoDeallocated(address indexed amoVault, uint256 dstableAmount);
     event ProfitsWithdrawn(address indexed amoVault, uint256 amount);
+    event AllocationSurplus(address indexed amoVault, uint256 surplusInDstable);
 
     /* Roles */
 
@@ -92,6 +92,7 @@ contract AmoManager is AccessControl, OracleAware {
         uint256 takeProfitValueInBase,
         int256 availableProfitInBase
     );
+    error InsufficientAllocation(uint256 requested, uint256 available);
 
     /**
      * @notice Initializes the AmoManager contract.
@@ -106,8 +107,6 @@ contract AmoManager is AccessControl, OracleAware {
     ) OracleAware(_oracle, _oracle.BASE_CURRENCY_UNIT()) {
         dstable = IMintableERC20(_dstable);
         collateralHolderVault = CollateralVault(_collateralHolderVault);
-
-        BASE_UNIT = oracle.BASE_CURRENCY_UNIT();
 
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         grantRole(AMO_ALLOCATOR_ROLE, msg.sender);
@@ -124,7 +123,7 @@ contract AmoManager is AccessControl, OracleAware {
     function allocateAmo(
         address amoVault,
         uint256 dstableAmount
-    ) public onlyRole(AMO_ALLOCATOR_ROLE) {
+    ) public onlyRole(AMO_ALLOCATOR_ROLE) nonReentrant {
         uint256 startingAmoSupply = totalAmoSupply();
 
         // Make sure the vault is active
@@ -160,19 +159,23 @@ contract AmoManager is AccessControl, OracleAware {
     function deallocateAmo(
         address amoVault,
         uint256 dstableAmount
-    ) public onlyRole(AMO_ALLOCATOR_ROLE) {
+    ) public onlyRole(AMO_ALLOCATOR_ROLE) nonReentrant {
         uint256 startingAmoSupply = totalAmoSupply();
 
         // We don't require that the vault is active or has allocation, since we want to allow withdrawing from inactive vaults
 
         // If the vault is still active, make sure it has enough allocation and decrease it
         (, uint256 currentAllocation) = _amoVaults.tryGet(amoVault);
-        if (currentAllocation > 0) {
-            // Update the allocation for this vault
-            _amoVaults.set(amoVault, currentAllocation - dstableAmount);
+
+        // Ensure we do not deallocate more than the vault's recorded allocation
+        if (dstableAmount > currentAllocation) {
+            revert InsufficientAllocation(dstableAmount, currentAllocation);
         }
 
-        // Make the withdrawal
+        // Update the allocation for this vault (safe: dstableAmount <= currentAllocation)
+        _amoVaults.set(amoVault, currentAllocation - dstableAmount);
+
+        // Make the withdrawal and update global counter
         totalAllocated -= dstableAmount;
         dstable.transferFrom(amoVault, address(this), dstableAmount);
 
@@ -278,8 +281,7 @@ contract AmoManager is AccessControl, OracleAware {
         for (uint256 i = 0; i < _amoVaults.length(); i++) {
             (address vaultAddress, ) = _amoVaults.at(i);
             if (isAmoActive(vaultAddress)) {
-                totalBaseValue += IAmoVault(vaultAddress)
-                    .totalCollateralValue();
+                totalBaseValue += IAmoVault(vaultAddress).totalCollateralValue();
             }
         }
         return totalBaseValue;
@@ -295,7 +297,7 @@ contract AmoManager is AccessControl, OracleAware {
         address amoVault,
         address token,
         uint256 amount
-    ) public onlyRole(AMO_ALLOCATOR_ROLE) {
+    ) public onlyRole(AMO_ALLOCATOR_ROLE) nonReentrant {
         if (token == address(dstable)) {
             revert CannotTransferDStable();
         }
@@ -316,9 +318,13 @@ contract AmoManager is AccessControl, OracleAware {
         );
         (, uint256 currentAllocation) = _amoVaults.tryGet(amoVault);
 
-        // Prevent underflow by only deducting what's available
         uint256 adjustmentAmount = collateralInDstable;
         if (collateralInDstable > currentAllocation) {
+            // Emit event to explicitly record the surplus that improves backing
+            uint256 surplus = collateralInDstable - currentAllocation;
+            emit AllocationSurplus(amoVault, surplus);
+
+            // Cap the adjustment to the current allocation to prevent underflow
             adjustmentAmount = currentAllocation;
         }
 
@@ -344,7 +350,7 @@ contract AmoManager is AccessControl, OracleAware {
         address amoVault,
         address token,
         uint256 amount
-    ) public onlyRole(AMO_ALLOCATOR_ROLE) {
+    ) public onlyRole(AMO_ALLOCATOR_ROLE) nonReentrant {
         if (token == address(dstable)) {
             revert CannotTransferDStable();
         }
@@ -406,6 +412,7 @@ contract AmoManager is AccessControl, OracleAware {
     )
         public
         onlyRole(FEE_COLLECTOR_ROLE)
+        nonReentrant
         returns (uint256 takeProfitValueInBase)
     {
         // Leave open the possibility of withdrawing profits from inactive vaults
@@ -420,6 +427,14 @@ contract AmoManager is AccessControl, OracleAware {
         );
 
         // Make sure we are withdrawing less than the available profit
+        //
+        // TECHNICAL NOTE:
+        // `takeProfitValueInBase` is a `uint256` while `_availableProfitInBase` is an `int256`.
+        // The explicit cast below will wrap if `takeProfitValueInBase` exceeds
+        // `type(int256).max` (≈ 5.8e76), causing the comparison to evaluate to `false`.
+        // Such a value is unachievable on-chain and the function is restricted to the
+        // trusted `FEE_COLLECTOR_ROLE`, so the edge-case is not considered a practical
+        // risk.
         if (
             _availableProfitInBase <= 0 ||
             int256(takeProfitValueInBase) > _availableProfitInBase
@@ -468,12 +483,8 @@ contract AmoManager is AccessControl, OracleAware {
         uint256 baseValue
     ) public view returns (uint256) {
         uint8 dstableDecimals = dstable.decimals();
-        return
-            Math.mulDiv(
-                baseValue,
-                10 ** dstableDecimals,
-                oracle.getAssetPrice(address(dstable))
-            );
+        // Align valuation with Issuer/Redeemer: assume 1 dStable == baseCurrencyUnit
+        return Math.mulDiv(baseValue, 10 ** dstableDecimals, baseCurrencyUnit);
     }
 
     /**
@@ -485,12 +496,9 @@ contract AmoManager is AccessControl, OracleAware {
         uint256 dstableAmount
     ) public view returns (uint256) {
         uint8 dstableDecimals = dstable.decimals();
+        // Align valuation with Issuer/Redeemer: assume 1 dStable == baseCurrencyUnit
         return
-            Math.mulDiv(
-                dstableAmount,
-                oracle.getAssetPrice(address(dstable)),
-                10 ** dstableDecimals
-            );
+            Math.mulDiv(dstableAmount, baseCurrencyUnit, 10 ** dstableDecimals);
     }
 
     /* Admin */
