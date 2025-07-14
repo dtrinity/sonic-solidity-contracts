@@ -2,6 +2,7 @@
 pragma solidity ^0.8.20;
 
 import "./BasisPointConstants.sol";
+import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
 error InitialFeeExceedsMaxFee(uint256 feeBps, uint256 maxFeeBps);
 error InvalidFeeBps(uint256 feeBps, uint256 maxFeeBps);
@@ -60,8 +61,11 @@ abstract contract SupportsWithdrawalFee {
         uint256 assetAmount
     ) internal view returns (uint256) {
         return
-            (assetAmount * withdrawalFeeBps_) /
-            BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
+            Math.mulDiv(
+                assetAmount,
+                withdrawalFeeBps_,
+                BasisPointConstants.ONE_HUNDRED_PERCENT_BPS
+            );
     }
 
     /**
@@ -93,8 +97,11 @@ abstract contract SupportsWithdrawalFee {
         // grossAmount = netAmount / (1 - feeBps/ONE_HUNDRED_PERCENT_BPS)
         // grossAmount = netAmount * ONE_HUNDRED_PERCENT_BPS / (ONE_HUNDRED_PERCENT_BPS - feeBps)
         return
-            (netAmount * BasisPointConstants.ONE_HUNDRED_PERCENT_BPS) /
-            (BasisPointConstants.ONE_HUNDRED_PERCENT_BPS - withdrawalFeeBps_);
+            Math.mulDiv(
+                netAmount,
+                BasisPointConstants.ONE_HUNDRED_PERCENT_BPS,
+                BasisPointConstants.ONE_HUNDRED_PERCENT_BPS - withdrawalFeeBps_
+            );
     }
 
     /**

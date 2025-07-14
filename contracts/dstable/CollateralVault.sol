@@ -21,6 +21,7 @@ import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+import "@openzeppelin/contracts/utils/math/Math.sol";
 
 import "contracts/common/IAaveOracle.sol";
 import "./OracleAware.sol";
@@ -158,7 +159,7 @@ abstract contract CollateralVault is AccessControl, OracleAware {
     ) public view returns (uint256 baseValue) {
         uint256 assetPrice = oracle.getAssetPrice(asset);
         uint8 assetDecimals = IERC20Metadata(asset).decimals();
-        return (assetPrice * assetAmount) / (10 ** assetDecimals);
+        return Math.mulDiv(assetPrice, assetAmount, 10 ** assetDecimals);
     }
 
     /**
@@ -173,7 +174,7 @@ abstract contract CollateralVault is AccessControl, OracleAware {
     ) public view returns (uint256 assetAmount) {
         uint256 assetPrice = oracle.getAssetPrice(asset);
         uint8 assetDecimals = IERC20Metadata(asset).decimals();
-        return (baseValue * (10 ** assetDecimals)) / assetPrice;
+        return Math.mulDiv(baseValue, 10 ** assetDecimals, assetPrice);
     }
 
     /* Collateral management */
@@ -252,9 +253,11 @@ abstract contract CollateralVault is AccessControl, OracleAware {
             address collateral = _supportedCollaterals.at(i);
             uint256 collateralPrice = oracle.getAssetPrice(collateral);
             uint8 collateralDecimals = IERC20Metadata(collateral).decimals();
-            uint256 collateralValue = (collateralPrice *
-                IERC20Metadata(collateral).balanceOf(address(this))) /
-                (10 ** collateralDecimals);
+            uint256 collateralValue = Math.mulDiv(
+                collateralPrice,
+                IERC20Metadata(collateral).balanceOf(address(this)),
+                10 ** collateralDecimals
+            );
             totalBaseValue += collateralValue;
         }
         return totalBaseValue;

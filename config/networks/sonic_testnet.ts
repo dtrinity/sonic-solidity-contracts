@@ -20,6 +20,7 @@ import {
 } from "../dlend/interest-rate-strategies";
 import {
   strategyDS,
+  strategyDUSD,
   strategySfrxUSD,
   strategyStS,
   strategyWstkscUSD,
@@ -160,7 +161,16 @@ export async function getConfig(
           sfrxUSDDeployment?.address || ZeroAddress,
         ],
         initialFeeReceiver: deployer,
-        initialRedemptionFeeBps: 1 * ONE_PERCENT_BPS,
+        initialRedemptionFeeBps: 0.4 * ONE_PERCENT_BPS, // Default for stablecoins
+        collateralRedemptionFees: {
+          // Stablecoins: 0.4%
+          [USDCDeployment?.address || ZeroAddress]: 0.4 * ONE_PERCENT_BPS,
+          [USDSDeployment?.address || ZeroAddress]: 0.4 * ONE_PERCENT_BPS,
+          [frxUSDDeployment?.address || ZeroAddress]: 0.4 * ONE_PERCENT_BPS,
+          // Yield bearing stablecoins: 0.5%
+          [sUSDSDeployment?.address || ZeroAddress]: 0.5 * ONE_PERCENT_BPS,
+          [sfrxUSDDeployment?.address || ZeroAddress]: 0.5 * ONE_PERCENT_BPS,
+        },
       },
       dS: {
         collaterals: [
@@ -169,7 +179,14 @@ export async function getConfig(
           stSTokenDeployment?.address || ZeroAddress,
         ],
         initialFeeReceiver: deployer,
-        initialRedemptionFeeBps: 1 * ONE_PERCENT_BPS,
+        initialRedemptionFeeBps: 0.4 * ONE_PERCENT_BPS, // Default for stablecoins
+        collateralRedemptionFees: {
+          // Stablecoins: 0.4%
+          [wSAddress]: 0.4 * ONE_PERCENT_BPS,
+          [wOSTokenDeployment?.address || ZeroAddress]: 0.4 * ONE_PERCENT_BPS,
+          // Yield bearing stablecoins: 0.5%
+          [stSTokenDeployment?.address || ZeroAddress]: 0.5 * ONE_PERCENT_BPS,
+        },
       },
     },
     dLoop: {
@@ -191,7 +208,7 @@ export async function getConfig(
             treasury: deployer,
             maxTreasuryFeeBps: "1000",
             initialTreasuryFeeBps: "500",
-            initialExchangeThreshold: "100",
+            initialExchangeThreshold: 100n,
           },
         },
       },
@@ -395,7 +412,7 @@ export async function getConfig(
         rateStrategyMediumLiquidityStable,
       ],
       reservesConfig: {
-        dUSD: strategyDS,
+        dUSD: strategyDUSD,
         dS: strategyDS,
         stS: strategyStS,
         sfrxUSD: strategySfrxUSD,
@@ -436,7 +453,7 @@ export async function getConfig(
           treasury: deployer,
           maxTreasuryFeeBps: 500,
           initialTreasuryFeeBps: 100,
-          initialExchangeThreshold: 1e6,
+          initialExchangeThreshold: 1_000_000n,
           initialAdmin: deployer,
           initialRewardsManager: deployer,
         },
@@ -453,6 +470,46 @@ export async function getConfig(
     },
     odos: {
       router: "", // Odos doesn't work on sonic testnet
+    },
+    dStake: {
+      sdUSD: {
+        dStable: emptyStringIfUndefined(dUSDDeployment?.address),
+        name: "Staked dUSD",
+        symbol: "sdUSD",
+        initialAdmin: deployer,
+        initialFeeManager: deployer,
+        initialWithdrawalFeeBps: 10,
+        adapters: [
+          {
+            vaultAsset: emptyStringIfUndefined(
+              dLendATokenWrapperDUSDDeployment?.address
+            ),
+            adapterContract: "WrappedDLendConversionAdapter",
+          },
+        ],
+        defaultDepositVaultAsset: emptyStringIfUndefined(
+          dLendATokenWrapperDUSDDeployment?.address
+        ),
+        collateralVault: "DStakeCollateralVault_sdUSD",
+        collateralExchangers: [deployer],
+        dLendRewardManager: {
+          managedVaultAsset: emptyStringIfUndefined(
+            dLendATokenWrapperDUSDDeployment?.address
+          ), // This should be the deployed StaticATokenLM address for dUSD
+          dLendAssetToClaimFor: emptyStringIfUndefined(
+            aTokenDUSDDeployment?.address
+          ), // Use the deployed dLEND-dUSD aToken address
+          dLendRewardsController: emptyStringIfUndefined(
+            rewardsControllerDeployment?.address
+          ), // This will be fetched after dLend incentives deployment
+          treasury: deployer, // Or a dedicated treasury address
+          maxTreasuryFeeBps: 5 * ONE_PERCENT_BPS, // Example: 5%
+          initialTreasuryFeeBps: 1 * ONE_PERCENT_BPS, // Example: 1%
+          initialExchangeThreshold: 1000n * 10n ** 18n, // 1000 dStable
+          initialAdmin: deployer, // Optional: specific admin for this reward manager
+          initialRewardsManager: deployer, // Optional: specific rewards manager role holder
+        },
+      },
     },
   };
 }
