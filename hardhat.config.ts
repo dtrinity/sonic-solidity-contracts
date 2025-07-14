@@ -12,6 +12,13 @@ import { getEnvPrivateKeys } from "./typescript/hardhat/named-accounts";
 
 /* eslint-disable camelcase -- Network names follow specific naming conventions that require snake_case */
 const config: HardhatUserConfig = {
+  //
+  // Compile settings -------------------------------------------------------
+  //  • Default: classic solc pipeline (fast) with optimizer.
+  //  • Set env `VIA_IR=true` to enable the IR pipeline for **all** contracts.
+  //  • Always compile complex contracts and their dependencies with IR to avoid
+  //    "stack too deep" errors, without slowing down the whole codebase.
+  // -----------------------------------------------------------------------
   solidity: {
     compilers: [
       {
@@ -21,7 +28,7 @@ const config: HardhatUserConfig = {
             enabled: true,
             runs: 200,
           },
-          viaIR: true,
+          ...(process.env.VIA_IR === "true" ? { viaIR: true } : {}),
         },
       },
       {
@@ -31,10 +38,120 @@ const config: HardhatUserConfig = {
             enabled: true,
             runs: 200,
           },
-          viaIR: true,
+          ...(process.env.VIA_IR === "true" ? { viaIR: true } : {}),
         },
       },
     ],
+    overrides: {
+      // Core complex contract causing stack too deep errors
+      "contracts/vaults/dloop/core/venue/dlend/DLoopCoreDLend.sol": {
+        version: "0.8.20",
+        settings: {
+          optimizer: {
+            enabled: true,
+            runs: 200,
+          },
+          viaIR: true,
+        },
+      },
+      // Base contract with stack too deep errors
+      "contracts/vaults/dloop/periphery/DLoopDepositorBase.sol": {
+        version: "0.8.20",
+        settings: {
+          optimizer: {
+            enabled: true,
+            runs: 200,
+          },
+          viaIR: true,
+        },
+      },
+      // Contracts that import DLoopDepositorBase
+      "contracts/vaults/dloop/periphery/venue/odos/DLoopDepositorOdos.sol": {
+        version: "0.8.20",
+        settings: {
+          optimizer: {
+            enabled: true,
+            runs: 200,
+          },
+          viaIR: true,
+        },
+      },
+      "contracts/vaults/dloop/periphery/venue/mock/DLoopDepositorMock.sol": {
+        version: "0.8.20",
+        settings: {
+          optimizer: {
+            enabled: true,
+            runs: 200,
+          },
+          viaIR: true,
+        },
+      },
+      // Base redeemer contract with stack too deep errors
+      "contracts/vaults/dloop/periphery/DLoopRedeemerBase.sol": {
+        version: "0.8.20",
+        settings: {
+          optimizer: {
+            enabled: true,
+            runs: 200,
+          },
+          viaIR: true,
+        },
+      },
+      // Contracts that import DLoopRedeemerBase
+      "contracts/vaults/dloop/periphery/venue/odos/DLoopRedeemerOdos.sol": {
+        version: "0.8.20",
+        settings: {
+          optimizer: {
+            enabled: true,
+            runs: 200,
+          },
+          viaIR: true,
+        },
+      },
+      "contracts/vaults/dloop/periphery/venue/mock/DLoopRedeemerMock.sol": {
+        version: "0.8.20",
+        settings: {
+          optimizer: {
+            enabled: true,
+            runs: 200,
+          },
+          viaIR: true,
+        },
+      },
+      // DStake router with stack too deep errors
+      "contracts/vaults/dstake/DStakeRouterDLend.sol": {
+        version: "0.8.20",
+        settings: {
+          optimizer: {
+            enabled: true,
+            runs: 200,
+          },
+          viaIR: true,
+        },
+      },
+      // Contracts that import DStakeRouterDLend
+      "contracts/vaults/dstake/rewards/DStakeRewardManagerDLend.sol": {
+        version: "0.8.20",
+        settings: {
+          optimizer: {
+            enabled: true,
+            runs: 200,
+          },
+          viaIR: true,
+        },
+      },
+      // Vesting NFT with stack too deep errors
+      "contracts/vaults/vesting/ERC20VestingNFT.sol": {
+        version: "0.8.20",
+        settings: {
+          optimizer: {
+            enabled: true,
+            runs: 200,
+          },
+          viaIR: true,
+        },
+      },
+    },
   },
   networks: {
     hardhat: {

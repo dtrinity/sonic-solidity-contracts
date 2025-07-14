@@ -9,14 +9,12 @@ import {
   TestERC20,
   OracleAggregator,
   CollateralVault,
-  AmoVault,
   MockAmoVault,
 } from "../../typechain-types";
 import {
   TokenInfo,
   getTokenContractForAddress,
   getTokenContractForSymbol,
-  DSTABLE_SYMBOLS,
 } from "../../typescript/token/utils";
 import {
   createDStableAmoFixture,
@@ -24,10 +22,6 @@ import {
   DS_CONFIG,
   DStableFixtureConfig,
 } from "./fixtures";
-import {
-  USD_ORACLE_AGGREGATOR_ID,
-  S_ORACLE_AGGREGATOR_ID,
-} from "../../typescript/deploy-ids";
 import { getConfig } from "../../config/config";
 
 // Run tests for each dStable configuration
@@ -388,7 +382,10 @@ async function runTestsForDStable(
 
         await expect(
           amoManagerContract.deallocateAmo(amoVault, deallocateAmount)
-        ).to.be.reverted;
+        ).to.be.revertedWithCustomError(
+          amoManagerContract,
+          "InsufficientAllocation"
+        );
 
         // Stop impersonating
         await hre.network.provider.request({
@@ -673,6 +670,42 @@ async function runTestsForDStable(
           )
         ).to.be.revertedWithCustomError(amoManagerContract, "InactiveAmoVault");
       });
+
+      it("emits AllocationSurplus when collateral value exceeds allocation", async function () {
+        const amoVault = await mockAmoVault.getAddress();
+
+        // Enable the vault but do NOT allocate any dStable so currentAllocation = 0
+        await ensureVaultEnabled(amoVault);
+
+        const collateralAmount = hre.ethers.parseUnits(
+          "25",
+          testCollateralInfo.decimals
+        );
+
+        // Transfer collateral to the AMO vault from deployer (simulate profit)
+        await testCollateralToken.transfer(amoVault, collateralAmount);
+
+        // Compute expected surplus in dStable equivalent
+        const collateralBaseValue =
+          await collateralVaultContract.assetValueFromAmount(
+            collateralAmount,
+            await testCollateralToken.getAddress()
+          );
+        const collateralInDstable =
+          await amoManagerContract.baseValueToDstableAmount(
+            collateralBaseValue
+          );
+
+        await expect(
+          amoManagerContract.transferFromAmoVaultToHoldingVault(
+            amoVault,
+            await testCollateralToken.getAddress(),
+            collateralAmount
+          )
+        )
+          .to.emit(amoManagerContract, "AllocationSurplus")
+          .withArgs(amoVault, collateralInDstable);
+      });
     });
 
     describe("Profit Management", () => {
@@ -888,6 +921,53 @@ async function runTestsForDStable(
           amoManagerContract,
           "AccessControlUnauthorizedAccount"
         );
+      });
+    });
+
+    describe("AmoVault manager allowance", () => {
+      it("revokes the old manager allowance and grants it to the new one", async function () {
+        const amoVaultAddress = await mockAmoVault.getAddress();
+
+        // Old manager is the initially deployed AmoManager contract
+        const oldManagerAddress = await amoManagerContract.getAddress();
+        const newManagerAddress = user1;
+
+        const maxUint = hre.ethers.MaxUint256;
+
+        // Initial allowance should be max for the old manager
+        expect(
+          await dstableContract.allowance(amoVaultAddress, oldManagerAddress)
+        ).to.equal(maxUint);
+
+        // Change the manager on the vault
+        await mockAmoVault.setAmoManager(newManagerAddress);
+
+        // Old manager's allowance should now be zero
+        expect(
+          await dstableContract.allowance(amoVaultAddress, oldManagerAddress)
+        ).to.equal(0n);
+
+        // New manager should have max allowance
+        expect(
+          await dstableContract.allowance(amoVaultAddress, newManagerAddress)
+        ).to.equal(maxUint);
+      });
+
+      it("allows admin to set a custom allowance for the current manager", async function () {
+        const amoVaultAddress = await mockAmoVault.getAddress();
+        const managerAddress = await amoManagerContract.getAddress();
+
+        const customAllowance = hre.ethers.parseUnits(
+          "5000",
+          dstableInfo.decimals
+        );
+
+        // Update allowance to custom amount (cast to any to avoid type issues before TypeChain re-generation)
+        await (mockAmoVault as any).setAmoManagerApproval(customAllowance);
+
+        expect(
+          await dstableContract.allowance(amoVaultAddress, managerAddress)
+        ).to.equal(customAllowance);
       });
     });
   });
