@@ -12,8 +12,8 @@ contract WithdrawalFeeHarness is SupportsWithdrawalFee {
         return _calculateWithdrawalFee(amount);
     }
 
-    // Set high max fee BPS to avoid revert in initialization during tests
+    // Set reasonable max fee default of 5% to prevent accidental high fees
     function _maxWithdrawalFeeBps() internal pure override returns (uint256) {
-        return 1_000_000; // 100%
+        return 5 * BasisPointConstants.ONE_PERCENT_BPS; // 5%
     }
 }
