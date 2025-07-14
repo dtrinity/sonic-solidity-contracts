@@ -31,6 +31,16 @@ const config: HardhatUserConfig = {
           ...(process.env.VIA_IR === "true" ? { viaIR: true } : {}),
         },
       },
+      {
+        version: "0.8.22",
+        settings: {
+          optimizer: {
+            enabled: true,
+            runs: 200,
+          },
+          ...(process.env.VIA_IR === "true" ? { viaIR: true } : {}),
+        },
+      },
     ],
     overrides: {
       // Core complex contract causing stack too deep errors

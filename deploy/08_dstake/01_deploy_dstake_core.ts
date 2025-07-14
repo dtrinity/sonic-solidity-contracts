@@ -94,10 +94,18 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   for (const instanceKey in config.dStake) {
     const instanceConfig = config.dStake[instanceKey] as DStakeInstanceConfig;
     const DStakeTokenDeploymentName = `DStakeToken_${instanceKey}`;
+    const proxyAdminDeploymentName = `DStakeProxyAdmin_${instanceKey}`;
+
     const DStakeTokenDeployment = await deploy(DStakeTokenDeploymentName, {
       from: deployer,
       contract: "DStakeToken",
       proxy: {
+        // Use a dedicated ProxyAdmin so dSTAKE is isolated from the global DefaultProxyAdmin
+        viaAdminContract: {
+          name: proxyAdminDeploymentName, // Unique deployment per instance
+          artifact: "DStakeProxyAdmin", // Re-use the same artifact
+        },
+        owner: instanceConfig.initialAdmin, // Governance multisig (configured in network config)
         proxyContract: "OpenZeppelinTransparentProxy",
         execute: {
           init: {

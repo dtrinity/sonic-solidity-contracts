@@ -14,7 +14,8 @@
       "Bash(make:*)",
       "Bash(npx hardhat compile:*)",
       "Bash(mkdir:*)",
-      "Bash(mv:*)"
+      "Bash(mv:*)",
+      "Bash(git fetch:*)"
     ],
     "deny": []
   }
