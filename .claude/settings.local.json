@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx hardhat clean:*)",
+      "Bash(npx solc:*)",
+      "Bash(npm test:*)",
+      "Bash(ls:*)",
+      "Bash(npx hardhat:*)",
+      "Bash(find:*)",
+      "Bash(yarn test:*)",
+      "WebFetch(domain:docs.anthropic.com)",
+      "Bash(gh auth:*)"
+    ],
+    "deny": []
+  }
+}
