@@ -22,6 +22,7 @@ import "@openzeppelin/contracts/utils/structs/EnumerableMap.sol";
 import "contracts/common/IMintableERC20.sol";
 import "./CollateralVault.sol";
 import "./OracleAware.sol";
+import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 // Forward declaration interface for AmoVault instead of importing the full contract
@@ -484,7 +485,7 @@ contract AmoManager is AccessControl, OracleAware, ReentrancyGuard {
     ) public view returns (uint256) {
         uint8 dstableDecimals = dstable.decimals();
         // Align valuation with Issuer/Redeemer: assume 1 dStable == baseCurrencyUnit
-        return (baseValue * (10 ** dstableDecimals)) / baseCurrencyUnit;
+        return Math.mulDiv(baseValue, 10 ** dstableDecimals, baseCurrencyUnit);
     }
 
     /**
@@ -497,7 +498,8 @@ contract AmoManager is AccessControl, OracleAware, ReentrancyGuard {
     ) public view returns (uint256) {
         uint8 dstableDecimals = dstable.decimals();
         // Align valuation with Issuer/Redeemer: assume 1 dStable == baseCurrencyUnit
-        return (dstableAmount * baseCurrencyUnit) / (10 ** dstableDecimals);
+        return
+            Math.mulDiv(dstableAmount, baseCurrencyUnit, 10 ** dstableDecimals);
     }
 
     /* Admin */

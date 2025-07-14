@@ -23,6 +23,7 @@ import "contracts/common/IMintableERC20.sol";
 import "./CollateralVault.sol";
 import "./OracleAware.sol";
 import "contracts/common/BasisPointConstants.sol";
+import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
 contract RedeemerWithFees is AccessControl, OracleAware {
     /* Constants */
@@ -150,9 +151,11 @@ contract RedeemerWithFees is AccessControl, OracleAware {
         }
 
         if (currentFeeBps > 0) {
-            feeCollateral =
-                (totalCollateral * currentFeeBps) /
-                BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
+            feeCollateral = Math.mulDiv(
+                totalCollateral,
+                currentFeeBps,
+                BasisPointConstants.ONE_HUNDRED_PERCENT_BPS
+            );
             if (feeCollateral > totalCollateral) {
                 // This should never happen
                 revert FeeTooHigh(currentFeeBps, MAX_FEE_BPS);
@@ -256,7 +259,12 @@ contract RedeemerWithFees is AccessControl, OracleAware {
     function dstableAmountToBaseValue(
         uint256 _dstableAmount
     ) public view returns (uint256) {
-        return (_dstableAmount * baseCurrencyUnit) / (10 ** dstableDecimals);
+        return
+            Math.mulDiv(
+                _dstableAmount,
+                baseCurrencyUnit,
+                10 ** dstableDecimals
+            );
     }
 
     /* Admin Functions */

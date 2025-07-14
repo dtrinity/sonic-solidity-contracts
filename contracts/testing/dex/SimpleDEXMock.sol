@@ -21,6 +21,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "contracts/common/BasisPointConstants.sol";
+import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
 /**
  * @title SimpleDEXMock
@@ -446,11 +447,11 @@ contract SimpleDEXMock {
         }
 
         // Reduce by execution slippage: amount * (100% - slippage%) / 100%
-        slippedAmount =
-            (amount *
-                (BasisPointConstants.ONE_HUNDRED_PERCENT_BPS -
-                    executionSlippageBps)) /
-            BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
+        slippedAmount = Math.mulDiv(
+            amount,
+            BasisPointConstants.ONE_HUNDRED_PERCENT_BPS - executionSlippageBps,
+            BasisPointConstants.ONE_HUNDRED_PERCENT_BPS
+        );
 
         return slippedAmount;
     }
@@ -468,10 +469,11 @@ contract SimpleDEXMock {
         }
 
         // Calculate original amount: targetAmount * 100% / (100% - slippage%)
-        originalAmount =
-            (targetAmount * BasisPointConstants.ONE_HUNDRED_PERCENT_BPS) /
-            (BasisPointConstants.ONE_HUNDRED_PERCENT_BPS -
-                executionSlippageBps);
+        originalAmount = Math.mulDiv(
+            targetAmount,
+            BasisPointConstants.ONE_HUNDRED_PERCENT_BPS,
+            BasisPointConstants.ONE_HUNDRED_PERCENT_BPS - executionSlippageBps
+        );
 
         return originalAmount;
     }

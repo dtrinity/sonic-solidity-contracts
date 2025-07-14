@@ -16,7 +16,11 @@ library PendleSwapUtils {
     /// @notice Custom error for failed Pendle swap with no revert reason
     error PendleSwapFailed();
     /// @notice Custom error when actual output amount is less than expected (accounting for slippage tolerance)
-    error InsufficientPendleOutput(uint256 expected, uint256 actual, uint256 tolerance);
+    error InsufficientPendleOutput(
+        uint256 expected,
+        uint256 actual,
+        uint256 tolerance
+    );
     /// @notice Custom error when PT token approval fails
     error PTApprovalFailed();
 
@@ -48,14 +52,16 @@ library PendleSwapUtils {
 
         // Approve PT tokens to target contract
         ERC20(ptToken).forceApprove(target, ptAmount);
-        
+
         // Check if approval was successful
         if (ERC20(ptToken).allowance(address(this), target) < ptAmount) {
             revert PTApprovalFailed();
         }
 
         // Record underlying token balance before swap
-        uint256 underlyingBalanceBefore = ERC20(underlyingToken).balanceOf(address(this));
+        uint256 underlyingBalanceBefore = ERC20(underlyingToken).balanceOf(
+            address(this)
+        );
         console.log("Underlying balance before:", underlyingBalanceBefore);
 
         // Execute Pendle SDK transaction
@@ -73,26 +79,31 @@ library PendleSwapUtils {
         }
 
         // Calculate actual underlying tokens received
-        uint256 underlyingBalanceAfter = ERC20(underlyingToken).balanceOf(address(this));
+        uint256 underlyingBalanceAfter = ERC20(underlyingToken).balanceOf(
+            address(this)
+        );
         actualUnderlyingOut = underlyingBalanceAfter - underlyingBalanceBefore;
-        
+
         console.log("Underlying balance after:", underlyingBalanceAfter);
         console.log("Actual underlying received:", actualUnderlyingOut);
 
         // Calculate minimum acceptable amount based on slippage tolerance
-        uint256 minAcceptableOut = (expectedUnderlyingOut * (10000 - slippageToleranceBps)) / 10000;
-        
+        uint256 minAcceptableOut = (expectedUnderlyingOut *
+            (10000 - slippageToleranceBps)) / 10000;
+
         console.log("Min acceptable out:", minAcceptableOut);
         console.log("Slippage tolerance (bps):", slippageToleranceBps);
 
         // Verify we received sufficient underlying tokens
         if (actualUnderlyingOut < minAcceptableOut) {
-            revert InsufficientPendleOutput(expectedUnderlyingOut, actualUnderlyingOut, slippageToleranceBps);
+            revert InsufficientPendleOutput(
+                expectedUnderlyingOut,
+                actualUnderlyingOut,
+                slippageToleranceBps
+            );
         }
 
         console.log("Pendle swap successful");
         return actualUnderlyingOut;
     }
-
-
-} 
+}
