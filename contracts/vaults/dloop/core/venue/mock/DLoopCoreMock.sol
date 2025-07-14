@@ -12,6 +12,14 @@ import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
  * @dev Simple mock implementation of DLoopCoreBase for testing
  */
 contract DLoopCoreMock is DLoopCoreBase {
+    // Error
+    error NotEnoughBalanceToSupply(
+        address user,
+        string tokenSymbol,
+        uint256 balance,
+        uint256 amount
+    );
+
     // Mock state for prices and balances
     mapping(address => uint256) public mockPrices;
     mapping(address => mapping(address => uint256)) private mockCollateral; // user => token => amount
@@ -184,10 +192,15 @@ contract DLoopCoreMock is DLoopCoreBase {
             BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
 
         // Make sure target user has enough balance to supply
-        require(
-            ERC20(token).balanceOf(onBehalfOf) >= amount,
-            "Mock: not enough balance to supply"
-        );
+        if (ERC20(token).balanceOf(onBehalfOf) < amount) {
+            string memory tokenSymbol = ERC20(token).symbol();
+            revert NotEnoughBalanceToSupply(
+                onBehalfOf,
+                tokenSymbol,
+                ERC20(token).balanceOf(onBehalfOf),
+                amount
+            );
+        }
 
         if (amount > 0) {
             // Switch between transfer and transferFrom based on the onBehalfOf
