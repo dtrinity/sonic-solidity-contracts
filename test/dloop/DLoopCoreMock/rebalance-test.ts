@@ -484,7 +484,7 @@ describe("DLoopCoreMock Rebalance Tests", function () {
         shouldCreateImbalanceFirst: true,
       },
       {
-        name: "Should revert when decrease leverage amount is too large (price asymmetry) - SKIP",
+        name: "Should revert when decrease leverage amount is too large (price asymmetry)",
         initialPrices: {
           collateral: ethers.parseUnits("1.2", 8),
           debt: ethers.parseUnits("0.8", 8),
@@ -800,7 +800,7 @@ describe("DLoopCoreMock Rebalance Tests", function () {
         operation: "increase",
       },
       {
-        name: "Should use vault debt balance for decrease leverage when available (inverse prices) - SKIP",
+        name: "Should use vault debt balance for decrease leverage when available (inverse prices)",
         initialPrices: {
           collateral: ethers.parseUnits("1.2", 8),
           debt: ethers.parseUnits("0.8", 8),

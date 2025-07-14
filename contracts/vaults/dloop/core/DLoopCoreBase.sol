@@ -57,6 +57,7 @@ abstract contract DLoopCoreBase is
     ERC20 public immutable debtToken;
 
     uint256 public constant BALANCE_DIFF_TOLERANCE = 1;
+    uint256 public constant LEVERAGE_DIFF_TOLERANCE = 1;
 
     /* Errors */
 
@@ -1538,7 +1539,7 @@ abstract contract DLoopCoreBase is
 
         // Make sure the new leverage is increasing and does not exceed the target leverage
         if (
-            newLeverageBps > targetLeverageBps ||
+            newLeverageBps > targetLeverageBps + LEVERAGE_DIFF_TOLERANCE ||
             newLeverageBps <= currentLeverageBps
         ) {
             revert IncreaseLeverageOutOfRange(
@@ -1722,7 +1723,7 @@ abstract contract DLoopCoreBase is
 
         // Make sure the new leverage is decreasing and is not below the target leverage
         if (
-            newLeverageBps < targetLeverageBps ||
+            newLeverageBps < targetLeverageBps - LEVERAGE_DIFF_TOLERANCE ||
             newLeverageBps >= currentLeverageBps
         ) {
             revert DecreaseLeverageOutOfRange(
