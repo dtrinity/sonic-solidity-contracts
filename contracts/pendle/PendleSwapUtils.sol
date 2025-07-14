@@ -26,7 +26,7 @@ library PendleSwapUtils {
      * @param underlyingToken The underlying token being received
      * @param ptAmount Amount of PT tokens to swap
      * @param expectedUnderlyingOut Expected amount of underlying tokens from SDK
-     * @param target Target contract address from Pendle SDK
+     * @param router Pendle router contract address from Pendle SDK
      * @param swapData Transaction data from Pendle SDK
      * @param slippageToleranceBps Slippage tolerance in basis points (e.g., 500 = 5%)
      * @return actualUnderlyingOut Actual amount of underlying tokens received
@@ -36,7 +36,7 @@ library PendleSwapUtils {
         address underlyingToken,
         uint256 ptAmount,
         uint256 expectedUnderlyingOut,
-        address target,
+        address router,
         bytes memory swapData,
         uint256 slippageToleranceBps
     ) internal returns (uint256 actualUnderlyingOut) {
@@ -47,10 +47,10 @@ library PendleSwapUtils {
         console.log("Expected Underlying Out:", expectedUnderlyingOut);
 
         // Approve PT tokens to target contract
-        ERC20(ptToken).forceApprove(target, ptAmount);
+        ERC20(ptToken).forceApprove(router, ptAmount);
         
         // Check if approval was successful
-        if (ERC20(ptToken).allowance(address(this), target) < ptAmount) {
+        if (ERC20(ptToken).allowance(address(this), router) < ptAmount) {
             revert PTApprovalFailed();
         }
 
@@ -59,7 +59,7 @@ library PendleSwapUtils {
         console.log("Underlying balance before:", underlyingBalanceBefore);
 
         // Execute Pendle SDK transaction
-        (bool success, bytes memory result) = target.call(swapData);
+        (bool success, bytes memory result) = router.call(swapData);
         if (!success) {
             console.log("Pendle swap failed");
             // Decode the revert reason if present

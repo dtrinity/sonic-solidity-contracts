@@ -10,6 +10,16 @@ import "hardhat/console.sol";
  * @title PendleSwapPOC
  * @notice Proof of Concept contract to test Pendle SDK integration
  * @dev This contract demonstrates how to execute Pendle swaps using off-chain computed transaction data
+ * 
+ * User Flow:
+ * 1. User approves this contract to spend their PT tokens: ptToken.approve(contractAddress, amount)
+ * 2. User calls executePendleSwap() with Pendle SDK generated transaction data
+ * 3. Contract pulls PT tokens from user, executes the swap via Pendle SDK
+ * 4. Underlying tokens are sent directly to receiver specified in Pendle SDK call data
+ * 
+ * Helper functions:
+ * - getUserBalance(): Check user's PT token balance
+ * - checkAllowance(): Check how much the contract is approved to spend
  */
 contract PendleSwapPOC {
     using SafeERC20 for ERC20;
@@ -17,6 +27,7 @@ contract PendleSwapPOC {
 
     /// @notice Event emitted when a Pendle swap is executed successfully
     event PendleSwapExecuted(
+        address indexed user,
         address indexed ptToken,
         address indexed underlyingToken,
         uint256 ptAmountIn,
@@ -30,11 +41,12 @@ contract PendleSwapPOC {
 
     /**
      * @notice Execute a PT token swap using Pendle SDK transaction data
+     * @dev This function pulls PT tokens from the user, executes the swap, and returns underlying tokens
      * @param ptToken The PT token to swap
      * @param underlyingToken The expected underlying token to receive
      * @param ptAmount Amount of PT tokens to swap
      * @param expectedUnderlyingOut Expected underlying amount from Pendle SDK
-     * @param target Target contract address from Pendle SDK
+     * @param router Pendle router contract address from Pendle SDK
      * @param swapData Transaction data from Pendle SDK
      * @param slippageToleranceBps Slippage tolerance in basis points (e.g., 500 = 5%)
      * @return actualOut Actual amount of underlying tokens received
@@ -44,40 +56,54 @@ contract PendleSwapPOC {
         address underlyingToken,
         uint256 ptAmount,
         uint256 expectedUnderlyingOut,
-        address target,
+        address router,
         bytes calldata swapData,
         uint256 slippageToleranceBps
     ) external returns (uint256 actualOut) {
         console.log("=== PendleSwapPOC: Executing PT Swap ===");
+        console.log("User:", msg.sender);
         console.log("PT Token:", ptToken);
         console.log("Amount to swap:", ptAmount);
         console.log("Expected output:", expectedUnderlyingOut);
-        console.log("Target contract:", target);
+        console.log("Router:", router);
         console.log("Slippage tolerance (bps):", slippageToleranceBps);
 
-        // Check we have enough PT tokens
-        uint256 balance = ERC20(ptToken).balanceOf(address(this));
-        require(balance >= ptAmount, "Insufficient PT token balance");
-        console.log("PT token balance:", balance);
+        // Check user has enough PT tokens
+        uint256 userBalance = ERC20(ptToken).balanceOf(msg.sender);
+        require(userBalance >= ptAmount, "User has insufficient PT token balance");
+        console.log("User PT token balance:", userBalance);
+
+        // Check allowance
+        uint256 allowance = ERC20(ptToken).allowance(msg.sender, address(this));
+        require(allowance >= ptAmount, "Insufficient allowance for PT tokens");
+        console.log("PT token allowance:", allowance);
+
+        // Pull PT tokens from user
+        ERC20(ptToken).safeTransferFrom(msg.sender, address(this), ptAmount);
+        console.log("Pulled", ptAmount, "PT tokens from user");
 
         // Execute the swap using PendleSwapUtils
+        // Note: underlying tokens go directly to receiver specified in Pendle SDK call
         actualOut = PendleSwapUtils.executePendleSwap(
             ptToken,
             underlyingToken,
             ptAmount,
             expectedUnderlyingOut,
-            target,
+            router,
             swapData,
             slippageToleranceBps
         );
 
+        console.log("Swap executed - underlying tokens sent directly to receiver via Pendle SDK");
+
         emit PendleSwapExecuted(
+            msg.sender,
             ptToken,
             underlyingToken,
             ptAmount,
             actualOut,
             expectedUnderlyingOut,
-            target
+            router
         );
 
         console.log("=== Swap completed successfully ===");
@@ -86,23 +112,23 @@ contract PendleSwapPOC {
     }
 
     /**
-     * @notice Fund this contract with PT tokens for testing
-     * @param ptToken The PT token address
-     * @param amount Amount to fund
+     * @notice Check how many PT tokens the user has approved for this contract
+     * @param ptToken The PT token to check
+     * @param user The user address to check
+     * @return allowance Current allowance amount
      */
-    function fundContract(address ptToken, uint256 amount) external {
-        ERC20(ptToken).safeTransferFrom(msg.sender, address(this), amount);
-        emit FundsReceived(ptToken, amount);
-        console.log("Contract funded with", amount, "PT tokens");
+    function checkAllowance(address ptToken, address user) external view returns (uint256 allowance) {
+        return ERC20(ptToken).allowance(user, address(this));
     }
 
     /**
-     * @notice Check token balance of this contract
-     * @param token Token address to check
-     * @return balance Current balance
+     * @notice Check PT token balance of a user
+     * @param ptToken The PT token to check
+     * @param user The user address to check
+     * @return balance User's current PT token balance
      */
-    function getBalance(address token) external view returns (uint256 balance) {
-        return ERC20(token).balanceOf(address(this));
+    function getUserBalance(address ptToken, address user) external view returns (uint256 balance) {
+        return ERC20(ptToken).balanceOf(user);
     }
 
     /**
