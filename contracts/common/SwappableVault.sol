@@ -43,6 +43,8 @@ abstract contract SwappableVault {
         uint256 returnedAmountIn
     );
 
+    uint256 public constant BALANCE_DIFF_TOLERANCE = 1;
+
     /* Virtual functions */
 
     /**
@@ -115,11 +117,21 @@ abstract contract SwappableVault {
                     amountInMaximum
                 );
             }
-            if (spentInputTokenAmount != amountIn) {
-                revert SpentInputTokenAmountNotEqualReturnedAmountIn(
-                    spentInputTokenAmount,
-                    amountIn
-                );
+
+            if (spentInputTokenAmount > amountInMaximum) {
+                if (spentInputTokenAmount - amountInMaximum > BALANCE_DIFF_TOLERANCE) {
+                    revert SpentInputTokenAmountNotEqualReturnedAmountIn(
+                        spentInputTokenAmount,
+                        amountIn
+                    );
+                }
+            } else {
+                if (amountIn - spentInputTokenAmount > BALANCE_DIFF_TOLERANCE) {
+                    revert SpentInputTokenAmountNotEqualReturnedAmountIn(
+                        spentInputTokenAmount,
+                        amountIn
+                    );
+                }
             }
         }
         // Do not need to check the input token balance decreased after the swap
