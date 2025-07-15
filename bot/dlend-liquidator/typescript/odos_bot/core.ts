@@ -33,7 +33,7 @@ import {
   getUserLiquidationParams,
 } from "./liquidation";
 import { sendSlackMessage } from "./notification";
-import { checkIfPTToken } from "./pendle/check";
+import { isPT } from "../pendle/sdk";
 import { performPTOdosLiquidationDefault } from "./pendle/core";
 import { getAssembledQuote, getOdosSwapQuote } from "./quote";
 import { PendleConfig } from "../../config/types";
@@ -291,7 +291,7 @@ export async function runBotBatch(
           userState.lastTrial = Date.now();
           userState.success = false;
 
-          const isPTToken = await checkIfPTToken(
+          const isPTToken = await isPT(
             liquidationParams.collateralToken.reserveTokenInfo.address,
             pendleConfig.pyFactory,
           );

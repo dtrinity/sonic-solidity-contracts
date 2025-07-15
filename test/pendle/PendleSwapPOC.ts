@@ -1,27 +1,6 @@
 import { ethers, network } from "hardhat";
 import { swapExactPToToken } from "../../typescript/pendle/sdk";
-
-// PT tokens from sonic_mainnet.ts config
-const SONIC_MAINNET_PT_TOKENS = {
-    PTaUSDC: {
-        name: "PT-aUSDC-14AUG2025",
-        address: "0x930441Aa7Ab17654dF5663781CA0C02CC17e6643",
-        market: "0x3f5ea53d1160177445b1898afbb16da111182418",
-        underlying: "0x29219dd400f2Bf60E5a23d13Be72B486D4038894", // USDCe
-        decimals: 6,
-        yt: "0x18d2d54f42ba720851bae861b98a0f4b079e6027"
-    },
-    PTwstkscUSD: {
-        name: "PT-wstkscUSD-18DEC2025",
-        address: "0x0Fb682C9692AddCc1769f4D4d938c54420D54fA3",
-        market: "0x004f76045b42ef3e89814b12b37e69da19c8a212",
-        underlying: "0xd3DCe716f3eF535C5Ff8d041c1A41C3bd89b97aE", // scUSD
-        decimals: 6,
-        yt: "0x2405243576fdff777d54963bca4782180287b6a1"
-    }
-};
-
-const SONIC_CHAIN_ID = 146;
+import { SONIC_CHAIN_ID, SONIC_MAINNET_PT_TOKENS } from "./fixture";
 
 describe("PendleSwapPOC - Mainnet Integration", function () {
     // Skip if not on Sonic mainnet
@@ -93,7 +72,7 @@ describe("PendleSwapPOC - Mainnet Integration", function () {
                 const sdkResponse = await swapExactPtToToken(
                     ptToken.address,
                     testAmount.toString(),
-                    ptToken.underlying,
+                    ptToken.asset,
                     contractAddress,
                     ptToken.market
                 );
@@ -111,7 +90,7 @@ describe("PendleSwapPOC - Mainnet Integration", function () {
                     // Still demonstrate the contract call structure
                     console.log(`\nStep 4: Would execute with parameters:`);
                     console.log(`  ptToken: ${ptToken.address}`);
-                    console.log(`  underlyingToken: ${ptToken.underlying}`);
+                    console.log(`  underlyingToken: ${ptToken.asset}`);
                     console.log(`  ptAmount: ${ethers.formatUnits(testAmount, ptToken.decimals)}`);
                     console.log(`  expectedOut: ${sdkResponse.data.amountOut}`);
                     console.log(`  router: ${sdkResponse.tx.to}`);
@@ -134,7 +113,7 @@ describe("PendleSwapPOC - Mainnet Integration", function () {
                 console.log(`\nStep 5: Executing actual Pendle swap through POC contract...`);
                 const swapTx = await pocContract.executePendleSwap(
                     ptToken.address,
-                    ptToken.underlying,
+                    ptToken.asset,
                     testAmount,
                     sdkResponse.tx.to,
                     sdkResponse.tx.data
@@ -148,7 +127,7 @@ describe("PendleSwapPOC - Mainnet Integration", function () {
                 // Step 6: Check results
                 console.log(`\nStep 6: Checking results...`);
                 const newPtBalance = await ptContract.balanceOf(deployer.address);
-                const underlyingContract = await ethers.getContractAt("@openzeppelin/contracts/token/ERC20/ERC20.sol:ERC20", ptToken.underlying);
+                const underlyingContract = await ethers.getContractAt("@openzeppelin/contracts/token/ERC20/ERC20.sol:ERC20", ptToken.asset);
                 const underlyingBalanceAfter = await underlyingContract.balanceOf(deployer.address);
                 
                 console.log(`PT tokens after swap: ${ethers.formatUnits(newPtBalance, ptToken.decimals)}`);

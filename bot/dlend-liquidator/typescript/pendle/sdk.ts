@@ -2,6 +2,17 @@ import axios, { AxiosResponse } from "axios";
 
 const HOSTED_SDK_URL = "https://api-v2.pendle.finance/core/";
 
+// Pendle PYFactory ABI for isPT function
+const PY_FACTORY_ABI = [
+  {
+    "inputs": [{"internalType": "address", "name": "", "type": "address"}],
+    "name": "isPT",
+    "outputs": [{"internalType": "bool", "name": "", "type": "bool"}],
+    "stateMutability": "view",
+    "type": "function"
+  }
+];
+
 type MethodReturnType<Data> = {
   tx: {
     data: string;
@@ -178,10 +189,12 @@ export async function getPTMarketInfo(
   chainId: number,
 ): Promise<PTMarketInfo> {
   try {
-    // Use callSDK to query Pendle markets API
-    const response = await callSDK<PendleMarketsResponse>(`v1/${chainId}/markets/active`);
-    const marketsData = response.data.data;
-
+    // Call markets API directly (different structure than SDK endpoints)
+    const response = await axios.get<PendleMarketsResponse>(
+      HOSTED_SDK_URL + `v1/${chainId}/markets/active`
+    );
+    const marketsData = response.data;
+    
     if (!marketsData || !marketsData.markets) {
       throw new Error("Invalid markets response format");
     }
@@ -216,5 +229,32 @@ export async function getPTMarketInfo(
   } catch (error) {
     console.error("Failed to get PT market info from API:", error);
     throw new Error(`Could not determine market info for PT token: ${ptTokenAddress}`);
+  }
+}
+
+/**
+ * Check if a token is a PT token using the Pendle pyFactory's isPT function
+ *
+ * @param tokenAddress - The address of the token to check
+ * @param pyFactory - The address of the Pendle pyFactory contract
+ * @returns True if the token is a PT token
+ */
+export async function isPT(tokenAddress: string, pyFactory: string): Promise<boolean> {
+  try {
+    // We need to dynamically import ethers to avoid circular dependencies
+    const { ethers } = await import("hardhat");
+    
+    // Connect to the pyFactory contract
+    const pyFactoryContract = await ethers.getContractAt(
+      PY_FACTORY_ABI,
+      pyFactory,
+    );
+
+    // Call isPT function to check if the token is a PT token
+    const isPT = await pyFactoryContract.isPT(tokenAddress);
+    return isPT;
+  } catch (error) {
+    console.warn(`Failed to check if ${tokenAddress} is PT token using pyFactory ${pyFactory}:`, error);
+    return false;
   }
 }
