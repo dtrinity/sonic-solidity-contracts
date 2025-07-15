@@ -20,5 +20,4 @@ export const SONIC_MAINNET_PT_TOKENS = {
     }
 };
 
-export const SONIC_CHAIN_ID = 146;
 export const SONIC_PY_FACTORY = "0x0582D93FD9c9d42f26bE5D86a5f75291F92102C2";

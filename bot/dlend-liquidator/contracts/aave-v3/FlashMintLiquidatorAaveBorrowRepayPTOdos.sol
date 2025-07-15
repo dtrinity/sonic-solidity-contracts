@@ -235,7 +235,7 @@ contract FlashMintLiquidatorAaveBorrowRepayPTOdos is
      * @return isPT True if the token appears to be a PT token
      */
     function isPTToken(address token) external view returns (bool isPT) {
-        // Simple check - try to call expiry() method which PT tokens should have
+        // Simple check - try to call SY() method which PT tokens should have
         try this.checkPTInterface(token) returns (bool result) {
             return result;
         } catch {
@@ -249,9 +249,16 @@ contract FlashMintLiquidatorAaveBorrowRepayPTOdos is
      * @return True if token implements PT interface
      */
     function checkPTInterface(address token) external view returns (bool) {
-        // Try to call expiry() method - PT tokens should have this
-        (bool success, ) = token.staticcall(abi.encodeWithSignature("expiry()"));
-        return success;
+        // Try to call SY() method - PT tokens should have this
+        (bool success, bytes memory data) = token.staticcall(abi.encodeWithSignature("SY()"));
+        
+        // Check if call was successful and returned a valid address (not zero)
+        if (!success || data.length != 32) {
+            return false;
+        }
+        
+        address syAddress = abi.decode(data, (address));
+        return syAddress != address(0);
     }
 
     /**

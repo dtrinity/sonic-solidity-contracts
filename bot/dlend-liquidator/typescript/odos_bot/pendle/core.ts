@@ -15,7 +15,7 @@ import {
   getPTOdosFlashLoanLiquidatorBotContract,
   getPTOdosFlashMintDStableLiquidatorBotContract,
 } from "./bot_contract";
-import { getPTOdosSwapQuote } from "./quote";
+import { getPTOdosSwapQuote, PTSwapData } from "./quote";
 
 /**
  * Perform the liquidation using PT+Odos two-stage swaps
@@ -35,13 +35,12 @@ export async function performPTOdosLiquidationDefault(
   repayAmount: bigint,
 ): Promise<string> {
   const config = await getConfig(hre);
-  const signer = await hre.ethers.getSigner(liquidatorAccountAddress);
 
   if (!config.liquidatorBotOdos) {
     throw new Error("Liquidator bot Odos config is not found");
   }
 
-  const { odosApiUrl, odosRouter, isUnstakeTokens } = config.liquidatorBotOdos;
+  const { odosApiUrl, isUnstakeTokens } = config.liquidatorBotOdos;
   const network = await hre.ethers.provider.getNetwork();
   const odosClient = new OdosClient(odosApiUrl);
   const chainId = Number(network.chainId);
@@ -103,9 +102,6 @@ export async function performPTOdosLiquidationDefault(
     return await executeFlashMintPTLiquidation(
       flashMintPTLiquidatorBotContract,
       ptSwapData,
-      odosRouter,
-      signer,
-      odosClient,
       params,
     );
   } else {
@@ -121,9 +117,6 @@ export async function performPTOdosLiquidationDefault(
     return await executeFlashLoanPTLiquidation(
       flashLoanPTLiquidatorBotContract,
       ptSwapData,
-      odosRouter,
-      signer,
-      odosClient,
       params,
     );
   }
@@ -149,10 +142,7 @@ export async function performPTOdosLiquidationDefault(
  */
 async function executeFlashMintPTLiquidation(
   flashMintPTLiquidatorBotContract: FlashMintLiquidatorAaveBorrowRepayPTOdos,
-  ptSwapData: any,
-  odosRouter: string,
-  signer: HardhatEthersSigner,
-  odosClient: OdosClient,
+  ptSwapData: PTSwapData,
   params: {
     borrowerAccountAddress: string;
     borrowTokenAddress: string;
@@ -178,14 +168,13 @@ async function executeFlashMintPTLiquidation(
 
   // Encode PTSwapData for the contract
   const encodedSwapData = ethers.AbiCoder.defaultAbiCoder().encode(
-    ["tuple(address,uint256,address,bytes,address,bytes)"],
+    ["tuple(address,address,bytes,address,bytes)"],
     [
       [
         ptSwapData.underlyingAsset,
-        ptSwapData.expectedUnderlying,
-        ptSwapData.pendleTarget,
+        ptSwapData.pendleRouter,
         ptSwapData.pendleCalldata,
-        ptSwapData.odosTarget || ethers.ZeroAddress,
+        ptSwapData.odosRouter || ethers.ZeroAddress,
         ptSwapData.odosCalldata || "0x",
       ],
     ],
@@ -224,10 +213,7 @@ async function executeFlashMintPTLiquidation(
  */
 async function executeFlashLoanPTLiquidation(
   flashLoanPTLiquidatorBotContract: FlashLoanLiquidatorAaveBorrowRepayPTOdos,
-  ptSwapData: any,
-  odosRouter: string,
-  signer: HardhatEthersSigner,
-  odosClient: OdosClient,
+  ptSwapData: PTSwapData,
   params: {
     borrowerAccountAddress: string;
     borrowTokenAddress: string;
@@ -253,14 +239,13 @@ async function executeFlashLoanPTLiquidation(
 
   // Encode PTSwapData for the contract
   const encodedSwapData = ethers.AbiCoder.defaultAbiCoder().encode(
-    ["tuple(address,uint256,address,bytes,address,bytes)"],
+    ["tuple(address,address,bytes,address,bytes)"],
     [
       [
         ptSwapData.underlyingAsset,
-        ptSwapData.expectedUnderlying,
-        ptSwapData.pendleTarget,
+        ptSwapData.pendleRouter,
         ptSwapData.pendleCalldata,
-        ptSwapData.odosTarget || ethers.ZeroAddress,
+        ptSwapData.odosRouter || ethers.ZeroAddress,
         ptSwapData.odosCalldata || "0x",
       ],
     ],

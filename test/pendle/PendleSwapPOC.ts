@@ -1,6 +1,6 @@
 import { ethers, network } from "hardhat";
 import { swapExactPToToken } from "../../typescript/pendle/sdk";
-import { SONIC_CHAIN_ID, SONIC_MAINNET_PT_TOKENS } from "./fixture";
+import { SONIC_MAINNET_PT_TOKENS } from "./fixture";
 
 describe("PendleSwapPOC - Mainnet Integration", function () {
     // Skip if not on Sonic mainnet
@@ -26,7 +26,7 @@ describe("PendleSwapPOC - Mainnet Integration", function () {
         return { pocContract, deployer };
     }
 
-    async function swapExactPtToToken(ptToken: string, amountIn: string, tokenOut: string, receiver: string, market: string) {
+    async function swapExactPtToToken(ptToken: string, amountIn: string, tokenOut: string, receiver: string, market: string, chainId: number) {
         console.log(`\n=== Calling Pendle SDK ===`);
         console.log(`PT Token: ${ptToken}`);
         console.log(`Amount In: ${amountIn}`);
@@ -34,7 +34,7 @@ describe("PendleSwapPOC - Mainnet Integration", function () {
         console.log(`Receiver: ${receiver}`);
 
         try {
-            const response = await swapExactPToToken(ptToken, amountIn, tokenOut, receiver, market, SONIC_CHAIN_ID, 0.01);
+            const response = await swapExactPToToken(ptToken, amountIn, tokenOut, receiver, market, chainId, 0.01);
             console.log(`SDK Response:`);
             console.log(`  Amount Out: ${response.data.data.amountOut}`);
             console.log(`  Price Impact: ${response.data.data.priceImpact}`);
@@ -55,7 +55,8 @@ describe("PendleSwapPOC - Mainnet Integration", function () {
             const ptToken = SONIC_MAINNET_PT_TOKENS.PTwstkscUSD;
             const testAmount = ethers.parseUnits("0.1", ptToken.decimals);
             const contractAddress = await pocContract.getAddress();
-
+            const network = await ethers.provider.getNetwork();
+            const chainId = Number(network.chainId);
             console.log(`\n=== Full POC Flow Simulation ===`);
             console.log(`Contract: ${await pocContract.getAddress()}`);
             console.log(`PT Token: ${ptToken.name} (${ptToken.address})`);
@@ -74,7 +75,8 @@ describe("PendleSwapPOC - Mainnet Integration", function () {
                     testAmount.toString(),
                     ptToken.asset,
                     contractAddress,
-                    ptToken.market
+                    ptToken.market,
+                    chainId
                 );
 
                 console.log(`\nStep 2: Contract ready at ${contractAddress}`);
