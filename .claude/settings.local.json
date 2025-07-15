@@ -15,7 +15,9 @@
       "Bash(npx hardhat compile:*)",
       "Bash(mkdir:*)",
       "Bash(mv:*)",
-      "Bash(git fetch:*)"
+      "Bash(git fetch:*)",
+      "WebFetch(domain:docs.dtrinity.org)",
+      "Bash(tree:*)"
     ],
     "deny": []
   }
