@@ -59,7 +59,9 @@ contract PendleSwapPOC {
         ERC20(ptToken).safeTransferFrom(msg.sender, address(this), ptAmount);
 
         // Record underlying token balance before swap
-        uint256 underlyingBalanceBefore = ERC20(underlyingToken).balanceOf(address(this));
+        uint256 underlyingBalanceBefore = ERC20(underlyingToken).balanceOf(
+            address(this)
+        );
 
         // Execute the swap using PendleSwapUtils
         amountSpent = PendleSwapUtils.executePendleSwap(
@@ -70,8 +72,11 @@ contract PendleSwapPOC {
         );
 
         // Calculate underlying tokens received
-        uint256 underlyingBalanceAfter = ERC20(underlyingToken).balanceOf(address(this));
-        uint256 underlyingReceived = underlyingBalanceAfter - underlyingBalanceBefore;
+        uint256 underlyingBalanceAfter = ERC20(underlyingToken).balanceOf(
+            address(this)
+        );
+        uint256 underlyingReceived = underlyingBalanceAfter -
+            underlyingBalanceBefore;
 
         // Transfer underlying tokens back to user
         if (underlyingReceived > 0) {

@@ -1,5 +1,5 @@
 import { ethers, network } from "hardhat";
-import { callSDK, RedeemPyData } from "../../typescript/pendle/sdk";
+import { callSDK, RedeemPyData, swapExactPToToken } from "../../typescript/pendle/sdk";
 
 // PT tokens from sonic_mainnet.ts config
 const SONIC_MAINNET_PT_TOKENS = {
@@ -47,23 +47,15 @@ describe("PendleSwapPOC - Mainnet Integration", function () {
         return { pocContract, deployer };
     }
 
-    async function callPendleSDK(ptToken: string, amountIn: string, tokenOut: string, yt: string, receiver: string) {
+    async function swapExactPtToToken(ptToken: string, amountIn: string, tokenOut: string, receiver: string, market: string) {
         console.log(`\n=== Calling Pendle SDK ===`);
         console.log(`PT Token: ${ptToken}`);
         console.log(`Amount In: ${amountIn}`);
         console.log(`Token Out: ${tokenOut}`);
-        console.log(`YT Token: ${yt}`);
         console.log(`Receiver: ${receiver}`);
 
         try {
-            const response = await callSDK<RedeemPyData>(`v2/sdk/${SONIC_CHAIN_ID}/redeem`, {
-                receiver: receiver,
-                slippage: 0.01, // 1% slippage
-                yt: yt,
-                amountIn: amountIn,
-                tokenOut: tokenOut
-            });
-
+            const response = await swapExactPToToken(ptToken, amountIn, tokenOut, receiver, market, SONIC_CHAIN_ID, 0.01);
             console.log(`SDK Response:`);
             console.log(`  Amount Out: ${response.data.data.amountOut}`);
             console.log(`  Price Impact: ${response.data.data.priceImpact}`);
@@ -98,12 +90,12 @@ describe("PendleSwapPOC - Mainnet Integration", function () {
 
                 // Step 2: Call Pendle SDK
                 console.log(`\nStep 1: Calling Pendle SDK...`);
-                const sdkResponse = await callPendleSDK(
+                const sdkResponse = await swapExactPtToToken(
                     ptToken.address,
                     testAmount.toString(),
                     ptToken.underlying,
-                    ptToken.yt,
-                    contractAddress
+                    contractAddress,
+                    ptToken.market
                 );
 
                 console.log(`\nStep 2: Contract ready at ${contractAddress}`);
@@ -178,7 +170,6 @@ describe("PendleSwapPOC - Mainnet Integration", function () {
                 console.log(`   Contract execution: ✅`);
                 console.log(`   PT → Underlying swap: ✅`);
                 console.log(`   Underlying tokens transferred to user: ✅`);
-
             } catch (error: any) {
                 console.log(`\nℹ️  POC flow failed:`);
                 console.log(`   Error: ${error}`);

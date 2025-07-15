@@ -88,3 +88,37 @@ export async function callSDK<Data>(
 
   return response;
 }
+
+/**
+ * Swaps an exact amount of PT tokens for a specified token
+ *
+ * @param ptToken The PT token address
+ * @param amountIn The amount of PT tokens to swap
+ * @param tokenOut The token address to swap to
+ * @param receiver The address to receive the swapped tokens
+ * @param market The market address
+ * @param chainId The chain ID
+ * @param slippage The slippage tolerance for the swap
+ * @returns The SDK response containing transaction data and result data
+ */
+export async function swapExactPToToken(
+  ptToken: string,
+  amountIn: string,
+  tokenOut: string,
+  receiver: string,
+  market: string,
+  chainId: number,
+  slippage: number = 0.01,
+): Promise<AxiosResponse<MethodReturnType<RedeemPyData>>> {
+  return await callSDK<RedeemPyData>(
+    `v1/sdk/${chainId}/markets/${market}/swap`,
+    {
+      receiver: receiver,
+      slippage: slippage,
+      tokenIn: ptToken,
+      amountIn: amountIn,
+      tokenOut: tokenOut,
+      enableAggregator: true,
+    },
+  );
+}

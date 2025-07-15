@@ -35,9 +35,12 @@ library PendleSwapUtils {
     ) internal returns (uint256 amountSpent) {
         // Approve PT tokens to target contract
         ERC20(ptToken).forceApprove(router, ptAmount);
-        
+
         // Check if approval was successful
-        uint256 currentAllowance = ERC20(ptToken).allowance(address(this), router);
+        uint256 currentAllowance = ERC20(ptToken).allowance(
+            address(this),
+            router
+        );
         if (currentAllowance < ptAmount) {
             revert PTApprovalFailed();
         }
@@ -61,4 +64,4 @@ library PendleSwapUtils {
 
         return amountSpent;
     }
-} 
+}
