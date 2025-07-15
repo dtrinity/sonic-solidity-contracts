@@ -12,9 +12,9 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
  *
  * User Flow:
  * 1. User approves this contract to spend their PT tokens: ptToken.approve(contractAddress, amount)
- * 2. User calls executePendleSwap() with Pendle SDK generated transaction data
+ * 2. User calls executePendleSwap() with Pendle SDK generated transaction data (receiver = this contract)
  * 3. Contract pulls PT tokens from user, executes the swap via Pendle SDK
- * 4. Underlying tokens are sent directly to receiver specified in Pendle SDK call data
+ * 4. Contract receives underlying tokens and transfers them back to the user
  *
  * Helper functions:
  * - getUserBalance(): Check user's PT token balance
@@ -28,6 +28,7 @@ contract PendleSwapPOC {
     event PendleSwapExecuted(
         address indexed user,
         address indexed ptToken,
+        address indexed underlyingToken,
         uint256 ptAmountIn,
         uint256 amountSpent,
         address target
@@ -38,9 +39,10 @@ contract PendleSwapPOC {
 
     /**
      * @notice Execute a PT token swap using Pendle SDK transaction data
-     * @dev This function pulls PT tokens from the user and executes the swap.
-     *      Underlying tokens go directly to the receiver specified in Pendle SDK call data.
+     * @dev This function pulls PT tokens from the user, executes the swap, and transfers
+     *      the underlying tokens back to the user.
      * @param ptToken The PT token to swap
+     * @param underlyingToken The underlying token that will be received from the swap
      * @param ptAmount Amount of PT tokens to swap
      * @param router Pendle router contract address from Pendle SDK
      * @param swapData Transaction data from Pendle SDK
@@ -48,26 +50,18 @@ contract PendleSwapPOC {
      */
     function executePendleSwap(
         address ptToken,
+        address underlyingToken,
         uint256 ptAmount,
         address router,
         bytes calldata swapData
     ) external returns (uint256 amountSpent) {
-        // Check user has enough PT tokens
-        uint256 userBalance = ERC20(ptToken).balanceOf(msg.sender);
-        require(
-            userBalance >= ptAmount,
-            "User has insufficient PT token balance"
-        );
-
-        // Check allowance
-        uint256 allowance = ERC20(ptToken).allowance(msg.sender, address(this));
-        require(allowance >= ptAmount, "Insufficient allowance for PT tokens");
-
         // Pull PT tokens from user
         ERC20(ptToken).safeTransferFrom(msg.sender, address(this), ptAmount);
 
+        // Record underlying token balance before swap
+        uint256 underlyingBalanceBefore = ERC20(underlyingToken).balanceOf(address(this));
+
         // Execute the swap using PendleSwapUtils
-        // Note: underlying tokens go directly to receiver specified in Pendle SDK call
         amountSpent = PendleSwapUtils.executePendleSwap(
             ptToken,
             ptAmount,
@@ -75,9 +69,19 @@ contract PendleSwapPOC {
             swapData
         );
 
+        // Calculate underlying tokens received
+        uint256 underlyingBalanceAfter = ERC20(underlyingToken).balanceOf(address(this));
+        uint256 underlyingReceived = underlyingBalanceAfter - underlyingBalanceBefore;
+
+        // Transfer underlying tokens back to user
+        if (underlyingReceived > 0) {
+            ERC20(underlyingToken).safeTransfer(msg.sender, underlyingReceived);
+        }
+
         emit PendleSwapExecuted(
             msg.sender,
             ptToken,
+            underlyingToken,
             ptAmount,
             amountSpent,
             router

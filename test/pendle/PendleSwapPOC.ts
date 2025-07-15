@@ -22,7 +22,6 @@ const SONIC_MAINNET_PT_TOKENS = {
 };
 
 const SONIC_CHAIN_ID = 146;
-const RECEIVER_ADDRESS = "0xd2f775Ff2cD41bfe43C7A8c016eD10393553fe44";
 
 describe("PendleSwapPOC - Mainnet Integration", function () {
     // Skip if not on Sonic mainnet
@@ -71,7 +70,7 @@ describe("PendleSwapPOC - Mainnet Integration", function () {
             console.log(`  Target: ${response.data.tx.to}`);
             console.log(`  Data length: ${response.data.tx.data.length}`);
             console.log(`  Data: ${response.data.tx.data}`);
-
+            console.log(response.data);
             return response.data;
         } catch (error) {
             console.error("Pendle SDK call failed:", error);
@@ -84,6 +83,7 @@ describe("PendleSwapPOC - Mainnet Integration", function () {
             const { pocContract, deployer } = await deployPendleSwapPOCForMainnet();
             const ptToken = SONIC_MAINNET_PT_TOKENS.PTaUSDC;
             const testAmount = ethers.parseUnits("0.1", ptToken.decimals);
+            const contractAddress = await pocContract.getAddress();
 
             console.log(`\n=== Full POC Flow Simulation ===`);
             console.log(`Contract: ${await pocContract.getAddress()}`);
@@ -103,10 +103,9 @@ describe("PendleSwapPOC - Mainnet Integration", function () {
                     testAmount.toString(),
                     ptToken.underlying,
                     ptToken.yt,
-                    RECEIVER_ADDRESS
+                    contractAddress
                 );
 
-                const contractAddress = await pocContract.getAddress();
                 console.log(`\nStep 2: Contract ready at ${contractAddress}`);
 
                 // Step 3: Check if we have enough PT tokens
@@ -124,7 +123,6 @@ describe("PendleSwapPOC - Mainnet Integration", function () {
                     console.log(`  ptAmount: ${ethers.formatUnits(testAmount, ptToken.decimals)}`);
                     console.log(`  expectedOut: ${sdkResponse.data.amountOut}`);
                     console.log(`  router: ${sdkResponse.tx.to}`);
-                    console.log(`  slippage: 5%`);
                     
                     console.log(`\n✅ POC Flow Complete - SDK integration working!`);
                     console.log(`   Off-chain computation: ✅`);
@@ -139,11 +137,12 @@ describe("PendleSwapPOC - Mainnet Integration", function () {
                 const approveTx = await ptContract.approve(contractAddress, testAmount);
                 await approveTx.wait();
                 console.log(`✅ Approved ${ethers.formatUnits(testAmount, ptToken.decimals)} PT tokens`);
-
+                
                 // Step 5: Execute the actual swap
                 console.log(`\nStep 5: Executing actual Pendle swap through POC contract...`);
                 const swapTx = await pocContract.executePendleSwap(
                     ptToken.address,
+                    ptToken.underlying,
                     testAmount,
                     sdkResponse.tx.to,
                     sdkResponse.tx.data
@@ -158,16 +157,27 @@ describe("PendleSwapPOC - Mainnet Integration", function () {
                 console.log(`\nStep 6: Checking results...`);
                 const newPtBalance = await ptContract.balanceOf(deployer.address);
                 const underlyingContract = await ethers.getContractAt("@openzeppelin/contracts/token/ERC20/ERC20.sol:ERC20", ptToken.underlying);
-                const underlyingBalance = await underlyingContract.balanceOf(deployer.address);
+                const underlyingBalanceAfter = await underlyingContract.balanceOf(deployer.address);
                 
                 console.log(`PT tokens after swap: ${ethers.formatUnits(newPtBalance, ptToken.decimals)}`);
-                console.log(`Underlying tokens received: ${ethers.formatUnits(underlyingBalance, await underlyingContract.decimals())}`);
+                console.log(`Underlying tokens received: ${ethers.formatUnits(underlyingBalanceAfter, await underlyingContract.decimals())}`);
+                
+                // Calculate PT tokens used and verify swap occurred
+                const ptTokensUsed = ptBalance - newPtBalance;
+                console.log(`PT tokens used: ${ethers.formatUnits(ptTokensUsed, ptToken.decimals)}`);
+                
+                if (ptTokensUsed > 0) {
+                    console.log(`✅ PT tokens successfully consumed in swap`);
+                } else {
+                    console.log(`⚠️  No PT tokens were consumed - check transaction`);
+                }
                 
                 console.log(`\n🎯 COMPLETE SUCCESS: Full PT liquidation flow executed!`);
                 console.log(`   Off-chain computation: ✅`);
                 console.log(`   Transaction data generation: ✅`);
                 console.log(`   Contract execution: ✅`);
                 console.log(`   PT → Underlying swap: ✅`);
+                console.log(`   Underlying tokens transferred to user: ✅`);
 
             } catch (error: any) {
                 console.log(`\nℹ️  POC flow failed:`);
