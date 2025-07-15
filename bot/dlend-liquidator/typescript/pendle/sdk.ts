@@ -35,6 +35,38 @@ export type TransferLiquidityData = {
 };
 export type RollOverPtData = { amountPtOut: string; priceImpact: number };
 
+/**
+ * Interface for PT market information
+ */
+export interface PTMarketInfo {
+  marketAddress: string; // Market contract address
+  underlyingAsset: string; // Underlying asset address
+}
+
+/**
+ * Interface for Pendle API market data
+ */
+interface PendleMarket {
+  name: string;
+  address: string;
+  expiry: string;
+  pt: string; // Format: "chainId-address"
+  yt: string; // Format: "chainId-address" 
+  sy: string; // Format: "chainId-address"
+  underlyingAsset: string; // Format: "chainId-address"
+  details: any;
+  isNew: boolean;
+  isPrime: boolean;
+  timestamp: string;
+}
+
+/**
+ * Interface for Pendle markets API response
+ */
+interface PendleMarketsResponse {
+  markets: PendleMarket[];
+}
+
 export interface LimitOrderResponse {
   /** Hash of the order */
   id: string;
@@ -66,6 +98,16 @@ export interface LimitOrderResponse {
   failSafeRate: string;
   /** Bytes string for permit */
   permit: string;
+}
+
+/**
+ * Helper function to extract address from "chainId-address" format
+ * @param addressWithChainId - Address in format "146-0x123..."
+ * @returns Just the address part "0x123..."
+ */
+function extractAddressFromChainId(addressWithChainId: string): string {
+  const parts = addressWithChainId.split('-');
+  return parts.length > 1 ? parts[1] : addressWithChainId;
 }
 
 /**
@@ -121,4 +163,58 @@ export async function swapExactPToToken(
       enableAggregator: true,
     },
   );
+}
+
+/**
+ * Get the market address and underlying asset address from a PT token
+ * Uses Pendle API to find the corresponding market and underlying asset
+ *
+ * @param ptTokenAddress - PT token address
+ * @param chainId - Chain ID
+ * @returns Object containing market address and underlying asset address
+ */
+export async function getPTMarketInfo(
+  ptTokenAddress: string,
+  chainId: number,
+): Promise<PTMarketInfo> {
+  try {
+    // Use callSDK to query Pendle markets API
+    const response = await callSDK<PendleMarketsResponse>(`v1/${chainId}/markets/active`);
+    const marketsData = response.data.data;
+
+    if (!marketsData || !marketsData.markets) {
+      throw new Error("Invalid markets response format");
+    }
+
+    // Find market where PT matches our token
+    const market = marketsData.markets.find((m: PendleMarket) => {
+      const ptAddress = extractAddressFromChainId(m.pt);
+      return ptAddress.toLowerCase() === ptTokenAddress.toLowerCase();
+    });
+
+    if (!market) {
+      throw new Error(`Market not found for PT token: ${ptTokenAddress}`);
+    }
+
+    if (!market.address || !market.underlyingAsset) {
+      throw new Error(`Invalid market data for PT token: ${ptTokenAddress}`);
+    }
+
+    const marketAddress = market.address;
+    const underlyingAsset = extractAddressFromChainId(market.underlyingAsset);
+
+    console.log(`Found PT market info via API:`, {
+      ptToken: ptTokenAddress,
+      marketAddress,
+      underlyingAsset,
+    });
+
+    return {
+      marketAddress,
+      underlyingAsset,
+    };
+  } catch (error) {
+    console.error("Failed to get PT market info from API:", error);
+    throw new Error(`Could not determine market info for PT token: ${ptTokenAddress}`);
+  }
 }
