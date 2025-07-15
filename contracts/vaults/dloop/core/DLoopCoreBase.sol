@@ -1495,27 +1495,6 @@ abstract contract DLoopCoreBase is
             (BasisPointConstants.ONE_HUNDRED_PERCENT_BPS + subsidyBps)) /
             BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
 
-        // Calculate the new leverage after increasing the leverage
-        uint256 newLeverageBps = ((totalCollateralBase +
-            requiredCollateralTokenAmountInBase) *
-            BasisPointConstants.ONE_HUNDRED_PERCENT_BPS) /
-            (totalCollateralBase +
-                requiredCollateralTokenAmountInBase -
-                totalDebtBase -
-                borrowedDebtTokenInBase);
-
-        // Make sure the new leverage is increasing and does not exceed the target leverage
-        if (
-            newLeverageBps > targetLeverageBps ||
-            newLeverageBps <= currentLeverageBps
-        ) {
-            revert IncreaseLeverageOutOfRange(
-                newLeverageBps,
-                targetLeverageBps,
-                currentLeverageBps
-            );
-        }
-
         // Supply the collateral token to the lending pool
         _supplyToPool(
             address(collateralToken),
@@ -1546,6 +1525,16 @@ abstract contract DLoopCoreBase is
             borrowedDebtTokenAmount,
             address(this)
         );
+
+        // Make sure new current leverage is increased and not above the target leverage
+        uint256 newCurrentLeverageBps = getCurrentLeverageBps();
+        if (newCurrentLeverageBps > targetLeverageBps || newCurrentLeverageBps <= currentLeverageBps) {
+            revert IncreaseLeverageOutOfRange(
+                newCurrentLeverageBps,
+                targetLeverageBps,
+                currentLeverageBps
+            );
+        }
 
         // Transfer the debt token to the user
         debtToken.safeTransfer(msg.sender, borrowedDebtTokenAmount);
@@ -1630,27 +1619,6 @@ abstract contract DLoopCoreBase is
             (BasisPointConstants.ONE_HUNDRED_PERCENT_BPS + subsidyBps)) /
             BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
 
-        // Calculate the new leverage after decreasing the leverage
-        uint256 newLeverageBps = ((totalCollateralBase -
-            withdrawCollateralTokenInBase) *
-            BasisPointConstants.ONE_HUNDRED_PERCENT_BPS) /
-            (totalCollateralBase -
-                withdrawCollateralTokenInBase -
-                totalDebtBase +
-                requiredDebtTokenAmountInBase);
-
-        // Make sure the new leverage is decreasing and is not below the target leverage
-        if (
-            newLeverageBps < targetLeverageBps ||
-            newLeverageBps >= currentLeverageBps
-        ) {
-            revert DecreaseLeverageOutOfRange(
-                newLeverageBps,
-                targetLeverageBps,
-                currentLeverageBps
-            );
-        }
-
         // Repay the debt token to the lending pool
         _repayDebtToPool(
             address(debtToken),
@@ -1681,6 +1649,16 @@ abstract contract DLoopCoreBase is
             withdrawnCollateralTokenAmount,
             address(this)
         );
+
+        // Make sure new current leverage is decreased and not below the target leverage
+        uint256 newCurrentLeverageBps = getCurrentLeverageBps();
+        if (newCurrentLeverageBps < targetLeverageBps || newCurrentLeverageBps >= currentLeverageBps) {
+            revert DecreaseLeverageOutOfRange(
+                newCurrentLeverageBps,
+                targetLeverageBps,
+                currentLeverageBps
+            );
+        }
 
         // Transfer the collateral asset to the user
         collateralToken.safeTransfer(
