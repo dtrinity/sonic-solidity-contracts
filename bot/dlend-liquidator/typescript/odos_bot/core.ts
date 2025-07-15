@@ -36,6 +36,7 @@ import { sendSlackMessage } from "./notification";
 import { checkIfPTToken } from "./pendle/check";
 import { performPTOdosLiquidationDefault } from "./pendle/core";
 import { getAssembledQuote, getOdosSwapQuote } from "./quote";
+import { PendleConfig } from "../../config/types";
 
 // Load environment variables
 dotenv.config();
@@ -97,6 +98,7 @@ export async function runOdosBot(index: number): Promise<void> {
         config.liquidatorBotOdos.healthFactorBatchSize,
         config.liquidatorBotOdos.healthFactorThreshold,
         config.liquidatorBotOdos.profitableThresholdInUSD,
+        config.pendle as PendleConfig,
       );
     } catch (error: any) {
       printLog(
@@ -126,6 +128,7 @@ export async function runOdosBot(index: number): Promise<void> {
  * @param healthFactorBatchSize - The size of the health factor batch
  * @param healthFactorThreshold - The threshold of the health factor
  * @param profitableThresholdInUSD - The threshold of the liquidation profit in USD
+ * @param pendleConfig - The Pendle config
  */
 export async function runBotBatch(
   index: number,
@@ -134,6 +137,7 @@ export async function runBotBatch(
   healthFactorBatchSize: number,
   healthFactorThreshold: number,
   profitableThresholdInUSD: number,
+  pendleConfig: PendleConfig,
 ): Promise<void> {
   const liquidatableUserInfos: {
     userAddress: string;
@@ -289,6 +293,7 @@ export async function runBotBatch(
 
           const isPTToken = await checkIfPTToken(
             liquidationParams.collateralToken.reserveTokenInfo.address,
+            pendleConfig.pyFactory,
           );
           userState.extraInfo["isPTToken"] = isPTToken.toString();
 

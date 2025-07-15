@@ -1,23 +1,36 @@
 import hre from "hardhat";
 
+// Pendle PYFactory ABI for isPT function
+const PY_FACTORY_ABI = [
+  {
+    "inputs": [{"internalType": "address", "name": "", "type": "address"}],
+    "name": "isPT",
+    "outputs": [{"internalType": "bool", "name": "", "type": "bool"}],
+    "stateMutability": "view",
+    "type": "function"
+  }
+];
+
 /**
- * Check if a token is a PT token by calling the contract's isPTToken method
+ * Check if a token is a PT token using the Pendle pyFactory's isPT function
  *
  * @param tokenAddress - The address of the token to check
+ * @param pyFactory - The address of the Pendle pyFactory contract
  * @returns True if the token is a PT token
  */
-export async function checkIfPTToken(tokenAddress: string): Promise<boolean> {
+export async function checkIfPTToken(tokenAddress: string, pyFactory: string): Promise<boolean> {
   try {
-    // Try to call expiry() method - PT tokens should have this
-    const contract = await hre.ethers.getContractAt(
-      ["function expiry() external view returns (uint256)"],
-      tokenAddress,
+    // Connect to the pyFactory contract
+    const pyFactoryContract = await hre.ethers.getContractAt(
+      PY_FACTORY_ABI,
+      pyFactory,
     );
 
-    // If this doesn't revert, it's likely a PT token
-    await contract.expiry();
-    return true;
-  } catch {
+    // Call isPT function to check if the token is a PT token
+    const isPT = await pyFactoryContract.isPT(tokenAddress);
+    return isPT;
+  } catch (error) {
+    console.warn(`Failed to check if ${tokenAddress} is PT token using pyFactory ${pyFactory}:`, error);
     return false;
   }
 }
