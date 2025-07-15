@@ -24,6 +24,7 @@ const compat = new FlatCompat({
 export default [
   {
     ignores: [
+      "*.cjs",
       "**/contracts/",
       "**/node_modules/",
       "**/debug/",
@@ -51,7 +52,7 @@ export default [
   ...compat.extends(
     "plugin:jsdoc/recommended",
     "plugin:eslint-comments/recommended",
-    "prettier"
+    "prettier",
   ),
   {
     plugins: {

@@ -115,4 +115,4 @@ func.tags = ["pt-liquidator-bot"];
 func.dependencies = [];
 func.id = FLASH_MINT_DSTABLE_LIQUIDATOR_PT_ODOS_ID;
 
-export default func; 
+export default func;

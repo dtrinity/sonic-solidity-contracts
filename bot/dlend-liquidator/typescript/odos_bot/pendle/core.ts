@@ -147,17 +147,14 @@ export async function performPTOdosLiquidationDefault(
  *
  * @param flashMintPTLiquidatorBotContract - The flash mint PT liquidator bot contract
  * @param ptSwapData - The PT swap data
- * @param odosRouter - The Odos router
- * @param signer - The signer
- * @param odosClient - The Odos client
  * @param params - The parameters
- * @param params.borrowerAccountAddress
- * @param params.borrowTokenAddress
- * @param params.collateralTokenAddress
- * @param params.repayAmount
- * @param params.chainId
- * @param params.liquidatorAccountAddress
- * @param params.isUnstakeToken
+ * @param params.borrowerAccountAddress - The address of the borrower
+ * @param params.borrowTokenAddress - The address of the borrow token
+ * @param params.collateralTokenAddress - The address of the collateral token
+ * @param params.repayAmount - The amount of the repay
+ * @param params.chainId - The chain ID
+ * @param params.liquidatorAccountAddress - The address of the liquidator
+ * @param params.isUnstakeToken - Whether to unstake the collateral token
  * @returns The transaction hash
  */
 async function executeFlashMintPTLiquidation(
@@ -218,17 +215,14 @@ async function executeFlashMintPTLiquidation(
  *
  * @param flashLoanPTLiquidatorBotContract - The flash loan PT liquidator bot contract
  * @param ptSwapData - The PT swap data
- * @param odosRouter - The Odos router
- * @param signer - The signer
- * @param odosClient - The Odos client
  * @param params - The parameters
- * @param params.borrowerAccountAddress
- * @param params.borrowTokenAddress
- * @param params.collateralTokenAddress
- * @param params.repayAmount
- * @param params.chainId
- * @param params.liquidatorAccountAddress
- * @param params.isUnstakeToken
+ * @param params.borrowerAccountAddress - The address of the borrower
+ * @param params.borrowTokenAddress - The address of the borrow token
+ * @param params.collateralTokenAddress - The address of the collateral token
+ * @param params.repayAmount - The amount of the repay
+ * @param params.chainId - The chain ID
+ * @param params.liquidatorAccountAddress - The address of the liquidator
+ * @param params.isUnstakeToken - Whether to unstake the collateral token
  * @returns The transaction hash
  */
 async function executeFlashLoanPTLiquidation(

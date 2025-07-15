@@ -1,8 +1,8 @@
 import hre from "hardhat";
 
 import { OdosClient } from "../../odos/client";
-import { getERC4626UnderlyingAsset } from "../../token/erc4626";
 import { getPTMarketInfo, swapExactPToToken } from "../../pendle/sdk";
+import { getERC4626UnderlyingAsset } from "../../token/erc4626";
 
 /**
  * Interface for PT swap data that will be encoded for the contract
@@ -36,7 +36,7 @@ export async function getPTOdosSwapQuote(
   chainId: number,
   odosClient: OdosClient,
   isUnstakeToken: boolean,
-  receiverAddress: string
+  receiverAddress: string,
 ): Promise<{ ptSwapData: PTSwapData }> {
   console.log("Getting PT+Odos two-stage swap quote");
   console.log("PT Token:", collateralTokenAddress);
@@ -103,10 +103,10 @@ export async function getPTOdosSwapQuote(
   console.log("Estimated PT amount needed:", estimatedPTAmount);
   console.log("Formatted PT amount:", formattedPTAmount);
 
-
   // Call Pendle SDK to get PT -> underlying swap data
   const pendleResponse = await swapExactPToToken(
-    effectivePTAddress, formattedPTAmount,
+    effectivePTAddress,
+    formattedPTAmount,
     pyMarketInfo.underlyingAsset,
     receiverAddress,
     pyMarketInfo.marketAddress,
@@ -126,7 +126,10 @@ export async function getPTOdosSwapQuote(
   let odosTarget = "";
   let odosCalldata = "";
 
-  if (pyMarketInfo.underlyingAsset.toLowerCase() !== borrowTokenAddress.toLowerCase()) {
+  if (
+    pyMarketInfo.underlyingAsset.toLowerCase() !==
+    borrowTokenAddress.toLowerCase()
+  ) {
     console.log("Different tokens - need Odos swap from underlying to target");
 
     // Use the exact expected output from Pendle as input for Odos
@@ -223,4 +226,3 @@ async function estimatePTInputAmount(
     return Number(targetAmount) * 1.5; // 50% buffer as fallback
   }
 }
-

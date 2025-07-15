@@ -12,7 +12,7 @@ export async function getConfig(): Promise<Config> {
   const dSAddress = "0x614914B028A7D1fD4Fab1E5a53a3E2dF000bcB0e"; // Replace with actual dS address
   const odosRouterAddress = "0xaC041Df48dF9791B0654f1Dbbf2CC8450C5f2e9D"; // Odos router on Sonic
   const pyFactoryAddress = "0x0582D93FD9c9d42f26bE5D86a5f75291F92102C2"; // Pendle Yield factory on Sonic
-  
+
   return {
     parentDeploymentAddresses: {
       poolAddressesProvider: "0x1f8d8a3575d049aA0C195AA947483738811bAdcb",
