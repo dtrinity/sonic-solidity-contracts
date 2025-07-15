@@ -21,10 +21,9 @@ contract FlashMintLiquidatorAaveBorrowRepayPTOdos is
     /// @notice Data structure for encoding PT swap parameters
     struct PTSwapData {
         address underlyingAsset;     // Underlying asset from PT swap
-        uint256 expectedUnderlying;  // Expected underlying amount from Pendle SDK
-        address pendleTarget;        // Target contract for Pendle transaction
+        address pendleRouter;        // Pendle router address
         bytes pendleCalldata;        // Transaction data from Pendle SDK
-        address odosTarget;          // Target contract for Odos transaction (can be zero if no second swap needed)
+        address odosRouter;          // Odos router address
         bytes odosCalldata;          // Transaction data from Odos API (can be empty if no second swap needed)
     }
 
@@ -53,9 +52,6 @@ contract FlashMintLiquidatorAaveBorrowRepayPTOdos is
     /// @notice Immutable contract references
     IOdosRouterV2 public immutable odosRouter;
     
-    /// @notice Slippage tolerance for PT swaps (in basis points)
-    uint256 public constant PT_SLIPPAGE_TOLERANCE = 500; // 5%
-
     constructor(
         IERC3156FlashLender _flashMinter,
         ILendingPoolAddressesProvider _addressesProvider,
@@ -102,10 +98,8 @@ contract FlashMintLiquidatorAaveBorrowRepayPTOdos is
         // Stage 1: Execute Pendle swap (PT → underlying)
         uint256 underlyingReceived = _executePendleSwap(
             _inputToken,
-            ptSwapData.underlyingAsset,
             _maxIn,
-            ptSwapData.expectedUnderlying,
-            ptSwapData.pendleTarget,
+            ptSwapData.pendleRouter,
             ptSwapData.pendleCalldata
         );
 
@@ -123,7 +117,7 @@ contract FlashMintLiquidatorAaveBorrowRepayPTOdos is
             targetReceived = underlyingReceived;
         } else {
             // Need second swap via Odos
-            if (ptSwapData.odosTarget == address(0) || ptSwapData.odosCalldata.length == 0) {
+            if (ptSwapData.odosRouter == address(0) || ptSwapData.odosCalldata.length == 0) {
                 revert InvalidPTSwapData();
             }
             
@@ -132,7 +126,7 @@ contract FlashMintLiquidatorAaveBorrowRepayPTOdos is
                 _outputToken,
                 underlyingReceived,
                 _amount,
-                ptSwapData.odosTarget,
+                ptSwapData.odosRouter,
                 ptSwapData.odosCalldata
             );
         }
@@ -165,18 +159,14 @@ contract FlashMintLiquidatorAaveBorrowRepayPTOdos is
     /**
      * @notice Executes a Pendle PT swap using SDK-generated transaction data
      * @param ptToken The PT token being swapped
-     * @param underlyingToken The underlying token being received
      * @param ptAmount Amount of PT tokens to swap
-     * @param expectedUnderlyingOut Expected amount of underlying tokens from SDK
      * @param target Target contract address from Pendle SDK
      * @param swapData Transaction data from Pendle SDK
      * @return actualUnderlyingOut Actual amount of underlying tokens received
      */
     function _executePendleSwap(
         address ptToken,
-        address underlyingToken,
         uint256 ptAmount,
-        uint256 expectedUnderlyingOut,
         address target,
         bytes memory swapData
     ) internal returns (uint256 actualUnderlyingOut) {
@@ -184,12 +174,9 @@ contract FlashMintLiquidatorAaveBorrowRepayPTOdos is
         // Note: Errors from the library will bubble up automatically
         return PendleSwapUtils.executePendleSwap(
             ptToken,
-            underlyingToken,
             ptAmount,
-            expectedUnderlyingOut,
             target,
-            swapData,
-            PT_SLIPPAGE_TOLERANCE
+            swapData
         );
     }
 
