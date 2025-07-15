@@ -17,7 +17,8 @@
       "Bash(mv:*)",
       "Bash(git fetch:*)",
       "WebFetch(domain:docs.dtrinity.org)",
-      "Bash(tree:*)"
+      "Bash(tree:*)",
+      "Bash(touch:*)"
     ],
     "deny": []
   }
