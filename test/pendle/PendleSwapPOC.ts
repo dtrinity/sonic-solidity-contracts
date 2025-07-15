@@ -144,12 +144,9 @@ describe("PendleSwapPOC - Mainnet Integration", function () {
                 console.log(`\nStep 5: Executing actual Pendle swap through POC contract...`);
                 const swapTx = await pocContract.executePendleSwap(
                     ptToken.address,
-                    ptToken.underlying,
                     testAmount,
-                    sdkResponse.data.amountOut,
                     sdkResponse.tx.to,
-                    sdkResponse.tx.data,
-                    500 // 5% slippage
+                    sdkResponse.tx.data
                 );
 
                 const receipt = await swapTx.wait();

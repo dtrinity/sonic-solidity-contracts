@@ -69,16 +69,16 @@ export interface LimitOrderResponse {
 }
 
 /**
- * Call the Pendle SDK
+ * Calls the Pendle hosted SDK API with the specified path and parameters
  *
- * @param path - The path to the SDK
- * @param params - The parameters to pass to the SDK
- * @returns The response from the SDK
+ * @param path The API endpoint path to call (e.g., 'v2/sdk/146/redeem')
+ * @param params Optional query parameters to include in the request
+ * @returns Promise that resolves to the API response containing transaction data and result data
  */
 export async function callSDK<Data>(
   path: string,
   params: Record<string, any> = {},
-): Promise<AxiosResponse<MethodReturnType<Data>, any>> {
+): Promise<AxiosResponse<MethodReturnType<Data>>> {
   const response = await axios.get<MethodReturnType<Data>>(
     HOSTED_SDK_URL + path,
     {
