@@ -22,15 +22,17 @@ const compat = new FlatCompat({
 });
 
 export default [
+  // Ignore Yarn release files
+  {
+    ignores: ["**/.yarn/**"],
+  },
   {
     ignores: [
-      "*.cjs",
       "**/contracts/",
       "**/node_modules/",
       "**/debug/",
       "**/typechain-types/",
       "**/.github/",
-      "**/.yarn/",
       "**/artifacts/**",
       "**/cache/**",
       "**/deployments/**",
