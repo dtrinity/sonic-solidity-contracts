@@ -6,6 +6,7 @@ import hre from "hardhat";
 import path from "path";
 
 import { getConfig } from "../../config/config";
+import { PendleConfig } from "../../config/types";
 import {
   FlashLoanLiquidatorAaveBorrowRepayOdos,
   FlashMintLiquidatorAaveBorrowRepayOdos,
@@ -22,6 +23,7 @@ import {
 } from "../dlend_helpers/user";
 import { OdosClient } from "../odos/client";
 import { QuoteResponse } from "../odos/types";
+import { isPT } from "../pendle/sdk";
 import { getERC4626UnderlyingAsset } from "../token/erc4626";
 import { fetchTokenInfo } from "../token/info";
 import {
@@ -33,10 +35,8 @@ import {
   getUserLiquidationParams,
 } from "./liquidation";
 import { sendSlackMessage } from "./notification";
-import { isPT } from "../pendle/sdk";
 import { performPTOdosLiquidationDefault } from "./pendle/core";
 import { getAssembledQuote, getOdosSwapQuote } from "./quote";
-import { PendleConfig } from "../../config/types";
 
 // Load environment variables
 dotenv.config();

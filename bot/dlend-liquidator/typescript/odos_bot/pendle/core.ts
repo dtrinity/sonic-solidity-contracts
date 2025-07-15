@@ -74,7 +74,9 @@ export async function performPTOdosLiquidationDefault(
 
   // Determine which liquidation method to use and get the appropriate contract
   let receiverAddress: string;
-  let liquidatorContract: FlashMintLiquidatorAaveBorrowRepayPTOdos | FlashLoanLiquidatorAaveBorrowRepayPTOdos;
+  let liquidatorContract:
+    | FlashMintLiquidatorAaveBorrowRepayPTOdos
+    | FlashLoanLiquidatorAaveBorrowRepayPTOdos;
   let isFlashMint: boolean;
 
   if (flashMinterAddresses.includes(borrowTokenInfo.address)) {
