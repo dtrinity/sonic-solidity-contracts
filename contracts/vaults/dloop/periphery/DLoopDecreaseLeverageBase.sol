@@ -325,6 +325,9 @@ abstract contract DLoopDecreaseLeverageBase is
             );
         }
 
+        // Transfer received collateral tokens to user
+        collateralToken.safeTransfer(msg.sender, receivedCollateralTokenAmount);
+
         // Handle any leftover collateral tokens
         uint256 leftoverAmount = collateralToken.balanceOf(address(this));
         if (
@@ -340,9 +343,6 @@ abstract contract DLoopDecreaseLeverageBase is
                 leftoverAmount
             );
         }
-
-        // Transfer received collateral tokens to user
-        collateralToken.safeTransfer(msg.sender, receivedCollateralTokenAmount);
 
         return receivedCollateralTokenAmount;
     }
