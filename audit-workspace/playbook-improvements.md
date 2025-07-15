@@ -38,8 +38,8 @@
 
 ### 8. Cross-Module Analysis Framework
 - **Issue**: Cross-module interactions were complex to analyze systematically
-- **Suggestion**: Add visual diagrams showing module dependencies and data flows
-- **Example**: Create a matrix showing which modules depend on which others
+- **Suggestion**: Add an LLM friendly document showing module dependencies and data flows
+- **Example**: Create a series of lists showing which modules depend on which others
 
 ### 9. Economic Attack Playbook
 - **Issue**: Economic analysis required significant domain expertise
@@ -61,7 +61,7 @@
 ### 12. Severity Calibration
 - **Issue**: Different agents applied severity ratings inconsistently
 - **Suggestion**: Add concrete examples for each severity level specific to DeFi protocols
-- **Include**: Dollar amount thresholds, user impact metrics
+- **Include**: Critical = theft of user funds. High = DoS or freeze of user funds (no economic incentive for attacker). Medium = temporary DoS or freeze, fixable. Low = small loss of funds that is not scalable, annoyances for governance or users, temporary DoS for governance
 
 ### 13. Design Doc Integration
 - **Issue**: Design docs were helpful but agents didn't always know when to reference them

@@ -1,35 +1,31 @@
-# dTRINITY Security Audit Playbook Index
+# Audit Playbook Index (AI-Optimized)
 
 ## 🎯 Purpose
-This playbook enables AI agents to conduct comprehensive security audits on the dTRINITY protocol by providing structured methodologies, vulnerability catalogs, and protocol-specific guidance.
+Fast, parallel security audits by AI agents. Complete in 90 minutes instead of days.
 
-## 📁 Directory Structure
+## 📁 Core Files
 
-```
-playbooks/claude-code-audit/
-├── README.md                    # Main playbook overview and workflow
-├── AI-AGENT-GUIDE.md           # Step-by-step execution guide for AI agents
-├── index.md                    # This file - playbook navigation
-│
-├── 01-audit-best-practices.md  # Industry best practices and methodologies
-├── 02-vulnerability-catalog.md # Comprehensive vulnerability reference
-├── 03-audit-tools-guide.md     # Tool configuration and usage
-├── 04-audit-scope.md          # Contract scope definitions
-├── 05-protocol-overview.md     # Condensed protocol documentation
-│
-└── design-docs/
-    ├── dstake-design.md       # dStake system design and security
-    ├── dstable-design.md      # dStable stablecoin design
-    └── dloop-design.md        # dLoop leveraged farming design
-```
+### For Execution
+- **[README.md](README.md)** - Quick start & strategy (start here)
+- **[AI-AGENT-GUIDE.md](AI-AGENT-GUIDE.md)** - Step-by-step process
+- **[06-agent-task-templates.md](06-agent-task-templates.md)** - Copy-paste agent prompts
 
-## 🚀 Quick Start for AI Agents
+### For Reference
+- **[02-vulnerability-catalog.md](02-vulnerability-catalog.md)** - What to find
+- **[04-audit-scope-condensed.md](04-audit-scope-condensed.md)** - What to audit (LLM-optimized)
+- **[design-docs/](design-docs/)** - Module context
 
-1. **First Time**: Read `AI-AGENT-GUIDE.md` for specific execution instructions
-2. **Understand Scope**: Review `04-audit-scope.md` to know what to audit
-3. **Learn Protocol**: Study `05-protocol-overview.md` and design docs
-4. **Execute Audit**: Follow the workflow in `README.md`
-5. **Reference Vulnerabilities**: Use `02-vulnerability-catalog.md` as checklist
+### Optional Deep Dives
+- **[01-audit-best-practices.md](01-audit-best-practices.md)** - Human auditor methods
+- **[03-audit-tools-guide.md](03-audit-tools-guide.md)** - Tool details
+- **[05-protocol-overview.md](05-protocol-overview.md)** - Full protocol docs
+
+## ⚡ 90-Minute Workflow
+
+1. **Setup (5 min)**: Check `reports/` for existing findings
+2. **Deploy Agents (45 min)**: Use templates from `06-agent-task-templates.md`
+3. **Analysis (30 min)**: Cross-module & economic
+4. **Report (10 min)**: Consolidate findings
 
 ## 🔑 Key Documents by Purpose
 

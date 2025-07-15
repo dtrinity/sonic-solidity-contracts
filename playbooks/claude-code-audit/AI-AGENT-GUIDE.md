@@ -1,259 +1,132 @@
 # AI Agent Audit Execution Guide
 
-This guide provides specific instructions for AI agents conducting security audits on the dTRINITY protocol. Follow these steps systematically to ensure comprehensive coverage.
+Concise guide for AI agents conducting smart contract security audits. Optimized for LLM context efficiency.
 
-## 🤖 Pre-Audit Setup
+## 🚀 Quick Start (5 mins)
 
-### 1. Initialize Your Working Environment
 ```bash
-# Create your audit workspace
-mkdir audit-workspace
-cd audit-workspace
+# Setup workspace
+mkdir -p audit-workspace && cd audit-workspace
+touch audit-scope-tree.md findings.md
 
-# Create tracking files
-touch audit-scope-tree.md
-touch findings.md
-touch audit-notes.md
+# Check existing reports FIRST
+ls -la ../reports/
 ```
 
-### 2. Load Context
-Read these files in order:
-1. `playbooks/claude-code-audit/04-audit-scope.md` - Understand what to audit
-2. `playbooks/claude-code-audit/05-protocol-overview.md` - Understand the protocol
-3. `playbooks/claude-code-audit/02-vulnerability-catalog.md` - Know what to look for
-4. `CLAUDE.md` - Understand project-specific context
+## 📋 Essential Context
+1. Check `reports/` for existing Slither/Mythril outputs
+2. Read module design docs in `playbooks/claude-code-audit/design-docs/`
+3. Review severity guide: 
+   - **Critical** = Direct theft of user funds
+   - **High** = DoS/freeze of funds (no profit motive)
+   - **Medium** = Temporary DoS/freeze (fixable)
+   - **Low** = Minor losses, governance issues
 
-## 📋 Systematic Audit Process
+## 🎯 Parallel Audit Strategy
 
-### Step 1: Create Scope Tree (⏱️ 30 minutes)
-
-Create a scope tree in `audit-scope-tree.md` with checkboxes:
-
-```markdown
-# Audit Scope Tree
-
-## dStable System
-- [ ] ⏳ contracts/dstable/ERC20StablecoinUpgradeable.sol
-- [ ] ⏳ contracts/dstable/Issuer.sol
-- [ ] ⏳ contracts/dstable/Redeemer.sol
-- [ ] ⏳ contracts/dstable/RedeemerWithFees.sol
-- [ ] ⏳ contracts/dstable/CollateralVault.sol
-- [ ] ⏳ contracts/dstable/CollateralVaultFraxtal.sol
-- [ ] ⏳ contracts/dstable/AmoManager.sol
-- [ ] ⏳ contracts/dstable/AmoVault.sol
-
-## dStake System
-- [ ] ❌ contracts/vaults/dstake/DStakeToken.sol (KNOWN ISSUE: withdrawal bug)
-- [ ] ⏳ contracts/vaults/dstake/DStakeCollateralVault.sol
-[... continue for all in-scope contracts]
-```
-
-### Step 2: Run Automated Tools (⏱️ 1-2 hours)
-
-Execute in parallel:
+### Step 1: Tool Analysis (5 mins)
 ```bash
-# Run static analysis
-make slither > reports/slither-output.txt
-make mythril > reports/mythril-output.txt
-
-# Generate visualizations
-surya graph contracts/**/*.sol | dot -Tpng > reports/call-graph.png
-surya inheritance contracts/**/*.sol | dot -Tpng > reports/inheritance.png
-
-# Check test coverage
-npx hardhat coverage
+# Review existing reports if available
+cat ../reports/slither-summary.md | grep "high issues"
+# Note: Mythril is conservative (finds exploits), Slither is comprehensive (finds potential issues)
 ```
 
-### Step 3: Module-by-Module Review
+### Step 2: Deploy Sub-Agents (Parallel)
+Launch 4-6 agents simultaneously for different modules. Use these templates:
 
-For each module, follow this process:
-
-#### 3.1 Read Design Documentation
+#### Module Audit Template
 ```
-1. Read design-docs/[module]-design.md
-2. Note key invariants and security assumptions
-3. Understand intended behavior
-```
-
-#### 3.2 Analyze Entry Points
-For each contract:
-```
-1. Identify all external/public functions
-2. Map access control requirements
-3. Trace data flow
-4. Check state modifications
+Task: Audit [MODULE] following design doc at design-docs/[module]-design.md
+Focus: Entry points, access control, oracle deps, economic invariants
+Output: audit-workspace/[module]-findings.md
+Priority checks: [List specific risks for this module]
 ```
 
-#### 3.3 Apply Vulnerability Checklist
-For each contract, check:
+#### Cross-Module Template
 ```
-□ Reentrancy vulnerabilities
-□ Integer overflow/underflow
-□ Access control issues
-□ Oracle manipulation risks
-□ Flash loan attack vectors
-□ Storage collision risks
-□ Initialization issues
-□ Upgrade safety
-□ External call safety
-□ Token handling issues
+Task: Analyze cross-module attack vectors
+Focus: Oracle cascades, circular dependencies, liquidation chains
+Consider: How issues in Module A amplify in Module B
+Output: audit-workspace/cross-module-findings.md
 ```
 
-#### 3.4 Document Findings
-Use this template in `findings.md`:
+### Step 3: High-Risk Patterns (Quick Wins)
+```bash
+# Critical patterns to grep
+grep -r "delegatecall\|.call(" contracts/ | grep -v "success"
+grep -r "onlyRole.*DEFAULT_ADMIN" contracts/ | grep -v "timelock"
+grep -r "getAssetPrice" contracts/ | grep -v "staleness"
+grep -r "_withdraw\|transferFrom" contracts/ | grep -v "allowance"
+```
+
+### Step 4: Finding Format (Strict)
 ```markdown
-## [SEVERITY-NUM] Finding Title
-**Contract**: FileName.sol
-**Function**: functionName()
-**Line**: 123
+## [MODULE-SEVERITY-NUM] Title (e.g., DSTABLE-CRIT-01)
+**Contract**: File.sol:123
+**Function**: funcName()
 **Severity**: Critical/High/Medium/Low
 
-### Description
-[What is the issue?]
-
-### Impact
-[What can happen?]
-
-### Proof of Concept
-```solidity
-// Show how to exploit
+**Description**: One sentence summary
+**Impact**: Specific consequence (funds lost, DoS, etc.)
+**PoC**: Minimal code showing exploit
+**Fix**: Concrete recommendation
 ```
 
-### Recommendation
-[How to fix it]
+## 🔍 Module Dependencies
 
----
+### Oracle → All Modules
+- Price manipulation affects everything
+- Staleness = system-wide vulnerability
+
+### dStable ↔ dStake
+- dStake holds dStable as collateral
+- Circular dependency risk
+
+### dLoop → dLend → dStake
+- Liquidation cascade path
+- Interest rate feedback loops
+
+### All → CollateralVault
+- Central trust point
+- Admin compromise = total failure
+
+## 📊 Finding Consolidation
+
+After parallel execution:
+1. Merge findings by severity
+2. De-duplicate similar issues
+3. Link cross-module impacts
+4. Generate executive summary
+
+## ⚡ Economic Attack Patterns
+
+### Oracle Sandwich
+```
+Cost: Flash loan fee (0.09%)
+Profit: 1-5% of victim volume
+Risk: MEV competition
 ```
 
-### Step 4: Cross-Module Analysis (⏱️ 2-3 hours)
-
-#### 4.1 Integration Points
+### Liquidation Cascade
 ```
-1. Map all cross-contract calls
-2. Verify trust assumptions
-3. Check for circular dependencies
-4. Analyze failure propagation
+Trigger: 5% price drop
+Amplification: 2-3x through modules
+Profit: 5-10% of liquidated positions
 ```
 
-#### 4.2 Economic Analysis
+### Subsidy Gaming (dLoop)
 ```
-1. Model token flows
-2. Calculate maximum extractable value
-3. Analyze incentive structures
-4. Check for economic attacks
-```
-
-### Step 5: Deep Dive Areas
-
-Based on the protocol, focus extra attention on:
-
-#### 5.1 dStake Withdrawal Bug
-```solidity
-// contracts/vaults/dstake/DStakeToken.sol
-function _withdraw(...) {
-    // MISSING: Check allowance before withdrawal
-    // This allows unauthorized withdrawals!
-}
+Setup: Create imbalanced position
+Profit: Rebalancing rewards
+Frequency: Every rebalance cycle
 ```
 
-#### 5.2 Oracle Dependencies
-- Check all `OracleAggregatorV2` usage
-- Verify price manipulation resistance
-- Check staleness checks
+## 🎓 Time Allocation (90 mins total)
 
-#### 5.3 dLoop Leverage Mechanics
-- Verify leverage calculations
-- Check liquidation thresholds
-- Analyze rebalancing logic
+- Setup & Tools: 5 mins
+- Parallel Module Audits: 45 mins
+- Cross-Module Analysis: 20 mins
+- Economic Analysis: 10 mins
+- Report Generation: 10 mins
 
-## 🔍 Specific Patterns to Search For
-
-### High-Risk Code Patterns
-```bash
-# Unchecked external calls
-grep -r "\.call(" contracts/ | grep -v "success"
-
-# Delegatecall usage
-grep -r "delegatecall" contracts/
-
-# Admin functions without timelocks
-grep -r "onlyRole.*DEFAULT_ADMIN" contracts/
-
-# Missing reentrancy guards
-grep -r "external.*payable" contracts/ | grep -v "nonReentrant"
-
-# Unprotected initializers
-grep -r "initialize.*external" contracts/ | grep -v "initializer"
-```
-
-## 📊 Tracking Progress
-
-Update your scope tree as you progress:
-- ⏳ = Not started
-- 🔄 = In progress
-- ✅ = Completed, no issues
-- ❌ = Issues found
-- ❓ = Needs further review
-
-## 🚨 When to Escalate
-
-Create HIGH PRIORITY findings for:
-1. Direct loss of user funds
-2. Protocol insolvency risks
-3. Permanent DoS conditions
-4. Privilege escalation
-5. Critical invariant violations
-
-## 💡 AI-Specific Tips
-
-### 1. Parallel Processing
-When reviewing similar contracts, use parallel analysis:
-```
-"Review all CollateralVault implementations for consistent access control"
-```
-
-### 2. Pattern Recognition
-Look for repeated patterns that might indicate systematic issues:
-```
-"Find all functions that modify user balances without proper checks"
-```
-
-### 3. Context Switching
-When finding an issue, immediately check if it exists elsewhere:
-```
-"This contract has a reentrancy issue. Check all similar patterns in other contracts."
-```
-
-### 4. Test Generation
-For each finding, generate a test case:
-```solidity
-it("should prevent unauthorized withdrawal", async function() {
-    // Attempt exploit
-    // Verify it fails
-});
-```
-
-## 📝 Final Checklist
-
-Before completing the audit:
-- [ ] All in-scope contracts reviewed
-- [ ] Automated tool results analyzed
-- [ ] Cross-module interactions verified
-- [ ] Economic model validated
-- [ ] All findings documented
-- [ ] Severity ratings applied
-- [ ] Recommendations provided
-- [ ] Executive summary written
-
-## 🔄 Iterative Process
-
-Remember to:
-1. Revisit earlier findings with new context
-2. Update severity ratings as you understand impact better
-3. Look for attack combinations
-4. Consider time-based attacks
-5. Think about edge cases and race conditions
-
----
-
-**Key Reminder**: As an AI agent, your strength is in systematic analysis and pattern recognition. Use the vulnerability catalog as a checklist, but also think creatively about protocol-specific risks. Document everything clearly for human review.
+**Note**: AI agents complete audits 50-100x faster than humans. Focus on systematic coverage over time spent.
