@@ -25,6 +25,7 @@ export interface PTSwapData {
  * @param chainId - The chain ID
  * @param odosClient - The Odos client
  * @param isUnstakeToken - Whether the collateral token needs to be unstaked
+ * @param receiverAddress - The address of the contract that will receive the final tokens from swap operations
  * @returns The PT swap data for two-stage execution
  */
 export async function getPTOdosSwapQuote(
@@ -35,6 +36,7 @@ export async function getPTOdosSwapQuote(
   chainId: number,
   odosClient: OdosClient,
   isUnstakeToken: boolean,
+  receiverAddress: string
 ): Promise<{ ptSwapData: PTSwapData }> {
   console.log("Getting PT+Odos two-stage swap quote");
   console.log("PT Token:", collateralTokenAddress);
@@ -104,8 +106,12 @@ export async function getPTOdosSwapQuote(
 
   // Call Pendle SDK to get PT -> underlying swap data
   const pendleResponse = await swapExactPToToken(
-    effectivePTAddress, formattedPTAmount, 
-    pyMarketInfo.underlyingAsset, liquidatorAccountAddress, pyMarketInfo.marketAddress, chainId);
+    effectivePTAddress, formattedPTAmount,
+    pyMarketInfo.underlyingAsset,
+    receiverAddress,
+    pyMarketInfo.marketAddress,
+    chainId,
+  );
 
   const pendleData = pendleResponse.data;
   console.log("Pendle SDK response:", {
@@ -147,7 +153,7 @@ export async function getPTOdosSwapQuote(
       pathId: odosQuote.pathId,
       userAddr: liquidatorAccountAddress,
       simulate: false,
-      receiver: liquidatorAccountAddress, // Contract receives the final tokens
+      receiver: receiverAddress,
     };
 
     const assembled = await odosClient.assembleTransaction(assembleRequest);

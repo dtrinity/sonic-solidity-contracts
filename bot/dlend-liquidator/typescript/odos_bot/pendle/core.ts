@@ -1,4 +1,3 @@
-import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 import { ethers } from "ethers";
 import hre from "hardhat";
 
@@ -59,17 +58,6 @@ export async function performPTOdosLiquidationDefault(
     console.log("Unstake PT collateral token:", unstakeCollateralToken);
   }
 
-  // Get PT swap quote and Odos quote
-  const { ptSwapData } = await getPTOdosSwapQuote(
-    collateralTokenAddress,
-    borrowTokenAddress,
-    repayAmount,
-    liquidatorAccountAddress,
-    chainId,
-    odosClient,
-    isUnstakeToken,
-  );
-
   const params = {
     borrowerAccountAddress,
     borrowTokenAddress,
@@ -84,7 +72,13 @@ export async function performPTOdosLiquidationDefault(
     config.liquidatorBotOdos.flashMinters,
   );
 
+  // Determine which liquidation method to use and get the appropriate contract
+  let receiverAddress: string;
+  let liquidatorContract: FlashMintLiquidatorAaveBorrowRepayPTOdos | FlashLoanLiquidatorAaveBorrowRepayPTOdos;
+  let isFlashMint: boolean;
+
   if (flashMinterAddresses.includes(borrowTokenInfo.address)) {
+    // Flash mint liquidation
     const flashMintPTLiquidatorBotContract =
       await getPTOdosFlashMintDStableLiquidatorBotContract(
         liquidatorAccountAddress,
@@ -97,14 +91,12 @@ export async function performPTOdosLiquidationDefault(
       );
     }
 
-    console.log("Liquidating PT with flash minting");
-
-    return await executeFlashMintPTLiquidation(
-      flashMintPTLiquidatorBotContract,
-      ptSwapData,
-      params,
-    );
+    receiverAddress = await flashMintPTLiquidatorBotContract.getAddress();
+    liquidatorContract = flashMintPTLiquidatorBotContract;
+    isFlashMint = true;
+    console.log("Using flash mint liquidation, receiver:", receiverAddress);
   } else {
+    // Flash loan liquidation
     const flashLoanPTLiquidatorBotContract =
       await getPTOdosFlashLoanLiquidatorBotContract(liquidatorAccountAddress);
 
@@ -112,10 +104,36 @@ export async function performPTOdosLiquidationDefault(
       throw new Error("Flash loan PT liquidator bot contract not found");
     }
 
-    console.log("Liquidating PT with flash loan");
+    receiverAddress = await flashLoanPTLiquidatorBotContract.getAddress();
+    liquidatorContract = flashLoanPTLiquidatorBotContract;
+    isFlashMint = false;
+    console.log("Using flash loan liquidation, receiver:", receiverAddress);
+  }
 
+  // Get PT swap quote and Odos quote with the correct receiver address
+  const { ptSwapData } = await getPTOdosSwapQuote(
+    collateralTokenAddress,
+    borrowTokenAddress,
+    repayAmount,
+    liquidatorAccountAddress,
+    chainId,
+    odosClient,
+    isUnstakeToken,
+    receiverAddress, // Now using the correct contract address
+  );
+
+  // Execute the appropriate liquidation
+  if (isFlashMint) {
+    console.log("Liquidating PT with flash minting");
+    return await executeFlashMintPTLiquidation(
+      liquidatorContract as FlashMintLiquidatorAaveBorrowRepayPTOdos,
+      ptSwapData,
+      params,
+    );
+  } else {
+    console.log("Liquidating PT with flash loan");
     return await executeFlashLoanPTLiquidation(
-      flashLoanPTLiquidatorBotContract,
+      liquidatorContract as FlashLoanLiquidatorAaveBorrowRepayPTOdos,
       ptSwapData,
       params,
     );
