@@ -18,6 +18,7 @@
 pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/access/AccessControl.sol";
+import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
 import "contracts/common/IMintableERC20.sol";
 import "./CollateralVault.sol";
@@ -29,8 +30,6 @@ contract Redeemer is AccessControl, OracleAware {
     IMintableERC20 public dstable;
     uint8 public immutable dstableDecimals;
     CollateralVault public collateralVault;
-
-    uint256 public immutable BASE_UNIT;
 
     /* Roles */
 
@@ -56,7 +55,6 @@ contract Redeemer is AccessControl, OracleAware {
         collateralVault = CollateralVault(_collateralVault);
         dstable = IMintableERC20(_dstable);
         dstableDecimals = dstable.decimals();
-        BASE_UNIT = _oracle.BASE_CURRENCY_UNIT();
 
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         grantRole(REDEMPTION_MANAGER_ROLE, msg.sender);
@@ -102,14 +100,15 @@ contract Redeemer is AccessControl, OracleAware {
     }
 
     /**
-     * @notice Converts an amount of dStable tokens to its equivalent base value
-     * @param dstableAmount The amount of dStable tokens to convert
-     * @return The equivalent base value
+     * @notice Converts an amount of dStable tokens to its equivalent base value.
+     * @param dstableAmount The amount of dStable tokens to convert.
+     * @return The equivalent base value.
      */
     function dstableAmountToBaseValue(
         uint256 dstableAmount
     ) public view returns (uint256) {
-        return (dstableAmount * BASE_UNIT) / (10 ** dstableDecimals);
+        return
+            Math.mulDiv(dstableAmount, baseCurrencyUnit, 10 ** dstableDecimals);
     }
 
     /* Admin */

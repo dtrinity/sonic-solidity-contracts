@@ -21,6 +21,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/utils/math/Math.sol";
 
 import "./interfaces/IDPoolPeriphery.sol";
 import "../core/interfaces/IDPoolVaultLP.sol";
@@ -123,9 +124,11 @@ contract DPoolCurvePeriphery is
 
         // Calculate minimum LP tokens to receive
         uint256 expectedLP = POOL.calc_token_amount(amounts, true);
-        uint256 minLP = (expectedLP *
-            (BasisPointConstants.ONE_HUNDRED_PERCENT_BPS - maxSlippage)) /
-            BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
+        uint256 minLP = Math.mulDiv(
+            expectedLP,
+            BasisPointConstants.ONE_HUNDRED_PERCENT_BPS - maxSlippage,
+            BasisPointConstants.ONE_HUNDRED_PERCENT_BPS
+        );
 
         // Approve asset to curve pool
         IERC20(asset).forceApprove(address(POOL), amount);
@@ -174,9 +177,11 @@ contract DPoolCurvePeriphery is
             lpAmount,
             int128(uint128(assetIndex))
         );
-        uint256 minAssetFromSlippage = (expectedAsset *
-            (BasisPointConstants.ONE_HUNDRED_PERCENT_BPS - maxSlippage)) /
-            BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
+        uint256 minAssetFromSlippage = Math.mulDiv(
+            expectedAsset,
+            BasisPointConstants.ONE_HUNDRED_PERCENT_BPS - maxSlippage,
+            BasisPointConstants.ONE_HUNDRED_PERCENT_BPS
+        );
 
         // Use the higher of user's minAmount or slippage-adjusted minimum
         uint256 finalMinAmount = minAmount > minAssetFromSlippage

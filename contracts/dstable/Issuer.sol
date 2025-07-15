@@ -21,6 +21,7 @@ import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/utils/math/Math.sol";
 
 import "contracts/common/IAaveOracle.sol";
 import "contracts/common/IMintableERC20.sol";
@@ -41,8 +42,6 @@ contract Issuer is AccessControl, OracleAware, ReentrancyGuard {
     uint8 public immutable dstableDecimals;
     CollateralVault public collateralVault;
     AmoManager public amoManager;
-
-    uint256 public immutable BASE_UNIT;
 
     /* Events */
 
@@ -85,8 +84,6 @@ contract Issuer is AccessControl, OracleAware, ReentrancyGuard {
         dstableDecimals = dstable.decimals();
         amoManager = AmoManager(_amoManager);
 
-        BASE_UNIT = oracle.BASE_CURRENCY_UNIT();
-
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         grantRole(AMO_MANAGER_ROLE, msg.sender);
         grantRole(INCENTIVES_MANAGER_ROLE, msg.sender);
@@ -111,8 +108,11 @@ contract Issuer is AccessControl, OracleAware, ReentrancyGuard {
         }
 
         uint8 collateralDecimals = IERC20Metadata(collateralAsset).decimals();
-        uint256 baseValue = (oracle.getAssetPrice(collateralAsset) *
-            collateralAmount) / (10 ** collateralDecimals);
+        uint256 baseValue = Math.mulDiv(
+            oracle.getAssetPrice(collateralAsset),
+            collateralAmount,
+            10 ** collateralDecimals
+        );
         uint256 dstableAmount = baseValueToDstableAmount(baseValue);
         if (dstableAmount < minDStable) {
             revert SlippageTooHigh(minDStable, dstableAmount);
@@ -199,7 +199,7 @@ contract Issuer is AccessControl, OracleAware, ReentrancyGuard {
     function baseValueToDstableAmount(
         uint256 baseValue
     ) public view returns (uint256) {
-        return (baseValue * (10 ** dstableDecimals)) / BASE_UNIT;
+        return Math.mulDiv(baseValue, 10 ** dstableDecimals, baseCurrencyUnit);
     }
 
     /* Admin */

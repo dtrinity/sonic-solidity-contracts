@@ -20,6 +20,7 @@ pragma solidity 0.8.20;
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {ERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 import {BasisPointConstants} from "contracts/common/BasisPointConstants.sol";
+import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 import {IERC3156FlashBorrower} from "./interface/flashloan/IERC3156FlashBorrower.sol";
@@ -166,9 +167,11 @@ abstract contract DLoopRedeemerBase is
             expectedLeverageCollateral
         );
         return
-            (unleveragedCollateral *
-                (BasisPointConstants.ONE_HUNDRED_PERCENT_BPS - slippageBps)) /
-            BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
+            Math.mulDiv(
+                unleveragedCollateral,
+                BasisPointConstants.ONE_HUNDRED_PERCENT_BPS - slippageBps,
+                BasisPointConstants.ONE_HUNDRED_PERCENT_BPS
+            );
     }
 
     /**
