@@ -184,8 +184,7 @@ abstract contract DLoopIncreaseLeverageBase is
         }
 
         // Calculate how much we need from flash loan
-        uint256 collateralFromUser = additionalCollateralFromUser +
-            collateralToken.balanceOf(address(this));
+        uint256 collateralFromUser =  collateralToken.balanceOf(address(this));
         if (requiredCollateralAmount > collateralFromUser) {
             receivedDebtTokenAmount = _increaseLeverageWithFlashLoan(
                 requiredCollateralAmount,

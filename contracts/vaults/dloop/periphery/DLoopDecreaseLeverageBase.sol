@@ -188,9 +188,7 @@ abstract contract DLoopDecreaseLeverageBase is
         DecreaseLeverageState memory state;
 
         // Calculate how much we need from flash loan
-        state.debtFromUser =
-            additionalDebtFromUser +
-            debtToken.balanceOf(address(this));
+        state.debtFromUser = debtToken.balanceOf(address(this));
         if (requiredDebtAmount > state.debtFromUser) {
             state.requiredDebtFromFlashLoan =
                 requiredDebtAmount -
