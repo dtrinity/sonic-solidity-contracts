@@ -1,5 +1,5 @@
 import { ethers, network } from "hardhat";
-import { callSDK, RedeemPyData, swapExactPToToken } from "../../typescript/pendle/sdk";
+import { swapExactPToToken } from "../../typescript/pendle/sdk";
 
 // PT tokens from sonic_mainnet.ts config
 const SONIC_MAINNET_PT_TOKENS = {
@@ -73,7 +73,7 @@ describe("PendleSwapPOC - Mainnet Integration", function () {
     describe("Full POC flow simulation", function () {
         it("Should demonstrate complete off-chain → on-chain flow", async function () {
             const { pocContract, deployer } = await deployPendleSwapPOCForMainnet();
-            const ptToken = SONIC_MAINNET_PT_TOKENS.PTaUSDC;
+            const ptToken = SONIC_MAINNET_PT_TOKENS.PTwstkscUSD;
             const testAmount = ethers.parseUnits("0.1", ptToken.decimals);
             const contractAddress = await pocContract.getAddress();
 

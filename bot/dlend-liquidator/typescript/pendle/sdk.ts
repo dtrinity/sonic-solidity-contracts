@@ -111,7 +111,7 @@ export async function swapExactPToToken(
   slippage: number = 0.01,
 ): Promise<AxiosResponse<MethodReturnType<RedeemPyData>>> {
   return await callSDK<RedeemPyData>(
-    `v1/sdk/${chainId}/markets/${market}/swap`,
+    `v2/sdk/${chainId}/markets/${market}/swap`,
     {
       receiver: receiver,
       slippage: slippage,
