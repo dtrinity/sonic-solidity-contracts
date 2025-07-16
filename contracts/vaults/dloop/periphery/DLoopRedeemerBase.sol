@@ -111,6 +111,10 @@ abstract contract DLoopRedeemerBase is
         address indexed collateralToken,
         uint256 minAmount
     );
+    event MinLeftoverCollateralTokenAmountRemoved(
+        address indexed dLoopCore,
+        address indexed collateralToken
+    );
 
     /* Structs */
 
@@ -455,15 +459,35 @@ abstract contract DLoopRedeemerBase is
         minLeftoverCollateralTokenAmount[dLoopCore][
             collateralToken
         ] = minAmount;
-        if (!_existingCollateralTokensMap[collateralToken]) {
-            _existingCollateralTokensMap[collateralToken] = true;
-            existingCollateralTokens.push(collateralToken);
+
+        // If the min amount is 0, we need to remove the collateral token from the existing collateral tokens array
+        if (minAmount == 0) {
+            delete _existingCollateralTokensMap[collateralToken];
+            // Remove the collateral token from the existing collateral tokens array
+            for (uint256 i = 0; i < existingCollateralTokens.length; i++) {
+                // Remove the by replacing the collateral token with the last element and then pop the last element
+                if (existingCollateralTokens[i] == collateralToken) {
+                    existingCollateralTokens[i] = existingCollateralTokens[
+                        existingCollateralTokens.length - 1
+                    ];
+                    existingCollateralTokens.pop();
+                }
+            }
+            emit MinLeftoverCollateralTokenAmountRemoved(
+                dLoopCore,
+                collateralToken
+            );
+        } else {
+            if (!_existingCollateralTokensMap[collateralToken]) {
+                _existingCollateralTokensMap[collateralToken] = true;
+                existingCollateralTokens.push(collateralToken);
+            }
+            emit MinLeftoverCollateralTokenAmountSet(
+                dLoopCore,
+                collateralToken,
+                minAmount
+            );
         }
-        emit MinLeftoverCollateralTokenAmountSet(
-            dLoopCore,
-            collateralToken,
-            minAmount
-        );
     }
 
     /* Internal helpers */
