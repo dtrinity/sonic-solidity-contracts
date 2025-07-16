@@ -360,12 +360,13 @@ abstract contract DLoopCoreBase is
      * @param token Address of the token
      * @param amount Amount of tokens to borrow
      * @param onBehalfOf Address to borrow on behalf of
+     * @return uint256 The amount of tokens borrowed
      */
     function _borrowFromPool(
         address token,
         uint256 amount,
         address onBehalfOf
-    ) internal {
+    ) internal returns (uint256) {
         // At this step, we assume that the funds from the depositor are already in the vault
 
         uint256 tokenBalanceBeforeBorrow = ERC20(token).balanceOf(onBehalfOf);
@@ -410,6 +411,9 @@ abstract contract DLoopCoreBase is
         // The tolerance enforcement performed above (±BALANCE_DIFF_TOLERANCE)
         // already guarantees that any rounding variance is within an
         // acceptable 1-wei window, so we purposefully avoid reverting here.
+
+        // Return the observed value to avoid the case when the actual amount is 1 wei different from the expected amount
+        return observedDiffBorrow;
     }
 
     /**
@@ -417,12 +421,13 @@ abstract contract DLoopCoreBase is
      * @param token Address of the token
      * @param amount Amount of tokens to repay
      * @param onBehalfOf Address to repay on behalf of
+     * @return uint256 The amount of tokens repaid
      */
     function _repayDebtToPool(
         address token,
         uint256 amount,
         address onBehalfOf
-    ) internal {
+    ) internal returns (uint256) {
         // At this step, we assume that the funds from the depositor are already in the vault
 
         uint256 tokenBalanceBeforeRepay = ERC20(token).balanceOf(onBehalfOf);
@@ -463,6 +468,9 @@ abstract contract DLoopCoreBase is
                 );
             }
         }
+
+        // Return the observed value to avoid the case when the actual amount is 1 wei different from the expected amount
+        return observedDiffRepay;
     }
 
     /**
@@ -470,12 +478,13 @@ abstract contract DLoopCoreBase is
      * @param token Address of the token
      * @param amount Amount of tokens to withdraw
      * @param onBehalfOf Address to withdraw on behalf of
+     * @return uint256 The amount of tokens withdrawn
      */
     function _withdrawFromPool(
         address token,
         uint256 amount,
         address onBehalfOf
-    ) internal {
+    ) internal returns (uint256) {
         // At this step, we assume that the funds from the depositor are already in the vault
 
         uint256 tokenBalanceBeforeWithdraw = ERC20(token).balanceOf(onBehalfOf);
@@ -516,6 +525,9 @@ abstract contract DLoopCoreBase is
                 );
             }
         }
+
+        // Return the observed value to avoid the case when the actual amount is 1 wei different from the expected amount
+        return observedDiffWithdraw;
     }
 
     /* Safety */
@@ -790,7 +802,8 @@ abstract contract DLoopCoreBase is
             );
 
         // Borrow the max amount of debt token
-        _borrowFromPool(
+        // Update the debt token amount borrowed to the actual amount
+        debtTokenAmountToBorrow = _borrowFromPool(
             address(debtToken),
             debtTokenAmountToBorrow,
             address(this)
@@ -929,7 +942,8 @@ abstract contract DLoopCoreBase is
         );
 
         // Repay the debt to withdraw the collateral
-        _repayDebtToPool(
+        // Update the repaid debt token amount to the actual amount
+        repaidDebtTokenAmount = _repayDebtToPool(
             address(debtToken),
             repaidDebtTokenAmount,
             address(this)
@@ -1541,7 +1555,8 @@ abstract contract DLoopCoreBase is
         // At this step, the _borrowFromPool wrapper function will also assert that
         // the borrowed amount is exactly the amount requested, thus we can safely
         // have the slippage check before calling this function
-        _borrowFromPool(
+        // Update the debt token amount borrowed to the actual amount
+        borrowedDebtTokenAmount = _borrowFromPool(
             address(debtToken),
             borrowedDebtTokenAmount,
             address(this)
@@ -1676,7 +1691,8 @@ abstract contract DLoopCoreBase is
         // At this step, the _withdrawFromPool wrapper function will also assert that
         // the withdrawn amount is exactly the amount requested, thus we can safely
         // have the slippage check before calling this function
-        _withdrawFromPool(
+        // Update the withdrawn collateral token amount to the actual amount
+        withdrawnCollateralTokenAmount = _withdrawFromPool(
             address(collateralToken),
             withdrawnCollateralTokenAmount,
             address(this)
