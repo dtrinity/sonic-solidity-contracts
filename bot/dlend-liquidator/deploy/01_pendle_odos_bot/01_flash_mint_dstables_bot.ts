@@ -5,7 +5,7 @@ import { getConfig } from "../../config/config";
 import { FLASH_MINT_DSTABLE_LIQUIDATOR_PT_ODOS_ID } from "../../config/deploy-ids";
 import { assertNotEmpty } from "../../typescript/common/assert";
 import { getPoolAddressesProviderAddressFromParent } from "../../typescript/dlend_helpers/pool";
-import { getFlashMintPTContractDeploymentName } from "../../typescript/pendle_odos_bot/bot_contract";
+import { getFlashMintPTContractDeploymentName } from "../../typescript/odos_bot/pendle/bot_contract";
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployer } = await hre.getNamedAccounts();
@@ -115,4 +115,4 @@ func.tags = ["pt-liquidator-bot"];
 func.dependencies = [];
 func.id = FLASH_MINT_DSTABLE_LIQUIDATOR_PT_ODOS_ID;
 
-export default func; 
+export default func;

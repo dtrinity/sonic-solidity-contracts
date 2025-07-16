@@ -199,12 +199,12 @@ abstract contract FlashMintLiquidatorAaveBorrowRepayBase is
             );
 
             // Convert toRepay amount from borrowedUnderlying to collateral token amount using oracle prices
-            uint256 maxIn = (_flashLoanParams.toRepay *
+            uint256 maxIn = (((_flashLoanParams.toRepay *
                 10 ** ERC20(actualCollateralToken).decimals() *
                 oracle.getAssetPrice(_flashLoanParams.borrowedUnderlying)) /
                 (oracle.getAssetPrice(actualCollateralToken) *
-                10 ** liquidateParams.borrowedUnderlying.decimals()) *
-                (Constants.ONE_HUNDRED_PERCENT_BPS + slippageTolerance) /
+                    10 ** liquidateParams.borrowedUnderlying.decimals())) *
+                (Constants.ONE_HUNDRED_PERCENT_BPS + slippageTolerance)) /
                 Constants.ONE_HUNDRED_PERCENT_BPS;
 
             _swapExactOutput(
