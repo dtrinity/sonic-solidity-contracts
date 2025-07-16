@@ -322,12 +322,13 @@ abstract contract DLoopCoreBase is
      * @param token Address of the token
      * @param amount Amount of tokens to supply
      * @param onBehalfOf Address to supply on behalf of
+     * @return uint256 The amount of tokens supplied
      */
     function _supplyToPool(
         address token,
         uint256 amount,
         address onBehalfOf
-    ) internal {
+    ) internal returns (uint256) {
         // At this step, we assume that the funds from the depositor are already in the vault
 
         uint256 tokenBalanceBeforeSupply = ERC20(token).balanceOf(onBehalfOf);
@@ -345,14 +346,31 @@ abstract contract DLoopCoreBase is
         }
 
         // Now, as balance before must be greater than balance after, we can just check if the difference is the expected amount
-        if (tokenBalanceBeforeSupply - tokenBalanceAfterSupply != amount) {
-            revert UnexpectedSupplyAmountToPool(
-                token,
-                tokenBalanceBeforeSupply,
-                tokenBalanceAfterSupply,
-                amount
-            );
+        // Allow a 1-wei rounding tolerance when comparing the observed balance change with `amount`
+        uint256 observedDiffSupply = tokenBalanceBeforeSupply - tokenBalanceAfterSupply;
+
+        if (observedDiffSupply > amount) {
+            if (observedDiffSupply - amount > BALANCE_DIFF_TOLERANCE) {
+                revert UnexpectedSupplyAmountToPool(
+                    token,
+                    tokenBalanceBeforeSupply,
+                    tokenBalanceAfterSupply,
+                    amount
+                );
+            }
+        } else {
+            if (amount - observedDiffSupply > BALANCE_DIFF_TOLERANCE) {
+                revert UnexpectedSupplyAmountToPool(
+                    token,
+                    tokenBalanceBeforeSupply,
+                    tokenBalanceAfterSupply,
+                    amount
+                );
+            }
         }
+
+        // Return the observed value to avoid the case when the actual amount is 1 wei different from the expected amount
+        return observedDiffSupply;
     }
 
     /**
@@ -784,7 +802,8 @@ abstract contract DLoopCoreBase is
         }
 
         // Supply the collateral token to the lending pool
-        _supplyToPool(
+        // Update the supply asset amount to the actual amount
+        supplyAssetAmount = _supplyToPool(
             address(collateralToken),
             supplyAssetAmount,
             address(this)
