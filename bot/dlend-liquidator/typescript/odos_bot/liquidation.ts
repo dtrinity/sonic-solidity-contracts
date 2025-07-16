@@ -1,4 +1,5 @@
 import { BigNumber, BigNumberish } from "@ethersproject/bignumber";
+import { ethers } from "ethers";
 import hre from "hardhat";
 
 import { getConfig } from "../../config/config";
@@ -237,7 +238,7 @@ export async function getUserLiquidationParams(userAddress: string): Promise<{
   );
   const [collateralMarket] = availableCollateralMarkets
     .filter((b) => b.liquidationBonus.gt(0))
-    .sort((a, b) => (a.totalSupply.gt(b.totalSupply) ? -1 : 1));
+    .sort(isReserveSupplyLarger);
 
   const { deployer } = await hre.getNamedAccounts();
   const maxLiquidationAmount = await getMaxLiquidationAmount(
