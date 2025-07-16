@@ -365,7 +365,7 @@ abstract contract DLoopCoreBase is
         address token,
         uint256 amount,
         address onBehalfOf
-    ) internal {
+    ) internal returns (uint256) {
         // At this step, we assume that the funds from the depositor are already in the vault
 
         uint256 tokenBalanceBeforeBorrow = ERC20(token).balanceOf(onBehalfOf);
@@ -410,6 +410,8 @@ abstract contract DLoopCoreBase is
         // The tolerance enforcement performed above (±BALANCE_DIFF_TOLERANCE)
         // already guarantees that any rounding variance is within an
         // acceptable 1-wei window, so we purposefully avoid reverting here.
+
+        return observedDiffBorrow;
     }
 
     /**
@@ -422,7 +424,7 @@ abstract contract DLoopCoreBase is
         address token,
         uint256 amount,
         address onBehalfOf
-    ) internal {
+    ) internal returns (uint256) {
         // At this step, we assume that the funds from the depositor are already in the vault
 
         uint256 tokenBalanceBeforeRepay = ERC20(token).balanceOf(onBehalfOf);
@@ -463,6 +465,8 @@ abstract contract DLoopCoreBase is
                 );
             }
         }
+
+        return observedDiffRepay;
     }
 
     /**
@@ -790,13 +794,13 @@ abstract contract DLoopCoreBase is
             );
 
         // Borrow the max amount of debt token
-        _borrowFromPool(
+        uint256 actualAmountBorrowed = _borrowFromPool(
             address(debtToken),
             debtTokenAmountToBorrow,
             address(this)
         );
 
-        return debtTokenAmountToBorrow;
+        return actualAmountBorrowed;
     }
 
     /* Withdraw and Redeem */
@@ -929,7 +933,7 @@ abstract contract DLoopCoreBase is
         );
 
         // Repay the debt to withdraw the collateral
-        _repayDebtToPool(
+        uint256 actualRepaidAmount = _repayDebtToPool(
             address(debtToken),
             repaidDebtTokenAmount,
             address(this)
@@ -944,7 +948,7 @@ abstract contract DLoopCoreBase is
             address(this)
         );
 
-        return repaidDebtTokenAmount;
+        return actualRepaidAmount;
     }
 
     /* Calculate */
@@ -1541,14 +1545,14 @@ abstract contract DLoopCoreBase is
         // At this step, the _borrowFromPool wrapper function will also assert that
         // the borrowed amount is exactly the amount requested, thus we can safely
         // have the slippage check before calling this function
-        _borrowFromPool(
+        uint256 actualBorrowedDebtTokenAmount = _borrowFromPool(
             address(debtToken),
             borrowedDebtTokenAmount,
             address(this)
         );
 
         // Transfer the debt token to the user
-        debtToken.safeTransfer(msg.sender, borrowedDebtTokenAmount);
+        debtToken.safeTransfer(msg.sender, actualBorrowedDebtTokenAmount);
     }
 
     /**
@@ -1618,6 +1622,13 @@ abstract contract DLoopCoreBase is
             );
         }
 
+        // Repay the debt token to the lending pool
+        uint256 actualRepaidAmount = _repayDebtToPool(
+            address(debtToken),
+            requiredDebtTokenAmount,
+            address(this)
+        );
+
         // Calculate the amount of debt token in base currency
         uint256 requiredDebtTokenAmountInBase = convertFromTokenAmountToBaseCurrency(
                 requiredDebtTokenAmount,
@@ -1630,6 +1641,11 @@ abstract contract DLoopCoreBase is
             (BasisPointConstants.ONE_HUNDRED_PERCENT_BPS + subsidyBps)) /
             BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
 
+        uint256 actualRepaidAmountInBase = convertFromTokenAmountToBaseCurrency(
+            actualRepaidAmount,
+            address(debtToken)
+        );
+
         // Calculate the new leverage after decreasing the leverage
         uint256 newLeverageBps = ((totalCollateralBase -
             withdrawCollateralTokenInBase) *
@@ -1637,7 +1653,7 @@ abstract contract DLoopCoreBase is
             (totalCollateralBase -
                 withdrawCollateralTokenInBase -
                 totalDebtBase +
-                requiredDebtTokenAmountInBase);
+                actualRepaidAmountInBase);
 
         // Make sure the new leverage is decreasing and is not below the target leverage
         if (
@@ -1650,13 +1666,6 @@ abstract contract DLoopCoreBase is
                 currentLeverageBps
             );
         }
-
-        // Repay the debt token to the lending pool
-        _repayDebtToPool(
-            address(debtToken),
-            requiredDebtTokenAmount,
-            address(this)
-        );
 
         // Withdraw collateral
         uint256 withdrawnCollateralTokenAmount = convertFromBaseCurrencyToToken(
@@ -1687,6 +1696,14 @@ abstract contract DLoopCoreBase is
             msg.sender,
             withdrawnCollateralTokenAmount
         );
+
+        // Refund any dust if the actual repaid amount is less than what was required
+        if (actualRepaidAmount < requiredDebtTokenAmount) {
+            debtToken.safeTransfer(
+                msg.sender,
+                requiredDebtTokenAmount - actualRepaidAmount
+            );
+        }
     }
 
     /* Informational */
