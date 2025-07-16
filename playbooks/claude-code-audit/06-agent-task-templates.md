@@ -8,7 +8,7 @@ Copy-paste templates for deploying parallel audit agents. Replace [PLACEHOLDERS]
 You are a smart contract security auditor. Audit the [MODULE] module.
 
 Context:
-- Design doc: playbooks/claude-code-audit/design-docs/[module]-design.md
+- Design doc: Search by looking up `*design.md`
 - Vulnerability catalog: playbooks/claude-code-audit/02-vulnerability-catalog.md
 - Severity: Critical=theft, High=DoS/freeze, Medium=temp DoS, Low=minor loss
 
