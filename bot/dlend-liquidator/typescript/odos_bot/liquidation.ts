@@ -255,3 +255,23 @@ export async function getUserLiquidationParams(userAddress: string): Promise<{
     toRepayAmount: maxLiquidationAmount.toRepayAmount,
   };
 }
+
+/**
+ * Compare the total supply of the two reserves
+ *
+ * @param a - The first reserve
+ * @param b - The second reserve
+ * @returns -1 if the first reserve has a larger total supply, 1 if the second reserve has a larger or equal total supply
+ */
+function isReserveSupplyLarger(a: UserReserveInfo, b: UserReserveInfo): number {
+  const aReserveTokenAmount = ethers.formatUnits(
+    a.totalSupply.toString(),
+    a.reserveTokenInfo.decimals,
+  );
+  const bReserveTokenAmount = ethers.formatUnits(
+    b.totalSupply.toString(),
+    b.reserveTokenInfo.decimals,
+  );
+
+  return Number(aReserveTokenAmount) > Number(bReserveTokenAmount) ? -1 : 1;
+}
