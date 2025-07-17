@@ -93,3 +93,9 @@ dPool ← integrates → Curve
 3. **Admin Privilege Abuse** - No timelocks
 4. **Economic Exploits** - Flash loans, MEV
 5. **Integration Risks** - External protocols
+
+## Acknowledged Vulnerabilities (Do Not Report)
+1. Oracle centralization & manipulation
+2. Governance/admin key centralization
+
+These are recognised by the team; do not raise them as new findings unless a novel exploit is discovered.

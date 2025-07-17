@@ -292,37 +292,19 @@ Goal: Drain DEX Liquidity
 
 ## 5. Risk Assessment
 
+<a name="severity-matrix"></a>
 ### 5.1 Severity Classification
+**Canonical Severity Matrix**  
 
-**Critical (High Risk)**
-- Direct loss of funds
-- Complete protocol compromise
-- Permanent denial of service
-- Examples: Reentrancy allowing fund drainage, access control bypass
+| Severity      | Impact                                                        | Simple Example                                  |
+| ------------- | ------------------------------------------------------------- | ----------------------------------------------- |
+| Critical      | Direct theft of funds or irreversible protocol compromise     | Unprotected reentrancy draining vault           |
+| High          | Loss/freeze of funds that can be fixed, or systemic DoS       | Oracle manipulation causing unfair liquidations |
+| Medium        | Limited fund loss or degraded UX under specific conditions    | Frontrunning that extracts excess fees          |
+| Low           | No direct fund loss, minor inconvenience or best-practice gap | Missing event emission                          |
+| Informational | Code-quality or style issues only                             | Unused variable                                 |
 
-**High (Medium-High Risk)**
-- Indirect loss of funds
-- Temporary protocol disruption
-- Significant user impact
-- Examples: Oracle manipulation, precision loss in calculations
-
-**Medium (Medium Risk)**
-- Limited fund loss potential
-- Degraded functionality
-- Requires specific conditions
-- Examples: Front-running opportunities, gas griefing
-
-**Low (Low Risk)**
-- No direct fund loss
-- Minor inconvenience
-- Best practice violations
-- Examples: Missing events, gas inefficiencies
-
-**Informational**
-- Code quality issues
-- Style guide violations
-- Optimization opportunities
-- Examples: Unused variables, naming conventions
+_All findings must reference this table instead of redefining severities locally._
 
 ### 5.2 Risk Scoring Matrix
 

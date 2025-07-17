@@ -15,16 +15,14 @@ ls -la ../reports/
 
 ## 📋 Essential Context
 1. Check `reports/` for existing Slither/Mythril outputs
-2. Read module design docs in `playbooks/claude-code-audit/design-docs/`
-3. Review severity guide: 
-   - **Critical** = Direct theft of user funds
-   - **High** = DoS/freeze of funds (no profit motive)
-   - **Medium** = Temporary DoS/freeze (fixable)
-   - **Low** = Minor losses, governance issues
+2. Read module design docs by looking up `*design.md`
+3. Review severity guide: see [Severity Matrix](01-audit-best-practices.md#severity-matrix)
+4. Follow the Memento ticketing workflow described in [CLAUDE.md](../../CLAUDE.md)
 
 ## 🎯 Parallel Audit Strategy
 
 ### Step 1: Tool Analysis (5 mins)
+> NOTE: Heavy static-analysis tools (Slither, Mythril, Echidna, etc.) have **already** been executed. Use the generated reports in `../reports/` instead of re-running them.
 ```bash
 # Review existing reports if available
 cat ../reports/slither-summary.md | grep "high issues"

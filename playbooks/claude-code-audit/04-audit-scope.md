@@ -369,3 +369,11 @@ contracts/vaults/dloop/periphery/venue/mock/
    - Verify all external assumptions
    - Check mathematical invariants
    - Review access control matrices
+
+## Acknowledged Vulnerabilities (Do Not Report)
+The following systemic risks are already acknowledged by the protocol team and should *not* be reported as standalone findings:
+
+1. **Oracle Centralization & Manipulation** – Reliance on external price oracles (Chainlink, API3, Redstone) is an inherent dependency; diversification and fallback strategies are tracked separately.
+2. **Governance / Admin Key Centralization** – Current single-sig or short-delay upgrade paths are known; progressive decentralisation is on the roadmap.
+
+Agents may reference these risks when explaining secondary impacts, but should not raise separate findings for them.

@@ -51,24 +51,25 @@ grep -r "delegatecall" FILE | grep -v "onlyOwner\|onlyRole"
 - [ ] Withdrawal fee confusion
 
 ## 📊 Severity Quick Guide
+(For full definitions see [Severity Matrix](01-audit-best-practices.md#severity-matrix))
 
-| Finding | Severity |
-|---------|----------|
-| Steal user funds directly | CRITICAL |
-| Permanent freeze of funds | HIGH |
-| Temporary freeze (fixable) | MEDIUM |
-| Small losses, annoyances | LOW |
+| Finding                    | Severity |
+| -------------------------- | -------- |
+| Steal user funds directly  | CRITICAL |
+| Permanent freeze of funds  | HIGH     |
+| Temporary freeze (fixable) | MEDIUM   |
+| Small losses, annoyances   | LOW      |
 
 ## 🔍 Vulnerability to Grep Mapping
 
-| Vulnerability | Search Pattern |
-|--------------|----------------|
-| Reentrancy | `external.*\{` without `nonReentrant` |
-| Integer overflow | `unchecked.*[+*-/]` |
-| Access control | `function.*external` without modifier |
-| Oracle manipulation | `getPrice` without validation |
-| Frontrunning | `transfer.*msg.sender` in same tx |
-| Flash loan | `flashLoan` without validation |
+| Vulnerability       | Search Pattern                        |
+| ------------------- | ------------------------------------- |
+| Reentrancy          | `external.*\{` without `nonReentrant` |
+| Integer overflow    | `unchecked.*[+*-/]`                   |
+| Access control      | `function.*external` without modifier |
+| Oracle manipulation | `getPrice` without validation         |
+| Frontrunning        | `transfer.*msg.sender` in same tx     |
+| Flash loan          | `flashLoan` without validation        |
 
 ## ⚡ Economic Calculations
 

@@ -43,11 +43,7 @@ cat audit-workspace/*-findings.md | sort by severity
 4. **dStake Withdrawal** - Check if patched
 
 ## 📊 Severity Guide
-
-- **Critical**: Direct theft of user funds
-- **High**: DoS/freeze of funds (no profit)
-- **Medium**: Temporary DoS (fixable)
-- **Low**: Minor losses, annoyances
+See the canonical table in [01-audit-best-practices.md](01-audit-best-practices.md#severity-matrix).
 
 ## 🛠️ Quick Greps
 
@@ -57,16 +53,6 @@ grep -r "delegatecall\|\.call(" contracts/ | grep -v "success"
 grep -r "getAssetPrice" contracts/ | grep -v "staleness"
 grep -r "transferFrom" contracts/ | grep -v "allowance"
 ```
-
-## 📈 Module Risk Matrix
-
-| Module | Complexity | External Deps | Admin Risk | Priority |
-|--------|------------|---------------|------------|----------|
-| Oracle | High | Multiple | Critical | 🔴 HIGH |
-| dLoop | High | Flash loans | High | 🔴 HIGH |
-| dStable | Medium | Oracle | High | 🟠 MEDIUM |
-| dStake | Medium | Router | Medium | 🟠 MEDIUM |
-| dPool | Low | Curve | Low | 🟡 LOW |
 
 ---
 
