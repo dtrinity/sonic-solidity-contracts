@@ -53,6 +53,7 @@ contract DLoopCoreDLend is DLoopCoreBase, RewardClaimable {
     /* Errors */
 
     error ZeroAddress();
+    error TokenApprovalFailed(address token, address spender, uint256 amount);
 
     /**
      * @dev Constructor for the DLoopCoreDLend contract
@@ -171,10 +172,9 @@ contract DLoopCoreDLend is DLoopCoreBase, RewardClaimable {
 
         // Approve the lending pool to spend the token
         // Use standard approve for trusted protocol tokens and trusted protocol contract (dLEND pool)
-        require(
-            ERC20(token).approve(address(lendingPool), amount),
-            "approve failed for lending pool in supply"
-        );
+        if (!ERC20(token).approve(address(lendingPool), amount)) {
+            revert TokenApprovalFailed(token, address(lendingPool), amount);
+        }
 
         // Supply the token to the lending pool
         lendingPool.supply(token, amount, onBehalfOf, 0);
@@ -215,10 +215,9 @@ contract DLoopCoreDLend is DLoopCoreBase, RewardClaimable {
 
         // Approve the lending pool to spend the token
         // Use standard approve for trusted protocol tokens and trusted protocol contract (dLEND pool)
-        require(
-            ERC20(token).approve(address(lendingPool), amount),
-            "approve failed for lending pool in repay"
-        );
+        if (!ERC20(token).approve(address(lendingPool), amount)) {
+            revert TokenApprovalFailed(token, address(lendingPool), amount);
+        }
 
         // Repay the debt
         lendingPool.repay(

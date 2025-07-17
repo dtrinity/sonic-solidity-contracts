@@ -691,7 +691,8 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
             collateralVault
               .connect(deployer)
               .rescueETH(user1.address, excessiveAmount)
-          ).to.be.revertedWith("ETH transfer failed");
+          ).to.be.revertedWithCustomError(collateralVault, "ETHTransferFailed")
+            .withArgs(user1.address, excessiveAmount);
         });
 
         it("Should handle rescue when contract has no ETH", async function () {
@@ -703,7 +704,8 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
           // Try to rescue again when balance is 0
           await expect(
             collateralVault.connect(deployer).rescueETH(user1.address, 1n)
-          ).to.be.revertedWith("ETH transfer failed");
+          ).to.be.revertedWithCustomError(collateralVault, "ETHTransferFailed")
+            .withArgs(user1.address, 1n);
         });
       });
 

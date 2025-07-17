@@ -325,7 +325,13 @@ contract DStakeRouterDLend is IDStakeRouter, AccessControl {
             address actualToVaultAsset,
             uint256 resultingToVaultAssetAmount
         ) = toAdapter.convertToVaultAsset(receivedDStable);
-        require(actualToVaultAsset == toVaultAsset, "Adapter asset mismatch");
+        if (actualToVaultAsset != toVaultAsset) {
+            revert AdapterAssetMismatch(
+                toAdapterAddress,
+                toVaultAsset,
+                actualToVaultAsset
+            );
+        }
         // Slippage control: ensure output meets minimum requirement
         if (resultingToVaultAssetAmount < minToVaultAssetAmount) {
             revert SlippageCheckFailed(
