@@ -22,26 +22,26 @@ library PendleSwapUtils {
      * @dev This function executes the swap and returns the actual amount spent from the swap result.
      *      Underlying tokens go directly to the receiver specified in the Pendle SDK call data.
      * @param ptToken The PT token being swapped
-     * @param ptAmount Amount of PT tokens to swap
+     * @param maxIn Maximum amount of PT tokens to swap
      * @param router Pendle router contract address from Pendle SDK
      * @param swapData Transaction data from Pendle SDK
      * @return amountSpent Actual amount spent from the Pendle swap result
      */
     function executePendleSwap(
         address ptToken,
-        uint256 ptAmount,
+        uint256 maxIn,
         address router,
         bytes memory swapData
     ) internal returns (uint256 amountSpent) {
         // Approve PT tokens to target contract
-        ERC20(ptToken).forceApprove(router, ptAmount);
+        ERC20(ptToken).forceApprove(router, maxIn);
 
         // Check if approval was successful
         uint256 currentAllowance = ERC20(ptToken).allowance(
             address(this),
             router
         );
-        if (currentAllowance < ptAmount) {
+        if (currentAllowance < maxIn) {
             revert PTApprovalFailed();
         }
 
