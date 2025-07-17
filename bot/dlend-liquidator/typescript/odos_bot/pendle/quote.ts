@@ -162,8 +162,21 @@ export async function getPTOdosSwapQuote(
   console.log("Step 2: Calculating PT needed for exact underlying amount");
   console.log("Target underlying amount:", underlyingAmountNeeded);
 
+  // Get underlying token decimals for proper unit conversion
+  const underlyingToken = await hre.ethers.getContractAt(
+    ["function decimals() view returns (uint8)"],
+    pyMarketInfo.underlyingAsset,
+  );
+  const underlyingDecimals = await underlyingToken.decimals();
+
+  // Convert underlyingAmountNeeded to formatted units for calculation
+  const formattedUnderlyingNeeded = OdosClient.formatTokenAmount(
+    underlyingAmountNeeded,
+    Number(underlyingDecimals),
+  );
+
   // For Pendle reverse calculation, we can use swapExactIn in reverse direction
-  // by swapping underlying → PT to see the rate, then calculate the inverse
+  // by swapping 1 PT to see the rate, then calculate the inverse
   const ptEstimationAmount = OdosClient.formatTokenAmount(
     "1", // 1 unit to get the rate
     Number(ptDecimals),
@@ -179,13 +192,13 @@ export async function getPTOdosSwapQuote(
     0.01, // 1% slippage for rate calculation
   );
 
-  // Calculate PT needed based on the rate
+  // Calculate PT needed based on the rate (both values now in formatted units)
   const underlyingPerPT = Number(rateResponse.data.data.amountOut);
-  const ptAmountNeeded = Number(underlyingAmountNeeded) / underlyingPerPT;
+  const ptAmountNeededFormatted = Number(formattedUnderlyingNeeded) / underlyingPerPT;
   
   // Add buffer for Pendle slippage and price impact
   const pendleSlippageBufferPercentage = 1.0; // 1% buffer for Pendle
-  const ptAmountWithBuffer = ptAmountNeeded * (1 + pendleSlippageBufferPercentage / 100);
+  const ptAmountWithBuffer = ptAmountNeededFormatted * (1 + pendleSlippageBufferPercentage / 100);
 
   const formattedPTAmount = OdosClient.formatTokenAmount(
     ptAmountWithBuffer,
@@ -194,14 +207,14 @@ export async function getPTOdosSwapQuote(
 
   console.log("PT calculation:", {
     underlyingPerPT,
-    ptAmountNeeded,
+    formattedUnderlyingNeeded,
+    ptAmountNeededFormatted,
     ptAmountWithBuffer,
     formattedPTAmount
   });
 
   // Step 3: Get the actual Pendle swap data for the calculated PT amount
   console.log("Step 3: Getting Pendle swap data for calculated PT amount");
-
   const pendleResponse = await swapExactIn(
     effectivePTAddress,
     formattedPTAmount,
