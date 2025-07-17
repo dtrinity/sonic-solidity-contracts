@@ -1,9 +1,15 @@
 import { ethers, deployments, getNamedAccounts } from "hardhat";
 import { expect } from "chai";
 import { time } from "@nomicfoundation/hardhat-network-helpers";
-import { TestMintableERC20 } from "../../typechain-types";
+import {
+  TestMintableERC20,
+  TestERC20,
+  ERC20VestingNFT,
+} from "../../typechain-types";
 import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 import { ZeroAddress } from "ethers";
+import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
+import { network } from "hardhat";
 
 // Test fixture for ERC20VestingNFT - minimal setup without dStake dependencies
 const createVestingFixture = deployments.createFixture(
@@ -696,8 +702,10 @@ describe("ERC20VestingNFT", function () {
         expect(await vestingNFT.getRemainingVestingTime(1)).to.equal(0);
       });
 
-      it("Should return 0 for non-existent token", async function () {
-        expect(await vestingNFT.getRemainingVestingTime(99)).to.equal(0);
+      it("Should revert for non-existent token", async function () {
+        await expect(
+          vestingNFT.getRemainingVestingTime(99)
+        ).to.be.revertedWithCustomError(vestingNFT, "TokenNotExists");
       });
     });
 
@@ -841,5 +849,73 @@ describe("ERC20VestingNFT", function () {
       await expect(vestingNFT.connect(user2).deposit(maxSupply)).to.not.be
         .reverted;
     });
+  });
+});
+
+async function deployVestingFixture() {
+  const [owner] = await ethers.getSigners();
+
+  // Deploy mock ERC20 token (dSTAKE)
+  const TestERC20Factory = await ethers.getContractFactory("TestERC20");
+  const dstakeToken = (await TestERC20Factory.deploy(
+    "dSTAKE",
+    "dSTAKE",
+    18
+  )) as TestERC20;
+
+  // Parameters
+  const VESTING_PERIOD = 60; // 60 seconds for tests
+  const MAX_TOTAL_SUPPLY = ethers.parseEther("1000000");
+  const MIN_DEPOSIT_AMOUNT = 0;
+
+  // Deploy ERC20VestingNFT contract
+  const VestingNFTFactory = await ethers.getContractFactory("ERC20VestingNFT");
+  const vestingNFT = (await VestingNFTFactory.deploy(
+    "Vesting NFT",
+    "vNFT",
+    await dstakeToken.getAddress(),
+    VESTING_PERIOD,
+    MAX_TOTAL_SUPPLY,
+    MIN_DEPOSIT_AMOUNT,
+    owner.address
+  )) as ERC20VestingNFT;
+
+  // Approve and deposit tokens
+  const depositAmount = ethers.parseEther("100");
+  await dstakeToken.approve(await vestingNFT.getAddress(), depositAmount);
+  const tx = await vestingNFT.deposit(depositAmount);
+  await tx.wait();
+
+  const tokenId = 1; // first minted token ID
+
+  return { vestingNFT, dstakeToken, VESTING_PERIOD, tokenId };
+}
+
+describe("ERC20VestingNFT: getRemainingVestingTime", function () {
+  it("reverts with TokenNotExists for an invalid tokenId", async function () {
+    const { vestingNFT } = await loadFixture(deployVestingFixture);
+
+    await expect(
+      vestingNFT.getRemainingVestingTime(999)
+    ).to.be.revertedWithCustomError(vestingNFT, "TokenNotExists");
+  });
+
+  it("returns remaining time > 0 while vesting in progress", async function () {
+    const { vestingNFT, tokenId } = await loadFixture(deployVestingFixture);
+
+    const remaining = await vestingNFT.getRemainingVestingTime(tokenId);
+    expect(remaining).to.be.gt(0n);
+  });
+
+  it("returns 0 after vesting period has elapsed", async function () {
+    const { vestingNFT, VESTING_PERIOD, tokenId } =
+      await loadFixture(deployVestingFixture);
+
+    // Increase time to beyond vesting period
+    await network.provider.send("evm_increaseTime", [VESTING_PERIOD]);
+    await network.provider.send("evm_mine");
+
+    const remaining = await vestingNFT.getRemainingVestingTime(tokenId);
+    expect(remaining).to.equal(0n);
   });
 });

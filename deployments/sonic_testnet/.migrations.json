@@ -57,5 +57,17 @@
   "DLoopRedeemerOdos": 1749751557,
   "DLoopDecreaseLeverageOdos": 1749751561,
   "DLoopIncreaseLeverageOdos": 1749751564,
-  "deploy_redeemer_with_fees": 1750317243
+  "deploy_redeemer_with_fees": 1750317243,
+  "setup-ptausdc-ptwstkscusd-wos-for-usd-oracle-wrapper": 1751647235,
+  "add-ptausdc-ptwstkscusd-wos-reserves": 1751647236,
+  "transfer_oracle_wrapper_roles_to_multisig": 1751647236,
+  "ChainlinkDecimalConverter_wstkscUSD": 1751647236,
+  "dLend_StaticATokenFactory": 1751647244,
+  "dStableATokenWrappers": 1751647252,
+  "ChainlinkDecimalConverter_wstkscETH": 1751647271,
+  "PendleChainlinkOracles:PT-aUSDC:PT-wstkscUSD": 1751647271,
+  "PendleDecimalConverters:PT-aUSDC:PT-wstkscUSD": 1751647271,
+  "OSWOSDecimalConverters": 1751647271,
+  "ChainlinkCompositeAggregator_OS_S_USD": 1751647271,
+  "ERC20VestingNFT": 1752502704
 }

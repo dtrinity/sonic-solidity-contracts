@@ -10,6 +10,7 @@ export interface Config {
     [tokenAddress: string]: string;
   };
   readonly liquidatorBotOdos?: LiquidatorBotOdosConfig;
+  readonly pendle?: PendleConfig;
 }
 
 export interface LiquidatorBotConfig {
@@ -36,4 +37,8 @@ export interface LiquidatorBotConfig {
 export interface LiquidatorBotOdosConfig extends LiquidatorBotConfig {
   readonly odosRouter: string;
   readonly odosApiUrl: string;
+}
+
+export interface PendleConfig {
+  readonly pyFactory: string;
 }

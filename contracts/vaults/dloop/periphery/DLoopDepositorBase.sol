@@ -27,6 +27,7 @@ import {DLoopCoreBase} from "../core/DLoopCoreBase.sol";
 import {SwappableVault} from "contracts/common/SwappableVault.sol";
 import {RescuableVault} from "contracts/common/RescuableVault.sol";
 import {BasisPointConstants} from "contracts/common/BasisPointConstants.sol";
+import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
 /**
  * @title DLoopDepositorBase
@@ -173,9 +174,11 @@ abstract contract DLoopDepositorBase is
             expectedLeveragedAssets
         );
         return
-            (expectedShares *
-                (BasisPointConstants.ONE_HUNDRED_PERCENT_BPS - slippageBps)) /
-            BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
+            Math.mulDiv(
+                expectedShares,
+                BasisPointConstants.ONE_HUNDRED_PERCENT_BPS - slippageBps,
+                BasisPointConstants.ONE_HUNDRED_PERCENT_BPS
+            );
     }
 
     /**
@@ -235,9 +238,11 @@ abstract contract DLoopDepositorBase is
             );
         }
         return
-            ((currentEstimatedShares - minOutputShares) *
-                (BasisPointConstants.ONE_HUNDRED_PERCENT_BPS)) /
-            currentEstimatedShares;
+            Math.mulDiv(
+                currentEstimatedShares - minOutputShares,
+                BasisPointConstants.ONE_HUNDRED_PERCENT_BPS,
+                currentEstimatedShares
+            );
     }
 
     /**
@@ -283,12 +288,12 @@ abstract contract DLoopDepositorBase is
 
         // Calculate the leveraged collateral amount to deposit with slippage included
         // Explained with formula in _calculateEstimatedOverallSlippageBps()
-        uint256 leveragedCollateralAmount = (dLoopCore.getLeveragedAssets(
-            assets
-        ) *
-            (BasisPointConstants.ONE_HUNDRED_PERCENT_BPS -
-                estimatedOverallSlippageBps)) /
-            BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
+        uint256 leveragedCollateralAmount = Math.mulDiv(
+            dLoopCore.getLeveragedAssets(assets),
+            BasisPointConstants.ONE_HUNDRED_PERCENT_BPS -
+                estimatedOverallSlippageBps,
+            BasisPointConstants.ONE_HUNDRED_PERCENT_BPS
+        );
 
         // Create the flash loan params data
         FlashLoanParams memory params = FlashLoanParams(

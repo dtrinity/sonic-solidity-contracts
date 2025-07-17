@@ -250,7 +250,9 @@ export async function setupNewReserves(
       console.log(
         `  - Granting Risk Admin role to helper (${reserveHelperAddress})...`,
       );
-      await aclManager.addRiskAdmin(reserveHelperAddress);
+      // Ensure the grant transaction is confirmed before continuing
+      const grantTx = await aclManager.addRiskAdmin(reserveHelperAddress);
+      await grantTx.wait();
       riskAdminGranted = true;
       console.log("  - Calling configureReserves on helper...");
       const configTx = await reservesSetupHelperContract.configureReserves(

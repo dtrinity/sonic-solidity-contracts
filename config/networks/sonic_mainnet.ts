@@ -2,11 +2,16 @@ import { ZeroAddress } from "ethers";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 
 import { ONE_PERCENT_BPS } from "../../typescript/common/bps_constants";
-import { DS_TOKEN_ID, DUSD_TOKEN_ID } from "../../typescript/deploy-ids";
+import {
+  DS_TOKEN_ID,
+  DUSD_TOKEN_ID,
+  INCENTIVES_PROXY_ID,
+} from "../../typescript/deploy-ids";
 import {
   ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT,
   ORACLE_AGGREGATOR_PRICE_DECIMALS,
 } from "../../typescript/oracle_aggregator/constants";
+import { fetchTokenInfo } from "../../typescript/token/utils";
 import {
   rateStrategyHighLiquidityStable,
   rateStrategyHighLiquidityVolatile,
@@ -16,10 +21,13 @@ import {
 import {
   strategyDS,
   strategyDUSD,
+  strategyPTaUSDC,
+  strategyPTwstkscUSD,
   strategyscETH,
   strategySfrxUSD,
   strategyStS,
   strategyWETH,
+  strategywOS,
   strategywstkscETH,
   strategyWstkscUSD,
   // strategyWstkscUSD,
@@ -47,18 +55,40 @@ export async function getConfig(
   const WETHAddress = "0x50c42dEAcD8Fc9773493ED674b675bE577f2634b";
   const scETHAddress = "0x3bcE5CB273F0F148010BbEa2470e7b5df84C7812";
   const wstkscETHAddress = "0xE8a41c62BB4d5863C6eadC96792cFE90A1f37C47";
+  const ptaUSDCAddress = "0x930441Aa7Ab17654dF5663781CA0C02CC17e6643";
+  const ptwstkscUSDAddress = "0x0Fb682C9692AddCc1769f4D4d938c54420D54fA3";
+  const wOSAddress = "0x9F0dF7799f6FDAd409300080cfF680f5A23df4b1";
+  const osAddress = "0xb1e25689D55734FD3ffFc939c4C3Eb52DFf8A794";
 
   const odoRouterV2Address = "0xaC041Df48dF9791B0654f1Dbbf2CC8450C5f2e9D"; // OdoRouterV2
 
-  // const dLendATokenWrapperDUSDDeployment = await _hre.deployments.getOrNull(
-  //   "dLend_ATokenWrapper_dUSD",
-  // );
+  const governanceSafeMultisig = "0xE83c188a7BE46B90715C757A06cF917175f30262";
+
+  // Fetch deployed dLend StaticATokenLM wrapper, aToken and RewardsController (may be undefined prior to deployment)
+  const dLendATokenWrapperDUSDDeployment = await _hre.deployments.getOrNull(
+    "dLend_ATokenWrapper_dUSD",
+  );
+  const rewardsControllerDeployment =
+    await _hre.deployments.getOrNull(INCENTIVES_PROXY_ID);
+  const aTokenDUSDDeployment = await _hre.deployments.getOrNull("dLEND-dUSD");
 
   const { deployer } = await _hre.getNamedAccounts();
   const feeTreasury = deployer;
 
   if (!feeTreasury) {
     throw new Error("Fee treasury address not found");
+  }
+
+  // Fetch dUSD token decimals from the contract if deployed
+  let dUSDDecimals = 0;
+
+  if (dUSDDeployment?.address) {
+    const dUSDTokenInfo = await fetchTokenInfo(_hre, dUSDDeployment.address);
+    dUSDDecimals = dUSDTokenInfo.decimals;
+
+    if (dUSDDecimals < 1) {
+      throw Error("dUSD token decimals must be greater than 0");
+    }
   }
 
   return {
@@ -75,10 +105,33 @@ export async function getConfig(
       WETH: WETHAddress,
       scETH: scETHAddress,
       wstkscETH: wstkscETHAddress,
+      PTaUSDC: ptaUSDCAddress,
+      PTwstkscUSD: ptwstkscUSDAddress,
+      wOS: wOSAddress,
+      OS: osAddress,
     },
     walletAddresses: {
-      governanceMultisig: "0xE83c188a7BE46B90715C757A06cF917175f30262", // Created via Safe
+      governanceMultisig: governanceSafeMultisig, // Created via Safe
       incentivesVault: "0x4B4B5cC616be4cd1947B93f2304d36b3e80D3ef6", // TODO: Add incentives vault address
+    },
+    pendle: {
+      ptYtLpOracleAddress: "0x9a9Fa8338dd5E5B2188006f1Cd2Ef26d921650C2", // Universal Pendle PT/YT/LP Oracle address
+      ptTokens: [
+        {
+          name: "PT-aUSDC-14AUG2025",
+          ptToken: "0x930441Aa7Ab17654dF5663781CA0C02CC17e6643",
+          market: "0x3f5ea53d1160177445b1898afbb16da111182418",
+          oracleType: "PT_TO_ASSET", // Quote price of USDC directly
+          twapDuration: 900,
+        },
+        {
+          name: "PT-wstkscUSD-18DEC2025",
+          ptToken: "0x0Fb682C9692AddCc1769f4D4d938c54420D54fA3",
+          market: "0x004f76045b42ef3e89814b12b37e69da19c8a212",
+          oracleType: "PT_TO_ASSET", // Quote price of scUSD directly
+          twapDuration: 900,
+        },
+      ],
     },
     dStables: {
       dUSD: {
@@ -89,19 +142,37 @@ export async function getConfig(
           USDCeAddress,
           scUSDAddress,
         ],
-        initialFeeReceiver: "please_fill_multisig_address",
-        initialRedemptionFeeBps: 1 * ONE_PERCENT_BPS,
+        // TODO: review – set to governance multisig for now
+        initialFeeReceiver: governanceSafeMultisig, // governanceMultisig
+        initialRedemptionFeeBps: 0.4 * ONE_PERCENT_BPS, // Default for stablecoins
+        collateralRedemptionFees: {
+          // Stablecoins: 0.4%
+          [frxUSDAddress]: 0.4 * ONE_PERCENT_BPS,
+          [USDCeAddress]: 0.4 * ONE_PERCENT_BPS,
+          [scUSDAddress]: 0.4 * ONE_PERCENT_BPS,
+          // Yield bearing stablecoins: 0.5%
+          [sfrxUSDAddress]: 0.5 * ONE_PERCENT_BPS,
+          [wstkscUSDAddress]: 0.5 * ONE_PERCENT_BPS,
+        },
       },
       dS: {
         collaterals: [wSAddress, stSAddress],
-        initialFeeReceiver: "please_fill_multisig_address",
-        initialRedemptionFeeBps: 1 * ONE_PERCENT_BPS,
+        // TODO: review – set to governance multisig for now
+        initialFeeReceiver: governanceSafeMultisig, // governanceMultisig
+        initialRedemptionFeeBps: 0.4 * ONE_PERCENT_BPS, // Default for stablecoins
+        collateralRedemptionFees: {
+          // Stablecoins: 0.4%
+          [wSAddress]: 0.4 * ONE_PERCENT_BPS,
+          // Yield bearing stablecoins: 0.5%
+          [stSAddress]: 0.5 * ONE_PERCENT_BPS,
+        },
       },
     },
     dLoop: {
       dUSDAddress: dUSDDeployment?.address || "",
       coreVaults: {
         "3x_sFRAX_dUSD": {
+          // TODO: ALL dLOOP values are for QA ONLY. Reset them before mainnet
           venue: "dlend",
           name: "Leveraged sFRAX-dUSD Vault",
           symbol: "FRAX-dUSD-3x",
@@ -112,14 +183,12 @@ export async function getConfig(
           upperBoundTargetLeverageBps: 400 * ONE_PERCENT_BPS, // 400% leverage, meaning 4x leverage
           maxSubsidyBps: 2 * ONE_PERCENT_BPS, // 2% subsidy
           extraParams: {
-            // targetStaticATokenWrapper:
-            //   dLendATokenWrapperDUSDDeployment?.address,
             targetStaticATokenWrapper:
-              "0x0000000000000000000000000000000000000000", // TODO: add real targetStaticATokenWrapper address
+              dLendATokenWrapperDUSDDeployment?.address,
             treasury: feeTreasury,
             maxTreasuryFeeBps: "1000",
             initialTreasuryFeeBps: "500",
-            initialExchangeThreshold: "100",
+            initialExchangeThreshold: 1n * 10n ** BigInt(dUSDDecimals), // TODO: 1 dStable token (fetched from contract decimals), for QA ONLY
           },
         },
       },
@@ -228,6 +297,45 @@ export async function getConfig(
               lowerThresholdInBase2: 0n, // No thresholding
               fixedPriceInBase2: 0n,
             },
+            [ptaUSDCAddress]: {
+              feedAsset: ptaUSDCAddress,
+              feed1: "0xc65F6b9dBAFa2A9243CeceDbf80EE9a79d6ADf09", // Our own ChainlinkDecimalConverter which wraps the PT-aUSDC/USDC Pendle Chainlink feed and converts 18 -> 8 decimals
+              feed2: "0x3587a73AA02519335A8a6053a97657BECe0bC2Cc", // USDC/USD Redstone price feed
+              lowerThresholdInBase1: 0n, // No thresholding
+              fixedPriceInBase1: 0n,
+              lowerThresholdInBase2: ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT, // Only threshold USDC/USD
+              fixedPriceInBase2: ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT,
+            },
+            [ptwstkscUSDAddress]: {
+              feedAsset: ptwstkscUSDAddress,
+              feed1: "0x2EfEb81d6A0E5638bfe917C6cFCeb42989058d08", // Our own ChainlinkDecimalConverter which wraps the PT-wstkscUSD/scUSD Pendle Chainlink feed and converts 18 -> 8 decimals
+              feed2: "0xACE5e348a341a740004304c2c228Af1A4581920F", // scUSD/USD Chainlink price feed
+              lowerThresholdInBase1: 0n, // No thresholding
+              fixedPriceInBase1: 0n,
+              lowerThresholdInBase2: ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT, // Only threshold scUSD/USD
+              fixedPriceInBase2: ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT,
+            },
+            [wOSAddress]: {
+              feedAsset: wOSAddress,
+              feed1: "0x19E84B1f41d1Eb2ff22baC55797bD767558585De", // Our own ChainlinkDecimalConverter which wraps the wOS/OS Chainlink feed and converts 18 -> 8 decimals
+              feed2: "0xF6819756b86678dEd7A0aECD983697c4F7D42bbc", // Our own ChainlinkCompositeAggregator which composes OS/S and S/USD
+              lowerThresholdInBase1: 0n, // No thresholding
+              fixedPriceInBase1: 0n,
+              lowerThresholdInBase2: 0n, // No thresholding
+              fixedPriceInBase2: 0n,
+            },
+          },
+        },
+        chainlinkCompositeAggregator: {
+          [osAddress]: {
+            name: "OS_S_USD",
+            feedAsset: osAddress,
+            sourceFeed1: "0x125629732C21A403Ae1eFf159467971ee01470a6", // Our own ChainlinkDecimalConverter which wraps the OS/S Chainlink feed and converts 18 -> 8 decimals
+            sourceFeed2: "0xc76dFb89fF298145b417d221B2c747d84952e01d", // S/USD Chainlink price feed
+            lowerThresholdInBase1: 0n, // No thresholding for OS/S
+            fixedPriceInBase1: 0n,
+            lowerThresholdInBase2: 0n, // No thresholding for S/USD
+            fixedPriceInBase2: 0n,
           },
         },
       },
@@ -270,10 +378,53 @@ export async function getConfig(
         WETH: strategyWETH,
         scETH: strategyscETH,
         wstkscETH: strategywstkscETH,
+        PTaUSDC: strategyPTaUSDC,
+        PTwstkscUSD: strategyPTwstkscUSD,
+        wOS: strategywOS,
       },
     },
     odos: {
       router: odoRouterV2Address,
+    },
+    dStake: {
+      sdUSD: {
+        dStable: emptyStringIfUndefined(dUSDDeployment?.address),
+        name: "Staked dUSD",
+        symbol: "sdUSD",
+        initialAdmin: deployer, // TODO: Temporary for QA
+        initialFeeManager: deployer, // TODO: Temporary for QA
+        initialWithdrawalFeeBps: 0.1 * ONE_PERCENT_BPS, // 0.1%
+        adapters: [
+          {
+            vaultAsset: emptyStringIfUndefined(
+              dLendATokenWrapperDUSDDeployment?.address,
+            ),
+            adapterContract: "WrappedDLendConversionAdapter",
+          },
+        ],
+        defaultDepositVaultAsset: emptyStringIfUndefined(
+          dLendATokenWrapperDUSDDeployment?.address,
+        ),
+        collateralVault: "DStakeCollateralVault_sdUSD", // Keep in sync with deploy ID constants
+        collateralExchangers: [
+          deployer, // TODO: Temporary for QA
+        ],
+        dLendRewardManager: {
+          managedVaultAsset: emptyStringIfUndefined(
+            dLendATokenWrapperDUSDDeployment?.address,
+          ), // StaticATokenLM wrapper
+          dLendAssetToClaimFor: emptyStringIfUndefined(
+            aTokenDUSDDeployment?.address,
+          ), // dLEND aToken for dUSD
+          dLendRewardsController: emptyStringIfUndefined(
+            rewardsControllerDeployment?.address,
+          ), // RewardsController proxy
+          treasury: deployer, // TODO: Temporary for QA
+          maxTreasuryFeeBps: 5 * ONE_PERCENT_BPS, // 5%
+          initialTreasuryFeeBps: 1 * ONE_PERCENT_BPS, // 1%
+          initialExchangeThreshold: 1n * 10n ** BigInt(dUSDDecimals), // TODO: 1 dStable token (fetched from contract decimals), for QA ONLY
+        },
+      },
     },
   };
 }
