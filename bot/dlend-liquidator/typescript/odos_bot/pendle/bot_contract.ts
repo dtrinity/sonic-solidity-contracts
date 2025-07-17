@@ -3,11 +3,11 @@ import hre from "hardhat";
 import {
   FLASH_LOAN_LIQUIDATOR_PT_ODOS_ID,
   FLASH_MINT_DSTABLE_LIQUIDATOR_PT_ODOS_ID,
-} from "../../config/deploy-ids";
+} from "../../../config/deploy-ids";
 import {
   FlashLoanLiquidatorAaveBorrowRepayPTOdos,
   FlashMintLiquidatorAaveBorrowRepayPTOdos,
-} from "../../typechain-types";
+} from "../../../typechain-types";
 
 /**
  * Get the PT+Odos flash mint liquidator bot contract
@@ -85,4 +85,4 @@ export async function getPTOdosFlashLoanLiquidatorBotContract(
  */
 export function getFlashMintPTContractDeploymentName(symbol: string): string {
   return `${FLASH_MINT_DSTABLE_LIQUIDATOR_PT_ODOS_ID}-${symbol}`;
-} 
+}
