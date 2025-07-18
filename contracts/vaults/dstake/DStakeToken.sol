@@ -27,6 +27,8 @@ contract DStakeToken is
     // --- Errors ---
     error ZeroAddress();
     error ZeroShares();
+    error ERC4626ExceedsMaxWithdraw(uint256 assets, uint256 maxAssets);
+    error ERC4626ExceedsMaxRedeem(uint256 shares, uint256 maxShares);
 
     // --- State ---
     IDStakeCollateralVault public collateralVault;
@@ -162,7 +164,9 @@ contract DStakeToken is
         shares = previewWithdraw(assets);
 
         // Ensure the owner has enough shares to cover the withdrawal (checks in share terms rather than assets).
-        require(shares <= maxRedeem(owner), "ERC4626: withdraw more than max");
+        if (shares > maxRedeem(owner)) {
+            revert ERC4626ExceedsMaxRedeem(shares, maxRedeem(owner));
+        }
 
         // Translate the shares back into the GROSS asset amount that needs to be withdrawn
         // so that the internal logic can compute the fee only once.
@@ -203,7 +207,9 @@ contract DStakeToken is
     ) public virtual override returns (uint256 assets) {
         uint256 grossAssets = convertToAssets(shares); // shares → gross assets before fee
 
-        require(shares <= maxRedeem(owner), "ERC4626: redeem more than max");
+        if (shares > maxRedeem(owner)) {
+            revert ERC4626ExceedsMaxRedeem(shares, maxRedeem(owner));
+        }
 
         // Perform withdrawal using gross assets so that _withdraw computes the correct fee once
         _withdraw(_msgSender(), receiver, owner, grossAssets, shares);

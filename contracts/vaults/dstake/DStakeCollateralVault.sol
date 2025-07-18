@@ -42,6 +42,7 @@ contract DStakeCollateralVault is
     error AssetAlreadySupported(address asset);
     error NonZeroBalance(address asset);
     error CannotRescueRestrictedToken(address token);
+    error ETHTransferFailed(address receiver, uint256 amount);
 
     // --- Events ---
     event TokenRescued(
@@ -238,7 +239,7 @@ contract DStakeCollateralVault is
         if (receiver == address(0)) revert ZeroAddress();
 
         (bool success, ) = receiver.call{value: amount}("");
-        require(success, "ETH transfer failed");
+        if (!success) revert ETHTransferFailed(receiver, amount);
 
         emit ETHRescued(receiver, amount);
     }
