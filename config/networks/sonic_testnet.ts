@@ -419,55 +419,6 @@ export async function getConfig(
         wstkscUSD: strategyWstkscUSD,
       },
     },
-    dStake: {
-      sdUSD: {
-        dStable: emptyStringIfUndefined(dUSDDeployment?.address),
-        name: "Staked dUSD",
-        symbol: "sdUSD",
-        initialAdmin: deployer,
-        initialFeeManager: deployer,
-        initialWithdrawalFeeBps: 10,
-        adapters: [
-          {
-            vaultAsset: emptyStringIfUndefined(
-              dLendATokenWrapperDUSDDeployment?.address,
-            ),
-            adapterContract: "WrappedDLendConversionAdapter",
-          },
-        ],
-        defaultDepositVaultAsset: emptyStringIfUndefined(
-          dLendATokenWrapperDUSDDeployment?.address,
-        ),
-        collateralVault: "DStakeCollateralVault_sdUSD",
-        collateralExchangers: [deployer],
-        dLendRewardManager: {
-          managedVaultAsset: emptyStringIfUndefined(
-            dLendATokenWrapperDUSDDeployment?.address,
-          ),
-          dLendAssetToClaimFor: emptyStringIfUndefined(
-            aTokenDUSDDeployment?.address,
-          ),
-          dLendRewardsController: emptyStringIfUndefined(
-            rewardsControllerDeployment?.address,
-          ),
-          treasury: deployer,
-          maxTreasuryFeeBps: 500,
-          initialTreasuryFeeBps: 100,
-          initialExchangeThreshold: 1_000_000n,
-          initialAdmin: deployer,
-          initialRewardsManager: deployer,
-        },
-      },
-    },
-    vesting: {
-      name: "dBOOST sdUSD Season 1",
-      symbol: "sdUSD-S1",
-      dstakeToken: emptyStringIfUndefined(sdUSDDeployment?.address),
-      vestingPeriod: 180 * 24 * 60 * 60, // 6 months
-      maxTotalSupply: _hre.ethers.parseUnits("20000000", 18).toString(), // 20M tokens
-      initialOwner: deployer,
-      minDepositThreshold: _hre.ethers.parseUnits("250000", 18).toString(), // 250k tokens
-    },
     odos: {
       router: "", // Odos doesn't work on sonic testnet
     },
@@ -478,7 +429,7 @@ export async function getConfig(
         symbol: "sdUSD",
         initialAdmin: deployer,
         initialFeeManager: deployer,
-        initialWithdrawalFeeBps: 10,
+        initialWithdrawalFeeBps: 0.1 * ONE_PERCENT_BPS, // 0.1%
         adapters: [
           {
             vaultAsset: emptyStringIfUndefined(
@@ -510,6 +461,15 @@ export async function getConfig(
           initialRewardsManager: deployer, // Optional: specific rewards manager role holder
         },
       },
+    },
+    vesting: {
+      name: "dBOOST sdUSD Season 1",
+      symbol: "sdUSD-S1",
+      dstakeToken: emptyStringIfUndefined(sdUSDDeployment?.address),
+      vestingPeriod: 180 * 24 * 60 * 60, // 6 months
+      maxTotalSupply: _hre.ethers.parseUnits("20000000", 18).toString(), // 20M tokens
+      initialOwner: deployer,
+      minDepositThreshold: _hre.ethers.parseUnits("250000", 18).toString(), // 250k tokens
     },
   };
 }
