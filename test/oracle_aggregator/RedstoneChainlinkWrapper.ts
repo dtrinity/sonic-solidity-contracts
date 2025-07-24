@@ -1,14 +1,13 @@
 import { expect } from "chai";
-import hre, { getNamedAccounts, ethers } from "hardhat";
+import hre, { ethers, getNamedAccounts } from "hardhat";
 import { Address } from "hardhat-deploy/types";
+
+import { getConfig } from "../../config/config";
+import { RedstoneChainlinkWrapper } from "../../typechain-types";
 import {
   getOracleAggregatorFixture,
   OracleAggregatorFixtureResult,
-  getRandomItemFromList,
 } from "./fixtures";
-import { getConfig } from "../../config/config";
-import { RedstoneChainlinkWrapper } from "../../typechain-types";
-import { ORACLE_AGGREGATOR_PRICE_DECIMALS } from "../../typescript/oracle_aggregator/constants";
 
 const CHAINLINK_HEARTBEAT_SECONDS = 86400; // 24 hours
 
@@ -33,13 +32,21 @@ describe("RedstoneChainlinkWrapper", () => {
   });
 });
 
+/**
+ *
+ * @param currency
+ * @param root0
+ * @param root0.deployer
+ * @param root0.user1
+ * @param root0.user2
+ */
 async function runTestsForCurrency(
   currency: string,
   {
     deployer,
     user1,
     user2,
-  }: { deployer: Address; user1: Address; user2: Address }
+  }: { deployer: Address; user1: Address; user2: Address },
 ) {
   describe(`RedstoneChainlinkWrapper for ${currency}`, () => {
     let fixtureResult: OracleAggregatorFixtureResult;
@@ -87,7 +94,7 @@ async function runTestsForCurrency(
       it("should correctly price assets with configured feeds", async function () {
         // Test pricing for plain assets configured for Redstone
         for (const [address, _asset] of Object.entries(
-          fixtureResult.assets.redstonePlainAssets
+          fixtureResult.assets.redstonePlainAssets,
         )) {
           // Check if the asset actually has a feed configured (safeguard)
           const feed = await redstoneChainlinkWrapper.assetToFeed(address);
@@ -97,7 +104,7 @@ async function runTestsForCurrency(
           // The price should be non-zero
           expect(price).to.be.gt(
             0,
-            `Price for asset ${address} should be greater than 0`
+            `Price for asset ${address} should be greater than 0`,
           );
           expect(isAlive).to.be.true,
             `Price for asset ${address} should be alive`;
@@ -107,7 +114,7 @@ async function runTestsForCurrency(
             await redstoneChainlinkWrapper.getAssetPrice(address);
           expect(directPrice).to.equal(
             price,
-            `Direct price should match price info for ${address}`
+            `Direct price should match price info for ${address}`,
           );
         }
       });
@@ -132,13 +139,13 @@ async function runTestsForCurrency(
         // Set the feed
         await redstoneChainlinkWrapper.setFeed(newAsset, feed);
         expect(await redstoneChainlinkWrapper.assetToFeed(newAsset)).to.equal(
-          feed
+          feed,
         );
 
         // Remove the feed by setting it to zero address
         await redstoneChainlinkWrapper.setFeed(newAsset, ethers.ZeroAddress);
         expect(await redstoneChainlinkWrapper.assetToFeed(newAsset)).to.equal(
-          ethers.ZeroAddress
+          ethers.ZeroAddress,
         );
       });
 
@@ -153,11 +160,11 @@ async function runTestsForCurrency(
         await expect(
           redstoneChainlinkWrapper
             .connect(unauthorizedSigner)
-            .setFeed(newAsset, feed)
+            .setFeed(newAsset, feed),
         )
           .to.be.revertedWithCustomError(
             redstoneChainlinkWrapper,
-            "AccessControlUnauthorizedAccount"
+            "AccessControlUnauthorizedAccount",
           )
           .withArgs(user2, oracleManagerRole);
       });

@@ -1,17 +1,15 @@
 import { expect } from "chai";
-import hre, { getNamedAccounts, ethers } from "hardhat";
+import hre, { ethers, getNamedAccounts } from "hardhat";
 import { Address } from "hardhat-deploy/types";
+
+import { getConfig } from "../../config/config";
+import { API3WrapperWithThresholding } from "../../typechain-types";
+import { ORACLE_AGGREGATOR_PRICE_DECIMALS } from "../../typescript/oracle_aggregator/constants";
 import {
   getOracleAggregatorFixture,
-  OracleAggregatorFixtureResult,
   getRandomItemFromList,
+  OracleAggregatorFixtureResult,
 } from "./fixtures";
-import { getConfig } from "../../config/config";
-import {
-  API3WrapperWithThresholding,
-  MockAPI3Oracle,
-} from "../../typechain-types";
-import { ORACLE_AGGREGATOR_PRICE_DECIMALS } from "../../typescript/oracle_aggregator/constants";
 
 const API3_HEARTBEAT_SECONDS = 86400; // 24 hours
 
@@ -36,13 +34,21 @@ describe("API3WrapperWithThresholding", () => {
   });
 });
 
+/**
+ *
+ * @param currency
+ * @param root0
+ * @param root0.deployer
+ * @param root0.user1
+ * @param root0.user2
+ */
 async function runTestsForCurrency(
   currency: string,
   {
     deployer,
     user1,
     user2,
-  }: { deployer: Address; user1: Address; user2: Address }
+  }: { deployer: Address; user1: Address; user2: Address },
 ) {
   describe(`API3WrapperWithThresholding for ${currency}`, () => {
     let fixtureResult: OracleAggregatorFixtureResult;
@@ -96,7 +102,7 @@ async function runTestsForCurrency(
       it("should return original price when no threshold is set", async function () {
         // Get a random test asset (could be any type)
         const testAsset = getRandomItemFromList(
-          Object.keys(fixtureResult.assets.api3ThresholdAssets)
+          Object.keys(fixtureResult.assets.api3ThresholdAssets),
         );
 
         // Get price info
@@ -116,7 +122,7 @@ async function runTestsForCurrency(
       it("should return fixed price when price is above threshold", async function () {
         // Iterate over assets specifically configured with thresholds
         for (const [testAsset, assetData] of Object.entries(
-          fixtureResult.assets.api3ThresholdAssets
+          fixtureResult.assets.api3ThresholdAssets,
         )) {
           // Deploy a new MockAPI3Oracle for testing
           const MockAPI3OracleFactory =
@@ -126,20 +132,21 @@ async function runTestsForCurrency(
           // Set the proxy for our test asset
           await api3WrapperWithThresholding.setProxy(
             testAsset,
-            await mockOracle.getAddress()
+            await mockOracle.getAddress(),
           );
 
           // Use the threshold config from the fixture
           await api3WrapperWithThresholding.setThresholdConfig(
             testAsset,
             assetData.lowerThreshold,
-            assetData.fixedPrice
+            assetData.fixedPrice,
           );
 
           // Set a price above threshold (e.g., fixed price + 1%)
           const priceAboveThreshold =
             assetData.fixedPrice + assetData.fixedPrice / 100n;
           const currentBlock = await ethers.provider.getBlock("latest");
+
           if (!currentBlock) {
             throw new Error("Failed to get current block");
           }
@@ -152,7 +159,7 @@ async function runTestsForCurrency(
           // Verify price (should be the fixed price) and status
           expect(actualPrice).to.equal(
             assetData.fixedPrice,
-            `Asset: ${testAsset}`
+            `Asset: ${testAsset}`,
           );
           expect(isAlive).to.be.true;
 
@@ -161,7 +168,7 @@ async function runTestsForCurrency(
             await api3WrapperWithThresholding.getAssetPrice(testAsset);
           expect(directPrice).to.equal(
             assetData.fixedPrice,
-            `Asset: ${testAsset}`
+            `Asset: ${testAsset}`,
           );
         }
       });
@@ -169,7 +176,7 @@ async function runTestsForCurrency(
       it("should return original price when price is below threshold", async function () {
         // Iterate over assets specifically configured with thresholds
         for (const [testAsset, assetData] of Object.entries(
-          fixtureResult.assets.api3ThresholdAssets
+          fixtureResult.assets.api3ThresholdAssets,
         )) {
           // Deploy a new MockAPI3Oracle for testing
           const MockAPI3OracleFactory =
@@ -179,20 +186,21 @@ async function runTestsForCurrency(
           // Set the proxy for our test asset
           await api3WrapperWithThresholding.setProxy(
             testAsset,
-            await mockOracle.getAddress()
+            await mockOracle.getAddress(),
           );
 
           // Use the threshold config from the fixture
           await api3WrapperWithThresholding.setThresholdConfig(
             testAsset,
             assetData.lowerThreshold,
-            assetData.fixedPrice
+            assetData.fixedPrice,
           );
 
           // Set a price below threshold (e.g., threshold - 1%)
           const priceBelowThreshold =
             assetData.lowerThreshold - assetData.lowerThreshold / 100n;
           const currentBlock = await ethers.provider.getBlock("latest");
+
           if (!currentBlock) {
             throw new Error("Failed to get current block");
           }
@@ -205,7 +213,7 @@ async function runTestsForCurrency(
           // Verify price (should be the original price) and status
           expect(actualPrice).to.equal(
             priceBelowThreshold,
-            `Asset: ${testAsset}`
+            `Asset: ${testAsset}`,
           );
           expect(isAlive).to.be.true;
 
@@ -214,7 +222,7 @@ async function runTestsForCurrency(
             await api3WrapperWithThresholding.getAssetPrice(testAsset);
           expect(directPrice).to.equal(
             priceBelowThreshold,
-            `Asset: ${testAsset}`
+            `Asset: ${testAsset}`,
           );
         }
       });
@@ -222,8 +230,9 @@ async function runTestsForCurrency(
       it("should handle stale prices correctly", async function () {
         // Get a threshold asset (if available)
         const thresholdAssets = Object.keys(
-          fixtureResult.assets.api3ThresholdAssets
+          fixtureResult.assets.api3ThresholdAssets,
         );
+
         // NOTE: We keep the skip check here because the test specifically picks the first asset
         if (thresholdAssets.length === 0) {
           this.skip(); // Skip if no threshold assets are configured
@@ -239,20 +248,21 @@ async function runTestsForCurrency(
         // Set the proxy for our test asset
         await api3WrapperWithThresholding.setProxy(
           testAsset,
-          await mockOracle.getAddress()
+          await mockOracle.getAddress(),
         );
 
         // Use the threshold config from the fixture
         await api3WrapperWithThresholding.setThresholdConfig(
           testAsset,
           assetData.lowerThreshold,
-          assetData.fixedPrice
+          assetData.fixedPrice,
         );
 
         // Set a stale price (below threshold)
         const price =
           assetData.lowerThreshold - assetData.lowerThreshold / 100n;
         const currentBlock = await ethers.provider.getBlock("latest");
+
         if (!currentBlock) {
           throw new Error("Failed to get current block");
         }
@@ -268,10 +278,10 @@ async function runTestsForCurrency(
 
         // getAssetPrice should revert
         await expect(
-          api3WrapperWithThresholding.getAssetPrice(testAsset)
+          api3WrapperWithThresholding.getAssetPrice(testAsset),
         ).to.be.revertedWithCustomError(
           api3WrapperWithThresholding,
-          "PriceIsStale"
+          "PriceIsStale",
         );
       });
     });
@@ -280,25 +290,25 @@ async function runTestsForCurrency(
       it("should allow setting and removing threshold config", async function () {
         // Get a random test asset (any type is fine here)
         const testAsset = getRandomItemFromList(
-          Object.keys(fixtureResult.assets.api3ThresholdAssets)
+          Object.keys(fixtureResult.assets.api3ThresholdAssets),
         );
 
         // Set threshold configuration
         const lowerThreshold = ethers.parseUnits(
           "0.99",
-          ORACLE_AGGREGATOR_PRICE_DECIMALS
+          ORACLE_AGGREGATOR_PRICE_DECIMALS,
         );
         const fixedPrice = ethers.parseUnits(
           "1.00",
-          ORACLE_AGGREGATOR_PRICE_DECIMALS
+          ORACLE_AGGREGATOR_PRICE_DECIMALS,
         );
 
         await expect(
           api3WrapperWithThresholding.setThresholdConfig(
             testAsset,
             lowerThreshold,
-            fixedPrice
-          )
+            fixedPrice,
+          ),
         )
           .to.emit(api3WrapperWithThresholding, "ThresholdConfigSet")
           .withArgs(testAsset, lowerThreshold, fixedPrice);
@@ -311,7 +321,7 @@ async function runTestsForCurrency(
 
         // Remove threshold config
         await expect(
-          api3WrapperWithThresholding.removeThresholdConfig(testAsset)
+          api3WrapperWithThresholding.removeThresholdConfig(testAsset),
         )
           .to.emit(api3WrapperWithThresholding, "ThresholdConfigRemoved")
           .withArgs(testAsset);
@@ -326,16 +336,16 @@ async function runTestsForCurrency(
       it("should revert when non-ORACLE_MANAGER tries to set threshold config", async function () {
         // Get a random test asset
         const testAsset = getRandomItemFromList(
-          Object.keys(fixtureResult.assets.api3ThresholdAssets)
+          Object.keys(fixtureResult.assets.api3ThresholdAssets),
         );
 
         const lowerThreshold = ethers.parseUnits(
           "0.99",
-          ORACLE_AGGREGATOR_PRICE_DECIMALS
+          ORACLE_AGGREGATOR_PRICE_DECIMALS,
         );
         const fixedPrice = ethers.parseUnits(
           "1.00",
-          ORACLE_AGGREGATOR_PRICE_DECIMALS
+          ORACLE_AGGREGATOR_PRICE_DECIMALS,
         );
 
         const unauthorizedSigner = await ethers.getSigner(user2);
@@ -345,11 +355,11 @@ async function runTestsForCurrency(
         await expect(
           api3WrapperWithThresholding
             .connect(unauthorizedSigner)
-            .setThresholdConfig(testAsset, lowerThreshold, fixedPrice)
+            .setThresholdConfig(testAsset, lowerThreshold, fixedPrice),
         )
           .to.be.revertedWithCustomError(
             api3WrapperWithThresholding,
-            "AccessControlUnauthorizedAccount"
+            "AccessControlUnauthorizedAccount",
           )
           .withArgs(user2, oracleManagerRole);
       });
@@ -357,7 +367,7 @@ async function runTestsForCurrency(
       it("should revert when non-ORACLE_MANAGER tries to remove threshold config", async function () {
         // Get a random test asset
         const testAsset = getRandomItemFromList(
-          Object.keys(fixtureResult.assets.api3ThresholdAssets)
+          Object.keys(fixtureResult.assets.api3ThresholdAssets),
         );
 
         const unauthorizedSigner = await ethers.getSigner(user2);
@@ -367,11 +377,11 @@ async function runTestsForCurrency(
         await expect(
           api3WrapperWithThresholding
             .connect(unauthorizedSigner)
-            .removeThresholdConfig(testAsset)
+            .removeThresholdConfig(testAsset),
         )
           .to.be.revertedWithCustomError(
             api3WrapperWithThresholding,
-            "AccessControlUnauthorizedAccount"
+            "AccessControlUnauthorizedAccount",
           )
           .withArgs(user2, oracleManagerRole);
       });

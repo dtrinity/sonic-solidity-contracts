@@ -1,17 +1,15 @@
-import { ethers, getNamedAccounts } from "hardhat";
-import { expect } from "chai";
 import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
-
-import { createDStakeFixture, SDUSD_CONFIG as CONFIG } from "./fixture";
+import { expect } from "chai";
+import { ethers, getNamedAccounts } from "hardhat";
 
 import {
-  DStakeToken,
-  DStakeRouterDLend,
   DStakeCollateralVault,
+  DStakeRouterDLend,
+  DStakeToken,
   ERC20,
 } from "../../typechain-types";
-
 import { ERC20StablecoinUpgradeable } from "../../typechain-types/contracts/dstable/ERC20StablecoinUpgradeable";
+import { createDStakeFixture, SDUSD_CONFIG as CONFIG } from "./fixture";
 
 // Helper to parse units with given decimals
 const parseUnits = (value: string, decimals: number | bigint) =>
@@ -41,11 +39,11 @@ describe("DStakeRouterDLend – surplus < 1 share withdraw DoS", function () {
 
     // 1. Deploy mock adapter that reverts on tiny deposits
     const MockAdapterFactory = await ethers.getContractFactory(
-      "MockAdapterSmallDepositRevert"
+      "MockAdapterSmallDepositRevert",
     );
     const adapter = await MockAdapterFactory.deploy(
       await dStable.getAddress(),
-      await collateralVault.getAddress()
+      await collateralVault.getAddress(),
     );
     await adapter.waitForDeployment();
     adapterAddress = await adapter.getAddress();
@@ -64,7 +62,7 @@ describe("DStakeRouterDLend – surplus < 1 share withdraw DoS", function () {
     const stable = (await ethers.getContractAt(
       "ERC20StablecoinUpgradeable",
       await dStable.getAddress(),
-      deployer
+      deployer,
     )) as ERC20StablecoinUpgradeable;
     const minterRole = await stable.MINTER_ROLE();
     await stable.grantRole(minterRole, deployer.address);
@@ -75,7 +73,7 @@ describe("DStakeRouterDLend – surplus < 1 share withdraw DoS", function () {
 
     await DStakeTokenInst.connect(deployer).deposit(
       depositAmount,
-      deployer.address
+      deployer.address,
     );
   });
 
@@ -86,8 +84,8 @@ describe("DStakeRouterDLend – surplus < 1 share withdraw DoS", function () {
       DStakeTokenInst.connect(deployer).withdraw(
         withdrawAmount,
         deployer.address,
-        deployer.address
-      )
+        deployer.address,
+      ),
     ).to.not.be.reverted; // The pre-fix implementation reverts, so this spec fails.
   });
 });

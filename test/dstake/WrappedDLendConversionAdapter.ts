@@ -1,17 +1,18 @@
-import { ethers, getNamedAccounts } from "hardhat";
-import { expect } from "chai";
-import { WrappedDLendConversionAdapter } from "../../typechain-types/contracts/vaults/dstake/adapters/WrappedDLendConversionAdapter";
-import { IERC20, ERC20 } from "../../typechain-types";
-import type { DStakeCollateralVault } from "../../typechain-types/contracts/vaults/dstake/DStakeCollateralVault";
 import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
+import { expect } from "chai";
+import { ZeroAddress } from "ethers";
+import { ethers, getNamedAccounts } from "hardhat";
+
+import type { IERC4626 } from "../../typechain-types";
+import { ERC20, IERC20 } from "../../typechain-types";
+import { ERC20StablecoinUpgradeable } from "../../typechain-types/contracts/dstable/ERC20StablecoinUpgradeable";
+import { WrappedDLendConversionAdapter } from "../../typechain-types/contracts/vaults/dstake/adapters/WrappedDLendConversionAdapter";
+import type { DStakeCollateralVault } from "../../typechain-types/contracts/vaults/dstake/DStakeCollateralVault";
 import {
   createDStakeFixture,
   DSTAKE_CONFIGS,
   DStakeFixtureConfig,
 } from "./fixture";
-import { ZeroAddress } from "ethers";
-import { ERC20StablecoinUpgradeable } from "../../typechain-types/contracts/dstable/ERC20StablecoinUpgradeable";
-import type { IERC4626 } from "../../typechain-types";
 
 const parseUnits = (value: string | number, decimals: number | bigint) =>
   ethers.parseUnits(value.toString(), decimals);
@@ -55,7 +56,7 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
       adapter = (await ethers.getContractAt(
         "WrappedDLendConversionAdapter",
         adapterAddress,
-        deployer
+        deployer,
       )) as WrappedDLendConversionAdapter;
       collateralVault = out.collateralVault as unknown as DStakeCollateralVault;
       collateralVaultAddress = await collateralVault.getAddress();
@@ -64,13 +65,13 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
       wrapper = (await ethers.getContractAt(
         "@openzeppelin/contracts/interfaces/IERC4626.sol:IERC4626",
         vaultAssetAddress,
-        deployer
+        deployer,
       )) as unknown as IERC4626;
 
       // Determine wrapper token decimals
       const tempWrapper = (await ethers.getContractAt(
         "@openzeppelin/contracts/token/ERC20/ERC20.sol:ERC20",
-        vaultAssetAddress
+        vaultAssetAddress,
       )) as unknown as ERC20;
       vaultAssetDecimals = await tempWrapper.decimals();
 
@@ -79,7 +80,7 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
       stable = (await ethers.getContractAt(
         "ERC20StablecoinUpgradeable",
         dStableAddress,
-        deployer
+        deployer,
       )) as ERC20StablecoinUpgradeable;
       const minterRole = await stable.MINTER_ROLE();
       await stable.grantRole(minterRole, deployer.address);
@@ -99,7 +100,7 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
         expect(await adapter.wrappedDLendToken()).to.equal(vaultAssetAddress);
         // collateralVault address
         expect(await adapter.collateralVault()).to.equal(
-          collateralVaultAddress
+          collateralVaultAddress,
         );
         // wrapper underlying asset matches dStable
         expect(await wrapper.asset()).to.equal(await dStableToken.getAddress());
@@ -109,7 +110,7 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
     describe("convertToVaultAsset", function () {
       it("should revert if dStableAmount is 0", async function () {
         await expect(
-          adapter.connect(user1).convertToVaultAsset(0)
+          adapter.connect(user1).convertToVaultAsset(0),
         ).to.be.revertedWithCustomError(adapter, "InvalidAmount");
       });
 
@@ -144,7 +145,7 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
         const initialAdapterDStable =
           await dStableToken.balanceOf(adapterAddress);
         const initialVaultWrapped = await wrapperToken.balanceOf(
-          collateralVaultAddress
+          collateralVaultAddress,
         );
 
         // Execute conversion
@@ -155,13 +156,13 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
         const finalAdapterDStable =
           await dStableToken.balanceOf(adapterAddress);
         const finalVaultWrapped = await wrapperToken.balanceOf(
-          collateralVaultAddress
+          collateralVaultAddress,
         );
 
         expect(finalUserDStable).to.equal(initialUserDStable - amt);
         expect(finalAdapterDStable).to.equal(0);
         expect(finalVaultWrapped).to.equal(
-          initialVaultWrapped + expectedVaultAmt
+          initialVaultWrapped + expectedVaultAmt,
         );
       });
     });
@@ -169,7 +170,7 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
     describe("convertFromVaultAsset", function () {
       it("should revert if vaultAssetAmount is 0", async function () {
         await expect(
-          adapter.connect(user1).convertFromVaultAsset(0)
+          adapter.connect(user1).convertFromVaultAsset(0),
         ).to.be.revertedWithCustomError(adapter, "InvalidAmount");
       });
 
@@ -230,7 +231,7 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
 
         expect(finalUserWrapped).to.equal(initialUserWrapped - vaultAmt);
         expect(finalUserDStable).to.equal(
-          initialUserDStable + expectedDStableAmt
+          initialUserDStable + expectedDStableAmt,
         );
       });
     });
@@ -243,7 +244,7 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
         // preview assetValue
         const value = await adapter.assetValueInDStable(
           vaultAssetAddress,
-          vaultAmt
+          vaultAmt,
         );
         const expected = await wrapper.previewRedeem(vaultAmt);
         expect(value).to.equal(expected);
@@ -266,7 +267,7 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
         const previewAmt = parseUnits(20, vaultAssetDecimals);
         const expected = await wrapper.previewRedeem(previewAmt);
         expect(await adapter.previewConvertFromVaultAsset(previewAmt)).to.equal(
-          expected
+          expected,
         );
       });
     });
