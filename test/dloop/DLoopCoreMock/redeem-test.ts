@@ -748,7 +748,466 @@ describe("DLoopCoreMock Redeem Tests", function () {
     });
   });
 
-  describe("V. Edge cases and error conditions", function () {
+  describe("V. Delegated redeem (on behalf of another user)", function () {
+    const delegatedRedeemTests = [
+      {
+        name: "Should allow basic delegated redeem with proper allowances",
+        initialDeposit: ethers.parseEther("100"),
+        sharesToRedeem: ethers.parseEther("30"),
+        ownerIndex: 1,
+        relayerIndex: 2,
+      },
+      {
+        name: "Should handle full delegated redeem",
+        initialDeposit: ethers.parseEther("50"),
+        sharesToRedeem: ethers.parseEther("50"), // Full redeem
+        ownerIndex: 1,
+        relayerIndex: 3,
+      },
+      {
+        name: "Should allow delegated redeem with price changes",
+        initialDeposit: ethers.parseEther("200"),
+        sharesToRedeem: ethers.parseEther("75"),
+        ownerIndex: 2,
+        relayerIndex: 4,
+        priceChange: {
+          collateral: ethers.parseUnits("1.4", 8),
+          debt: ethers.parseUnits("0.9", 8),
+        },
+      },
+    ];
+
+    for (const testCase of delegatedRedeemTests) {
+      it(testCase.name, async function () {
+        const owner = accounts[testCase.ownerIndex];
+        const relayer = accounts[testCase.relayerIndex];
+        const ownerAddress = owner.address;
+        const relayerAddress = relayer.address;
+
+        // Set initial prices
+        await dloopMock.setMockPrice(
+          await collateralToken.getAddress(),
+          ethers.parseUnits("1.2", 8),
+        );
+        await dloopMock.setMockPrice(
+          await debtToken.getAddress(),
+          ethers.parseUnits("0.8", 8),
+        );
+
+        // Ensure relayer has no debt tokens and no allowance initially
+        // Reset relayer's debt token balance to 0 for clean test
+        const relayerDebtBalance = await debtToken.balanceOf(relayerAddress);
+
+        if (relayerDebtBalance > 0) {
+          await debtToken
+            .connect(relayer)
+            .transfer(accounts[0].address, relayerDebtBalance);
+        }
+
+        // Reset relayer balance for test (since all users get tokens in setup)
+        const relayerBalance = await debtToken.balanceOf(relayerAddress);
+
+        if (relayerBalance > 0) {
+          await debtToken
+            .connect(relayer)
+            .transfer(accounts[0].address, relayerBalance);
+        }
+        expect(await debtToken.balanceOf(relayerAddress)).to.equal(0);
+
+        // Reset relayer's allowance to vault (since all users get max allowance in setup)
+        await debtToken
+          .connect(relayer)
+          .approve(await dloopMock.getAddress(), 0);
+        expect(
+          await debtToken.allowance(
+            relayerAddress,
+            await dloopMock.getAddress(),
+          ),
+        ).to.equal(0);
+
+        // Owner makes initial deposit
+        await collateralToken
+          .connect(owner)
+          .approve(await dloopMock.getAddress(), testCase.initialDeposit);
+
+        const depositTx = await dloopMock
+          .connect(owner)
+          .deposit(testCase.initialDeposit, ownerAddress);
+        await depositTx.wait();
+
+        // Verify initial state after deposit
+        const initialShares = await dloopMock.balanceOf(ownerAddress);
+        expect(initialShares).to.equal(testCase.initialDeposit);
+        expect(await dloopMock.getCurrentLeverageBps()).to.equal(
+          TARGET_LEVERAGE_BPS,
+        );
+
+        // Apply price changes if specified
+        if (testCase.priceChange) {
+          await dloopMock.setMockPrice(
+            await collateralToken.getAddress(),
+            testCase.priceChange.collateral,
+          );
+          await dloopMock.setMockPrice(
+            await debtToken.getAddress(),
+            testCase.priceChange.debt,
+          );
+        }
+
+        // Calculate expected values for redeem
+        const leverageBeforeRedeem = await dloopMock.getCurrentLeverageBps();
+        const expectedAssets = await dloopMock.previewRedeem(
+          testCase.sharesToRedeem,
+        );
+        const requiredDebtRepayment =
+          await dloopMock.getRepayAmountThatKeepCurrentLeverage(
+            await collateralToken.getAddress(),
+            await debtToken.getAddress(),
+            expectedAssets,
+            leverageBeforeRedeem,
+          );
+
+        // Step 1: Owner approves shares to relayer (standard ERC-4626 delegation)
+        await dloopMock
+          .connect(owner)
+          .approve(relayerAddress, testCase.sharesToRedeem);
+
+        // Step 2: Owner approves debt tokens to vault for repayment
+        // This is the EXPECTED workflow - owner should be able to give vault allowance
+        // and relayer should execute on owner's behalf
+        const debtBalance = await debtToken.balanceOf(ownerAddress);
+        expect(debtBalance).to.be.gte(requiredDebtRepayment);
+
+        // Clear any existing allowance and set the correct amount
+        await debtToken.connect(owner).approve(await dloopMock.getAddress(), 0);
+        await debtToken
+          .connect(owner)
+          .approve(await dloopMock.getAddress(), requiredDebtRepayment);
+
+        // Verify owner has the correct allowances but relayer does not
+        expect(
+          await debtToken.allowance(ownerAddress, await dloopMock.getAddress()),
+        ).to.equal(requiredDebtRepayment);
+        expect(
+          await debtToken.allowance(
+            relayerAddress,
+            await dloopMock.getAddress(),
+          ),
+        ).to.equal(0);
+
+        // Track balances before delegated redeem
+        const collateralBalanceBefore =
+          await collateralToken.balanceOf(ownerAddress);
+        const debtBalanceBefore = await debtToken.balanceOf(ownerAddress);
+        const sharesBefore = await dloopMock.balanceOf(ownerAddress);
+        const relayerCollateralBefore =
+          await collateralToken.balanceOf(relayerAddress);
+
+        // Step 3: Relayer performs delegated redeem on behalf of owner
+        // AUDIT ISSUE: This should fail because the contract tries to pull debt tokens
+        // from caller (relayer) instead of owner, even though owner has approved the vault
+        await expect(
+          dloopMock
+            .connect(relayer)
+            .redeem(testCase.sharesToRedeem, ownerAddress, ownerAddress),
+        ).to.be.revertedWithCustomError(
+          dloopMock,
+          "InsufficientAllowanceOfDebtAssetToRepay",
+        );
+
+        // Verify balances remain unchanged after failed delegated redeem
+        expect(await collateralToken.balanceOf(ownerAddress)).to.equal(
+          collateralBalanceBefore,
+        );
+        expect(await debtToken.balanceOf(ownerAddress)).to.equal(
+          debtBalanceBefore,
+        );
+        expect(await dloopMock.balanceOf(ownerAddress)).to.equal(sharesBefore);
+        expect(await collateralToken.balanceOf(relayerAddress)).to.equal(
+          relayerCollateralBefore,
+        );
+      });
+    }
+
+    it("Should demonstrate the workaround where owner transfers debt tokens to relayer", async function () {
+      const owner = accounts[1];
+      const relayer = accounts[2];
+      const ownerAddress = owner.address;
+      const relayerAddress = relayer.address;
+      const depositAmount = ethers.parseEther("100");
+      const sharesToRedeem = ethers.parseEther("40");
+
+      // Set prices
+      await dloopMock.setMockPrice(
+        await collateralToken.getAddress(),
+        ethers.parseUnits("1.2", 8),
+      );
+      await dloopMock.setMockPrice(
+        await debtToken.getAddress(),
+        ethers.parseUnits("0.8", 8),
+      );
+
+      // Owner makes deposit
+      await collateralToken
+        .connect(owner)
+        .approve(await dloopMock.getAddress(), depositAmount);
+      await dloopMock.connect(owner).deposit(depositAmount, ownerAddress);
+
+      // Calculate required debt repayment
+      const leverageBeforeRedeem = await dloopMock.getCurrentLeverageBps();
+      const expectedAssets = await dloopMock.previewRedeem(sharesToRedeem);
+      const requiredDebtRepayment =
+        await dloopMock.getRepayAmountThatKeepCurrentLeverage(
+          await collateralToken.getAddress(),
+          await debtToken.getAddress(),
+          expectedAssets,
+          leverageBeforeRedeem,
+        );
+
+      // Owner approves shares to relayer
+      await dloopMock.connect(owner).approve(relayerAddress, sharesToRedeem);
+
+      // WORKAROUND: Owner transfers debt tokens to relayer
+      await debtToken
+        .connect(owner)
+        .transfer(relayerAddress, requiredDebtRepayment);
+
+      // Relayer approves debt tokens to vault
+      await debtToken
+        .connect(relayer)
+        .approve(await dloopMock.getAddress(), requiredDebtRepayment);
+
+      // Track balances before delegated redeem
+      const ownerCollateralBefore =
+        await collateralToken.balanceOf(ownerAddress);
+      const ownerDebtBefore = await debtToken.balanceOf(ownerAddress);
+      const ownerSharesBefore = await dloopMock.balanceOf(ownerAddress);
+      const relayerDebtBefore = await debtToken.balanceOf(relayerAddress);
+
+      // Now delegated redeem should work (relayer pays debt, owner receives collateral)
+      const redeemTx = await dloopMock
+        .connect(relayer)
+        .redeem(sharesToRedeem, ownerAddress, ownerAddress);
+
+      // Verify event emission
+      await expect(redeemTx).to.emit(dloopMock, "Withdraw").withArgs(
+        relayerAddress, // caller
+        ownerAddress, // receiver
+        ownerAddress, // owner
+        expectedAssets,
+        sharesToRedeem,
+      );
+
+      // Verify balances after successful delegated redeem
+      expect(await dloopMock.balanceOf(ownerAddress)).to.equal(
+        ownerSharesBefore - sharesToRedeem,
+      );
+      expect(await collateralToken.balanceOf(ownerAddress)).to.equal(
+        ownerCollateralBefore + expectedAssets,
+      );
+      expect(await debtToken.balanceOf(ownerAddress)).to.equal(
+        ownerDebtBefore, // Owner's debt balance unchanged (relayer paid)
+      );
+      expect(await debtToken.balanceOf(relayerAddress)).to.be.closeTo(
+        relayerDebtBefore - requiredDebtRepayment,
+        ethers.parseUnits("0.001", 18), // Small tolerance for rounding
+      );
+
+      // Verify leverage is maintained
+      const leverageAfterRedeem = await dloopMock.getCurrentLeverageBps();
+      expect(leverageAfterRedeem).to.be.closeTo(
+        leverageBeforeRedeem,
+        BigInt(ONE_PERCENT_BPS),
+      );
+    });
+
+    it("Should fail delegated redeem when relayer has insufficient debt token allowance", async function () {
+      const owner = accounts[1];
+      const relayer = accounts[2];
+      const ownerAddress = owner.address;
+      const relayerAddress = relayer.address;
+      const depositAmount = ethers.parseEther("100");
+      const sharesToRedeem = ethers.parseEther("30");
+
+      // Set prices and make deposit
+      await dloopMock.setMockPrice(
+        await collateralToken.getAddress(),
+        ethers.parseUnits("1.2", 8),
+      );
+      await dloopMock.setMockPrice(
+        await debtToken.getAddress(),
+        ethers.parseUnits("0.8", 8),
+      );
+
+      await collateralToken
+        .connect(owner)
+        .approve(await dloopMock.getAddress(), depositAmount);
+      await dloopMock.connect(owner).deposit(depositAmount, ownerAddress);
+
+      // Owner approves shares to relayer
+      await dloopMock.connect(owner).approve(relayerAddress, sharesToRedeem);
+
+      // Calculate required debt repayment
+      const leverageBeforeRedeem = await dloopMock.getCurrentLeverageBps();
+      const expectedAssets = await dloopMock.previewRedeem(sharesToRedeem);
+      const requiredDebtRepayment =
+        await dloopMock.getRepayAmountThatKeepCurrentLeverage(
+          await collateralToken.getAddress(),
+          await debtToken.getAddress(),
+          expectedAssets,
+          leverageBeforeRedeem,
+        );
+
+      // Reset relayer's allowance to vault (from test setup)
+      await debtToken.connect(relayer).approve(await dloopMock.getAddress(), 0);
+
+      // Owner transfers debt tokens to relayer but relayer doesn't approve
+      await debtToken
+        .connect(owner)
+        .transfer(relayerAddress, requiredDebtRepayment);
+
+      // Relayer has tokens but no allowance to vault
+      expect(await debtToken.balanceOf(relayerAddress)).to.be.gte(
+        requiredDebtRepayment,
+      );
+      expect(
+        await debtToken.allowance(relayerAddress, await dloopMock.getAddress()),
+      ).to.equal(0);
+
+      // Delegated redeem should fail due to insufficient allowance
+      await expect(
+        dloopMock
+          .connect(relayer)
+          .redeem(sharesToRedeem, ownerAddress, ownerAddress),
+      ).to.be.revertedWithCustomError(
+        dloopMock,
+        "InsufficientAllowanceOfDebtAssetToRepay",
+      );
+    });
+
+    it("Should fail delegated redeem when relayer has insufficient debt token balance", async function () {
+      const owner = accounts[1];
+      const relayer = accounts[2];
+      const ownerAddress = owner.address;
+      const relayerAddress = relayer.address;
+      const depositAmount = ethers.parseEther("100");
+      const sharesToRedeem = ethers.parseEther("30");
+
+      // Set prices and make deposit
+      await dloopMock.setMockPrice(
+        await collateralToken.getAddress(),
+        ethers.parseUnits("1.2", 8),
+      );
+      await dloopMock.setMockPrice(
+        await debtToken.getAddress(),
+        ethers.parseUnits("0.8", 8),
+      );
+
+      await collateralToken
+        .connect(owner)
+        .approve(await dloopMock.getAddress(), depositAmount);
+      await dloopMock.connect(owner).deposit(depositAmount, ownerAddress);
+
+      // Owner approves shares to relayer
+      await dloopMock.connect(owner).approve(relayerAddress, sharesToRedeem);
+
+      // Calculate required debt repayment
+      const leverageBeforeRedeem = await dloopMock.getCurrentLeverageBps();
+      const expectedAssets = await dloopMock.previewRedeem(sharesToRedeem);
+      const requiredDebtRepayment =
+        await dloopMock.getRepayAmountThatKeepCurrentLeverage(
+          await collateralToken.getAddress(),
+          await debtToken.getAddress(),
+          expectedAssets,
+          leverageBeforeRedeem,
+        );
+
+      // Reset relayer's debt token balance to 0 (from test setup)
+      const relayerBalance = await debtToken.balanceOf(relayerAddress);
+
+      if (relayerBalance > 0) {
+        await debtToken
+          .connect(relayer)
+          .transfer(accounts[0].address, relayerBalance);
+      }
+
+      // Relayer approves but has no debt token balance
+      await debtToken
+        .connect(relayer)
+        .approve(await dloopMock.getAddress(), requiredDebtRepayment);
+
+      expect(await debtToken.balanceOf(relayerAddress)).to.equal(0);
+      expect(
+        await debtToken.allowance(relayerAddress, await dloopMock.getAddress()),
+      ).to.be.gte(requiredDebtRepayment);
+
+      // Delegated redeem should fail due to insufficient balance
+      await expect(
+        dloopMock
+          .connect(relayer)
+          .redeem(sharesToRedeem, ownerAddress, ownerAddress),
+      ).to.be.revertedWithCustomError(debtToken, "ERC20InsufficientBalance");
+    });
+
+    it("Should fail delegated redeem when relayer has insufficient share allowance", async function () {
+      const owner = accounts[1];
+      const relayer = accounts[2];
+      const ownerAddress = owner.address;
+      const relayerAddress = relayer.address;
+      const depositAmount = ethers.parseEther("100");
+      const sharesToRedeem = ethers.parseEther("30");
+
+      // Set prices and make deposit
+      await dloopMock.setMockPrice(
+        await collateralToken.getAddress(),
+        ethers.parseUnits("1.2", 8),
+      );
+      await dloopMock.setMockPrice(
+        await debtToken.getAddress(),
+        ethers.parseUnits("0.8", 8),
+      );
+
+      await collateralToken
+        .connect(owner)
+        .approve(await dloopMock.getAddress(), depositAmount);
+      await dloopMock.connect(owner).deposit(depositAmount, ownerAddress);
+
+      // Calculate required debt repayment
+      const leverageBeforeRedeem = await dloopMock.getCurrentLeverageBps();
+      const expectedAssets = await dloopMock.previewRedeem(sharesToRedeem);
+      const requiredDebtRepayment =
+        await dloopMock.getRepayAmountThatKeepCurrentLeverage(
+          await collateralToken.getAddress(),
+          await debtToken.getAddress(),
+          expectedAssets,
+          leverageBeforeRedeem,
+        );
+
+      // Owner transfers debt tokens to relayer
+      await debtToken
+        .connect(owner)
+        .transfer(relayerAddress, requiredDebtRepayment);
+
+      // Relayer approves debt tokens to vault
+      await debtToken
+        .connect(relayer)
+        .approve(await dloopMock.getAddress(), requiredDebtRepayment);
+
+      // Owner does NOT approve shares to relayer
+      expect(await dloopMock.allowance(ownerAddress, relayerAddress)).to.equal(
+        0,
+      );
+
+      // Delegated redeem should fail due to insufficient share allowance
+      await expect(
+        dloopMock
+          .connect(relayer)
+          .redeem(sharesToRedeem, ownerAddress, ownerAddress),
+      ).to.be.revertedWithCustomError(dloopMock, "ERC20InsufficientAllowance");
+    });
+  });
+
+  describe("VI. Edge cases and error conditions", function () {
     it("Should revert when redeeming more shares than owned", async function () {
       const user = accounts[1];
       const userAddress = user.address;
