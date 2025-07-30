@@ -14,11 +14,13 @@ import { isMainnet } from "../../typescript/hardhat/deploy";
  * run afterwards (tags & dependencies ensure ordering) and migrate ownership
  * and admin / fee-manager roles to the addresses specified in the network
  * configuration.
+ *
+ * @param hre
  */
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   if (!isMainnet(hre.network.name)) {
     console.log(
-      `\n🔑 ${__filename.split("/").slice(-2).join("/")}: Skipping non-mainnet network`
+      `\n🔑 ${__filename.split("/").slice(-2).join("/")}: Skipping non-mainnet network`,
     );
     return true;
   }
@@ -29,6 +31,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   // Load network configuration
   const config = await getConfig(hre);
+
   if (!config.dStake) {
     console.log("No dSTAKE instances configured – skipping role migration");
     return true;
@@ -45,12 +48,13 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     // --- DStakeToken roles ---
     try {
       const tokenDeployment = await deployments.getOrNull(tokenId);
+
       if (tokenDeployment) {
         console.log(`  📄 TOKEN ROLES: ${tokenId}`);
         const tokenContract = await ethers.getContractAt(
           "DStakeToken",
           tokenDeployment.address,
-          deployerSigner
+          deployerSigner,
         );
 
         const DEFAULT_ADMIN_ROLE = ZERO_BYTES_32;
@@ -60,30 +64,30 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
         if (
           !(await tokenContract.hasRole(
             DEFAULT_ADMIN_ROLE,
-            instanceConfig.initialAdmin
+            instanceConfig.initialAdmin,
           ))
         ) {
           await tokenContract.grantRole(
             DEFAULT_ADMIN_ROLE,
-            instanceConfig.initialAdmin
+            instanceConfig.initialAdmin,
           );
           console.log(
-            `    ➕ Granted DEFAULT_ADMIN_ROLE to ${instanceConfig.initialAdmin}`
+            `    ➕ Granted DEFAULT_ADMIN_ROLE to ${instanceConfig.initialAdmin}`,
           );
         }
 
         if (
           !(await tokenContract.hasRole(
             FEE_MANAGER_ROLE,
-            instanceConfig.initialFeeManager
+            instanceConfig.initialFeeManager,
           ))
         ) {
           await tokenContract.grantRole(
             FEE_MANAGER_ROLE,
-            instanceConfig.initialFeeManager
+            instanceConfig.initialFeeManager,
           );
           console.log(
-            `    ➕ Granted FEE_MANAGER_ROLE to ${instanceConfig.initialFeeManager}`
+            `    ➕ Granted FEE_MANAGER_ROLE to ${instanceConfig.initialFeeManager}`,
           );
         }
 
@@ -100,7 +104,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
         }
       } else {
         console.log(
-          `  ⚠️ ${tokenId} not deployed, skipping token role transfer`
+          `  ⚠️ ${tokenId} not deployed, skipping token role transfer`,
         );
       }
     } catch (error) {
@@ -110,12 +114,13 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     // --- CollateralVault roles ---
     try {
       const vaultDeployment = await deployments.getOrNull(vaultId);
+
       if (vaultDeployment) {
         console.log(`  📄 VAULT ROLES: ${vaultId}`);
         const vaultContract = await ethers.getContractAt(
           "DStakeCollateralVault",
           vaultDeployment.address,
-          deployerSigner
+          deployerSigner,
         );
 
         const DEFAULT_ADMIN_ROLE = ZERO_BYTES_32;
@@ -123,15 +128,15 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
         if (
           !(await vaultContract.hasRole(
             DEFAULT_ADMIN_ROLE,
-            instanceConfig.initialAdmin
+            instanceConfig.initialAdmin,
           ))
         ) {
           await vaultContract.grantRole(
             DEFAULT_ADMIN_ROLE,
-            instanceConfig.initialAdmin
+            instanceConfig.initialAdmin,
           );
           console.log(
-            `    ➕ Granted DEFAULT_ADMIN_ROLE to ${instanceConfig.initialAdmin}`
+            `    ➕ Granted DEFAULT_ADMIN_ROLE to ${instanceConfig.initialAdmin}`,
           );
         }
 
@@ -142,7 +147,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
         }
       } else {
         console.log(
-          `  ⚠️ ${vaultId} not deployed, skipping vault role transfer`
+          `  ⚠️ ${vaultId} not deployed, skipping vault role transfer`,
         );
       }
     } catch (error) {
@@ -152,27 +157,28 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     // --- Router roles ---
     try {
       const routerDeployment = await deployments.getOrNull(routerId);
+
       if (routerDeployment) {
         console.log(`  📄 ROUTER ROLES: ${routerId}`);
         const routerContract = await ethers.getContractAt(
           "DStakeRouterDLend",
           routerDeployment.address,
-          deployerSigner
+          deployerSigner,
         );
         const DEFAULT_ADMIN_ROLE = ZERO_BYTES_32;
 
         if (
           !(await routerContract.hasRole(
             DEFAULT_ADMIN_ROLE,
-            instanceConfig.initialAdmin
+            instanceConfig.initialAdmin,
           ))
         ) {
           await routerContract.grantRole(
             DEFAULT_ADMIN_ROLE,
-            instanceConfig.initialAdmin
+            instanceConfig.initialAdmin,
           );
           console.log(
-            `    ➕ Granted DEFAULT_ADMIN_ROLE to ${instanceConfig.initialAdmin}`
+            `    ➕ Granted DEFAULT_ADMIN_ROLE to ${instanceConfig.initialAdmin}`,
           );
         }
 
@@ -182,7 +188,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
         }
       } else {
         console.log(
-          `  ⚠️ ${routerId} not deployed, skipping router role transfer`
+          `  ⚠️ ${routerId} not deployed, skipping router role transfer`,
         );
       }
     } catch (error) {

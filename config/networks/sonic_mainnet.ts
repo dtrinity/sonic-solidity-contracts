@@ -6,7 +6,6 @@ import {
   DS_TOKEN_ID,
   DUSD_TOKEN_ID,
   INCENTIVES_PROXY_ID,
-  SDUSD_DSTAKE_TOKEN_ID,
 } from "../../typescript/deploy-ids";
 import {
   ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT,
@@ -42,7 +41,7 @@ import { Config } from "../types";
  * @returns The configuration for the network
  */
 export async function getConfig(
-  _hre: HardhatRuntimeEnvironment
+  _hre: HardhatRuntimeEnvironment,
 ): Promise<Config> {
   const dUSDDeployment = await _hre.deployments.getOrNull(DUSD_TOKEN_ID);
   const dSDeployment = await _hre.deployments.getOrNull(DS_TOKEN_ID);
@@ -67,7 +66,7 @@ export async function getConfig(
 
   // Fetch deployed dLend StaticATokenLM wrapper, aToken and RewardsController (may be undefined prior to deployment)
   const dLendATokenWrapperDUSDDeployment = await _hre.deployments.getOrNull(
-    "dLend_ATokenWrapper_dUSD"
+    "dLend_ATokenWrapper_dUSD",
   );
   const rewardsControllerDeployment =
     await _hre.deployments.getOrNull(INCENTIVES_PROXY_ID);
@@ -389,25 +388,25 @@ export async function getConfig(
         adapters: [
           {
             vaultAsset: emptyStringIfUndefined(
-              dLendATokenWrapperDUSDDeployment?.address
+              dLendATokenWrapperDUSDDeployment?.address,
             ),
             adapterContract: "WrappedDLendConversionAdapter",
           },
         ],
         defaultDepositVaultAsset: emptyStringIfUndefined(
-          dLendATokenWrapperDUSDDeployment?.address
+          dLendATokenWrapperDUSDDeployment?.address,
         ),
         collateralVault: "DStakeCollateralVault_sdUSD", // Keep in sync with deploy ID constants
         collateralExchangers: [governanceSafeMultisig],
         dLendRewardManager: {
           managedVaultAsset: emptyStringIfUndefined(
-            dLendATokenWrapperDUSDDeployment?.address
+            dLendATokenWrapperDUSDDeployment?.address,
           ), // StaticATokenLM wrapper
           dLendAssetToClaimFor: emptyStringIfUndefined(
-            aTokenDUSDDeployment?.address
+            aTokenDUSDDeployment?.address,
           ), // dLEND aToken for dUSD
           dLendRewardsController: emptyStringIfUndefined(
-            rewardsControllerDeployment?.address
+            rewardsControllerDeployment?.address,
           ), // RewardsController proxy
           treasury: governanceSafeMultisig,
           maxTreasuryFeeBps: 20 * ONE_PERCENT_BPS, // 20%

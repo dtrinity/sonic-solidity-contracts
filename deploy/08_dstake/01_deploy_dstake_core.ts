@@ -15,7 +15,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   if (!config.dStake) {
     console.log(
-      "No dStake configuration found for this network. Skipping core deployment."
+      "No dStake configuration found for this network. Skipping core deployment.",
     );
     return;
   }
@@ -29,7 +29,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       instanceConfig.dStable === ethers.ZeroAddress
     ) {
       throw new Error(
-        `Missing dStable address for dSTAKE instance ${instanceKey}`
+        `Missing dStable address for dSTAKE instance ${instanceKey}`,
       );
     }
 
@@ -46,7 +46,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       instanceConfig.initialAdmin === ethers.ZeroAddress
     ) {
       throw new Error(
-        `Missing initialAdmin for dSTAKE instance ${instanceKey}`
+        `Missing initialAdmin for dSTAKE instance ${instanceKey}`,
       );
     }
 
@@ -55,19 +55,19 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       instanceConfig.initialFeeManager === ethers.ZeroAddress
     ) {
       throw new Error(
-        `Missing initialFeeManager for dSTAKE instance ${instanceKey}`
+        `Missing initialFeeManager for dSTAKE instance ${instanceKey}`,
       );
     }
 
     if (typeof instanceConfig.initialWithdrawalFeeBps !== "number") {
       throw new Error(
-        `Missing initialWithdrawalFeeBps for dSTAKE instance ${instanceKey}`
+        `Missing initialWithdrawalFeeBps for dSTAKE instance ${instanceKey}`,
       );
     }
 
     if (!instanceConfig.adapters || !Array.isArray(instanceConfig.adapters)) {
       throw new Error(
-        `Missing adapters array for dSTAKE instance ${instanceKey}`
+        `Missing adapters array for dSTAKE instance ${instanceKey}`,
       );
     }
 
@@ -76,7 +76,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       instanceConfig.defaultDepositVaultAsset === ethers.ZeroAddress
     ) {
       throw new Error(
-        `Missing defaultDepositVaultAsset for dSTAKE instance ${instanceKey}`
+        `Missing defaultDepositVaultAsset for dSTAKE instance ${instanceKey}`,
       );
     }
 
@@ -85,7 +85,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       !Array.isArray(instanceConfig.collateralExchangers)
     ) {
       throw new Error(
-        `Missing collateralExchangers array for dSTAKE instance ${instanceKey}`
+        `Missing collateralExchangers array for dSTAKE instance ${instanceKey}`,
       );
     }
   }
@@ -131,7 +131,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
         contract: "DStakeCollateralVault",
         args: [DStakeTokenDeployment.address, instanceConfig.dStable],
         log: false,
-      }
+      },
     );
 
     const routerDeploymentName = `DStakeRouter_${instanceKey}`;
