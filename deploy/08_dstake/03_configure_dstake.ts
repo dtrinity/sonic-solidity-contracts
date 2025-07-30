@@ -257,3 +257,6 @@ export default func;
 func.tags = ["dStakeConfigure", "dStake"];
 func.dependencies = ["dStakeCore", "dStakeAdapters"];
 func.runAtTheEnd = true;
+
+// Prevent re-execution after successful run.
+func.id = "configure_dstake";
