@@ -72,10 +72,6 @@ export async function getConfig(
   const rewardsControllerDeployment =
     await _hre.deployments.getOrNull(INCENTIVES_PROXY_ID);
   const aTokenDUSDDeployment = await _hre.deployments.getOrNull("dLEND-dUSD");
-  // Fetch deployed dSTAKE token for sdUSD (optional)
-  const sdUSDDeployment = await _hre.deployments.getOrNull(
-    SDUSD_DSTAKE_TOKEN_ID
-  );
 
   // Fetch dUSD token decimals from the contract if deployed
   let dUSDDecimals = 0;
@@ -140,7 +136,6 @@ export async function getConfig(
           USDCeAddress,
           scUSDAddress,
         ],
-        // TODO: review – set to governance multisig for now
         initialFeeReceiver: governanceSafeMultisig, // governanceMultisig
         initialRedemptionFeeBps: 0.4 * ONE_PERCENT_BPS, // Default for stablecoins
         collateralRedemptionFees: {
@@ -155,7 +150,6 @@ export async function getConfig(
       },
       dS: {
         collaterals: [wSAddress, stSAddress],
-        // TODO: review – set to governance multisig for now
         initialFeeReceiver: governanceSafeMultisig, // governanceMultisig
         initialRedemptionFeeBps: 0.4 * ONE_PERCENT_BPS, // Default for stablecoins
         collateralRedemptionFees: {
@@ -416,9 +410,9 @@ export async function getConfig(
             rewardsControllerDeployment?.address
           ), // RewardsController proxy
           treasury: governanceSafeMultisig,
-          maxTreasuryFeeBps: 5 * ONE_PERCENT_BPS, // 5%
-          initialTreasuryFeeBps: 1 * ONE_PERCENT_BPS, // 1%
-          initialExchangeThreshold: 1n * 10n ** BigInt(dUSDDecimals), // TODO: 1 dStable token (fetched from contract decimals), for QA ONLY
+          maxTreasuryFeeBps: 20 * ONE_PERCENT_BPS, // 20%
+          initialTreasuryFeeBps: 0 * ONE_PERCENT_BPS, // 0%
+          initialExchangeThreshold: 100n * 10n ** BigInt(dUSDDecimals), // 100 sdUSD
         },
       },
     },
