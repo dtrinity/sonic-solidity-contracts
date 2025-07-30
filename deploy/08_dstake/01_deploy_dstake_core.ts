@@ -15,7 +15,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   if (!config.dStake) {
     console.log(
-      "No dStake configuration found for this network. Skipping core deployment.",
+      "No dStake configuration found for this network. Skipping core deployment."
     );
     return;
   }
@@ -29,7 +29,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       instanceConfig.dStable === ethers.ZeroAddress
     ) {
       throw new Error(
-        `Missing dStable address for dSTAKE instance ${instanceKey}`,
+        `Missing dStable address for dSTAKE instance ${instanceKey}`
       );
     }
 
@@ -46,7 +46,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       instanceConfig.initialAdmin === ethers.ZeroAddress
     ) {
       throw new Error(
-        `Missing initialAdmin for dSTAKE instance ${instanceKey}`,
+        `Missing initialAdmin for dSTAKE instance ${instanceKey}`
       );
     }
 
@@ -55,19 +55,19 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       instanceConfig.initialFeeManager === ethers.ZeroAddress
     ) {
       throw new Error(
-        `Missing initialFeeManager for dSTAKE instance ${instanceKey}`,
+        `Missing initialFeeManager for dSTAKE instance ${instanceKey}`
       );
     }
 
     if (typeof instanceConfig.initialWithdrawalFeeBps !== "number") {
       throw new Error(
-        `Missing initialWithdrawalFeeBps for dSTAKE instance ${instanceKey}`,
+        `Missing initialWithdrawalFeeBps for dSTAKE instance ${instanceKey}`
       );
     }
 
     if (!instanceConfig.adapters || !Array.isArray(instanceConfig.adapters)) {
       throw new Error(
-        `Missing adapters array for dSTAKE instance ${instanceKey}`,
+        `Missing adapters array for dSTAKE instance ${instanceKey}`
       );
     }
 
@@ -76,7 +76,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       instanceConfig.defaultDepositVaultAsset === ethers.ZeroAddress
     ) {
       throw new Error(
-        `Missing defaultDepositVaultAsset for dSTAKE instance ${instanceKey}`,
+        `Missing defaultDepositVaultAsset for dSTAKE instance ${instanceKey}`
       );
     }
 
@@ -85,7 +85,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       !Array.isArray(instanceConfig.collateralExchangers)
     ) {
       throw new Error(
-        `Missing collateralExchangers array for dSTAKE instance ${instanceKey}`,
+        `Missing collateralExchangers array for dSTAKE instance ${instanceKey}`
       );
     }
   }
@@ -102,10 +102,10 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       proxy: {
         // Use a dedicated ProxyAdmin so dSTAKE is isolated from the global DefaultProxyAdmin
         viaAdminContract: {
-          name: proxyAdminDeploymentName, // Unique deployment per instance
-          artifact: "DStakeProxyAdmin", // Re-use the same artifact
+          name: proxyAdminDeploymentName,
+          artifact: "DStakeProxyAdmin",
         },
-        owner: instanceConfig.initialAdmin, // Governance multisig (configured in network config)
+        owner: deployer, // keep ownership with deployer for now; migrated later
         proxyContract: "OpenZeppelinTransparentProxy",
         execute: {
           init: {
@@ -114,8 +114,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
               instanceConfig.dStable,
               instanceConfig.name,
               instanceConfig.symbol,
-              instanceConfig.initialAdmin,
-              instanceConfig.initialFeeManager,
+              deployer, // initialAdmin = deployer
+              deployer, // initialFeeManager = deployer
             ],
           },
         },
@@ -131,7 +131,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
         contract: "DStakeCollateralVault",
         args: [DStakeTokenDeployment.address, instanceConfig.dStable],
         log: false,
-      },
+      }
     );
 
     const routerDeploymentName = `DStakeRouter_${instanceKey}`;
@@ -142,43 +142,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       log: false,
     });
 
-    // --- Grant Vault Admin Role to Initial Admin ---
-    const collateralVault = await hre.ethers.getContractAt(
-      "DStakeCollateralVault",
-      collateralVaultDeployment.address,
-    );
-    const adminRole = ethers.ZeroHash;
-    const hasVaultAdminRole = await collateralVault.hasRole(
-      adminRole,
-      instanceConfig.initialAdmin,
-    );
-
-    if (!hasVaultAdminRole) {
-      const tx = await collateralVault.grantRole(
-        adminRole,
-        instanceConfig.initialAdmin,
-      );
-      await tx.wait();
-    }
-
-    // --- Grant Router Admin Role to Initial Admin ---
-    const router = await hre.ethers.getContractAt(
-      "DStakeRouterDLend",
-      routerDeployment.address,
-    );
-    const routerAdminRole = ethers.ZeroHash;
-
-    const hasRouterAdminRole = await router.hasRole(
-      routerAdminRole,
-      instanceConfig.initialAdmin,
-    );
-
-    if (!hasRouterAdminRole) {
-      const grantTx = await router
-        .connect(await hre.ethers.getSigner(deployer))
-        .grantRole(routerAdminRole, instanceConfig.initialAdmin);
-      await grantTx.wait();
-    }
+    // NOTE: Governance permissions will be granted in the post-deployment
+    // role-migration script. No additional role grants are necessary here.
   }
 
   console.log(`🥩 ${__filename.split("/").slice(-2).join("/")}: ✅`);

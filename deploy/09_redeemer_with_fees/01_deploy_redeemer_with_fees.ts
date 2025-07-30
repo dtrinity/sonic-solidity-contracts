@@ -18,6 +18,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployer } = await hre.getNamedAccounts();
   const { deploy, get } = hre.deployments;
   const config = await getConfig(hre);
+  // Collect instructions for any manual actions required when the deployer lacks permissions.
+  const manualActions: string[] = [];
 
   // Check all required configuration values at the top
   const dUSDConfig = config.dStables.dUSD;
@@ -52,10 +54,10 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   // If any required config values are missing, skip deployment
   if (missingConfigs.length > 0) {
     console.log(
-      `⚠️  Skipping RedeemerWithFees deployment - missing configuration values: ${missingConfigs.join(", ")}`,
+      `⚠️  Skipping RedeemerWithFees deployment - missing configuration values: ${missingConfigs.join(", ")}`
     );
     console.log(
-      `☯️  ${__filename.split("/").slice(-2).join("/")}: ⏭️  (skipped)`,
+      `☯️  ${__filename.split("/").slice(-2).join("/")}: ⏭️  (skipped)`
     );
     return true;
   }
@@ -63,7 +65,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   // Deploy RedeemerWithFees for dUSD
   const dUSDToken = await get(DUSD_TOKEN_ID);
   const dUSDCollateralVaultDeployment = await get(
-    DUSD_COLLATERAL_VAULT_CONTRACT_ID,
+    DUSD_COLLATERAL_VAULT_CONTRACT_ID
   );
   const usdOracleAggregator = await get(USD_ORACLE_AGGREGATOR_ID);
 
@@ -79,34 +81,44 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
         dUSDConfig.initialFeeReceiver,
         dUSDConfig.initialRedemptionFeeBps,
       ],
-    },
+    }
   );
 
   const dUSDCollateralVaultContract = await hre.ethers.getContractAt(
     "CollateralVault",
     dUSDCollateralVaultDeployment.address,
-    await hre.ethers.getSigner(deployer),
+    await hre.ethers.getSigner(deployer)
   );
   const dUSDWithdrawerRole =
     await dUSDCollateralVaultContract.COLLATERAL_WITHDRAWER_ROLE();
   const dUSDHasRole = await dUSDCollateralVaultContract.hasRole(
     dUSDWithdrawerRole,
-    dUSDRedeemerWithFeesDeployment.address,
+    dUSDRedeemerWithFeesDeployment.address
+  );
+  const dUSDDeployerIsAdmin = await dUSDCollateralVaultContract.hasRole(
+    await dUSDCollateralVaultContract.DEFAULT_ADMIN_ROLE(),
+    deployer
   );
 
   if (!dUSDHasRole) {
-    console.log("Granting role for dUSD RedeemerWithFees.");
-    await dUSDCollateralVaultContract.grantRole(
-      dUSDWithdrawerRole,
-      dUSDRedeemerWithFeesDeployment.address,
-    );
-    console.log("Role granted for dUSD RedeemerWithFees.");
+    if (dUSDDeployerIsAdmin) {
+      console.log("Granting role for dUSD RedeemerWithFees.");
+      await dUSDCollateralVaultContract.grantRole(
+        dUSDWithdrawerRole,
+        dUSDRedeemerWithFeesDeployment.address
+      );
+      console.log("Role granted for dUSD RedeemerWithFees.");
+    } else {
+      manualActions.push(
+        `CollateralVault (${dUSDCollateralVaultDeployment.address}).grantRole(COLLATERAL_WITHDRAWER_ROLE, ${dUSDRedeemerWithFeesDeployment.address})`
+      );
+    }
   }
 
   // Deploy RedeemerWithFees for dS
   const dSToken = await get(DS_TOKEN_ID);
   const dSCollateralVaultDeployment = await get(
-    DS_COLLATERAL_VAULT_CONTRACT_ID,
+    DS_COLLATERAL_VAULT_CONTRACT_ID
   );
   const sOracleAggregator = await get(S_ORACLE_AGGREGATOR_ID);
 
@@ -122,27 +134,45 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
         dSConfig.initialFeeReceiver,
         dSConfig.initialRedemptionFeeBps,
       ],
-    },
+    }
   );
 
   const dSCollateralVaultContract = await hre.ethers.getContractAt(
     "CollateralVault",
     dSCollateralVaultDeployment.address,
-    await hre.ethers.getSigner(deployer),
+    await hre.ethers.getSigner(deployer)
   );
   const dSWithdrawerRole =
     await dSCollateralVaultContract.COLLATERAL_WITHDRAWER_ROLE();
   const dSHasRole = await dSCollateralVaultContract.hasRole(
     dSWithdrawerRole,
-    dSRedeemerWithFeesDeployment.address,
+    dSRedeemerWithFeesDeployment.address
+  );
+  const dSDeployerIsAdmin = await dSCollateralVaultContract.hasRole(
+    await dSCollateralVaultContract.DEFAULT_ADMIN_ROLE(),
+    deployer
   );
 
   if (!dSHasRole) {
-    await dSCollateralVaultContract.grantRole(
-      dSWithdrawerRole,
-      dSRedeemerWithFeesDeployment.address,
+    if (dSDeployerIsAdmin) {
+      await dSCollateralVaultContract.grantRole(
+        dSWithdrawerRole,
+        dSRedeemerWithFeesDeployment.address
+      );
+      console.log("Role granted for dS RedeemerWithFees.");
+    } else {
+      manualActions.push(
+        `CollateralVault (${dSCollateralVaultDeployment.address}).grantRole(COLLATERAL_WITHDRAWER_ROLE, ${dSRedeemerWithFeesDeployment.address})`
+      );
+    }
+  }
+
+  // After processing, print any manual steps that are required.
+  if (manualActions.length > 0) {
+    console.log(
+      "\n⚠️  Manual actions required to finalize RedeemerWithFees deployment:"
     );
-    console.log("Role granted for dS RedeemerWithFees.");
+    manualActions.forEach((a: string) => console.log(`   - ${a}`));
   }
 
   console.log(`☯️  ${__filename.split("/").slice(-2).join("/")}: ✅`);
