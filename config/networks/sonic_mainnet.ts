@@ -42,7 +42,7 @@ import { Config } from "../types";
  * @returns The configuration for the network
  */
 export async function getConfig(
-  _hre: HardhatRuntimeEnvironment,
+  _hre: HardhatRuntimeEnvironment
 ): Promise<Config> {
   const dUSDDeployment = await _hre.deployments.getOrNull(DUSD_TOKEN_ID);
   const dSDeployment = await _hre.deployments.getOrNull(DS_TOKEN_ID);
@@ -67,14 +67,14 @@ export async function getConfig(
 
   // Fetch deployed dLend StaticATokenLM wrapper, aToken and RewardsController (may be undefined prior to deployment)
   const dLendATokenWrapperDUSDDeployment = await _hre.deployments.getOrNull(
-    "dLend_ATokenWrapper_dUSD",
+    "dLend_ATokenWrapper_dUSD"
   );
   const rewardsControllerDeployment =
     await _hre.deployments.getOrNull(INCENTIVES_PROXY_ID);
   const aTokenDUSDDeployment = await _hre.deployments.getOrNull("dLEND-dUSD");
   // Fetch deployed dSTAKE token for sdUSD (optional)
   const sdUSDDeployment = await _hre.deployments.getOrNull(
-    SDUSD_DSTAKE_TOKEN_ID,
+    SDUSD_DSTAKE_TOKEN_ID
   );
 
   // Fetch dUSD token decimals from the contract if deployed
@@ -395,25 +395,25 @@ export async function getConfig(
         adapters: [
           {
             vaultAsset: emptyStringIfUndefined(
-              dLendATokenWrapperDUSDDeployment?.address,
+              dLendATokenWrapperDUSDDeployment?.address
             ),
             adapterContract: "WrappedDLendConversionAdapter",
           },
         ],
         defaultDepositVaultAsset: emptyStringIfUndefined(
-          dLendATokenWrapperDUSDDeployment?.address,
+          dLendATokenWrapperDUSDDeployment?.address
         ),
         collateralVault: "DStakeCollateralVault_sdUSD", // Keep in sync with deploy ID constants
         collateralExchangers: [governanceSafeMultisig],
         dLendRewardManager: {
           managedVaultAsset: emptyStringIfUndefined(
-            dLendATokenWrapperDUSDDeployment?.address,
+            dLendATokenWrapperDUSDDeployment?.address
           ), // StaticATokenLM wrapper
           dLendAssetToClaimFor: emptyStringIfUndefined(
-            aTokenDUSDDeployment?.address,
+            aTokenDUSDDeployment?.address
           ), // dLEND aToken for dUSD
           dLendRewardsController: emptyStringIfUndefined(
-            rewardsControllerDeployment?.address,
+            rewardsControllerDeployment?.address
           ), // RewardsController proxy
           treasury: governanceSafeMultisig,
           maxTreasuryFeeBps: 5 * ONE_PERCENT_BPS, // 5%
@@ -422,15 +422,16 @@ export async function getConfig(
         },
       },
     },
-    vesting: {
-      name: "dBOOST sdUSD Season 1",
-      symbol: "sdUSD-S1",
-      dstakeToken: emptyStringIfUndefined(sdUSDDeployment?.address),
-      vestingPeriod: 180 * 24 * 60 * 60, // 6 months
-      maxTotalSupply: _hre.ethers.parseUnits("20000000", 18).toString(), // 20M tokens
-      initialOwner: governanceSafeMultisig,
-      minDepositThreshold: _hre.ethers.parseUnits("250000", 18).toString(), // 250k tokens
-    },
+    // Not launching dBOOST yet, so keep disabled for now
+    // vesting: {
+    //   name: "dBOOST sdUSD Season 1",
+    //   symbol: "sdUSD-S1",
+    //   dstakeToken: emptyStringIfUndefined(sdUSDDeployment?.address),
+    //   vestingPeriod: 180 * 24 * 60 * 60, // 6 months
+    //   maxTotalSupply: _hre.ethers.parseUnits("20000000", 18).toString(), // 20M tokens
+    //   initialOwner: governanceSafeMultisig,
+    //   minDepositThreshold: _hre.ethers.parseUnits("250000", 18).toString(), // 250k tokens
+    // },
   };
 }
 
