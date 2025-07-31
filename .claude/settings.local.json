@@ -49,7 +49,7 @@
       "Bash(npx tsc:*)",
       "Bash(node:*)",
       "Bash(chmod:*)",
-      "Bash(/Users/dazheng/workspace/dtrinity/solidity-contracts/fix_openzeppelin_imports.sh:*)",
+      "Bash(./fix_openzeppelin_imports.sh:*)",
       "Bash(rm:*)"
     ],
     "deny": []
