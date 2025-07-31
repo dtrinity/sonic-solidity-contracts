@@ -1,21 +1,22 @@
-import { ethers, deployments, getNamedAccounts } from "hardhat";
+import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 import { expect } from "chai";
+import { ZeroAddress } from "ethers"; // Import ZeroAddress
+import { ethers, getNamedAccounts } from "hardhat";
+
 import {
   DStakeCollateralVault,
-  DStakeToken,
   DStakeRouterDLend,
-  IDStableConversionAdapter,
+  DStakeToken,
   ERC20,
+  IDStableConversionAdapter,
   IERC20,
 } from "../../typechain-types";
-import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
+import { ERC20StablecoinUpgradeable } from "../../typechain-types/contracts/dstable/ERC20StablecoinUpgradeable";
 import {
   createDStakeFixture,
   DSTAKE_CONFIGS,
   DStakeFixtureConfig,
 } from "./fixture"; // Use the specific fixture and import DSTAKE_CONFIGS
-import { ZeroAddress } from "ethers"; // Import ZeroAddress
-import { ERC20StablecoinUpgradeable } from "../../typechain-types/contracts/dstable/ERC20StablecoinUpgradeable";
 
 // Helper function to parse units
 const parseUnits = (value: string | number, decimals: number | bigint) =>
@@ -100,20 +101,22 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
       routerRole = await collateralVault.ROUTER_ROLE();
 
       if ((await collateralVault.router()) !== routerAddress) {
-        await collateralVault.connect(deployer).setRouter(routerAddress);
+        await collateralVault.connect(user1).setRouter(routerAddress);
       }
 
       if (!(await collateralVault.hasRole(routerRole, deployer.address))) {
         await collateralVault
-          .connect(deployer)
+          .connect(user1)
           .grantRole(routerRole, deployer.address);
       }
       routerSigner = deployer;
 
       expect(await collateralVault.dStakeToken()).to.equal(DStakeTokenAddress);
       expect(await collateralVault.dStable()).to.equal(dStableTokenAddress);
-      expect(await collateralVault.hasRole(adminRole, deployer.address)).to.be
+      expect(await collateralVault.hasRole(adminRole, user1.address)).to.be
         .true;
+      expect(await collateralVault.hasRole(adminRole, deployer.address)).to.be
+        .false;
 
       if (adapter) {
         expect(adapterAddress).to.not.equal(ZeroAddress);
@@ -137,9 +140,11 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
         expect(await collateralVault.dStable()).to.equal(dStableTokenAddress);
       });
 
-      it("Should grant DEFAULT_ADMIN_ROLE to deployer", async function () {
-        expect(await collateralVault.hasRole(adminRole, deployer.address)).to.be
+      it("Should grant DEFAULT_ADMIN_ROLE to initialAdmin", async function () {
+        expect(await collateralVault.hasRole(adminRole, user1.address)).to.be
           .true;
+        expect(await collateralVault.hasRole(adminRole, deployer.address)).to.be
+          .false;
       });
 
       it("Router should be set as per beforeEach setup", async function () {
@@ -151,34 +156,27 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
 
     describe("Router Management (setRouter)", () => {
       it("Should only allow admin to set router", async function () {
-        if (await collateralVault.hasRole(adminRole, user1.address)) {
-          await collateralVault
-            .connect(deployer)
-            .revokeRole(adminRole, user1.address);
-        }
         await expect(
-          collateralVault.connect(user1).setRouter(routerAddress)
+          collateralVault.connect(user2).setRouter(routerAddress)
         ).to.be.revertedWithCustomError(
           collateralVault,
           "AccessControlUnauthorizedAccount"
         );
 
-        await expect(collateralVault.connect(deployer).setRouter(routerAddress))
-          .to.not.be.reverted;
+        await expect(collateralVault.connect(user1).setRouter(routerAddress)).to
+          .not.be.reverted;
       });
 
       it("Should revert if setting router to zero address", async function () {
         await expect(
-          collateralVault.connect(deployer).setRouter(ZeroAddress)
+          collateralVault.connect(user1).setRouter(ZeroAddress)
         ).to.be.revertedWithCustomError(collateralVault, "ZeroAddress");
       });
 
       it("Should set and replace the router correctly, managing ROUTER_ROLE", async function () {
         const newRouterAddress = user1.address;
 
-        await expect(
-          collateralVault.connect(deployer).setRouter(newRouterAddress)
-        )
+        await expect(collateralVault.connect(user1).setRouter(newRouterAddress))
           .to.emit(collateralVault, "RouterSet")
           .withArgs(newRouterAddress);
         expect(await collateralVault.router()).to.equal(newRouterAddress);
@@ -187,7 +185,7 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
         expect(await collateralVault.hasRole(routerRole, routerAddress)).to.be
           .false;
 
-        await expect(collateralVault.connect(deployer).setRouter(routerAddress))
+        await expect(collateralVault.connect(user1).setRouter(routerAddress))
           .to.emit(collateralVault, "RouterSet")
           .withArgs(routerAddress);
         expect(await collateralVault.router()).to.equal(routerAddress);
@@ -210,13 +208,14 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
           (await router.vaultAssetToAdapter(vaultAssetAddress)) === ZeroAddress
         ) {
           await router
-            .connect(deployer)
+            .connect(user1)
             .addAdapter(vaultAssetAddress, adapterAddress);
         }
 
         const currentVaultBalance = await vaultAssetToken.balanceOf(
           collateralVaultAddress
         );
+
         if (currentVaultBalance < amountToSend) {
           const dStableDepositAmount = parseUnits("100", dStableDecimals);
           // Mint dStable for deployer
@@ -231,6 +230,7 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
             deployer.address
           );
         }
+
         if (
           (await vaultAssetToken.balanceOf(collateralVaultAddress)) <
           amountToSend
@@ -327,16 +327,18 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
       beforeEach(async function () {
         const currentAdapter =
           await router.vaultAssetToAdapter(vaultAssetAddress);
+
         if (currentAdapter !== ZeroAddress) {
           const balance = await vaultAssetToken.balanceOf(
             collateralVaultAddress
           );
+
           if (balance > 0n) {
             await collateralVault
               .connect(routerSigner)
               .sendAsset(vaultAssetAddress, balance, deployer.address);
           }
-          await router.connect(deployer).removeAdapter(vaultAssetAddress);
+          await router.connect(user1).removeAdapter(vaultAssetAddress);
         }
       });
 
@@ -347,7 +349,7 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
       it("Should return 0 if supported asset has zero balance", async function () {
         if (!adapter) this.skip();
         await router
-          .connect(deployer)
+          .connect(user1)
           .addAdapter(vaultAssetAddress, adapterAddress);
         expect(
           await vaultAssetToken.balanceOf(collateralVaultAddress)
@@ -358,7 +360,7 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
       it("Should return correct value for a single asset with balance", async function () {
         if (!adapter) this.skip();
         await router
-          .connect(deployer)
+          .connect(user1)
           .addAdapter(vaultAssetAddress, adapterAddress);
 
         const dStableDepositAmount = parseUnits("100", dStableDecimals);
@@ -386,7 +388,7 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
         const actualValue = await collateralVault.totalValueInDStable();
         expect(actualValue).to.equal(expectedValue);
 
-        await router.connect(deployer).removeAdapter(vaultAssetAddress);
+        await router.connect(user1).removeAdapter(vaultAssetAddress);
       });
 
       it("Should sum values correctly for multiple supported assets (if possible to set up)", async function () {
@@ -396,7 +398,7 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
       it("Should return 0 after asset balance is removed and adapter is removed", async function () {
         if (!adapter) this.skip();
         await router
-          .connect(deployer)
+          .connect(user1)
           .addAdapter(vaultAssetAddress, adapterAddress);
 
         const dStableDepositAmount = parseUnits("100", dStableDecimals);
@@ -427,7 +429,7 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
           );
         expect(await collateralVault.totalValueInDStable()).to.equal(0);
 
-        await router.connect(deployer).removeAdapter(vaultAssetAddress);
+        await router.connect(user1).removeAdapter(vaultAssetAddress);
         expect(await collateralVault.totalValueInDStable()).to.equal(0);
       });
     });
@@ -437,18 +439,20 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
         if (!adapter) {
           this.skip();
         }
+
         // Ensure adapter added
         if (
           (await router.vaultAssetToAdapter(vaultAssetAddress)) === ZeroAddress
         ) {
           await router
-            .connect(deployer)
+            .connect(user1)
             .addAdapter(vaultAssetAddress, adapterAddress);
         }
         // Ensure vault holds a positive balance of the asset
         const currentBal = await vaultAssetToken.balanceOf(
           collateralVaultAddress
         );
+
         if (currentBal === 0n) {
           const depositAmount = ethers.parseUnits("100", dStableDecimals);
           await stable.mint(deployer.address, depositAmount);
@@ -535,7 +539,7 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
 
           await expect(
             collateralVault
-              .connect(deployer)
+              .connect(user1)
               .rescueToken(mockTokenAddress, user1.address, testAmount)
           )
             .to.emit(collateralVault, "TokenRescued")
@@ -554,7 +558,7 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
 
           await expect(
             collateralVault
-              .connect(deployer)
+              .connect(user1)
               .rescueToken(mockTokenAddress, user1.address, partialAmount)
           )
             .to.emit(collateralVault, "TokenRescued")
@@ -580,7 +584,7 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
 
           await expect(
             collateralVault
-              .connect(deployer)
+              .connect(user1)
               .rescueToken(vaultAssetAddress, user1.address, 1n)
           )
             .to.be.revertedWithCustomError(
@@ -596,7 +600,7 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
 
           await expect(
             collateralVault
-              .connect(deployer)
+              .connect(user1)
               .rescueToken(dStableTokenAddress, user1.address, testAmount)
           )
             .to.be.revertedWithCustomError(
@@ -620,7 +624,7 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
         it("Should revert with zero address receiver", async function () {
           await expect(
             collateralVault
-              .connect(deployer)
+              .connect(user1)
               .rescueToken(mockTokenAddress, ZeroAddress, testAmount)
           ).to.be.revertedWithCustomError(collateralVault, "ZeroAddress");
         });
@@ -629,7 +633,7 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
           const excessiveAmount = testAmount * 2n;
           await expect(
             collateralVault
-              .connect(deployer)
+              .connect(user1)
               .rescueToken(mockTokenAddress, user1.address, excessiveAmount)
           ).to.be.reverted;
         });
@@ -647,24 +651,25 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
         });
 
         it("Should successfully rescue ETH", async function () {
+          // Use user2 as receiver to avoid gas cost complications with user1 (admin)
           const receiverInitialBalance = await ethers.provider.getBalance(
-            user1.address
+            user2.address
           );
           const vaultInitialBalance = await ethers.provider.getBalance(
             collateralVaultAddress
           );
 
           await expect(
-            collateralVault
-              .connect(deployer)
-              .rescueETH(user1.address, ethAmount)
+            collateralVault.connect(user1).rescueETH(user2.address, ethAmount)
           )
             .to.emit(collateralVault, "ETHRescued")
-            .withArgs(user1.address, ethAmount);
+            .withArgs(user2.address, ethAmount);
 
-          expect(await ethers.provider.getBalance(user1.address)).to.equal(
+          // Check receiver got the exact amount (no gas costs for receiver)
+          expect(await ethers.provider.getBalance(user2.address)).to.equal(
             receiverInitialBalance + ethAmount
           );
+          // Check vault balance decreased by exactly the rescued amount
           expect(
             await ethers.provider.getBalance(collateralVaultAddress)
           ).to.equal(vaultInitialBalance - ethAmount);
@@ -681,7 +686,7 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
 
         it("Should revert with zero address receiver", async function () {
           await expect(
-            collateralVault.connect(deployer).rescueETH(ZeroAddress, ethAmount)
+            collateralVault.connect(user1).rescueETH(ZeroAddress, ethAmount)
           ).to.be.revertedWithCustomError(collateralVault, "ZeroAddress");
         });
 
@@ -689,23 +694,25 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
           const excessiveAmount = ethAmount * 2n;
           await expect(
             collateralVault
-              .connect(deployer)
-              .rescueETH(user1.address, excessiveAmount)
-          ).to.be.revertedWithCustomError(collateralVault, "ETHTransferFailed")
-            .withArgs(user1.address, excessiveAmount);
+              .connect(user1)
+              .rescueETH(user2.address, excessiveAmount)
+          )
+            .to.be.revertedWithCustomError(collateralVault, "ETHTransferFailed")
+            .withArgs(user2.address, excessiveAmount);
         });
 
         it("Should handle rescue when contract has no ETH", async function () {
           // First rescue all ETH
           await collateralVault
-            .connect(deployer)
-            .rescueETH(user1.address, ethAmount);
+            .connect(user1)
+            .rescueETH(user2.address, ethAmount);
 
           // Try to rescue again when balance is 0
           await expect(
-            collateralVault.connect(deployer).rescueETH(user1.address, 1n)
-          ).to.be.revertedWithCustomError(collateralVault, "ETHTransferFailed")
-            .withArgs(user1.address, 1n);
+            collateralVault.connect(user1).rescueETH(user2.address, 1n)
+          )
+            .to.be.revertedWithCustomError(collateralVault, "ETHTransferFailed")
+            .withArgs(user2.address, 1n);
         });
       });
 
@@ -713,6 +720,7 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
         it("Should return dStable token when no assets are supported", async function () {
           // Remove all supported assets
           const supportedAssets = await collateralVault.getSupportedAssets();
+
           for (const asset of supportedAssets) {
             await collateralVault
               .connect(routerSigner)
@@ -758,6 +766,7 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
 
           // Start with no supported assets
           const supportedAssets = await collateralVault.getSupportedAssets();
+
           for (const asset of supportedAssets) {
             await collateralVault
               .connect(routerSigner)
@@ -770,7 +779,7 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
 
           // Add an asset
           await router
-            .connect(deployer)
+            .connect(user1)
             .addAdapter(vaultAssetAddress, adapterAddress);
 
           restrictedTokens = await collateralVault.getRestrictedRescueTokens();
@@ -808,7 +817,7 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
           // Rescue first token
           await expect(
             collateralVault
-              .connect(deployer)
+              .connect(user1)
               .rescueToken(mockTokenAddress, user1.address, testAmount)
           )
             .to.emit(collateralVault, "TokenRescued")
@@ -817,7 +826,7 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
           // Rescue second token
           await expect(
             collateralVault
-              .connect(deployer)
+              .connect(user1)
               .rescueToken(mockToken2Address, user1.address, testAmount)
           )
             .to.emit(collateralVault, "TokenRescued")
@@ -839,6 +848,7 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
           ) {
             // Send vault asset to the contract
             const amount = parseUnits("10", vaultAssetDecimals);
+
             if (vaultAssetAddress !== ZeroAddress && vaultAssetToken) {
               // Mint or transfer vault asset to the vault
               const dStableDepositAmount = parseUnits("100", dStableDecimals);
@@ -856,10 +866,11 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
             const vaultBalance = await vaultAssetToken.balanceOf(
               collateralVaultAddress
             );
+
             if (vaultBalance > 0n) {
               await expect(
                 collateralVault
-                  .connect(deployer)
+                  .connect(user1)
                   .rescueToken(vaultAssetAddress, user1.address, 1n)
               ).to.not.be.reverted;
             }
@@ -872,7 +883,7 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
             // Now should not be able to rescue
             await expect(
               collateralVault
-                .connect(deployer)
+                .connect(user1)
                 .rescueToken(vaultAssetAddress, user1.address, 1n)
             )
               .to.be.revertedWithCustomError(
