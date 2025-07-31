@@ -19,6 +19,7 @@ describe("DStakeRouterDLend – surplus < 1 share withdraw DoS", function () {
   const fixture = createDStakeFixture(CONFIG);
 
   let deployer: SignerWithAddress;
+  let user1: SignerWithAddress;
   let DStakeTokenInst: DStakeToken;
   let router: DStakeRouterDLend;
   let collateralVault: DStakeCollateralVault;
@@ -36,33 +37,30 @@ describe("DStakeRouterDLend – surplus < 1 share withdraw DoS", function () {
 
     const named = await getNamedAccounts();
     deployer = await ethers.getSigner(named.deployer);
+    user1 = await ethers.getSigner(named.user1);
 
     // 1. Deploy mock adapter that reverts on tiny deposits
     const MockAdapterFactory = await ethers.getContractFactory(
-      "MockAdapterSmallDepositRevert",
+      "MockAdapterSmallDepositRevert"
     );
     const adapter = await MockAdapterFactory.deploy(
       await dStable.getAddress(),
-      await collateralVault.getAddress(),
+      await collateralVault.getAddress()
     );
     await adapter.waitForDeployment();
     adapterAddress = await adapter.getAddress();
 
     // 2. Register adapter with router and set as default deposit asset
     vaultAssetAddress = await (adapter as any).vaultAsset();
-    await router
-      .connect(deployer)
-      .addAdapter(vaultAssetAddress, adapterAddress);
-    await router
-      .connect(deployer)
-      .setDefaultDepositVaultAsset(vaultAssetAddress);
+    await router.connect(user1).addAdapter(vaultAssetAddress, adapterAddress);
+    await router.connect(user1).setDefaultDepositVaultAsset(vaultAssetAddress);
 
     // Arrange: mint & deposit dSTABLE
     const depositAmount = parseUnits("1000", dStableDecimals);
     const stable = (await ethers.getContractAt(
       "ERC20StablecoinUpgradeable",
       await dStable.getAddress(),
-      deployer,
+      deployer
     )) as ERC20StablecoinUpgradeable;
     const minterRole = await stable.MINTER_ROLE();
     await stable.grantRole(minterRole, deployer.address);
@@ -73,7 +71,7 @@ describe("DStakeRouterDLend – surplus < 1 share withdraw DoS", function () {
 
     await DStakeTokenInst.connect(deployer).deposit(
       depositAmount,
-      deployer.address,
+      deployer.address
     );
   });
 
@@ -84,8 +82,8 @@ describe("DStakeRouterDLend – surplus < 1 share withdraw DoS", function () {
       DStakeTokenInst.connect(deployer).withdraw(
         withdrawAmount,
         deployer.address,
-        deployer.address,
-      ),
+        deployer.address
+      )
     ).to.not.be.reverted; // The pre-fix implementation reverts, so this spec fails.
   });
 });
