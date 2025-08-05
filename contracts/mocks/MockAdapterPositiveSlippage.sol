@@ -8,6 +8,8 @@ import {ERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.so
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 contract MockAdapterPositiveSlippage is IDStableConversionAdapter {
+    using SafeERC20 for IERC20;
+
     address public immutable dStable;
     MockERC4626Simple public immutable vaultToken;
     address public immutable collateralVault;
@@ -28,8 +30,7 @@ contract MockAdapterPositiveSlippage is IDStableConversionAdapter {
         returns (address _vaultAsset, uint256 vaultAssetAmount)
     {
         IERC20(dStable).transferFrom(msg.sender, address(this), dStableAmount);
-        // Mock contract: Use standard approve for testing purposes
-        IERC20(dStable).approve(address(vaultToken), dStableAmount);
+        IERC20(dStable).forceApprove(address(vaultToken), dStableAmount);
         vaultAssetAmount = vaultToken.deposit(dStableAmount, collateralVault);
         return (address(vaultToken), vaultAssetAmount);
     }

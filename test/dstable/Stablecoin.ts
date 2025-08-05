@@ -24,7 +24,7 @@ describe("ERC20StablecoinUpgradeable", () => {
     stablecoinContract = await hre.ethers.getContractAt(
       "ERC20StablecoinUpgradeable",
       dUSDAddress,
-      await hre.ethers.getSigner(deployer)
+      await hre.ethers.getSigner(deployer),
     );
   });
 
@@ -46,7 +46,7 @@ describe("ERC20StablecoinUpgradeable", () => {
       const DEFAULT_ADMIN_ROLE = await stablecoinContract.DEFAULT_ADMIN_ROLE();
       const hasRole = await stablecoinContract.hasRole(
         DEFAULT_ADMIN_ROLE,
-        deployer
+        deployer,
       );
       assert.isTrue(hasRole);
     });
@@ -75,10 +75,10 @@ describe("ERC20StablecoinUpgradeable", () => {
       await expect(
         stablecoinContract
           .connect(await hre.ethers.getSigner(user2))
-          .mint(user1, mintAmount)
+          .mint(user1, mintAmount),
       ).to.be.revertedWithCustomError(
         stablecoinContract,
-        "AccessControlUnauthorizedAccount"
+        "AccessControlUnauthorizedAccount",
       );
 
       // Verify minted amount
@@ -102,10 +102,10 @@ describe("ERC20StablecoinUpgradeable", () => {
 
       // User2 should not be able to unpause
       await expect(
-        stablecoinContract.connect(await hre.ethers.getSigner(user2)).unpause()
+        stablecoinContract.connect(await hre.ethers.getSigner(user2)).unpause(),
       ).to.be.revertedWithCustomError(
         stablecoinContract,
-        "AccessControlUnauthorizedAccount"
+        "AccessControlUnauthorizedAccount",
       );
 
       // User1 should be able to unpause
@@ -133,7 +133,7 @@ describe("ERC20StablecoinUpgradeable", () => {
       await expect(
         stablecoinContract
           .connect(await hre.ethers.getSigner(user1))
-          .transfer(user2, transferAmount)
+          .transfer(user2, transferAmount),
       ).to.be.revertedWithCustomError(stablecoinContract, "EnforcedPause");
 
       // Unpause and verify transfer works
@@ -165,10 +165,10 @@ describe("ERC20StablecoinUpgradeable", () => {
       await expect(
         stablecoinContract
           .connect(await hre.ethers.getSigner(user1))
-          .setNameAndSymbol("Fail", "FL")
+          .setNameAndSymbol("Fail", "FL"),
       ).to.be.revertedWithCustomError(
         stablecoinContract,
-        "AccessControlUnauthorizedAccount"
+        "AccessControlUnauthorizedAccount",
       );
     });
   });

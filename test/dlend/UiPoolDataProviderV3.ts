@@ -1,10 +1,11 @@
+import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 import { expect } from "chai";
 import hre, { ethers } from "hardhat";
-import { dLendFixture, DLendFixtureResult } from "./fixtures"; // Adjust path if needed for your structure
-import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
-import { UiPoolDataProviderV3, Pool } from "../../typechain-types"; // Adjust path if needed for your structure
+
+import { UiPoolDataProviderV3 } from "../../typechain-types"; // Adjust path if needed for your structure
 import { IPoolAddressesProvider } from "../../typechain-types";
 import { getTokenContractForSymbol } from "../../typescript/token/utils";
+import { dLendFixture, DLendFixtureResult } from "./fixtures"; // Adjust path if needed for your structure
 
 describe("dLEND UiPoolDataProviderV3", () => {
   let deployerSigner: SignerWithAddress;
@@ -32,16 +33,16 @@ describe("dLEND UiPoolDataProviderV3", () => {
     const { contract: wSToken } = await getTokenContractForSymbol(
       hre,
       deployer,
-      "wS"
+      "wS",
     );
 
     // Deploy UiPoolDataProviderV3 with the oracle and wS token address
     const UiPoolDataProviderV3Factory = await ethers.getContractFactory(
-      "UiPoolDataProviderV3"
+      "UiPoolDataProviderV3",
     );
     uiPoolDataProvider = await UiPoolDataProviderV3Factory.deploy(
       priceOracleAddress,
-      await wSToken.getAddress()
+      await wSToken.getAddress(),
     );
 
     // Get test assets from the fixture's assets mapping
@@ -58,7 +59,7 @@ describe("dLEND UiPoolDataProviderV3", () => {
     // Supply the dStable asset to the pool from the deployer to ensure liquidity for borrowing
     const dStableToken = await hre.ethers.getContractAt(
       "TestERC20",
-      dStableAsset
+      dStableAsset,
     );
     const dStableSupplyAmount = ethers.parseUnits("10000", 18); // Supply a large amount
 
@@ -78,6 +79,7 @@ describe("dLEND UiPoolDataProviderV3", () => {
       const fixtureAssets = Object.keys(fixture.assets);
 
       expect(reservesList).to.have.lengthOf(fixtureAssets.length);
+
       for (const asset of reservesList) {
         expect(fixtureAssets).to.include(asset);
       }
@@ -92,7 +94,7 @@ describe("dLEND UiPoolDataProviderV3", () => {
 
       expect(reservesData.length).to.equal(fixtureAssets.length);
       expect(reservesData.map((r) => r.underlyingAsset)).to.have.members(
-        fixtureAssets
+        fixtureAssets,
       );
     });
 
@@ -102,7 +104,7 @@ describe("dLEND UiPoolDataProviderV3", () => {
 
       expect(baseCurrencyInfo.marketReferenceCurrencyUnit).to.equal(10 ** 8);
       expect(baseCurrencyInfo.marketReferenceCurrencyPriceInUsd).to.not.equal(
-        0
+        0,
       );
       expect(baseCurrencyInfo.networkBaseTokenPriceInUsd).to.not.equal(0);
     });
@@ -111,24 +113,24 @@ describe("dLEND UiPoolDataProviderV3", () => {
       const [reservesData] =
         await uiPoolDataProvider.getReservesData(addressesProvider);
       const collateralData = reservesData.find(
-        (r) => r.underlyingAsset === collateralAsset
+        (r) => r.underlyingAsset === collateralAsset,
       );
       const fixtureAssetInfo = fixture.assets[collateralAsset];
 
       expect(collateralData).to.not.be.undefined;
       expect(collateralData!.usageAsCollateralEnabled).to.be.true;
       expect(collateralData!.baseLTVasCollateral).to.equal(
-        fixtureAssetInfo.ltv
+        fixtureAssetInfo.ltv,
       );
       expect(collateralData!.reserveLiquidationThreshold).to.equal(
-        fixtureAssetInfo.liquidationThreshold
+        fixtureAssetInfo.liquidationThreshold,
       );
       expect(collateralData!.aTokenAddress).to.equal(fixtureAssetInfo.aToken);
       expect(collateralData!.variableDebtTokenAddress).to.equal(
-        fixtureAssetInfo.variableDebtToken
+        fixtureAssetInfo.variableDebtToken,
       );
       expect(collateralData!.stableDebtTokenAddress).to.equal(
-        fixtureAssetInfo.stableDebtToken
+        fixtureAssetInfo.stableDebtToken,
       );
     });
 
@@ -136,7 +138,7 @@ describe("dLEND UiPoolDataProviderV3", () => {
       const [reservesData] =
         await uiPoolDataProvider.getReservesData(addressesProvider);
       const dStableData = reservesData.find(
-        (r) => r.underlyingAsset === dStableAsset
+        (r) => r.underlyingAsset === dStableAsset,
       );
       const fixtureAssetInfo = fixture.assets[dStableAsset];
 
@@ -156,7 +158,7 @@ describe("dLEND UiPoolDataProviderV3", () => {
 
       const collateralToken = await ethers.getContractAt(
         "TestERC20",
-        collateralAsset
+        collateralAsset,
       );
 
       // Transfer tokens from deployer to user1 instead of minting
@@ -186,14 +188,14 @@ describe("dLEND UiPoolDataProviderV3", () => {
       const [userReservesData, userEmodeCategoryId] =
         await uiPoolDataProvider.getUserReservesData(
           addressesProvider,
-          user1Signer.address
+          user1Signer.address,
         );
 
       const collateralReserveData = userReservesData.find(
-        (r) => r.underlyingAsset === collateralAsset
+        (r) => r.underlyingAsset === collateralAsset,
       );
       const dStableReserveData = userReservesData.find(
-        (r) => r.underlyingAsset === dStableAsset
+        (r) => r.underlyingAsset === dStableAsset,
       );
 
       expect(collateralReserveData!.scaledATokenBalance).to.be.gt(0);
@@ -207,7 +209,7 @@ describe("dLEND UiPoolDataProviderV3", () => {
       const [userReservesData, userEmodeCategoryId] =
         await uiPoolDataProvider.getUserReservesData(
           addressesProvider,
-          user1Signer.address
+          user1Signer.address,
         );
 
       for (const reserveData of userReservesData) {
