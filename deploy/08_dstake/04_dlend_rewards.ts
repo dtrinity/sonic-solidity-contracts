@@ -9,10 +9,6 @@ import {
 } from "../../config/types";
 import { DStakeRewardManagerDLend } from "../../typechain-types";
 import {
-  DS_A_TOKEN_WRAPPER_ID,
-  DS_TOKEN_ID,
-  DUSD_A_TOKEN_WRAPPER_ID,
-  DUSD_TOKEN_ID,
   EMISSION_MANAGER_ID,
   INCENTIVES_PROXY_ID,
   POOL_DATA_PROVIDER_ID,
@@ -326,18 +322,9 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
 export default func;
 // Define tags and dependencies
-func.tags = ["DStakeRewardManagerDLend", "dStakeRewards", "dStakeConfig"];
-func.dependencies = [
-  "dStakeCore",
-  "dStakeAdapters",
-  "dLendCore",
-  "dlend-market",
-  DUSD_A_TOKEN_WRAPPER_ID,
-  DS_A_TOKEN_WRAPPER_ID,
-  INCENTIVES_PROXY_ID,
-  POOL_DATA_PROVIDER_ID,
-  DUSD_TOKEN_ID,
-  DS_TOKEN_ID,
-  EMISSION_MANAGER_ID,
-];
+func.tags = ["dStakeDLendRewards", "dStake"];
+func.dependencies = ["dStakeConfigure"];
+
+// Mark as executed once.
+func.id = "dstake_dlend_rewards";
 func.runAtTheEnd = true;

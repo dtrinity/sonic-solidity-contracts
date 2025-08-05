@@ -1,17 +1,15 @@
 import { expect } from "chai";
-import hre, { getNamedAccounts, ethers } from "hardhat";
+import hre, { ethers, getNamedAccounts } from "hardhat";
 import { Address } from "hardhat-deploy/types";
+
+import { getConfig } from "../../config/config";
+import { API3CompositeWrapperWithThresholding } from "../../typechain-types";
+import { ORACLE_AGGREGATOR_PRICE_DECIMALS } from "../../typescript/oracle_aggregator/constants";
 import {
   getOracleAggregatorFixture,
-  OracleAggregatorFixtureResult,
   getRandomItemFromList,
+  OracleAggregatorFixtureResult,
 } from "./fixtures";
-import { getConfig } from "../../config/config";
-import {
-  API3CompositeWrapperWithThresholding,
-  MockAPI3Oracle,
-} from "../../typechain-types";
-import { ORACLE_AGGREGATOR_PRICE_DECIMALS } from "../../typescript/oracle_aggregator/constants";
 
 const API3_HEARTBEAT_SECONDS = 86400; // 24 hours
 
@@ -36,13 +34,21 @@ describe("API3CompositeWrapperWithThresholding", () => {
   });
 });
 
+/**
+ *
+ * @param currency
+ * @param root0
+ * @param root0.deployer
+ * @param root0.user1
+ * @param root0.user2
+ */
 async function runTestsForCurrency(
   currency: string,
   {
     deployer,
     user1,
     user2,
-  }: { deployer: Address; user1: Address; user2: Address }
+  }: { deployer: Address; user1: Address; user2: Address },
 ) {
   describe(`API3CompositeWrapperWithThresholding for ${currency}`, () => {
     let fixtureResult: OracleAggregatorFixtureResult;
@@ -69,7 +75,7 @@ async function runTestsForCurrency(
         await api3CompositeWrapperWithThresholding.ORACLE_MANAGER_ROLE();
       await api3CompositeWrapperWithThresholding.grantRole(
         oracleManagerRole,
-        deployer
+        deployer,
       );
     });
 
@@ -102,8 +108,9 @@ async function runTestsForCurrency(
         ) {
           this.skip();
         }
+
         for (const [address, asset] of Object.entries(
-          fixtureResult.assets.api3CompositeAssets
+          fixtureResult.assets.api3CompositeAssets,
         )) {
           const { price, isAlive } =
             await api3CompositeWrapperWithThresholding.getPriceInfo(address);
@@ -120,8 +127,9 @@ async function runTestsForCurrency(
       it("should handle thresholding for both primary and secondary prices", async function () {
         // NOTE: Keep this check as it uses getRandomItemFromList
         const compositeAssets = Object.keys(
-          fixtureResult.assets.api3CompositeAssets
+          fixtureResult.assets.api3CompositeAssets,
         );
+
         if (compositeAssets.length === 0) {
           this.skip();
         }
@@ -136,19 +144,19 @@ async function runTestsForCurrency(
         // Set up composite feed with thresholds
         const lowerThreshold1 = ethers.parseUnits(
           "0.99",
-          ORACLE_AGGREGATOR_PRICE_DECIMALS
+          ORACLE_AGGREGATOR_PRICE_DECIMALS,
         );
         const fixedPrice1 = ethers.parseUnits(
           "1.00",
-          ORACLE_AGGREGATOR_PRICE_DECIMALS
+          ORACLE_AGGREGATOR_PRICE_DECIMALS,
         );
         const lowerThreshold2 = ethers.parseUnits(
           "0.98",
-          ORACLE_AGGREGATOR_PRICE_DECIMALS
+          ORACLE_AGGREGATOR_PRICE_DECIMALS,
         );
         const fixedPrice2 = ethers.parseUnits(
           "1.00",
-          ORACLE_AGGREGATOR_PRICE_DECIMALS
+          ORACLE_AGGREGATOR_PRICE_DECIMALS,
         );
 
         await api3CompositeWrapperWithThresholding.addCompositeFeed(
@@ -158,17 +166,17 @@ async function runTestsForCurrency(
           lowerThreshold1,
           fixedPrice1,
           lowerThreshold2,
-          fixedPrice2
+          fixedPrice2,
         );
 
         // Test when both prices are above thresholds
         const price1Above = ethers.parseUnits(
           "1.02",
-          ORACLE_AGGREGATOR_PRICE_DECIMALS
+          ORACLE_AGGREGATOR_PRICE_DECIMALS,
         );
         const price2Above = ethers.parseUnits(
           "1.05",
-          ORACLE_AGGREGATOR_PRICE_DECIMALS
+          ORACLE_AGGREGATOR_PRICE_DECIMALS,
         );
 
         const currentBlock = await ethers.provider.getBlock("latest");
@@ -190,7 +198,7 @@ async function runTestsForCurrency(
         // Test when one price is below threshold
         const price1Below = ethers.parseUnits(
           "0.95",
-          ORACLE_AGGREGATOR_PRICE_DECIMALS
+          ORACLE_AGGREGATOR_PRICE_DECIMALS,
         );
         await mockOracle1.setMock(price1Below, currentBlock.timestamp);
 
@@ -207,8 +215,9 @@ async function runTestsForCurrency(
       it("should handle stale prices correctly", async function () {
         // NOTE: Keep this check as it uses getRandomItemFromList
         const compositeAssets = Object.keys(
-          fixtureResult.assets.api3CompositeAssets
+          fixtureResult.assets.api3CompositeAssets,
         );
+
         if (compositeAssets.length === 0) {
           this.skip();
         }
@@ -227,7 +236,7 @@ async function runTestsForCurrency(
           0,
           0,
           0,
-          0
+          0,
         );
 
         // Set a stale price for one oracle
@@ -247,30 +256,30 @@ async function runTestsForCurrency(
 
         // getAssetPrice should revert
         await expect(
-          api3CompositeWrapperWithThresholding.getAssetPrice(testAsset)
+          api3CompositeWrapperWithThresholding.getAssetPrice(testAsset),
         ).to.be.revertedWithCustomError(
           api3CompositeWrapperWithThresholding,
-          "PriceIsStale"
+          "PriceIsStale",
         );
       });
 
       it("should revert when getting price for non-existent asset", async function () {
         const nonExistentAsset = "0x000000000000000000000000000000000000dEaD";
         await expect(
-          api3CompositeWrapperWithThresholding.getPriceInfo(nonExistentAsset)
+          api3CompositeWrapperWithThresholding.getPriceInfo(nonExistentAsset),
         )
           .to.be.revertedWithCustomError(
             api3CompositeWrapperWithThresholding,
-            "FeedNotSet"
+            "FeedNotSet",
           )
           .withArgs(nonExistentAsset);
 
         await expect(
-          api3CompositeWrapperWithThresholding.getAssetPrice(nonExistentAsset)
+          api3CompositeWrapperWithThresholding.getAssetPrice(nonExistentAsset),
         )
           .to.be.revertedWithCustomError(
             api3CompositeWrapperWithThresholding,
-            "FeedNotSet"
+            "FeedNotSet",
           )
           .withArgs(nonExistentAsset);
       });
@@ -280,8 +289,9 @@ async function runTestsForCurrency(
       it("should allow adding and removing composite feeds", async function () {
         // NOTE: Keep this check as it uses getRandomItemFromList
         const compositeAssets = Object.keys(
-          fixtureResult.assets.api3CompositeAssets
+          fixtureResult.assets.api3CompositeAssets,
         );
+
         if (compositeAssets.length === 0) {
           this.skip();
         }
@@ -290,19 +300,19 @@ async function runTestsForCurrency(
         const proxy2 = "0x3456789012345678901234567890123456789012";
         const lowerThreshold1 = ethers.parseUnits(
           "0.99",
-          ORACLE_AGGREGATOR_PRICE_DECIMALS
+          ORACLE_AGGREGATOR_PRICE_DECIMALS,
         );
         const fixedPrice1 = ethers.parseUnits(
           "1.00",
-          ORACLE_AGGREGATOR_PRICE_DECIMALS
+          ORACLE_AGGREGATOR_PRICE_DECIMALS,
         );
         const lowerThreshold2 = ethers.parseUnits(
           "0.98",
-          ORACLE_AGGREGATOR_PRICE_DECIMALS
+          ORACLE_AGGREGATOR_PRICE_DECIMALS,
         );
         const fixedPrice2 = ethers.parseUnits(
           "1.00",
-          ORACLE_AGGREGATOR_PRICE_DECIMALS
+          ORACLE_AGGREGATOR_PRICE_DECIMALS,
         );
 
         // Add composite feed
@@ -314,8 +324,8 @@ async function runTestsForCurrency(
             lowerThreshold1,
             fixedPrice1,
             lowerThreshold2,
-            fixedPrice2
-          )
+            fixedPrice2,
+          ),
         )
           .to.emit(api3CompositeWrapperWithThresholding, "CompositeFeedAdded")
           .withArgs(
@@ -325,7 +335,7 @@ async function runTestsForCurrency(
             lowerThreshold1,
             fixedPrice1,
             lowerThreshold2,
-            fixedPrice2
+            fixedPrice2,
           );
 
         // Verify feed configuration
@@ -334,17 +344,17 @@ async function runTestsForCurrency(
         expect(feed.proxy1).to.equal(proxy1);
         expect(feed.proxy2).to.equal(proxy2);
         expect(feed.primaryThreshold.lowerThresholdInBase).to.equal(
-          lowerThreshold1
+          lowerThreshold1,
         );
         expect(feed.primaryThreshold.fixedPriceInBase).to.equal(fixedPrice1);
         expect(feed.secondaryThreshold.lowerThresholdInBase).to.equal(
-          lowerThreshold2
+          lowerThreshold2,
         );
         expect(feed.secondaryThreshold.fixedPriceInBase).to.equal(fixedPrice2);
 
         // Remove feed
         await expect(
-          api3CompositeWrapperWithThresholding.removeCompositeFeed(testAsset)
+          api3CompositeWrapperWithThresholding.removeCompositeFeed(testAsset),
         )
           .to.emit(api3CompositeWrapperWithThresholding, "CompositeFeedRemoved")
           .withArgs(testAsset);
@@ -359,8 +369,9 @@ async function runTestsForCurrency(
       it("should revert when non-ORACLE_MANAGER tries to manage feeds", async function () {
         // NOTE: Keep this check as it uses getRandomItemFromList
         const compositeAssets = Object.keys(
-          fixtureResult.assets.api3CompositeAssets
+          fixtureResult.assets.api3CompositeAssets,
         );
+
         if (compositeAssets.length === 0) {
           this.skip();
         }
@@ -375,22 +386,22 @@ async function runTestsForCurrency(
         await expect(
           api3CompositeWrapperWithThresholding
             .connect(unauthorizedSigner)
-            .addCompositeFeed(testAsset, proxy1, proxy2, 0, 0, 0, 0)
+            .addCompositeFeed(testAsset, proxy1, proxy2, 0, 0, 0, 0),
         )
           .to.be.revertedWithCustomError(
             api3CompositeWrapperWithThresholding,
-            "AccessControlUnauthorizedAccount"
+            "AccessControlUnauthorizedAccount",
           )
           .withArgs(user2, oracleManagerRole);
 
         await expect(
           api3CompositeWrapperWithThresholding
             .connect(unauthorizedSigner)
-            .removeCompositeFeed(testAsset)
+            .removeCompositeFeed(testAsset),
         )
           .to.be.revertedWithCustomError(
             api3CompositeWrapperWithThresholding,
-            "AccessControlUnauthorizedAccount"
+            "AccessControlUnauthorizedAccount",
           )
           .withArgs(user2, oracleManagerRole);
       });

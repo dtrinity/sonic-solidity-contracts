@@ -1,25 +1,26 @@
-import hre, { ethers, network, getNamedAccounts } from "hardhat";
-import { expect } from "chai";
 import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
+import { expect } from "chai";
+import hre, { ethers, getNamedAccounts, network } from "hardhat";
+
+import { getConfig } from "../../config/config";
 import {
-  DStakeToken,
   DStakeCollateralVault,
   DStakeRouterDLend,
+  DStakeToken,
   ERC20,
-  IERC20,
   IDStableConversionAdapter,
+  IERC20,
 } from "../../typechain-types";
-import { StaticATokenLM } from "../../typechain-types/contracts/vaults/atoken_wrapper/StaticATokenLM";
 import { IPool } from "../../typechain-types/contracts/dlend/core/interfaces/IPool";
+import { ERC20StablecoinUpgradeable } from "../../typechain-types/contracts/dstable/ERC20StablecoinUpgradeable";
+import { TestERC20 } from "../../typechain-types/contracts/testing/token/TestERC20";
+import { StaticATokenLM } from "../../typechain-types/contracts/vaults/atoken_wrapper/StaticATokenLM";
 import {
   createDStakeFixture,
-  SDUSD_CONFIG,
-  SDS_CONFIG,
   DStakeFixtureConfig,
+  SDS_CONFIG,
+  SDUSD_CONFIG,
 } from "./fixture";
-import { ERC20StablecoinUpgradeable } from "../../typechain-types/contracts/dstable/ERC20StablecoinUpgradeable";
-import { getConfig } from "../../config/config";
-import { TestERC20 } from "../../typechain-types/contracts/testing/token/TestERC20";
 
 const STAKE_CONFIGS: DStakeFixtureConfig[] = [SDUSD_CONFIG, SDS_CONFIG];
 
@@ -64,7 +65,7 @@ STAKE_CONFIGS.forEach((cfg) => {
       stable = (await ethers.getContractAt(
         "ERC20StablecoinUpgradeable",
         await dStableToken.getAddress(),
-        deployer
+        deployer,
       )) as ERC20StablecoinUpgradeable;
       const minterRole = await (stable as any).MINTER_ROLE();
       await stable.grantRole(minterRole, deployer.address);
@@ -81,13 +82,13 @@ STAKE_CONFIGS.forEach((cfg) => {
       staticWrapper = (await ethers.getContractAt(
         "StaticATokenLM",
         vaultAssetAddress,
-        deployer
+        deployer,
       )) as StaticATokenLM;
       poolAddress = await staticWrapper.POOL();
       pool = (await ethers.getContractAt(
         "contracts/dlend/core/interfaces/IPool.sol:IPool",
         poolAddress,
-        deployer
+        deployer,
       )) as unknown as IPool;
     });
 
@@ -109,7 +110,7 @@ STAKE_CONFIGS.forEach((cfg) => {
       const collateralToken = (await ethers.getContractAt(
         "TestERC20",
         collateralAsset,
-        deployer
+        deployer,
       )) as unknown as TestERC20;
       const colDecimals = await collateralToken.decimals();
       const collateralDeposit = ethers.parseUnits("125", colDecimals);
@@ -132,7 +133,7 @@ STAKE_CONFIGS.forEach((cfg) => {
           borrowAmountSmall,
           2,
           0,
-          deployer.address
+          deployer.address,
         );
 
       // Simulate time passing
@@ -150,7 +151,7 @@ STAKE_CONFIGS.forEach((cfg) => {
         await staticWrapper.asset(),
         yieldDeposit,
         deployer.address,
-        0
+        0,
       );
 
       // Post-yield checks
@@ -169,7 +170,7 @@ STAKE_CONFIGS.forEach((cfg) => {
       await DStakeToken.connect(user).redeem(
         withdrawShares,
         user.address,
-        user.address
+        user.address,
       );
       const userBalanceAfter = await dStableToken.balanceOf(user.address);
       const actualRedeemed = userBalanceAfter - userBalanceBefore;
@@ -200,7 +201,7 @@ STAKE_CONFIGS.forEach((cfg) => {
       const collateralToken = (await ethers.getContractAt(
         "TestERC20",
         collateralAsset,
-        deployer
+        deployer,
       )) as TestERC20;
       const colDecimals = await collateralToken.decimals();
       const collateralDeposit = ethers.parseUnits("125", colDecimals);
@@ -224,7 +225,7 @@ STAKE_CONFIGS.forEach((cfg) => {
           poolLiquidity,
           2,
           0,
-          deployer.address
+          deployer.address,
         );
 
       // Attempt to withdraw full user's dStable should revert due to insufficient liquidity
@@ -233,17 +234,17 @@ STAKE_CONFIGS.forEach((cfg) => {
         DStakeToken.connect(user).withdraw(
           depositAmount,
           user.address,
-          user.address
-        )
+          user.address,
+        ),
       ).to.be.reverted;
 
       // State invariants remain unchanged
       expect(await DStakeToken.balanceOf(user.address)).to.equal(
-        initialUserShares
+        initialUserShares,
       );
       expect(await DStakeToken.totalSupply()).to.equal(initialTotalSupply);
       expect(await dStableToken.balanceOf(user.address)).to.equal(
-        initialUserDStable
+        initialUserDStable,
       );
     });
   });

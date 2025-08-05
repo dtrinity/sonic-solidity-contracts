@@ -1,14 +1,15 @@
 import { expect } from "chai";
-import hre, { getNamedAccounts, ethers } from "hardhat";
+import hre, { ethers, getNamedAccounts } from "hardhat";
 import { Address } from "hardhat-deploy/types";
-import {
-  getOracleAggregatorFixture,
-  OracleAggregatorFixtureResult,
-  getRandomItemFromList,
-} from "./fixtures";
+
 import { getConfig } from "../../config/config";
 import { RedstoneChainlinkCompositeWrapperWithThresholding } from "../../typechain-types";
 import { ORACLE_AGGREGATOR_PRICE_DECIMALS } from "../../typescript/oracle_aggregator/constants";
+import {
+  getOracleAggregatorFixture,
+  getRandomItemFromList,
+  OracleAggregatorFixtureResult,
+} from "./fixtures";
 
 const CHAINLINK_HEARTBEAT_SECONDS = 86400; // 24 hours
 const CHAINLINK_FEED_DECIMALS = 8;
@@ -34,13 +35,21 @@ describe("RedstoneChainlinkCompositeWrapperWithThresholding", () => {
   });
 });
 
+/**
+ *
+ * @param currency
+ * @param root0
+ * @param root0.deployer
+ * @param root0.user1
+ * @param root0.user2
+ */
 async function runTestsForCurrency(
   currency: string,
   {
     deployer,
     user1,
     user2,
-  }: { deployer: Address; user1: Address; user2: Address }
+  }: { deployer: Address; user1: Address; user2: Address },
 ) {
   describe(`RedstoneChainlinkCompositeWrapperWithThresholding for ${currency}`, () => {
     let fixtureResult: OracleAggregatorFixtureResult;
@@ -63,7 +72,7 @@ async function runTestsForCurrency(
         await redstoneChainlinkCompositeWrapperWithThresholding.ORACLE_MANAGER_ROLE();
       await redstoneChainlinkCompositeWrapperWithThresholding.grantRole(
         oracleManagerRole,
-        deployer
+        deployer,
       );
     });
 
@@ -91,11 +100,11 @@ async function runTestsForCurrency(
     describe("Asset pricing with composite thresholding", () => {
       it("should correctly price composite assets", async function () {
         for (const [address, asset] of Object.entries(
-          fixtureResult.assets.redstoneCompositeAssets
+          fixtureResult.assets.redstoneCompositeAssets,
         )) {
           const { price, isAlive } =
             await redstoneChainlinkCompositeWrapperWithThresholding.getPriceInfo(
-              address
+              address,
             );
 
           expect(price).to.be.gt(0);
@@ -103,7 +112,7 @@ async function runTestsForCurrency(
 
           const directPrice =
             await redstoneChainlinkCompositeWrapperWithThresholding.getAssetPrice(
-              address
+              address,
             );
           expect(directPrice).to.equal(price);
         }
@@ -111,33 +120,33 @@ async function runTestsForCurrency(
 
       it("should handle thresholding for both primary and secondary prices", async function () {
         const testAsset = getRandomItemFromList(
-          Object.keys(fixtureResult.assets.redstoneCompositeAssets)
+          Object.keys(fixtureResult.assets.redstoneCompositeAssets),
         );
 
         // Deploy mock feeds for testing
         const mockFeed1 = await ethers.deployContract(
-          "MockRedstoneChainlinkOracleAlwaysAlive"
+          "MockRedstoneChainlinkOracleAlwaysAlive",
         );
         const mockFeed2 = await ethers.deployContract(
-          "MockRedstoneChainlinkOracleAlwaysAlive"
+          "MockRedstoneChainlinkOracleAlwaysAlive",
         );
 
         // Set up composite feed with thresholds
         const lowerThreshold1 = ethers.parseUnits(
           "0.99",
-          ORACLE_AGGREGATOR_PRICE_DECIMALS
+          ORACLE_AGGREGATOR_PRICE_DECIMALS,
         );
         const fixedPrice1 = ethers.parseUnits(
           "1.00",
-          ORACLE_AGGREGATOR_PRICE_DECIMALS
+          ORACLE_AGGREGATOR_PRICE_DECIMALS,
         );
         const lowerThreshold2 = ethers.parseUnits(
           "0.98",
-          ORACLE_AGGREGATOR_PRICE_DECIMALS
+          ORACLE_AGGREGATOR_PRICE_DECIMALS,
         );
         const fixedPrice2 = ethers.parseUnits(
           "1.00",
-          ORACLE_AGGREGATOR_PRICE_DECIMALS
+          ORACLE_AGGREGATOR_PRICE_DECIMALS,
         );
 
         await redstoneChainlinkCompositeWrapperWithThresholding.addCompositeFeed(
@@ -147,17 +156,17 @@ async function runTestsForCurrency(
           lowerThreshold1,
           fixedPrice1,
           lowerThreshold2,
-          fixedPrice2
+          fixedPrice2,
         );
 
         // Test when both prices are above thresholds
         const price1Above = ethers.parseUnits(
           "1.02",
-          ORACLE_AGGREGATOR_PRICE_DECIMALS
+          ORACLE_AGGREGATOR_PRICE_DECIMALS,
         );
         const price2Above = ethers.parseUnits(
           "1.05",
-          ORACLE_AGGREGATOR_PRICE_DECIMALS
+          ORACLE_AGGREGATOR_PRICE_DECIMALS,
         );
 
         // Convert to 8 decimals for mock
@@ -173,7 +182,7 @@ async function runTestsForCurrency(
 
         const { price: priceWithBothAbove, isAlive: isAliveWithBothAbove } =
           await redstoneChainlinkCompositeWrapperWithThresholding.getPriceInfo(
-            testAsset
+            testAsset,
           );
 
         // Both prices should be fixed
@@ -186,7 +195,7 @@ async function runTestsForCurrency(
         // Test when one price is below threshold
         const price1Below = ethers.parseUnits(
           "0.95",
-          ORACLE_AGGREGATOR_PRICE_DECIMALS
+          ORACLE_AGGREGATOR_PRICE_DECIMALS,
         );
 
         // Convert to 8 decimals for mock
@@ -197,7 +206,7 @@ async function runTestsForCurrency(
 
         const { price: priceWithOneBelow } =
           await redstoneChainlinkCompositeWrapperWithThresholding.getPriceInfo(
-            testAsset
+            testAsset,
           );
 
         // Price1 should be unchanged (0.95) while price2 is fixed at 1.00
@@ -209,15 +218,15 @@ async function runTestsForCurrency(
 
       it("should handle stale prices correctly", async function () {
         const testAsset = getRandomItemFromList(
-          Object.keys(fixtureResult.assets.redstoneCompositeAssets)
+          Object.keys(fixtureResult.assets.redstoneCompositeAssets),
         );
 
         // Deploy mock feeds for testing
         const mockFeed1 = await ethers.deployContract(
-          "MockRedstoneChainlinkOracleAlwaysAlive"
+          "MockRedstoneChainlinkOracleAlwaysAlive",
         );
         const mockFeed2 = await ethers.deployContract(
-          "MockRedstoneChainlinkOracleAlwaysAlive"
+          "MockRedstoneChainlinkOracleAlwaysAlive",
         );
 
         await redstoneChainlinkCompositeWrapperWithThresholding.addCompositeFeed(
@@ -227,7 +236,7 @@ async function runTestsForCurrency(
           0,
           0,
           0,
-          0
+          0,
         );
       });
 
@@ -235,23 +244,23 @@ async function runTestsForCurrency(
         const nonExistentAsset = "0x000000000000000000000000000000000000dEaD";
         await expect(
           redstoneChainlinkCompositeWrapperWithThresholding.getPriceInfo(
-            nonExistentAsset
-          )
+            nonExistentAsset,
+          ),
         )
           .to.be.revertedWithCustomError(
             redstoneChainlinkCompositeWrapperWithThresholding,
-            "FeedNotSet"
+            "FeedNotSet",
           )
           .withArgs(nonExistentAsset);
 
         await expect(
           redstoneChainlinkCompositeWrapperWithThresholding.getAssetPrice(
-            nonExistentAsset
-          )
+            nonExistentAsset,
+          ),
         )
           .to.be.revertedWithCustomError(
             redstoneChainlinkCompositeWrapperWithThresholding,
-            "FeedNotSet"
+            "FeedNotSet",
           )
           .withArgs(nonExistentAsset);
       });
@@ -260,25 +269,25 @@ async function runTestsForCurrency(
     describe("Feed management", () => {
       it("should allow adding and removing composite feeds", async function () {
         const testAsset = getRandomItemFromList(
-          Object.keys(fixtureResult.assets.redstoneCompositeAssets)
+          Object.keys(fixtureResult.assets.redstoneCompositeAssets),
         );
         const feed1 = "0x2345678901234567890123456789012345678901";
         const feed2 = "0x3456789012345678901234567890123456789012";
         const lowerThreshold1 = ethers.parseUnits(
           "0.99",
-          ORACLE_AGGREGATOR_PRICE_DECIMALS
+          ORACLE_AGGREGATOR_PRICE_DECIMALS,
         );
         const fixedPrice1 = ethers.parseUnits(
           "1.00",
-          ORACLE_AGGREGATOR_PRICE_DECIMALS
+          ORACLE_AGGREGATOR_PRICE_DECIMALS,
         );
         const lowerThreshold2 = ethers.parseUnits(
           "0.98",
-          ORACLE_AGGREGATOR_PRICE_DECIMALS
+          ORACLE_AGGREGATOR_PRICE_DECIMALS,
         );
         const fixedPrice2 = ethers.parseUnits(
           "1.00",
-          ORACLE_AGGREGATOR_PRICE_DECIMALS
+          ORACLE_AGGREGATOR_PRICE_DECIMALS,
         );
 
         // Add composite feed
@@ -290,12 +299,12 @@ async function runTestsForCurrency(
             lowerThreshold1,
             fixedPrice1,
             lowerThreshold2,
-            fixedPrice2
-          )
+            fixedPrice2,
+          ),
         )
           .to.emit(
             redstoneChainlinkCompositeWrapperWithThresholding,
-            "CompositeFeedAdded"
+            "CompositeFeedAdded",
           )
           .withArgs(
             testAsset,
@@ -304,41 +313,41 @@ async function runTestsForCurrency(
             lowerThreshold1,
             fixedPrice1,
             lowerThreshold2,
-            fixedPrice2
+            fixedPrice2,
           );
 
         // Verify feed configuration
         const feed =
           await redstoneChainlinkCompositeWrapperWithThresholding.compositeFeeds(
-            testAsset
+            testAsset,
           );
         expect(feed.feed1).to.equal(feed1);
         expect(feed.feed2).to.equal(feed2);
         expect(feed.primaryThreshold.lowerThresholdInBase).to.equal(
-          lowerThreshold1
+          lowerThreshold1,
         );
         expect(feed.primaryThreshold.fixedPriceInBase).to.equal(fixedPrice1);
         expect(feed.secondaryThreshold.lowerThresholdInBase).to.equal(
-          lowerThreshold2
+          lowerThreshold2,
         );
         expect(feed.secondaryThreshold.fixedPriceInBase).to.equal(fixedPrice2);
 
         // Remove feed
         await expect(
           redstoneChainlinkCompositeWrapperWithThresholding.removeCompositeFeed(
-            testAsset
-          )
+            testAsset,
+          ),
         )
           .to.emit(
             redstoneChainlinkCompositeWrapperWithThresholding,
-            "CompositeFeedRemoved"
+            "CompositeFeedRemoved",
           )
           .withArgs(testAsset);
 
         // Verify feed is removed
         const removedFeed =
           await redstoneChainlinkCompositeWrapperWithThresholding.compositeFeeds(
-            testAsset
+            testAsset,
           );
         expect(removedFeed.feed1).to.equal(ethers.ZeroAddress);
         expect(removedFeed.feed2).to.equal(ethers.ZeroAddress);
@@ -346,7 +355,7 @@ async function runTestsForCurrency(
 
       it("should revert when non-ORACLE_MANAGER tries to manage feeds", async function () {
         const testAsset = getRandomItemFromList(
-          Object.keys(fixtureResult.assets.redstoneCompositeAssets)
+          Object.keys(fixtureResult.assets.redstoneCompositeAssets),
         );
         const feed1 = "0x2345678901234567890123456789012345678901";
         const feed2 = "0x3456789012345678901234567890123456789012";
@@ -358,22 +367,22 @@ async function runTestsForCurrency(
         await expect(
           redstoneChainlinkCompositeWrapperWithThresholding
             .connect(unauthorizedSigner)
-            .addCompositeFeed(testAsset, feed1, feed2, 0, 0, 0, 0)
+            .addCompositeFeed(testAsset, feed1, feed2, 0, 0, 0, 0),
         )
           .to.be.revertedWithCustomError(
             redstoneChainlinkCompositeWrapperWithThresholding,
-            "AccessControlUnauthorizedAccount"
+            "AccessControlUnauthorizedAccount",
           )
           .withArgs(user2, oracleManagerRole);
 
         await expect(
           redstoneChainlinkCompositeWrapperWithThresholding
             .connect(unauthorizedSigner)
-            .removeCompositeFeed(testAsset)
+            .removeCompositeFeed(testAsset),
         )
           .to.be.revertedWithCustomError(
             redstoneChainlinkCompositeWrapperWithThresholding,
-            "AccessControlUnauthorizedAccount"
+            "AccessControlUnauthorizedAccount",
           )
           .withArgs(user2, oracleManagerRole);
       });
