@@ -65,6 +65,7 @@
   "setup-ptausdc-ptwstkscusd-wos-for-usd-oracle-wrapper": 1751603100,
   "add-ptausdc-ptwstkscusd-wos-reserves": 1751603488,
   "dStableATokenWrappers": 1751603495,
-  "deploy_redeemer_with_fees": 1751603729,
-  "DLoopIncreaseLeverageOdos": 1751603734
+  "DLoopIncreaseLeverageOdos": 1751603734,
+  "deploy_redeemer_with_fees": 1753850757,
+  "transfer_dstake_roles_to_multisig": 1753851408
 }

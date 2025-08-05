@@ -63,6 +63,8 @@ abstract contract DPoolVaultLP is
     // ZeroAddress and InsufficientLPTokens are inherited from IDPoolVaultLP interface
     // FeeExceedsMaxFee and InitialFeeExceedsMaxFee are inherited from SupportsWithdrawalFee
     error ZeroShares();
+    error ERC4626ExceedsMaxDeposit(uint256 assets, uint256 maxAssets);
+    error ERC4626ExceedsMaxWithdraw(uint256 assets, uint256 maxAssets);
 
     // --- Constructor ---
 
@@ -190,10 +192,10 @@ abstract contract DPoolVaultLP is
         nonReentrant
         returns (uint256 shares_)
     {
-        require(
-            lpAmount <= maxDeposit(receiver),
-            "ERC4626: deposit more than max"
-        );
+        uint256 maxAssets = maxDeposit(receiver);
+        if (lpAmount > maxAssets) {
+            revert ERC4626ExceedsMaxDeposit(lpAmount, maxAssets);
+        }
 
         shares_ = previewDeposit(lpAmount);
         _deposit(_msgSender(), receiver, lpAmount, shares_);
@@ -222,10 +224,10 @@ abstract contract DPoolVaultLP is
         shares_ = previewWithdraw(lpAmount);
         uint256 grossLpAmount = convertToAssets(shares_);
 
-        require(
-            grossLpAmount <= maxWithdraw(owner),
-            "ERC4626: withdraw more than max"
-        );
+        uint256 maxAssets = maxWithdraw(owner);
+        if (grossLpAmount > maxAssets) {
+            revert ERC4626ExceedsMaxWithdraw(grossLpAmount, maxAssets);
+        }
 
         _withdraw(_msgSender(), receiver, owner, grossLpAmount, shares_);
 
@@ -285,6 +287,11 @@ abstract contract DPoolVaultLP is
 
         // Emit ERC4626 Withdraw event with the NET LP tokens that were actually sent to the receiver
         emit Withdraw(caller, receiver, owner, lpTokensToSend, shares);
+
+        // Emit fee event if fee was collected
+        if (feeInLP > 0) {
+            emit WithdrawalFee(owner, receiver, feeInLP);
+        }
     }
 
     // --- Fee management ---
