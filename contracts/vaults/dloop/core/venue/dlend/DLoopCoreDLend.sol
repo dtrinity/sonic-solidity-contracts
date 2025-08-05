@@ -21,6 +21,7 @@ import {IPriceOracleGetter} from "./interface/IPriceOracleGetter.sol";
 import {IPool as ILendingPool, DataTypes} from "./interface/IPool.sol";
 import {IPoolAddressesProvider} from "./interface/IPoolAddressesProvider.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {DLoopCoreBase} from "../../DLoopCoreBase.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {RewardClaimable} from "contracts/vaults/rewards_claimable/RewardClaimable.sol";
@@ -32,6 +33,8 @@ import {IRewardsController} from "./interface/IRewardsController.sol";
  *      - This contract implement dLEND-specific lending operations for DLoopCoreBase
  */
 contract DLoopCoreDLend is DLoopCoreBase, RewardClaimable {
+    using SafeERC20 for ERC20;
+
     /* Constants */
 
     uint8 public constant AAVE_PRICE_ORACLE_DECIMALS = 8;
@@ -53,7 +56,6 @@ contract DLoopCoreDLend is DLoopCoreBase, RewardClaimable {
     /* Errors */
 
     error ZeroAddress();
-    error TokenApprovalFailed(address token, address spender, uint256 amount);
 
     /**
      * @dev Constructor for the DLoopCoreDLend contract
@@ -171,10 +173,7 @@ contract DLoopCoreDLend is DLoopCoreBase, RewardClaimable {
         ILendingPool lendingPool = getLendingPool();
 
         // Approve the lending pool to spend the token
-        // Use standard approve for trusted protocol tokens and trusted protocol contract (dLEND pool)
-        if (!ERC20(token).approve(address(lendingPool), amount)) {
-            revert TokenApprovalFailed(token, address(lendingPool), amount);
-        }
+        ERC20(token).forceApprove(address(lendingPool), amount);
 
         // Supply the token to the lending pool
         lendingPool.supply(token, amount, onBehalfOf, 0);
@@ -214,10 +213,7 @@ contract DLoopCoreDLend is DLoopCoreBase, RewardClaimable {
         ILendingPool lendingPool = getLendingPool();
 
         // Approve the lending pool to spend the token
-        // Use standard approve for trusted protocol tokens and trusted protocol contract (dLEND pool)
-        if (!ERC20(token).approve(address(lendingPool), amount)) {
-            revert TokenApprovalFailed(token, address(lendingPool), amount);
-        }
+        ERC20(token).forceApprove(address(lendingPool), amount);
 
         // Repay the debt
         lendingPool.repay(
