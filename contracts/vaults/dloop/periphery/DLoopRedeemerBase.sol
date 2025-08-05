@@ -280,14 +280,13 @@ abstract contract DLoopRedeemerBase is
             data
         );
 
-        // Check if the shares decreased after the flash loan
-        uint256 sharesAfterRedeem = dLoopCore.balanceOf(address(this));
-        if (sharesAfterRedeem >= sharesBeforeRedeem) {
-            revert SharesNotDecreasedAfterFlashLoan(
-                sharesBeforeRedeem,
-                sharesAfterRedeem
-            );
-        }
+        // Validate shares burned correctly
+        _validateSharesBurned(
+            dLoopCore,
+            address(this),
+            shares,
+            sharesBeforeRedeem
+        );
 
         // Calculate received collateral tokens
         uint256 collateralTokenBalanceAfter = collateralToken.balanceOf(
