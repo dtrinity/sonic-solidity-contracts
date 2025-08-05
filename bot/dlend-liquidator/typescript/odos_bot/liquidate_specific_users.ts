@@ -40,6 +40,10 @@ async function main(): Promise<void> {
     throw new Error("Liquidator bot Odos config is not set");
   }
 
+  if (!config.pendle) {
+    throw new Error("Pendle config is not set");
+  }
+
   printLog(index, `Liquidating ${userAddresses.length} users`);
   await runBotBatch(
     index,
@@ -48,6 +52,7 @@ async function main(): Promise<void> {
     config.liquidatorBotOdos.healthFactorBatchSize,
     config.liquidatorBotOdos.healthFactorThreshold,
     config.liquidatorBotOdos.profitableThresholdInUSD,
+    config.pendle,
   );
 }
 

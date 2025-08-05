@@ -31,7 +31,7 @@ export default [
       "**/contracts/",
       "**/node_modules/",
       "**/debug/",
-      "**/typechain-types/",
+      "**/typechain-types/**",
       "**/.github/",
       "**/.yarn/",
       "**/bot/**",

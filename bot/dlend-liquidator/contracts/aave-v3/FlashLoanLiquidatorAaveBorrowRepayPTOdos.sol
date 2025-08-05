@@ -20,12 +20,11 @@ contract FlashLoanLiquidatorAaveBorrowRepayPTOdos is
 
     /// @notice Data structure for encoding PT swap parameters
     struct PTSwapData {
-        address underlyingAsset;     // Underlying asset from PT swap
-        uint256 expectedUnderlying;  // Expected underlying amount from Pendle SDK
-        address pendleTarget;        // Target contract for Pendle transaction
-        bytes pendleCalldata;        // Transaction data from Pendle SDK
-        address odosTarget;          // Target contract for Odos transaction (can be zero if no second swap needed)
-        bytes odosCalldata;          // Transaction data from Odos API (can be empty if no second swap needed)
+        address underlyingAsset; // Underlying asset from PT swap
+        address pendleRouter; // Pendle router address
+        bytes pendleCalldata; // Transaction data from Pendle SDK
+        address odosRouter; // Odos router address
+        bytes odosCalldata; // Transaction data from Odos API (can be empty if no second swap needed)
     }
 
     /// @notice Custom errors
@@ -40,7 +39,7 @@ contract FlashLoanLiquidatorAaveBorrowRepayPTOdos is
         uint256 ptAmount,
         uint256 underlyingReceived
     );
-    
+
     event TwoStageSwapExecuted(
         address indexed ptToken,
         address indexed underlyingToken,
@@ -52,9 +51,6 @@ contract FlashLoanLiquidatorAaveBorrowRepayPTOdos is
 
     /// @notice Immutable contract references
     IOdosRouterV2 public immutable odosRouter;
-    
-    /// @notice Slippage tolerance for PT swaps (in basis points)
-    uint256 public constant PT_SLIPPAGE_TOLERANCE = 500; // 5%
 
     constructor(
         ILendingPool _flashLoanLender,
@@ -91,7 +87,7 @@ contract FlashLoanLiquidatorAaveBorrowRepayPTOdos is
     ) internal override returns (uint256 amountIn) {
         // Decode PT swap data
         PTSwapData memory ptSwapData = abi.decode(_swapData, (PTSwapData));
-        
+
         // Validate swap data
         if (ptSwapData.underlyingAsset == address(0)) {
             revert InvalidPTSwapData();
@@ -100,10 +96,9 @@ contract FlashLoanLiquidatorAaveBorrowRepayPTOdos is
         // Stage 1: Execute Pendle swap (PT → underlying)
         uint256 underlyingReceived = _executePendleSwap(
             _inputToken,
-            ptSwapData.underlyingAsset,
             _maxIn,
-            ptSwapData.expectedUnderlying,
-            ptSwapData.pendleTarget,
+            ptSwapData.underlyingAsset,
+            ptSwapData.pendleRouter,
             ptSwapData.pendleCalldata
         );
 
@@ -121,16 +116,19 @@ contract FlashLoanLiquidatorAaveBorrowRepayPTOdos is
             targetReceived = underlyingReceived;
         } else {
             // Need second swap via Odos
-            if (ptSwapData.odosTarget == address(0) || ptSwapData.odosCalldata.length == 0) {
+            if (
+                ptSwapData.odosRouter == address(0) ||
+                ptSwapData.odosCalldata.length == 0
+            ) {
                 revert InvalidPTSwapData();
             }
-            
+
             targetReceived = _executeOdosSwap(
                 ptSwapData.underlyingAsset,
                 _outputToken,
                 underlyingReceived,
                 _amount,
-                ptSwapData.odosTarget,
+                ptSwapData.odosRouter,
                 ptSwapData.odosCalldata
             );
         }
@@ -163,32 +161,36 @@ contract FlashLoanLiquidatorAaveBorrowRepayPTOdos is
     /**
      * @notice Executes a Pendle PT swap using SDK-generated transaction data
      * @param ptToken The PT token being swapped
-     * @param underlyingToken The underlying token being received
      * @param ptAmount Amount of PT tokens to swap
-     * @param expectedUnderlyingOut Expected amount of underlying tokens from SDK
-     * @param target Target contract address from Pendle SDK
+     * @param underlyingAsset The underlying asset that will be received
+     * @param router Pendle router address from Pendle SDK
      * @param swapData Transaction data from Pendle SDK
      * @return actualUnderlyingOut Actual amount of underlying tokens received
      */
     function _executePendleSwap(
         address ptToken,
-        address underlyingToken,
         uint256 ptAmount,
-        uint256 expectedUnderlyingOut,
-        address target,
+        address underlyingAsset,
+        address router,
         bytes memory swapData
     ) internal returns (uint256 actualUnderlyingOut) {
-        // Call PendleSwapUtils library function directly
-        // Note: Errors from the library will bubble up automatically
-        return PendleSwapUtils.executePendleSwap(
+        // Record underlying token balance before swap
+        uint256 underlyingBalanceBefore = ERC20(underlyingAsset).balanceOf(address(this));
+
+        // Execute Pendle swap via library
+        // This returns amountSpent (PT tokens consumed), but we need underlying received
+        PendleSwapUtils.executePendleSwap(
             ptToken,
-            underlyingToken,
             ptAmount,
-            expectedUnderlyingOut,
-            target,
-            swapData,
-            PT_SLIPPAGE_TOLERANCE
+            router,
+            swapData
         );
+
+        // Calculate actual underlying tokens received
+        uint256 underlyingBalanceAfter = ERC20(underlyingAsset).balanceOf(address(this));
+        actualUnderlyingOut = underlyingBalanceAfter - underlyingBalanceBefore;
+        
+        return actualUnderlyingOut;
     }
 
     /**
@@ -211,10 +213,12 @@ contract FlashLoanLiquidatorAaveBorrowRepayPTOdos is
     ) internal returns (uint256 actualOutputAmount) {
         // Approve tokens to Odos router
         ERC20(inputToken).forceApprove(target, inputAmount);
-        
+
         // Record output token balance before swap
-        uint256 outputBalanceBefore = ERC20(outputToken).balanceOf(address(this));
-        
+        uint256 outputBalanceBefore = ERC20(outputToken).balanceOf(
+            address(this)
+        );
+
         // Execute Odos swap
         (bool success, bytes memory result) = target.call(swapData);
         if (!success) {
@@ -226,16 +230,21 @@ contract FlashLoanLiquidatorAaveBorrowRepayPTOdos is
             }
             revert OdosSwapFailed("Odos swap execution failed");
         }
-        
+
         // Calculate actual output received
-        uint256 outputBalanceAfter = ERC20(outputToken).balanceOf(address(this));
+        uint256 outputBalanceAfter = ERC20(outputToken).balanceOf(
+            address(this)
+        );
         actualOutputAmount = outputBalanceAfter - outputBalanceBefore;
-        
+
         // Verify minimum output
         if (actualOutputAmount < minOutputAmount) {
-            revert InsufficientOutputAfterSwap(minOutputAmount, actualOutputAmount);
+            revert InsufficientOutputAfterSwap(
+                minOutputAmount,
+                actualOutputAmount
+            );
         }
-        
+
         return actualOutputAmount;
     }
 
@@ -246,7 +255,7 @@ contract FlashLoanLiquidatorAaveBorrowRepayPTOdos is
      * @return isPT True if the token appears to be a PT token
      */
     function isPTToken(address token) external view returns (bool isPT) {
-        // Simple check - try to call expiry() method which PT tokens should have
+        // Simple check - try to call SY() method which PT tokens should have
         try this.checkPTInterface(token) returns (bool result) {
             return result;
         } catch {
@@ -260,9 +269,18 @@ contract FlashLoanLiquidatorAaveBorrowRepayPTOdos is
      * @return True if token implements PT interface
      */
     function checkPTInterface(address token) external view returns (bool) {
-        // Try to call expiry() method - PT tokens should have this
-        (bool success, ) = token.staticcall(abi.encodeWithSignature("expiry()"));
-        return success;
+        // Try to call SY() method - PT tokens should have this
+        (bool success, bytes memory data) = token.staticcall(
+            abi.encodeWithSignature("SY()")
+        );
+
+        // Check if call was successful and returned a valid address (not zero)
+        if (!success || data.length != 32) {
+            return false;
+        }
+
+        address syAddress = abi.decode(data, (address));
+        return syAddress != address(0);
     }
 
     /**
@@ -272,4 +290,4 @@ contract FlashLoanLiquidatorAaveBorrowRepayPTOdos is
     function version() external pure returns (string memory) {
         return "FlashLoanLiquidatorAaveBorrowRepayPTOdos-v1.0.0";
     }
-} 
+}
