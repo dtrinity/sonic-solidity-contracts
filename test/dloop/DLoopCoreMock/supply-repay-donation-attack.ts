@@ -7,7 +7,7 @@ import { DLoopCoreMock, TestMintableERC20 } from "../../../typechain-types";
 import { ONE_HUNDRED_PERCENT_BPS } from "../../../typescript/common/bps_constants";
 import { deployDLoopMockFixture, testSetup } from "./fixture";
 
-describe("DLoopCoreMock - Supply/Repay Donation Attack Tests", function () {
+describe("DLoopCoreMock - Supply/Repay Donation Edge Case Tests", function () {
   // Contract instances and addresses
   let dloopMock: DLoopCoreMock;
   let collateralToken: TestMintableERC20;
@@ -25,8 +25,8 @@ describe("DLoopCoreMock - Supply/Repay Donation Attack Tests", function () {
     accounts = fixture.accounts;
   });
 
-  describe("Attack Scenario 1: Direct Supply Donation Attack", function () {
-    it("Should not allow to deposit or withdraw, and can increase leverage to fix the issue", async function () {
+  describe("Edge Case 1: Direct collateral donation to lending pool", function () {
+    it("should disallow deposit and withdrawal until leverage is restored, and allow increaseLeverage to rebalance", async function () {
       const victim = accounts[2]; // Will be the "vault user" trying to withdraw
 
       // Initial setup: ensure vault has no collateral or debt
@@ -117,8 +117,8 @@ describe("DLoopCoreMock - Supply/Repay Donation Attack Tests", function () {
     });
   });
 
-  describe("Attack Scenario 2: Debt Repayment Donation Attack", function () {
-    it("Should freeze vault when someone repays all debt directly to lending pool", async function () {
+  describe("Edge Case 2: Direct debt repayment donation to lending pool", function () {
+    it("should temporarily freeze the vault when debt is repaid directly to the lending pool", async function () {
       const victim = accounts[2];
 
       // Setup: Create a normal vault position first
@@ -238,7 +238,7 @@ describe("DLoopCoreMock - Supply/Repay Donation Attack Tests", function () {
       expect(repayAmount).to.equal(0n);
     });
 
-    it("Should show the problem persists even with small amounts", async function () {
+    it("should handle small donation amounts correctly", async function () {
       const victim = accounts[2];
 
       // Attack with minimal amounts to show it's not about amount size
@@ -277,8 +277,8 @@ describe("DLoopCoreMock - Supply/Repay Donation Attack Tests", function () {
     });
   });
 
-  describe("Impact Verification", function () {
-    it("Should demonstrate that funds are permanently locked", async function () {
+  describe("Post-fix Impact Verification", function () {
+    it("should demonstrate the vault remains locked until leverage is restored", async function () {
       const victim = accounts[2];
 
       // Setup attack scenario
