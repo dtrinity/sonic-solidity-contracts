@@ -119,7 +119,6 @@ describe("DLoopCoreMock - Supply/Repay Donation Attack Tests", function () {
 
   describe("Attack Scenario 2: Debt Repayment Donation Attack", function () {
     it("Should freeze vault when someone repays all debt directly to lending pool", async function () {
-      const attacker = accounts[1];
       const victim = accounts[2];
 
       // Setup: Create a normal vault position first
@@ -175,12 +174,11 @@ describe("DLoopCoreMock - Supply/Repay Donation Attack Tests", function () {
       expect(vaultCollateralAfterAttack).to.equal(vaultCollateral);
       expect(vaultDebtAfterAttack).to.equal(0n);
 
-      // Verify vault leverage is now 0 (no debt)
+      // Verify vault leverage is now 100% (has collateral but no debt)
       const leverageAfterAttack = await dloopMock.getCurrentLeverageBps();
-      expect(leverageAfterAttack).to.equal(0n);
+      expect(leverageAfterAttack).to.equal(ONE_HUNDRED_PERCENT_BPS);
 
-      // Now the critical part: victim tries to withdraw but hits division by zero
-      // Since the vault now has leverage=0, the withdrawal calculation will fail
+      // Now, prove that the vault is temporarily frozen due to imbalanced state
 
       const userShares = await dloopMock.balanceOf(victim.address);
       expect(userShares).to.be.gt(0n);
@@ -191,20 +189,17 @@ describe("DLoopCoreMock - Supply/Repay Donation Attack Tests", function () {
         .connect(victim)
         .approve(await dloopMock.getAddress(), ethers.parseEther("10000"));
 
-      // Attempt withdrawal - this should revert with division by zero error
-      // The error occurs in getRepayAmountThatKeepCurrentLeverage when leverageBpsBeforeRepayDebt is 0
+      // Attempt withdrawal - this should revert with ERC4626ExceededMaxWithdraw error
       await expect(
         dloopMock
           .connect(victim)
           .withdraw(initialDepositAmount / 2n, victim.address, victim.address),
-      ).to.be.revertedWithPanic(0x12); // Division by zero panic code
+      ).to.be.revertedWithCustomError(dloopMock, "ERC4626ExceededMaxWithdraw");
     });
   });
 
   describe("Detailed Error Analysis", function () {
     it("Should demonstrate the exact division by zero in getRepayAmountThatKeepCurrentLeverage", async function () {
-      const attacker = accounts[1];
-
       // Setup vault with collateral but no debt (simulate attack scenario)
       const donationAmount = ethers.parseEther("1000");
 
@@ -215,26 +210,35 @@ describe("DLoopCoreMock - Supply/Repay Donation Attack Tests", function () {
         donationAmount,
       );
 
-      // Verify current leverage is 0
+      // Check current collateral and debt
+      const collateral = await dloopMock.getMockCollateral(
+        await dloopMock.getAddress(),
+        await collateralToken.getAddress(),
+      );
+      const debt = await dloopMock.getMockDebt(
+        await dloopMock.getAddress(),
+        await debtToken.getAddress(),
+      );
+      expect(collateral).to.equal(donationAmount);
+      expect(debt).to.equal(0n);
+
+      // Verify current leverage is 100% (has collateral but no debt)
       const currentLeverage = await dloopMock.getCurrentLeverageBps();
-      expect(currentLeverage).to.equal(0n);
+      expect(currentLeverage).to.equal(ONE_HUNDRED_PERCENT_BPS);
 
       // Try calling getRepayAmountThatKeepCurrentLeverage directly with leverage = 0
-      // This should revert with division by zero
       const withdrawAmount = ethers.parseEther("100");
 
-      await expect(
-        dloopMock.getRepayAmountThatKeepCurrentLeverage(
-          await collateralToken.getAddress(),
-          await debtToken.getAddress(),
-          withdrawAmount,
-          0n, // leverageBpsBeforeRepayDebt = 0, causes division by zero
-        ),
-      ).to.be.revertedWithPanic(0x12); // Division by zero panic code
+      const repayAmount = await dloopMock.getRepayAmountThatKeepCurrentLeverage(
+        await collateralToken.getAddress(),
+        await debtToken.getAddress(),
+        withdrawAmount,
+        0n, // leverageBpsBeforeRepayDebt = 0
+      );
+      expect(repayAmount).to.equal(0n);
     });
 
     it("Should show the problem persists even with small amounts", async function () {
-      const attacker = accounts[1];
       const victim = accounts[2];
 
       // Attack with minimal amounts to show it's not about amount size
@@ -261,23 +265,20 @@ describe("DLoopCoreMock - Supply/Repay Donation Attack Tests", function () {
         .connect(victim)
         .deposit(userDepositAmount, victim.address);
 
-      // Try to withdraw - still fails
+      // Try to withdraw - succeeds
       await debtToken.mint(victim, ethers.parseEther("10000"));
       await debtToken
         .connect(victim)
         .approve(await dloopMock.getAddress(), ethers.parseEther("10000"));
 
-      await expect(
-        dloopMock
-          .connect(victim)
-          .withdraw(userDepositAmount / 2n, victim.address, victim.address),
-      ).to.be.revertedWithPanic(0x12);
+      await dloopMock
+        .connect(victim)
+        .withdraw(userDepositAmount / 2n, victim.address, victim.address);
     });
   });
 
   describe("Impact Verification", function () {
     it("Should demonstrate that funds are permanently locked", async function () {
-      const attacker = accounts[1];
       const victim = accounts[2];
 
       // Setup attack scenario
@@ -290,45 +291,19 @@ describe("DLoopCoreMock - Supply/Repay Donation Attack Tests", function () {
         donationAmount,
       );
 
-      // User makes deposit
+      // Check current leverage
+      const currentLeverage = await dloopMock.getCurrentLeverageBps();
+      expect(currentLeverage).to.equal(ONE_HUNDRED_PERCENT_BPS);
+
+      // User cannot deposit as the vault is too imbalanced
       const userDepositAmount = ethers.parseEther("100");
       await collateralToken.mint(victim, userDepositAmount);
       await collateralToken
         .connect(victim)
         .approve(await dloopMock.getAddress(), userDepositAmount);
-      await dloopMock
-        .connect(victim)
-        .deposit(userDepositAmount, victim.address);
-
-      const userShares = await dloopMock.balanceOf(victim.address);
-      expect(userShares).to.be.gt(0n);
-
-      // User has shares but cannot withdraw (funds are locked)
-      await debtToken.mint(victim, ethers.parseEther("10000"));
-      await debtToken
-        .connect(victim)
-        .approve(await dloopMock.getAddress(), ethers.parseEther("10000"));
-
-      // All withdrawal attempts fail
       await expect(
-        dloopMock.connect(victim).withdraw(1n, victim.address, victim.address),
-      ).to.be.revertedWithPanic(0x12);
-
-      await expect(
-        dloopMock.connect(victim).redeem(1n, victim.address, victim.address),
-      ).to.be.revertedWithPanic(0x12);
-
-      // Even tiny withdrawals fail
-      await expect(
-        dloopMock.connect(victim).withdraw(1n, victim.address, victim.address),
-      ).to.be.revertedWithPanic(0x12);
-
-      // User's funds are effectively locked
-      const finalBalance = await collateralToken.balanceOf(victim.address);
-      expect(finalBalance).to.equal(0n); // User spent their collateral
-
-      const vaultBalance = await dloopMock.balanceOf(victim.address);
-      expect(vaultBalance).to.be.gt(0n); // But has vault shares that can't be redeemed
+        dloopMock.connect(victim).deposit(userDepositAmount, victim.address),
+      ).to.be.revertedWithCustomError(dloopMock, "ERC4626ExceededMaxDeposit");
     });
   });
 });
