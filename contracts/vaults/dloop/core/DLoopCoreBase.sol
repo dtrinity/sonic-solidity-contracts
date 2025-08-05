@@ -1024,17 +1024,17 @@ abstract contract DLoopCoreBase is
          *  <=> y = x * (T' - ONE_HUNDRED_PERCENT_BPS) / T'
          */
 
+        // Short-circuit when leverageBpsBeforeRepayDebt == 0
+        if (leverageBpsBeforeRepayDebt == 0) {
+            // no collateral means no debt yet, so nothing to repay
+            return 0;
+        }
+
         // Convert the target withdraw amount to base
         uint256 targetWithdrawAmountInBase = convertFromTokenAmountToBaseCurrency(
                 targetWithdrawAmount,
                 collateralAsset
             );
-
-        // Short-circuit when leverageBpsBeforeRepayDebt == 0
-        if (leverageBpsBeforeRepayDebt == 0) {
-            // no debt yet – nothing to repay
-            return 0;
-        }
 
         // Calculate the repay amount in base
         uint256 repayAmountInBase = Math.mulDiv(
@@ -1096,17 +1096,18 @@ abstract contract DLoopCoreBase is
          *  <=> y = x * (T' - ONE_HUNDRED_PERCENT_BPS) / T'
          */
 
+
+        // Short-circuit when leverageBpsBeforeSupply == 0
+        if (leverageBpsBeforeSupply == 0) {
+            // no collateral thus cannot borrow any debt
+            return 0;
+        }
+
         // Convert the actual supplied amount to base
         uint256 suppliedCollateralAmountInBase = convertFromTokenAmountToBaseCurrency(
                 suppliedCollateralAmount,
                 collateralAsset
             );
-
-        // Short-circuit when leverageBpsBeforeSupply == 0
-        if (leverageBpsBeforeSupply == 0) {
-            // no debt yet – nothing to borrow
-            return 0;
-        }
 
         // Calculate the borrow amount in base currency that keeps the current leverage
         uint256 borrowAmountInBase = Math.mulDiv(
