@@ -21,7 +21,9 @@ contract MockAdapterPositiveSlippage is IDStableConversionAdapter {
         vaultToken = new MockERC4626Simple(IERC20(_dStable));
     }
 
-    function convertToVaultAsset(uint256 dStableAmount)
+    function convertToVaultAsset(
+        uint256 dStableAmount
+    )
         external
         override
         returns (address _vaultAsset, uint256 vaultAssetAmount)
@@ -32,18 +34,18 @@ contract MockAdapterPositiveSlippage is IDStableConversionAdapter {
         return (address(vaultToken), vaultAssetAmount);
     }
 
-    function convertFromVaultAsset(uint256 vaultAssetAmount)
-        external
-        override
-        returns (uint256 dStableAmount)
-    {
+    function convertFromVaultAsset(
+        uint256 vaultAssetAmount
+    ) external override returns (uint256 dStableAmount) {
         // pull vault tokens
         IERC20(address(vaultToken)).transferFrom(msg.sender, address(this), vaultAssetAmount);
         IERC20(address(vaultToken)).forceApprove(address(vaultToken), vaultAssetAmount);
         dStableAmount = vaultToken.redeem(vaultAssetAmount, msg.sender, address(this));
     }
 
-    function previewConvertToVaultAsset(uint256 dStableAmount)
+    function previewConvertToVaultAsset(
+        uint256 dStableAmount
+    )
         external
         view
         override
@@ -52,21 +54,16 @@ contract MockAdapterPositiveSlippage is IDStableConversionAdapter {
         return (address(vaultToken), dStableAmount);
     }
 
-    function previewConvertFromVaultAsset(uint256 vaultAssetAmount)
-        external
-        view
-        override
-        returns (uint256 dStableAmount)
-    {
+    function previewConvertFromVaultAsset(
+        uint256 vaultAssetAmount
+    ) external view override returns (uint256 dStableAmount) {
         return vaultToken.previewRedeem(vaultAssetAmount);
     }
 
-    function assetValueInDStable(address _vaultAsset, uint256 vaultAssetAmount)
-        external
-        view
-        override
-        returns (uint256 dStableValue)
-    {
+    function assetValueInDStable(
+        address _vaultAsset,
+        uint256 vaultAssetAmount
+    ) external view override returns (uint256 dStableValue) {
         require(_vaultAsset == address(vaultToken), "Wrong asset");
         return vaultToken.previewRedeem(vaultAssetAmount);
     }
@@ -74,4 +71,4 @@ contract MockAdapterPositiveSlippage is IDStableConversionAdapter {
     function vaultAsset() external view override returns (address) {
         return address(vaultToken);
     }
-} 
+}

@@ -114,3 +114,18 @@ export const strategywstkscETH: IReserveParams = {
   ...strategyETHLST,
   supplyCap: "200",
 };
+
+export const strategyPTaUSDC: IReserveParams = {
+  ...baseYieldBearingStablecoinConfig,
+  supplyCap: "1000000",
+};
+
+export const strategyPTwstkscUSD: IReserveParams = {
+  ...baseYieldBearingStablecoinConfig,
+  supplyCap: "1000000",
+};
+
+export const strategywOS: IReserveParams = {
+  ...baseYieldBearingStablecoinConfig,
+  supplyCap: "500000",
+};

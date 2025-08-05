@@ -1,18 +1,16 @@
-import { ZeroAddress } from "ethers";
 import hre, { deployments } from "hardhat";
-import { HardhatRuntimeEnvironment } from "hardhat/types";
 
 import {
-  USD_ORACLE_AGGREGATOR_ID,
-  S_ORACLE_AGGREGATOR_ID,
-  DUSD_ISSUER_CONTRACT_ID,
-  DUSD_REDEEMER_CONTRACT_ID,
-  DUSD_COLLATERAL_VAULT_CONTRACT_ID,
-  DUSD_AMO_MANAGER_ID,
+  DS_AMO_MANAGER_ID,
+  DS_COLLATERAL_VAULT_CONTRACT_ID,
   DS_ISSUER_CONTRACT_ID,
   DS_REDEEMER_CONTRACT_ID,
-  DS_COLLATERAL_VAULT_CONTRACT_ID,
-  DS_AMO_MANAGER_ID,
+  DUSD_AMO_MANAGER_ID,
+  DUSD_COLLATERAL_VAULT_CONTRACT_ID,
+  DUSD_ISSUER_CONTRACT_ID,
+  DUSD_REDEEMER_CONTRACT_ID,
+  S_ORACLE_AGGREGATOR_ID,
+  USD_ORACLE_AGGREGATOR_ID,
 } from "../../typescript/deploy-ids";
 import { getTokenContractForSymbol } from "../../typescript/token/utils";
 
@@ -43,17 +41,17 @@ export const createDStableAmoFixture = (config: DStableFixtureConfig) => {
 
     const { deployer } = await hre.getNamedAccounts();
     const { address: amoManagerAddress } = await deployments.get(
-      config.amoManagerId
+      config.amoManagerId,
     );
 
     const { tokenInfo: dstableInfo } = await getTokenContractForSymbol(
       hre,
       deployer,
-      config.symbol
+      config.symbol,
     );
 
     const { address: oracleAggregatorAddress } = await deployments.get(
-      config.oracleAggregatorId
+      config.oracleAggregatorId,
     );
 
     // Deploy MockAmoVault using standard deployment

@@ -113,9 +113,31 @@ contract DStakeRewardManagerDLend is RewardClaimable {
 
     /**
      * @inheritdoc RewardClaimable
-     * @dev Claims specified reward tokens from dLEND on behalf of the `targetStaticATokenWrapper`.
-     *      Rewards are claimed to `_receiverForClaimedRawRewards` (typically address(this) when
-     *      called from the base compoundRewards function).
+     * @dev Claims specified reward tokens from dLEND on behalf of the
+     *      `targetStaticATokenWrapper` and forwards them to
+     *      `_receiverForClaimedRawRewards` (usually `address(this)` when invoked
+     *      from `compoundRewards`).
+     *
+     * === Important note about how rewards are claimed ===
+     * A public call to `StaticATokenLM.collectAndUpdateRewards()` does **not**
+     * lock tokens inside the wrapper forever.  The wrapper merely holds those
+     * tokens in its own balance until a legitimate claimer shows up.
+     *
+     * When this reward-manager executes
+     * `IStaticATokenLM.claimRewardsOnBehalf(dStakeCollateralVault, …)` the
+     * wrapper performs the following actions internally (see
+     * `StaticATokenLM._claimRewardsOnBehalf` in the Aave reference
+     * implementation):
+     *   1. If the wrapper's ERC20 balance is insufficient to pay the user's
+     *      owed rewards it first calls `collectAndUpdateRewards()` itself,
+     *      pulling fresh emissions from the RewardsController.
+     *   2. It then transfers *all* rewards owed to the user (`to` parameter).
+     *
+     * Critically, the payout uses the wrapper's **entire token balance** – this
+     * includes any tokens that were previously moved there by an external
+     * `collectAndUpdateRewards` call.  Therefore no permanent loss occurs: the
+     * next compounding round will withdraw those tokens and distribute them
+     * according to protocol rules.
      */
     function _claimRewards(
         address[] calldata _tokensToClaim,

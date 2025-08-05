@@ -21,6 +21,7 @@ import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {BasisPointConstants} from "contracts/common/BasisPointConstants.sol";
+import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
 /**
  * @title RewardClaimable
@@ -139,7 +140,7 @@ abstract contract RewardClaimable is AccessControl, ReentrancyGuard {
 
     /**
      * @dev Sets the treasury fee in basis points
-     * @param newTreasuryFeeBps New treasury fee in basis points (1/100 of 1%)
+     * @param newTreasuryFeeBps New treasury fee in basis points (100 = 1bps = 0.01%)
      */
     function setTreasuryFeeBps(
         uint256 newTreasuryFeeBps
@@ -180,8 +181,11 @@ abstract contract RewardClaimable is AccessControl, ReentrancyGuard {
      */
     function getTreasuryFee(uint256 amount) public view returns (uint256) {
         return
-            (amount * treasuryFeeBps) /
-            BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
+            Math.mulDiv(
+                amount,
+                treasuryFeeBps,
+                BasisPointConstants.ONE_HUNDRED_PERCENT_BPS
+            );
     }
 
     /**

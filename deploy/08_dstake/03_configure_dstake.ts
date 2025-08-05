@@ -10,6 +10,11 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { get } = deployments;
   const { deployer } = await getNamedAccounts();
 
+  // Use deployer for all state-changing transactions. Permission migrations to the
+  // designated admin and fee manager addresses will be handled in a separate
+  // script executed after configuration.
+  const deployerSigner = await ethers.getSigner(deployer);
+
   const config = await getConfig(hre);
 
   if (!config.dStake) {
@@ -100,18 +105,12 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     const routerDeployment = await get(routerDeploymentName);
     const dstakeTokenDeployment = await get(DStakeTokenDeploymentName);
 
-    const initialAdmin = instanceConfig.initialAdmin;
-    const initialFeeManager = instanceConfig.initialFeeManager;
-
-    const adminSigner = initialAdmin === deployer ? deployer : initialAdmin;
-    const feeManagerSigner =
-      initialFeeManager === deployer ? deployer : initialFeeManager;
-
+    // (Permissions remain with the deployer; role migration happens later.)
     // Get Typechain instances
     const dstakeToken = await ethers.getContractAt(
       "DStakeToken",
       dstakeTokenDeployment.address,
-      await ethers.getSigner(deployer), // Use deployer as signer for read calls if needed, will connect admin/feeManager for transactions
+      await ethers.getSigner(deployer), // Use deployer as signer for read calls
     );
     const collateralVault = await ethers.getContractAt(
       "DStakeCollateralVault",
@@ -127,7 +126,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
         `    ⚙️ Setting router for ${DStakeTokenDeploymentName} to ${routerDeployment.address}`,
       );
       await dstakeToken
-        .connect(await ethers.getSigner(adminSigner))
+        .connect(deployerSigner)
         .setRouter(routerDeployment.address);
     }
     const currentVault = await dstakeToken.collateralVault();
@@ -137,7 +136,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
         `    ⚙️ Setting collateral vault for ${DStakeTokenDeploymentName} to ${collateralVaultDeployment.address}`,
       );
       await dstakeToken
-        .connect(await ethers.getSigner(adminSigner))
+        .connect(deployerSigner)
         .setCollateralVault(collateralVaultDeployment.address);
     }
     const currentFee = await dstakeToken.withdrawalFeeBps();
@@ -150,7 +149,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
         `    ⚙️ Setting withdrawal fee for ${DStakeTokenDeploymentName} to ${instanceConfig.initialWithdrawalFeeBps}`,
       );
       await dstakeToken
-        .connect(await ethers.getSigner(feeManagerSigner))
+        .connect(deployerSigner)
         .setWithdrawalFee(instanceConfig.initialWithdrawalFeeBps);
     }
 
@@ -158,7 +157,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     const routerContract = await ethers.getContractAt(
       "DStakeRouterDLend",
       routerDeployment.address,
-      await ethers.getSigner(adminSigner),
+      deployerSigner,
     );
 
     const vaultRouter = await collateralVault.router();
@@ -173,7 +172,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
         `    ⚙️ Setting router for ${collateralVaultDeploymentName} to ${routerDeployment.address}`,
       );
       await collateralVault
-        .connect(await ethers.getSigner(adminSigner))
+        .connect(deployerSigner)
         .setRouter(routerDeployment.address);
     }
 
@@ -187,7 +186,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
       if (existingAdapter === ethers.ZeroAddress) {
         await routerContract
-          .connect(await ethers.getSigner(adminSigner))
+          .connect(deployerSigner)
           .addAdapter(vaultAssetAddress, adapterDeployment.address);
         console.log(
           `    ➕ Added adapter ${adapterDeploymentName} for asset ${vaultAssetAddress} to ${routerDeploymentName}`,
@@ -258,3 +257,6 @@ export default func;
 func.tags = ["dStakeConfigure", "dStake"];
 func.dependencies = ["dStakeCore", "dStakeAdapters"];
 func.runAtTheEnd = true;
+
+// Prevent re-execution after successful run.
+func.id = "configure_dstake";

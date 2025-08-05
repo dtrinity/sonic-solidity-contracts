@@ -16,6 +16,7 @@ export interface Config {
   readonly odos?: {
     readonly router: string;
   };
+  readonly pendle?: PendleConfig;
   readonly dLoop: {
     readonly dUSDAddress: string;
     readonly coreVaults: { [vaultName: string]: DLoopCoreConfig };
@@ -65,6 +66,9 @@ export interface DStableConfig {
   readonly collaterals: Address[];
   readonly initialFeeReceiver?: string;
   readonly initialRedemptionFeeBps?: number;
+  readonly collateralRedemptionFees?: {
+    [collateralAddress: string]: number;
+  };
 }
 
 export interface DLoopCoreConfig {
@@ -158,6 +162,9 @@ export interface OracleAggregatorConfig {
       };
     };
   };
+  readonly chainlinkCompositeAggregator?: {
+    [assetAddress: string]: ChainlinkCompositeAggregatorConfig;
+  };
 }
 
 export interface IInterestRateStrategyParams {
@@ -213,7 +220,7 @@ export interface DLendRewardManagerConfig {
   readonly treasury: Address; // Address for treasury fees
   readonly maxTreasuryFeeBps: number;
   readonly initialTreasuryFeeBps: number;
-  readonly initialExchangeThreshold: number; // Min dStable amount to trigger compounding
+  readonly initialExchangeThreshold: bigint; // Min dStable amount to trigger compounding
   readonly initialAdmin?: Address; // Optional: admin for this DStakeRewardManagerDLend instance
   readonly initialRewardsManager?: Address; // Optional: holder of REWARDS_MANAGER_ROLE for this instance
 }
@@ -255,4 +262,32 @@ export interface DPoolInstanceConfig {
   // - localhost: "USDC_USDS_CurvePool" (deployment name)
   // - testnet: "0x742d35Cc6634C0532925a3b8D404fEdF6Caf9cd5" (actual pool address)
   // - mainnet: "0xA5407eAE9Ba41422680e2e00537571bcC53efBfD" (actual pool address)
+}
+
+// --- Pendle PT Token Types ---
+
+export interface PTTokenConfig {
+  readonly name: string; // Human-readable name (e.g., "PT-aUSDC-14AUG2025")
+  readonly ptToken: Address; // PT token address
+  readonly market: Address; // Pendle market address
+  readonly oracleType: "PT_TO_ASSET" | "PT_TO_SY"; // Oracle pricing type
+  readonly twapDuration: number; // TWAP duration in seconds (e.g., 900)
+}
+
+export interface PendleConfig {
+  readonly ptYtLpOracleAddress: Address; // Universal Pendle PT/YT/LP Oracle address (0x9a9Fa8338dd5E5B2188006f1Cd2Ef26d921650C2)
+  readonly ptTokens: PTTokenConfig[]; // List of PT tokens to configure
+}
+
+// --- Chainlink Composite Wrapper Types ---
+
+export interface ChainlinkCompositeAggregatorConfig {
+  readonly name: string; // Name of the composite wrapper (e.g., "OS_S_USD")
+  readonly feedAsset: Address; // Address of the asset being priced (e.g., wOS address)
+  readonly sourceFeed1: Address; // Address of the first Chainlink price feed (e.g., OS/S)
+  readonly sourceFeed2: Address; // Address of the second Chainlink price feed (e.g., S/USD)
+  readonly lowerThresholdInBase1: bigint; // Lower threshold for sourceFeed1 (e.g., 99000000n for 0.99)
+  readonly fixedPriceInBase1: bigint; // Fixed price for sourceFeed1 when threshold is exceeded (e.g., 100000000n for 1.00)
+  readonly lowerThresholdInBase2: bigint; // Lower threshold for sourceFeed2 (e.g., 98000000n for 0.98)
+  readonly fixedPriceInBase2: bigint; // Fixed price for sourceFeed2 when threshold is exceeded (e.g., 100000000n for 1.00)
 }

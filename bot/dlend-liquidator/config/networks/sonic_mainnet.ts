@@ -11,6 +11,7 @@ export async function getConfig(): Promise<Config> {
   const dUSDAddress = "0x53a6aBb52B2F968fA80dF6A894e4f1b1020DA975"; // Replace with actual dUSD address
   const dSAddress = "0x614914B028A7D1fD4Fab1E5a53a3E2dF000bcB0e"; // Replace with actual dS address
   const odosRouterAddress = "0xaC041Df48dF9791B0654f1Dbbf2CC8450C5f2e9D"; // Odos router on Sonic
+  const pyFactoryAddress = "0x0582D93FD9c9d42f26bE5D86a5f75291F92102C2"; // Pendle Yield factory on Sonic
 
   return {
     parentDeploymentAddresses: {
@@ -40,6 +41,9 @@ export async function getConfig(): Promise<Config> {
       },
       odosRouter: odosRouterAddress,
       odosApiUrl: "https://api.odos.xyz",
+    },
+    pendle: {
+      pyFactory: pyFactoryAddress,
     },
   };
 }

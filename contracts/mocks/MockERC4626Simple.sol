@@ -15,7 +15,9 @@ contract MockERC4626Simple is ERC4626 {
     uint256 private constant BONUS_BPS = 11_000; // 110 % (10000 = 100 %)
     uint256 private constant BASIS_POINTS = 10_000;
 
-    constructor(IERC20 _asset) ERC20("Mock Vault Token", "mVT") ERC4626(_asset) {}
+    constructor(
+        IERC20 _asset
+    ) ERC20("Mock Vault Token", "mVT") ERC4626(_asset) {}
 
     // ---------- Deposit path (1:1) ---------- //
     // The default ERC4626 implementation already mints shares == assets when
@@ -23,12 +25,16 @@ contract MockERC4626Simple is ERC4626 {
 
     // ---------- Redemption path (adds 10 % bonus) ---------- //
 
-    function previewRedeem(uint256 shares) public pure override returns (uint256) {
+    function previewRedeem(
+        uint256 shares
+    ) public pure override returns (uint256) {
         // users get 110 % of the nominal assets represented by `shares`
         return (shares * BONUS_BPS) / BASIS_POINTS;
     }
 
-    function previewWithdraw(uint256 assets) public pure override returns (uint256) {
+    function previewWithdraw(
+        uint256 assets
+    ) public pure override returns (uint256) {
         // inverse of previewRedeem (ceil division to avoid under-funding)
         return (assets * BASIS_POINTS + BONUS_BPS - 1) / BONUS_BPS;
     }
@@ -61,4 +67,4 @@ contract MockERC4626Simple is ERC4626 {
         shares = previewWithdraw(assets);
         redeem(shares, receiver, owner); // redeem already handles transfer & events
     }
-} 
+}

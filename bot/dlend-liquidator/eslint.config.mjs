@@ -22,6 +22,10 @@ const compat = new FlatCompat({
 });
 
 export default [
+  // Ignore Yarn release files
+  {
+    ignores: ["**/.yarn/**"],
+  },
   {
     ignores: [
       "**/contracts/",
@@ -29,7 +33,6 @@ export default [
       "**/debug/",
       "**/typechain-types/",
       "**/.github/",
-      "**/.yarn/",
       "**/artifacts/**",
       "**/cache/**",
       "**/deployments/**",
@@ -51,7 +54,7 @@ export default [
   ...compat.extends(
     "plugin:jsdoc/recommended",
     "plugin:eslint-comments/recommended",
-    "prettier"
+    "prettier",
   ),
   {
     plugins: {

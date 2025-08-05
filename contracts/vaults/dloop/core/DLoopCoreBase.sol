@@ -23,6 +23,7 @@ import {ERC4626, ERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/ext
 import {Erc20Helper} from "contracts/common/Erc20Helper.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {RescuableVault} from "contracts/common/RescuableVault.sol";
+import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
 /**
  * @title DLoopCoreBase
@@ -171,6 +172,7 @@ abstract contract DLoopCoreBase is
         uint256 totalCollateralBase,
         uint256 totalDebtBase
     );
+    error ZeroShares();
 
     /**
      * @dev Constructor for the DLoopCore contract
@@ -557,8 +559,11 @@ abstract contract DLoopCoreBase is
      */
     function getLeveragedAssets(uint256 assets) public view returns (uint256) {
         return
-            (assets * targetLeverageBps) /
-            BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
+            Math.mulDiv(
+                assets,
+                targetLeverageBps,
+                BasisPointConstants.ONE_HUNDRED_PERCENT_BPS
+            );
     }
 
     /**
@@ -570,8 +575,11 @@ abstract contract DLoopCoreBase is
         uint256 leveragedAssets
     ) public view returns (uint256) {
         return
-            (leveragedAssets * BasisPointConstants.ONE_HUNDRED_PERCENT_BPS) /
-            targetLeverageBps;
+            Math.mulDiv(
+                leveragedAssets,
+                BasisPointConstants.ONE_HUNDRED_PERCENT_BPS,
+                targetLeverageBps
+            );
     }
 
     /**
@@ -605,7 +613,11 @@ abstract contract DLoopCoreBase is
         // The price decimals is cancelled out in the division (as the amount and price are in the same unit)
         uint256 tokenPriceInBase = getAssetPriceFromOracle(token);
         return
-            (amountInBase * 10 ** ERC20(token).decimals()) / tokenPriceInBase;
+            Math.mulDiv(
+                amountInBase,
+                10 ** ERC20(token).decimals(),
+                tokenPriceInBase
+            );
     }
 
     /**
@@ -621,7 +633,11 @@ abstract contract DLoopCoreBase is
         // The token decimals is cancelled out in the division (as the amount and price are in the same unit)
         uint256 tokenPriceInBase = getAssetPriceFromOracle(token);
         return
-            (amountInToken * tokenPriceInBase) / 10 ** ERC20(token).decimals();
+            Math.mulDiv(
+                amountInToken,
+                tokenPriceInBase,
+                10 ** ERC20(token).decimals()
+            );
     }
 
     /**
@@ -675,6 +691,9 @@ abstract contract DLoopCoreBase is
         uint256 assets,
         uint256 shares
     ) internal override nonReentrant {
+        if (shares == 0) {
+            revert ZeroShares();
+        }
         /**
          * Example of how this function works:
          *
@@ -979,10 +998,12 @@ abstract contract DLoopCoreBase is
             );
 
         // Calculate the repay amount in base
-        uint256 repayAmountInBase = (targetWithdrawAmountInBase *
-            (leverageBpsBeforeRepayDebt -
-                BasisPointConstants.ONE_HUNDRED_PERCENT_BPS)) /
-            leverageBpsBeforeRepayDebt;
+        uint256 repayAmountInBase = Math.mulDiv(
+            targetWithdrawAmountInBase,
+            leverageBpsBeforeRepayDebt -
+                BasisPointConstants.ONE_HUNDRED_PERCENT_BPS,
+            leverageBpsBeforeRepayDebt
+        );
 
         return convertFromBaseCurrencyToToken(repayAmountInBase, debtAsset);
     }
@@ -1043,10 +1064,12 @@ abstract contract DLoopCoreBase is
             );
 
         // Calculate the borrow amount in base currency that keeps the current leverage
-        uint256 borrowAmountInBase = (suppliedCollateralAmountInBase *
-            (leverageBpsBeforeSupply -
-                BasisPointConstants.ONE_HUNDRED_PERCENT_BPS)) /
-            leverageBpsBeforeSupply;
+        uint256 borrowAmountInBase = Math.mulDiv(
+            suppliedCollateralAmountInBase,
+            leverageBpsBeforeSupply -
+                BasisPointConstants.ONE_HUNDRED_PERCENT_BPS,
+            leverageBpsBeforeSupply
+        );
 
         return convertFromBaseCurrencyToToken(borrowAmountInBase, debtAsset);
     }
@@ -1691,7 +1714,7 @@ abstract contract DLoopCoreBase is
         uint256 leverageBps = ((totalCollateralBase *
             BasisPointConstants.ONE_HUNDRED_PERCENT_BPS) /
             (totalCollateralBase - totalDebtBase));
-        if (leverageBps <= BasisPointConstants.ONE_HUNDRED_PERCENT_BPS) {
+        if (leverageBps < BasisPointConstants.ONE_HUNDRED_PERCENT_BPS) {
             revert InvalidLeverage(leverageBps);
         }
         return leverageBps;

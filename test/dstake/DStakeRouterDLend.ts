@@ -1,21 +1,21 @@
 import { expect } from "chai";
-import { ethers, getNamedAccounts } from "hardhat";
 import { ZeroAddress } from "ethers";
+import { ethers, getNamedAccounts } from "hardhat";
+
 import {
-  DStakeRouterDLend,
   DStakeCollateralVault,
+  DStakeRouterDLend,
   DStakeToken,
   IDStableConversionAdapter,
-  ERC20,
   IERC20,
 } from "../../typechain-types";
+import { ERC20StablecoinUpgradeable } from "../../typechain-types/contracts/dstable/ERC20StablecoinUpgradeable";
+import { DStakeRouterDLend__factory } from "../../typechain-types/factories/contracts/vaults/dstake/DStakeRouterDLend__factory";
 import {
   createDStakeFixture,
   DSTAKE_CONFIGS,
   DStakeFixtureConfig,
 } from "./fixture";
-import { DStakeRouterDLend__factory } from "../../typechain-types/factories/contracts/vaults/dstake/DStakeRouterDLend__factory";
-import { ERC20StablecoinUpgradeable } from "../../typechain-types/contracts/dstable/ERC20StablecoinUpgradeable";
 
 DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
   describe(`DStakeRouterDLend for ${config.DStakeTokenSymbol}`, function () {
@@ -86,9 +86,10 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
         ).to.be.revertedWithCustomError(factory, "ZeroAddress");
       });
 
-      it("should grant DEFAULT_ADMIN_ROLE to deployer", async function () {
+      it("should grant DEFAULT_ADMIN_ROLE to initialAdmin", async function () {
         const adminRole = await router.DEFAULT_ADMIN_ROLE();
-        expect(await router.hasRole(adminRole, deployerAddr)).to.be.true;
+        expect(await router.hasRole(adminRole, user1Addr)).to.be.true;
+        expect(await router.hasRole(adminRole, deployerAddr)).to.be.false;
       });
 
       it("should grant DSTAKE_TOKEN_ROLE to the DStakeToken address", async function () {
@@ -114,7 +115,7 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
       it("admin can add a new adapter", async function () {
         await expect(
           router
-            .connect(deployerSigner)
+            .connect(user1Signer)
             .addAdapter(vaultAssetAddress, adapterAddress)
         )
           .to.emit(router, "AdapterSet")
@@ -134,23 +135,21 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
 
       it("cannot add adapter with zero addresses", async function () {
         await expect(
-          router.connect(deployerSigner).addAdapter(ZeroAddress, adapterAddress)
+          router.connect(user1Signer).addAdapter(ZeroAddress, adapterAddress)
         ).to.be.revertedWithCustomError(router, "ZeroAddress");
         await expect(
-          router
-            .connect(deployerSigner)
-            .addAdapter(vaultAssetAddress, ZeroAddress)
+          router.connect(user1Signer).addAdapter(vaultAssetAddress, ZeroAddress)
         ).to.be.revertedWithCustomError(router, "ZeroAddress");
       });
 
       it("admin can remove an adapter", async function () {
         // First add
         await router
-          .connect(deployerSigner)
+          .connect(user1Signer)
           .addAdapter(vaultAssetAddress, adapterAddress);
         // Then remove
         await expect(
-          router.connect(deployerSigner).removeAdapter(vaultAssetAddress)
+          router.connect(user1Signer).removeAdapter(vaultAssetAddress)
         )
           .to.emit(router, "AdapterRemoved")
           .withArgs(vaultAssetAddress, adapterAddress);
@@ -168,11 +167,11 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
       it("admin can set defaultDepositVaultAsset", async function () {
         // Add adapter first
         await router
-          .connect(deployerSigner)
+          .connect(user1Signer)
           .addAdapter(vaultAssetAddress, adapterAddress);
         await expect(
           router
-            .connect(deployerSigner)
+            .connect(user1Signer)
             .setDefaultDepositVaultAsset(vaultAssetAddress)
         )
           .to.emit(router, "DefaultDepositVaultAssetSet")
@@ -193,9 +192,7 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
       it("cannot set defaultDepositVaultAsset for unregistered asset", async function () {
         const nonVaultAsset = await dStableToken.getAddress();
         await expect(
-          router
-            .connect(deployerSigner)
-            .setDefaultDepositVaultAsset(nonVaultAsset)
+          router.connect(user1Signer).setDefaultDepositVaultAsset(nonVaultAsset)
         ).to.be.revertedWithCustomError(router, "AdapterNotFound");
       });
     });
@@ -227,9 +224,8 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
       });
 
       it("non-DStakeToken cannot call deposit", async function () {
-        await expect(
-          router.connect(user1Signer).deposit(depositAmount, user1Addr)
-        ).to.be.reverted;
+        await expect(router.connect(user1Signer).deposit(depositAmount)).to.be
+          .reverted;
       });
 
       it("DStakeToken can deposit, emits event and deposits vault asset to collateralVault", async function () {
@@ -247,15 +243,17 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
 
         // Check event emission and balances
         await expect(
-          router.connect(DStakeTokenSigner).deposit(depositAmount, user1Addr)
-        ).to.emit(router, "Deposited");
+          router.connect(DStakeTokenSigner).deposit(depositAmount)
+        ).to.emit(router, "RouterDeposit");
 
         const afterBal = await vaultAssetToken.balanceOf(
           collateralVaultAddress
         );
         const minted = afterBal - beforeBal;
 
-        // No upper bound check per current safety requirement
+        // Ensure the adapter minted exactly the number of shares predicted by the preview call.
+        // This guards against the slippage condition described in Issue #225.
+        expect(minted).to.equal(previewShares);
       });
 
       it("reverts when adapter under-delivers vault shares", async function () {
@@ -286,13 +284,13 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
 
         // Admin adds adapter and sets as default
         await router
-          .connect(deployerSigner)
+          .connect(user1Signer)
           .addAdapter(
             await mockVaultAsset.getAddress(),
             await udAdapter.getAddress()
           );
         await router
-          .connect(deployerSigner)
+          .connect(user1Signer)
           .setDefaultDepositVaultAsset(await mockVaultAsset.getAddress());
 
         // Mint dStable to DStakeToken contract
@@ -323,7 +321,7 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
 
         // Expect revert
         await expect(
-          router.connect(DStakeTokenSigner).deposit(depositAmount, user1Addr)
+          router.connect(DStakeTokenSigner).deposit(depositAmount)
         ).to.be.revertedWithCustomError(router, "SlippageCheckFailed");
       });
 
@@ -341,9 +339,7 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
         await dStableToken
           .connect(DStakeTokenSigner)
           .approve(routerAddress, depositAmount);
-        await router
-          .connect(DStakeTokenSigner)
-          .deposit(depositAmount, routerAddress);
+        await router.connect(DStakeTokenSigner).deposit(depositAmount);
         const initial = await dStableToken.balanceOf(user1Addr);
         // Check event emission and balance
         await expect(
@@ -372,10 +368,10 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
 
         // 2. Register adapter and make it default strategy
         await router
-          .connect(deployerSigner)
+          .connect(user1Signer)
           .addAdapter(bonusVaultAsset, bonusAdapterAddr);
         await router
-          .connect(deployerSigner)
+          .connect(user1Signer)
           .setDefaultDepositVaultAsset(bonusVaultAsset);
 
         // 3. Mint dStable to user1 and deposit through DStakeToken
@@ -454,11 +450,9 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
         await dStableToken
           .connect(DStakeTokenSigner)
           .approve(routerAddress, depositAmount);
+        await router.connect(DStakeTokenSigner).deposit(depositAmount);
         await router
-          .connect(DStakeTokenSigner)
-          .deposit(depositAmount, routerAddress);
-        await router
-          .connect(deployerSigner)
+          .connect(user1Signer)
           .grantRole(await router.COLLATERAL_EXCHANGER_ROLE(), user1Addr);
       });
 
@@ -536,11 +530,9 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
         await dStableToken
           .connect(DStakeTokenSigner)
           .approve(routerAddress, depositAmount);
+        await router.connect(DStakeTokenSigner).deposit(depositAmount);
         await router
-          .connect(DStakeTokenSigner)
-          .deposit(depositAmount, routerAddress);
-        await router
-          .connect(deployerSigner)
+          .connect(user1Signer)
           .grantRole(await router.COLLATERAL_EXCHANGER_ROLE(), user1Addr);
         // Impersonate the collateralVault for transferring vault assets
         await ethers.provider.send("hardhat_impersonateAccount", [

@@ -2,15 +2,15 @@
 pragma solidity ^0.8.20;
 
 import "./interface/IOdosRouterV2.sol";
-import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 /**
  * @title OdosSwapUtils
  * @notice Library for handling Odos swaps in liquidator contracts
  */
 library OdosSwapUtils {
-    using SafeERC20 for ERC20;
+    using SafeERC20 for IERC20;
 
     /// @notice Custom error for failed swap with no revert reason
     error SwapFailed();
@@ -32,7 +32,8 @@ library OdosSwapUtils {
         uint256 exactOut,
         bytes memory swapData
     ) internal returns (uint256) {
-        ERC20(inputToken).forceApprove(address(router), maxIn);
+        // Use forceApprove for external DEX router integration
+        IERC20(inputToken).forceApprove(address(router), maxIn);
 
         (bool success, bytes memory result) = address(router).call(swapData);
         if (!success) {
