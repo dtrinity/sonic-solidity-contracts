@@ -14,8 +14,6 @@ contract MockAdapterPositiveSlippage is IDStableConversionAdapter {
     MockERC4626Simple public immutable vaultToken;
     address public immutable collateralVault;
 
-    using SafeERC20 for IERC20;
-
     constructor(address _dStable, address _collateralVault) {
         dStable = _dStable;
         collateralVault = _collateralVault;
