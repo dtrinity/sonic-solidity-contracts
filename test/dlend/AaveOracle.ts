@@ -1,10 +1,10 @@
+import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 import { expect } from "chai";
 import hre, { ethers } from "hardhat";
-import { dLendFixture } from "./fixtures";
-import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
-import { DLendFixtureResult } from "./fixtures";
-import { POOL_ADDRESSES_PROVIDER_ID } from "../../typescript/deploy-ids";
+
 import { AaveOracle, OracleAggregator } from "../../typechain-types";
+import { POOL_ADDRESSES_PROVIDER_ID } from "../../typescript/deploy-ids";
+import { dLendFixture, DLendFixtureResult } from "./fixtures";
 
 describe("AaveOracle", () => {
   // Test fixture and common variables
@@ -26,11 +26,11 @@ describe("AaveOracle", () => {
     fixture = await dLendFixture();
     aaveOracle = await ethers.getContractAt(
       "AaveOracle",
-      await fixture.contracts.priceOracle.getAddress()
+      await fixture.contracts.priceOracle.getAddress(),
     );
     oracleAggregator = await ethers.getContractAt(
       "OracleAggregator",
-      await aaveOracle.getFallbackOracle()
+      await aaveOracle.getFallbackOracle(),
     );
 
     // Get a test asset from the reserves list
@@ -86,7 +86,7 @@ describe("AaveOracle", () => {
 
       // Get prices from oracle aggregator first
       const aggregatorPrices = await Promise.all(
-        assets.map((asset) => oracleAggregator.getAssetPrice(asset))
+        assets.map((asset) => oracleAggregator.getAssetPrice(asset)),
       );
 
       // Get batch prices from AaveOracle
@@ -121,11 +121,11 @@ describe("AaveOracle", () => {
       // Get ACL manager and grant ASSET_LISTING_ADMIN_ROLE to deployer
       const addressesProvider = await hre.ethers.getContractAt(
         "PoolAddressesProvider",
-        (await hre.deployments.get(POOL_ADDRESSES_PROVIDER_ID)).address
+        (await hre.deployments.get(POOL_ADDRESSES_PROVIDER_ID)).address,
       );
       const aclManager = await hre.ethers.getContractAt(
         "ACLManager",
-        await addressesProvider.getACLManager()
+        await addressesProvider.getACLManager(),
       );
       await aclManager.addAssetListingAdmin(deployerSigner.address);
 

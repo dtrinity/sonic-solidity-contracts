@@ -1,17 +1,18 @@
-import { expect } from "chai";
-import hre, { ethers } from "hardhat";
-import { dLendFixture, DLendFixtureResult } from "./fixtures";
 import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
+import { expect } from "chai";
+import { AbiCoder, HDNodeWallet, Signature, Wallet } from "ethers";
+import hre, { ethers } from "hardhat";
+
 import {
+  ERC20StablecoinUpgradeable,
   StaticATokenFactory,
   StaticATokenLM,
-  ERC20StablecoinUpgradeable,
 } from "../../typechain-types";
-import { Signature, AbiCoder, Wallet, HDNodeWallet } from "ethers";
+import { dLendFixture, DLendFixtureResult } from "./fixtures";
 
 // secp256k1 curve order (n)
 const SECP256K1_N = BigInt(
-  "0xfffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141"
+  "0xfffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141",
 );
 
 describe("StaticATokenLM – Signature malleability guard", () => {
@@ -41,20 +42,20 @@ describe("StaticATokenLM – Signature malleability guard", () => {
     // Deploy wrapper through factory
     const Factory = await ethers.getContractFactory("StaticATokenFactory");
     const factory = (await Factory.connect(deployer).deploy(
-      await pool.getAddress()
+      await pool.getAddress(),
     )) as StaticATokenFactory;
 
     await factory.createStaticATokens([underlying]);
     const staticAddress = await factory.getStaticAToken(underlying);
     staticToken = (await ethers.getContractAt(
       "StaticATokenLM",
-      staticAddress
+      staticAddress,
     )) as StaticATokenLM;
 
     // Get underlying & aToken contracts
     underlyingToken = await ethers.getContractAt(
       "ERC20StablecoinUpgradeable",
-      underlying
+      underlying,
     );
 
     // Fund depositor with some underlying & setup allowance
@@ -72,7 +73,7 @@ describe("StaticATokenLM – Signature malleability guard", () => {
 
     // Create fresh wallet with private key and fund it
     depositorWallet = Wallet.createRandom().connect(
-      ethers.provider
+      ethers.provider,
     ) as HDNodeWallet;
     // Send ETH for gas
     await deployer.sendTransaction({
@@ -94,6 +95,10 @@ describe("StaticATokenLM – Signature malleability guard", () => {
 
   type SigTriple = { r: string; s: string; v: number };
 
+  /**
+   *
+   * @param orig
+   */
   function malleateSignature(orig: Signature): SigTriple {
     const sBig = BigInt(orig.s);
     const sPrime = SECP256K1_N - sBig;
@@ -155,7 +160,7 @@ describe("StaticATokenLM – Signature malleability guard", () => {
         permitPlaceholder.v,
         permitPlaceholder.r,
         permitPlaceholder.s,
-      ]
+      ],
     );
 
     const structHash = ethers.keccak256(structEncoded);
@@ -164,7 +169,7 @@ describe("StaticATokenLM – Signature malleability guard", () => {
         ethers.toUtf8Bytes("\x19\x01"),
         domainSeparator,
         structHash,
-      ])
+      ]),
     );
 
     const sigFlat = depositorWallet.signingKey.sign(digest).serialized;
@@ -197,8 +202,8 @@ describe("StaticATokenLM – Signature malleability guard", () => {
           true,
           deadline,
           permitPlaceholder,
-          sigParamsMal
-        )
+          sigParamsMal,
+        ),
     ).to.be.reverted;
 
     // Canonical tx should succeed
@@ -213,8 +218,8 @@ describe("StaticATokenLM – Signature malleability guard", () => {
           true,
           deadline,
           permitPlaceholder,
-          sigParamsGood
-        )
+          sigParamsGood,
+        ),
     ).to.emit(staticToken, "Deposit");
   });
 });

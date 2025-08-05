@@ -1,19 +1,17 @@
+import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
+import { time } from "@nomicfoundation/hardhat-toolbox/network-helpers";
 import { expect } from "chai";
 import hre, { ethers } from "hardhat";
-import { dLendFixture, DLendFixtureResult } from "./fixtures";
-import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
+
 import {
+  AToken,
+  ERC20StablecoinUpgradeable,
+  Pool,
   StaticATokenFactory,
   StaticATokenLM,
-  AToken,
   TestERC20,
-  Pool,
-  ERC20StablecoinUpgradeable,
 } from "../../typechain-types";
-import {
-  time,
-  loadFixture,
-} from "@nomicfoundation/hardhat-toolbox/network-helpers";
+import { dLendFixture, DLendFixtureResult } from "./fixtures";
 
 describe("StaticATokenFactory & StaticATokenLM", () => {
   let deployer: SignerWithAddress;
@@ -35,10 +33,10 @@ describe("StaticATokenFactory & StaticATokenLM", () => {
 
     const Factory = await ethers.getContractFactory(
       "StaticATokenFactory",
-      deployer
+      deployer,
     );
     factory = (await Factory.deploy(
-      await pool.getAddress()
+      await pool.getAddress(),
     )) as StaticATokenFactory;
   });
 
@@ -48,7 +46,7 @@ describe("StaticATokenFactory & StaticATokenLM", () => {
 
     beforeEach(async () => {
       const nonDStable = Object.values(fixture.assets).find(
-        (a) => !a.isDStable
+        (a) => !a.isDStable,
       );
       if (!nonDStable) throw new Error("No non-dStable asset found in fixture");
       nonDStableAsset = nonDStable.address;
@@ -58,7 +56,7 @@ describe("StaticATokenFactory & StaticATokenLM", () => {
     it("factory starts empty", async () => {
       expect(await factory.getStaticATokens()).to.be.empty;
       expect(await factory.getStaticAToken(nonDStableAsset)).to.equal(
-        ethers.ZeroAddress
+        ethers.ZeroAddress,
       );
     });
 
@@ -73,29 +71,29 @@ describe("StaticATokenFactory & StaticATokenLM", () => {
 
       const staticToken = (await ethers.getContractAt(
         "StaticATokenLM",
-        tokenAddr
+        tokenAddr,
       )) as StaticATokenLM;
       expect(await staticToken.name()).to.equal(
-        "Wrapped " + (await nonDStableAToken.name())
+        "Wrapped " + (await nonDStableAToken.name()),
       );
       expect(await staticToken.symbol()).to.equal(
-        "w" + (await nonDStableAToken.symbol())
+        "w" + (await nonDStableAToken.symbol()),
       );
       expect(await staticToken.decimals()).to.equal(
-        await nonDStableAToken.decimals()
+        await nonDStableAToken.decimals(),
       );
 
       const tx2 = await factory.createStaticATokens([nonDStableAsset]);
       await expect(tx2).not.to.emit(factory, "StaticTokenCreated");
       expect(await factory.getStaticAToken(nonDStableAsset)).to.equal(
-        tokenAddr
+        tokenAddr,
       );
       expect(await factory.getStaticATokens()).to.deep.equal([tokenAddr]);
     });
 
     it("reverts for unlisted asset", async () => {
       await expect(
-        factory.createStaticATokens([ethers.ZeroAddress])
+        factory.createStaticATokens([ethers.ZeroAddress]),
       ).to.be.revertedWith("UNDERLYING_NOT_LISTED");
     });
 
@@ -120,8 +118,9 @@ describe("StaticATokenFactory & StaticATokenLM", () => {
 
       const finalRegistry = await factory.getStaticATokens();
       expect(finalRegistry.length).to.equal(
-        initialRegistry.length + assetsToDeploy.length
+        initialRegistry.length + assetsToDeploy.length,
       );
+
       for (const asset of assetsToDeploy) {
         expect(finalRegistry).to.include(await factory.getStaticAToken(asset));
       }
@@ -146,7 +145,7 @@ describe("StaticATokenFactory & StaticATokenLM", () => {
       aToken = fixture.contracts.aTokens[underlying];
       underlyingToken = await ethers.getContractAt(
         "ERC20StablecoinUpgradeable",
-        underlying
+        underlying,
       );
 
       await factory.createStaticATokens([underlying]);
@@ -154,7 +153,7 @@ describe("StaticATokenFactory & StaticATokenLM", () => {
       staticToken = await ethers.getContractAt(
         "StaticATokenLM",
         tokenAddr,
-        deployer
+        deployer,
       );
       poolAddress = await pool.getAddress();
       staticTokenAddress = await staticToken.getAddress();
@@ -165,7 +164,7 @@ describe("StaticATokenFactory & StaticATokenLM", () => {
       user3DepositAmount = ethers.parseUnits("5000", dec);
 
       const collateralAssets = Object.values(fixture.assets).filter(
-        (a) => !a.isDStable && a.ltv !== BigInt(0)
+        (a) => !a.isDStable && a.ltv !== BigInt(0),
       );
       if (collateralAssets.length === 0)
         throw new Error("Need a collateral asset for the borrower.");
@@ -174,7 +173,7 @@ describe("StaticATokenFactory & StaticATokenLM", () => {
       user2CollateralAsset = chosenCollateral.address;
       user2CollateralToken = await ethers.getContractAt(
         "TestERC20",
-        user2CollateralAsset
+        user2CollateralAsset,
       );
       const user2CollateralDecimals = await user2CollateralToken.decimals();
 
@@ -204,7 +203,7 @@ describe("StaticATokenFactory & StaticATokenLM", () => {
 
       const oneUnitBuffer: bigint = ethers.parseUnits(
         "1",
-        user2CollateralDecimals
+        user2CollateralDecimals,
       );
       const user2CollateralAmount: bigint =
         requiredCollateralAmount + oneUnitBuffer;
@@ -244,7 +243,7 @@ describe("StaticATokenFactory & StaticATokenLM", () => {
 
     it("can deposit and withdraw dS via wrapper", async () => {
       expect(await staticToken.balanceOf(deployer.address)).to.equal(
-        depositAmount
+        depositAmount,
       );
       const actualATokenBalance = await aToken.balanceOf(staticTokenAddress);
       const tolerance = depositAmount / 1_000_000n + 1n;
@@ -252,10 +251,10 @@ describe("StaticATokenFactory & StaticATokenLM", () => {
       const expectedUnderlyingOut =
         await staticToken.previewRedeem(depositAmount);
       const deployerUnderlyingBalanceBefore = await underlyingToken.balanceOf(
-        deployer.address
+        deployer.address,
       );
       const deployerATokenBalanceBefore = await aToken.balanceOf(
-        deployer.address
+        deployer.address,
       );
       const wrapperATokenBalanceBefore =
         await aToken.balanceOf(staticTokenAddress);
@@ -263,18 +262,18 @@ describe("StaticATokenFactory & StaticATokenLM", () => {
       await (staticToken as any).redeem(
         depositAmount,
         deployer.address,
-        deployer.address
+        deployer.address,
       );
 
       const deployerUnderlyingBalanceAfter = await underlyingToken.balanceOf(
-        deployer.address
+        deployer.address,
       );
       const receivedUnderlying =
         deployerUnderlyingBalanceAfter - deployerUnderlyingBalanceBefore;
       const tolerance1 = expectedUnderlyingOut / 1_000_000n + 1n;
       expect(receivedUnderlying).to.be.closeTo(
         expectedUnderlyingOut,
-        tolerance1
+        tolerance1,
       );
 
       expect(await staticToken.balanceOf(deployer.address)).to.equal(0);
@@ -286,7 +285,7 @@ describe("StaticATokenFactory & StaticATokenLM", () => {
       const finalATokenBalanceCheck = await aToken.balanceOf(deployer.address);
       expect(finalATokenBalanceCheck).to.be.closeTo(
         deployerATokenBalanceBefore,
-        1
+        1,
       );
 
       // Check Wrapper aToken Balance (Should DECREASE by underlying value withdrawn)
@@ -302,7 +301,7 @@ describe("StaticATokenFactory & StaticATokenLM", () => {
         1n;
       expect(wrapperATokenBalanceAfter_Test1).to.be.closeTo(
         expectedWrapperBalanceAfter_Test1,
-        wrapperTolerance_Test1
+        wrapperTolerance_Test1,
       );
     });
 
@@ -326,7 +325,7 @@ describe("StaticATokenFactory & StaticATokenLM", () => {
         .repay(underlying, interactionAmount, 2, user2.address);
 
       expect(await staticToken.balanceOf(deployer.address)).to.equal(
-        depositAmount
+        depositAmount,
       );
       const assetsAfter = await staticToken.convertToAssets(depositAmount);
       expect(assetsAfter).to.be.gt(depositAmount);
@@ -358,7 +357,7 @@ describe("StaticATokenFactory & StaticATokenLM", () => {
       await (staticToken as any).redeemATokens(
         initialShares,
         deployer.address,
-        deployer.address
+        deployer.address,
       );
 
       const finalATokenBalance = await aToken.balanceOf(deployer.address);
@@ -398,10 +397,10 @@ describe("StaticATokenFactory & StaticATokenLM", () => {
         await staticToken.previewRedeem(maxSharesRedeemable);
 
       const underlyingBalanceBefore_Test2 = await underlyingToken.balanceOf(
-        deployer.address
+        deployer.address,
       );
       const deployerATokenBalanceBefore_Test2 = await aToken.balanceOf(
-        deployer.address
+        deployer.address,
       );
       const wrapperATokenBalanceBefore_Test2 =
         await aToken.balanceOf(staticTokenAddress);
@@ -409,11 +408,11 @@ describe("StaticATokenFactory & StaticATokenLM", () => {
       await (staticToken as any).redeem(
         maxSharesRedeemable,
         deployer.address,
-        deployer.address
+        deployer.address,
       );
 
       const underlyingBalanceAfter_Test2 = await underlyingToken.balanceOf(
-        deployer.address
+        deployer.address,
       );
       const receivedAmount =
         underlyingBalanceAfter_Test2 - underlyingBalanceBefore_Test2;
@@ -421,15 +420,15 @@ describe("StaticATokenFactory & StaticATokenLM", () => {
 
       expect(receivedAmount).to.be.closeTo(previewAmount, tolerance4);
       expect(await staticToken.balanceOf(deployer.address)).to.equal(
-        initialShares - maxSharesRedeemable
+        initialShares - maxSharesRedeemable,
       );
       // Check Deployer aToken Balance (Should NOT change)
       const finalATokenBalanceCheck_Test2 = await aToken.balanceOf(
-        deployer.address
+        deployer.address,
       );
       expect(finalATokenBalanceCheck_Test2).to.be.closeTo(
         deployerATokenBalanceBefore_Test2,
-        1
+        1,
       );
       // Check Wrapper aToken Balance (Should DECREASE by underlying value withdrawn)
       const wrapperATokenBalanceAfter_Test2 =
@@ -444,7 +443,7 @@ describe("StaticATokenFactory & StaticATokenLM", () => {
         1n;
       expect(wrapperATokenBalanceAfter_Test2).to.be.closeTo(
         expectedWrapperBalanceAfter_Test2,
-        wrapperTolerance_Test2
+        wrapperTolerance_Test2,
       );
     });
 
@@ -473,10 +472,10 @@ describe("StaticATokenFactory & StaticATokenLM", () => {
       expect(sharesBurned).to.be.closeTo(sharesToWithdraw, 1);
 
       const deployerStaticBalanceBefore = await staticToken.balanceOf(
-        deployer.address
+        deployer.address,
       );
       const deployerATokenBalanceBefore = await aToken.balanceOf(
-        deployer.address
+        deployer.address,
       );
       const wrapperATokenBalanceBefore =
         await aToken.balanceOf(staticTokenAddress);
@@ -486,7 +485,7 @@ describe("StaticATokenFactory & StaticATokenLM", () => {
         .withdraw(assetsToWithdraw, deployer.address, deployer.address);
 
       const deployerStaticBalanceAfter = await staticToken.balanceOf(
-        deployer.address
+        deployer.address,
       );
       const actualSharesBurned =
         deployerStaticBalanceBefore - deployerStaticBalanceAfter;
@@ -497,7 +496,7 @@ describe("StaticATokenFactory & StaticATokenLM", () => {
       const finalATokenBalanceCheck = await aToken.balanceOf(deployer.address);
       expect(finalATokenBalanceCheck).to.be.closeTo(
         deployerATokenBalanceBefore,
-        1
+        1,
       );
 
       // Check Wrapper aToken Balance (Should DECREASE)
@@ -508,7 +507,7 @@ describe("StaticATokenFactory & StaticATokenLM", () => {
       const wrapperTolerance = expectedWrapperBalanceAfter / 1_000_000n + 1n; // Use relative tolerance on expected value
       expect(wrapperATokenBalanceAfter).to.be.closeTo(
         expectedWrapperBalanceAfter,
-        wrapperTolerance
+        wrapperTolerance,
       );
     });
 
@@ -537,15 +536,15 @@ describe("StaticATokenFactory & StaticATokenLM", () => {
       expect(sharesBurned).to.be.closeTo(sharesToWithdraw, 1);
 
       const deployerStaticBalanceBefore = await staticToken.balanceOf(
-        deployer.address
+        deployer.address,
       );
       const deployerATokenBalanceBefore_Test3 = await aToken.balanceOf(
-        deployer.address
+        deployer.address,
       );
       const wrapperATokenBalanceBefore_Test3 =
         await aToken.balanceOf(staticTokenAddress);
       const deployerUnderlyingBalanceBefore = await underlyingToken.balanceOf(
-        deployer.address
+        deployer.address,
       );
 
       await staticToken
@@ -553,7 +552,7 @@ describe("StaticATokenFactory & StaticATokenLM", () => {
         .withdraw(assetsToWithdraw, deployer.address, deployer.address);
 
       const deployerStaticBalanceAfter = await staticToken.balanceOf(
-        deployer.address
+        deployer.address,
       );
       const actualSharesBurned =
         deployerStaticBalanceBefore - deployerStaticBalanceAfter;
@@ -561,11 +560,11 @@ describe("StaticATokenFactory & StaticATokenLM", () => {
       expect(actualSharesBurned).to.be.closeTo(sharesBurned, toleranceShares);
 
       const deployerATokenBalanceAfter_Test3 = await aToken.balanceOf(
-        deployer.address
+        deployer.address,
       );
       expect(deployerATokenBalanceAfter_Test3).to.be.closeTo(
         deployerATokenBalanceBefore_Test3,
-        1
+        1,
       );
 
       const wrapperATokenBalanceAfter_Test3 =
@@ -580,30 +579,31 @@ describe("StaticATokenFactory & StaticATokenLM", () => {
         1n;
       expect(wrapperATokenBalanceAfter_Test3).to.be.closeTo(
         expectedWrapperBalanceAfter_Test3,
-        wrapperTolerance_Test3
+        wrapperTolerance_Test3,
       );
 
       const deployerUnderlyingBalanceAfter = await underlyingToken.balanceOf(
-        deployer.address
+        deployer.address,
       );
       const receivedUnderlying =
         deployerUnderlyingBalanceAfter - deployerUnderlyingBalanceBefore;
       const underlyingTolerance = assetsToWithdraw / 1_000_000n + 1n;
       expect(receivedUnderlying).to.be.closeTo(
         assetsToWithdraw,
-        underlyingTolerance
+        underlyingTolerance,
       );
     });
 
     it("can deposit and redeem aTokens via depositATokens/redeemATokens", async () => {
       // Get initial static token balance from beforeEach setup
       const initialStaticBalance = await staticToken.balanceOf(
-        deployer.address
+        deployer.address,
       );
 
       // --- Step 1: Supply underlying to Pool, receive aTokens ---
       // Ensure deployer starts with 0 aTokens for cleaner accounting in this test
       const deployerATokenStart = await aToken.balanceOf(deployer.address);
+
       if (deployerATokenStart > 0n) {
         // Transfer existing aTokens away if any (e.g. from previous tests/fixture)
         await aToken
@@ -621,7 +621,7 @@ describe("StaticATokenFactory & StaticATokenLM", () => {
 
       // Calculate exact aTokens received from this supply call
       const deployerATokenAfterSupply = await aToken.balanceOf(
-        deployer.address
+        deployer.address,
       );
       const aTokenAmountReceived = deployerATokenAfterSupply; // Since start balance was 0
       expect(aTokenAmountReceived).to.be.gt(0); // Make sure we received some
@@ -633,19 +633,19 @@ describe("StaticATokenFactory & StaticATokenLM", () => {
       const expectedSharesMinted =
         await staticToken.previewDeposit(aTokenAmountReceived);
       const staticBalanceBeforeDeposit = await staticToken.balanceOf(
-        deployer.address
+        deployer.address,
       );
       const wrapperATokenBalanceBeforeDeposit =
         await aToken.balanceOf(staticTokenAddress);
 
       await (staticToken as any).depositATokens(
         aTokenAmountReceived,
-        deployer.address
+        deployer.address,
       );
 
       // --- Step 3: Verify state after depositATokens ---
       const staticBalanceAfterDeposit = await staticToken.balanceOf(
-        deployer.address
+        deployer.address,
       );
       const actualSharesMinted =
         staticBalanceAfterDeposit - staticBalanceBeforeDeposit;
@@ -653,7 +653,7 @@ describe("StaticATokenFactory & StaticATokenLM", () => {
       expect(actualSharesMinted).to.be.closeTo(expectedSharesMinted, tolerance);
       expect(staticBalanceAfterDeposit).to.be.closeTo(
         initialStaticBalance + expectedSharesMinted,
-        tolerance
+        tolerance,
       );
 
       // Deployer's aTokens *should* be transferred to the wrapper.
@@ -667,15 +667,15 @@ describe("StaticATokenFactory & StaticATokenLM", () => {
         await aToken.balanceOf(staticTokenAddress);
       expect(wrapperATokenBalanceAfterDeposit).to.be.closeTo(
         wrapperATokenBalanceBeforeDeposit + aTokenAmountReceived,
-        tolerance
+        tolerance,
       );
 
       // --- Step 4: Redeem static tokens (minted in Step 2) for aTokens ---
       const aTokenBalanceBeforeRedeem = await aToken.balanceOf(
-        deployer.address
+        deployer.address,
       );
       const staticBalanceBeforeRedeem = await staticToken.balanceOf(
-        deployer.address
+        deployer.address,
       ); // Should be initialStaticBalance + actualSharesMinted
       const expectedAssetsOut =
         await staticToken.previewRedeem(actualSharesMinted); // Calculate aTokens expected for the shares minted IN THIS TEST
@@ -684,7 +684,7 @@ describe("StaticATokenFactory & StaticATokenLM", () => {
       await (staticToken as any).redeemATokens(
         actualSharesMinted, // Redeem only what was minted in this test
         deployer.address,
-        deployer.address
+        deployer.address,
       );
 
       // --- Step 5: Verify state after redeemATokens ---
@@ -697,14 +697,14 @@ describe("StaticATokenFactory & StaticATokenLM", () => {
       // Expected balance = balance before redeem (0) + aTokens received (expectedAssetsOut)
       expect(finalATokenBalance).to.be.closeTo(
         aTokenBalanceBeforeRedeem + expectedAssetsOut, // Expecting balance = 0 + expectedAssetsOut
-        tolerance
+        tolerance,
       );
     });
 
     it("depositATokens vs deposit underlying: minted shares are comparable", async () => {
       // Get initial static token balance from beforeEach setup
       const initialStaticBalance = await staticToken.balanceOf(
-        deployer.address
+        deployer.address,
       );
       const aTokenAddress = await staticToken.aToken();
 
@@ -724,10 +724,10 @@ describe("StaticATokenFactory & StaticATokenLM", () => {
         .approve(staticTokenAddress, aTokenAmountReceived);
       await (staticToken as any).depositATokens(
         aTokenAmountReceived,
-        deployer.address
+        deployer.address,
       );
       const balanceAfterATokenDeposit = await staticToken.balanceOf(
-        deployer.address
+        deployer.address,
       );
       // Calculate shares minted in this step
       const sharesFromAToken = balanceAfterATokenDeposit - initialStaticBalance;
@@ -735,6 +735,7 @@ describe("StaticATokenFactory & StaticATokenLM", () => {
       // --- Step 2: Reset balance ---
       // Redeem all static tokens for underlying to reset state for next deposit
       const totalStaticBalance = await staticToken.balanceOf(deployer.address);
+
       if (totalStaticBalance > 0) {
         // Need approval to redeem if calling from deployer
         await staticToken
@@ -743,7 +744,7 @@ describe("StaticATokenFactory & StaticATokenLM", () => {
         await (staticToken as any).redeem(
           totalStaticBalance,
           deployer.address,
-          deployer.address
+          deployer.address,
         );
       }
       expect(await staticToken.balanceOf(deployer.address)).to.be.lte(1); // Check balance is reset (allow dust)
@@ -754,7 +755,7 @@ describe("StaticATokenFactory & StaticATokenLM", () => {
         .approve(staticTokenAddress, depositAmount);
       await (staticToken as any).deposit(depositAmount, deployer.address);
       const sharesFromUnderlying = await staticToken.balanceOf(
-        deployer.address
+        deployer.address,
       );
 
       // --- Step 4: Compare shares minted ---
@@ -776,7 +777,7 @@ describe("StaticATokenFactory & StaticATokenLM", () => {
         await (staticToken as any).redeem(
           sharesFromUnderlying,
           deployer.address,
-          deployer.address
+          deployer.address,
         );
       }
     });
