@@ -88,7 +88,7 @@ contract DStakeToken is
     /**
      * @notice Public getter for the maximum withdrawal fee in basis points.
      */
-    function maxWithdrawalFeeBps() public view returns (uint256) {
+    function maxWithdrawalFeeBps() public pure returns (uint256) {
         return MAX_WITHDRAWAL_FEE_BPS;
     }
 

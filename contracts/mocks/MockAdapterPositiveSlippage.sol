@@ -5,15 +5,14 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IDStableConversionAdapter} from "../vaults/dstake/interfaces/IDStableConversionAdapter.sol";
 import {MockERC4626Simple} from "./MockERC4626Simple.sol";
 import {ERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
-<<<<<<< Updated upstream
-=======
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
->>>>>>> Stashed changes
 
 contract MockAdapterPositiveSlippage is IDStableConversionAdapter {
     address public immutable dStable;
     MockERC4626Simple public immutable vaultToken;
     address public immutable collateralVault;
+
+    using SafeERC20 for IERC20;
 
     constructor(address _dStable, address _collateralVault) {
         dStable = _dStable;
