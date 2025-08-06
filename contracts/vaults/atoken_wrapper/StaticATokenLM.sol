@@ -75,8 +75,7 @@ contract StaticATokenLM is ERC20, IStaticATokenLM, IERC4626 {
         REWARDS_CONTROLLER = rewardsController;
         _aToken = IERC20(newAToken);
         _aTokenUnderlying = IAToken(newAToken).UNDERLYING_ASSET_ADDRESS();
-        // Use standard approve for trusted protocol token (aToken underlying) and trusted protocol contract (dLEND POOL)
-        IERC20(_aTokenUnderlying).approve(address(POOL), type(uint256).max);
+        IERC20(_aTokenUnderlying).forceApprove(address(POOL), type(uint256).max);
         if (address(REWARDS_CONTROLLER) != address(0)) {
             refreshRewardTokens();
         }

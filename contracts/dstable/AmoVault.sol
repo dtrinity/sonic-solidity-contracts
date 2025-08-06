@@ -37,6 +37,7 @@ interface IRecoverable {
  */
 abstract contract AmoVault is CollateralVault, IRecoverable, ReentrancyGuard {
     using SafeERC20 for IERC20;
+    using SafeERC20 for IMintableERC20;
     using Address for address payable;
 
     /* Core state */
@@ -77,8 +78,7 @@ abstract contract AmoVault is CollateralVault, IRecoverable, ReentrancyGuard {
      * @dev Only callable by the contract owner or an account with the DEFAULT_ADMIN_ROLE
      */
     function approveAmoManager() public onlyRole(DEFAULT_ADMIN_ROLE) {
-        // Use standard approve for trusted protocol token (dStable) and trusted protocol contract (AmoManager)
-        dstable.approve(address(amoManager), type(uint256).max);
+        dstable.forceApprove(address(amoManager), type(uint256).max);
     }
 
     /**

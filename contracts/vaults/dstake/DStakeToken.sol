@@ -10,6 +10,7 @@ import {IDStakeCollateralVault} from "./interfaces/IDStakeCollateralVault.sol";
 import {IDStakeRouter} from "./interfaces/IDStakeRouter.sol";
 import {BasisPointConstants} from "../../common/BasisPointConstants.sol";
 import {SupportsWithdrawalFee} from "../../common/SupportsWithdrawalFee.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 /**
  * @title DStakeToken
@@ -21,6 +22,8 @@ contract DStakeToken is
     AccessControlUpgradeable,
     SupportsWithdrawalFee
 {
+    using SafeERC20 for IERC20;
+
     // --- Roles ---
     bytes32 public constant FEE_MANAGER_ROLE = keccak256("FEE_MANAGER_ROLE");
 
@@ -88,7 +91,7 @@ contract DStakeToken is
     /**
      * @notice Public getter for the maximum withdrawal fee in basis points.
      */
-    function maxWithdrawalFeeBps() public view returns (uint256) {
+    function maxWithdrawalFeeBps() public pure returns (uint256) {
         return MAX_WITHDRAWAL_FEE_BPS;
     }
 
@@ -144,8 +147,7 @@ contract DStakeToken is
         super._deposit(caller, receiver, assets, shares); // This handles the ERC20 transfer
 
         // Approve router to spend the received assets (necessary because super._deposit transfers to this contract)
-        // Use standard approve for trusted protocol token (dStable) and trusted protocol contract (router)
-        IERC20(asset()).approve(address(router), assets);
+        IERC20(asset()).forceApprove(address(router), assets);
 
         // Delegate conversion and vault update logic to router
         router.deposit(assets);
