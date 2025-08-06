@@ -250,6 +250,9 @@ abstract contract DLoopIncreaseLeverageBase is
             );
         }
 
+        // Transfer received debt tokens to user
+        debtToken.safeTransfer(msg.sender, receivedDebtTokenAmount);
+
         // Handle any leftover debt tokens
         uint256 leftoverAmount = debtToken.balanceOf(address(this));
         if (
@@ -263,9 +266,6 @@ abstract contract DLoopIncreaseLeverageBase is
                 leftoverAmount
             );
         }
-
-        // Transfer received debt tokens to user
-        debtToken.safeTransfer(msg.sender, receivedDebtTokenAmount);
 
         return receivedDebtTokenAmount;
     }
