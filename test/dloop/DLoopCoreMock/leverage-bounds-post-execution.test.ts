@@ -51,7 +51,7 @@ describe("DLoopCoreMock Post-Execution Leverage Validation Tests (Hats Finance I
 
         // Initial deposit to create some leverage
         await dloopMock.connect(user).deposit(depositAmount, user.address);
-        
+
         // Verify initial leverage is at target (with small tolerance for precision)
         const initialLeverage = await dloopMock.getCurrentLeverageBps();
         expect(initialLeverage).to.be.closeTo(
@@ -91,7 +91,7 @@ describe("DLoopCoreMock Post-Execution Leverage Validation Tests (Hats Finance I
           await debtToken.getAddress(),
           ethers.parseUnits("1", 8),
         );
-        
+
         await dloopMock.connect(user).deposit(depositAmount, user.address);
 
         // Create very small imbalance
@@ -101,7 +101,7 @@ describe("DLoopCoreMock Post-Execution Leverage Validation Tests (Hats Finance I
         );
 
         const leverageBeforeIncrease = await dloopMock.getCurrentLeverageBps();
-        
+
         // Use small amount to reach target exactly
         const smallAmount = ethers.parseEther("1");
         await dloopMock.connect(user).increaseLeverage(smallAmount, 0);
@@ -126,7 +126,7 @@ describe("DLoopCoreMock Post-Execution Leverage Validation Tests (Hats Finance I
           await debtToken.getAddress(),
           ethers.parseUnits("1", 8),
         );
-        
+
         await dloopMock.connect(user).deposit(depositAmount, user.address);
 
         // Create imbalance to make leverage below target
@@ -137,10 +137,13 @@ describe("DLoopCoreMock Post-Execution Leverage Validation Tests (Hats Finance I
 
         // Use excessive amount that would cause over-leverage
         const excessiveAmount = ethers.parseEther("1000");
-        
+
         await expect(
           dloopMock.connect(user).increaseLeverage(excessiveAmount, 0),
-        ).to.be.revertedWithCustomError(dloopMock, "IncreaseLeverageOutOfRange");
+        ).to.be.revertedWithCustomError(
+          dloopMock,
+          "IncreaseLeverageOutOfRange",
+        );
       });
 
       it("should revert when trying to increase at target leverage", async function () {
@@ -156,7 +159,7 @@ describe("DLoopCoreMock Post-Execution Leverage Validation Tests (Hats Finance I
           await debtToken.getAddress(),
           ethers.parseUnits("1", 8),
         );
-        
+
         await dloopMock.connect(user).deposit(depositAmount, user.address);
 
         // Verify close to target leverage (allowing for precision)
@@ -168,10 +171,13 @@ describe("DLoopCoreMock Post-Execution Leverage Validation Tests (Hats Finance I
 
         // Try to increase when already at/near target (should fail)
         const amount = ethers.parseEther("10");
-        
+
         await expect(
           dloopMock.connect(user).increaseLeverage(amount, 0),
-        ).to.be.revertedWithCustomError(dloopMock, "IncreaseLeverageOutOfRange");
+        ).to.be.revertedWithCustomError(
+          dloopMock,
+          "IncreaseLeverageOutOfRange",
+        );
       });
 
       it("should provide correct error parameters in IncreaseLeverageOutOfRange", async function () {
@@ -186,7 +192,7 @@ describe("DLoopCoreMock Post-Execution Leverage Validation Tests (Hats Finance I
           await debtToken.getAddress(),
           ethers.parseUnits("1", 8),
         );
-        
+
         await dloopMock.connect(user).deposit(depositAmount, user.address);
 
         // Create imbalance
@@ -196,13 +202,15 @@ describe("DLoopCoreMock Post-Execution Leverage Validation Tests (Hats Finance I
         );
 
         const excessiveAmount = ethers.parseEther("1000");
-        
+
         // Check that error contains correct parameters
         const tx = dloopMock.connect(user).increaseLeverage(excessiveAmount, 0);
-        
-        await expect(tx)
-          .to.be.revertedWithCustomError(dloopMock, "IncreaseLeverageOutOfRange");
-        
+
+        await expect(tx).to.be.revertedWithCustomError(
+          dloopMock,
+          "IncreaseLeverageOutOfRange",
+        );
+
         // Note: We can't easily test the exact parameters in the error without
         // more complex setup, but the revert confirms the check is working
       });
@@ -225,7 +233,7 @@ describe("DLoopCoreMock Post-Execution Leverage Validation Tests (Hats Finance I
           await debtToken.getAddress(),
           ethers.parseUnits("1", 8),
         );
-        
+
         await dloopMock.connect(user).deposit(depositAmount, user.address);
 
         // Create imbalance to make leverage above target
@@ -259,7 +267,7 @@ describe("DLoopCoreMock Post-Execution Leverage Validation Tests (Hats Finance I
           await debtToken.getAddress(),
           ethers.parseUnits("1", 8),
         );
-        
+
         await dloopMock.connect(user).deposit(depositAmount, user.address);
 
         // Create small imbalance
@@ -269,7 +277,7 @@ describe("DLoopCoreMock Post-Execution Leverage Validation Tests (Hats Finance I
         );
 
         const leverageBeforeDecrease = await dloopMock.getCurrentLeverageBps();
-        
+
         // Use small amount to reach target
         const smallAmount = ethers.parseEther("1");
         await dloopMock.connect(user).decreaseLeverage(smallAmount, 0);
@@ -294,7 +302,7 @@ describe("DLoopCoreMock Post-Execution Leverage Validation Tests (Hats Finance I
           await debtToken.getAddress(),
           ethers.parseUnits("1", 8),
         );
-        
+
         await dloopMock.connect(user).deposit(depositAmount, user.address);
 
         // Create imbalance
@@ -303,13 +311,16 @@ describe("DLoopCoreMock Post-Execution Leverage Validation Tests (Hats Finance I
           ethers.parseUnits("0.9", 8),
         );
 
-        // Use excessive amount that would cause under-leverage  
+        // Use excessive amount that would cause under-leverage
         // Use a smaller amount to avoid arithmetic overflow in the mock
         const excessiveAmount = ethers.parseEther("50");
-        
+
         await expect(
           dloopMock.connect(user).decreaseLeverage(excessiveAmount, 0),
-        ).to.be.revertedWithCustomError(dloopMock, "DecreaseLeverageOutOfRange");
+        ).to.be.revertedWithCustomError(
+          dloopMock,
+          "DecreaseLeverageOutOfRange",
+        );
       });
 
       it("should revert when trying to decrease at target leverage", async function () {
@@ -325,7 +336,7 @@ describe("DLoopCoreMock Post-Execution Leverage Validation Tests (Hats Finance I
           await debtToken.getAddress(),
           ethers.parseUnits("1", 8),
         );
-        
+
         await dloopMock.connect(user).deposit(depositAmount, user.address);
 
         // Verify close to target leverage (allowing for precision)
@@ -337,10 +348,9 @@ describe("DLoopCoreMock Post-Execution Leverage Validation Tests (Hats Finance I
 
         // Try to decrease when already at target (should fail)
         const amount = ethers.parseEther("10");
-        
-        await expect(
-          dloopMock.connect(user).decreaseLeverage(amount, 0),
-        ).to.be.reverted; // Can be either DecreaseLeverageOutOfRange or LeverageBelowTarget
+
+        await expect(dloopMock.connect(user).decreaseLeverage(amount, 0)).to.be
+          .reverted; // Can be either DecreaseLeverageOutOfRange or LeverageBelowTarget
       });
     });
   });
@@ -366,11 +376,14 @@ describe("DLoopCoreMock Post-Execution Leverage Validation Tests (Hats Finance I
 
         // Verify initial leverage is at target
         const initialLeverage = await dloopMock.getCurrentLeverageBps();
-        expect(initialLeverage).to.be.closeTo(BigInt(TARGET_LEVERAGE_BPS), BigInt(ONE_PERCENT_BPS));
+        expect(initialLeverage).to.be.closeTo(
+          BigInt(TARGET_LEVERAGE_BPS),
+          BigInt(ONE_PERCENT_BPS),
+        );
 
         // The key insight of Issue #63: Post-execution checks prevent scenarios where
         // interest accrual during transaction execution could cause over-leverage
-        
+
         // Create a scenario where leverage is below target, so increaseLeverage should work
         await dloopMock.setMockPrice(
           await collateralToken.getAddress(),
@@ -382,12 +395,12 @@ describe("DLoopCoreMock Post-Execution Leverage Validation Tests (Hats Finance I
 
         // Use a reasonable amount for increase leverage
         const leverageAmount = ethers.parseEther("10");
-        
+
         // This demonstrates the fix: post-execution validation will prevent over-leverage
         // The operation may succeed (if within bounds) or fail (if it would cause over-leverage)
         try {
           await dloopMock.connect(user).increaseLeverage(leverageAmount, 0);
-          
+
           // If it succeeds, verify leverage is still within bounds
           const finalLeverage = await dloopMock.getCurrentLeverageBps();
           expect(finalLeverage).to.be.lte(BigInt(TARGET_LEVERAGE_BPS));
@@ -395,7 +408,7 @@ describe("DLoopCoreMock Post-Execution Leverage Validation Tests (Hats Finance I
         } catch (error: any) {
           // If it fails, it should be due to post-execution leverage validation (the fix!)
           expect(error.message).to.include("IncreaseLeverageOutOfRange");
-          
+
           // This is the desired behavior - the fix prevents over-leverage conditions
           // that could occur due to interest accrual during transaction execution
         }
@@ -414,7 +427,7 @@ describe("DLoopCoreMock Post-Execution Leverage Validation Tests (Hats Finance I
           await debtToken.getAddress(),
           ethers.parseUnits("1", 8),
         );
-        
+
         await dloopMock.connect(user).deposit(depositAmount, user.address);
 
         // Create scenario where leverage is below target
@@ -426,11 +439,11 @@ describe("DLoopCoreMock Post-Execution Leverage Validation Tests (Hats Finance I
         // Attempt an increase that would theoretically work with prediction
         // but fail with actual execution (simulating interest accrual effect)
         const borderlineAmount = ethers.parseEther("200");
-        
+
         // This should either succeed (if within bounds) or fail with the correct error
         try {
           await dloopMock.connect(user).increaseLeverage(borderlineAmount, 0);
-          
+
           // If it succeeds, verify leverage is within bounds
           const finalLeverage = await dloopMock.getCurrentLeverageBps();
           expect(finalLeverage).to.be.lte(BigInt(TARGET_LEVERAGE_BPS));
@@ -457,7 +470,7 @@ describe("DLoopCoreMock Post-Execution Leverage Validation Tests (Hats Finance I
           await debtToken.getAddress(),
           ethers.parseUnits("1", 8),
         );
-        
+
         await dloopMock.connect(user).deposit(depositAmount, user.address);
 
         // Create very small imbalance
@@ -468,7 +481,7 @@ describe("DLoopCoreMock Post-Execution Leverage Validation Tests (Hats Finance I
 
         // Use very small amount
         const tinyAmount = ethers.parseEther("0.1");
-        
+
         await dloopMock.connect(user).increaseLeverage(tinyAmount, 0);
 
         // Verify operation completed successfully
@@ -489,7 +502,7 @@ describe("DLoopCoreMock Post-Execution Leverage Validation Tests (Hats Finance I
           await debtToken.getAddress(),
           ethers.parseUnits("1", 8), // Normal price
         );
-        
+
         await dloopMock.connect(user).deposit(depositAmount, user.address);
 
         // Create imbalance
@@ -524,7 +537,7 @@ describe("DLoopCoreMock Post-Execution Leverage Validation Tests (Hats Finance I
           await debtToken.getAddress(),
           ethers.parseUnits("1", 8),
         );
-        
+
         await dloopMock.connect(user).deposit(depositAmount, user.address);
 
         // Test multiple small operations
@@ -544,7 +557,7 @@ describe("DLoopCoreMock Post-Execution Leverage Validation Tests (Hats Finance I
           );
 
           const leverageBefore = await dloopMock.getCurrentLeverageBps();
-          
+
           if (leverageBefore < TARGET_LEVERAGE_BPS) {
             // Try increase
             try {
@@ -563,10 +576,10 @@ describe("DLoopCoreMock Post-Execution Leverage Validation Tests (Hats Finance I
             }
           }
 
-                      // Verify leverage is always within reasonable bounds
-            const leverageAfter = await dloopMock.getCurrentLeverageBps();
-            expect(leverageAfter).to.be.gt(BigInt(0));
-            expect(leverageAfter).to.be.lt(BigInt(10000000)); // Sanity check - 1000x max (more lenient)
+          // Verify leverage is always within reasonable bounds
+          const leverageAfter = await dloopMock.getCurrentLeverageBps();
+          expect(leverageAfter).to.be.gt(BigInt(0));
+          expect(leverageAfter).to.be.lt(BigInt(10000000)); // Sanity check - 1000x max (more lenient)
         }
       });
 
@@ -613,7 +626,10 @@ describe("DLoopCoreMock Post-Execution Leverage Validation Tests (Hats Finance I
 
           // Verify successful deposit and reasonable leverage
           const leverage = await freshDloop.getCurrentLeverageBps();
-          expect(leverage).to.be.closeTo(BigInt(TARGET_LEVERAGE_BPS), BigInt(ONE_PERCENT_BPS));
+          expect(leverage).to.be.closeTo(
+            BigInt(TARGET_LEVERAGE_BPS),
+            BigInt(ONE_PERCENT_BPS),
+          );
         }
       });
     });
@@ -634,7 +650,7 @@ describe("DLoopCoreMock Post-Execution Leverage Validation Tests (Hats Finance I
         await debtToken.getAddress(),
         ethers.parseUnits("1", 8),
       );
-      
+
       await dloopMock.connect(user).deposit(depositAmount, user.address);
 
       // Create small imbalance
@@ -644,9 +660,11 @@ describe("DLoopCoreMock Post-Execution Leverage Validation Tests (Hats Finance I
       );
 
       // Measure gas for increase leverage
-      const tx = await dloopMock.connect(user).increaseLeverage(leverageAmount, 0);
+      const tx = await dloopMock
+        .connect(user)
+        .increaseLeverage(leverageAmount, 0);
       const receipt = await tx.wait();
-      
+
       // Gas usage should be reasonable (this is a rough check)
       expect(receipt?.gasUsed).to.be.lt(BigInt(1000000)); // 1M gas limit
     });
@@ -665,14 +683,14 @@ describe("DLoopCoreMock Post-Execution Leverage Validation Tests (Hats Finance I
         await debtToken.getAddress(),
         ethers.parseUnits("1", 8),
       );
-      
+
       await dloopMock.connect(user).deposit(depositAmount, user.address);
 
-              // Perform multiple operations with very small price changes to avoid precision issues
-        const operations = [
-          { price: ethers.parseUnits("1.002", 8), operation: "increase" },
-          { price: ethers.parseUnits("0.998", 8), operation: "decrease" },
-        ];
+      // Perform multiple operations with very small price changes to avoid precision issues
+      const operations = [
+        { price: ethers.parseUnits("1.002", 8), operation: "increase" },
+        { price: ethers.parseUnits("0.998", 8), operation: "decrease" },
+      ];
 
       for (const op of operations) {
         await dloopMock.setMockPrice(
@@ -681,20 +699,26 @@ describe("DLoopCoreMock Post-Execution Leverage Validation Tests (Hats Finance I
         );
 
         const leverageBefore = await dloopMock.getCurrentLeverageBps();
-        
-                  if (op.operation === "increase" && leverageBefore < TARGET_LEVERAGE_BPS) {
-            try {
-              await dloopMock.connect(user).increaseLeverage(leverageAmount, 0);
-            } catch (error) {
-              // May fail due to precision/over-leverage protection - this is expected
-            }
-          } else if (op.operation === "decrease" && leverageBefore > TARGET_LEVERAGE_BPS) {
-            try {
-              await dloopMock.connect(user).decreaseLeverage(leverageAmount, 0);
-            } catch (error) {
-              // May fail due to precision/under-leverage protection - this is expected
-            }
+
+        if (
+          op.operation === "increase" &&
+          leverageBefore < TARGET_LEVERAGE_BPS
+        ) {
+          try {
+            await dloopMock.connect(user).increaseLeverage(leverageAmount, 0);
+          } catch (error) {
+            // May fail due to precision/over-leverage protection - this is expected
           }
+        } else if (
+          op.operation === "decrease" &&
+          leverageBefore > TARGET_LEVERAGE_BPS
+        ) {
+          try {
+            await dloopMock.connect(user).decreaseLeverage(leverageAmount, 0);
+          } catch (error) {
+            // May fail due to precision/under-leverage protection - this is expected
+          }
+        }
 
         // Verify leverage is still reasonable
         const leverageAfter = await dloopMock.getCurrentLeverageBps();
@@ -702,4 +726,4 @@ describe("DLoopCoreMock Post-Execution Leverage Validation Tests (Hats Finance I
       }
     });
   });
-}); 
+});
