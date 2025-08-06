@@ -543,6 +543,69 @@ describe("DLoopIncreaseLeverageBase - MinLeftoverDebtTokenAmount", function () {
       await expect(increaseLeverageMock.existingDebtTokens(2)).to.be.reverted;
     });
 
+    it("should correctly remove last element with break statement fix", async function () {
+      // Add 3 tokens: [tokenA, tokenB, tokenC]
+      await increaseLeverageMock.setMinLeftoverDebtTokenAmount(
+        dLoopCore.target,
+        tokenA.target,
+        100,
+      );
+      await increaseLeverageMock.setMinLeftoverDebtTokenAmount(
+        dLoopCore.target,
+        tokenB.target,
+        200,
+      );
+      await increaseLeverageMock.setMinLeftoverDebtTokenAmount(
+        dLoopCore.target,
+        tokenC.target,
+        300,
+      );
+
+      // Verify initial state: [tokenA, tokenB, tokenC]
+      expect(await increaseLeverageMock.existingDebtTokens(0)).to.equal(
+        tokenA.target,
+      );
+      expect(await increaseLeverageMock.existingDebtTokens(1)).to.equal(
+        tokenB.target,
+      );
+      expect(await increaseLeverageMock.existingDebtTokens(2)).to.equal(
+        tokenC.target,
+      );
+
+      // Remove the last element (tokenC) - this tests the break statement fix
+      await expect(
+        increaseLeverageMock.setMinLeftoverDebtTokenAmount(
+          dLoopCore.target,
+          tokenC.target,
+          0,
+        ),
+      )
+        .to.emit(increaseLeverageMock, "MinLeftoverDebtTokenAmountRemoved")
+        .withArgs(dLoopCore.target, tokenC.target);
+
+      // With the fix: array should correctly have [tokenA, tokenB] with length 2
+      const remainingTokens = [
+        await increaseLeverageMock.existingDebtTokens(0),
+        await increaseLeverageMock.existingDebtTokens(1),
+      ];
+
+      expect(remainingTokens).to.include(tokenA.target);
+      expect(remainingTokens).to.include(tokenB.target);
+      expect(remainingTokens).to.not.include(tokenC.target);
+      expect(remainingTokens.length).to.equal(2);
+
+      // Array should have exactly 2 elements
+      await expect(increaseLeverageMock.existingDebtTokens(2)).to.be.reverted;
+
+      // Verify mapping is cleared
+      expect(
+        await increaseLeverageMock.minLeftoverDebtTokenAmount(
+          dLoopCore.target,
+          tokenC.target,
+        ),
+      ).to.equal(0);
+    });
+
     it("should handle removal when array has only one element", async function () {
       // Add one token
       await increaseLeverageMock.setMinLeftoverDebtTokenAmount(

@@ -442,6 +442,7 @@ abstract contract DLoopDecreaseLeverageBase is
      * @param dLoopCore Address of the dLoopCore contract
      * @param collateralToken Address of the collateral token
      * @param minAmount Minimum leftover collateral token amount for the given dLoopCore and collateral token
+     *                  Setting minAmount to 0 removes the token from the array using efficient swap-and-pop
      */
     function setMinLeftoverCollateralTokenAmount(
         address dLoopCore,
@@ -463,6 +464,7 @@ abstract contract DLoopDecreaseLeverageBase is
                         existingCollateralTokens.length - 1
                     ];
                     existingCollateralTokens.pop();
+                    break; // Exit loop once token is found and removed
                 }
             }
             emit MinLeftoverCollateralTokenAmountRemoved(

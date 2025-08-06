@@ -438,6 +438,7 @@ abstract contract DLoopDepositorBase is
      * @param dLoopCore Address of the dLoopCore contract
      * @param debtToken Address of the debt token
      * @param minAmount Minimum leftover debt token amount for the given dLoopCore and debt token
+     *                  Setting minAmount to 0 removes the token from the array using efficient swap-and-pop
      */
     function setMinLeftoverDebtTokenAmount(
         address dLoopCore,
@@ -457,6 +458,7 @@ abstract contract DLoopDepositorBase is
                         existingDebtTokens.length - 1
                     ];
                     existingDebtTokens.pop();
+                    break; // Exit loop once token is found and removed
                 }
             }
             emit MinLeftoverDebtTokenAmountRemoved(dLoopCore, debtToken);

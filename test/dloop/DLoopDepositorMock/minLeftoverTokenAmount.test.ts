@@ -534,6 +534,63 @@ describe("DLoopDepositorBase - MinLeftoverDebtTokenAmount", function () {
       await expect(depositorMock.existingDebtTokens(2)).to.be.reverted;
     });
 
+    it("should correctly remove last element with break statement fix", async function () {
+      // Add 3 tokens: [tokenA, tokenB, tokenC]
+      await depositorMock.setMinLeftoverDebtTokenAmount(
+        dLoopCore.target,
+        tokenA.target,
+        100,
+      );
+      await depositorMock.setMinLeftoverDebtTokenAmount(
+        dLoopCore.target,
+        tokenB.target,
+        200,
+      );
+      await depositorMock.setMinLeftoverDebtTokenAmount(
+        dLoopCore.target,
+        tokenC.target,
+        300,
+      );
+
+      // Verify initial state: [tokenA, tokenB, tokenC]
+      expect(await depositorMock.existingDebtTokens(0)).to.equal(tokenA.target);
+      expect(await depositorMock.existingDebtTokens(1)).to.equal(tokenB.target);
+      expect(await depositorMock.existingDebtTokens(2)).to.equal(tokenC.target);
+
+      // Remove the last element (tokenC) - this tests the break statement fix
+      await expect(
+        depositorMock.setMinLeftoverDebtTokenAmount(
+          dLoopCore.target,
+          tokenC.target,
+          0,
+        ),
+      )
+        .to.emit(depositorMock, "MinLeftoverDebtTokenAmountRemoved")
+        .withArgs(dLoopCore.target, tokenC.target);
+
+      // With the fix: array should correctly have [tokenA, tokenB] with length 2
+      const remainingTokens = [
+        await depositorMock.existingDebtTokens(0),
+        await depositorMock.existingDebtTokens(1),
+      ];
+
+      expect(remainingTokens).to.include(tokenA.target);
+      expect(remainingTokens).to.include(tokenB.target);
+      expect(remainingTokens).to.not.include(tokenC.target);
+      expect(remainingTokens.length).to.equal(2);
+
+      // Array should have exactly 2 elements
+      await expect(depositorMock.existingDebtTokens(2)).to.be.reverted;
+
+      // Verify mapping is cleared
+      expect(
+        await depositorMock.minLeftoverDebtTokenAmount(
+          dLoopCore.target,
+          tokenC.target,
+        ),
+      ).to.equal(0);
+    });
+
     it("should handle removal when array has only one element", async function () {
       // Add one token
       await depositorMock.setMinLeftoverDebtTokenAmount(
