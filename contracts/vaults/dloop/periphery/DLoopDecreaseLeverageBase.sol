@@ -99,6 +99,10 @@ abstract contract DLoopDecreaseLeverageBase is
         address indexed collateralToken,
         uint256 minAmount
     );
+    event MinLeftoverCollateralTokenAmountRemoved(
+        address indexed dLoopCore,
+        address indexed collateralToken
+    );
 
     /* Structs */
 
@@ -438,6 +442,7 @@ abstract contract DLoopDecreaseLeverageBase is
      * @param dLoopCore Address of the dLoopCore contract
      * @param collateralToken Address of the collateral token
      * @param minAmount Minimum leftover collateral token amount for the given dLoopCore and collateral token
+     *                  Setting minAmount to 0 removes the token from the array using efficient swap-and-pop
      */
     function setMinLeftoverCollateralTokenAmount(
         address dLoopCore,
@@ -447,15 +452,36 @@ abstract contract DLoopDecreaseLeverageBase is
         minLeftoverCollateralTokenAmount[dLoopCore][
             collateralToken
         ] = minAmount;
-        if (!_existingCollateralTokensMap[collateralToken]) {
-            _existingCollateralTokensMap[collateralToken] = true;
-            existingCollateralTokens.push(collateralToken);
+
+        // If the min amount is 0, we need to remove the collateral token from the existing collateral tokens array
+        if (minAmount == 0) {
+            delete _existingCollateralTokensMap[collateralToken];
+            // Remove the collateral token from the existing collateral tokens array
+            for (uint256 i = 0; i < existingCollateralTokens.length; i++) {
+                // Remove the by replacing the collateral token with the last element and then pop the last element
+                if (existingCollateralTokens[i] == collateralToken) {
+                    existingCollateralTokens[i] = existingCollateralTokens[
+                        existingCollateralTokens.length - 1
+                    ];
+                    existingCollateralTokens.pop();
+                    break; // Exit loop once token is found and removed
+                }
+            }
+            emit MinLeftoverCollateralTokenAmountRemoved(
+                dLoopCore,
+                collateralToken
+            );
+        } else {
+            if (!_existingCollateralTokensMap[collateralToken]) {
+                _existingCollateralTokensMap[collateralToken] = true;
+                existingCollateralTokens.push(collateralToken);
+            }
+            emit MinLeftoverCollateralTokenAmountSet(
+                dLoopCore,
+                collateralToken,
+                minAmount
+            );
         }
-        emit MinLeftoverCollateralTokenAmountSet(
-            dLoopCore,
-            collateralToken,
-            minAmount
-        );
     }
 
     /* Data encoding/decoding helpers */
