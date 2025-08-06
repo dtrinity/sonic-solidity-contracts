@@ -7,7 +7,6 @@ import {MockERC4626Simple} from "./MockERC4626Simple.sol";
 import {ERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-
 contract MockAdapterPositiveSlippage is IDStableConversionAdapter {
     using SafeERC20 for IERC20;
 
@@ -38,9 +37,20 @@ contract MockAdapterPositiveSlippage is IDStableConversionAdapter {
         uint256 vaultAssetAmount
     ) external override returns (uint256 dStableAmount) {
         // pull vault tokens
-        IERC20(address(vaultToken)).transferFrom(msg.sender, address(this), vaultAssetAmount);
-        IERC20(address(vaultToken)).forceApprove(address(vaultToken), vaultAssetAmount);
-        dStableAmount = vaultToken.redeem(vaultAssetAmount, msg.sender, address(this));
+        IERC20(address(vaultToken)).transferFrom(
+            msg.sender,
+            address(this),
+            vaultAssetAmount
+        );
+        IERC20(address(vaultToken)).forceApprove(
+            address(vaultToken),
+            vaultAssetAmount
+        );
+        dStableAmount = vaultToken.redeem(
+            vaultAssetAmount,
+            msg.sender,
+            address(this)
+        );
     }
 
     function previewConvertToVaultAsset(

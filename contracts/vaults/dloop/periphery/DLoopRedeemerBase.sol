@@ -281,7 +281,12 @@ abstract contract DLoopRedeemerBase is
         );
 
         // Validate shares burned correctly
-        _validateSharesBurned(dLoopCore, address(this), shares, sharesBeforeRedeem);
+        _validateSharesBurned(
+            dLoopCore,
+            address(this),
+            shares,
+            sharesBeforeRedeem
+        );
 
         // Finalize redeem and transfer assets to receiver
         return
