@@ -53,6 +53,7 @@ library OdosSwapLogic {
         uint256 actualAmountOut = OdosSwapUtils.executeSwapOperation(
             odosRouter,
             address(inputToken),
+            address(outputToken),
             amountInMaximum,
             amountOut,
             swapData

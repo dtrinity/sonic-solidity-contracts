@@ -22,12 +22,14 @@ contract OdosSwapper {
     /**
      * @notice Performs a swap operation using Odos router with provided swap data
      * @param inputToken Address of the input token
+     * @param outputToken Address of the output token
      * @param maxIn Maximum input amount approved for the swap
      * @param exactOut Exact amount of output token expected
      * @param swapData Encoded swap path data for Odos router
      */
     function executeSwapOperation(
         address inputToken,
+        address outputToken,
         uint256 maxIn,
         uint256 exactOut,
         bytes calldata swapData
@@ -36,6 +38,7 @@ contract OdosSwapper {
         OdosSwapUtils.executeSwapOperation(
             router,
             inputToken,
+            address(outputToken),
             maxIn,
             exactOut,
             swapData

@@ -21,6 +21,7 @@ library OdosSwapUtils {
      * @notice Performs an swap operation using Odos router with swap data
      * @param router Odos router contract
      * @param inputToken Input token
+     * @param outputToken Output token
      * @param maxIn Maximum input amount
      * @param exactOut Exact output amount
      * @param swapData Encoded swap path data
@@ -28,10 +29,14 @@ library OdosSwapUtils {
     function executeSwapOperation(
         IOdosRouterV2 router,
         address inputToken,
+        address outputToken,
         uint256 maxIn,
         uint256 exactOut,
         bytes memory swapData
     ) internal returns (uint256) {
+        // Track output token balance before swap
+        uint256 balanceBefore = IERC20(outputToken).balanceOf(address(this));
+        
         // Use forceApprove for external DEX router integration
         IERC20(inputToken).forceApprove(address(router), maxIn);
 
@@ -48,10 +53,9 @@ library OdosSwapUtils {
             revert SwapFailed();
         }
 
-        uint256 actualAmountOut;
-        assembly {
-            actualAmountOut := mload(add(result, 32))
-        }
+        // Calculate actual amount out by checking balance difference
+        uint256 balanceAfter = IERC20(outputToken).balanceOf(address(this));
+        uint256 actualAmountOut = balanceAfter - balanceBefore;
 
         if (actualAmountOut < exactOut) {
             revert InsufficientOutput(exactOut, actualAmountOut);

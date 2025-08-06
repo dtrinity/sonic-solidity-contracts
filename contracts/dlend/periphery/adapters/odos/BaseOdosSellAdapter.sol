@@ -83,6 +83,7 @@ abstract contract BaseOdosSellAdapter is BaseOdosSwapAdapter {
         amountReceived = OdosSwapUtils.executeSwapOperation(
             swapRouter,
             tokenIn,
+            tokenOut,
             amountToSwap,
             minAmountToReceive,
             swapData
