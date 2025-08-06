@@ -1024,6 +1024,12 @@ abstract contract DLoopCoreBase is
          *  <=> y = x * (T' - ONE_HUNDRED_PERCENT_BPS) / T'
          */
 
+        // Short-circuit when leverageBpsBeforeRepayDebt == 0
+        if (leverageBpsBeforeRepayDebt == 0) {
+            // no collateral means no debt yet, so nothing to repay
+            return 0;
+        }
+
         // Convert the target withdraw amount to base
         uint256 targetWithdrawAmountInBase = convertFromTokenAmountToBaseCurrency(
                 targetWithdrawAmount,
@@ -1089,6 +1095,13 @@ abstract contract DLoopCoreBase is
          *  <=> y = x * (T' / ONE_HUNDRED_PERCENT_BPS - 1) / (T' / ONE_HUNDRED_PERCENT_BPS)
          *  <=> y = x * (T' - ONE_HUNDRED_PERCENT_BPS) / T'
          */
+
+
+        // Short-circuit when leverageBpsBeforeSupply == 0
+        if (leverageBpsBeforeSupply == 0) {
+            // no collateral thus cannot borrow any debt
+            return 0;
+        }
 
         // Convert the actual supplied amount to base
         uint256 suppliedCollateralAmountInBase = convertFromTokenAmountToBaseCurrency(
