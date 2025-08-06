@@ -90,4 +90,4 @@ func.tags = ["pt-liquidator-bot"];
 func.dependencies = [];
 func.id = FLASH_LOAN_LIQUIDATOR_PT_ODOS_ID;
 
-export default func; 
+export default func;

@@ -1,9 +1,10 @@
-import { ethers, network, deployments, getNamedAccounts } from "hardhat";
+import { deployments, ethers, getNamedAccounts, network } from "hardhat";
+
 import {
+  IERC20Detailed,
+  IPool,
   IPoolConfigurator,
   IPoolDataProvider,
-  IPool,
-  IERC20Detailed,
 } from "../../typechain-types";
 import {
   POOL_CONFIGURATOR_ID,
@@ -21,6 +22,9 @@ const RESERVE_ADDRESS = ""; // Empty string to use symbol lookup instead
 const SKIP_SAFETY_DELAY = false;
 // ------------------------------------------------------------------------------------------------
 
+/**
+ *
+ */
 async function main() {
   console.log(`--- Reserve Removal Script ---`);
   console.log(`Network: ${network.name}`);
@@ -36,16 +40,18 @@ async function main() {
 
   if (!poolConfiguratorAddress) {
     console.error(
-      `❌ Error: PoolConfigurator deployment (${POOL_CONFIGURATOR_ID}) not found.`
+      `❌ Error: PoolConfigurator deployment (${POOL_CONFIGURATOR_ID}) not found.`,
     );
     process.exit(1);
   }
+
   if (!poolDataProviderAddress) {
     console.error(
-      `❌ Error: PoolDataProvider deployment (${POOL_DATA_PROVIDER_ID}) not found.`
+      `❌ Error: PoolDataProvider deployment (${POOL_DATA_PROVIDER_ID}) not found.`,
     );
     process.exit(1);
   }
+
   if (!aclManagerAddress) {
     console.error(`❌ Error: ACLManager deployment not found.`);
     process.exit(1);
@@ -63,31 +69,31 @@ async function main() {
 
   if (balance === 0n) {
     console.warn(
-      "⚠️ Warning: The executing account has no balance. Gas fees will cause failure."
+      "⚠️ Warning: The executing account has no balance. Gas fees will cause failure.",
     );
   }
 
   // Get contract instances
   const poolDataProvider = (await ethers.getContractAt(
     "IPoolDataProvider",
-    poolDataProviderAddress
+    poolDataProviderAddress,
   )) as IPoolDataProvider;
 
   const poolConfigurator = (await ethers.getContractAt(
     "IPoolConfigurator",
     poolConfiguratorAddress,
-    deployerSigner
+    deployerSigner,
   )) as IPoolConfigurator;
 
   const aclManager = await ethers.getContractAt(
     "IACLManager",
-    aclManagerAddress
+    aclManagerAddress,
   );
 
   // Get pool contract from the addresses provider to access getReservesList
   const poolAddressesProvider = await ethers.getContractAt(
     "IPoolAddressesProvider",
-    allDeployments["PoolAddressesProvider"]?.address
+    allDeployments["PoolAddressesProvider"]?.address,
   );
   const poolAddress = await poolAddressesProvider.getPool();
   const pool = (await ethers.getContractAt("IPool", poolAddress)) as IPool;
@@ -102,16 +108,17 @@ async function main() {
     // Verify address is a valid reserve
     try {
       const reserveData = await poolDataProvider.getReserveData(assetAddress);
+
       if (!reserveData || typeof reserveData !== "object") {
         console.error(
-          `❌ Error: Could not fetch reserve data for ${assetAddress}.`
+          `❌ Error: Could not fetch reserve data for ${assetAddress}.`,
         );
         process.exit(1);
       }
     } catch (e) {
       console.error(
         `❌ Error: Address ${assetAddress} is not a valid reserve:`,
-        e
+        e,
       );
       process.exit(1);
     }
@@ -124,12 +131,13 @@ async function main() {
       const reservesList = await pool.getReservesList();
 
       let found = false;
+
       for (const reserve of reservesList) {
         // For each reserve, get the underlying token and check its symbol
         try {
           const token = (await ethers.getContractAt(
             "IERC20Detailed",
-            reserve
+            reserve,
           )) as IERC20Detailed;
           const symbol = await token.symbol();
 
@@ -147,26 +155,27 @@ async function main() {
 
       if (!found) {
         console.error(
-          `❌ Error: Could not find reserve with symbol ${RESERVE_SYMBOL}`
+          `❌ Error: Could not find reserve with symbol ${RESERVE_SYMBOL}`,
         );
         process.exit(1);
       }
     } catch (e) {
       console.error(
         `❌ Error finding reserve for symbol ${RESERVE_SYMBOL}:`,
-        e
+        e,
       );
       process.exit(1);
     }
   } else {
     console.error(
-      "❌ Error: Please set either RESERVE_SYMBOL or RESERVE_ADDRESS."
+      "❌ Error: Please set either RESERVE_SYMBOL or RESERVE_ADDRESS.",
     );
     process.exit(1);
   }
 
   // Pre-flight checks
   console.log("\nPerforming pre-flight checks:");
+
   try {
     // Get reserve data - structure may vary depending on your implementation
     const reserveData = await poolDataProvider.getReserveData(assetAddress);
@@ -187,13 +196,13 @@ async function main() {
     const decimals = await getTokenDecimals(assetAddress);
 
     console.log(
-      ` - Total aTokens: ${ethers.formatUnits(totalAToken, decimals)}`
+      ` - Total aTokens: ${ethers.formatUnits(totalAToken, decimals)}`,
     );
     console.log(
-      ` - Total Stable Debt: ${ethers.formatUnits(totalStableDebt, decimals)}`
+      ` - Total Stable Debt: ${ethers.formatUnits(totalStableDebt, decimals)}`,
     );
     console.log(
-      ` - Total Variable Debt: ${ethers.formatUnits(totalVariableDebt, decimals)}`
+      ` - Total Variable Debt: ${ethers.formatUnits(totalVariableDebt, decimals)}`,
     );
     console.log(` - Is Active: ${reserveConf.isActive}`);
     console.log(` - Is Frozen: ${reserveConf.isFrozen}`);
@@ -205,10 +214,10 @@ async function main() {
       (totalVariableDebt && totalVariableDebt !== 0n)
     ) {
       console.error(
-        "❌ CRITICAL ERROR: Reserve appears to have active supply or borrows. DO NOT PROCEED."
+        "❌ CRITICAL ERROR: Reserve appears to have active supply or borrows. DO NOT PROCEED.",
       );
       console.error(
-        "   Dropping a reserve with active balances will likely result in LOST FUNDS."
+        "   Dropping a reserve with active balances will likely result in LOST FUNDS.",
       );
       process.exit(1);
     } else {
@@ -218,12 +227,13 @@ async function main() {
     // Check for active/frozen status
     if (reserveConf.isActive) {
       console.warn(
-        "⚠️ Warning: Reserve is still Active. It should be deactivated first."
+        "⚠️ Warning: Reserve is still Active. It should be deactivated first.",
       );
     }
+
     if (!reserveConf.isFrozen) {
       console.warn(
-        "⚠️ Warning: Reserve is not Frozen. It should be frozen first."
+        "⚠️ Warning: Reserve is not Frozen. It should be frozen first.",
       );
     }
   } catch (e) {
@@ -241,7 +251,7 @@ async function main() {
       `\n     2. NO user supply exists (all aTokens redeemed).` +
       `\n     3. NO user borrows exist (all debt repaid).` +
       `\n     4. Any accrued treasury fees are claimed.` +
-      `\n   Failure to meet these conditions WILL LIKELY LEAD TO FUND LOSS.`
+      `\n   Failure to meet these conditions WILL LIKELY LEAD TO FUND LOSS.`,
   );
   console.log("   Double-check the asset address, network, and consequences.");
 
@@ -260,9 +270,10 @@ async function main() {
   try {
     // Check POOL_ADMIN role
     const isAdmin = await aclManager.isPoolAdmin(deployerSigner.address);
+
     if (!isAdmin) {
       console.error(
-        `❌ Error: Account ${deployerSigner.address} does not have the POOL_ADMIN role.`
+        `❌ Error: Account ${deployerSigner.address} does not have the POOL_ADMIN role.`,
       );
       process.exit(1);
     }
@@ -276,6 +287,7 @@ async function main() {
     console.log("Waiting for transaction confirmation...");
 
     const receipt = await tx.wait();
+
     if (receipt) {
       console.log(`✅✅✅ SUCCESS: Reserve ${assetAddress} dropped.`);
       console.log(`Transaction confirmed in block: ${receipt.blockNumber}`);
@@ -293,17 +305,21 @@ async function main() {
 }
 
 // Helper to get token decimals
+/**
+ *
+ * @param tokenAddress
+ */
 async function getTokenDecimals(tokenAddress: string): Promise<number> {
   try {
     const token = (await ethers.getContractAt(
       "IERC20Detailed",
-      tokenAddress
+      tokenAddress,
     )) as IERC20Detailed;
     const decimals = await token.decimals();
     return Number(decimals);
   } catch (e) {
     console.warn(
-      `⚠️ Warning: Could not determine token decimals. Using default of 18.`
+      `⚠️ Warning: Could not determine token decimals. Using default of 18.`,
     );
     return 18;
   }
