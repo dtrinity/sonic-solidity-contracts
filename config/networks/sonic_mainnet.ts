@@ -165,8 +165,8 @@ export async function getConfig(
         "3x_sfrxUSD_dUSD": {
           // TODO: ALL dLOOP values are for QA ONLY. Reset them before mainnet
           venue: "dlend",
-          name: "3x Leveraged sfrxUSD-dUSD Vault",
-          symbol: "3x-sfrxUSD-dUSD",
+          name: "dLOOP 3X sfrxUSD dLEND",
+          symbol: "3X-sfrxUSD",
           underlyingAsset: sfrxUSDAddress,
           dStable: dUSDDeployment?.address || "",
           targetLeverageBps: 300 * ONE_PERCENT_BPS, // 300% leverage, meaning 3x leverage
