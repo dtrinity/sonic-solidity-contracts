@@ -582,7 +582,9 @@ abstract contract DLoopCoreBase is
      * @param assets Amount of assets
      * @return leveragedAssets Amount of leveraged assets
      */
-    function getTargetLeveragedAssets(uint256 assets) public view returns (uint256) {
+    function getTargetLeveragedAssets(
+        uint256 assets
+    ) public view returns (uint256) {
         return
             Math.mulDiv(
                 assets,
@@ -596,7 +598,9 @@ abstract contract DLoopCoreBase is
      * @param assets Amount of assets
      * @return leveragedAssets Amount of leveraged assets
      */
-    function getCurrentLeveragedAssets(uint256 assets) public view returns (uint256) {
+    function getCurrentLeveragedAssets(
+        uint256 assets
+    ) public view returns (uint256) {
         return
             (assets * getCurrentLeverageBps()) /
             BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
@@ -1120,7 +1124,6 @@ abstract contract DLoopCoreBase is
          *  <=> y = x * (T' - ONE_HUNDRED_PERCENT_BPS) / T'
          */
 
-
         // Short-circuit when leverageBpsBeforeSupply == 0
         if (leverageBpsBeforeSupply == 0) {
             // no collateral thus cannot borrow any debt
@@ -1598,7 +1601,10 @@ abstract contract DLoopCoreBase is
 
         // Make sure new current leverage is increased and not above the target leverage
         uint256 newCurrentLeverageBps = getCurrentLeverageBps();
-        if (newCurrentLeverageBps > targetLeverageBps || newCurrentLeverageBps <= currentLeverageBps) {
+        if (
+            newCurrentLeverageBps > targetLeverageBps ||
+            newCurrentLeverageBps <= currentLeverageBps
+        ) {
             revert IncreaseLeverageOutOfRange(
                 newCurrentLeverageBps,
                 targetLeverageBps,
@@ -1730,7 +1736,10 @@ abstract contract DLoopCoreBase is
 
         // Make sure new current leverage is decreased and not below the target leverage
         uint256 newCurrentLeverageBps = getCurrentLeverageBps();
-        if (newCurrentLeverageBps < targetLeverageBps || newCurrentLeverageBps >= currentLeverageBps) {
+        if (
+            newCurrentLeverageBps < targetLeverageBps ||
+            newCurrentLeverageBps >= currentLeverageBps
+        ) {
             revert DecreaseLeverageOutOfRange(
                 newCurrentLeverageBps,
                 targetLeverageBps,

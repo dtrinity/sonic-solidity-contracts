@@ -189,7 +189,14 @@ abstract contract DLoopRedeemerBase is
         uint256 leveragedAssets,
         DLoopCoreBase dLoopCore
     ) public view returns (uint256) {
-        return dLoopCore.getCurrentLeverageBps() > 0 ? dLoopCore.getUnleveragedAssetsWithCurrentLeverage(leveragedAssets) : dLoopCore.getUnleveragedAssetsWithTargetLeverage(leveragedAssets);
+        return
+            dLoopCore.getCurrentLeverageBps() > 0
+                ? dLoopCore.getUnleveragedAssetsWithCurrentLeverage(
+                    leveragedAssets
+                )
+                : dLoopCore.getUnleveragedAssetsWithTargetLeverage(
+                    leveragedAssets
+                );
     }
 
     /**

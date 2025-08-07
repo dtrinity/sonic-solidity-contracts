@@ -196,7 +196,10 @@ abstract contract DLoopDepositorBase is
         uint256 assets,
         DLoopCoreBase dLoopCore
     ) public view returns (uint256) {
-        return dLoopCore.getCurrentLeverageBps() > 0 ? dLoopCore.getCurrentLeveragedAssets(assets) : dLoopCore.getTargetLeveragedAssets(assets);
+        return
+            dLoopCore.getCurrentLeverageBps() > 0
+                ? dLoopCore.getCurrentLeveragedAssets(assets)
+                : dLoopCore.getTargetLeveragedAssets(assets);
     }
 
     /**
