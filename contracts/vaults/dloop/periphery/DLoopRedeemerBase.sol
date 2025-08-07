@@ -20,6 +20,7 @@ pragma solidity 0.8.20;
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {ERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 import {BasisPointConstants} from "contracts/common/BasisPointConstants.sol";
+import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 import {IERC3156FlashBorrower} from "./interface/flashloan/IERC3156FlashBorrower.sol";
@@ -110,6 +111,10 @@ abstract contract DLoopRedeemerBase is
         address indexed collateralToken,
         uint256 minAmount
     );
+    event MinLeftoverCollateralTokenAmountRemoved(
+        address indexed dLoopCore,
+        address indexed collateralToken
+    );
 
     /* Structs */
 
@@ -167,9 +172,11 @@ abstract contract DLoopRedeemerBase is
             dLoopCore
         );
         return
-            (unleveragedCollateral *
-                (BasisPointConstants.ONE_HUNDRED_PERCENT_BPS - slippageBps)) /
-            BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
+            Math.mulDiv(
+                unleveragedCollateral,
+                BasisPointConstants.ONE_HUNDRED_PERCENT_BPS - slippageBps,
+                BasisPointConstants.ONE_HUNDRED_PERCENT_BPS
+            );
     }
 
     /**
@@ -291,66 +298,23 @@ abstract contract DLoopRedeemerBase is
             data
         );
 
-        // Check if the shares decreased after the flash loan
-        uint256 sharesAfterRedeem = dLoopCore.balanceOf(address(this));
-        if (sharesAfterRedeem >= sharesBeforeRedeem) {
-            revert SharesNotDecreasedAfterFlashLoan(
-                sharesBeforeRedeem,
-                sharesAfterRedeem
-            );
-        }
-
-        // Calculate received collateral tokens
-        uint256 collateralTokenBalanceAfter = collateralToken.balanceOf(
-            address(this)
+        // Validate shares burned correctly
+        _validateSharesBurned(
+            dLoopCore,
+            address(this),
+            shares,
+            sharesBeforeRedeem
         );
-        if (collateralTokenBalanceAfter <= collateralTokenBalanceBefore) {
-            revert UnexpectedDecreaseInCollateralTokenAfterFlashLoan(
+
+        // Finalize redeem and transfer assets to receiver
+        return
+            _finalizeRedeemAndTransfer(
+                dLoopCore,
+                collateralToken,
+                receiver,
                 collateralTokenBalanceBefore,
-                collateralTokenBalanceAfter
-            );
-        }
-
-        uint256 receivedCollateralTokenAmount = collateralTokenBalanceAfter -
-            collateralTokenBalanceBefore;
-
-        // Slippage protection
-        if (receivedCollateralTokenAmount < minOutputCollateralAmount) {
-            revert WithdrawnCollateralTokenAmountNotMetMinReceiveAmount(
-                receivedCollateralTokenAmount,
                 minOutputCollateralAmount
             );
-        }
-
-        // Transfer the received collateral token to the receiver
-        collateralToken.safeTransfer(receiver, receivedCollateralTokenAmount);
-
-        // There is no leftover debt token, as all flash loaned debt token is used to repay the debt
-        // when calling the redeem() function
-
-        // Handle any leftover collateral token and transfer them to the dLoopCore contract
-        uint256 leftoverCollateralTokenAmount = collateralToken.balanceOf(
-            address(this)
-        );
-        if (
-            leftoverCollateralTokenAmount >
-            minLeftoverCollateralTokenAmount[address(dLoopCore)][
-                address(collateralToken)
-            ]
-        ) {
-            collateralToken.safeTransfer(
-                address(dLoopCore),
-                leftoverCollateralTokenAmount
-            );
-            emit LeftoverCollateralTokenTransferred(
-                address(dLoopCore),
-                address(collateralToken),
-                leftoverCollateralTokenAmount
-            );
-        }
-
-        // Return the received collateral token amount
-        return receivedCollateralTokenAmount;
     }
 
     /* Flash loan entrypoint */
@@ -457,6 +421,7 @@ abstract contract DLoopRedeemerBase is
      * @param dLoopCore Address of the dLoopCore contract
      * @param collateralToken Address of the collateral token
      * @param minAmount Minimum leftover collateral token amount for the given dLoopCore and collateral token
+     *                  Setting minAmount to 0 removes the token from the array using efficient swap-and-pop
      */
     function setMinLeftoverCollateralTokenAmount(
         address dLoopCore,
@@ -466,15 +431,36 @@ abstract contract DLoopRedeemerBase is
         minLeftoverCollateralTokenAmount[dLoopCore][
             collateralToken
         ] = minAmount;
-        if (!_existingCollateralTokensMap[collateralToken]) {
-            _existingCollateralTokensMap[collateralToken] = true;
-            existingCollateralTokens.push(collateralToken);
+
+        // If the min amount is 0, we need to remove the collateral token from the existing collateral tokens array
+        if (minAmount == 0) {
+            delete _existingCollateralTokensMap[collateralToken];
+            // Remove the collateral token from the existing collateral tokens array
+            for (uint256 i = 0; i < existingCollateralTokens.length; i++) {
+                // Remove the by replacing the collateral token with the last element and then pop the last element
+                if (existingCollateralTokens[i] == collateralToken) {
+                    existingCollateralTokens[i] = existingCollateralTokens[
+                        existingCollateralTokens.length - 1
+                    ];
+                    existingCollateralTokens.pop();
+                    break; // Exit loop once token is found and removed
+                }
+            }
+            emit MinLeftoverCollateralTokenAmountRemoved(
+                dLoopCore,
+                collateralToken
+            );
+        } else {
+            if (!_existingCollateralTokensMap[collateralToken]) {
+                _existingCollateralTokensMap[collateralToken] = true;
+                existingCollateralTokens.push(collateralToken);
+            }
+            emit MinLeftoverCollateralTokenAmountSet(
+                dLoopCore,
+                collateralToken,
+                minAmount
+            );
         }
-        emit MinLeftoverCollateralTokenAmountSet(
-            dLoopCore,
-            collateralToken,
-            minAmount
-        );
     }
 
     /* Internal helpers */
@@ -542,10 +528,7 @@ abstract contract DLoopRedeemerBase is
      * @dev Finalizes redeem by validating shares and transferring assets to receiver
      * @param dLoopCore The dLoopCore contract
      * @param collateralToken The collateral token
-     * @param owner The owner of the shares
      * @param receiver Address to receive the assets
-     * @param shares Expected shares to be burned
-     * @param sharesBeforeRedeem Shares balance before redeem
      * @param collateralTokenBalanceBefore Collateral balance before redeem
      * @param minOutputCollateralAmount Minimum output collateral amount
      * @return receivedCollateralTokenAmount Amount of collateral tokens received
@@ -553,16 +536,10 @@ abstract contract DLoopRedeemerBase is
     function _finalizeRedeemAndTransfer(
         DLoopCoreBase dLoopCore,
         ERC20 collateralToken,
-        address owner,
         address receiver,
-        uint256 shares,
-        uint256 sharesBeforeRedeem,
         uint256 collateralTokenBalanceBefore,
         uint256 minOutputCollateralAmount
     ) internal returns (uint256 receivedCollateralTokenAmount) {
-        // Validate shares burned correctly
-        _validateSharesBurned(dLoopCore, owner, shares, sharesBeforeRedeem);
-
         // Collateral balance after the flash loan
         uint256 collateralTokenBalanceAfter = collateralToken.balanceOf(
             address(this)
@@ -591,9 +568,11 @@ abstract contract DLoopRedeemerBase is
         // There is no leftover debt token, as all flash loaned debt token is used to repay the debt
         // when calling the redeem() function
 
-        // Handle leftovers and transfer tokens
-        _handleLeftoverCollateralTokens(dLoopCore, collateralToken);
+        // Transfer the received collateral token to the receiver first
         collateralToken.safeTransfer(receiver, receivedCollateralTokenAmount);
+
+        // Handle any leftover collateral tokens after transferring to receiver
+        _handleLeftoverCollateralTokens(dLoopCore, collateralToken);
     }
 
     /* Data encoding/decoding helpers */

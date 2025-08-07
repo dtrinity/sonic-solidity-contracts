@@ -1,9 +1,14 @@
-import { ethers, deployments, getNamedAccounts } from "hardhat";
-import { expect } from "chai";
-import { time } from "@nomicfoundation/hardhat-network-helpers";
-import { TestMintableERC20 } from "../../typechain-types";
 import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
+import { loadFixture, time } from "@nomicfoundation/hardhat-network-helpers";
+import { expect } from "chai";
 import { ZeroAddress } from "ethers";
+import { deployments, ethers, getNamedAccounts, network } from "hardhat";
+
+import {
+  ERC20VestingNFT,
+  TestERC20,
+  TestMintableERC20,
+} from "../../typechain-types";
 
 // Test fixture for ERC20VestingNFT - minimal setup without dStake dependencies
 const createVestingFixture = deployments.createFixture(
@@ -25,7 +30,7 @@ const createVestingFixture = deployments.createFixture(
 
     const dstakeToken = (await ethers.getContractAt(
       "TestMintableERC20",
-      mockDStakeToken.address
+      mockDStakeToken.address,
     )) as TestMintableERC20;
 
     // 6 months in seconds
@@ -48,12 +53,12 @@ const createVestingFixture = deployments.createFixture(
           deployer,
         ],
         log: false,
-      }
+      },
     );
 
     const vestingNFT = await ethers.getContractAt(
       "ERC20VestingNFT",
-      vestingNFTDeployment.address
+      vestingNFTDeployment.address,
     );
 
     return {
@@ -65,7 +70,7 @@ const createVestingFixture = deployments.createFixture(
       VESTING_PERIOD,
       MAX_TOTAL_SUPPLY,
     };
-  }
+  },
 );
 
 describe("ERC20VestingNFT", function () {
@@ -93,7 +98,7 @@ describe("ERC20VestingNFT", function () {
       expect(await vestingNFT.name()).to.equal("Test dSTAKE Vesting NFT");
       expect(await vestingNFT.symbol()).to.equal("TEST-dVEST");
       expect(await vestingNFT.dstakeToken()).to.equal(
-        await dstakeToken.getAddress()
+        await dstakeToken.getAddress(),
       );
       expect(await vestingNFT.vestingPeriod()).to.equal(VESTING_PERIOD);
       expect(await vestingNFT.maxTotalSupply()).to.equal(MAX_TOTAL_SUPPLY);
@@ -117,7 +122,7 @@ describe("ERC20VestingNFT", function () {
             deployer.address,
           ],
           log: false,
-        })
+        }),
       ).to.be.revertedWithCustomError(vestingNFT, "ZeroAddress");
     });
 
@@ -134,11 +139,11 @@ describe("ERC20VestingNFT", function () {
           VESTING_PERIOD,
           MAX_TOTAL_SUPPLY,
           0,
-          ZeroAddress
-        )
+          ZeroAddress,
+        ),
       ).to.be.revertedWithCustomError(
         ERC20VestingNFTFactory,
-        "OwnableInvalidOwner"
+        "OwnableInvalidOwner",
       );
     });
 
@@ -157,7 +162,7 @@ describe("ERC20VestingNFT", function () {
             deployer.address,
           ],
           log: false,
-        })
+        }),
       ).to.be.revertedWithCustomError(vestingNFT, "ZeroAmount");
     });
 
@@ -176,7 +181,7 @@ describe("ERC20VestingNFT", function () {
             deployer.address,
           ],
           log: false,
-        })
+        }),
       ).to.be.revertedWithCustomError(vestingNFT, "ZeroAmount");
     });
   });
@@ -219,23 +224,23 @@ describe("ERC20VestingNFT", function () {
 
       // Check token transfers
       expect(await dstakeToken.balanceOf(user1.address)).to.equal(
-        depositAmount * 9n
+        depositAmount * 9n,
       );
       expect(
-        await dstakeToken.balanceOf(await vestingNFT.getAddress())
+        await dstakeToken.balanceOf(await vestingNFT.getAddress()),
       ).to.equal(depositAmount);
     });
 
     it("Should revert deposit with zero amount", async function () {
       await expect(
-        vestingNFT.connect(user1).deposit(0)
+        vestingNFT.connect(user1).deposit(0),
       ).to.be.revertedWithCustomError(vestingNFT, "ZeroAmount");
     });
 
     it("Should revert deposit when deposits are disabled", async function () {
       await vestingNFT.connect(deployer).setDepositsEnabled(false);
       await expect(
-        vestingNFT.connect(user1).deposit(depositAmount)
+        vestingNFT.connect(user1).deposit(depositAmount),
       ).to.be.revertedWithCustomError(vestingNFT, "DepositsDisabled");
     });
 
@@ -243,7 +248,7 @@ describe("ERC20VestingNFT", function () {
       // Set a low max supply
       await vestingNFT.connect(deployer).setMaxTotalSupply(depositAmount / 2n);
       await expect(
-        vestingNFT.connect(user1).deposit(depositAmount)
+        vestingNFT.connect(user1).deposit(depositAmount),
       ).to.be.revertedWithCustomError(vestingNFT, "MaxSupplyExceeded");
     });
 
@@ -265,7 +270,7 @@ describe("ERC20VestingNFT", function () {
       const threshold = ethers.parseUnits("150", 18);
       await vestingNFT.connect(deployer).setMinDepositAmount(threshold);
       await expect(
-        vestingNFT.connect(user1).deposit(depositAmount)
+        vestingNFT.connect(user1).deposit(depositAmount),
       ).to.be.revertedWithCustomError(vestingNFT, "DepositBelowMinimum");
     });
 
@@ -309,22 +314,22 @@ describe("ERC20VestingNFT", function () {
 
       // Check token is returned
       expect(await dstakeToken.balanceOf(user1.address)).to.equal(
-        initialBalance + depositAmount
+        initialBalance + depositAmount,
       );
       expect(
-        await dstakeToken.balanceOf(await vestingNFT.getAddress())
+        await dstakeToken.balanceOf(await vestingNFT.getAddress()),
       ).to.equal(0);
     });
 
     it("Should revert redeem early for non-existent token", async function () {
       await expect(
-        vestingNFT.connect(user1).redeemEarly(99)
+        vestingNFT.connect(user1).redeemEarly(99),
       ).to.be.revertedWithCustomError(vestingNFT, "TokenNotExists");
     });
 
     it("Should revert redeem early for token not owned by caller", async function () {
       await expect(
-        vestingNFT.connect(user2).redeemEarly(1)
+        vestingNFT.connect(user2).redeemEarly(1),
       ).to.be.revertedWithCustomError(vestingNFT, "NotTokenOwner");
     });
 
@@ -333,7 +338,7 @@ describe("ERC20VestingNFT", function () {
       await time.increase(VESTING_PERIOD + 1);
 
       await expect(
-        vestingNFT.connect(user1).redeemEarly(1)
+        vestingNFT.connect(user1).redeemEarly(1),
       ).to.be.revertedWithCustomError(vestingNFT, "VestingAlreadyComplete");
     });
 
@@ -343,7 +348,7 @@ describe("ERC20VestingNFT", function () {
       await vestingNFT.connect(user1).withdrawMatured(1);
 
       await expect(
-        vestingNFT.connect(user1).redeemEarly(1)
+        vestingNFT.connect(user1).redeemEarly(1),
       ).to.be.revertedWithCustomError(vestingNFT, "TokenAlreadyMatured");
     });
   });
@@ -383,29 +388,29 @@ describe("ERC20VestingNFT", function () {
 
       // Check token is returned
       expect(await dstakeToken.balanceOf(user1.address)).to.equal(
-        initialBalance + depositAmount
+        initialBalance + depositAmount,
       );
       expect(
-        await dstakeToken.balanceOf(await vestingNFT.getAddress())
+        await dstakeToken.balanceOf(await vestingNFT.getAddress()),
       ).to.equal(0);
     });
 
     it("Should revert withdraw matured for non-existent token", async function () {
       await expect(
-        vestingNFT.connect(user1).withdrawMatured(99)
+        vestingNFT.connect(user1).withdrawMatured(99),
       ).to.be.revertedWithCustomError(vestingNFT, "TokenNotExists");
     });
 
     it("Should revert withdraw matured for token not owned by caller", async function () {
       await time.increase(VESTING_PERIOD + 1);
       await expect(
-        vestingNFT.connect(user2).withdrawMatured(1)
+        vestingNFT.connect(user2).withdrawMatured(1),
       ).to.be.revertedWithCustomError(vestingNFT, "NotTokenOwner");
     });
 
     it("Should revert withdraw matured before vesting period ends", async function () {
       await expect(
-        vestingNFT.connect(user1).withdrawMatured(1)
+        vestingNFT.connect(user1).withdrawMatured(1),
       ).to.be.revertedWithCustomError(vestingNFT, "VestingNotComplete");
     });
 
@@ -414,7 +419,7 @@ describe("ERC20VestingNFT", function () {
       await vestingNFT.connect(user1).withdrawMatured(1);
 
       await expect(
-        vestingNFT.connect(user1).withdrawMatured(1)
+        vestingNFT.connect(user1).withdrawMatured(1),
       ).to.be.revertedWithCustomError(vestingNFT, "TokenAlreadyMatured");
     });
   });
@@ -443,7 +448,7 @@ describe("ERC20VestingNFT", function () {
       await vestingNFT.connect(user1).withdrawMatured(1);
 
       await expect(
-        vestingNFT.connect(user1).transferFrom(user1.address, user2.address, 1)
+        vestingNFT.connect(user1).transferFrom(user1.address, user2.address, 1),
       ).to.be.revertedWithCustomError(vestingNFT, "TransferOfMaturedToken");
     });
 
@@ -454,7 +459,7 @@ describe("ERC20VestingNFT", function () {
 
       // user1 should not be able to redeem
       await expect(
-        vestingNFT.connect(user1).redeemEarly(1)
+        vestingNFT.connect(user1).redeemEarly(1),
       ).to.be.revertedWithCustomError(vestingNFT, "NotTokenOwner");
 
       // user2 should be able to redeem
@@ -483,10 +488,10 @@ describe("ERC20VestingNFT", function () {
 
       it("Should revert if non-owner tries to set deposits enabled", async function () {
         await expect(
-          vestingNFT.connect(user1).setDepositsEnabled(false)
+          vestingNFT.connect(user1).setDepositsEnabled(false),
         ).to.be.revertedWithCustomError(
           vestingNFT,
-          "OwnableUnauthorizedAccount"
+          "OwnableUnauthorizedAccount",
         );
       });
     });
@@ -528,7 +533,7 @@ describe("ERC20VestingNFT", function () {
 
         // New deposits should be blocked until total deposited drops below cap
         await expect(
-          vestingNFT.connect(user1).deposit(1)
+          vestingNFT.connect(user1).deposit(1),
         ).to.be.revertedWithCustomError(vestingNFT, "MaxSupplyExceeded");
       });
 
@@ -555,7 +560,7 @@ describe("ERC20VestingNFT", function () {
 
         // New deposits should be blocked
         await expect(
-          vestingNFT.connect(user1).deposit(1)
+          vestingNFT.connect(user1).deposit(1),
         ).to.be.revertedWithCustomError(vestingNFT, "MaxSupplyExceeded");
 
         // User1 redeems early, reducing total deposited
@@ -572,7 +577,7 @@ describe("ERC20VestingNFT", function () {
         await expect(vestingNFT.connect(user1).deposit(smallDeposit)).to.not.be
           .reverted;
         expect(await vestingNFT.totalDeposited()).to.equal(
-          depositAmount + smallDeposit
+          depositAmount + smallDeposit,
         );
       });
 
@@ -580,10 +585,10 @@ describe("ERC20VestingNFT", function () {
         await expect(
           vestingNFT
             .connect(user1)
-            .setMaxTotalSupply(ethers.parseUnits("2000000", 18))
+            .setMaxTotalSupply(ethers.parseUnits("2000000", 18)),
         ).to.be.revertedWithCustomError(
           vestingNFT,
-          "OwnableUnauthorizedAccount"
+          "OwnableUnauthorizedAccount",
         );
       });
     });
@@ -622,10 +627,10 @@ describe("ERC20VestingNFT", function () {
         await expect(
           vestingNFT
             .connect(user1)
-            .setMinDepositAmount(ethers.parseUnits("1000", 18))
+            .setMinDepositAmount(ethers.parseUnits("1000", 18)),
         ).to.be.revertedWithCustomError(
           vestingNFT,
-          "OwnableUnauthorizedAccount"
+          "OwnableUnauthorizedAccount",
         );
       });
 
@@ -648,7 +653,7 @@ describe("ERC20VestingNFT", function () {
 
         // Second deposit should fail
         await expect(
-          vestingNFT.connect(user1).deposit(depositAmount)
+          vestingNFT.connect(user1).deposit(depositAmount),
         ).to.be.revertedWithCustomError(vestingNFT, "DepositBelowMinimum");
 
         // Deposit with amount >= minimum should work
@@ -696,8 +701,10 @@ describe("ERC20VestingNFT", function () {
         expect(await vestingNFT.getRemainingVestingTime(1)).to.equal(0);
       });
 
-      it("Should return 0 for non-existent token", async function () {
-        expect(await vestingNFT.getRemainingVestingTime(99)).to.equal(0);
+      it("Should revert for non-existent token", async function () {
+        await expect(
+          vestingNFT.getRemainingVestingTime(99),
+        ).to.be.revertedWithCustomError(vestingNFT, "TokenNotExists");
       });
     });
 
@@ -778,7 +785,7 @@ describe("ERC20VestingNFT", function () {
 
       // user1 should not be able to redeem
       await expect(
-        vestingNFT.connect(user1).redeemEarly(1)
+        vestingNFT.connect(user1).redeemEarly(1),
       ).to.be.revertedWithCustomError(vestingNFT, "NotTokenOwner");
 
       // user2 should be able to redeem
@@ -833,7 +840,7 @@ describe("ERC20VestingNFT", function () {
 
       // user2 should not be able to deposit
       await expect(
-        vestingNFT.connect(user2).deposit(1)
+        vestingNFT.connect(user2).deposit(1),
       ).to.be.revertedWithCustomError(vestingNFT, "MaxSupplyExceeded");
 
       // After user1 redeems, user2 should be able to deposit
@@ -841,5 +848,76 @@ describe("ERC20VestingNFT", function () {
       await expect(vestingNFT.connect(user2).deposit(maxSupply)).to.not.be
         .reverted;
     });
+  });
+});
+
+/**
+ *
+ */
+async function deployVestingFixture() {
+  const [owner] = await ethers.getSigners();
+
+  // Deploy mock ERC20 token (dSTAKE)
+  const TestERC20Factory = await ethers.getContractFactory("TestERC20");
+  const dstakeToken = (await TestERC20Factory.deploy(
+    "dSTAKE",
+    "dSTAKE",
+    18,
+  )) as TestERC20;
+
+  // Parameters
+  const VESTING_PERIOD = 60; // 60 seconds for tests
+  const MAX_TOTAL_SUPPLY = ethers.parseEther("1000000");
+  const MIN_DEPOSIT_AMOUNT = 0;
+
+  // Deploy ERC20VestingNFT contract
+  const VestingNFTFactory = await ethers.getContractFactory("ERC20VestingNFT");
+  const vestingNFT = (await VestingNFTFactory.deploy(
+    "Vesting NFT",
+    "vNFT",
+    await dstakeToken.getAddress(),
+    VESTING_PERIOD,
+    MAX_TOTAL_SUPPLY,
+    MIN_DEPOSIT_AMOUNT,
+    owner.address,
+  )) as ERC20VestingNFT;
+
+  // Approve and deposit tokens
+  const depositAmount = ethers.parseEther("100");
+  await dstakeToken.approve(await vestingNFT.getAddress(), depositAmount);
+  const tx = await vestingNFT.deposit(depositAmount);
+  await tx.wait();
+
+  const tokenId = 1; // first minted token ID
+
+  return { vestingNFT, dstakeToken, VESTING_PERIOD, tokenId };
+}
+
+describe("ERC20VestingNFT: getRemainingVestingTime", function () {
+  it("reverts with TokenNotExists for an invalid tokenId", async function () {
+    const { vestingNFT } = await loadFixture(deployVestingFixture);
+
+    await expect(
+      vestingNFT.getRemainingVestingTime(999),
+    ).to.be.revertedWithCustomError(vestingNFT, "TokenNotExists");
+  });
+
+  it("returns remaining time > 0 while vesting in progress", async function () {
+    const { vestingNFT, tokenId } = await loadFixture(deployVestingFixture);
+
+    const remaining = await vestingNFT.getRemainingVestingTime(tokenId);
+    expect(remaining).to.be.gt(0n);
+  });
+
+  it("returns 0 after vesting period has elapsed", async function () {
+    const { vestingNFT, VESTING_PERIOD, tokenId } =
+      await loadFixture(deployVestingFixture);
+
+    // Increase time to beyond vesting period
+    await network.provider.send("evm_increaseTime", [VESTING_PERIOD]);
+    await network.provider.send("evm_mine");
+
+    const remaining = await vestingNFT.getRemainingVestingTime(tokenId);
+    expect(remaining).to.equal(0n);
   });
 });

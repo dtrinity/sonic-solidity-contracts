@@ -1,17 +1,18 @@
-import { ethers, getNamedAccounts } from "hardhat";
-import { expect } from "chai";
-import { WrappedDLendConversionAdapter } from "../../typechain-types/contracts/vaults/dstake/adapters/WrappedDLendConversionAdapter";
-import { IERC20, ERC20 } from "../../typechain-types";
-import type { DStakeCollateralVault } from "../../typechain-types/contracts/vaults/dstake/DStakeCollateralVault";
 import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
+import { expect } from "chai";
+import { ZeroAddress } from "ethers";
+import { ethers, getNamedAccounts } from "hardhat";
+
+import type { IERC4626 } from "../../typechain-types";
+import { ERC20, IERC20 } from "../../typechain-types";
+import { ERC20StablecoinUpgradeable } from "../../typechain-types/contracts/dstable/ERC20StablecoinUpgradeable";
+import { WrappedDLendConversionAdapter } from "../../typechain-types/contracts/vaults/dstake/adapters/WrappedDLendConversionAdapter";
+import type { DStakeCollateralVault } from "../../typechain-types/contracts/vaults/dstake/DStakeCollateralVault";
 import {
   createDStakeFixture,
   DSTAKE_CONFIGS,
   DStakeFixtureConfig,
 } from "./fixture";
-import { ZeroAddress } from "ethers";
-import { ERC20StablecoinUpgradeable } from "../../typechain-types/contracts/dstable/ERC20StablecoinUpgradeable";
-import type { IERC4626 } from "../../typechain-types";
 
 const parseUnits = (value: string | number, decimals: number | bigint) =>
   ethers.parseUnits(value.toString(), decimals);
@@ -87,7 +88,7 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
       // Sanity checks
       expect(adapterAddress).to.not.equal(ZeroAddress);
       // Ensure deployer is registered as router on collateralVault
-      await collateralVault.connect(deployer).setRouter(deployer.address);
+      await collateralVault.connect(user1).setRouter(deployer.address);
     });
 
     describe("Initialization & Deployment State", function () {

@@ -7,6 +7,7 @@ import {IDStakeCollateralVault} from "./interfaces/IDStakeCollateralVault.sol";
 import {IDStableConversionAdapter} from "./interfaces/IDStableConversionAdapter.sol";
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 // ---------------------------------------------------------------------------
 // Internal interface to query the router's public mapping without importing the
@@ -24,7 +25,11 @@ interface IAdapterProvider {
  *      DStakeToken governance.
  *      Uses AccessControl for role-based access control.
  */
-contract DStakeCollateralVault is IDStakeCollateralVault, AccessControl {
+contract DStakeCollateralVault is
+    IDStakeCollateralVault,
+    AccessControl,
+    ReentrancyGuard
+{
     using SafeERC20 for IERC20;
     using EnumerableSet for EnumerableSet.AddressSet;
 
@@ -36,6 +41,16 @@ contract DStakeCollateralVault is IDStakeCollateralVault, AccessControl {
     error AssetNotSupported(address asset);
     error AssetAlreadySupported(address asset);
     error NonZeroBalance(address asset);
+    error CannotRescueRestrictedToken(address token);
+    error ETHTransferFailed(address receiver, uint256 amount);
+
+    // --- Events ---
+    event TokenRescued(
+        address indexed token,
+        address indexed receiver,
+        uint256 amount
+    );
+    event ETHRescued(address indexed receiver, uint256 amount);
 
     // --- State ---
     address public immutable dStakeToken; // The DStakeToken this vault serves
@@ -74,12 +89,18 @@ contract DStakeCollateralVault is IDStakeCollateralVault, AccessControl {
             address vaultAsset = _supportedAssets.at(i);
             address adapterAddress = IAdapterProvider(router)
                 .vaultAssetToAdapter(vaultAsset);
-            if (adapterAddress != address(0)) {
-                uint256 balance = IERC20(vaultAsset).balanceOf(address(this));
-                if (balance > 0) {
-                    totalValue += IDStableConversionAdapter(adapterAddress)
-                        .assetValueInDStable(vaultAsset, balance);
-                }
+
+            if (adapterAddress == address(0)) {
+                // If there is no adapter configured, simply skip this asset to
+                // preserve liveness. Anyone can dust this vault and we cannot
+                // enforce that all assets have adapters before removal
+                continue;
+            }
+
+            uint256 balance = IERC20(vaultAsset).balanceOf(address(this));
+            if (balance > 0) {
+                totalValue += IDStableConversionAdapter(adapterAddress)
+                    .assetValueInDStable(vaultAsset, balance);
             }
         }
         return totalValue;
@@ -115,15 +136,15 @@ contract DStakeCollateralVault is IDStakeCollateralVault, AccessControl {
 
     /**
      * @notice Removes a supported vault asset. Can only be invoked by the router.
-     *         Requires the vault to hold zero balance of the asset.
      */
     function removeSupportedAsset(
         address vaultAsset
     ) external onlyRole(ROUTER_ROLE) {
         if (!_isSupported(vaultAsset)) revert AssetNotSupported(vaultAsset);
-        if (IERC20(vaultAsset).balanceOf(address(this)) > 0) {
-            revert NonZeroBalance(vaultAsset);
-        }
+        // NOTE: Previously this function reverted if the vault still held a
+        // non-zero balance of the asset, causing a griefing / DoS vector:
+        // anyone could deposit 1 wei of the token to block removal. The
+        // check has been removed so governance can always delist an asset.
 
         _supportedAssets.remove(vaultAsset);
         emit SupportedAssetRemoved(vaultAsset);
@@ -174,4 +195,80 @@ contract DStakeCollateralVault is IDStakeCollateralVault, AccessControl {
     function getSupportedAssets() external view returns (address[] memory) {
         return _supportedAssets.values();
     }
+
+    // --- Recovery Functions ---
+
+    /**
+     * @notice Rescues tokens accidentally sent to the contract
+     * @dev Cannot rescue supported vault assets or the dStable token
+     * @param token Address of the token to rescue
+     * @param receiver Address to receive the rescued tokens
+     * @param amount Amount of tokens to rescue
+     */
+    function rescueToken(
+        address token,
+        address receiver,
+        uint256 amount
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) nonReentrant {
+        if (receiver == address(0)) revert ZeroAddress();
+
+        // Check if token is a supported asset
+        if (_isSupported(token)) {
+            revert CannotRescueRestrictedToken(token);
+        }
+
+        // Check if token is the dStable token
+        if (token == dStable) {
+            revert CannotRescueRestrictedToken(token);
+        }
+
+        // Rescue the token
+        IERC20(token).safeTransfer(receiver, amount);
+        emit TokenRescued(token, receiver, amount);
+    }
+
+    /**
+     * @notice Rescues ETH accidentally sent to the contract
+     * @param receiver Address to receive the rescued ETH
+     * @param amount Amount of ETH to rescue
+     */
+    function rescueETH(
+        address receiver,
+        uint256 amount
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) nonReentrant {
+        if (receiver == address(0)) revert ZeroAddress();
+
+        (bool success, ) = receiver.call{value: amount}("");
+        if (!success) revert ETHTransferFailed(receiver, amount);
+
+        emit ETHRescued(receiver, amount);
+    }
+
+    /**
+     * @notice Returns the list of tokens that cannot be rescued
+     * @return restrictedTokens Array of restricted token addresses
+     */
+    function getRestrictedRescueTokens()
+        external
+        view
+        returns (address[] memory)
+    {
+        address[] memory assets = _supportedAssets.values();
+        address[] memory restrictedTokens = new address[](assets.length + 1);
+
+        // Add all supported assets
+        for (uint256 i = 0; i < assets.length; i++) {
+            restrictedTokens[i] = assets[i];
+        }
+
+        // Add dStable token
+        restrictedTokens[assets.length] = dStable;
+
+        return restrictedTokens;
+    }
+
+    /**
+     * @notice Allows the contract to receive ETH
+     */
+    receive() external payable {}
 }

@@ -2,29 +2,29 @@ import { assert, expect } from "chai";
 import hre, { getNamedAccounts } from "hardhat";
 import { Address } from "hardhat-deploy/types";
 
+import { getConfig } from "../../config/config";
 import {
   AmoManager,
   CollateralHolderVault,
   Issuer,
+  MockAmoVault,
+  OracleAggregator,
   Redeemer,
   TestERC20,
-  MockAmoVault,
   TestMintableERC20,
-  OracleAggregator,
 } from "../../typechain-types";
+import { ORACLE_AGGREGATOR_PRICE_DECIMALS } from "../../typescript/oracle_aggregator/constants";
 import {
-  getTokenContractForSymbol,
   getTokenContractForAddress,
+  getTokenContractForSymbol,
   TokenInfo,
 } from "../../typescript/token/utils";
 import {
   createDStableAmoFixture,
-  DUSD_CONFIG,
   DS_CONFIG,
   DStableFixtureConfig,
+  DUSD_CONFIG,
 } from "./fixtures";
-import { getConfig } from "../../config/config";
-import { ORACLE_AGGREGATOR_PRICE_DECIMALS } from "../../typescript/oracle_aggregator/constants";
 
 // Run tests for each dStable configuration
 const dstableConfigs: DStableFixtureConfig[] = [DUSD_CONFIG, DS_CONFIG];
@@ -63,7 +63,7 @@ dstableConfigs.forEach((config) => {
       issuerContract = await hre.ethers.getContractAt(
         "Issuer",
         issuerAddress,
-        await hre.ethers.getSigner(deployer)
+        await hre.ethers.getSigner(deployer),
       );
 
       const redeemerAddress = (
@@ -72,21 +72,21 @@ dstableConfigs.forEach((config) => {
       redeemerContract = await hre.ethers.getContractAt(
         "Redeemer",
         redeemerAddress,
-        await hre.ethers.getSigner(deployer)
+        await hre.ethers.getSigner(deployer),
       );
 
       const collateralVaultAddress = await issuerContract.collateralVault();
       collateralHolderVaultContract = await hre.ethers.getContractAt(
         "CollateralHolderVault",
         collateralVaultAddress,
-        await hre.ethers.getSigner(deployer)
+        await hre.ethers.getSigner(deployer),
       );
 
       const amoManagerAddress = await issuerContract.amoManager();
       amoManagerContract = await hre.ethers.getContractAt(
         "AmoManager",
         amoManagerAddress,
-        await hre.ethers.getSigner(deployer)
+        await hre.ethers.getSigner(deployer),
       );
 
       // Get the oracle aggregator based on the dStable configuration
@@ -96,7 +96,7 @@ dstableConfigs.forEach((config) => {
       oracleAggregatorContract = await hre.ethers.getContractAt(
         "OracleAggregator",
         oracleAggregatorAddress,
-        await hre.ethers.getSigner(deployer)
+        await hre.ethers.getSigner(deployer),
       );
 
       // Get dStable token info
@@ -112,7 +112,7 @@ dstableConfigs.forEach((config) => {
         deployer,
         deployer,
         deployer,
-        oracleAggregatorAddress
+        oracleAggregatorAddress,
       );
 
       // Initialize all collateral tokens for this dStable
@@ -120,18 +120,18 @@ dstableConfigs.forEach((config) => {
 
       // Enable MockAmoVault in the AmoManager
       await amoManagerContract.enableAmoVault(
-        await mockAmoVaultContract.getAddress()
+        await mockAmoVaultContract.getAddress(),
       );
 
       // Assign COLLATERAL_WITHDRAWER_ROLE to the AmoManager for both vaults
       await mockAmoVaultContract.grantRole(
         await mockAmoVaultContract.COLLATERAL_WITHDRAWER_ROLE(),
-        await amoManagerContract.getAddress()
+        await amoManagerContract.getAddress(),
       );
 
       await collateralHolderVaultContract.grantRole(
         await collateralHolderVaultContract.COLLATERAL_WITHDRAWER_ROLE(),
-        await amoManagerContract.getAddress()
+        await amoManagerContract.getAddress(),
       );
 
       // Grant REDEMPTION_MANAGER_ROLE to test users
@@ -158,7 +158,7 @@ dstableConfigs.forEach((config) => {
         const { contract, tokenInfo } = await getTokenContractForAddress(
           hre,
           deployer,
-          collateralAddress
+          collateralAddress,
         );
 
         collateralContracts.set(tokenInfo.symbol, contract);
@@ -171,13 +171,14 @@ dstableConfigs.forEach((config) => {
 
     /**
      * Calculates the expected base value of a token amount based on oracle prices
+     *
      * @param amount - The amount of token
      * @param tokenAddress - The address of the token
      * @returns The base value of the token amount
      */
     async function calculateBaseValueFromAmount(
       amount: bigint,
-      tokenAddress: Address
+      tokenAddress: Address,
     ): Promise<bigint> {
       const price = await oracleAggregatorContract.getAssetPrice(tokenAddress);
       const decimals = await (
@@ -188,13 +189,14 @@ dstableConfigs.forEach((config) => {
 
     /**
      * Calculates the expected token amount from a base value based on oracle prices
+     *
      * @param baseValue - The base value
      * @param tokenAddress - The address of the token
      * @returns The token amount equivalent to the base value
      */
     async function calculateAmountFromBaseValue(
       baseValue: bigint,
-      tokenAddress: Address
+      tokenAddress: Address,
     ): Promise<bigint> {
       const price = await oracleAggregatorContract.getAssetPrice(tokenAddress);
       const decimals = await (
@@ -211,14 +213,14 @@ dstableConfigs.forEach((config) => {
       // Check dStable token
       try {
         const dsPrice = await oracleAggregatorContract.getAssetPrice(
-          dstableInfo.address
+          dstableInfo.address,
         );
         console.log(
-          `  ✓ Successfully read price for ${dstableInfo.symbol}: ${dsPrice}`
+          `  ✓ Successfully read price for ${dstableInfo.symbol}: ${dsPrice}`,
         );
       } catch (error: any) {
         throw new Error(
-          `✗ Failed to verify oracle for ${dstableInfo.symbol}: ${error.message}`
+          `✗ Failed to verify oracle for ${dstableInfo.symbol}: ${error.message}`,
         );
       }
 
@@ -226,12 +228,12 @@ dstableConfigs.forEach((config) => {
       for (const [symbol, info] of collateralInfos.entries()) {
         try {
           const price = await oracleAggregatorContract.getAssetPrice(
-            info.address
+            info.address,
           );
           console.log(`  ✓ Successfully read price for ${symbol}: ${price}`);
         } catch (error: any) {
           throw new Error(
-            `✗ Failed to verify oracle for ${symbol}: ${error.message}`
+            `✗ Failed to verify oracle for ${symbol}: ${error.message}`,
           );
         }
       }
@@ -264,20 +266,20 @@ dstableConfigs.forEach((config) => {
       assert.isTrue(
         totalSystemValueWithAmo >= totalCollateralValue ||
           valueDifference <= acceptableValueError,
-        `System value (${totalSystemValueWithAmo}) should be >= collateral value (${totalCollateralValue}) or within acceptable error (${acceptableValueError})`
+        `System value (${totalSystemValueWithAmo}) should be >= collateral value (${totalCollateralValue}) or within acceptable error (${acceptableValueError})`,
       );
 
       // 2. Amo Manager's accounting is consistent
       const amoTotalSupply = await amoManagerContract.totalAmoSupply();
       const amoTotalAllocated = await amoManagerContract.totalAllocated();
       const amoManagerBalance = await dstableContract.balanceOf(
-        await amoManagerContract.getAddress()
+        await amoManagerContract.getAddress(),
       );
 
       assert.equal(
         amoTotalSupply,
         amoTotalAllocated + amoManagerBalance,
-        "AMO total supply should equal allocated + AMO manager balance"
+        "AMO total supply should equal allocated + AMO manager balance",
       );
     }
 
@@ -288,7 +290,7 @@ dstableConfigs.forEach((config) => {
         // Verify each collateral token has a valid price
         for (const [symbol, info] of collateralInfos.entries()) {
           const price = await oracleAggregatorContract.getAssetPrice(
-            info.address
+            info.address,
           );
           expect(price).to.be.gt(0n, `${symbol} should have a valid price`);
         }
@@ -302,14 +304,14 @@ dstableConfigs.forEach((config) => {
         // Perform basic operations
         const collateralSymbol = config.peggedCollaterals[0];
         const collateralContract = collateralContracts.get(
-          collateralSymbol
+          collateralSymbol,
         ) as TestERC20;
         const collateralInfo = collateralInfos.get(collateralSymbol)!;
 
         // Transfer collateral to user1
         const collateralAmount = hre.ethers.parseUnits(
           "1000",
-          collateralInfo.decimals
+          collateralInfo.decimals,
         );
         await collateralContract.transfer(user1, collateralAmount);
 
@@ -321,9 +323,9 @@ dstableConfigs.forEach((config) => {
         const expectedDstable = await calculateAmountFromBaseValue(
           await calculateBaseValueFromAmount(
             collateralAmount,
-            collateralInfo.address
+            collateralInfo.address,
           ),
-          dstableInfo.address
+          dstableInfo.address,
         );
 
         const minDstable = (expectedDstable * 95n) / 100n; // 5% slippage
@@ -337,12 +339,12 @@ dstableConfigs.forEach((config) => {
         // Allocate some dStable to AMO vault
         const dstableToAllocate = hre.ethers.parseUnits(
           "100",
-          dstableInfo.decimals
+          dstableInfo.decimals,
         );
         await issuerContract.increaseAmoSupply(dstableToAllocate);
         await amoManagerContract.allocateAmo(
           await mockAmoVaultContract.getAddress(),
-          dstableToAllocate
+          dstableToAllocate,
         );
 
         await checkInvariants();
@@ -362,27 +364,27 @@ dstableConfigs.forEach((config) => {
             : config.peggedCollaterals[0];
 
         const primaryCollateralContract = collateralContracts.get(
-          primaryCollateralSymbol
+          primaryCollateralSymbol,
         ) as TestERC20;
         const primaryCollateralInfo = collateralInfos.get(
-          primaryCollateralSymbol
+          primaryCollateralSymbol,
         ) as TokenInfo;
 
         const secondaryCollateralContract = collateralContracts.get(
-          secondaryCollateralSymbol
+          secondaryCollateralSymbol,
         ) as TestERC20;
         const secondaryCollateralInfo = collateralInfos.get(
-          secondaryCollateralSymbol
+          secondaryCollateralSymbol,
         ) as TokenInfo;
 
         await primaryCollateralContract.transfer(
           user1,
-          hre.ethers.parseUnits("1000", primaryCollateralInfo.decimals)
+          hre.ethers.parseUnits("1000", primaryCollateralInfo.decimals),
         );
 
         await secondaryCollateralContract.transfer(
           user2,
-          hre.ethers.parseUnits("1000", secondaryCollateralInfo.decimals)
+          hre.ethers.parseUnits("1000", secondaryCollateralInfo.decimals),
         );
 
         await checkInvariants();
@@ -390,16 +392,16 @@ dstableConfigs.forEach((config) => {
         // 2. User 1 deposits primary collateral to mint dStable
         const primaryCollateralToDeposit = hre.ethers.parseUnits(
           "500",
-          primaryCollateralInfo.decimals
+          primaryCollateralInfo.decimals,
         );
 
         // Calculate expected dStable amount based on oracle prices
         const expectedDstableForPrimary = await calculateAmountFromBaseValue(
           await calculateBaseValueFromAmount(
             primaryCollateralToDeposit,
-            primaryCollateralInfo.address
+            primaryCollateralInfo.address,
           ),
-          dstableInfo.address
+          dstableInfo.address,
         );
 
         // Apply a small slippage to ensure the test passes
@@ -409,7 +411,7 @@ dstableConfigs.forEach((config) => {
           .connect(await hre.ethers.getSigner(user1))
           .approve(
             await issuerContract.getAddress(),
-            primaryCollateralToDeposit
+            primaryCollateralToDeposit,
           );
 
         await issuerContract
@@ -417,7 +419,7 @@ dstableConfigs.forEach((config) => {
           .issue(
             primaryCollateralToDeposit,
             primaryCollateralInfo.address,
-            minDstableForPrimary
+            minDstableForPrimary,
           );
 
         await checkInvariants();
@@ -425,16 +427,16 @@ dstableConfigs.forEach((config) => {
         // 3. User 2 deposits secondary collateral to mint dStable
         const secondaryCollateralToDeposit = hre.ethers.parseUnits(
           "500",
-          secondaryCollateralInfo.decimals
+          secondaryCollateralInfo.decimals,
         );
 
         // Calculate expected dStable amount based on oracle prices
         const expectedDstableForSecondary = await calculateAmountFromBaseValue(
           await calculateBaseValueFromAmount(
             secondaryCollateralToDeposit,
-            secondaryCollateralInfo.address
+            secondaryCollateralInfo.address,
           ),
-          dstableInfo.address
+          dstableInfo.address,
         );
 
         // Apply a small slippage to ensure the test passes
@@ -445,7 +447,7 @@ dstableConfigs.forEach((config) => {
           .connect(await hre.ethers.getSigner(user2))
           .approve(
             await issuerContract.getAddress(),
-            secondaryCollateralToDeposit
+            secondaryCollateralToDeposit,
           );
 
         await issuerContract
@@ -453,7 +455,7 @@ dstableConfigs.forEach((config) => {
           .issue(
             secondaryCollateralToDeposit,
             secondaryCollateralInfo.address,
-            minDstableForSecondary
+            minDstableForSecondary,
           );
 
         await checkInvariants();
@@ -464,8 +466,8 @@ dstableConfigs.forEach((config) => {
           user1DstableBalance >= minDstableForPrimary,
           `User1 should have at least ${hre.ethers.formatUnits(
             minDstableForPrimary,
-            dstableInfo.decimals
-          )} ${config.symbol}`
+            dstableInfo.decimals,
+          )} ${config.symbol}`,
         );
 
         const user2DstableBalance = await dstableContract.balanceOf(user2);
@@ -473,19 +475,19 @@ dstableConfigs.forEach((config) => {
           user2DstableBalance >= minDstableForSecondary,
           `User2 should have at least ${hre.ethers.formatUnits(
             minDstableForSecondary,
-            dstableInfo.decimals
-          )} ${config.symbol}`
+            dstableInfo.decimals,
+          )} ${config.symbol}`,
         );
 
         // 4. Allocate dStable to the AMO vault
         const dstableToAllocate = hre.ethers.parseUnits(
           "200",
-          dstableInfo.decimals
+          dstableInfo.decimals,
         );
         await issuerContract.increaseAmoSupply(dstableToAllocate);
         await amoManagerContract.allocateAmo(
           await mockAmoVaultContract.getAddress(),
-          dstableToAllocate
+          dstableToAllocate,
         );
 
         await checkInvariants();
@@ -493,7 +495,7 @@ dstableConfigs.forEach((config) => {
         // 5. AMO vault simulates turning dStable into primary collateral
         // Simulate by setting fake DeFi collateral value
         await mockAmoVaultContract.setFakeDeFiCollateralValue(
-          hre.ethers.parseUnits("100", ORACLE_AGGREGATOR_PRICE_DECIMALS)
+          hre.ethers.parseUnits("100", ORACLE_AGGREGATOR_PRICE_DECIMALS),
         );
 
         await checkInvariants();
@@ -501,16 +503,16 @@ dstableConfigs.forEach((config) => {
         // 6. User 1 redeems dStable for primary collateral
         const dstableToRedeem = hre.ethers.parseUnits(
           "100",
-          dstableInfo.decimals
+          dstableInfo.decimals,
         );
 
         // Calculate expected collateral amount based on oracle prices
         const expectedCollateralToReceive = await calculateAmountFromBaseValue(
           await calculateBaseValueFromAmount(
             dstableToRedeem,
-            dstableInfo.address
+            dstableInfo.address,
           ),
-          primaryCollateralInfo.address
+          primaryCollateralInfo.address,
         );
 
         // Apply a small slippage to ensure the test passes
@@ -526,7 +528,7 @@ dstableConfigs.forEach((config) => {
           .redeem(
             dstableToRedeem,
             primaryCollateralInfo.address,
-            minCollateralToReceive
+            minCollateralToReceive,
           );
 
         await checkInvariants();
@@ -537,13 +539,13 @@ dstableConfigs.forEach((config) => {
         // Transfer primary collateral from AMO vault to vault
         await primaryCollateralContract.transfer(
           await mockAmoVaultContract.getAddress(),
-          hre.ethers.parseUnits("50", primaryCollateralInfo.decimals)
+          hre.ethers.parseUnits("50", primaryCollateralInfo.decimals),
         );
 
         await amoManagerContract.transferFromAmoVaultToHoldingVault(
           await mockAmoVaultContract.getAddress(),
           primaryCollateralInfo.address,
-          hre.ethers.parseUnits("50", primaryCollateralInfo.decimals)
+          hre.ethers.parseUnits("50", primaryCollateralInfo.decimals),
         );
 
         await checkInvariants();
@@ -551,12 +553,12 @@ dstableConfigs.forEach((config) => {
         // 8. Deallocate dStable from AMO vault
         const dstableToDeallocate = hre.ethers.parseUnits(
           "50",
-          dstableInfo.decimals
+          dstableInfo.decimals,
         );
         await mockAmoVaultContract.approveAmoManager();
         await amoManagerContract.deallocateAmo(
           await mockAmoVaultContract.getAddress(),
-          dstableToDeallocate
+          dstableToDeallocate,
         );
 
         await checkInvariants();
@@ -573,9 +575,9 @@ dstableConfigs.forEach((config) => {
         const expectedSecondaryCollateral = await calculateAmountFromBaseValue(
           await calculateBaseValueFromAmount(
             user2RemainingDstable,
-            dstableInfo.address
+            dstableInfo.address,
           ),
-          secondaryCollateralInfo.address
+          secondaryCollateralInfo.address,
         );
 
         // Apply a larger slippage for the final redemption to ensure the test passes
@@ -591,7 +593,7 @@ dstableConfigs.forEach((config) => {
           .redeem(
             user2RemainingDstable,
             secondaryCollateralInfo.address,
-            minSecondaryCollateralToReceive
+            minSecondaryCollateralToReceive,
           );
 
         await checkInvariants();

@@ -27,6 +27,7 @@ import {DLoopCoreBase} from "../core/DLoopCoreBase.sol";
 import {SwappableVault} from "contracts/common/SwappableVault.sol";
 import {RescuableVault} from "contracts/common/RescuableVault.sol";
 import {BasisPointConstants} from "contracts/common/BasisPointConstants.sol";
+import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
 /**
  * @title DLoopDepositorBase
@@ -113,6 +114,10 @@ abstract contract DLoopDepositorBase is
         address indexed debtToken,
         uint256 minAmount
     );
+    event MinLeftoverDebtTokenAmountRemoved(
+        address indexed dLoopCore,
+        address indexed debtToken
+    );
 
     /* Structs */
 
@@ -174,9 +179,11 @@ abstract contract DLoopDepositorBase is
             expectedLeveragedAssets
         );
         return
-            (expectedShares *
-                (BasisPointConstants.ONE_HUNDRED_PERCENT_BPS - slippageBps)) /
-            BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
+            Math.mulDiv(
+                expectedShares,
+                BasisPointConstants.ONE_HUNDRED_PERCENT_BPS - slippageBps,
+                BasisPointConstants.ONE_HUNDRED_PERCENT_BPS
+            );
     }
 
     /**
@@ -249,9 +256,11 @@ abstract contract DLoopDepositorBase is
             );
         }
         return
-            ((currentEstimatedShares - minOutputShares) *
-                (BasisPointConstants.ONE_HUNDRED_PERCENT_BPS)) /
-            currentEstimatedShares;
+            Math.mulDiv(
+                currentEstimatedShares - minOutputShares,
+                BasisPointConstants.ONE_HUNDRED_PERCENT_BPS,
+                currentEstimatedShares
+            );
     }
 
     /**
@@ -300,10 +309,12 @@ abstract contract DLoopDepositorBase is
 
         // Calculate the leveraged collateral amount to deposit with slippage included
         // Explained with formula in _calculateEstimatedOverallSlippageBps()
-        uint256 leveragedCollateralAmount = (currentLeveragedAssets *
-            (BasisPointConstants.ONE_HUNDRED_PERCENT_BPS -
-                estimatedOverallSlippageBps)) /
-            BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
+        uint256 leveragedCollateralAmount = Math.mulDiv(
+            currentLeveragedAssets,
+            BasisPointConstants.ONE_HUNDRED_PERCENT_BPS -
+                estimatedOverallSlippageBps,
+            BasisPointConstants.ONE_HUNDRED_PERCENT_BPS
+        );
 
         // Create the flash loan params data
         FlashLoanParams memory params = FlashLoanParams(
@@ -444,6 +455,7 @@ abstract contract DLoopDepositorBase is
      * @param dLoopCore Address of the dLoopCore contract
      * @param debtToken Address of the debt token
      * @param minAmount Minimum leftover debt token amount for the given dLoopCore and debt token
+     *                  Setting minAmount to 0 removes the token from the array using efficient swap-and-pop
      */
     function setMinLeftoverDebtTokenAmount(
         address dLoopCore,
@@ -451,11 +463,29 @@ abstract contract DLoopDepositorBase is
         uint256 minAmount
     ) external nonReentrant onlyOwner {
         minLeftoverDebtTokenAmount[dLoopCore][debtToken] = minAmount;
-        if (!_existingDebtTokensMap[debtToken]) {
-            _existingDebtTokensMap[debtToken] = true;
-            existingDebtTokens.push(debtToken);
+
+        // If the min amount is 0, we need to remove the debt token from the existing debt tokens array
+        if (minAmount == 0) {
+            delete _existingDebtTokensMap[debtToken];
+            // Remove the debt token from the existing debt tokens array
+            for (uint256 i = 0; i < existingDebtTokens.length; i++) {
+                // Remove the by replacing the debt token with the last element and then pop the last element
+                if (existingDebtTokens[i] == debtToken) {
+                    existingDebtTokens[i] = existingDebtTokens[
+                        existingDebtTokens.length - 1
+                    ];
+                    existingDebtTokens.pop();
+                    break; // Exit loop once token is found and removed
+                }
+            }
+            emit MinLeftoverDebtTokenAmountRemoved(dLoopCore, debtToken);
+        } else {
+            if (!_existingDebtTokensMap[debtToken]) {
+                _existingDebtTokensMap[debtToken] = true;
+                existingDebtTokens.push(debtToken);
+            }
+            emit MinLeftoverDebtTokenAmountSet(dLoopCore, debtToken, minAmount);
         }
-        emit MinLeftoverDebtTokenAmountSet(dLoopCore, debtToken, minAmount);
     }
 
     /* Internal helpers */

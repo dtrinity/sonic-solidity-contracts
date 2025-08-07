@@ -18,6 +18,7 @@
 pragma solidity ^0.8.20;
 
 import "./CollateralVault.sol";
+import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
 /**
  * @title CollateralHolderVault
@@ -136,12 +137,17 @@ contract CollateralHolderVault is CollateralVault {
             .decimals();
         uint8 toCollateralDecimals = IERC20Metadata(toCollateral).decimals();
 
-        uint256 fromCollateralBaseValue = (fromCollateralPrice *
-            fromCollateralAmount) / (10 ** fromCollateralDecimals);
+        uint256 fromCollateralBaseValue = Math.mulDiv(
+            fromCollateralPrice,
+            fromCollateralAmount,
+            10 ** fromCollateralDecimals
+        );
 
-        toCollateralAmount =
-            (fromCollateralBaseValue * (10 ** toCollateralDecimals)) /
-            toCollateralPrice;
+        toCollateralAmount = Math.mulDiv(
+            fromCollateralBaseValue,
+            10 ** toCollateralDecimals,
+            toCollateralPrice
+        );
 
         return toCollateralAmount;
     }

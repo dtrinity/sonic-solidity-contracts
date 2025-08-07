@@ -9,10 +9,6 @@ import {
 } from "../../config/types";
 import { DStakeRewardManagerDLend } from "../../typechain-types";
 import {
-  DS_A_TOKEN_WRAPPER_ID,
-  DS_TOKEN_ID,
-  DUSD_A_TOKEN_WRAPPER_ID,
-  DUSD_TOKEN_ID,
   EMISSION_MANAGER_ID,
   INCENTIVES_PROXY_ID,
   POOL_DATA_PROVIDER_ID,
@@ -22,6 +18,9 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployments, getNamedAccounts } = hre;
   const { deploy, get } = deployments;
   const { deployer } = await getNamedAccounts();
+
+  // Collect instructions for any manual actions required when the deployer lacks permissions.
+  const manualActions: string[] = [];
 
   const config = await getConfig(hre);
 
@@ -111,8 +110,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       maxTreasuryFeeBps < 0 ||
       typeof initialTreasuryFeeBps !== "number" ||
       initialTreasuryFeeBps < 0 ||
-      typeof initialExchangeThreshold !== "number" ||
-      initialExchangeThreshold < 0
+      typeof initialExchangeThreshold !== "bigint" ||
+      initialExchangeThreshold < 0n
     ) {
       throw new Error(
         `Invalid fee/threshold numbers in dLendRewardManager config for ${instanceKey}.`,
@@ -210,10 +209,19 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       emissionManagerDeployment.address,
     );
 
-    const tx = await emissionManager
-      .connect(deployerSigner)
-      .setClaimer(targetStaticATokenWrapperAddress, deployment.address); // Use generalized address
-    await tx.wait();
+    // Attempt to authorize this manager as a claimer via EmissionManager only if the deployer is the owner.
+    const emissionOwner = await emissionManager.owner();
+
+    if (emissionOwner.toLowerCase() === deployer.toLowerCase()) {
+      const tx = await emissionManager
+        .connect(deployerSigner)
+        .setClaimer(targetStaticATokenWrapperAddress, deployment.address);
+      await tx.wait();
+    } else {
+      manualActions.push(
+        `EmissionManager (${emissionManagerDeployment.address}).setClaimer(${targetStaticATokenWrapperAddress}, ${deployment.address})`,
+      );
+    }
 
     // --- Configure Roles ---
     if (deployment.address) {
@@ -237,33 +245,47 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
           ? rewardManagerConfig.initialRewardsManager
           : deployer;
 
-      // Grant and revoke roles as necessary
-      if (targetRewardsManager !== deployer) {
-        if (
-          !(await rewardManager.hasRole(
-            REWARDS_MANAGER_ROLE,
-            targetRewardsManager,
-          ))
-        ) {
-          await rewardManager.grantRole(
-            REWARDS_MANAGER_ROLE,
-            targetRewardsManager,
-          );
-          console.log(
-            `          Granted REWARDS_MANAGER_ROLE to ${targetRewardsManager}`,
-          );
-        }
+      // The deployer needs DEFAULT_ADMIN_ROLE to change roles. If not, just log what needs to be done.
+      const deployerIsAdmin = await rewardManager.hasRole(
+        DEFAULT_ADMIN_ROLE,
+        deployer,
+      );
 
-        if (await rewardManager.hasRole(REWARDS_MANAGER_ROLE, deployer)) {
-          await rewardManager.revokeRole(REWARDS_MANAGER_ROLE, deployer);
-          console.log(
-            `          Revoked REWARDS_MANAGER_ROLE from ${deployer}`,
-          );
-        }
+      if (!deployerIsAdmin) {
+        manualActions.push(
+          `RewardManager (${deployment.address}) role setup: grantRole(DEFAULT_ADMIN_ROLE, ${targetAdmin}); grantRole(REWARDS_MANAGER_ROLE, ${targetRewardsManager}); optionally revoke roles from ${deployer}`,
+        );
       } else {
-        if (!(await rewardManager.hasRole(REWARDS_MANAGER_ROLE, deployer))) {
-          await rewardManager.grantRole(REWARDS_MANAGER_ROLE, deployer);
-          console.log(`          Granted REWARDS_MANAGER_ROLE to ${deployer}`);
+        // Grant and revoke roles as necessary
+        if (targetRewardsManager !== deployer) {
+          if (
+            !(await rewardManager.hasRole(
+              REWARDS_MANAGER_ROLE,
+              targetRewardsManager,
+            ))
+          ) {
+            await rewardManager.grantRole(
+              REWARDS_MANAGER_ROLE,
+              targetRewardsManager,
+            );
+            console.log(
+              `          Granted REWARDS_MANAGER_ROLE to ${targetRewardsManager}`,
+            );
+          }
+
+          if (await rewardManager.hasRole(REWARDS_MANAGER_ROLE, deployer)) {
+            await rewardManager.revokeRole(REWARDS_MANAGER_ROLE, deployer);
+            console.log(
+              `          Revoked REWARDS_MANAGER_ROLE from ${deployer}`,
+            );
+          }
+        } else {
+          if (!(await rewardManager.hasRole(REWARDS_MANAGER_ROLE, deployer))) {
+            await rewardManager.grantRole(REWARDS_MANAGER_ROLE, deployer);
+            console.log(
+              `          Granted REWARDS_MANAGER_ROLE to ${deployer}`,
+            );
+          }
         }
       }
 
@@ -287,23 +309,22 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     }
   }
 
+  // After processing all instances, print any manual steps that are required.
+  if (manualActions.length > 0) {
+    console.log(
+      "\n⚠️  Manual actions required to finalize dLend rewards deployment:",
+    );
+    manualActions.forEach((a: string) => console.log(`   - ${a}`));
+  }
+
   console.log(`🥩 ${__filename.split("/").slice(-2).join("/")}: ✅`);
 };
 
 export default func;
 // Define tags and dependencies
-func.tags = ["DStakeRewardManagerDLend", "dStakeRewards", "dStakeConfig"];
-func.dependencies = [
-  "dStakeCore",
-  "dStakeAdapters",
-  "dLendCore",
-  "dlend-market",
-  DUSD_A_TOKEN_WRAPPER_ID,
-  DS_A_TOKEN_WRAPPER_ID,
-  INCENTIVES_PROXY_ID,
-  POOL_DATA_PROVIDER_ID,
-  DUSD_TOKEN_ID,
-  DS_TOKEN_ID,
-  EMISSION_MANAGER_ID,
-];
+func.tags = ["dStakeDLendRewards", "dStake"];
+func.dependencies = ["dStakeConfigure"];
+
+// Mark as executed once.
+func.id = "dstake_dlend_rewards";
 func.runAtTheEnd = true;
