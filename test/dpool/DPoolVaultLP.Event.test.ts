@@ -1,6 +1,6 @@
-import { ethers } from "hardhat";
 import { expect } from "chai";
 import { parseUnits } from "ethers";
+import { ethers } from "hardhat";
 
 // Helper for 18-decimals BigInt conversion (ethers v6)
 const toWei = (value: string | number) => parseUnits(value.toString(), 18);
@@ -65,7 +65,7 @@ describe("DPoolVaultLP – Withdraw event", () => {
         user.address,
         user.address,
         netAssets,
-        sharesNeeded
+        sharesNeeded,
       );
 
     // Validate token transfer amount == net assets
@@ -74,7 +74,7 @@ describe("DPoolVaultLP – Withdraw event", () => {
 
     // Vault balance should have decreased only by the NET amount; fee stays inside the vault
     const vaultBalance: bigint = await token.balanceOf(
-      await vault.getAddress()
+      await vault.getAddress(),
     );
     expect(vaultBalance).to.equal(toWei(1000) - netAssets);
   });

@@ -99,6 +99,7 @@ contract FlashMintLiquidatorAaveBorrowRepayPTOdos is
         uint256 underlyingReceived = _executePendleSwap(
             _inputToken,
             _maxIn,
+            ptSwapData.underlyingAsset,
             ptSwapData.pendleRouter,
             ptSwapData.pendleCalldata
         );
@@ -163,6 +164,7 @@ contract FlashMintLiquidatorAaveBorrowRepayPTOdos is
      * @notice Executes a Pendle PT swap using SDK-generated transaction data
      * @param ptToken The PT token being swapped
      * @param ptAmount Amount of PT tokens to swap
+     * @param underlyingAsset The underlying asset that will be received
      * @param target Target contract address from Pendle SDK
      * @param swapData Transaction data from Pendle SDK
      * @return actualUnderlyingOut Actual amount of underlying tokens received
@@ -170,18 +172,27 @@ contract FlashMintLiquidatorAaveBorrowRepayPTOdos is
     function _executePendleSwap(
         address ptToken,
         uint256 ptAmount,
+        address underlyingAsset,
         address target,
         bytes memory swapData
     ) internal returns (uint256 actualUnderlyingOut) {
-        // Call PendleSwapUtils library function directly
-        // Note: Errors from the library will bubble up automatically
-        return
-            PendleSwapUtils.executePendleSwap(
-                ptToken,
-                ptAmount,
-                target,
-                swapData
-            );
+        // Record underlying token balance before swap
+        uint256 underlyingBalanceBefore = ERC20(underlyingAsset).balanceOf(address(this));
+
+        // Execute Pendle swap via library
+        // This returns amountSpent (PT tokens consumed), but we need underlying received
+        PendleSwapUtils.executePendleSwap(
+            ptToken,
+            ptAmount,
+            target,
+            swapData
+        );
+
+        // Calculate actual underlying tokens received
+        uint256 underlyingBalanceAfter = ERC20(underlyingAsset).balanceOf(address(this));
+        actualUnderlyingOut = underlyingBalanceAfter - underlyingBalanceBefore;
+        
+        return actualUnderlyingOut;
     }
 
     /**

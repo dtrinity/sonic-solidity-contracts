@@ -72,13 +72,6 @@ export async function getConfig(
     await _hre.deployments.getOrNull(INCENTIVES_PROXY_ID);
   const aTokenDUSDDeployment = await _hre.deployments.getOrNull("dLEND-dUSD");
 
-  const { deployer } = await _hre.getNamedAccounts();
-  const feeTreasury = deployer;
-
-  if (!feeTreasury) {
-    throw new Error("Fee treasury address not found");
-  }
-
   // Fetch dUSD token decimals from the contract if deployed
   let dUSDDecimals = 0;
 
@@ -142,7 +135,6 @@ export async function getConfig(
           USDCeAddress,
           scUSDAddress,
         ],
-        // TODO: review – set to governance multisig for now
         initialFeeReceiver: governanceSafeMultisig, // governanceMultisig
         initialRedemptionFeeBps: 0.4 * ONE_PERCENT_BPS, // Default for stablecoins
         collateralRedemptionFees: {
@@ -157,7 +149,6 @@ export async function getConfig(
       },
       dS: {
         collaterals: [wSAddress, stSAddress],
-        // TODO: review – set to governance multisig for now
         initialFeeReceiver: governanceSafeMultisig, // governanceMultisig
         initialRedemptionFeeBps: 0.4 * ONE_PERCENT_BPS, // Default for stablecoins
         collateralRedemptionFees: {
@@ -171,11 +162,11 @@ export async function getConfig(
     dLoop: {
       dUSDAddress: dUSDDeployment?.address || "",
       coreVaults: {
-        "3x_sFRAX_dUSD": {
+        "3x_sfrxUSD_dUSD": {
           // TODO: ALL dLOOP values are for QA ONLY. Reset them before mainnet
           venue: "dlend",
-          name: "Leveraged sFRAX-dUSD Vault",
-          symbol: "FRAX-dUSD-3x",
+          name: "dLOOP 3X sfrxUSD dLEND",
+          symbol: "3X-sfrxUSD",
           underlyingAsset: sfrxUSDAddress,
           dStable: dUSDDeployment?.address || "",
           targetLeverageBps: 300 * ONE_PERCENT_BPS, // 300% leverage, meaning 3x leverage
@@ -185,7 +176,7 @@ export async function getConfig(
           extraParams: {
             targetStaticATokenWrapper:
               dLendATokenWrapperDUSDDeployment?.address,
-            treasury: feeTreasury,
+            treasury: governanceSafeMultisig,
             maxTreasuryFeeBps: "1000",
             initialTreasuryFeeBps: "500",
             initialExchangeThreshold: 1n * 10n ** BigInt(dUSDDecimals), // TODO: 1 dStable token (fetched from contract decimals), for QA ONLY
@@ -391,8 +382,8 @@ export async function getConfig(
         dStable: emptyStringIfUndefined(dUSDDeployment?.address),
         name: "Staked dUSD",
         symbol: "sdUSD",
-        initialAdmin: deployer, // TODO: Temporary for QA
-        initialFeeManager: deployer, // TODO: Temporary for QA
+        initialAdmin: governanceSafeMultisig,
+        initialFeeManager: governanceSafeMultisig,
         initialWithdrawalFeeBps: 0.1 * ONE_PERCENT_BPS, // 0.1%
         adapters: [
           {
@@ -406,9 +397,7 @@ export async function getConfig(
           dLendATokenWrapperDUSDDeployment?.address,
         ),
         collateralVault: "DStakeCollateralVault_sdUSD", // Keep in sync with deploy ID constants
-        collateralExchangers: [
-          deployer, // TODO: Temporary for QA
-        ],
+        collateralExchangers: [governanceSafeMultisig],
         dLendRewardManager: {
           managedVaultAsset: emptyStringIfUndefined(
             dLendATokenWrapperDUSDDeployment?.address,
@@ -419,13 +408,23 @@ export async function getConfig(
           dLendRewardsController: emptyStringIfUndefined(
             rewardsControllerDeployment?.address,
           ), // RewardsController proxy
-          treasury: deployer, // TODO: Temporary for QA
-          maxTreasuryFeeBps: 5 * ONE_PERCENT_BPS, // 5%
-          initialTreasuryFeeBps: 1 * ONE_PERCENT_BPS, // 1%
-          initialExchangeThreshold: 1n * 10n ** BigInt(dUSDDecimals), // TODO: 1 dStable token (fetched from contract decimals), for QA ONLY
+          treasury: governanceSafeMultisig,
+          maxTreasuryFeeBps: 20 * ONE_PERCENT_BPS, // 20%
+          initialTreasuryFeeBps: 0 * ONE_PERCENT_BPS, // 0%
+          initialExchangeThreshold: 100n * 10n ** BigInt(dUSDDecimals), // 100 sdUSD
         },
       },
     },
+    // Not launching dBOOST yet, so keep disabled for now
+    // vesting: {
+    //   name: "dBOOST sdUSD Season 1",
+    //   symbol: "sdUSD-S1",
+    //   dstakeToken: emptyStringIfUndefined(sdUSDDeployment?.address),
+    //   vestingPeriod: 180 * 24 * 60 * 60, // 6 months
+    //   maxTotalSupply: _hre.ethers.parseUnits("20000000", 18).toString(), // 20M tokens
+    //   initialOwner: governanceSafeMultisig,
+    //   minDepositThreshold: _hre.ethers.parseUnits("250000", 18).toString(), // 250k tokens
+    // },
   };
 }
 

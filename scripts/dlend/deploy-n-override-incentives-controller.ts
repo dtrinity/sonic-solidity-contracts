@@ -1,5 +1,7 @@
 import { ZeroAddress } from "ethers";
 import hre from "hardhat";
+
+import { getConfig } from "../../config/config";
 import {
   EMISSION_MANAGER_ID,
   INCENTIVES_IMPL_ID,
@@ -7,8 +9,10 @@ import {
   POOL_ADDRESSES_PROVIDER_ID,
   PULL_REWARDS_TRANSFER_STRATEGY_ID,
 } from "../../typescript/deploy-ids";
-import { getConfig } from "../../config/config";
 
+/**
+ *
+ */
 async function main() {
   const { deployments, getNamedAccounts, ethers } = hre;
   const { save, getExtendedArtifact, deploy } = deployments;
@@ -22,11 +26,12 @@ async function main() {
 
   const emissionManagerContract = await ethers.getContractAt(
     "EmissionManager",
-    emissionManager.address
+    emissionManager.address,
   );
 
   // Check that we are the owner of the emission manager
   const isOwner = await emissionManagerContract.owner();
+
   if (isOwner !== deployer) {
     throw new Error("You are not the owner of the emission manager");
   }
@@ -41,12 +46,12 @@ async function main() {
 
   console.log(
     "New incentives controller implementation deployed at ",
-    incentivesImpl.address
+    incentivesImpl.address,
   );
 
   const incentivesImplContract = await ethers.getContractAt(
     "RewardsController",
-    incentivesImpl.address
+    incentivesImpl.address,
   );
 
   try {
@@ -63,33 +68,33 @@ async function main() {
 
   // The Rewards Controller must be set at AddressesProvider with id keccak256("INCENTIVES_CONTROLLER")
   const incentivesControllerId = ethers.keccak256(
-    ethers.toUtf8Bytes("INCENTIVES_CONTROLLER")
+    ethers.toUtf8Bytes("INCENTIVES_CONTROLLER"),
   );
 
   const proxyArtifact = await getExtendedArtifact(
-    "InitializableImmutableAdminUpgradeabilityProxy"
+    "InitializableImmutableAdminUpgradeabilityProxy",
   );
 
   const addressesProvider = await deployments.get(POOL_ADDRESSES_PROVIDER_ID);
   const addressesProviderInstance = await ethers.getContractAt(
     "PoolAddressesProvider",
     addressesProvider.address,
-    await ethers.getSigner(deployer)
+    await ethers.getSigner(deployer),
   );
 
   const _setRewardsAsProxyTx =
     await addressesProviderInstance.setAddressAsProxy(
       incentivesControllerId,
-      incentivesImpl.address
+      incentivesImpl.address,
     );
 
   console.log(
     "Set Rewards Controller as proxy at tx ",
-    _setRewardsAsProxyTx.hash
+    _setRewardsAsProxyTx.hash,
   );
 
   const proxyAddress = await addressesProviderInstance.getAddressFromID(
-    incentivesControllerId
+    incentivesControllerId,
   );
 
   await save(INCENTIVES_PROXY_ID, {
