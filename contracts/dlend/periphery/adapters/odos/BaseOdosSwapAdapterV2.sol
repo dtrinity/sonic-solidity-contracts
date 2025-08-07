@@ -30,8 +30,10 @@ import {ISwapTypes} from "./interfaces/ISwapTypes.sol";
  * @notice Utility functions for adapters using Odos with PT token support
  * @dev Extends BaseOdosSwapAdapter with PT token functionality via PTSwapUtils
  */
-abstract contract BaseOdosSwapAdapterV2 is BaseOdosSwapAdapter, IBaseOdosAdapterV2 {
-
+abstract contract BaseOdosSwapAdapterV2 is
+    BaseOdosSwapAdapter,
+    IBaseOdosAdapterV2
+{
     /// @notice The address of the Odos Router
     IOdosRouterV2 public immutable odosRouter;
 
@@ -46,7 +48,7 @@ abstract contract BaseOdosSwapAdapterV2 is BaseOdosSwapAdapter, IBaseOdosAdapter
      * @param _pendleRouter The address of the Pendle Router
      */
     constructor(
-        IPoolAddressesProvider addressesProvider, 
+        IPoolAddressesProvider addressesProvider,
         address pool,
         IOdosRouterV2 _odosRouter,
         address _pendleRouter
@@ -72,59 +74,69 @@ abstract contract BaseOdosSwapAdapterV2 is BaseOdosSwapAdapter, IBaseOdosAdapter
         bytes memory swapData
     ) internal returns (uint256 actualOutputAmount) {
         // Use PTSwapUtils to determine swap type
-        ISwapTypes.SwapType swapType = PTSwapUtils.determineSwapType(inputToken, outputToken);
+        ISwapTypes.SwapType swapType = PTSwapUtils.determineSwapType(
+            inputToken,
+            outputToken
+        );
 
         if (swapType == ISwapTypes.SwapType.REGULAR_SWAP) {
             // Regular Odos swap - swapData should be raw Odos calldata
-            return OdosSwapUtils.executeSwapOperation(
-                odosRouter,
-                inputToken,
-                outputToken,
-                inputAmount,
-                minOutputAmount,
-                swapData
-            );
+            return
+                OdosSwapUtils.executeSwapOperation(
+                    odosRouter,
+                    inputToken,
+                    outputToken,
+                    inputAmount,
+                    minOutputAmount,
+                    swapData
+                );
         }
 
         // PT token involved - decode PTSwapDataV2 and use PTSwapUtils
-        PTSwapUtils.PTSwapDataV2 memory ptSwapData = abi.decode(swapData, (PTSwapUtils.PTSwapDataV2));
-        
+        PTSwapUtils.PTSwapDataV2 memory ptSwapData = abi.decode(
+            swapData,
+            (PTSwapUtils.PTSwapDataV2)
+        );
+
         if (!PTSwapUtils.validatePTSwapData(ptSwapData)) {
             revert InvalidPTSwapData();
         }
 
         if (swapType == ISwapTypes.SwapType.PT_TO_REGULAR) {
             // PT -> regular token
-            return PTSwapUtils.executePTToTargetSwap(
-                inputToken,
-                outputToken,
-                inputAmount,
-                minOutputAmount,
-                pendleRouter,
-                odosRouter,
-                ptSwapData
-            );
+            return
+                PTSwapUtils.executePTToTargetSwap(
+                    inputToken,
+                    outputToken,
+                    inputAmount,
+                    minOutputAmount,
+                    pendleRouter,
+                    odosRouter,
+                    ptSwapData
+                );
         } else if (swapType == ISwapTypes.SwapType.REGULAR_TO_PT) {
             // Regular token -> PT
-            return PTSwapUtils.executeSourceToPTSwap(
-                inputToken,
-                outputToken,
-                inputAmount,
-                minOutputAmount,
-                pendleRouter,
-                odosRouter,
-                ptSwapData
-            );
+            return
+                PTSwapUtils.executeSourceToPTSwap(
+                    inputToken,
+                    outputToken,
+                    inputAmount,
+                    minOutputAmount,
+                    pendleRouter,
+                    odosRouter,
+                    ptSwapData
+                );
         } else if (swapType == ISwapTypes.SwapType.PT_TO_PT) {
             // PT -> PT (direct Pendle swap)
-            return PTSwapUtils.executePTToPTSwap(
-                inputToken,
-                outputToken,
-                inputAmount,
-                minOutputAmount,
-                pendleRouter,
-                ptSwapData
-            );
+            return
+                PTSwapUtils.executePTToPTSwap(
+                    inputToken,
+                    outputToken,
+                    inputAmount,
+                    minOutputAmount,
+                    pendleRouter,
+                    ptSwapData
+                );
         } else {
             revert InvalidPTSwapData(); // Should never reach here
         }

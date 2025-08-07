@@ -31,7 +31,10 @@ import {ISwapTypes} from "./interfaces/ISwapTypes.sol";
  * @notice Implements the logic for buying tokens on Odos with PT token support
  * @dev Extends BaseOdosBuyAdapter with PT token functionality
  */
-abstract contract BaseOdosBuyAdapterV2 is BaseOdosBuyAdapter, IBaseOdosAdapterV2 {
+abstract contract BaseOdosBuyAdapterV2 is
+    BaseOdosBuyAdapter,
+    IBaseOdosAdapterV2
+{
     /// @notice The address of the Pendle Router
     address public immutable pendleRouter;
 
@@ -47,8 +50,6 @@ abstract contract BaseOdosBuyAdapterV2 is BaseOdosBuyAdapter, IBaseOdosAdapterV2
         pendleRouter = _pendleRouter;
     }
 
-
-
     /**
      * @dev Override _buyOnOdos to support PT tokens
      * @dev Routes to PT-aware logic or calls parent implementation
@@ -62,17 +63,29 @@ abstract contract BaseOdosBuyAdapterV2 is BaseOdosBuyAdapter, IBaseOdosAdapterV2
     ) internal override returns (uint256 amountSold) {
         address tokenIn = address(assetToSwapFrom);
         address tokenOut = address(assetToSwapTo);
-        
+
         // Check swap type using PTSwapUtils
-        ISwapTypes.SwapType swapType = PTSwapUtils.determineSwapType(tokenIn, tokenOut);
+        ISwapTypes.SwapType swapType = PTSwapUtils.determineSwapType(
+            tokenIn,
+            tokenOut
+        );
 
         if (swapType == ISwapTypes.SwapType.REGULAR_SWAP) {
             // Regular swap - call parent implementation
-            return super._buyOnOdos(assetToSwapFrom, assetToSwapTo, maxAmountToSwap, amountToReceive, swapData);
+            return
+                super._buyOnOdos(
+                    assetToSwapFrom,
+                    assetToSwapTo,
+                    maxAmountToSwap,
+                    amountToReceive,
+                    swapData
+                );
         }
 
         // PT token involved - use composed swap logic
-        uint256 balanceBeforeAssetFrom = assetToSwapFrom.balanceOf(address(this));
+        uint256 balanceBeforeAssetFrom = assetToSwapFrom.balanceOf(
+            address(this)
+        );
         if (balanceBeforeAssetFrom < maxAmountToSwap) {
             revert InsufficientBalanceBeforeSwap(
                 balanceBeforeAssetFrom,
@@ -90,7 +103,9 @@ abstract contract BaseOdosBuyAdapterV2 is BaseOdosBuyAdapter, IBaseOdosAdapterV2
         );
 
         // Calculate the actual amount sold based on balance difference
-        amountSold = balanceBeforeAssetFrom - assetToSwapFrom.balanceOf(address(this));
+        amountSold =
+            balanceBeforeAssetFrom -
+            assetToSwapFrom.balanceOf(address(this));
 
         emit Bought(tokenIn, tokenOut, amountSold, actualAmountOut);
         return amountSold;
@@ -113,58 +128,68 @@ abstract contract BaseOdosBuyAdapterV2 is BaseOdosBuyAdapter, IBaseOdosAdapterV2
         bytes memory swapData
     ) internal returns (uint256 actualOutputAmount) {
         // Use PTSwapUtils to determine swap strategy and execute
-        ISwapTypes.SwapType swapType = PTSwapUtils.determineSwapType(inputToken, outputToken);
+        ISwapTypes.SwapType swapType = PTSwapUtils.determineSwapType(
+            inputToken,
+            outputToken
+        );
 
         if (swapType == ISwapTypes.SwapType.REGULAR_SWAP) {
             // Regular swap - swapData should be raw Odos calldata
-            return _executeOdosExactOutput(
-                inputToken,
-                outputToken,
-                maxInputAmount,
-                exactOutputAmount,
-                swapData
-            );
+            return
+                _executeOdosExactOutput(
+                    inputToken,
+                    outputToken,
+                    maxInputAmount,
+                    exactOutputAmount,
+                    swapData
+                );
         }
 
         // PT token involved - decode PTSwapDataV2 and use PTSwapUtils
-        PTSwapUtils.PTSwapDataV2 memory ptSwapData = abi.decode(swapData, (PTSwapUtils.PTSwapDataV2));
-        
+        PTSwapUtils.PTSwapDataV2 memory ptSwapData = abi.decode(
+            swapData,
+            (PTSwapUtils.PTSwapDataV2)
+        );
+
         if (!PTSwapUtils.validatePTSwapData(ptSwapData)) {
             revert InvalidSwapData();
         }
 
         if (swapType == ISwapTypes.SwapType.PT_TO_REGULAR) {
             // PT -> regular token
-            return PTSwapUtils.executePTToTargetSwap(
-                inputToken,
-                outputToken,
-                maxInputAmount,
-                exactOutputAmount,
-                pendleRouter,
-                swapRouter,
-                ptSwapData
-            );
+            return
+                PTSwapUtils.executePTToTargetSwap(
+                    inputToken,
+                    outputToken,
+                    maxInputAmount,
+                    exactOutputAmount,
+                    pendleRouter,
+                    swapRouter,
+                    ptSwapData
+                );
         } else if (swapType == ISwapTypes.SwapType.REGULAR_TO_PT) {
             // Regular token -> PT
-            return PTSwapUtils.executeSourceToPTSwap(
-                inputToken,
-                outputToken,
-                maxInputAmount,
-                exactOutputAmount,
-                pendleRouter,
-                swapRouter,
-                ptSwapData
-            );
+            return
+                PTSwapUtils.executeSourceToPTSwap(
+                    inputToken,
+                    outputToken,
+                    maxInputAmount,
+                    exactOutputAmount,
+                    pendleRouter,
+                    swapRouter,
+                    ptSwapData
+                );
         } else if (swapType == ISwapTypes.SwapType.PT_TO_PT) {
             // PT -> PT (direct Pendle swap)
-            return PTSwapUtils.executePTToPTSwap(
-                inputToken,
-                outputToken,
-                maxInputAmount,
-                exactOutputAmount,
-                pendleRouter,
-                ptSwapData
-            );
+            return
+                PTSwapUtils.executePTToPTSwap(
+                    inputToken,
+                    outputToken,
+                    maxInputAmount,
+                    exactOutputAmount,
+                    pendleRouter,
+                    ptSwapData
+                );
         } else {
             revert InvalidSwapData(); // Should never reach here
         }

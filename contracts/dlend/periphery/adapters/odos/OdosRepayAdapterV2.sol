@@ -42,7 +42,14 @@ contract OdosRepayAdapterV2 is BaseOdosSellAdapterV2, IOdosRepayAdapterV2 {
         IOdosRouterV2 _swapRouter,
         address _pendleRouter,
         address owner
-    ) BaseOdosSellAdapterV2(addressesProvider, pool, _swapRouter, _pendleRouter) {
+    )
+        BaseOdosSellAdapterV2(
+            addressesProvider,
+            pool,
+            _swapRouter,
+            _pendleRouter
+        )
+    {
         transferOwnership(owner);
     }
 

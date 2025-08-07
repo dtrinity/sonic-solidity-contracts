@@ -83,7 +83,7 @@ library PTSwapUtils {
         if (success && data.length == 32) {
             sy = abi.decode(data, (address));
             isPT = sy != address(0);
-            
+
             if (isPT) {
                 emit PTTokenDetected(token, sy);
             }
@@ -107,17 +107,31 @@ library PTSwapUtils {
         bytes memory swapData
     ) internal returns (uint256 actualUnderlyingOut) {
         // Record underlying token balance before swap
-        uint256 underlyingBalanceBefore = IERC20(underlyingAsset).balanceOf(address(this));
+        uint256 underlyingBalanceBefore = IERC20(underlyingAsset).balanceOf(
+            address(this)
+        );
 
         // Execute Pendle swap via PendleSwapUtils library
-        PendleSwapUtils.executePendleSwap(ptToken, ptAmount, pendleRouter, swapData);
-        
+        PendleSwapUtils.executePendleSwap(
+            ptToken,
+            ptAmount,
+            pendleRouter,
+            swapData
+        );
+
         // Calculate actual underlying tokens received
-        uint256 underlyingBalanceAfter = IERC20(underlyingAsset).balanceOf(address(this));
+        uint256 underlyingBalanceAfter = IERC20(underlyingAsset).balanceOf(
+            address(this)
+        );
         actualUnderlyingOut = underlyingBalanceAfter - underlyingBalanceBefore;
-        
-        emit PTSwapExecuted(ptToken, underlyingAsset, ptAmount, actualUnderlyingOut);
-        
+
+        emit PTSwapExecuted(
+            ptToken,
+            underlyingAsset,
+            ptAmount,
+            actualUnderlyingOut
+        );
+
         return actualUnderlyingOut;
     }
 
@@ -175,7 +189,12 @@ library PTSwapUtils {
             );
         }
 
-        emit ComposedSwapCompleted(ptToken, targetToken, ptAmount, actualTargetOut);
+        emit ComposedSwapCompleted(
+            ptToken,
+            targetToken,
+            ptAmount,
+            actualTargetOut
+        );
         return actualTargetOut;
     }
 
@@ -235,7 +254,7 @@ library PTSwapUtils {
             pendleRouter,
             swapData.pendleCalldata
         );
-        
+
         // Calculate actual PT tokens received
         uint256 ptBalanceAfter = IERC20(ptToken).balanceOf(address(this));
         actualPTOut = ptBalanceAfter - ptBalanceBefore;
@@ -244,16 +263,26 @@ library PTSwapUtils {
             revert InsufficientPTSwapOutput(minPTOut, actualPTOut);
         }
 
-        emit PTSwapExecuted(swapData.underlyingAsset, ptToken, underlyingAmount, actualPTOut);
-        emit ComposedSwapCompleted(sourceToken, ptToken, sourceAmount, actualPTOut);
-        
+        emit PTSwapExecuted(
+            swapData.underlyingAsset,
+            ptToken,
+            underlyingAmount,
+            actualPTOut
+        );
+        emit ComposedSwapCompleted(
+            sourceToken,
+            ptToken,
+            sourceAmount,
+            actualPTOut
+        );
+
         return actualPTOut;
     }
 
     /**
      * @notice Execute direct PT to PT swap using Pendle
      * @param inputPTToken The input PT token
-     * @param outputPTToken The output PT token  
+     * @param outputPTToken The output PT token
      * @param inputAmount Amount of input PT tokens to swap
      * @param minOutputAmount Minimum amount of output PT tokens expected
      * @param pendleRouter The Pendle router address
@@ -269,9 +298,9 @@ library PTSwapUtils {
         PTSwapDataV2 memory swapData
     ) internal returns (uint256 actualOutputAmount) {
         // Validate that this is a PT to PT swap
-        (bool inputIsPT,) = isPTToken(inputPTToken);
-        (bool outputIsPT,) = isPTToken(outputPTToken);
-        
+        (bool inputIsPT, ) = isPTToken(inputPTToken);
+        (bool outputIsPT, ) = isPTToken(outputPTToken);
+
         if (!inputIsPT || !outputIsPT) {
             revert InvalidPTToken(inputPTToken);
         }
@@ -282,7 +311,9 @@ library PTSwapUtils {
         }
 
         // Record output PT token balance before swap
-        uint256 outputBalanceBefore = IERC20(outputPTToken).balanceOf(address(this));
+        uint256 outputBalanceBefore = IERC20(outputPTToken).balanceOf(
+            address(this)
+        );
 
         // Execute direct Pendle swap: PT input → PT output
         PendleSwapUtils.executePendleSwap(
@@ -293,16 +324,31 @@ library PTSwapUtils {
         );
 
         // Calculate actual output PT tokens received
-        uint256 outputBalanceAfter = IERC20(outputPTToken).balanceOf(address(this));
+        uint256 outputBalanceAfter = IERC20(outputPTToken).balanceOf(
+            address(this)
+        );
         actualOutputAmount = outputBalanceAfter - outputBalanceBefore;
 
         if (actualOutputAmount < minOutputAmount) {
-            revert InsufficientPTSwapOutput(minOutputAmount, actualOutputAmount);
+            revert InsufficientPTSwapOutput(
+                minOutputAmount,
+                actualOutputAmount
+            );
         }
 
-        emit PTSwapExecuted(inputPTToken, outputPTToken, inputAmount, actualOutputAmount);
-        emit ComposedSwapCompleted(inputPTToken, outputPTToken, inputAmount, actualOutputAmount);
-        
+        emit PTSwapExecuted(
+            inputPTToken,
+            outputPTToken,
+            inputAmount,
+            actualOutputAmount
+        );
+        emit ComposedSwapCompleted(
+            inputPTToken,
+            outputPTToken,
+            inputAmount,
+            actualOutputAmount
+        );
+
         return actualOutputAmount;
     }
 
@@ -311,7 +357,9 @@ library PTSwapUtils {
      * @param swapData The PTSwapDataV2 struct to validate
      * @return isValid True if the swap data is valid
      */
-    function validatePTSwapData(PTSwapDataV2 memory swapData) internal pure returns (bool isValid) {
+    function validatePTSwapData(
+        PTSwapDataV2 memory swapData
+    ) internal pure returns (bool isValid) {
         if (!swapData.isComposed) {
             // For regular swaps, we just need odos calldata
             return swapData.odosCalldata.length > 0;
@@ -338,8 +386,8 @@ library PTSwapUtils {
         address inputToken,
         address outputToken
     ) internal returns (ISwapTypes.SwapType swapType) {
-        (bool inputIsPT,) = isPTToken(inputToken);
-        (bool outputIsPT,) = isPTToken(outputToken);
+        (bool inputIsPT, ) = isPTToken(inputToken);
+        (bool outputIsPT, ) = isPTToken(outputToken);
 
         if (!inputIsPT && !outputIsPT) {
             return ISwapTypes.SwapType.REGULAR_SWAP; // Regular Odos swap

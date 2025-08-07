@@ -36,7 +36,7 @@ library OdosSwapUtils {
     ) internal returns (uint256) {
         // Track output token balance before swap
         uint256 balanceBefore = IERC20(outputToken).balanceOf(address(this));
-        
+
         // Use forceApprove for external DEX router integration
         IERC20(inputToken).forceApprove(address(router), maxIn);
 
