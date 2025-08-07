@@ -28,6 +28,7 @@ import {IERC3156FlashLender} from "./interface/flashloan/IERC3156FlashLender.sol
 import {DLoopCoreBase} from "../core/DLoopCoreBase.sol";
 import {SwappableVault} from "contracts/common/SwappableVault.sol";
 import {RescuableVault} from "contracts/common/RescuableVault.sol";
+import {SharedLogic} from "./helper/SharedLogic.sol";
 
 /**
  * @title DLoopRedeemerBase
@@ -189,14 +190,7 @@ abstract contract DLoopRedeemerBase is
         uint256 leveragedAssets,
         DLoopCoreBase dLoopCore
     ) public view returns (uint256) {
-        return
-            dLoopCore.getCurrentLeverageBps() > 0
-                ? dLoopCore.getUnleveragedAssetsWithCurrentLeverage(
-                    leveragedAssets
-                )
-                : dLoopCore.getUnleveragedAssetsWithTargetLeverage(
-                    leveragedAssets
-                );
+        return SharedLogic.getUnleveragedAssets(leveragedAssets, dLoopCore);
     }
 
     /**

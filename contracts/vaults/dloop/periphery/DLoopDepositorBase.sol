@@ -28,6 +28,7 @@ import {SwappableVault} from "contracts/common/SwappableVault.sol";
 import {RescuableVault} from "contracts/common/RescuableVault.sol";
 import {BasisPointConstants} from "contracts/common/BasisPointConstants.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
+import {SharedLogic} from "./helper/SharedLogic.sol";
 
 /**
  * @title DLoopDepositorBase
@@ -196,10 +197,7 @@ abstract contract DLoopDepositorBase is
         uint256 assets,
         DLoopCoreBase dLoopCore
     ) public view returns (uint256) {
-        return
-            dLoopCore.getCurrentLeverageBps() > 0
-                ? dLoopCore.getCurrentLeveragedAssets(assets)
-                : dLoopCore.getTargetLeveragedAssets(assets);
+        return SharedLogic.getLeveragedAssets(assets, dLoopCore);
     }
 
     /**
