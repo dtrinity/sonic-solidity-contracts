@@ -194,8 +194,8 @@ export async function getConfig(
       coreVaults: {
         "3x_sFRAX_dUSD": {
           venue: "dlend",
-          name: "Leveraged sFRAX-dUSD Vault",
-          symbol: "FRAX-dUSD-3x",
+          name: "dLOOP 3X sfrxUSD dLEND",
+          symbol: "3X-sfrxUSD",
           underlyingAsset: sfrxUSDDeployment?.address || "",
           dStable: dUSDDeployment?.address || "",
           targetLeverageBps: 300 * ONE_PERCENT_BPS, // 300% leverage, meaning 3x leverage
