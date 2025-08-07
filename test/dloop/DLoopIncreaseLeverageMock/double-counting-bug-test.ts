@@ -5,29 +5,25 @@ import { ethers } from "hardhat";
 import { deployDLoopIncreaseLeverageMockFixture } from "./fixtures";
 
 /**
- * This test demonstrates the double-counting bug reported in
+ * This test verifies that the double-counting bug reported in
  * https://github.com/hats-finance/dTRINITY-0xee5c6f15e8d0b55a5eff84bb66beeee0e6140ffe/issues/192
+ * **has been fixed**.
  *
- * The bug makes the periphery helper believe it has twice as much collateral
- * as it actually owns, causing it to skip the flash-loan branch and later
- * revert when the core vault tries to supply collateral it never received.
- *
- * REPRODUCTION:
- * 1. User provides exactly `requiredCollateralAmount` as input
- * 2. Helper calculates: `collateralFromUser = additionalCollateralFromUser + balanceOf(this)`
- * 3. Since the user's transfer is already included in balanceOf(this), this double-counts
- * 4. Helper thinks it has 2×requiredCollateralAmount, skips flash-loan path
- * 5. Core vault tries to supply requiredCollateralAmount but helper only has requiredCollateralAmount
- * 6. Transaction reverts with ERC20InsufficientBalance
- *
- * AFTER FIX:
- * This test should fail because the helper will correctly use flash loans
- * when it doesn't have enough collateral, preventing the insufficient balance error.
+ * Historically the helper double-counted `additionalCollateralFromUser`,
+ * thought it had 2× the real balance, skipped the flash-loan path and
+ * eventually reverted.  After the fix the helper correctly recognises the
+ * amount of collateral at its disposal, takes a flash loan for the shortfall
+ * and the transaction succeeds.
  */
 describe("DLoopIncreaseLeverageBase – double-counting collateral bug", function () {
-  it("Should revert due to insufficient collateral in core after skipping flash-loan path", async function () {
-    const { dloopMock, increaseLeverageMock, collateralToken, user1 } =
-      await loadFixture(deployDLoopIncreaseLeverageMockFixture);
+  it("Should successfully increase leverage with a flash loan when user supplies exactly the required collateral", async function () {
+    const {
+      dloopMock,
+      increaseLeverageMock,
+      collateralToken,
+      user1,
+      debtToken,
+    } = await loadFixture(deployDLoopIncreaseLeverageMockFixture);
 
     // 1️⃣  Move leverage below the target by increasing collateral price
     const increasedPrice = ethers.parseUnits("1.2", 8); // 20% price increase
@@ -44,9 +40,8 @@ describe("DLoopIncreaseLeverageBase – double-counting collateral bug", functio
 
     /*
      * 3️⃣  Provide *exactly* that amount as user input.
-     *     Because the helper adds the transferred amount to its own balance
-     *     again, it will think it has 2×requiredCollateralAmount and will
-     *     skip the flash-loan path.
+     *     The helper should recognise it still lacks collateral and therefore
+     *     take a flash-loan for the shortfall.
      */
     const additionalCollateralFromUser = requiredCollateralAmount;
 
@@ -58,19 +53,26 @@ describe("DLoopIncreaseLeverageBase – double-counting collateral bug", functio
         additionalCollateralFromUser,
       );
 
-    // 4️⃣  The call is expected to revert due to insufficient balance
-    //     This proves the double-counting bug: the helper thinks it has
-    //     2×requiredCollateralAmount but actually only has requiredCollateralAmount
+    // 4️⃣  Capture state before the leverage adjustment
+    const leverageBefore = await dloopMock.getCurrentLeverageBps();
+    const userDebtTokenBalanceBefore = await debtToken.balanceOf(user1.address);
+
+    // 5️⃣  The call should now succeed (flash-loan branch is taken)
     await expect(
       increaseLeverageMock.connect(user1).increaseLeverage(
         additionalCollateralFromUser,
-        0, // minOutputDebtTokenAmount
-        "0x", // swap data – not used because flash-loan branch is skipped
+        0, // minOutputDebtTokenAmount – no slippage protection in this test
+        "0x", // swap data (ignored by SimpleDEXMock)
         dloopMock,
       ),
-    ).to.be.revertedWithCustomError(
-      collateralToken,
-      "ERC20InsufficientBalance",
-    );
+    ).not.to.be.reverted;
+
+    // 6️⃣  Leverage must have increased compared to the pre-call state
+    const leverageAfter = await dloopMock.getCurrentLeverageBps();
+    expect(leverageAfter).to.be.gt(leverageBefore);
+
+    // 7️⃣  User should have received debt tokens from the operation
+    const userDebtTokenBalanceAfter = await debtToken.balanceOf(user1.address);
+    expect(userDebtTokenBalanceAfter).to.be.gt(userDebtTokenBalanceBefore);
   });
 });
