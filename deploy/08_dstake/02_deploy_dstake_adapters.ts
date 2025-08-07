@@ -120,3 +120,6 @@ func.dependencies = [
   "dUSD-aTokenWrapper",
   "dS-aTokenWrapper",
 ];
+
+// Ensure one-shot execution.
+func.id = "deploy_dstake_adapters";

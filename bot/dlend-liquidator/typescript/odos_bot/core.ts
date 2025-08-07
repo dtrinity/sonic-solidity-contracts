@@ -6,6 +6,7 @@ import hre from "hardhat";
 import path from "path";
 
 import { getConfig } from "../../config/config";
+import { PendleConfig } from "../../config/types";
 import {
   FlashLoanLiquidatorAaveBorrowRepayOdos,
   FlashMintLiquidatorAaveBorrowRepayOdos,
@@ -22,6 +23,7 @@ import {
 } from "../dlend_helpers/user";
 import { OdosClient } from "../odos/client";
 import { QuoteResponse } from "../odos/types";
+import { isPT } from "../pendle/sdk";
 import { getERC4626UnderlyingAsset } from "../token/erc4626";
 import { fetchTokenInfo } from "../token/info";
 import {
@@ -33,6 +35,7 @@ import {
   getUserLiquidationParams,
 } from "./liquidation";
 import { sendSlackMessage } from "./notification";
+import { performPTOdosLiquidationDefault } from "./pendle/core";
 import { getAssembledQuote, getOdosSwapQuote } from "./quote";
 
 // Load environment variables
@@ -95,6 +98,7 @@ export async function runOdosBot(index: number): Promise<void> {
         config.liquidatorBotOdos.healthFactorBatchSize,
         config.liquidatorBotOdos.healthFactorThreshold,
         config.liquidatorBotOdos.profitableThresholdInUSD,
+        config.pendle as PendleConfig,
       );
     } catch (error: any) {
       printLog(
@@ -124,6 +128,7 @@ export async function runOdosBot(index: number): Promise<void> {
  * @param healthFactorBatchSize - The size of the health factor batch
  * @param healthFactorThreshold - The threshold of the health factor
  * @param profitableThresholdInUSD - The threshold of the liquidation profit in USD
+ * @param pendleConfig - The Pendle config
  */
 export async function runBotBatch(
   index: number,
@@ -132,6 +137,7 @@ export async function runBotBatch(
   healthFactorBatchSize: number,
   healthFactorThreshold: number,
   profitableThresholdInUSD: number,
+  pendleConfig: PendleConfig,
 ): Promise<void> {
   const liquidatableUserInfos: {
     userAddress: string;
@@ -202,6 +208,7 @@ export async function runBotBatch(
       step: "",
       error: "",
       errorMessage: "",
+      extraInfo: {},
     };
 
     try {
@@ -284,16 +291,43 @@ export async function runBotBatch(
           userState.lastTrial = Date.now();
           userState.success = false;
 
-          const txHash = await performOdosLiquidationDefault(
-            liquidationParams.userAddress,
-            deployer,
-            liquidationParams.debtToken.reserveTokenInfo.address,
+          const isPTToken = await isPT(
             liquidationParams.collateralToken.reserveTokenInfo.address,
-            liquidationParams.toRepayAmount.toBigInt(),
+            pendleConfig.pyFactory,
           );
+          userState.extraInfo["isPTToken"] = isPTToken.toString();
 
-          userState.step = "successful_liquidation";
-          userState.success = true;
+          let txHash = "<none>";
+
+          if (isPTToken) {
+            printLog(
+              index,
+              `Collateral token ${liquidationParams.collateralToken.reserveTokenInfo.symbol} is a PT token, performing PT liquidation`,
+            );
+            txHash = await performPTOdosLiquidationDefault(
+              liquidationParams.userAddress,
+              deployer,
+              liquidationParams.debtToken.reserveTokenInfo.address,
+              liquidationParams.collateralToken.reserveTokenInfo.address,
+              liquidationParams.toRepayAmount.toBigInt(),
+            );
+            userState.step = "successful_pt_liquidation";
+            userState.success = true;
+          } else {
+            printLog(
+              index,
+              `Collateral token ${liquidationParams.collateralToken.reserveTokenInfo.symbol} is not a PT token, performing Odos liquidation`,
+            );
+            txHash = await performOdosLiquidationDefault(
+              liquidationParams.userAddress,
+              deployer,
+              liquidationParams.debtToken.reserveTokenInfo.address,
+              liquidationParams.collateralToken.reserveTokenInfo.address,
+              liquidationParams.toRepayAmount.toBigInt(),
+            );
+            userState.step = "successful_non_pt_liquidation";
+            userState.success = true;
+          }
 
           const successMessage =
             `<!channel> 🎯 *Successful Liquidation via Odos DEX* 🎯\n\n` +
@@ -347,7 +381,8 @@ export async function runBotBatch(
             debtTokenDecimals,
           )} ${debtTokenSymbol}\n` +
           `• Profit (USD): $${Number(userState.profitInUSD).toFixed(6)}\n` +
-          `• Step: ${userState.step}`;
+          `• Step: ${userState.step}\n` +
+          `• Extra Info: ${JSON.stringify(userState.extraInfo)}`;
 
         await sendSlackMessage(errorMessage);
       }

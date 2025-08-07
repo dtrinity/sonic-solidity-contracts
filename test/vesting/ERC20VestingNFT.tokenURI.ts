@@ -1,20 +1,26 @@
 import { expect } from "chai";
-import hre from "hardhat";
 import { parseEther } from "ethers";
 import fs from "fs";
+import hre from "hardhat";
 
 const { ethers } = hre;
 
 // Toggle this flag to generate SVG/JSON debug files
 const ENABLE_DEBUG_OUTPUT = false;
 
+/**
+ *
+ * @param prefix
+ * @param meta
+ */
 function saveDebugFiles(prefix: string, meta: any) {
   if (!ENABLE_DEBUG_OUTPUT) return;
   fs.writeFileSync(`./token_${prefix}.json`, JSON.stringify(meta, null, 2));
+
   try {
     if (typeof meta.image === "string" && meta.image.startsWith("data:image")) {
       const svgData = Buffer.from(meta.image.split(",")[1], "base64").toString(
-        "utf8"
+        "utf8",
       );
       fs.writeFileSync(`./image_${prefix}.svg`, svgData);
     }
@@ -23,6 +29,10 @@ function saveDebugFiles(prefix: string, meta: any) {
   }
 }
 
+/**
+ *
+ * @param uri
+ */
 function decodeTokenURI(uri: string): any {
   const base64Data = uri.split(",")[1];
   const jsonStr = Buffer.from(base64Data, "base64").toString("utf8");
@@ -56,7 +66,7 @@ describe("ERC20VestingNFT: tokenURI", function () {
       ONE_DAY,
       parseEther("10000000"), // max supply
       parseEther("1"), // min deposit
-      await owner.getAddress()
+      await owner.getAddress(),
     );
     await vestingNFT.waitForDeployment();
 
@@ -84,7 +94,7 @@ describe("ERC20VestingNFT: tokenURI", function () {
     expect(meta1.name).to.equal(`dSTAKE Vesting #${tokenId}`);
     expect(meta1.attributes).to.be.an("array");
     const maturedAttr1 = meta1.attributes.find(
-      (a: any) => a.trait_type === "Matured"
+      (a: any) => a.trait_type === "Matured",
     );
     expect(maturedAttr1.value).to.equal("false");
     expect(meta1.image).to.include("data:image/svg+xml;base64,");
@@ -103,12 +113,12 @@ describe("ERC20VestingNFT: tokenURI", function () {
     saveDebugFiles("after", meta2);
 
     const maturedAttr2 = meta2.attributes.find(
-      (a: any) => a.trait_type === "Matured"
+      (a: any) => a.trait_type === "Matured",
     );
     expect(maturedAttr2.value).to.equal("true");
 
     const remainingAttr2 = meta2.attributes.find(
-      (a: any) => a.trait_type === "Remaining Seconds"
+      (a: any) => a.trait_type === "Remaining Seconds",
     );
     expect(remainingAttr2.value).to.equal("0");
   });

@@ -1,22 +1,23 @@
-import { ethers, getNamedAccounts } from "hardhat";
-import { expect } from "chai";
 import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
+import { expect } from "chai";
+import { ethers, getNamedAccounts } from "hardhat";
+
 import {
-  DStakeToken,
   DStakeCollateralVault,
   DStakeRouterDLend,
-  IDStableConversionAdapter,
+  DStakeToken,
   ERC20,
+  IDStableConversionAdapter,
   IERC20,
 } from "../../typechain-types";
-import {
-  createDStakeFixture,
-  SDUSD_CONFIG,
-  SDS_CONFIG,
-  DStakeFixtureConfig,
-} from "./fixture";
 import { ERC20StablecoinUpgradeable } from "../../typechain-types/contracts/dstable/ERC20StablecoinUpgradeable";
 import { IStaticATokenLM } from "../../typechain-types/contracts/vaults/atoken_wrapper/interfaces/IStaticATokenLM";
+import {
+  createDStakeFixture,
+  DStakeFixtureConfig,
+  SDS_CONFIG,
+  SDUSD_CONFIG,
+} from "./fixture";
 
 const STAKE_CONFIGS: DStakeFixtureConfig[] = [SDUSD_CONFIG, SDS_CONFIG];
 
@@ -60,7 +61,7 @@ STAKE_CONFIGS.forEach((cfg) => {
       stable = (await ethers.getContractAt(
         "ERC20StablecoinUpgradeable",
         await dStableToken.getAddress(),
-        deployer
+        deployer,
       )) as ERC20StablecoinUpgradeable;
       const minterRole = await stable.MINTER_ROLE();
       await stable.grantRole(minterRole, deployer.address);
@@ -77,7 +78,7 @@ STAKE_CONFIGS.forEach((cfg) => {
       const initialVaultAssetBalance =
         await vaultAssetToken.balanceOf(collateralVaultAddr);
       const initialUserDStableBalance = await dStableToken.balanceOf(
-        user.address
+        user.address,
       );
 
       expect(initialTotalSupply).to.equal(0n);
@@ -93,14 +94,14 @@ STAKE_CONFIGS.forEach((cfg) => {
 
       // Perform deposit
       await expect(
-        DStakeToken.connect(user).deposit(depositAmount, user.address)
+        DStakeToken.connect(user).deposit(depositAmount, user.address),
       )
         .to.emit(DStakeToken, "Deposit")
         .withArgs(user.address, user.address, depositAmount, depositAmount);
 
       // Post-deposit checks
       const finalUserDStableBalance = await dStableToken.balanceOf(
-        user.address
+        user.address,
       );
       expect(finalUserDStableBalance).to.equal(0n);
 
@@ -123,12 +124,12 @@ STAKE_CONFIGS.forEach((cfg) => {
       // Verify AAVE aToken minted via wrapper
       const staticWrapper = (await ethers.getContractAt(
         "IStaticATokenLM",
-        vaultAssetAddress
+        vaultAssetAddress,
       )) as unknown as IStaticATokenLM;
       const aTokenAddress = await staticWrapper.aToken();
       const aTokenContract = (await ethers.getContractAt(
         "@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20",
-        aTokenAddress
+        aTokenAddress,
       )) as unknown as IERC20;
       const aTokenBalance = await aTokenContract.balanceOf(vaultAssetAddress);
       expect(aTokenBalance).to.equal(depositAmount);
