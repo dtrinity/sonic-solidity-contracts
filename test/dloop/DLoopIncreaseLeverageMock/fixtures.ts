@@ -8,11 +8,10 @@ import {
   TestERC20FlashMintable,
   TestMintableERC20,
 } from "../../../typechain-types";
-
 // Re-use the helper that deploys the DLoopCore mock and common constants
 import {
-  deployDLoopMockLogic,
   DEFAULT_PRICE,
+  deployDLoopMockLogic,
 } from "../DLoopDepositorMock/fixtures";
 
 export interface DLoopIncreaseLeverageMockFixture {
@@ -54,16 +53,16 @@ export async function deployDLoopIncreaseLeverageMockFixture(): Promise<DLoopInc
   await simpleDEXMock.setExchangeRate(
     await debtToken.getAddress(),
     await collateralToken.getAddress(),
-    ethers.parseEther("1.0")
+    ethers.parseEther("1.0"),
   );
 
   // Deploy the periphery increase-leverage helper, using the debt token as flash-lender
   const IncreaseMockFactory = await ethers.getContractFactory(
-    "DLoopIncreaseLeverageMock"
+    "DLoopIncreaseLeverageMock",
   );
   const increaseLeverageMock = (await IncreaseMockFactory.deploy(
     await debtToken.getAddress(),
-    await simpleDEXMock.getAddress()
+    await simpleDEXMock.getAddress(),
   )) as DLoopIncreaseLeverageMock;
   await increaseLeverageMock.waitForDeployment();
 
@@ -105,13 +104,13 @@ export async function deployDLoopIncreaseLeverageMockFixture(): Promise<DLoopInc
   // Set up flash lender (debt token) with tokens for flash loans
   await debtToken.mint(
     await debtToken.getAddress(),
-    ethers.parseEther("1000000")
+    ethers.parseEther("1000000"),
   );
 
   // Initialise oracle prices at 1:1 so starting leverage == target
   await dloopMock.setMockPrice(
     await collateralToken.getAddress(),
-    DEFAULT_PRICE
+    DEFAULT_PRICE,
   );
   await dloopMock.setMockPrice(await debtToken.getAddress(), DEFAULT_PRICE);
 

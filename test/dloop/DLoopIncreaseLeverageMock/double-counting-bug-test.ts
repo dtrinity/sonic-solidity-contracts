@@ -33,7 +33,7 @@ describe("DLoopIncreaseLeverageBase – double-counting collateral bug", functio
     const increasedPrice = ethers.parseUnits("1.2", 8); // 20% price increase
     await dloopMock.setMockPrice(
       await collateralToken.getAddress(),
-      increasedPrice
+      increasedPrice,
     );
 
     // 2️⃣  Query how much collateral is actually needed to get back to target
@@ -55,7 +55,7 @@ describe("DLoopIncreaseLeverageBase – double-counting collateral bug", functio
       .connect(user1)
       .approve(
         await increaseLeverageMock.getAddress(),
-        additionalCollateralFromUser
+        additionalCollateralFromUser,
       );
 
     // 4️⃣  The call is expected to revert due to insufficient balance
@@ -66,11 +66,11 @@ describe("DLoopIncreaseLeverageBase – double-counting collateral bug", functio
         additionalCollateralFromUser,
         0, // minOutputDebtTokenAmount
         "0x", // swap data – not used because flash-loan branch is skipped
-        dloopMock
-      )
+        dloopMock,
+      ),
     ).to.be.revertedWithCustomError(
       collateralToken,
-      "ERC20InsufficientBalance"
+      "ERC20InsufficientBalance",
     );
   });
 });
