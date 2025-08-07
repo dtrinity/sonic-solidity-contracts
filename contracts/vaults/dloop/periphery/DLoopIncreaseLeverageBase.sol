@@ -391,7 +391,7 @@ abstract contract DLoopIncreaseLeverageBase is
             delete _existingDebtTokensMap[debtToken];
             // Remove the debt token from the existing debt tokens array
             for (uint256 i = 0; i < existingDebtTokens.length; i++) {
-                // Remove the by replacing the debt token with the last element and then pop the last element
+                // Remove the current token by replacing it with the last element and then pop the last element
                 if (existingDebtTokens[i] == debtToken) {
                     existingDebtTokens[i] = existingDebtTokens[
                         existingDebtTokens.length - 1

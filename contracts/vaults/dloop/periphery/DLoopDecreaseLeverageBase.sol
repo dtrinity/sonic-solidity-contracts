@@ -458,7 +458,7 @@ abstract contract DLoopDecreaseLeverageBase is
             delete _existingCollateralTokensMap[collateralToken];
             // Remove the collateral token from the existing collateral tokens array
             for (uint256 i = 0; i < existingCollateralTokens.length; i++) {
-                // Remove the by replacing the collateral token with the last element and then pop the last element
+                // Remove the current token by replacing it with the last element and then pop the last element
                 if (existingCollateralTokens[i] == collateralToken) {
                     existingCollateralTokens[i] = existingCollateralTokens[
                         existingCollateralTokens.length - 1
