@@ -28,6 +28,7 @@ import {SwappableVault} from "contracts/common/SwappableVault.sol";
 import {RescuableVault} from "contracts/common/RescuableVault.sol";
 import {BasisPointConstants} from "contracts/common/BasisPointConstants.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
+import {SharedLogic} from "./helper/SharedLogic.sol";
 
 /**
  * @title DLoopDepositorBase
@@ -171,8 +172,9 @@ abstract contract DLoopDepositorBase is
         if (slippageBps > BasisPointConstants.ONE_HUNDRED_PERCENT_BPS) {
             revert SlippageBpsCannotExceedOneHundredPercent(slippageBps);
         }
-        uint256 expectedLeveragedAssets = dLoopCore.getLeveragedAssets(
-            depositAmount
+        uint256 expectedLeveragedAssets = getLeveragedAssets(
+            depositAmount,
+            dLoopCore
         );
         uint256 expectedShares = dLoopCore.convertToShares(
             expectedLeveragedAssets
@@ -183,6 +185,19 @@ abstract contract DLoopDepositorBase is
                 BasisPointConstants.ONE_HUNDRED_PERCENT_BPS - slippageBps,
                 BasisPointConstants.ONE_HUNDRED_PERCENT_BPS
             );
+    }
+
+    /**
+     * @dev Gets the leveraged assets for a given assets and dLoopCore
+     * @param assets Amount of assets
+     * @param dLoopCore Address of the DLoopCore contract
+     * @return leveragedAssets Amount of leveraged assets
+     */
+    function getLeveragedAssets(
+        uint256 assets,
+        DLoopCoreBase dLoopCore
+    ) public view returns (uint256) {
+        return SharedLogic.getLeveragedAssets(assets, dLoopCore);
     }
 
     /**
@@ -274,9 +289,12 @@ abstract contract DLoopDepositorBase is
         // to reach the leveraged amount
         collateralToken.safeTransferFrom(msg.sender, address(this), assets);
 
+        // Get the leveraged assets with the current leverage
+        uint256 currentLeveragedAssets = getLeveragedAssets(assets, dLoopCore);
+
         // Calculate the estimated overall slippage bps
         uint256 estimatedOverallSlippageBps = _calculateEstimatedOverallSlippageBps(
-                dLoopCore.convertToShares(dLoopCore.getLeveragedAssets(assets)),
+                dLoopCore.convertToShares(currentLeveragedAssets),
                 minOutputShares
             );
 
@@ -293,7 +311,7 @@ abstract contract DLoopDepositorBase is
         // Calculate the leveraged collateral amount to deposit with slippage included
         // Explained with formula in _calculateEstimatedOverallSlippageBps()
         uint256 leveragedCollateralAmount = Math.mulDiv(
-            dLoopCore.getLeveragedAssets(assets),
+            currentLeveragedAssets,
             BasisPointConstants.ONE_HUNDRED_PERCENT_BPS -
                 estimatedOverallSlippageBps,
             BasisPointConstants.ONE_HUNDRED_PERCENT_BPS

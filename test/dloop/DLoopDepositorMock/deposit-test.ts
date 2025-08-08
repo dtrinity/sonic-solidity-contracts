@@ -110,9 +110,11 @@ describe("DLoopDepositorMock Deposit Tests", function () {
               : user3;
 
         // Calculate expected values
-        const expectedLeveragedAssets = await dloopMock.getLeveragedAssets(
-          testCase.depositAmount,
-        );
+        const expectedLeveragedAssets =
+          await dLoopDepositorMock.getLeveragedAssets(
+            testCase.depositAmount,
+            dloopMock,
+          );
         const expectedShares = await dloopMock.convertToShares(
           expectedLeveragedAssets,
         );
@@ -545,8 +547,9 @@ describe("DLoopDepositorMock Deposit Tests", function () {
 
       for (const testCase of slippageTests) {
         // Get leveraged amount and estimated shares
-        const leveragedAmount = await dloopMock.getLeveragedAssets(
+        const leveragedAmount = await dLoopDepositorMock.getLeveragedAssets(
           testCase.depositAmount,
+          dloopMock,
         );
         const estimatedShares = await dloopMock.previewDeposit(leveragedAmount);
 
@@ -888,6 +891,51 @@ describe("DLoopDepositorMock Deposit Tests", function () {
         // Note: We can't guarantee leftovers, so this test just ensures it doesn't revert
         await tx.wait();
       }
+    });
+  });
+
+  /* ------------------------------------------------------------------ */
+  describe("Helper Calculation Functions With Existing Leverage", function () {
+    it("getLeveragedAssets should use current leverage when > 0", async function () {
+      // Manually set an existing position inside the core to create 200% leverage
+      const mockCollateral = ethers.parseEther("200"); // $200
+      const mockDebt = ethers.parseEther("100"); // $100
+
+      // Mock prices (1:1 for simplicity)
+      await dloopMock.setMockPrice(
+        await collateralToken.getAddress(),
+        ethers.parseEther("1"),
+      );
+      await dloopMock.setMockPrice(
+        await debtToken.getAddress(),
+        ethers.parseEther("1"),
+      );
+
+      // Inject the mock collateral / debt into the vault itself
+      await dloopMock.setMockCollateral(
+        await dloopMock.getAddress(),
+        await collateralToken.getAddress(),
+        mockCollateral,
+      );
+      await dloopMock.setMockDebt(
+        await dloopMock.getAddress(),
+        await debtToken.getAddress(),
+        mockDebt,
+      );
+
+      const leverageBps = await dloopMock.getCurrentLeverageBps();
+      expect(leverageBps).to.equal(2n * BigInt(ONE_HUNDRED_PERCENT_BPS)); // 200%
+
+      const inputAssets = ethers.parseEther("10");
+      const expectedLeveraged =
+        (inputAssets * leverageBps) / BigInt(ONE_HUNDRED_PERCENT_BPS);
+
+      const actualLeveraged = await dLoopDepositorMock.getLeveragedAssets(
+        inputAssets,
+        dloopMock,
+      );
+
+      expect(actualLeveraged).to.equal(expectedLeveraged);
     });
   });
 });

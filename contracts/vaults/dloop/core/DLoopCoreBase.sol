@@ -608,11 +608,13 @@ abstract contract DLoopCoreBase is
     /* Helper Functions */
 
     /**
-     * @dev Calculates the leveraged amount of the assets
+     * @dev Calculates the leveraged amount of the assets with the target leverage
      * @param assets Amount of assets
      * @return leveragedAssets Amount of leveraged assets
      */
-    function getLeveragedAssets(uint256 assets) public view returns (uint256) {
+    function getTargetLeveragedAssets(
+        uint256 assets
+    ) public view returns (uint256) {
         return
             Math.mulDiv(
                 assets,
@@ -622,11 +624,24 @@ abstract contract DLoopCoreBase is
     }
 
     /**
-     * @dev Calculates the unleveraged amount of the assets
+     * @dev Calculates the leveraged amount of the assets with the current leverage
+     * @param assets Amount of assets
+     * @return leveragedAssets Amount of leveraged assets
+     */
+    function getCurrentLeveragedAssets(
+        uint256 assets
+    ) public view returns (uint256) {
+        return
+            (assets * getCurrentLeverageBps()) /
+            BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
+    }
+
+    /**
+     * @dev Calculates the unleveraged amount of the assets with the target leverage
      * @param leveragedAssets Amount of leveraged assets
      * @return unleveragedAssets Amount of unleveraged assets
      */
-    function getUnleveragedAssets(
+    function getUnleveragedAssetsWithTargetLeverage(
         uint256 leveragedAssets
     ) public view returns (uint256) {
         return
@@ -635,6 +650,19 @@ abstract contract DLoopCoreBase is
                 BasisPointConstants.ONE_HUNDRED_PERCENT_BPS,
                 targetLeverageBps
             );
+    }
+
+    /**
+     * @dev Calculates the unleveraged amount of the assets with the current leverage
+     * @param leveragedAssets Amount of leveraged assets
+     * @return unleveragedAssets Amount of unleveraged assets
+     */
+    function getUnleveragedAssetsWithCurrentLeverage(
+        uint256 leveragedAssets
+    ) public view returns (uint256) {
+        return
+            (leveragedAssets * BasisPointConstants.ONE_HUNDRED_PERCENT_BPS) /
+            getCurrentLeverageBps();
     }
 
     /**
@@ -1129,7 +1157,6 @@ abstract contract DLoopCoreBase is
          *  <=> y = x * (T' - ONE_HUNDRED_PERCENT_BPS) / T'
          */
 
-
         // Short-circuit when leverageBpsBeforeSupply == 0
         if (leverageBpsBeforeSupply == 0) {
             // no collateral thus cannot borrow any debt
@@ -1608,7 +1635,10 @@ abstract contract DLoopCoreBase is
 
         // Make sure new current leverage is increased and not above the target leverage
         uint256 newCurrentLeverageBps = getCurrentLeverageBps();
-        if (newCurrentLeverageBps > targetLeverageBps || newCurrentLeverageBps <= currentLeverageBps) {
+        if (
+            newCurrentLeverageBps > targetLeverageBps ||
+            newCurrentLeverageBps <= currentLeverageBps
+        ) {
             revert IncreaseLeverageOutOfRange(
                 newCurrentLeverageBps,
                 targetLeverageBps,
@@ -1741,7 +1771,10 @@ abstract contract DLoopCoreBase is
 
         // Make sure new current leverage is decreased and not below the target leverage
         uint256 newCurrentLeverageBps = getCurrentLeverageBps();
-        if (newCurrentLeverageBps < targetLeverageBps || newCurrentLeverageBps >= currentLeverageBps) {
+        if (
+            newCurrentLeverageBps < targetLeverageBps ||
+            newCurrentLeverageBps >= currentLeverageBps
+        ) {
             revert DecreaseLeverageOutOfRange(
                 newCurrentLeverageBps,
                 targetLeverageBps,

@@ -28,6 +28,7 @@ import {IERC3156FlashLender} from "./interface/flashloan/IERC3156FlashLender.sol
 import {DLoopCoreBase} from "../core/DLoopCoreBase.sol";
 import {SwappableVault} from "contracts/common/SwappableVault.sol";
 import {RescuableVault} from "contracts/common/RescuableVault.sol";
+import {SharedLogic} from "./helper/SharedLogic.sol";
 
 /**
  * @title DLoopRedeemerBase
@@ -167,8 +168,9 @@ abstract contract DLoopRedeemerBase is
             revert SlippageBpsCannotExceedOneHundredPercent(slippageBps);
         }
         uint256 expectedLeverageCollateral = dLoopCore.previewRedeem(shares);
-        uint256 unleveragedCollateral = dLoopCore.getUnleveragedAssets(
-            expectedLeverageCollateral
+        uint256 unleveragedCollateral = getUnleveragedAssets(
+            expectedLeverageCollateral,
+            dLoopCore
         );
         return
             Math.mulDiv(
@@ -176,6 +178,19 @@ abstract contract DLoopRedeemerBase is
                 BasisPointConstants.ONE_HUNDRED_PERCENT_BPS - slippageBps,
                 BasisPointConstants.ONE_HUNDRED_PERCENT_BPS
             );
+    }
+
+    /**
+     * @dev Gets the unleveraged assets for a given leveraged assets and dLoopCore
+     * @param leveragedAssets Amount of leveraged assets
+     * @param dLoopCore Address of the DLoopCore contract
+     * @return unleveragedAssets Amount of unleveraged assets
+     */
+    function getUnleveragedAssets(
+        uint256 leveragedAssets,
+        DLoopCoreBase dLoopCore
+    ) public view returns (uint256) {
+        return SharedLogic.getUnleveragedAssets(leveragedAssets, dLoopCore);
     }
 
     /**
