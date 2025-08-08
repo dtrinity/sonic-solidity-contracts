@@ -26,7 +26,7 @@ library OdosSwapUtils {
      * @param swapData Encoded swap path data
      * @return actualAmountSpent The actual amount of input tokens spent
      */
-    function excuteSwapOperation(
+    function executeSwapOperation(
         IOdosRouterV2 router,
         address inputToken,
         address outputToken,

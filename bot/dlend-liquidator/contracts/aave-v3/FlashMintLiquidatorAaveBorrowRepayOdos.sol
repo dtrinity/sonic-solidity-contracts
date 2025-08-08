@@ -43,7 +43,7 @@ contract FlashMintLiquidatorAaveBorrowRepayOdos is
     ) internal override returns (uint256) {
         uint256 outputBalanceBefore = ERC20(_outputToken).balanceOf(address(this));
         
-        uint256 amountSpent = OdosSwapUtils.excuteSwapOperation(
+        uint256 amountSpent = OdosSwapUtils.executeSwapOperation(
             odosRouter,
             _inputToken,
             _outputToken,
