@@ -51,7 +51,7 @@ export default [
   ...compat.extends(
     "plugin:jsdoc/recommended",
     "plugin:eslint-comments/recommended",
-    "prettier"
+    "prettier",
   ),
   {
     plugins: {
