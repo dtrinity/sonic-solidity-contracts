@@ -192,9 +192,9 @@ abstract contract DLoopDecreaseLeverageBase is
         DecreaseLeverageState memory state;
 
         // Calculate how much we need from flash loan
-        state.debtFromUser =
-            additionalDebtFromUser +
-            debtToken.balanceOf(address(this));
+        // At this point, the debt token balance is already included in the additionalDebtFromUser
+        // transferred from user in the previous step
+        state.debtFromUser = debtToken.balanceOf(address(this));
         if (requiredDebtAmount > state.debtFromUser) {
             state.requiredDebtFromFlashLoan =
                 requiredDebtAmount -
@@ -458,7 +458,7 @@ abstract contract DLoopDecreaseLeverageBase is
             delete _existingCollateralTokensMap[collateralToken];
             // Remove the collateral token from the existing collateral tokens array
             for (uint256 i = 0; i < existingCollateralTokens.length; i++) {
-                // Remove the by replacing the collateral token with the last element and then pop the last element
+                // Remove the current token by replacing it with the last element and then pop the last element
                 if (existingCollateralTokens[i] == collateralToken) {
                     existingCollateralTokens[i] = existingCollateralTokens[
                         existingCollateralTokens.length - 1

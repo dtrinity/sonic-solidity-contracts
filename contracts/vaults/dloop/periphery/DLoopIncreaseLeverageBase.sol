@@ -188,8 +188,9 @@ abstract contract DLoopIncreaseLeverageBase is
         }
 
         // Calculate how much we need from flash loan
-        uint256 collateralFromUser = additionalCollateralFromUser +
-            collateralToken.balanceOf(address(this));
+        // At this point, the collateral token balance is already included in the additionalCollateralFromUser
+        // transferred from user in the previous step
+        uint256 collateralFromUser = collateralToken.balanceOf(address(this));
         if (requiredCollateralAmount > collateralFromUser) {
             receivedDebtTokenAmount = _increaseLeverageWithFlashLoan(
                 requiredCollateralAmount,
@@ -390,7 +391,7 @@ abstract contract DLoopIncreaseLeverageBase is
             delete _existingDebtTokensMap[debtToken];
             // Remove the debt token from the existing debt tokens array
             for (uint256 i = 0; i < existingDebtTokens.length; i++) {
-                // Remove the by replacing the debt token with the last element and then pop the last element
+                // Remove the current token by replacing it with the last element and then pop the last element
                 if (existingDebtTokens[i] == debtToken) {
                     existingDebtTokens[i] = existingDebtTokens[
                         existingDebtTokens.length - 1
