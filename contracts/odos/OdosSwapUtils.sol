@@ -2,14 +2,15 @@
 pragma solidity ^0.8.20;
 
 import "./interface/IOdosRouterV2.sol";
-import "@rari-capital/solmate/src/utils/SafeTransferLib.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 /**
  * @title OdosSwapUtils
  * @notice Library for handling Odos swaps in liquidator contracts
  */
 library OdosSwapUtils {
-    using SafeTransferLib for ERC20;
+    using SafeERC20 for IERC20;
 
     /// @notice Custom error for failed swap with no revert reason
     error SwapFailed();
@@ -34,9 +35,10 @@ library OdosSwapUtils {
         uint256 exactOut,
         bytes memory swapData
     ) internal returns (uint256 actualAmountSpent) {
-        uint256 outputBalanceBefore = ERC20(outputToken).balanceOf(address(this));
-        
-        ERC20(inputToken).approve(address(router), maxIn);
+        uint256 outputBalanceBefore = IERC20(outputToken).balanceOf(address(this));
+
+        // Use forceApprove for external DEX router integration
+        IERC20(inputToken).forceApprove(address(router), maxIn);
 
         (bool success, bytes memory result) = address(router).call(swapData);
         if (!success) {
@@ -53,14 +55,14 @@ library OdosSwapUtils {
             actualAmountSpent := mload(add(result, 32))
         }
         
-        uint256 outputBalanceAfter = ERC20(outputToken).balanceOf(address(this));
+        uint256 outputBalanceAfter = IERC20(outputToken).balanceOf(address(this));
         uint256 actualAmountReceived = outputBalanceAfter - outputBalanceBefore;
 
         if (actualAmountReceived < exactOut) {
             revert InsufficientOutput(exactOut, actualAmountReceived);
         }
 
-        ERC20(inputToken).approve(address(router), 0);
+        IERC20(inputToken).approve(address(router), 0);
 
         return actualAmountSpent;
     }

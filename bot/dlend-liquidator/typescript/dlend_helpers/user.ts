@@ -28,6 +28,7 @@ export interface UserStateLog {
   success: boolean;
   error: Error | string;
   errorMessage: string;
+  extraInfo: Record<string, string>;
 }
 
 export interface User {

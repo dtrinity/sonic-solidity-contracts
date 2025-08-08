@@ -7,6 +7,9 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/utils/Base64.sol";
+import "@openzeppelin/contracts/utils/Strings.sol";
+import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
 /**
  * @title ERC20VestingNFT
@@ -70,6 +73,7 @@ contract ERC20VestingNFT is ERC721, ERC721Enumerable, Ownable, ReentrancyGuard {
     event DepositsToggled(bool enabled);
     event MaxTotalSupplyUpdated(uint256 newMaxSupply);
     event MinDepositAmountUpdated(uint256 newMinDepositAmount);
+    event MetadataUpdate(uint256 indexed tokenId);
 
     // ============ Errors ============
 
@@ -215,6 +219,7 @@ contract ERC20VestingNFT is ERC721, ERC721Enumerable, Ownable, ReentrancyGuard {
         dstakeToken.safeTransfer(msg.sender, amount);
 
         emit WithdrawnMatured(msg.sender, tokenId, amount);
+        emit MetadataUpdate(tokenId);
     }
 
     // ============ Owner Functions ============
@@ -270,7 +275,7 @@ contract ERC20VestingNFT is ERC721, ERC721Enumerable, Ownable, ReentrancyGuard {
     function getRemainingVestingTime(
         uint256 tokenId
     ) external view returns (uint256) {
-        if (!_tokenExists(tokenId)) return 0;
+        if (!_tokenExists(tokenId)) revert TokenNotExists();
         VestingPosition memory position = vestingPositions[tokenId];
         uint256 vestingEndTime = position.depositTime + vestingPeriod;
         if (block.timestamp >= vestingEndTime) return 0;
@@ -308,6 +313,116 @@ contract ERC20VestingNFT is ERC721, ERC721Enumerable, Ownable, ReentrancyGuard {
             position.matured,
             block.timestamp >= position.depositTime + vestingPeriod
         );
+    }
+
+    function tokenURI(
+        uint256 tokenId
+    ) public view override returns (string memory) {
+        if (!_tokenExists(tokenId)) revert TokenNotExists();
+
+        VestingPosition memory position = vestingPositions[tokenId];
+
+        // remaining seconds until vesting complete or 0
+        uint256 remainingSeconds = 0;
+        uint256 vestingEndTime = position.depositTime + vestingPeriod;
+        if (block.timestamp < vestingEndTime) {
+            remainingSeconds = vestingEndTime - block.timestamp;
+        }
+
+        string memory symbol = IERC20Metadata(address(dstakeToken)).symbol();
+        uint8 decimalsToken = IERC20Metadata(address(dstakeToken)).decimals();
+
+        uint256 displayAmount = position.amount /
+            (10 ** uint256(decimalsToken));
+        string memory amountStr = Strings.toString(displayAmount);
+
+        string memory image = _buildSVG(
+            position,
+            remainingSeconds,
+            tokenId,
+            symbol,
+            amountStr
+        );
+
+        string memory json = Base64.encode(
+            bytes(
+                string.concat(
+                    '{"name":"',
+                    name(),
+                    " #",
+                    Strings.toString(tokenId),
+                    '","description":"Contains ',
+                    symbol,
+                    " with a ",
+                    Strings.toString(vestingPeriod),
+                    ' second vesting period.",',
+                    '"attributes":[',
+                    '{"trait_type":"Amount","value":"',
+                    amountStr,
+                    " ",
+                    symbol,
+                    '"}',
+                    ',{"trait_type":"Matured","value":"',
+                    position.matured ? "true" : "false",
+                    '"}',
+                    ',{"trait_type":"Remaining Seconds","value":"',
+                    Strings.toString(remainingSeconds),
+                    '"}',
+                    "],",
+                    '"image":"',
+                    image,
+                    '"}'
+                )
+            )
+        );
+
+        return string.concat("data:application/json;base64,", json);
+    }
+
+    /// @dev Builds a very small SVG showing vesting progress and encodes it as base64 data URI.
+    function _buildSVG(
+        VestingPosition memory position,
+        uint256 remainingSeconds,
+        uint256 tokenId,
+        string memory symbol,
+        string memory displayAmount
+    ) internal view returns (string memory) {
+        // Simple progress bar width percentage
+        uint256 progressPercent = 0;
+        if (position.amount > 0) {
+            uint256 elapsed = vestingPeriod - remainingSeconds;
+            progressPercent = (elapsed * 100) / vestingPeriod;
+        }
+
+        string memory svg = string.concat(
+            '<svg xmlns="http://www.w3.org/2000/svg" width="350" height="200" viewBox="0 0 350 200">',
+            "<style>.base { fill: white; font-family: monospace; font-size: 14px; }</style>",
+            '<rect width="100%" height="100%" fill="#1a237e"/>',
+            '<text x="10" y="30" class="base">',
+            name(),
+            " #",
+            Strings.toString(tokenId),
+            "</text>",
+            '<text x="10" y="55" class="base">Amount: ',
+            displayAmount,
+            " ",
+            symbol,
+            "</text>",
+            '<text x="10" y="80" class="base">Progress: ',
+            Strings.toString(progressPercent),
+            "%</text>",
+            '<rect x="10" y="100" width="330" height="20" fill="#3949ab"/>',
+            '<rect x="10" y="100" width="',
+            Strings.toString((progressPercent * 330) / 100),
+            '" height="20" fill="#7e57c2"/>',
+            "</svg>"
+        );
+
+        return
+            string.concat(
+                "data:image/svg+xml;base64,",
+                Base64.encode(bytes(svg))
+            );
     }
 
     // ============ Internal Functions ============

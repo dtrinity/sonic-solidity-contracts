@@ -1,7 +1,8 @@
+import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 import { expect } from "chai";
 import { ethers } from "hardhat";
+
 import { MockRewardClaimableVault } from "../../typechain-types";
-import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 import {
   ONE_HUNDRED_PERCENT_BPS,
   ONE_PERCENT_BPS,
@@ -44,24 +45,24 @@ describe("RewardClaimable", function () {
 
     // Deploy mock ERC20 tokens
     const RewardClaimableMockERC20Factory = await ethers.getContractFactory(
-      "contracts/vaults/rewards_claimable/test/RewardClaimableMockERC20.sol:RewardClaimableMockERC20"
+      "contracts/vaults/rewards_claimable/test/RewardClaimableMockERC20.sol:RewardClaimableMockERC20",
     );
     exchangeAsset = (await RewardClaimableMockERC20Factory.connect(
-      admin
+      admin,
     ).deploy("Exchange Asset", "EA")) as unknown as RewardClaimableMockERC20;
     rewardToken1 = (await RewardClaimableMockERC20Factory.connect(admin).deploy(
       "Reward Token 1",
-      "RT1"
+      "RT1",
     )) as unknown as RewardClaimableMockERC20;
     rewardToken2 = (await RewardClaimableMockERC20Factory.connect(admin).deploy(
       "Reward Token 2",
-      "RT2"
+      "RT2",
     )) as unknown as RewardClaimableMockERC20;
 
     // Deploy mock vault
     const MockVaultFactory = await ethers.getContractFactory(
       "MockRewardClaimableVault",
-      admin
+      admin,
     );
     mockVault = (await MockVaultFactory.deploy(
       await exchangeAsset.getAddress(),
@@ -70,17 +71,17 @@ describe("RewardClaimable", function () {
       INITIAL_TREASURY_FEE_BPS,
       DEFAULT_EXCHANGE_THRESHOLD,
       await targetPool.getAddress(),
-      await fakeRewardPool.getAddress()
+      await fakeRewardPool.getAddress(),
     )) as unknown as MockRewardClaimableVault;
 
     // Set up the vault with reward tokens emission amounts (3 and 2)
     await mockVault.addRewardToken(
       await rewardToken1.getAddress(),
-      ethers.parseEther("3")
+      ethers.parseEther("3"),
     );
     await mockVault.addRewardToken(
       await rewardToken2.getAddress(),
-      ethers.parseEther("2")
+      ethers.parseEther("2"),
     );
 
     // Set exchange threshold
@@ -93,11 +94,11 @@ describe("RewardClaimable", function () {
     await rewardToken2.mint(await mockVault.getAddress(), INITIAL_MINT_AMOUNT);
     await rewardToken1.mint(
       await fakeRewardPool.getAddress(),
-      INITIAL_MINT_AMOUNT
+      INITIAL_MINT_AMOUNT,
     );
     await rewardToken2.mint(
       await fakeRewardPool.getAddress(),
-      INITIAL_MINT_AMOUNT
+      INITIAL_MINT_AMOUNT,
     );
 
     // Approve token spending
@@ -155,7 +156,7 @@ describe("RewardClaimable", function () {
       it(testCase.name, async function () {
         await mockVault.setTreasuryFeeBps(testCase.treasuryFeeBps);
         expect(await mockVault.treasuryFeeBps()).to.equal(
-          testCase.treasuryFeeBps
+          testCase.treasuryFeeBps,
         );
 
         const fee = await mockVault.getTreasuryFee(testCase.amount);
@@ -174,7 +175,7 @@ describe("RewardClaimable", function () {
       const invalidMaxFeeBps = 101 * ONE_PERCENT_BPS;
       const MockVaultFactory = await ethers.getContractFactory(
         "MockRewardClaimableVault",
-        admin
+        admin,
       );
       await expect(
         MockVaultFactory.deploy(
@@ -184,8 +185,8 @@ describe("RewardClaimable", function () {
           1 * ONE_PERCENT_BPS, // a valid initial fee
           DEFAULT_EXCHANGE_THRESHOLD,
           await targetPool.getAddress(),
-          await fakeRewardPool.getAddress()
-        )
+          await fakeRewardPool.getAddress(),
+        ),
       )
         .to.be.revertedWithCustomError(mockVault, "MaxTreasuryFeeTooHigh")
         .withArgs(invalidMaxFeeBps);
@@ -208,16 +209,16 @@ describe("RewardClaimable", function () {
 
     it("Should only allow REWARDS_MANAGER_ROLE to set treasury", async function () {
       await expect(
-        mockVault.connect(user).setTreasury(user.address)
+        mockVault.connect(user).setTreasury(user.address),
       ).to.be.revertedWithCustomError(
         mockVault,
-        "AccessControlUnauthorizedAccount"
+        "AccessControlUnauthorizedAccount",
       );
     });
 
     it("Should revert if treasury is zero address", async function () {
       await expect(
-        mockVault.connect(admin).setTreasury(ethers.ZeroAddress)
+        mockVault.connect(admin).setTreasury(ethers.ZeroAddress),
       ).to.be.revertedWithCustomError(mockVault, "ZeroTreasuryAddress");
     });
   });
@@ -226,7 +227,7 @@ describe("RewardClaimable", function () {
     it("Should set exchange threshold", async function () {
       const newThreshold = ethers.parseEther("2");
       expect(await mockVault.exchangeThreshold()).to.equal(
-        DEFAULT_EXCHANGE_THRESHOLD
+        DEFAULT_EXCHANGE_THRESHOLD,
       );
 
       const tx = await mockVault.setExchangeThreshold(newThreshold);
@@ -240,16 +241,16 @@ describe("RewardClaimable", function () {
 
     it("Should only allow REWARDS_MANAGER_ROLE to set exchange threshold", async function () {
       await expect(
-        mockVault.connect(user).setExchangeThreshold(ethers.parseEther("2"))
+        mockVault.connect(user).setExchangeThreshold(ethers.parseEther("2")),
       ).to.be.revertedWithCustomError(
         mockVault,
-        "AccessControlUnauthorizedAccount"
+        "AccessControlUnauthorizedAccount",
       );
     });
 
     it("Should revert if exchange threshold is zero", async function () {
       await expect(
-        mockVault.connect(admin).setExchangeThreshold(0n)
+        mockVault.connect(admin).setExchangeThreshold(0n),
       ).to.be.revertedWithCustomError(mockVault, "ZeroExchangeThreshold");
     });
   });
@@ -284,11 +285,11 @@ describe("RewardClaimable", function () {
         // Reset balances and mint to vault
         await tokenContract.burn(
           await mockVault.getAddress(),
-          await tokenContract.balanceOf(await mockVault.getAddress())
+          await tokenContract.balanceOf(await mockVault.getAddress()),
         );
         await tokenContract.mint(
           await mockVault.getAddress(),
-          testCase.initialBalances[i]
+          testCase.initialBalances[i],
         );
       }
 
@@ -300,13 +301,13 @@ describe("RewardClaimable", function () {
               ? rewardToken1
               : rewardToken2;
           return tokenContract.balanceOf(await user.getAddress());
-        })
+        }),
       );
 
       // Perform claim
       await mockVault.claimRewards(
         testCase.rewardTokens,
-        await user.getAddress()
+        await user.getAddress(),
       );
 
       // Verify balances after claim
@@ -317,10 +318,10 @@ describe("RewardClaimable", function () {
             ? rewardToken1
             : rewardToken2;
         const finalBalance = await tokenContract.balanceOf(
-          await user.getAddress()
+          await user.getAddress(),
         );
         expect(finalBalance - initialReceiverBalances[i]).to.equal(
-          testCase.expectedClaims[i]
+          testCase.expectedClaims[i],
         );
       }
     };
@@ -348,6 +349,7 @@ describe("RewardClaimable", function () {
           expectedClaims: [ethers.parseEther("1"), ethers.parseEther("5")],
         },
       ];
+
       for (const testCase of testCases) {
         it(testCase.name, async function () {
           await runClaimRewardsTestCase(testCase);
@@ -397,8 +399,8 @@ describe("RewardClaimable", function () {
             .compoundRewards(
               ethers.parseEther("1"),
               rewardTokens,
-              await user.getAddress()
-            )
+              await user.getAddress(),
+            ),
         )
           .to.be.revertedWithCustomError(mockVault, "ExchangeAmountTooLow")
           .withArgs(ethers.parseEther("1"), ethers.parseEther("2"));
@@ -415,8 +417,8 @@ describe("RewardClaimable", function () {
         expect(
           await exchangeAsset.allowance(
             await user.getAddress(),
-            await mockVault.getAddress()
-          )
+            await mockVault.getAddress(),
+          ),
         ).to.be.greaterThanOrEqual(amountToCompound);
 
         await mockVault
@@ -424,7 +426,7 @@ describe("RewardClaimable", function () {
           .compoundRewards(
             amountToCompound,
             rewardTokens,
-            await user.getAddress()
+            await user.getAddress(),
           );
       });
     });
@@ -432,7 +434,7 @@ describe("RewardClaimable", function () {
     it("Should revert on invalid reward token", async function () {
       const invalidToken = await exchangeAsset.getAddress();
       await expect(
-        mockVault.claimRewards([invalidToken], await user.getAddress())
+        mockVault.claimRewards([invalidToken], await user.getAddress()),
       ).to.be.revertedWith("Invalid reward token");
     });
   });
@@ -459,29 +461,29 @@ describe("RewardClaimable", function () {
 
       await mockVault.addRewardToken(
         rewardTokenAddresses[0],
-        rewardTokenEmissions[0]
+        rewardTokenEmissions[0],
       );
       await mockVault.addRewardToken(
         rewardTokenAddresses[1],
-        rewardTokenEmissions[1]
+        rewardTokenEmissions[1],
       );
 
       // Reset balances and mint to vault
       await rewardToken1.burn(
         await mockVault.getAddress(),
-        await rewardToken1.balanceOf(await mockVault.getAddress())
+        await rewardToken1.balanceOf(await mockVault.getAddress()),
       );
       await rewardToken2.burn(
         await mockVault.getAddress(),
-        await rewardToken2.balanceOf(await mockVault.getAddress())
+        await rewardToken2.balanceOf(await mockVault.getAddress()),
       );
       await rewardToken1.mint(
         await mockVault.getAddress(),
-        initialRewardBalances[0]
+        initialRewardBalances[0],
       );
       await rewardToken2.mint(
         await mockVault.getAddress(),
-        initialRewardBalances[1]
+        initialRewardBalances[1],
       );
 
       // Record initial balances
@@ -503,8 +505,8 @@ describe("RewardClaimable", function () {
       expect(
         await exchangeAsset.allowance(
           await user.getAddress(),
-          await mockVault.getAddress()
-        )
+          await mockVault.getAddress(),
+        ),
       ).to.be.greaterThanOrEqual(amountToCompound);
 
       // Perform compound
@@ -513,7 +515,7 @@ describe("RewardClaimable", function () {
         .compoundRewards(
           amountToCompound,
           rewardTokenAddresses,
-          await user.getAddress()
+          await user.getAddress(),
         );
 
       // Calculate expected rewards and fees (just for testing)
@@ -556,7 +558,7 @@ describe("RewardClaimable", function () {
 
       // Check for deposits record
       expect(
-        await mockVault.deposits(await exchangeAsset.getAddress())
+        await mockVault.deposits(await exchangeAsset.getAddress()),
       ).to.equal(amountToCompound);
     });
 
@@ -581,29 +583,29 @@ describe("RewardClaimable", function () {
 
       await mockVault.addRewardToken(
         rewardTokenAddresses[0],
-        rewardTokenEmissions[0]
+        rewardTokenEmissions[0],
       );
       await mockVault.addRewardToken(
         rewardTokenAddresses[1],
-        rewardTokenEmissions[1]
+        rewardTokenEmissions[1],
       );
 
       // Reset balances and mint to vault
       await rewardToken1.burn(
         await mockVault.getAddress(),
-        await rewardToken1.balanceOf(await mockVault.getAddress())
+        await rewardToken1.balanceOf(await mockVault.getAddress()),
       );
       await rewardToken2.burn(
         await mockVault.getAddress(),
-        await rewardToken2.balanceOf(await mockVault.getAddress())
+        await rewardToken2.balanceOf(await mockVault.getAddress()),
       );
       await rewardToken1.mint(
         await mockVault.getAddress(),
-        initialRewardBalances[0]
+        initialRewardBalances[0],
       );
       await rewardToken2.mint(
         await mockVault.getAddress(),
-        initialRewardBalances[1]
+        initialRewardBalances[1],
       );
 
       // Record initial balances
@@ -630,7 +632,7 @@ describe("RewardClaimable", function () {
         .compoundRewards(
           amountToCompound,
           rewardTokenAddresses,
-          await user.getAddress()
+          await user.getAddress(),
         );
 
       // Calculate expected rewards and fees
@@ -669,7 +671,7 @@ describe("RewardClaimable", function () {
 
       // Check for deposits record
       expect(
-        await mockVault.deposits(await exchangeAsset.getAddress())
+        await mockVault.deposits(await exchangeAsset.getAddress()),
       ).to.equal(amountToCompound);
     });
 
@@ -684,8 +686,8 @@ describe("RewardClaimable", function () {
           .compoundRewards(
             belowThreshold,
             [await rewardToken1.getAddress()],
-            await user.getAddress()
-          )
+            await user.getAddress(),
+          ),
       )
         .to.be.revertedWithCustomError(mockVault, "ExchangeAmountTooLow")
         .withArgs(belowThreshold, threshold);
@@ -706,7 +708,7 @@ describe("RewardClaimable", function () {
       // Verify
       expect(await mockVault.rewardTokens(newToken)).to.be.true;
       expect(await mockVault.rewardTokenEmissionAmount(newToken)).to.equal(
-        emissionAmount
+        emissionAmount,
       );
     });
   });
@@ -716,14 +718,14 @@ describe("RewardClaimable", function () {
       const DEFAULT_ADMIN_ROLE =
         "0x0000000000000000000000000000000000000000000000000000000000000000";
       expect(
-        await mockVault.hasRole(DEFAULT_ADMIN_ROLE, await admin.getAddress())
+        await mockVault.hasRole(DEFAULT_ADMIN_ROLE, await admin.getAddress()),
       ).to.be.true;
     });
 
     it("Should have REWARDS_MANAGER_ROLE for deployer", async function () {
       const REWARDS_MANAGER_ROLE = await mockVault.REWARDS_MANAGER_ROLE();
       expect(
-        await mockVault.hasRole(REWARDS_MANAGER_ROLE, await admin.getAddress())
+        await mockVault.hasRole(REWARDS_MANAGER_ROLE, await admin.getAddress()),
       ).to.be.true;
     });
 
@@ -733,7 +735,7 @@ describe("RewardClaimable", function () {
       // Grant role to user
       await mockVault.grantRole(REWARDS_MANAGER_ROLE, await user.getAddress());
       expect(
-        await mockVault.hasRole(REWARDS_MANAGER_ROLE, await user.getAddress())
+        await mockVault.hasRole(REWARDS_MANAGER_ROLE, await user.getAddress()),
       ).to.be.true;
 
       // Verify user can now set treasury
@@ -742,15 +744,15 @@ describe("RewardClaimable", function () {
       // Revoke role
       await mockVault.revokeRole(REWARDS_MANAGER_ROLE, await user.getAddress());
       expect(
-        await mockVault.hasRole(REWARDS_MANAGER_ROLE, await user.getAddress())
+        await mockVault.hasRole(REWARDS_MANAGER_ROLE, await user.getAddress()),
       ).to.be.false;
 
       // Verify user can no longer set treasury
       await expect(
-        mockVault.connect(user).setTreasury(await user.getAddress())
+        mockVault.connect(user).setTreasury(await user.getAddress()),
       ).to.be.revertedWithCustomError(
         mockVault,
-        "AccessControlUnauthorizedAccount"
+        "AccessControlUnauthorizedAccount",
       );
     });
   });

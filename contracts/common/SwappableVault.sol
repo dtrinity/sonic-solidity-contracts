@@ -43,6 +43,8 @@ abstract contract SwappableVault {
         uint256 returnedAmountIn
     );
 
+    uint256 public constant BALANCE_DIFF_TOLERANCE = 1;
+
     /* Virtual functions */
 
     /**
@@ -109,32 +111,67 @@ abstract contract SwappableVault {
         if (inputTokenBalanceAfter < inputTokenBalanceBefore) {
             uint256 spentInputTokenAmount = inputTokenBalanceBefore -
                 inputTokenBalanceAfter;
+
+            // First check: ensure we don't spend more than the maximum allowed
             if (spentInputTokenAmount > amountInMaximum) {
                 revert SpentInputTokenAmountGreaterThanAmountInMaximum(
                     spentInputTokenAmount,
                     amountInMaximum
                 );
             }
-            if (spentInputTokenAmount != amountIn) {
-                revert SpentInputTokenAmountNotEqualReturnedAmountIn(
-                    spentInputTokenAmount,
-                    amountIn
-                );
+
+            // Second check: ensure spent amount matches returned amount within tolerance
+            if (spentInputTokenAmount > amountIn) {
+                if (spentInputTokenAmount - amountIn > BALANCE_DIFF_TOLERANCE) {
+                    revert SpentInputTokenAmountNotEqualReturnedAmountIn(
+                        spentInputTokenAmount,
+                        amountIn
+                    );
+                }
+            } else if (amountIn > spentInputTokenAmount) {
+                if (amountIn - spentInputTokenAmount > BALANCE_DIFF_TOLERANCE) {
+                    revert SpentInputTokenAmountNotEqualReturnedAmountIn(
+                        spentInputTokenAmount,
+                        amountIn
+                    );
+                }
             }
+            // If spentInputTokenAmount == amountIn, no need to check (perfect match)
         }
-        // Do not need to check the input token balance decreased after the swap
+        // Do not need to check the input token balance increased after the swap
         // as it is not a risk for the caller
 
-        // Make sure the received output token amount is exactly the amount out
+        // Make sure the received output token amount is close to the amount out (within tolerance)
         if (outputTokenBalanceAfter > outputTokenBalanceBefore) {
             uint256 receivedOutputTokenAmount = outputTokenBalanceAfter -
                 outputTokenBalanceBefore;
-            if (receivedOutputTokenAmount != amountOut) {
-                revert ReceivedOutputTokenAmountNotEqualAmountOut(
-                    receivedOutputTokenAmount,
-                    amountOut
-                );
+
+            // Allow receiving slightly more than requested (beneficial)
+            // but restrict receiving significantly less than requested
+            if (receivedOutputTokenAmount < amountOut) {
+                // Received less than expected - check if within tolerance
+                if (
+                    amountOut - receivedOutputTokenAmount >
+                    BALANCE_DIFF_TOLERANCE
+                ) {
+                    revert ReceivedOutputTokenAmountNotEqualAmountOut(
+                        receivedOutputTokenAmount,
+                        amountOut
+                    );
+                }
+            } else if (receivedOutputTokenAmount > amountOut) {
+                // Received more than expected - check if within tolerance
+                if (
+                    receivedOutputTokenAmount - amountOut >
+                    BALANCE_DIFF_TOLERANCE
+                ) {
+                    revert ReceivedOutputTokenAmountNotEqualAmountOut(
+                        receivedOutputTokenAmount,
+                        amountOut
+                    );
+                }
             }
+            // If receivedOutputTokenAmount == amountOut, no need to check (perfect match)
         } else {
             revert OutputTokenBalanceNotIncreasedAfterSwap(
                 outputTokenBalanceBefore,

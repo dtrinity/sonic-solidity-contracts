@@ -1,0 +1,275 @@
+{
+  "address": "0x2EfEb81d6A0E5638bfe917C6cFCeb42989058d08",
+  "abi": [
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_sourceFeed",
+          "type": "address"
+        },
+        {
+          "internalType": "uint8",
+          "name": "_targetDecimals",
+          "type": "uint8"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "constructor"
+    },
+    {
+      "inputs": [],
+      "name": "InvalidDecimalsUpscaleNotSupported",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "decimals",
+      "outputs": [
+        {
+          "internalType": "uint8",
+          "name": "",
+          "type": "uint8"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "description",
+      "outputs": [
+        {
+          "internalType": "string",
+          "name": "",
+          "type": "string"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint80",
+          "name": "_roundId",
+          "type": "uint80"
+        }
+      ],
+      "name": "getRoundData",
+      "outputs": [
+        {
+          "internalType": "uint80",
+          "name": "roundId",
+          "type": "uint80"
+        },
+        {
+          "internalType": "int256",
+          "name": "answer",
+          "type": "int256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "startedAt",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "updatedAt",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint80",
+          "name": "answeredInRound",
+          "type": "uint80"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "latestRoundData",
+      "outputs": [
+        {
+          "internalType": "uint80",
+          "name": "roundId",
+          "type": "uint80"
+        },
+        {
+          "internalType": "int256",
+          "name": "answer",
+          "type": "int256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "startedAt",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "updatedAt",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint80",
+          "name": "answeredInRound",
+          "type": "uint80"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "sourceDecimals",
+      "outputs": [
+        {
+          "internalType": "uint8",
+          "name": "",
+          "type": "uint8"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "sourceFeed",
+      "outputs": [
+        {
+          "internalType": "contract AggregatorV3Interface",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "version",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    }
+  ],
+  "transactionHash": "0x5f7c2dbb957e3e027437154c7f89f6d4c71cdd7dcadcee5c7a0240c887467156",
+  "receipt": {
+    "to": null,
+    "from": "0x51fc0830DBe3A446701E7897F32C89A3B04e5a0a",
+    "contractAddress": "0x2EfEb81d6A0E5638bfe917C6cFCeb42989058d08",
+    "transactionIndex": 3,
+    "gasUsed": "393984",
+    "logsBloom": "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+    "blockHash": "0x3d258355451197c7583a785fe77139b1507c56bd14016dff79e7aa467060b2eb",
+    "transactionHash": "0x5f7c2dbb957e3e027437154c7f89f6d4c71cdd7dcadcee5c7a0240c887467156",
+    "logs": [],
+    "blockNumber": 36719773,
+    "cumulativeGasUsed": "716224",
+    "status": 1,
+    "byzantium": true
+  },
+  "args": [
+    "0x0B1067fC8814E1b29713f9a9f43B2666A859B58B",
+    8
+  ],
+  "numDeployments": 1,
+  "solcInputHash": "06cb4ec3b947291c33c6354d22c04593",
+  "metadata": "{\"compiler\":{\"version\":\"0.8.20+commit.a1b79de6\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_sourceFeed\",\"type\":\"address\"},{\"internalType\":\"uint8\",\"name\":\"_targetDecimals\",\"type\":\"uint8\"}],\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"inputs\":[],\"name\":\"InvalidDecimalsUpscaleNotSupported\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"decimals\",\"outputs\":[{\"internalType\":\"uint8\",\"name\":\"\",\"type\":\"uint8\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"description\",\"outputs\":[{\"internalType\":\"string\",\"name\":\"\",\"type\":\"string\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint80\",\"name\":\"_roundId\",\"type\":\"uint80\"}],\"name\":\"getRoundData\",\"outputs\":[{\"internalType\":\"uint80\",\"name\":\"roundId\",\"type\":\"uint80\"},{\"internalType\":\"int256\",\"name\":\"answer\",\"type\":\"int256\"},{\"internalType\":\"uint256\",\"name\":\"startedAt\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"updatedAt\",\"type\":\"uint256\"},{\"internalType\":\"uint80\",\"name\":\"answeredInRound\",\"type\":\"uint80\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"latestRoundData\",\"outputs\":[{\"internalType\":\"uint80\",\"name\":\"roundId\",\"type\":\"uint80\"},{\"internalType\":\"int256\",\"name\":\"answer\",\"type\":\"int256\"},{\"internalType\":\"uint256\",\"name\":\"startedAt\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"updatedAt\",\"type\":\"uint256\"},{\"internalType\":\"uint80\",\"name\":\"answeredInRound\",\"type\":\"uint80\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"sourceDecimals\",\"outputs\":[{\"internalType\":\"uint8\",\"name\":\"\",\"type\":\"uint8\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"sourceFeed\",\"outputs\":[{\"internalType\":\"contract AggregatorV3Interface\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"version\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"}],\"devdoc\":{\"details\":\"Implements AggregatorV3Interface to mimic being a Chainlink price feed\",\"kind\":\"dev\",\"methods\":{\"constructor\":{\"params\":{\"_sourceFeed\":\"Address of the source Chainlink price feed\",\"_targetDecimals\":\"Target decimal precision (must be less than or equal to source decimals)\"}},\"description()\":{\"returns\":{\"_0\":\"Description string\"}},\"getRoundData(uint80)\":{\"params\":{\"_roundId\":\"The round ID to retrieve data for\"},\"returns\":{\"answer\":\"The price with adjusted decimals\",\"answeredInRound\":\"The round in which the answer was computed\",\"roundId\":\"The round ID\",\"startedAt\":\"The timestamp when the round started\",\"updatedAt\":\"The timestamp when the round was updated\"}},\"latestRoundData()\":{\"returns\":{\"answer\":\"The price with adjusted decimals\",\"answeredInRound\":\"The round in which the answer was computed\",\"roundId\":\"The round ID\",\"startedAt\":\"The timestamp when the round started\",\"updatedAt\":\"The timestamp when the round was updated\"}},\"version()\":{\"returns\":{\"_0\":\"Version number\"}}},\"title\":\"ChainlinkDecimalConverter\",\"version\":1},\"userdoc\":{\"errors\":{\"InvalidDecimalsUpscaleNotSupported()\":[{\"notice\":\"Error thrown when target decimals exceed source decimals\"}]},\"kind\":\"user\",\"methods\":{\"constructor\":{\"notice\":\"Constructor to initialize the decimal converter\"},\"decimals()\":{\"notice\":\"Target decimals for price conversion\"},\"description()\":{\"notice\":\"Returns the description of the original feed\"},\"getRoundData(uint80)\":{\"notice\":\"Gets data for a specific round\"},\"latestRoundData()\":{\"notice\":\"Gets data for the latest round\"},\"sourceDecimals()\":{\"notice\":\"Original decimals from the source feed\"},\"sourceFeed()\":{\"notice\":\"Original Chainlink price feed\"},\"version()\":{\"notice\":\"Returns the version of the original feed\"}},\"notice\":\"Converts between Chainlink price feeds with different decimal precisions\",\"version\":1}},\"settings\":{\"compilationTarget\":{\"contracts/oracle_aggregator/helper/ChainlinkDecimalConverter.sol\":\"ChainlinkDecimalConverter\"},\"evmVersion\":\"paris\",\"libraries\":{},\"metadata\":{\"bytecodeHash\":\"ipfs\",\"useLiteralContent\":true},\"optimizer\":{\"enabled\":true,\"runs\":200},\"remappings\":[],\"viaIR\":true},\"sources\":{\"contracts/oracle_aggregator/helper/ChainlinkDecimalConverter.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\n/* \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 *\\n *    _____     ______   ______     __     __   __     __     ______   __  __       *\\n *   /\\\\  __-.  /\\\\__  _\\\\ /\\\\  == \\\\   /\\\\ \\\\   /\\\\ \\\"-.\\\\ \\\\   /\\\\ \\\\   /\\\\__  _\\\\ /\\\\ \\\\_\\\\ \\\\      *\\n *   \\\\ \\\\ \\\\/\\\\ \\\\ \\\\/_/\\\\ \\\\/ \\\\ \\\\  __<   \\\\ \\\\ \\\\  \\\\ \\\\ \\\\-.  \\\\  \\\\ \\\\ \\\\  \\\\/_/\\\\ \\\\/ \\\\ \\\\____ \\\\     *\\n *    \\\\ \\\\____-    \\\\ \\\\_\\\\  \\\\ \\\\_\\\\ \\\\_\\\\  \\\\ \\\\_\\\\  \\\\ \\\\_\\\\\\\\\\\"\\\\_\\\\  \\\\ \\\\_\\\\    \\\\ \\\\_\\\\  \\\\/\\\\_____\\\\    *\\n *     \\\\/____/     \\\\/_/   \\\\/_/ /_/   \\\\/_/   \\\\/_/ \\\\/_/   \\\\/_/     \\\\/_/   \\\\/_____/    *\\n *                                                                                  *\\n * \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 dtrinity.org \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 *\\n *                                                                                  *\\n *                                         \\u25b2                                        *\\n *                                        \\u25b2 \\u25b2                                       *\\n *                                                                                  *\\n * \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 *\\n * dTRINITY Protocol: https://github.com/dtrinity                                   *\\n * \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 */\\n\\npragma solidity ^0.8.20;\\n\\nimport \\\"../interface/chainlink/IAggregatorV3Interface.sol\\\";\\n\\n/**\\n * @title ChainlinkDecimalConverter\\n * @notice Converts between Chainlink price feeds with different decimal precisions\\n * @dev Implements AggregatorV3Interface to mimic being a Chainlink price feed\\n */\\ncontract ChainlinkDecimalConverter is AggregatorV3Interface {\\n    /// @notice Original Chainlink price feed\\n    AggregatorV3Interface public immutable sourceFeed;\\n\\n    /// @notice Original decimals from the source feed\\n    uint8 public immutable sourceDecimals;\\n\\n    /// @notice Target decimals for price conversion\\n    uint8 public immutable override decimals;\\n\\n    /// @notice Scaling factor to convert between source and target decimals\\n    int256 private immutable scalingFactor;\\n\\n    /**\\n     * @notice Error thrown when target decimals exceed source decimals\\n     */\\n    error InvalidDecimalsUpscaleNotSupported();\\n\\n    /**\\n     * @notice Constructor to initialize the decimal converter\\n     * @param _sourceFeed Address of the source Chainlink price feed\\n     * @param _targetDecimals Target decimal precision (must be less than or equal to source decimals)\\n     */\\n    constructor(address _sourceFeed, uint8 _targetDecimals) {\\n        sourceFeed = AggregatorV3Interface(_sourceFeed);\\n        sourceDecimals = sourceFeed.decimals();\\n        decimals = _targetDecimals;\\n\\n        // We only support downscaling (reducing precision), not upscaling\\n        if (_targetDecimals > sourceDecimals) {\\n            revert InvalidDecimalsUpscaleNotSupported();\\n        }\\n\\n        // Calculate the scaling factor to convert from source to target decimals\\n        uint8 decimalDifference = sourceDecimals - _targetDecimals;\\n        scalingFactor = int256(10 ** decimalDifference);\\n    }\\n\\n    /**\\n     * @notice Returns the description of the original feed\\n     * @return Description string\\n     */\\n    function description() external view override returns (string memory) {\\n        return sourceFeed.description();\\n    }\\n\\n    /**\\n     * @notice Returns the version of the original feed\\n     * @return Version number\\n     */\\n    function version() external view override returns (uint256) {\\n        return sourceFeed.version();\\n    }\\n\\n    /**\\n     * @notice Gets data for a specific round\\n     * @param _roundId The round ID to retrieve data for\\n     * @return roundId The round ID\\n     * @return answer The price with adjusted decimals\\n     * @return startedAt The timestamp when the round started\\n     * @return updatedAt The timestamp when the round was updated\\n     * @return answeredInRound The round in which the answer was computed\\n     */\\n    function getRoundData(\\n        uint80 _roundId\\n    )\\n        external\\n        view\\n        override\\n        returns (\\n            uint80 roundId,\\n            int256 answer,\\n            uint256 startedAt,\\n            uint256 updatedAt,\\n            uint80 answeredInRound\\n        )\\n    {\\n        (roundId, answer, startedAt, updatedAt, answeredInRound) = sourceFeed\\n            .getRoundData(_roundId);\\n        answer = answer / scalingFactor;\\n    }\\n\\n    /**\\n     * @notice Gets data for the latest round\\n     * @return roundId The round ID\\n     * @return answer The price with adjusted decimals\\n     * @return startedAt The timestamp when the round started\\n     * @return updatedAt The timestamp when the round was updated\\n     * @return answeredInRound The round in which the answer was computed\\n     */\\n    function latestRoundData()\\n        external\\n        view\\n        override\\n        returns (\\n            uint80 roundId,\\n            int256 answer,\\n            uint256 startedAt,\\n            uint256 updatedAt,\\n            uint80 answeredInRound\\n        )\\n    {\\n        (roundId, answer, startedAt, updatedAt, answeredInRound) = sourceFeed\\n            .latestRoundData();\\n        answer = answer / scalingFactor;\\n    }\\n}\\n\",\"keccak256\":\"0x26634975e3127af79f755b5a35a598e9c6db117c11b61e2fd6938b0ddf45cf1c\",\"license\":\"MIT\"},\"contracts/oracle_aggregator/interface/chainlink/IAggregatorV3Interface.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\n/* \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 *\\n *    _____     ______   ______     __     __   __     __     ______   __  __       *\\n *   /\\\\  __-.  /\\\\__  _\\\\ /\\\\  == \\\\   /\\\\ \\\\   /\\\\ \\\"-.\\\\ \\\\   /\\\\ \\\\   /\\\\__  _\\\\ /\\\\ \\\\_\\\\ \\\\      *\\n *   \\\\ \\\\ \\\\/\\\\ \\\\ \\\\/_/\\\\ \\\\/ \\\\ \\\\  __<   \\\\ \\\\ \\\\  \\\\ \\\\ \\\\-.  \\\\  \\\\ \\\\ \\\\  \\\\/_/\\\\ \\\\/ \\\\ \\\\____ \\\\     *\\n *    \\\\ \\\\____-    \\\\ \\\\_\\\\  \\\\ \\\\_\\\\ \\\\_\\\\  \\\\ \\\\_\\\\  \\\\ \\\\_\\\\\\\\\\\"\\\\_\\\\  \\\\ \\\\_\\\\    \\\\ \\\\_\\\\  \\\\/\\\\_____\\\\    *\\n *     \\\\/____/     \\\\/_/   \\\\/_/ /_/   \\\\/_/   \\\\/_/ \\\\/_/   \\\\/_/     \\\\/_/   \\\\/_____/    *\\n *                                                                                  *\\n * \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 dtrinity.org \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 *\\n *                                                                                  *\\n *                                         \\u25b2                                        *\\n *                                        \\u25b2 \\u25b2                                       *\\n *                                                                                  *\\n * \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 *\\n * dTRINITY Protocol: https://github.com/dtrinity                                   *\\n * \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 */\\n\\npragma solidity ^0.8.20;\\n\\ninterface AggregatorV3Interface {\\n    function decimals() external view returns (uint8);\\n\\n    function description() external view returns (string memory);\\n\\n    function version() external view returns (uint256);\\n\\n    // getRoundData and latestRoundData should both raise \\\"No data present\\\"\\n    // if they do not have data to report, instead of returning unset values\\n    // which could be misinterpreted as actual reported values.\\n    function getRoundData(\\n        uint80 _roundId\\n    )\\n        external\\n        view\\n        returns (\\n            uint80 roundId,\\n            int256 answer,\\n            uint256 startedAt,\\n            uint256 updatedAt,\\n            uint80 answeredInRound\\n        );\\n\\n    function latestRoundData()\\n        external\\n        view\\n        returns (\\n            uint80 roundId,\\n            int256 answer,\\n            uint256 startedAt,\\n            uint256 updatedAt,\\n            uint80 answeredInRound\\n        );\\n}\\n\",\"keccak256\":\"0x114f2a4b1de25cf837f38b10c4c1bca07d53587f2367e37c6f310a953fd20bd4\",\"license\":\"MIT\"}},\"version\":1}",
+  "bytecode": "0x610100604090808252346101705781816107c280380380916100218285610175565b8339810103126101705780516001600160a01b0381169081900361017057602061004e81600494016101ae565b918060805284519384809263313ce56760e01b82525afa91821561016557600092610123575b5060ff80918360a0528060c05216911681116101125760ff60a051160360ff81116100fc5760ff16604d81116100fc57600a0a60e0525161060590816101bd82396080518181816097015281816101e00152818161024f015281816102df015261041c015260a051816101a3015260c051816104b8015260e05181818160de01526102950152f35b634e487b7160e01b600052601160045260246000fd5b815163f00f549960e01b8152600490fd5b90916020823d821161015d575b8161013d60209383610175565b8101031261015a575060ff61015281926101ae565b929150610074565b80fd5b3d9150610130565b83513d6000823e3d90fd5b600080fd5b601f909101601f19168101906001600160401b0382119082101761019857604052565b634e487b7160e01b600052604160045260246000fd5b519060ff821682036101705756fe60806040908082526004908136101561001757600080fd5b600090813560e01c908163313ce5671461049f5750806354fd4d50146103f55780637284e416146102ba5780639a6fc8f51461020f578063a1a927b1146101cb578063be231cb3146101895763feaf968c1461007257600080fd5b346101865780600319360112610186578251633fabe5a360e21b81529160a0908390817f00000000000000000000000000000000000000000000000000000000000000006001600160a01b03165afa801561017a5781808190829361013c575b610138949550610103907f000000000000000000000000000000000000000000000000000000000000000090610588565b955169ffffffffffffffffffff95861681526020810196909652604086015260608501529091166080830152819060a0820190565b0390f35b50505050506101386101676101039260a03d8111610173575b61015f81836104ff565b810190610553565b939550859450916100d2565b503d610155565b508251903d90823e3d90fd5b80fd5b5082346101c757816003193601126101c7576020905160ff7f0000000000000000000000000000000000000000000000000000000000000000168152f35b5080fd5b5082346101c757816003193601126101c757517f00000000000000000000000000000000000000000000000000000000000000006001600160a01b03168152602090f35b503461018657602036600319011261018657813569ffffffffffffffffffff81168091036101c7578351639a6fc8f560e01b81529283015260a0826024817f00000000000000000000000000000000000000000000000000000000000000006001600160a01b03165afa801561017a5781808190829361013c57610138949550610103907f000000000000000000000000000000000000000000000000000000000000000090610588565b508290346101865780600319360112610186578151633942720b60e11b8152818185817f00000000000000000000000000000000000000000000000000000000000000006001600160a01b03165afa9384156103eb578294610349575b505050805180926020825261033b81518092816020860152602086860191016104dc565b601f01601f19168101030190f35b90919293503d8084843e61035d81846104ff565b82019260208385031261018657825167ffffffffffffffff938482116103e757019184601f840112156101c75782519384116103d457508451936103ab601f8501601f1916602001866104ff565b838552602084840101116101865750906103cb91602080850191016104dc565b90828080610317565b634e487b7160e01b825260419052602490fd5b8280fd5b83513d84823e3d90fd5b5091346103e757826003193601126103e757805163054fd4d560e41b8152916020908390817f00000000000000000000000000000000000000000000000000000000000000006001600160a01b03165afa91821561049557839261045e575b6020838351908152f35b9091506020813d821161048d575b81610479602093836104ff565b810103126103e75760209250519038610454565b3d915061046c565b81513d85823e3d90fd5b9050346101c757816003193601126101c75760209060ff7f0000000000000000000000000000000000000000000000000000000000000000168152f35b60005b8381106104ef5750506000910152565b81810151838201526020016104df565b90601f8019910116810190811067ffffffffffffffff82111761052157604052565b634e487b7160e01b600052604160045260246000fd5b519069ffffffffffffffffffff8216820361054e57565b600080fd5b908160a091031261054e5761056781610537565b91602082015191604081015191610585608060608401519301610537565b90565b81156105b957600160ff1b81146000198314166105a3570590565b634e487b7160e01b600052601160045260246000fd5b634e487b7160e01b600052601260045260246000fdfea2646970667358221220940e3db10cf8561524daf9359d104095bbd8904cf6b5c9382936abe2b240757d64736f6c63430008140033",
+  "deployedBytecode": "0x60806040908082526004908136101561001757600080fd5b600090813560e01c908163313ce5671461049f5750806354fd4d50146103f55780637284e416146102ba5780639a6fc8f51461020f578063a1a927b1146101cb578063be231cb3146101895763feaf968c1461007257600080fd5b346101865780600319360112610186578251633fabe5a360e21b81529160a0908390817f00000000000000000000000000000000000000000000000000000000000000006001600160a01b03165afa801561017a5781808190829361013c575b610138949550610103907f000000000000000000000000000000000000000000000000000000000000000090610588565b955169ffffffffffffffffffff95861681526020810196909652604086015260608501529091166080830152819060a0820190565b0390f35b50505050506101386101676101039260a03d8111610173575b61015f81836104ff565b810190610553565b939550859450916100d2565b503d610155565b508251903d90823e3d90fd5b80fd5b5082346101c757816003193601126101c7576020905160ff7f0000000000000000000000000000000000000000000000000000000000000000168152f35b5080fd5b5082346101c757816003193601126101c757517f00000000000000000000000000000000000000000000000000000000000000006001600160a01b03168152602090f35b503461018657602036600319011261018657813569ffffffffffffffffffff81168091036101c7578351639a6fc8f560e01b81529283015260a0826024817f00000000000000000000000000000000000000000000000000000000000000006001600160a01b03165afa801561017a5781808190829361013c57610138949550610103907f000000000000000000000000000000000000000000000000000000000000000090610588565b508290346101865780600319360112610186578151633942720b60e11b8152818185817f00000000000000000000000000000000000000000000000000000000000000006001600160a01b03165afa9384156103eb578294610349575b505050805180926020825261033b81518092816020860152602086860191016104dc565b601f01601f19168101030190f35b90919293503d8084843e61035d81846104ff565b82019260208385031261018657825167ffffffffffffffff938482116103e757019184601f840112156101c75782519384116103d457508451936103ab601f8501601f1916602001866104ff565b838552602084840101116101865750906103cb91602080850191016104dc565b90828080610317565b634e487b7160e01b825260419052602490fd5b8280fd5b83513d84823e3d90fd5b5091346103e757826003193601126103e757805163054fd4d560e41b8152916020908390817f00000000000000000000000000000000000000000000000000000000000000006001600160a01b03165afa91821561049557839261045e575b6020838351908152f35b9091506020813d821161048d575b81610479602093836104ff565b810103126103e75760209250519038610454565b3d915061046c565b81513d85823e3d90fd5b9050346101c757816003193601126101c75760209060ff7f0000000000000000000000000000000000000000000000000000000000000000168152f35b60005b8381106104ef5750506000910152565b81810151838201526020016104df565b90601f8019910116810190811067ffffffffffffffff82111761052157604052565b634e487b7160e01b600052604160045260246000fd5b519069ffffffffffffffffffff8216820361054e57565b600080fd5b908160a091031261054e5761056781610537565b91602082015191604081015191610585608060608401519301610537565b90565b81156105b957600160ff1b81146000198314166105a3570590565b634e487b7160e01b600052601160045260246000fd5b634e487b7160e01b600052601260045260246000fdfea2646970667358221220940e3db10cf8561524daf9359d104095bbd8904cf6b5c9382936abe2b240757d64736f6c63430008140033",
+  "devdoc": {
+    "details": "Implements AggregatorV3Interface to mimic being a Chainlink price feed",
+    "kind": "dev",
+    "methods": {
+      "constructor": {
+        "params": {
+          "_sourceFeed": "Address of the source Chainlink price feed",
+          "_targetDecimals": "Target decimal precision (must be less than or equal to source decimals)"
+        }
+      },
+      "description()": {
+        "returns": {
+          "_0": "Description string"
+        }
+      },
+      "getRoundData(uint80)": {
+        "params": {
+          "_roundId": "The round ID to retrieve data for"
+        },
+        "returns": {
+          "answer": "The price with adjusted decimals",
+          "answeredInRound": "The round in which the answer was computed",
+          "roundId": "The round ID",
+          "startedAt": "The timestamp when the round started",
+          "updatedAt": "The timestamp when the round was updated"
+        }
+      },
+      "latestRoundData()": {
+        "returns": {
+          "answer": "The price with adjusted decimals",
+          "answeredInRound": "The round in which the answer was computed",
+          "roundId": "The round ID",
+          "startedAt": "The timestamp when the round started",
+          "updatedAt": "The timestamp when the round was updated"
+        }
+      },
+      "version()": {
+        "returns": {
+          "_0": "Version number"
+        }
+      }
+    },
+    "title": "ChainlinkDecimalConverter",
+    "version": 1
+  },
+  "userdoc": {
+    "errors": {
+      "InvalidDecimalsUpscaleNotSupported()": [
+        {
+          "notice": "Error thrown when target decimals exceed source decimals"
+        }
+      ]
+    },
+    "kind": "user",
+    "methods": {
+      "constructor": {
+        "notice": "Constructor to initialize the decimal converter"
+      },
+      "decimals()": {
+        "notice": "Target decimals for price conversion"
+      },
+      "description()": {
+        "notice": "Returns the description of the original feed"
+      },
+      "getRoundData(uint80)": {
+        "notice": "Gets data for a specific round"
+      },
+      "latestRoundData()": {
+        "notice": "Gets data for the latest round"
+      },
+      "sourceDecimals()": {
+        "notice": "Original decimals from the source feed"
+      },
+      "sourceFeed()": {
+        "notice": "Original Chainlink price feed"
+      },
+      "version()": {
+        "notice": "Returns the version of the original feed"
+      }
+    },
+    "notice": "Converts between Chainlink price feeds with different decimal precisions",
+    "version": 1
+  },
+  "storageLayout": {
+    "storage": [],
+    "types": null
+  }
+}

@@ -13,9 +13,8 @@ interface IDStakeRouter {
      * @dev Called by `DStakeToken._deposit()` after the token has received the dStable asset.
      * @dev The router MUST pull `dStableAmount` from the caller (`DStakeToken`).
      * @param dStableAmount The amount of dStable asset deposited by the user into the DStakeToken.
-     * @param receiver The ultimate receiver of the minted dSTAKE shares (passed through for potential future use/events).
      */
-    function deposit(uint256 dStableAmount, address receiver) external;
+    function deposit(uint256 dStableAmount) external;
 
     /**
      * @notice Handles the conversion of a `vaultAsset` back into the dStable asset for withdrawal.
