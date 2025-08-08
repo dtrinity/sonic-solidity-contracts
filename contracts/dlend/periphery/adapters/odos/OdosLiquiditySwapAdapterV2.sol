@@ -95,6 +95,18 @@ contract OdosLiquiditySwapAdapterV2 is
         LiquiditySwapParamsV2 memory liquiditySwapParams,
         PermitInput memory collateralATokenPermit
     ) external nonReentrant {
+        if (liquiditySwapParams.allBalanceOffset != 0) {
+            (, , address aToken) = _getReserveData(
+                liquiditySwapParams.collateralAsset
+            );
+            uint256 balance = IERC20(aToken).balanceOf(
+                liquiditySwapParams.user
+            );
+            liquiditySwapParams.collateralAmountToSwap =
+                balance -
+                liquiditySwapParams.allBalanceOffset;
+        }
+
         // true if flashloan is needed to swap liquidity
         if (!liquiditySwapParams.withFlashLoan) {
             _swapAndDeposit(liquiditySwapParams, collateralATokenPermit);

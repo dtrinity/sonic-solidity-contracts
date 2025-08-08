@@ -20,41 +20,38 @@ pragma solidity ^0.8.20;
 import {IBaseOdosAdapterV2} from "./IBaseOdosAdapterV2.sol";
 
 /**
- * @title IOdosLiquiditySwapAdapterV2
- * @notice Defines the basic interface for OdosLiquiditySwapAdapterV2 with PT token support
- * @dev Implement this interface to provide functionality of swapping one collateral asset to another collateral asset
- **/
-interface IOdosLiquiditySwapAdapterV2 is IBaseOdosAdapterV2 {
+ * @title IOdosWithdrawSwapAdapterV2
+ * @notice Interface for the OdosWithdrawSwapAdapterV2 with PT token support
+ * @dev V2 interface with PT token functionality via composed swaps
+ */
+interface IOdosWithdrawSwapAdapterV2 is IBaseOdosAdapterV2 {
     /**
-     * @dev Struct for liquidity swap parameters with PT token support
-     * @param collateralAsset the asset to swap collateral from
-     * @param collateralAmountToSwap the amount of asset to swap from
-     * @param newCollateralAsset the asset to swap collateral to
-     * @param newCollateralAmount the minimum amount of new collateral asset to receive
-     * @param user the address of user
-     * @param withFlashLoan true if flashloan is needed to swap collateral, otherwise false
-     * @param swapData the encoded swap data (either regular Odos data or PTSwapDataV2)
+     * @dev Enhanced withdraw swap parameters for V2 with PT support
+     * @param oldAsset The asset to withdraw and swap from
+     * @param oldAssetAmount The amount to withdraw
+     * @param newAsset The asset to swap to (can be PT token)
+     * @param minAmountToReceive The minimum amount of new asset to receive
+     * @param user The address of user
+     * @param swapData The swap data (either regular Odos calldata or encoded PTSwapDataV2)
      * @param allBalanceOffset offset to all balance of the user
      */
-    struct LiquiditySwapParamsV2 {
-        address collateralAsset;
-        uint256 collateralAmountToSwap;
-        address newCollateralAsset;
-        uint256 newCollateralAmount;
+    struct WithdrawSwapParamsV2 {
+        address oldAsset;
+        uint256 oldAssetAmount;
+        address newAsset;
+        uint256 minAmountToReceive;
         address user;
-        bool withFlashLoan;
         bytes swapData;
         uint256 allBalanceOffset;
     }
 
     /**
-     * @notice Swaps liquidity(collateral) from one asset to another
-     * @dev Now supports PT tokens through composed Pendle + Odos swaps
-     * @param liquiditySwapParams struct describing the liquidity swap
-     * @param collateralATokenPermit optional permit for collateral aToken
+     * @notice Withdraws and swaps an asset that is supplied to the Aave Pool with PT token support
+     * @param withdrawSwapParams struct describing the withdraw swap
+     * @param permitInput optional permit for collateral aToken
      */
-    function swapLiquidity(
-        LiquiditySwapParamsV2 memory liquiditySwapParams,
-        PermitInput memory collateralATokenPermit
+    function withdrawAndSwap(
+        WithdrawSwapParamsV2 memory withdrawSwapParams,
+        PermitInput memory permitInput
     ) external;
 }

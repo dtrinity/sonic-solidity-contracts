@@ -17,100 +17,126 @@
 
 pragma solidity ^0.8.20;
 
+import {DataTypes} from "contracts/dlend/core/protocol/libraries/types/DataTypes.sol";
 import {IERC20Detailed} from "contracts/dlend/core/dependencies/openzeppelin/contracts/IERC20Detailed.sol";
 import {IPoolAddressesProvider} from "contracts/dlend/core/interfaces/IPoolAddressesProvider.sol";
+import {BaseOdosSellAdapterV2} from "./BaseOdosSellAdapterV2.sol";
+import {SafeERC20} from "contracts/dlend/core/dependencies/openzeppelin/contracts/SafeERC20.sol";
+import {ReentrancyGuard} from "../../dependencies/openzeppelin/ReentrancyGuard.sol";
+import {IOdosWithdrawSwapAdapterV2} from "./interfaces/IOdosWithdrawSwapAdapterV2.sol";
 import {IOdosRouterV2} from "contracts/odos/interface/IOdosRouterV2.sol";
-import {BaseOdosSellAdapter} from "./BaseOdosSellAdapter.sol";
-import {IBaseOdosAdapterV2} from "./interfaces/IBaseOdosAdapterV2.sol";
-import {OdosSwapUtils} from "contracts/odos/OdosSwapUtils.sol";
+import {IERC20} from "contracts/dlend/core/dependencies/openzeppelin/contracts/IERC20.sol";
 import {PTSwapUtils} from "./PTSwapUtils.sol";
 import {ISwapTypes} from "./interfaces/ISwapTypes.sol";
 
 /**
- * @title BaseOdosSellAdapterV2
- * @notice Implements the logic for selling tokens on Odos with PT token support
- * @dev Extends BaseOdosSellAdapter with PT token functionality
+ * @title OdosWithdrawSwapAdapterV2
+ * @notice Adapter to withdraw and swap using Odos with PT token support
+ * @dev Supports regular tokens and PT tokens through composed Pendle + Odos swaps
  */
-abstract contract BaseOdosSellAdapterV2 is
-    BaseOdosSellAdapter,
-    IBaseOdosAdapterV2
+contract OdosWithdrawSwapAdapterV2 is
+    BaseOdosSellAdapterV2,
+    ReentrancyGuard,
+    IOdosWithdrawSwapAdapterV2
 {
-    /// @notice The address of the Pendle Router
-    address public immutable pendleRouter;
+    using SafeERC20 for IERC20;
 
-    /// @notice Error for invalid swap data
-    error InvalidSwapData();
-
-    /**
-     * @dev Constructor
-     * @param addressesProvider The address of the Aave PoolAddressesProvider contract
-     * @param pool The address of the Aave Pool contract
-     * @param _swapRouter The address of the Odos Router
-     * @param _pendleRouter The address of the Pendle Router
-     */
     constructor(
         IPoolAddressesProvider addressesProvider,
         address pool,
-        IOdosRouterV2 _swapRouter,
-        address _pendleRouter
-    ) BaseOdosSellAdapter(addressesProvider, pool, _swapRouter) {
-        pendleRouter = _pendleRouter;
+        IOdosRouterV2 swapRouter,
+        address pendleRouter,
+        address owner
+    ) BaseOdosSellAdapterV2(addressesProvider, pool, swapRouter, pendleRouter) {
+        transferOwnership(owner);
     }
 
     /**
-     * @dev Override _sellOnOdos to support PT tokens
-     * @dev Routes to PT-aware logic or calls parent implementation
+     * @dev Implementation of the reserve data getter from the base adapter
+     * @param asset The address of the asset
+     * @return The address of the vToken, sToken and aToken
      */
-    function _sellOnOdos(
-        IERC20Detailed assetToSwapFrom,
-        IERC20Detailed assetToSwapTo,
-        uint256 amountToSwap,
-        uint256 minAmountToReceive,
-        bytes memory swapData
-    ) internal override returns (uint256 amountReceived) {
-        address tokenIn = address(assetToSwapFrom);
-        address tokenOut = address(assetToSwapTo);
+    function _getReserveData(
+        address asset
+    ) internal view override returns (address, address, address) {
+        DataTypes.ReserveData memory reserveData = POOL.getReserveData(asset);
+        return (
+            reserveData.variableDebtTokenAddress,
+            reserveData.stableDebtTokenAddress,
+            reserveData.aTokenAddress
+        );
+    }
+
+    /**
+     * @dev Implementation of the supply function from the base adapter
+     * @param asset The address of the asset to be supplied
+     * @param amount The amount of the asset to be supplied
+     * @param to The address receiving the aTokens
+     * @param referralCode The referral code to pass to Aave
+     */
+    function _supply(
+        address asset,
+        uint256 amount,
+        address to,
+        uint16 referralCode
+    ) internal override {
+        POOL.supply(asset, amount, to, referralCode);
+    }
+
+    /// @inheritdoc IOdosWithdrawSwapAdapterV2
+    function withdrawAndSwap(
+        WithdrawSwapParamsV2 memory withdrawSwapParams,
+        PermitInput memory permitInput
+    ) external nonReentrant {
+        (, , address aToken) = _getReserveData(withdrawSwapParams.oldAsset);
+        if (withdrawSwapParams.allBalanceOffset != 0) {
+            uint256 balance = IERC20(aToken).balanceOf(withdrawSwapParams.user);
+            withdrawSwapParams.oldAssetAmount =
+                balance -
+                withdrawSwapParams.allBalanceOffset;
+        }
+
+        // pulls liquidity asset from the user and withdraw
+        _pullATokenAndWithdraw(
+            withdrawSwapParams.oldAsset,
+            withdrawSwapParams.user,
+            withdrawSwapParams.oldAssetAmount,
+            permitInput
+        );
 
         // Check swap type using PTSwapUtils
         ISwapTypes.SwapType swapType = PTSwapUtils.determineSwapType(
-            tokenIn,
-            tokenOut
+            withdrawSwapParams.oldAsset,
+            withdrawSwapParams.newAsset
         );
+
+        uint256 amountReceived;
 
         if (swapType == ISwapTypes.SwapType.REGULAR_SWAP) {
-            // Regular swap - call parent implementation
-            return
-                super._sellOnOdos(
-                    assetToSwapFrom,
-                    assetToSwapTo,
-                    amountToSwap,
-                    minAmountToReceive,
-                    swapData
-                );
-        }
-
-        // PT token involved - use composed swap logic
-        uint256 balanceBeforeAssetFrom = assetToSwapFrom.balanceOf(
-            address(this)
-        );
-        if (balanceBeforeAssetFrom < amountToSwap) {
-            revert InsufficientBalanceBeforeSwap(
-                balanceBeforeAssetFrom,
-                amountToSwap
+            // Regular Odos swap
+            amountReceived = _sellOnOdos(
+                IERC20Detailed(withdrawSwapParams.oldAsset),
+                IERC20Detailed(withdrawSwapParams.newAsset),
+                withdrawSwapParams.oldAssetAmount,
+                withdrawSwapParams.minAmountToReceive,
+                withdrawSwapParams.swapData
+            );
+        } else {
+            // PT token involved - use PT-aware swap logic
+            amountReceived = _executeSwapExactInput(
+                withdrawSwapParams.oldAsset,
+                withdrawSwapParams.newAsset,
+                withdrawSwapParams.oldAssetAmount,
+                withdrawSwapParams.minAmountToReceive,
+                withdrawSwapParams.swapData
             );
         }
 
-        // Execute PT-aware swap using PTSwapUtils
-        amountReceived = _executeSwapExactInput(
-            tokenIn,
-            tokenOut,
-            amountToSwap,
-            minAmountToReceive,
-            swapData
+        // transfer new asset to the user
+        IERC20(withdrawSwapParams.newAsset).safeTransfer(
+            withdrawSwapParams.user,
+            amountReceived
         );
-
-        emit Bought(tokenIn, tokenOut, amountToSwap, amountReceived);
-        return amountReceived;
     }
 
     /**
@@ -119,7 +145,7 @@ abstract contract BaseOdosSellAdapterV2 is
      * @param outputToken The output token address
      * @param exactInputAmount The exact amount of input tokens to spend
      * @param minOutputAmount The minimum amount of output tokens required
-     * @param swapData The swap data (either regular Odos or PTSwapDataV2)
+     * @param swapData The swap data (encoded PTSwapDataV2)
      * @return actualOutputAmount The actual amount of output tokens received
      */
     function _executeSwapExactInput(
@@ -128,34 +154,21 @@ abstract contract BaseOdosSellAdapterV2 is
         uint256 exactInputAmount,
         uint256 minOutputAmount,
         bytes memory swapData
-    ) internal virtual returns (uint256 actualOutputAmount) {
-        // Use PTSwapUtils to determine swap strategy and execute
-        ISwapTypes.SwapType swapType = PTSwapUtils.determineSwapType(
-            inputToken,
-            outputToken
-        );
-
-        if (swapType == ISwapTypes.SwapType.REGULAR_SWAP) {
-            // Regular swap - swapData should be raw Odos calldata
-            return
-                _executeOdosExactInput(
-                    inputToken,
-                    outputToken,
-                    exactInputAmount,
-                    minOutputAmount,
-                    swapData
-                );
-        }
-
-        // PT token involved - decode PTSwapDataV2 and use PTSwapUtils
+    ) internal override returns (uint256 actualOutputAmount) {
+        // Decode PTSwapDataV2 and use PTSwapUtils
         PTSwapUtils.PTSwapDataV2 memory ptSwapData = abi.decode(
             swapData,
             (PTSwapUtils.PTSwapDataV2)
         );
 
         if (!PTSwapUtils.validatePTSwapData(ptSwapData)) {
-            revert InvalidSwapData();
+            revert InvalidPTSwapData();
         }
+
+        ISwapTypes.SwapType swapType = PTSwapUtils.determineSwapType(
+            inputToken,
+            outputToken
+        );
 
         if (swapType == ISwapTypes.SwapType.PT_TO_REGULAR) {
             // PT -> regular token
@@ -193,36 +206,7 @@ abstract contract BaseOdosSellAdapterV2 is
                     ptSwapData
                 );
         } else {
-            revert InvalidSwapData(); // Should never reach here
+            revert InvalidPTSwapData(); // Should never reach here
         }
-    }
-
-    /**
-     * @dev Executes exact input Odos swap
-     * @param inputToken The input token address
-     * @param outputToken The output token address
-     * @param exactInputAmount The exact amount of input tokens to spend
-     * @param minOutputAmount The minimum amount of output tokens required
-     * @param swapData The Odos swap data
-     * @return actualOutputAmount The actual amount of output tokens received
-     */
-    function _executeOdosExactInput(
-        address inputToken,
-        address outputToken,
-        uint256 exactInputAmount,
-        uint256 minOutputAmount,
-        bytes memory swapData
-    ) internal returns (uint256 actualOutputAmount) {
-        // Execute Odos swap using OdosSwapUtils
-        actualOutputAmount = OdosSwapUtils.executeSwapOperation(
-            swapRouter,
-            inputToken,
-            outputToken,
-            exactInputAmount,
-            minOutputAmount,
-            swapData
-        );
-
-        return actualOutputAmount;
     }
 }

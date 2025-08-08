@@ -41,9 +41,11 @@ interface IOdosRepayAdapterV2 is IBaseOdosAdapterV2 {
      * @param debtAsset The address of the debt asset
      * @param repayAmount The amount of debt to repay
      * @param rateMode The rate mode of the debt (1 = stable, 2 = variable)
+     * @param withFlashLoan true if flashloan is needed to repay the debt, otherwise false
      * @param user The address of the user
      * @param minAmountToReceive The minimum amount to receive from the swap
      * @param swapData The encoded swap data (either regular Odos data or PTSwapDataV2)
+     * @param allBalanceOffset offset to all balance of the user
      */
     struct RepayParamsV2 {
         address collateralAsset;
@@ -51,20 +53,20 @@ interface IOdosRepayAdapterV2 is IBaseOdosAdapterV2 {
         address debtAsset;
         uint256 repayAmount;
         uint256 rateMode;
+        bool withFlashLoan;
         address user;
         uint256 minAmountToReceive;
         bytes swapData;
+        uint256 allBalanceOffset;
     }
 
     /**
-     * @dev Swaps collateral for another asset and uses that asset to repay a debt
-     * @dev Now supports PT tokens through composed Pendle + Odos swaps
-     * @param repayParams The parameters of the repay
-     * @param permitInput The parameters of the permit signature, to approve collateral aToken
-     * @return uint256 The amount repaid
+     * @notice Repays with collateral by swapping the collateral asset to debt asset
+     * @param repayParams struct describing the repay with collateral swap
+     * @param collateralATokenPermit optional permit for collateral aToken
      */
-    function swapAndRepay(
+    function repayWithCollateral(
         RepayParamsV2 memory repayParams,
-        PermitInput memory permitInput
-    ) external returns (uint256);
+        PermitInput memory collateralATokenPermit
+    ) external;
 }

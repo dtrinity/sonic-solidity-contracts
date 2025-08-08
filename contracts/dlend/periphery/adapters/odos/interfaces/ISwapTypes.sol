@@ -14,7 +14,7 @@ interface ISwapTypes {
     enum SwapType {
         REGULAR_SWAP, // 0: Regular ERC20 → ERC20 (Odos only)
         PT_TO_REGULAR, // 1: PT → underlying → ERC20 (Pendle + Odos)
-        REGULAR_TO_PT, // 2: ERC20 → underlying → PT (Odos + Pendle)
+        REGULAR_TO_PT, // 2: ERC20 → ERC20 → PT (Odos + Pendle)
         PT_TO_PT // 3: PT → PT (Pendle only)
     }
 }

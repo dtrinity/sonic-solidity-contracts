@@ -11,6 +11,8 @@ import {
 const ODOS_ADAPTERS_V2 = [
   "OdosLiquiditySwapAdapterV2",
   "OdosRepayAdapterV2",
+  "OdosWithdrawSwapAdapterV2",
+  "OdosDebtSwapAdapterV2",
 ] as const;
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
