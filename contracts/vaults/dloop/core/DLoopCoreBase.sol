@@ -57,6 +57,7 @@ abstract contract DLoopCoreBase is
     ERC20 public immutable debtToken;
 
     uint256 public constant BALANCE_DIFF_TOLERANCE = 1;
+    uint256 public constant LEVERAGE_DIFF_TOLERANCE = 1;
 
     /* Events */
 
@@ -196,6 +197,18 @@ abstract contract DLoopCoreBase is
     error TotalCollateralBaseIsLessThanTotalDebtBase(
         uint256 totalCollateralBase,
         uint256 totalDebtBase
+    );
+    error WithdrawCollateralTokenInBaseGreaterThanTotalCollateralBase(
+        uint256 withdrawCollateralTokenInBase,
+        uint256 totalCollateralBase
+    );
+    error RequiredDebtTokenAmountInBaseGreaterThanTotalDebtBase(
+        uint256 requiredDebtTokenAmountInBase,
+        uint256 totalDebtBase
+    );
+    error NewTotalCollateralBaseLessThanNewTotalDebtBase(
+        uint256 newTotalCollateralBase,
+        uint256 newTotalDebtBase
     );
     error ZeroShares();
 
@@ -1204,13 +1217,19 @@ abstract contract DLoopCoreBase is
          *
          * Calculate the amount of collateral token to supply
          * The original formula is:
-         *      x = (T'*(C - D) - C*ONE_HUNDRED_PERCENT_BPS) * ONE_HUNDRED_PERCENT_BPS / (ONE_HUNDRED_PERCENT_BPS^2 + T' * k')
+         *      y = ((TT*(C - D) - C*ONE_HUNDRED_PERCENT_BPS) * ONE_HUNDRED_PERCENT_BPS) / (ONE_HUNDRED_PERCENT_BPS^2 + (ONE_HUNDRED_PERCENT_BPS - TT) * kk)
          *
          * However, the calculation of ONE_HUNDRED_PERCENT_BPS^2 causes arithmetic overflow,
          * so we need to simplify the formula to avoid the overflow.
          *
          * So, the transformed formula is:
-         *      x = (T'*(C - D) - C*ONE_HUNDRED_PERCENT_BPS) / (ONE_HUNDRED_PERCENT_BPS + T' * k' / ONE_HUNDRED_PERCENT_BPS)
+         *      y = (TT*(C - D) - C*ONE_HUNDRED_PERCENT_BPS) / (ONE_HUNDRED_PERCENT_BPS + (ONE_HUNDRED_PERCENT_BPS - TT) * kk / ONE_HUNDRED_PERCENT_BPS)
+         *  <=> y = (TT*(C - D) - C*ONE_HUNDRED_PERCENT_BPS) / (ONE_HUNDRED_PERCENT_BPS + kk - TT * kk / ONE_HUNDRED_PERCENT_BPS)
+         *
+         * as:
+         *      x = y*(1 + kk / ONE_HUNDRED_PERCENT_BPS)
+         *  we have:
+         *      x = y*(ONE_HUNDRED_PERCENT_BPS + kk) / ONE_HUNDRED_PERCENT_BPS
          */
         if (totalCollateralBase == 0) {
             revert TotalCollateralBaseIsZero();
@@ -1222,13 +1241,18 @@ abstract contract DLoopCoreBase is
             );
         }
 
-        uint256 requiredCollateralTokenAmountInBase = (expectedTargetLeverageBps *
-                (totalCollateralBase - totalDebtBase) -
-                totalCollateralBase *
-                BasisPointConstants.ONE_HUNDRED_PERCENT_BPS) /
-                (BasisPointConstants.ONE_HUNDRED_PERCENT_BPS +
-                    ((expectedTargetLeverageBps * subsidyBps) /
-                        BasisPointConstants.ONE_HUNDRED_PERCENT_BPS));
+        uint256 requiredDebtTokenAmountInBase = (expectedTargetLeverageBps *
+            (totalCollateralBase - totalDebtBase) -
+            totalCollateralBase *
+            BasisPointConstants.ONE_HUNDRED_PERCENT_BPS) /
+            (BasisPointConstants.ONE_HUNDRED_PERCENT_BPS +
+                subsidyBps -
+                (expectedTargetLeverageBps * subsidyBps) /
+                BasisPointConstants.ONE_HUNDRED_PERCENT_BPS);
+
+        uint256 requiredCollateralTokenAmountInBase = (requiredDebtTokenAmountInBase *
+                (BasisPointConstants.ONE_HUNDRED_PERCENT_BPS + subsidyBps)) /
+                BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
 
         // Convert to token unit
         uint256 requiredCollateralTokenAmount = convertFromBaseCurrencyToToken(
@@ -1280,13 +1304,16 @@ abstract contract DLoopCoreBase is
          *
          * Calculate the amount of debt token to repay
          * The original formula is:
-         *      x = (C*ONE_HUNDRED_PERCENT_BPS - T'*(C - D)) * ONE_HUNDRED_PERCENT_BPS / (ONE_HUNDRED_PERCENT_BPS^2 + T' * k')
+         *      y = ((C*ONE_HUNDRED_PERCENT_BPS - TT*(C - D)) * ONE_HUNDRED_PERCENT_BPS) / (ONE_HUNDRED_PERCENT_BPS^2 + (ONE_HUNDRED_PERCENT_BPS - TT) * kk)
          *
          * However, the calculation of ONE_HUNDRED_PERCENT_BPS^2 causes arithmetic overflow,
          * so we need to simplify the formula to avoid the overflow.
          *
          * So, the transformed formula is:
-         *      x = (C*ONE_HUNDRED_PERCENT_BPS - T'*(C - D)) / (ONE_HUNDRED_PERCENT_BPS + T' * k' / ONE_HUNDRED_PERCENT_BPS)
+         *      y = (C*ONE_HUNDRED_PERCENT_BPS - TT*(C - D)) / (ONE_HUNDRED_PERCENT_BPS + (ONE_HUNDRED_PERCENT_BPS - TT) * kk / ONE_HUNDRED_PERCENT_BPS)
+         *
+         * Moreover, (ONE_HUNDRED_PERCENT_BPS - TT) will cause underflow, so we need to use the following formula:
+         *      y = (C*ONE_HUNDRED_PERCENT_BPS - TT*(C - D)) / (ONE_HUNDRED_PERCENT_BPS + kk - TT * kk / ONE_HUNDRED_PERCENT_BPS)
          */
         if (totalCollateralBase == 0) {
             revert TotalCollateralBaseIsZero();
@@ -1303,6 +1330,7 @@ abstract contract DLoopCoreBase is
             expectedTargetLeverageBps *
             (totalCollateralBase - totalDebtBase)) /
             (BasisPointConstants.ONE_HUNDRED_PERCENT_BPS +
+                subsidyBps -
                 (expectedTargetLeverageBps * subsidyBps) /
                 BasisPointConstants.ONE_HUNDRED_PERCENT_BPS);
 
@@ -1358,40 +1386,43 @@ abstract contract DLoopCoreBase is
          * - y: change amount of debt in base currency
          *
          * We have:
-         *      y = x*(1+k)
+         *      x = y*(1+k)
+         *
          *      (C + x) / (C + x - D - y) = T
-         *  <=> (C + x) / (C + x - D - x*(1+k)) = T
-         *  <=> (C + x) = T * (C + x - D - x*(1+k))
-         *  <=> C + x = T*C + T*x - T*D - T*x - T*x*k
-         *  <=> C + x = T*C - T*D - T*x*k
-         *  <=> x + T*x*k = T*C - T*D - C
-         *  <=> x*(1 + T*k) = T*C - T*D - C
-         *  <=> x = (T*(C - D) - C) / (1 + T*k)
+         *  <=> (C + x) / (C + x - D - y) = T
+         *  <=> C + y*(1+k) = T * (C + y*(1+k) - D - y)
+         *  <=> C + y*(1+k) = T * (C + y*k - D)
+         *  <=> y*(1+k) = T*C + T*y*k - T*D - C
+         *  <=> y*(1+k) - T*y*k = T*C - T*D - C
+         *  <=> y*(1 + k - T*k) = T*(C - D) - C
+         *  <=> y = (T*(C - D) - C) / (1 + (1 - T)*k)
          *
          * Suppose that:
-         *      T' = T * ONE_HUNDRED_PERCENT_BPS
-         *      k' = k * ONE_HUNDRED_PERCENT_BPS
+         *      TT = T * ONE_HUNDRED_PERCENT_BPS
+         *      kk = k * ONE_HUNDRED_PERCENT_BPS
          * then:
-         *      T = T' / ONE_HUNDRED_PERCENT_BPS
-         *      k = k' / ONE_HUNDRED_PERCENT_BPS
+         *      T = TT / ONE_HUNDRED_PERCENT_BPS
+         *      k = kk / ONE_HUNDRED_PERCENT_BPS
          * where:
-         *      - T' is the target leverage in basis points unit
-         *      - k' is the subsidy in basis points unit
+         *      - TT is the target leverage in basis points unit
+         *      - kk is the subsidy in basis points unit
          *
          * We have:
-         *      x = (T*(C - D) - C) / (1 + T*k)
-         *  <=> x = (T'*(C - D) / ONE_HUNDRED_PERCENT_BPS - C) / (1 + T'*k / ONE_HUNDRED_PERCENT_BPS)
-         *  <=> x = (T'*(C - D) - C*ONE_HUNDRED_PERCENT_BPS) / (ONE_HUNDRED_PERCENT_BPS + T'*k)
-         *  <=> x = (T'*(C - D) - C*ONE_HUNDRED_PERCENT_BPS) / (ONE_HUNDRED_PERCENT_BPS + T' * k' / ONE_HUNDRED_PERCENT_BPS)
-         *  <=> x = (T'*(C - D) - C*ONE_HUNDRED_PERCENT_BPS) * ONE_HUNDRED_PERCENT_BPS / (ONE_HUNDRED_PERCENT_BPS^2 + T' * k')
+         *      y = (T*(C - D) - C) / (1 + (1 - T)*k)
+         *  <=> y = (TT*(C - D) / ONE_HUNDRED_PERCENT_BPS - C) / (1 + (1 - TT / ONE_HUNDRED_PERCENT_BPS) * k)
+         *  <=> y = (TT*(C - D) - C*ONE_HUNDRED_PERCENT_BPS) / (ONE_HUNDRED_PERCENT_BPS + (ONE_HUNDRED_PERCENT_BPS - TT) * k)
+         *  <=> y = (TT*(C - D) - C*ONE_HUNDRED_PERCENT_BPS) / (ONE_HUNDRED_PERCENT_BPS + (ONE_HUNDRED_PERCENT_BPS - TT) * kk / ONE_HUNDRED_PERCENT_BPS)
+         *  <=> y = ((TT*(C - D) - C*ONE_HUNDRED_PERCENT_BPS) * ONE_HUNDRED_PERCENT_BPS) / (ONE_HUNDRED_PERCENT_BPS^2 + (ONE_HUNDRED_PERCENT_BPS - TT) * kk)
          *
-         * If x > 0, it means the user should increase the leverage, so the direction is 1
-         *    => x = (T*(C - D) - C) / (1 + T*k)
-         *    => x = (T'*(C - D) - C*ONE_HUNDRED_PERCENT_BPS) * ONE_HUNDRED_PERCENT_BPS / (ONE_HUNDRED_PERCENT_BPS^2 + T' * k')
-         * If x < 0, it means the user should decrease the leverage, so the direction is -1
-         *    => x = (C - T*(C - D)) / (1 + T*k)
-         *    => x = (C*ONE_HUNDRED_PERCENT_BPS - T'*(C - D)) * ONE_HUNDRED_PERCENT_BPS / (ONE_HUNDRED_PERCENT_BPS^2 + T' * k')
-         * If x = 0, it means the user should not rebalance, so the direction is 0
+         * If y > 0, it means the user should increase the leverage, so the direction is 1
+         *    => y = (T*(C - D) - C) / (1 + (1 - T)*k)
+         *    => y = ((TT*(C - D) - C*ONE_HUNDRED_PERCENT_BPS) * ONE_HUNDRED_PERCENT_BPS) / (ONE_HUNDRED_PERCENT_BPS^2 + (ONE_HUNDRED_PERCENT_BPS - TT) * kk)
+         *
+         * If y < 0, it means the user should decrease the leverage, so the direction is -1
+         *    => y = (C - T*(C - D)) / (1 + (1 - T)*k)
+         *    => y = ((C*ONE_HUNDRED_PERCENT_BPS - TT*(C - D)) * ONE_HUNDRED_PERCENT_BPS) / (ONE_HUNDRED_PERCENT_BPS^2 + (ONE_HUNDRED_PERCENT_BPS - TT) * kk)
+         *
+         * If y = 0, it means the user should not rebalance, so the direction is 0
          */
 
         uint256 currentLeverageBps = getCurrentLeverageBps();
@@ -1595,11 +1626,13 @@ abstract contract DLoopCoreBase is
                 address(collateralToken)
             );
 
-        // The amount of debt token to borrow (in base currency) is equal to the amount of collateral token supplied
-        // plus the subsidy (bonus for the caller)
+        // According to the formula:
+        //      y = x / (1+k)
+        //  <=> y = x * (1+kk/ONE_HUNDRED_PERCENT_BPS)
+        //  <=> y = ONE_HUNDRED_PERCENT_BPS * x / (ONE_HUNDRED_PERCENT_BPS + kk)
         uint256 borrowedDebtTokenInBase = (requiredCollateralTokenAmountInBase *
-            (BasisPointConstants.ONE_HUNDRED_PERCENT_BPS + subsidyBps)) /
-            BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
+            BasisPointConstants.ONE_HUNDRED_PERCENT_BPS) /
+            (BasisPointConstants.ONE_HUNDRED_PERCENT_BPS + subsidyBps);
 
         // Supply the collateral token to the lending pool
         _supplyToPool(
@@ -1736,6 +1769,76 @@ abstract contract DLoopCoreBase is
         uint256 withdrawCollateralTokenInBase = (requiredDebtTokenAmountInBase *
             (BasisPointConstants.ONE_HUNDRED_PERCENT_BPS + subsidyBps)) /
             BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
+
+        // Calculate the new total collateral base to avoid potential underflow
+        if (withdrawCollateralTokenInBase > totalCollateralBase) {
+            revert WithdrawCollateralTokenInBaseGreaterThanTotalCollateralBase(
+                withdrawCollateralTokenInBase,
+                totalCollateralBase
+            );
+        }
+        uint256 newTotalCollateralBase = totalCollateralBase -
+            withdrawCollateralTokenInBase;
+
+        // Calculate the new total debt base to avoid potential underflow
+        if (requiredDebtTokenAmountInBase > totalDebtBase) {
+            revert RequiredDebtTokenAmountInBaseGreaterThanTotalDebtBase(
+                requiredDebtTokenAmountInBase,
+                totalDebtBase
+            );
+        }
+        uint256 newTotalDebtBase = totalDebtBase -
+            requiredDebtTokenAmountInBase;
+
+        // Make sure the new total collateral base is greater than the new total debt base
+        if (newTotalCollateralBase < newTotalDebtBase) {
+            revert NewTotalCollateralBaseLessThanNewTotalDebtBase(
+                newTotalCollateralBase,
+                newTotalDebtBase
+            );
+        }
+
+        /**
+         * Instead of calculating the denominator as:
+         * denominator = (totalCollateralBase -
+         *                 withdrawCollateralTokenInBase -
+         *                 totalDebtBase +
+         *                 requiredDebtTokenAmountInBase)
+         *
+         * We can calculate the denominator as:
+         * denominator = (newTotalCollateralBase - newTotalDebtBase)
+         *
+         * where:
+         *   - newTotalCollateralBase = totalCollateralBase - withdrawCollateralTokenInBase
+         *   - newTotalDebtBase = totalDebtBase - requiredDebtTokenAmountInBase
+         *
+         * This is to avoid potential underflow of the series of subtraction:
+         *          (totalCollateralBase - withdrawCollateralTokenInBase - totalDebtBase)
+         *
+         * For example, if the total collateral base is 100, the withdraw collateral token amount is 100,
+         * and the total debt base is 10, the series of subtraction will be:
+         *          100 - 100 - 10 = -10
+         *
+         * This will cause the new leverage to be negative, which will be reverted due to underflow.
+         */
+
+        // Calculate the new leverage after decreasing the leverage
+        uint256 newLeverageBps = ((totalCollateralBase -
+            withdrawCollateralTokenInBase) *
+            BasisPointConstants.ONE_HUNDRED_PERCENT_BPS) /
+            (newTotalCollateralBase - newTotalDebtBase);
+
+        // Make sure the new leverage is decreasing and is not below the target leverage
+        if (
+            newLeverageBps < targetLeverageBps - LEVERAGE_DIFF_TOLERANCE ||
+            newLeverageBps >= currentLeverageBps
+        ) {
+            revert DecreaseLeverageOutOfRange(
+                newLeverageBps,
+                targetLeverageBps,
+                currentLeverageBps
+            );
+        }
 
         // Repay the debt token to the lending pool
         _repayDebtToPool(
