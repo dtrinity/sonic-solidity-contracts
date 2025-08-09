@@ -395,3 +395,181 @@ describe("DLoopCoreMock - Inflation Attack Tests", function () {
   //   });
   // });
 });
+
+describe("IV. Real ERC-4626 share-inflation attack (supply on-behalf-of vault)", function () {
+  let dloopMockLocal: DLoopCoreMock;
+  let collateralTokenLocal: TestMintableERC20;
+  let accountsLocal: HardhatEthersSigner[];
+
+  beforeEach(async function () {
+    const fixture = await loadFixture(deployDLoopMockFixture);
+    await testSetup(fixture);
+    dloopMockLocal = fixture.dloopMock;
+    collateralTokenLocal = fixture.collateralToken;
+    accountsLocal = fixture.accounts;
+  });
+
+  it("Attacker can inflate share-price so that the next depositor receives 0 shares", async function () {
+    const attacker = accountsLocal[1];
+    const victim = accountsLocal[2];
+
+    const dust = ethers.parseEther("0.001");
+    await dloopMockLocal.connect(attacker).deposit(dust, attacker.address);
+    const assetsAfter = await dloopMockLocal.totalAssets();
+    expect(assetsAfter).to.be.gte(dust);
+
+    const donation = ethers.parseEther("1000");
+    await collateralTokenLocal.mint(attacker.address, donation);
+    await collateralTokenLocal
+      .connect(attacker)
+      .transfer(await dloopMockLocal.getAddress(), donation);
+
+    await dloopMockLocal
+      .connect(attacker)
+      .testSupplyToPool(
+        await collateralTokenLocal.getAddress(),
+        donation,
+        await dloopMockLocal.getAddress(),
+      );
+
+    const supplyAfterDonation = await dloopMockLocal.totalSupply();
+    expect(supplyAfterDonation).to.equal(dust);
+    const assetsAfterDonation = await dloopMockLocal.totalAssets();
+    expect(assetsAfterDonation).to.equal(donation + dust);
+
+    const victimDeposit = ethers.parseEther("10");
+    const victimPreview = await dloopMockLocal.previewDeposit(victimDeposit);
+    // Because share price is extremely high now, preview returns only a few wei-shares
+    expect(victimPreview).to.be.gt(0n);
+    expect(victimPreview).to.be.lt(victimDeposit); // much smaller than assets deposited
+
+    // Actual deposit should revert due to vault leverage being far below the lower bound
+    await expect(
+      dloopMockLocal.connect(victim).deposit(victimDeposit, victim.address),
+    ).to.be.reverted;
+  });
+});
+
+describe("V. Donation griefing causes DoS but no value theft", function () {
+  let dloop: DLoopCoreMock;
+  let collateral: TestMintableERC20;
+  let signers: HardhatEthersSigner[];
+
+  beforeEach(async function () {
+    const fixture = await loadFixture(deployDLoopMockFixture);
+    await testSetup(fixture);
+    dloop = fixture.dloopMock;
+    collateral = fixture.collateralToken;
+    signers = fixture.accounts;
+  });
+
+  it("Attacker donation locks vault and prevents further interactions until rebalance", async function () {
+    const attacker = signers[1];
+    const victim = signers[2];
+
+    // 1. Attacker does a dust deposit and receives tiny amount of shares
+    const dustDeposit = ethers.parseEther("0.001");
+    await dloop.connect(attacker).deposit(dustDeposit, attacker.address);
+
+    // 2. Attacker mints and donates a large amount of collateral, then supplies it on-behalf-of the vault
+    const donation = ethers.parseEther("1000");
+    await collateral.mint(attacker.address, donation);
+    await collateral
+      .connect(attacker)
+      .transfer(await dloop.getAddress(), donation);
+
+    // Push the donation into the lending pool so it is recognised by totalAssets()
+    await dloop
+      .connect(attacker)
+      .testSupplyToPool(
+        await collateral.getAddress(),
+        donation,
+        await dloop.getAddress(),
+      );
+
+    // Vault should now report imbalance
+    expect(await dloop.isTooImbalanced()).to.equal(true);
+
+    // 3. Victim tries to deposit – should revert with TooImbalanced and keep their funds
+    const victimDeposit = ethers.parseEther("10");
+    const victimTx = dloop
+      .connect(victim)
+      .deposit(victimDeposit, victim.address);
+    await expect(victimTx).to.be.reverted;
+
+    // 4. Attacker themselves cannot redeem until rebalance
+    const attackerShares = await dloop.balanceOf(attacker.address);
+    const redeemTx = dloop
+      .connect(attacker)
+      .redeem(attackerShares, attacker.address, attacker.address);
+    await expect(redeemTx).to.be.reverted;
+  });
+
+  it("Keeper can rebalance the vault and restore normal operations", async function () {
+    const attacker = signers[1];
+    const victim = signers[2];
+    const keeper = signers[3];
+
+    // 1. Perform the same donation-based DoS attack
+    const dustDeposit = ethers.parseEther("0.001");
+    await dloop.connect(attacker).deposit(dustDeposit, attacker.address);
+
+    const donation = ethers.parseEther("1000");
+    await collateral.mint(attacker.address, donation);
+    await collateral
+      .connect(attacker)
+      .transfer(await dloop.getAddress(), donation);
+
+    await dloop
+      .connect(attacker)
+      .testSupplyToPool(
+        await collateral.getAddress(),
+        donation,
+        await dloop.getAddress(),
+      );
+
+    expect(await dloop.isTooImbalanced()).to.equal(true);
+
+    // 2. Keeper queries required rebalance amount/direction
+    const [tokenAmount, rawDirection] =
+      await dloop.getAmountToReachTargetLeverage(false);
+    const direction = Number(rawDirection);
+
+    // Sanity: direction should be non-zero while DoS is active
+    expect(direction === 1 || direction === -1).to.equal(true);
+
+    if (direction === 1) {
+      // Increase leverage path – keeper supplies collateral and borrows debt
+      await collateral.mint(keeper.address, tokenAmount);
+      const vaultAddr = await dloop.getAddress();
+      const collateralKeeper = collateral.connect(keeper);
+      await collateralKeeper.approve(vaultAddr, tokenAmount);
+
+      await dloop.connect(keeper).increaseLeverage(tokenAmount, 0);
+    } else if (direction === -1) {
+      // Decrease leverage path – keeper repays debt to withdraw collateral
+      const debtTokenAddress = await dloop.getDebtTokenAddress();
+      const DebtToken = (await ethers.getContractAt(
+        "TestMintableERC20",
+        debtTokenAddress,
+      )) as TestMintableERC20;
+
+      await DebtToken.mint(keeper.address, tokenAmount);
+      const vaultAddr2 = await dloop.getAddress();
+      const debtKeeper = DebtToken.connect(keeper);
+      await debtKeeper.approve(vaultAddr2, tokenAmount);
+
+      await dloop.connect(keeper).decreaseLeverage(tokenAmount, 0);
+    }
+
+    // 3. Vault should be balanced again
+    expect(await dloop.isTooImbalanced()).to.equal(false);
+
+    // 4. Victim can now deposit successfully
+    const victimDeposit = ethers.parseEther("10");
+    await dloop.connect(victim).deposit(victimDeposit, victim.address);
+
+    const victimShares = await dloop.balanceOf(victim.address);
+    expect(victimShares).to.be.gt(0n);
+  });
+});

@@ -329,7 +329,10 @@ export async function createPosition(
   const initialShareBalance = await dloopMock.balanceOf(user.address);
 
   // Calculate expected leveraged amount
-  const leveragedAmount = await dloopMock.getLeveragedAssets(depositAmount);
+  const leveragedAmount = await dLoopDepositorMock.getLeveragedAssets(
+    depositAmount,
+    dloopMock,
+  );
 
   // Calculate minOutputShares based on leveraged amount (with 5% slippage tolerance)
   const expectedShares = await dloopMock.previewDeposit(leveragedAmount);

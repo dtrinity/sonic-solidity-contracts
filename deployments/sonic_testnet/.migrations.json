@@ -64,10 +64,10 @@
   "ChainlinkDecimalConverter_wstkscUSD": 1751647236,
   "dLend_StaticATokenFactory": 1751647244,
   "dStableATokenWrappers": 1751647252,
-  "ERC20VestingNFT": 1751647271,
   "ChainlinkDecimalConverter_wstkscETH": 1751647271,
   "PendleChainlinkOracles:PT-aUSDC:PT-wstkscUSD": 1751647271,
   "PendleDecimalConverters:PT-aUSDC:PT-wstkscUSD": 1751647271,
   "OSWOSDecimalConverters": 1751647271,
-  "ChainlinkCompositeAggregator_OS_S_USD": 1751647271
+  "ChainlinkCompositeAggregator_OS_S_USD": 1751647271,
+  "ERC20VestingNFT": 1752502704
 }
