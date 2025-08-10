@@ -55,14 +55,12 @@ async function migrateIssuerRolesIdempotent(
   const DEFAULT_ADMIN_ROLE = ZERO_BYTES_32;
   const AMO_MANAGER_ROLE = await issuer.AMO_MANAGER_ROLE();
   const INCENTIVES_MANAGER_ROLE = await issuer.INCENTIVES_MANAGER_ROLE();
-  const ASSET_MANAGER_ROLE = await issuer.ASSET_MANAGER_ROLE();
   const PAUSER_ROLE = await issuer.PAUSER_ROLE();
 
   const roles = [
     { name: "DEFAULT_ADMIN_ROLE", hash: DEFAULT_ADMIN_ROLE },
     { name: "AMO_MANAGER_ROLE", hash: AMO_MANAGER_ROLE },
     { name: "INCENTIVES_MANAGER_ROLE", hash: INCENTIVES_MANAGER_ROLE },
-    { name: "ASSET_MANAGER_ROLE", hash: ASSET_MANAGER_ROLE },
     { name: "PAUSER_ROLE", hash: PAUSER_ROLE },
   ];
 
@@ -82,12 +80,7 @@ async function migrateIssuerRolesIdempotent(
   // After ensuring governance has roles, revoke from deployer in a safe order
   const deployerAddress = await deployerSigner.getAddress();
 
-  for (const role of [
-    AMO_MANAGER_ROLE,
-    INCENTIVES_MANAGER_ROLE,
-    ASSET_MANAGER_ROLE,
-    PAUSER_ROLE,
-  ]) {
+  for (const role of [AMO_MANAGER_ROLE, INCENTIVES_MANAGER_ROLE, PAUSER_ROLE]) {
     if (await issuer.hasRole(role, deployerAddress)) {
       await issuer.revokeRole(role, deployerAddress);
       console.log(`    ➖ Revoked ${role} from deployer`);

@@ -232,13 +232,13 @@ dstableConfigs.forEach((config) => {
           );
         });
 
-        it(`cannot issue ${config.symbol} when asset minting is disabled for ${collateralSymbol}`, async function () {
+        it(`cannot issue ${config.symbol} when asset minting is paused for ${collateralSymbol}`, async function () {
           const collateralInfo = collateralInfos.get(
             collateralSymbol
           ) as TokenInfo;
 
-          // Disable asset for minting
-          await issuerV2.setAssetMintingOverride(collateralInfo.address, true);
+          // Pause asset for minting
+          await issuerV2.setAssetMintingPause(collateralInfo.address, true);
 
           const collateralAmount = hre.ethers.parseUnits(
             "100",
@@ -250,11 +250,11 @@ dstableConfigs.forEach((config) => {
               .connect(await hre.ethers.getSigner(user1))
               .issue(collateralAmount, collateralInfo.address, 0)
           )
-            .to.be.revertedWithCustomError(issuerV2, "AssetMintingDisabled")
+            .to.be.revertedWithCustomError(issuerV2, "AssetMintingPaused")
             .withArgs(collateralInfo.address);
 
           // Re-enable and verify succeeds
-          await issuerV2.setAssetMintingOverride(collateralInfo.address, false);
+          await issuerV2.setAssetMintingPause(collateralInfo.address, false);
         });
       });
 
@@ -378,7 +378,7 @@ dstableConfigs.forEach((config) => {
     });
 
     describe("Permissioned and control behaviors", () => {
-      it("only ASSET_MANAGER_ROLE can set overrides", async function () {
+      it("only PAUSER_ROLE can set asset minting pause", async function () {
         const [collateralSymbol] = config.peggedCollaterals;
         const collateralInfo = collateralInfos.get(
           collateralSymbol
@@ -388,19 +388,19 @@ dstableConfigs.forEach((config) => {
         await expect(
           issuerV2
             .connect(await hre.ethers.getSigner(user1))
-            .setAssetMintingOverride(collateralInfo.address, true)
+            .setAssetMintingPause(collateralInfo.address, true)
         )
           .to.be.revertedWithCustomError(
             issuerV2,
             "AccessControlUnauthorizedAccount"
           )
-          .withArgs(user1, await issuerV2.ASSET_MANAGER_ROLE());
+          .withArgs(user1, await issuerV2.PAUSER_ROLE());
 
         // deployer can set
-        await issuerV2.setAssetMintingOverride(collateralInfo.address, true);
+        await issuerV2.setAssetMintingPause(collateralInfo.address, true);
         expect(await issuerV2.isAssetMintingEnabled(collateralInfo.address)).to
           .be.false;
-        await issuerV2.setAssetMintingOverride(collateralInfo.address, false);
+        await issuerV2.setAssetMintingPause(collateralInfo.address, false);
         expect(await issuerV2.isAssetMintingEnabled(collateralInfo.address)).to
           .be.true;
       });

@@ -48,15 +48,13 @@ contract IssuerV2 is AccessControl, OracleAware, ReentrancyGuard, Pausable {
 
     event CollateralVaultSet(address indexed collateralVault);
     event AmoManagerSet(address indexed amoManager);
-    event AssetMintingOverrideUpdated(address indexed asset, bool disabled);
+    event AssetMintingPauseUpdated(address indexed asset, bool paused);
 
     /* Roles */
 
     bytes32 public constant AMO_MANAGER_ROLE = keccak256("AMO_MANAGER_ROLE");
     bytes32 public constant INCENTIVES_MANAGER_ROLE =
         keccak256("INCENTIVES_MANAGER_ROLE");
-    bytes32 public constant ASSET_MANAGER_ROLE =
-        keccak256("ASSET_MANAGER_ROLE");
     bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
 
     /* Errors */
@@ -70,12 +68,12 @@ contract IssuerV2 is AccessControl, OracleAware, ReentrancyGuard, Pausable {
         uint256 circulatingDstableBefore,
         uint256 circulatingDstableAfter
     );
-    error AssetMintingDisabled(address asset);
+    error AssetMintingPaused(address asset);
 
     /* Overrides */
 
-    // If true, minting with this collateral asset is disabled at the issuer level
-    mapping(address => bool) public assetMintingDisabled;
+    // If true, minting with this collateral asset is paused at the issuer level
+    mapping(address => bool) public assetMintingPaused;
 
     /**
      * @notice Initializes the IssuerV2 contract with core dependencies
@@ -98,7 +96,6 @@ contract IssuerV2 is AccessControl, OracleAware, ReentrancyGuard, Pausable {
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         grantRole(AMO_MANAGER_ROLE, msg.sender);
         grantRole(INCENTIVES_MANAGER_ROLE, msg.sender);
-        grantRole(ASSET_MANAGER_ROLE, msg.sender);
         grantRole(PAUSER_ROLE, msg.sender);
     }
 
@@ -120,9 +117,9 @@ contract IssuerV2 is AccessControl, OracleAware, ReentrancyGuard, Pausable {
             revert CollateralVault.UnsupportedCollateral(collateralAsset);
         }
 
-        // Ensure the issuer has not disabled this asset for minting
-        if (assetMintingDisabled[collateralAsset]) {
-            revert AssetMintingDisabled(collateralAsset);
+        // Ensure the issuer has not paused this asset for minting
+        if (assetMintingPaused[collateralAsset]) {
+            revert AssetMintingPaused(collateralAsset);
         }
 
         uint8 collateralDecimals = IERC20Metadata(collateralAsset).decimals();
@@ -222,11 +219,11 @@ contract IssuerV2 is AccessControl, OracleAware, ReentrancyGuard, Pausable {
 
     /**
      * @notice Returns whether `asset` is currently enabled for minting by the issuer
-     * @dev Asset must be supported by the collateral vault and not disabled by issuer
+     * @dev Asset must be supported by the collateral vault and not paused by issuer
      */
     function isAssetMintingEnabled(address asset) public view returns (bool) {
         if (!collateralVault.isCollateralSupported(asset)) return false;
-        return !assetMintingDisabled[asset];
+        return !assetMintingPaused[asset];
     }
 
     /* Admin */
@@ -255,20 +252,20 @@ contract IssuerV2 is AccessControl, OracleAware, ReentrancyGuard, Pausable {
     }
 
     /**
-     * @notice Set minting disabled override for a specific collateral asset
+     * @notice Set minting pause override for a specific collateral asset
      * @param asset The collateral asset address
-     * @param disabled True to disable minting; false to enable
+     * @param paused True to pause minting; false to enable
      */
-    function setAssetMintingOverride(
+    function setAssetMintingPause(
         address asset,
-        bool disabled
-    ) external onlyRole(ASSET_MANAGER_ROLE) {
+        bool paused
+    ) external onlyRole(PAUSER_ROLE) {
         // Optional guard: if vault does not support the asset, setting an override is meaningless
         if (!collateralVault.isCollateralSupported(asset)) {
             revert CollateralVault.UnsupportedCollateral(asset);
         }
-        assetMintingDisabled[asset] = disabled;
-        emit AssetMintingOverrideUpdated(asset, disabled);
+        assetMintingPaused[asset] = paused;
+        emit AssetMintingPauseUpdated(asset, paused);
     }
 
     /**
