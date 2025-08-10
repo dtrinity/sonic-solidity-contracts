@@ -1,19 +1,19 @@
+import { Signer } from "ethers";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
-import { Signer } from "ethers";
 
 import { getConfig } from "../../config/config";
 import {
-  DUSD_AMO_MANAGER_ID,
-  DUSD_COLLATERAL_VAULT_CONTRACT_ID,
-  DUSD_ISSUER_CONTRACT_ID,
-  DUSD_ISSUER_V2_CONTRACT_ID,
-  DUSD_TOKEN_ID,
   DS_AMO_MANAGER_ID,
   DS_COLLATERAL_VAULT_CONTRACT_ID,
   DS_ISSUER_CONTRACT_ID,
   DS_ISSUER_V2_CONTRACT_ID,
   DS_TOKEN_ID,
+  DUSD_AMO_MANAGER_ID,
+  DUSD_COLLATERAL_VAULT_CONTRACT_ID,
+  DUSD_ISSUER_CONTRACT_ID,
+  DUSD_ISSUER_V2_CONTRACT_ID,
+  DUSD_TOKEN_ID,
   S_ORACLE_AGGREGATOR_ID,
   USD_ORACLE_AGGREGATOR_ID,
 } from "../../typescript/deploy-ids";
@@ -21,16 +21,25 @@ import {
 const ZERO_BYTES_32 =
   "0x0000000000000000000000000000000000000000000000000000000000000000";
 
+/**
+ * Ensure the given `grantee` holds MINTER_ROLE on the specified dStable token.
+ * Idempotent: grants the role only if it is not already present.
+ *
+ * @param hre Hardhat runtime environment
+ * @param stableAddress Address of the ERC20StablecoinUpgradeable token
+ * @param grantee Address that should be granted MINTER_ROLE
+ */
 async function ensureMinterRole(
   hre: HardhatRuntimeEnvironment,
   stableAddress: string,
-  grantee: string
+  grantee: string,
 ): Promise<void> {
   const stable = await hre.ethers.getContractAt(
     "ERC20StablecoinUpgradeable",
-    stableAddress
+    stableAddress,
   );
   const MINTER_ROLE = await stable.MINTER_ROLE();
+
   if (!(await stable.hasRole(MINTER_ROLE, grantee))) {
     await stable.grantRole(MINTER_ROLE, grantee);
     console.log(`    ➕ Granted MINTER_ROLE to ${grantee}`);
@@ -39,17 +48,27 @@ async function ensureMinterRole(
   }
 }
 
+/**
+ * Migrate IssuerV2 roles to governance in a safe, idempotent sequence.
+ * Grants roles to governance first, then revokes them from the deployer.
+ *
+ * @param hre Hardhat runtime environment
+ * @param issuerName Logical name/id of the issuer deployment
+ * @param issuerAddress Address of the IssuerV2 contract
+ * @param deployerSigner Deployer signer currently holding roles
+ * @param governanceMultisig Governance multisig address to receive roles
+ */
 async function migrateIssuerRolesIdempotent(
   hre: HardhatRuntimeEnvironment,
   issuerName: string,
   issuerAddress: string,
   deployerSigner: Signer,
-  governanceMultisig: string
+  governanceMultisig: string,
 ): Promise<void> {
   const issuer = await hre.ethers.getContractAt(
     "IssuerV2",
     issuerAddress,
-    deployerSigner
+    deployerSigner,
   );
 
   const DEFAULT_ADMIN_ROLE = ZERO_BYTES_32;
@@ -72,7 +91,7 @@ async function migrateIssuerRolesIdempotent(
       console.log(`    ➕ Granted ${role.name} to ${governanceMultisig}`);
     } else {
       console.log(
-        `    ✓ ${role.name} already granted to ${governanceMultisig}`
+        `    ✓ ${role.name} already granted to ${governanceMultisig}`,
       );
     }
   }
@@ -80,6 +99,7 @@ async function migrateIssuerRolesIdempotent(
   // After ensuring governance has roles, revoke from deployer in a safe order
   const deployerAddress = await deployerSigner.getAddress();
 
+  // Revoke roles from deployer to mirror realistic mainnet governance where deployer is not the governor
   for (const role of [AMO_MANAGER_ROLE, INCENTIVES_MANAGER_ROLE, PAUSER_ROLE]) {
     if (await issuer.hasRole(role, deployerAddress)) {
       await issuer.revokeRole(role, deployerAddress);
@@ -135,19 +155,20 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     console.log(`\n=== Upgrading Issuer for ${t.symbol} ===`);
 
     const oldDeployment = await deployments.getOrNull(t.oldId);
+
     if (!oldDeployment) {
       console.log(
-        `  ⚠️ Old issuer ${t.oldId} not found. Skipping ${t.symbol}.`
+        `  ⚠️ Old issuer ${t.oldId} not found. Skipping ${t.symbol}.`,
       );
       continue;
     }
 
     // Resolve dependency addresses
     const { address: oracleAggregatorAddress } = await deployments.get(
-      t.oracleId
+      t.oracleId,
     );
     const { address: collateralVaultAddress } = await deployments.get(
-      t.vaultId
+      t.vaultId,
     );
     const { address: amoManagerAddress } = await deployments.get(t.amoId);
     const tokenAddress = (config as any).tokenAddresses[t.symbol];
@@ -181,9 +202,10 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     try {
       const stable = await hre.ethers.getContractAt(
         "ERC20StablecoinUpgradeable",
-        tokenAddress
+        tokenAddress,
       );
       const MINTER_ROLE = await stable.MINTER_ROLE();
+
       if (
         oldDeployment.address.toLowerCase() !==
           newIssuerAddress.toLowerCase() &&
@@ -191,16 +213,16 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       ) {
         await stable.revokeRole(MINTER_ROLE, oldDeployment.address);
         console.log(
-          `    ➖ Revoked MINTER_ROLE from old issuer ${oldDeployment.address}`
+          `    ➖ Revoked MINTER_ROLE from old issuer ${oldDeployment.address}`,
         );
       } else {
         console.log(
-          `    ✓ Old issuer ${oldDeployment.address} does not have MINTER_ROLE or equals new issuer`
+          `    ✓ Old issuer ${oldDeployment.address} does not have MINTER_ROLE or equals new issuer`,
         );
       }
     } catch (e) {
       console.log(
-        `    ⚠️ Could not check/revoke MINTER_ROLE on old issuer: ${(e as Error).message}`
+        `    ⚠️ Could not check/revoke MINTER_ROLE on old issuer: ${(e as Error).message}`,
       );
     }
 
@@ -210,12 +232,12 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       t.newId,
       newIssuerAddress,
       deployerSigner,
-      config.walletAddresses.governanceMultisig
+      config.walletAddresses.governanceMultisig,
     );
 
     // Optional: keep old issuer operational until governance flips references
     console.log(
-      `  ℹ️ New issuer ${t.newId} deployed and permissioned. Ensure dApp/services reference ${newIssuerAddress}.`
+      `  ℹ️ New issuer ${t.newId} deployed and permissioned. Ensure dApp/services reference ${newIssuerAddress}.`,
     );
   }
 

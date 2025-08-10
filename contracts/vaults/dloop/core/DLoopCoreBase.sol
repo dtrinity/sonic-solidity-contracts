@@ -372,7 +372,8 @@ abstract contract DLoopCoreBase is
 
         // Now, as balance before must be greater than balance after, we can just check if the difference is the expected amount
         // Allow a 1-wei rounding tolerance when comparing the observed balance change with `amount`
-        uint256 observedDiffSupply = tokenBalanceBeforeSupply - tokenBalanceAfterSupply;
+        uint256 observedDiffSupply = tokenBalanceBeforeSupply -
+            tokenBalanceAfterSupply;
 
         if (observedDiffSupply > amount) {
             if (observedDiffSupply - amount > BALANCE_DIFF_TOLERANCE) {

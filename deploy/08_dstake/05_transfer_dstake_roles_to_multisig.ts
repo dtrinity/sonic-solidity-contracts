@@ -14,7 +14,7 @@ import { ZERO_BYTES_32 } from "../../typescript/dlend/constants";
  * and admin / fee-manager roles to the addresses specified in the network
  * configuration.
  *
- * @param hre
+ * @param hre Hardhat runtime environment
  */
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployments, getNamedAccounts, ethers } = hre;
