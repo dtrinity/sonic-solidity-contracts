@@ -9,7 +9,7 @@ import {
   IssuerV2,
   MockAmoVault,
   OracleAggregator,
-  Redeemer,
+  RedeemerV2,
   TestERC20,
   TestMintableERC20,
 } from "../../typechain-types";
@@ -33,7 +33,7 @@ dstableConfigs.forEach((config) => {
   describe(`${config.symbol} Ecosystem Lifecycle`, () => {
     let amoManagerContract: AmoManager;
     let issuerContract: IssuerV2;
-    let redeemerContract: Redeemer;
+    let redeemerContract: RedeemerV2;
     let collateralHolderVaultContract: CollateralHolderVault;
     let oracleAggregatorContract: OracleAggregator;
     let mockAmoVaultContract: MockAmoVault;
@@ -66,15 +66,7 @@ dstableConfigs.forEach((config) => {
         await hre.ethers.getSigner(deployer)
       );
 
-      const redeemerAddress = (
-        await hre.deployments.get(config.redeemerContractId)
-      ).address;
-      redeemerContract = await hre.ethers.getContractAt(
-        "Redeemer",
-        redeemerAddress,
-        await hre.ethers.getSigner(deployer)
-      );
-
+      // Resolve collateral vault and oracle
       const collateralVaultAddress = await issuerContract.collateralVault();
       collateralHolderVaultContract = await hre.ethers.getContractAt(
         "CollateralHolderVault",
@@ -97,6 +89,29 @@ dstableConfigs.forEach((config) => {
         "OracleAggregator",
         oracleAggregatorAddress,
         await hre.ethers.getSigner(deployer)
+      );
+
+      // Deploy and wire up RedeemerV2 to use the existing vault, token and oracle
+      const { tokenInfo: dstInfo } = await getTokenContractForSymbol(
+        hre,
+        deployer,
+        config.symbol
+      );
+      const RedeemerV2Factory = await hre.ethers.getContractFactory(
+        "RedeemerV2",
+        await hre.ethers.getSigner(deployer)
+      );
+      redeemerContract = (await RedeemerV2Factory.deploy(
+        collateralVaultAddress,
+        dstInfo.address,
+        oracleAggregatorAddress
+      )) as unknown as RedeemerV2;
+      await redeemerContract.waitForDeployment();
+
+      // Allow RedeemerV2 to withdraw from the collateral vault
+      await collateralHolderVaultContract.grantRole(
+        await collateralHolderVaultContract.COLLATERAL_WITHDRAWER_ROLE(),
+        await redeemerContract.getAddress()
       );
 
       // Get dStable token info

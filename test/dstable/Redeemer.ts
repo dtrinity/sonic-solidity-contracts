@@ -71,7 +71,7 @@ async function calculateExpectedCollateralAmount(
 const dstableConfigs: DStableFixtureConfig[] = [DUSD_CONFIG, DS_CONFIG];
 
 dstableConfigs.forEach((config) => {
-  describe.skip(`Redeemer for ${config.symbol}`, () => {
+  describe.skip(`DEPRECATED: Redeemer for ${config.symbol}`, () => {
     let redeemerContract: Redeemer;
     let issuerContract: Issuer;
     let collateralVaultContract: CollateralHolderVault;
