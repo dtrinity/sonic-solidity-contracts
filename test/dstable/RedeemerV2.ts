@@ -117,7 +117,9 @@ dstableConfigs.forEach((config) => {
       redeemer = (await RedeemerV2Factory.deploy(
         vaultAddress,
         dstableInfo.address,
-        oracleAddress
+        oracleAddress,
+        deployer,
+        0 // start with 0 bps for test default
       )) as unknown as RedeemerV2;
       await redeemer.waitForDeployment();
 

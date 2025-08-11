@@ -1,4 +1,3 @@
-import { isAddress } from "ethers";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
 
@@ -104,10 +103,22 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     const { address: vault } = await deployments.get(t.vaultId);
 
     const tokenAddress = (config as any).tokenAddresses[t.symbol];
+    const stableCfg = (config as any).dStables[t.symbol];
+    const initialFeeReceiver = stableCfg?.initialFeeReceiver || deployer;
+    const initialRedemptionFeeBps =
+      stableCfg?.initialRedemptionFeeBps !== undefined
+        ? stableCfg.initialRedemptionFeeBps
+        : 0;
 
     const result = await deployments.deploy(`${t.redeemerId}V2`, {
       from: deployer,
-      args: [vault, tokenAddress, oracle],
+      args: [
+        vault,
+        tokenAddress,
+        oracle,
+        initialFeeReceiver,
+        initialRedemptionFeeBps,
+      ],
       contract: "RedeemerV2",
       autoMine: true,
       log: false,
@@ -157,42 +168,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       );
     }
 
-    // Post-deploy configuration: fee receiver and default fee
-    const redeemer = await hre.ethers.getContractAt(
-      "RedeemerV2",
-      result.address,
-      await hre.ethers.getSigner(deployer),
-    );
-
-    const stableCfg = (config as any).dStables[t.symbol];
-
-    if (stableCfg) {
-      const { initialFeeReceiver, initialRedemptionFeeBps } = stableCfg;
-
-      if (initialFeeReceiver && isAddress(initialFeeReceiver)) {
-        const currentReceiver = await redeemer.feeReceiver();
-
-        if (
-          currentReceiver.toLowerCase() !== initialFeeReceiver.toLowerCase()
-        ) {
-          await redeemer.setFeeReceiver(initialFeeReceiver);
-          console.log(
-            `    ⚙️ Set fee receiver for ${t.symbol} to ${initialFeeReceiver}`,
-          );
-        }
-      }
-
-      if (initialRedemptionFeeBps !== undefined) {
-        const currentDefault = await redeemer.defaultRedemptionFeeBps();
-
-        if (currentDefault !== BigInt(initialRedemptionFeeBps)) {
-          await redeemer.setDefaultRedemptionFee(initialRedemptionFeeBps);
-          console.log(
-            `    ⚙️ Set default redemption fee for ${t.symbol} to ${initialRedemptionFeeBps} bps`,
-          );
-        }
-      }
-    }
+    // Post-deploy configuration no longer needed for fee receiver and default fee,
+    // as they are provided via constructor.
 
     // Note: We intentionally do not modify roles on the legacy Redeemer contract to avoid unnecessary gas.
 

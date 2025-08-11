@@ -96,11 +96,18 @@ contract RedeemerV2 is AccessControl, OracleAware, Pausable, ReentrancyGuard {
 
     /**
      * @notice Initializes the RedeemerV2 contract
+     * @param _collateralVault The address of the collateral vault
+     * @param _dstable The address of the dStable stablecoin
+     * @param _oracle The address of the price oracle
+     * @param _initialFeeReceiver The initial address to receive redemption fees
+     * @param _initialRedemptionFeeBps The initial redemption fee in basis points
      */
     constructor(
         address _collateralVault,
         address _dstable,
-        IPriceOracleGetter _oracle
+        IPriceOracleGetter _oracle,
+        address _initialFeeReceiver,
+        uint256 _initialRedemptionFeeBps
     ) OracleAware(_oracle, _oracle.BASE_CURRENCY_UNIT()) {
         if (
             _collateralVault == address(0) ||
@@ -109,20 +116,30 @@ contract RedeemerV2 is AccessControl, OracleAware, Pausable, ReentrancyGuard {
         ) {
             revert CannotBeZeroAddress();
         }
+        if (_initialFeeReceiver == address(0)) {
+            revert CannotBeZeroAddress();
+        }
 
         MAX_FEE_BPS = 5 * BasisPointConstants.ONE_PERCENT_BPS; // 5%
+
+        if (_initialRedemptionFeeBps > MAX_FEE_BPS) {
+            revert FeeTooHigh(_initialRedemptionFeeBps, MAX_FEE_BPS);
+        }
 
         collateralVault = CollateralVault(_collateralVault);
         dstable = IMintableERC20(_dstable);
         dstableDecimals = dstable.decimals();
 
-        // Default fee configuration
-        feeReceiver = msg.sender;
-        defaultRedemptionFeeBps = 0; // no fee by default for backward compatibility
+        // Initial fee configuration
+        feeReceiver = _initialFeeReceiver;
+        defaultRedemptionFeeBps = _initialRedemptionFeeBps;
 
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         grantRole(REDEMPTION_MANAGER_ROLE, msg.sender);
         grantRole(PAUSER_ROLE, msg.sender);
+
+        emit FeeReceiverUpdated(address(0), _initialFeeReceiver);
+        emit DefaultRedemptionFeeUpdated(0, _initialRedemptionFeeBps);
     }
 
     /* Redeemer */
@@ -152,10 +169,6 @@ contract RedeemerV2 is AccessControl, OracleAware, Pausable, ReentrancyGuard {
         uint256 currentFeeBps = isCollateralFeeOverridden[collateralAsset]
             ? collateralRedemptionFeeBps[collateralAsset]
             : defaultRedemptionFeeBps;
-
-        if (currentFeeBps > MAX_FEE_BPS) {
-            revert FeeTooHigh(currentFeeBps, MAX_FEE_BPS);
-        }
 
         uint256 feeCollateral = 0;
         if (currentFeeBps > 0) {

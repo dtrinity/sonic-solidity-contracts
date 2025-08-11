@@ -104,7 +104,9 @@ dstableConfigs.forEach((config) => {
       redeemerContract = (await RedeemerV2Factory.deploy(
         collateralVaultAddress,
         dstInfo.address,
-        oracleAggregatorAddress
+        oracleAggregatorAddress,
+        deployer,
+        0
       )) as unknown as RedeemerV2;
       await redeemerContract.waitForDeployment();
 
