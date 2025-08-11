@@ -20,6 +20,7 @@ pragma solidity ^0.8.20;
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import "@openzeppelin/contracts/utils/Pausable.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 import "contracts/common/IMintableERC20.sol";
 import "contracts/common/BasisPointConstants.sol";
@@ -30,7 +31,7 @@ import "./OracleAware.sol";
  * @title RedeemerV2
  * @notice Extended Redeemer with global pause and per-asset redemption pause controls
  */
-contract RedeemerV2 is AccessControl, OracleAware, Pausable {
+contract RedeemerV2 is AccessControl, OracleAware, Pausable, ReentrancyGuard {
     /* Constants */
     uint256 public immutable MAX_FEE_BPS;
 
@@ -43,7 +44,10 @@ contract RedeemerV2 is AccessControl, OracleAware, Pausable {
     /* Fee related state */
     address public feeReceiver;
     uint256 public defaultRedemptionFeeBps; // Default fee in basis points
+
+    // Per-asset fee bps. Separately track whether an override is active to allow 0 bps overrides even if default > 0.
     mapping(address => uint256) public collateralRedemptionFeeBps; // Fee in basis points per collateral asset
+    mapping(address => bool) public isCollateralFeeOverridden;
 
     /* Events */
 
@@ -65,6 +69,7 @@ contract RedeemerV2 is AccessControl, OracleAware, Pausable {
         uint256 collateralAmountToRedeemer,
         uint256 feeAmountCollateral
     );
+    event CollateralVaultSet(address indexed collateralVault);
 
     /* Roles */
 
@@ -126,7 +131,7 @@ contract RedeemerV2 is AccessControl, OracleAware, Pausable {
         uint256 dstableAmount,
         address collateralAsset,
         uint256 minNetCollateral
-    ) external whenNotPaused {
+    ) external whenNotPaused nonReentrant {
         // Ensure the collateral asset is supported by the vault before any further processing
         if (!collateralVault.isCollateralSupported(collateralAsset)) {
             revert CollateralVault.UnsupportedCollateral(collateralAsset);
@@ -144,10 +149,10 @@ contract RedeemerV2 is AccessControl, OracleAware, Pausable {
             collateralAsset
         );
 
-        uint256 currentFeeBps = collateralRedemptionFeeBps[collateralAsset];
-        if (currentFeeBps == 0) {
-            currentFeeBps = defaultRedemptionFeeBps;
-        }
+        uint256 currentFeeBps = isCollateralFeeOverridden[collateralAsset]
+            ? collateralRedemptionFeeBps[collateralAsset]
+            : defaultRedemptionFeeBps;
+
         if (currentFeeBps > MAX_FEE_BPS) {
             revert FeeTooHigh(currentFeeBps, MAX_FEE_BPS);
         }
@@ -190,7 +195,7 @@ contract RedeemerV2 is AccessControl, OracleAware, Pausable {
         uint256 dstableAmount,
         address collateralAsset,
         uint256 minCollateral
-    ) external onlyRole(REDEMPTION_MANAGER_ROLE) whenNotPaused {
+    ) external onlyRole(REDEMPTION_MANAGER_ROLE) whenNotPaused nonReentrant {
         // Ensure the collateral asset is supported by the vault before any further processing
         if (!collateralVault.isCollateralSupported(collateralAsset)) {
             revert CollateralVault.UnsupportedCollateral(collateralAsset);
@@ -268,6 +273,7 @@ contract RedeemerV2 is AccessControl, OracleAware, Pausable {
             revert CannotBeZeroAddress();
         }
         collateralVault = CollateralVault(_collateralVault);
+        emit CollateralVaultSet(_collateralVault);
     }
 
     function setAssetRedemptionPause(
@@ -315,11 +321,28 @@ contract RedeemerV2 is AccessControl, OracleAware, Pausable {
         }
         uint256 oldFeeBps = collateralRedemptionFeeBps[_collateralAsset];
         collateralRedemptionFeeBps[_collateralAsset] = _newFeeBps;
+        isCollateralFeeOverridden[_collateralAsset] = true; // enable override, allowing 0 bps explicitly
         emit CollateralRedemptionFeeUpdated(
             _collateralAsset,
             oldFeeBps,
             _newFeeBps
         );
+    }
+
+    /**
+     * @notice Clears a per-asset fee override so the default fee applies again
+     * @param _collateralAsset The collateral asset for which to clear the override
+     */
+    function clearCollateralRedemptionFee(
+        address _collateralAsset
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        if (_collateralAsset == address(0)) {
+            revert CannotBeZeroAddress();
+        }
+        uint256 oldFeeBps = collateralRedemptionFeeBps[_collateralAsset];
+        collateralRedemptionFeeBps[_collateralAsset] = 0;
+        isCollateralFeeOverridden[_collateralAsset] = false;
+        emit CollateralRedemptionFeeUpdated(_collateralAsset, oldFeeBps, 0);
     }
 
     function pauseRedemption() external onlyRole(PAUSER_ROLE) {

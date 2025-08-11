@@ -432,6 +432,104 @@ dstableConfigs.forEach((config) => {
           )
         ).to.be.revertedWithCustomError(redeemer, "FeeTooHigh");
       });
+
+      it("supports clearing per-asset override (0 bps override -> clear -> fallback to default)", async function () {
+        const [symbol] = config.peggedCollaterals;
+        const collateralInfo = collateralInfos.get(symbol)!;
+        const collateralToken = collateralContracts.get(symbol)!;
+
+        // Set default to 1%
+        const defaultFee = 100n;
+        await redeemer.setDefaultRedemptionFee(defaultFee);
+
+        // Set per-asset override to 0
+        await redeemer.setCollateralRedemptionFee(collateralInfo.address, 0);
+        assert.equal(
+          await redeemer.isCollateralFeeOverridden(collateralInfo.address),
+          true
+        );
+
+        // Redeem and expect zero fee
+        const userSigner = await hre.ethers.getSigner(user1);
+        const redeemAmount = hre.ethers.parseUnits("25", dstableInfo.decimals);
+        await dstable
+          .connect(userSigner)
+          .approve(await redeemer.getAddress(), redeemAmount);
+
+        const dstableValue0 =
+          await redeemer.dstableAmountToBaseValue(redeemAmount);
+        const totalCollateral0 = await collateralVault.assetAmountFromValue(
+          dstableValue0,
+          collateralInfo.address
+        );
+        const expectedFee0 = 0n;
+        const expectedNet0 = totalCollateral0 - expectedFee0;
+
+        const userBefore0 = await collateralToken.balanceOf(user1);
+        const feeReceiver = await redeemer.feeReceiver();
+        const feeBefore0 = await collateralToken.balanceOf(feeReceiver);
+
+        await redeemer
+          .connect(userSigner)
+          .redeem(redeemAmount, collateralInfo.address, 0);
+
+        const userAfter0 = await collateralToken.balanceOf(user1);
+        const feeAfter0 = await collateralToken.balanceOf(feeReceiver);
+
+        assert.equal(
+          userAfter0 - userBefore0,
+          expectedNet0,
+          "user should receive full collateral under 0 bps override"
+        );
+        assert.equal(
+          feeAfter0 - feeBefore0,
+          expectedFee0,
+          "fee receiver should not receive fee under 0 bps override"
+        );
+
+        // Clear override -> should fallback to default
+        await redeemer.clearCollateralRedemptionFee(collateralInfo.address);
+        assert.equal(
+          await redeemer.isCollateralFeeOverridden(collateralInfo.address),
+          false
+        );
+
+        // Redeem again, expect default fee applied
+        const redeemAmount2 = hre.ethers.parseUnits("20", dstableInfo.decimals);
+        await dstable
+          .connect(userSigner)
+          .approve(await redeemer.getAddress(), redeemAmount2);
+        const dstableValue2 =
+          await redeemer.dstableAmountToBaseValue(redeemAmount2);
+        const totalCollateral2 = await collateralVault.assetAmountFromValue(
+          dstableValue2,
+          collateralInfo.address
+        );
+        const expectedFee2 =
+          (totalCollateral2 * defaultFee) / BigInt(ONE_HUNDRED_PERCENT_BPS);
+        const expectedNet2 = totalCollateral2 - expectedFee2;
+
+        const userBefore2 = await collateralToken.balanceOf(user1);
+        const feeBefore2 = await collateralToken.balanceOf(feeReceiver);
+
+        await redeemer
+          .connect(userSigner)
+          .redeem(redeemAmount2, collateralInfo.address, 0);
+
+        const userAfter2 = await collateralToken.balanceOf(user1);
+        const feeAfter2 = await collateralToken.balanceOf(feeReceiver);
+
+        assert.equal(
+          userAfter2 - userBefore2,
+          expectedNet2,
+          "user should receive net amount after default fee once override cleared"
+        );
+        assert.equal(
+          feeAfter2 - feeBefore2,
+          expectedFee2,
+          "fee receiver should receive default fee once override cleared"
+        );
+      });
     });
   });
 });

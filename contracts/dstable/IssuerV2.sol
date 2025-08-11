@@ -235,8 +235,12 @@ contract IssuerV2 is AccessControl, OracleAware, ReentrancyGuard, Pausable {
     function setAmoManager(
         address _amoManager
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        address old = address(amoManager);
         amoManager = AmoManager(_amoManager);
         grantRole(AMO_MANAGER_ROLE, _amoManager);
+        if (old != address(0) && old != _amoManager) {
+            revokeRole(AMO_MANAGER_ROLE, old);
+        }
         emit AmoManagerSet(_amoManager);
     }
 
