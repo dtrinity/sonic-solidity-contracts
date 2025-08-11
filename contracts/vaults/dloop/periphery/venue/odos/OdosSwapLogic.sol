@@ -49,22 +49,36 @@ library OdosSwapLogic {
         bytes memory swapData,
         IOdosRouterV2 odosRouter
     ) external returns (uint256) {
+        // Measure the contract’s balance, not the receiver’s, because Odos router sends the
+        // output tokens to the caller (i.e. this contract). We refund any surplus afterwards.
+        uint256 balanceBefore = ERC20(outputToken).balanceOf(address(this));
+
         // Use the OdosSwapUtils library to execute the swap
-        uint256 actualAmountOut = OdosSwapUtils.executeSwapOperation(
+        uint256 amountSpent = OdosSwapUtils.executeSwapOperation(
             odosRouter,
             address(inputToken),
+            address(outputToken),
             amountInMaximum,
             amountOut,
             swapData
         );
 
-        // If we received more than requested, transfer the surplus to the receiver
-        if (actualAmountOut > amountOut && receiver != address(this)) {
-            uint256 surplus = actualAmountOut - amountOut;
+        uint256 balanceAfter = ERC20(outputToken).balanceOf(address(this));
+
+        uint256 actualReceived = balanceAfter - balanceBefore;
+
+        // Safety check – OdosSwapUtils should already revert if insufficient, but double-check.
+        if (actualReceived < amountOut) {
+            revert("INSUFFICIENT_OUTPUT");
+        }
+
+        uint256 surplus = actualReceived - amountOut;
+
+        // Transfer surplus to receiver when receiver is not this contract and surplus exists
+        if (surplus > 0 && receiver != address(this)) {
             ERC20(outputToken).safeTransfer(receiver, surplus);
         }
 
-        // Return the actual output amount
-        return actualAmountOut;
+        return amountSpent;
     }
 }
