@@ -69,6 +69,8 @@ abstract contract BaseOdosSellAdapter is BaseOdosSwapAdapter {
         uint256 balanceBeforeAssetFrom = assetToSwapFrom.balanceOf(
             address(this)
         );
+        uint256 balanceBeforeAssetTo = assetToSwapTo.balanceOf(address(this));
+
         if (balanceBeforeAssetFrom < amountToSwap) {
             revert InsufficientBalanceBeforeSwap(
                 balanceBeforeAssetFrom,
@@ -79,8 +81,7 @@ abstract contract BaseOdosSellAdapter is BaseOdosSwapAdapter {
         address tokenIn = address(assetToSwapFrom);
         address tokenOut = address(assetToSwapTo);
 
-        // Execute the swap using OdosSwapUtils
-        amountReceived = OdosSwapUtils.executeSwapOperation(
+        uint256 amountSpent = OdosSwapUtils.executeSwapOperation(
             swapRouter,
             tokenIn,
             tokenOut,
@@ -89,6 +90,10 @@ abstract contract BaseOdosSellAdapter is BaseOdosSwapAdapter {
             swapData
         );
 
-        emit Bought(tokenIn, tokenOut, amountToSwap, amountReceived);
+        amountReceived =
+            assetToSwapTo.balanceOf(address(this)) -
+            balanceBeforeAssetTo;
+
+        emit Bought(tokenIn, tokenOut, amountSpent, amountReceived);
     }
 }

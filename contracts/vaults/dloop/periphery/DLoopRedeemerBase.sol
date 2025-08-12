@@ -28,6 +28,7 @@ import {IERC3156FlashLender} from "./interface/flashloan/IERC3156FlashLender.sol
 import {DLoopCoreBase} from "../core/DLoopCoreBase.sol";
 import {SwappableVault} from "contracts/common/SwappableVault.sol";
 import {RescuableVault} from "contracts/common/RescuableVault.sol";
+import {SharedLogic} from "./helper/SharedLogic.sol";
 
 /**
  * @title DLoopRedeemerBase
@@ -111,6 +112,10 @@ abstract contract DLoopRedeemerBase is
         address indexed collateralToken,
         uint256 minAmount
     );
+    event MinLeftoverCollateralTokenAmountRemoved(
+        address indexed dLoopCore,
+        address indexed collateralToken
+    );
 
     /* Structs */
 
@@ -163,8 +168,9 @@ abstract contract DLoopRedeemerBase is
             revert SlippageBpsCannotExceedOneHundredPercent(slippageBps);
         }
         uint256 expectedLeverageCollateral = dLoopCore.previewRedeem(shares);
-        uint256 unleveragedCollateral = dLoopCore.getUnleveragedAssets(
-            expectedLeverageCollateral
+        uint256 unleveragedCollateral = getUnleveragedAssets(
+            expectedLeverageCollateral,
+            dLoopCore
         );
         return
             Math.mulDiv(
@@ -172,6 +178,19 @@ abstract contract DLoopRedeemerBase is
                 BasisPointConstants.ONE_HUNDRED_PERCENT_BPS - slippageBps,
                 BasisPointConstants.ONE_HUNDRED_PERCENT_BPS
             );
+    }
+
+    /**
+     * @dev Gets the unleveraged assets for a given leveraged assets and dLoopCore
+     * @param leveragedAssets Amount of leveraged assets
+     * @param dLoopCore Address of the DLoopCore contract
+     * @return unleveragedAssets Amount of unleveraged assets
+     */
+    function getUnleveragedAssets(
+        uint256 leveragedAssets,
+        DLoopCoreBase dLoopCore
+    ) public view returns (uint256) {
+        return SharedLogic.getUnleveragedAssets(leveragedAssets, dLoopCore);
     }
 
     /**
@@ -403,6 +422,7 @@ abstract contract DLoopRedeemerBase is
      * @param dLoopCore Address of the dLoopCore contract
      * @param collateralToken Address of the collateral token
      * @param minAmount Minimum leftover collateral token amount for the given dLoopCore and collateral token
+     *                  Setting minAmount to 0 removes the token from the array using efficient swap-and-pop
      */
     function setMinLeftoverCollateralTokenAmount(
         address dLoopCore,
@@ -412,15 +432,36 @@ abstract contract DLoopRedeemerBase is
         minLeftoverCollateralTokenAmount[dLoopCore][
             collateralToken
         ] = minAmount;
-        if (!_existingCollateralTokensMap[collateralToken]) {
-            _existingCollateralTokensMap[collateralToken] = true;
-            existingCollateralTokens.push(collateralToken);
+
+        // If the min amount is 0, we need to remove the collateral token from the existing collateral tokens array
+        if (minAmount == 0) {
+            delete _existingCollateralTokensMap[collateralToken];
+            // Remove the collateral token from the existing collateral tokens array
+            for (uint256 i = 0; i < existingCollateralTokens.length; i++) {
+                // Remove the by replacing the collateral token with the last element and then pop the last element
+                if (existingCollateralTokens[i] == collateralToken) {
+                    existingCollateralTokens[i] = existingCollateralTokens[
+                        existingCollateralTokens.length - 1
+                    ];
+                    existingCollateralTokens.pop();
+                    break; // Exit loop once token is found and removed
+                }
+            }
+            emit MinLeftoverCollateralTokenAmountRemoved(
+                dLoopCore,
+                collateralToken
+            );
+        } else {
+            if (!_existingCollateralTokensMap[collateralToken]) {
+                _existingCollateralTokensMap[collateralToken] = true;
+                existingCollateralTokens.push(collateralToken);
+            }
+            emit MinLeftoverCollateralTokenAmountSet(
+                dLoopCore,
+                collateralToken,
+                minAmount
+            );
         }
-        emit MinLeftoverCollateralTokenAmountSet(
-            dLoopCore,
-            collateralToken,
-            minAmount
-        );
     }
 
     /* Internal helpers */

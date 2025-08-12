@@ -135,7 +135,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     );
 
     const routerDeploymentName = `DStakeRouter_${instanceKey}`;
-    const routerDeployment = await deploy(routerDeploymentName, {
+    const _routerDeployment = await deploy(routerDeploymentName, {
       from: deployer,
       contract: "DStakeRouterDLend",
       args: [DStakeTokenDeployment.address, collateralVaultDeployment.address],

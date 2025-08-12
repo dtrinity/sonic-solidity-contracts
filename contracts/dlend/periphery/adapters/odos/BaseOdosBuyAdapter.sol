@@ -79,8 +79,7 @@ abstract contract BaseOdosBuyAdapter is BaseOdosSwapAdapter {
         address tokenIn = address(assetToSwapFrom);
         address tokenOut = address(assetToSwapTo);
 
-        // Execute the swap using OdosSwapUtils
-        uint256 actualAmountOut = OdosSwapUtils.executeSwapOperation(
+        amountSold = OdosSwapUtils.executeSwapOperation(
             swapRouter,
             tokenIn,
             tokenOut,
@@ -89,11 +88,6 @@ abstract contract BaseOdosBuyAdapter is BaseOdosSwapAdapter {
             swapData
         );
 
-        // Calculate the actual amount sold based on balance difference
-        amountSold =
-            balanceBeforeAssetFrom -
-            assetToSwapFrom.balanceOf(address(this));
-
-        emit Bought(tokenIn, tokenOut, amountSold, actualAmountOut);
+        emit Bought(tokenIn, tokenOut, amountSold, amountToReceive);
     }
 }
