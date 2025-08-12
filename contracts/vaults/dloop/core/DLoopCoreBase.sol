@@ -1429,18 +1429,20 @@ abstract contract DLoopCoreBase is
             );
         }
 
-        // Use rounding up in mulDiv as we want to withdraw a bit more, to avoid
-        // getting the new leverage below the target leverage, which will revert the
-        // rebalance process (due to post-process assertion)
         uint256 denominator = BasisPointConstants.ONE_HUNDRED_PERCENT_BPS +
             subsidyBps -
             Math.mulDiv(
                 expectedTargetLeverageBps,
                 subsidyBps,
-                BasisPointConstants.ONE_HUNDRED_PERCENT_BPS,
-                Math.Rounding.Ceil
+                BasisPointConstants.ONE_HUNDRED_PERCENT_BPS
             );
 
+        // Do not use ceilDiv as we want to round down required debt repay amount in base currency
+        // to avoid getting the new leverage below the target leverage, which will revert the
+        // rebalance process (due to post-process assertion)
+        // The logic is to repay a bit less, and withdraw a bit more collateral (due to rounding),
+        // which will guarantee the new leverage cannot be less than the target leverage, avoid
+        // unexpected post-process assertion revert.
         requiredDebtRepayAmountInBase =
             (totalCollateralBase *
                 BasisPointConstants.ONE_HUNDRED_PERCENT_BPS -
@@ -1474,10 +1476,22 @@ abstract contract DLoopCoreBase is
          *
          * For more detail, check the comment in _getDebtRepayAmountInBaseToReachTargetLeverage()
          */
+
+        // Use rounding up with mulDiv with Rounding.Ceil as we want to withdraw a bit more, to avoid
+        // getting the new leverage below the target leverage, which will revert the
+        // rebalance process (due to post-process assertion)
+        // Withdraw a bit more collateral (rounding), given the same repay amount of debt token
+        // means the new leverage should be higher than the actual leverage (with decimal without rounding)
+        // As we calculate the estimated final leverage is reaching the target leverage,
+        // if we round down the denominator, the new leverage cannot be less than the target leverage (given
+        // the same repay amount of debt token), which will revert the rebalance process (due to post-process assertion)
         return
-            (inputDebtRepayAmountInBase *
-                (BasisPointConstants.ONE_HUNDRED_PERCENT_BPS + subsidyBps)) /
-            BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
+            Math.mulDiv(
+                inputDebtRepayAmountInBase,
+                BasisPointConstants.ONE_HUNDRED_PERCENT_BPS + subsidyBps,
+                BasisPointConstants.ONE_HUNDRED_PERCENT_BPS,
+                Math.Rounding.Ceil
+            );
     }
 
     /**
