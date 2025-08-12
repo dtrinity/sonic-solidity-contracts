@@ -63,7 +63,7 @@ abstract contract DLoopCoreBase is
 
     event IncreaseLeverage(
         address indexed caller,
-        uint256 additionalCollateralTokenAmount,
+        uint256 inputCollateralTokenAmount,
         uint256 minReceivedDebtTokenAmount,
         uint256 suppliedCollateralTokenAmount,
         uint256 borrowedDebtTokenAmount
@@ -215,6 +215,7 @@ abstract contract DLoopCoreBase is
     );
     error ZeroShares();
     error InputDebtTokenAmountIsZero();
+    error InputCollateralTokenAmountIsZero();
 
     /**
      * @dev Constructor for the DLoopCore contract
@@ -1208,19 +1209,18 @@ abstract contract DLoopCoreBase is
      * @param totalCollateralBase The total collateral base
      * @param totalDebtBase The total debt base
      * @param subsidyBps The subsidy in basis points unit
-     * @param useVaultTokenBalance Whether to use the current token balance in the vault as the amount to rebalance
-     * @return collateralTokenAmount The collateral token amount to reach the target leverage
+     * @return requiredCollateralDepositAmountInBase The collateral deposit amount in base currency
      */
     function _getCollateralTokenDepositAmountToReachTargetLeverage(
         uint256 expectedTargetLeverageBps,
         uint256 totalCollateralBase,
         uint256 totalDebtBase,
-        uint256 subsidyBps,
-        bool useVaultTokenBalance
-    ) internal view returns (uint256) {
+        uint256 subsidyBps
+    ) internal pure returns (uint256 requiredCollateralDepositAmountInBase) {
         /**
-         * We need to find the amount of debt token to be borrowed to rebalance which is a bit more than the deposit amount of collateral token
-         * to pay for the rebalancing subsidy
+         * Find the amount of collateral to be deposited and the corresponding amount of debt token to be borrowed to rebalance
+         *
+         * The amount of debt token to be borrowed is a bit more than the deposited collateral to pay for the rebalancing subsidy
          * - Rebalancing caller will receive the debt token as the subsidy
          *
          * Formula definition:
@@ -1232,16 +1232,18 @@ abstract contract DLoopCoreBase is
          * - y: change amount of debt in base currency
          *
          * We have:
-         *      y = x*(1+k)   (borrow a bit more debt than the deposit amount of collateral to pay for the rebalancing subsidy)
+         *      y = x*(1+k)   (borrow a bit more debt than the deposited collateral to pay for the rebalancing subsidy)
          *
+         * Because this is a deposit collateral and borrow debt process, the formula is:
          *      (C + x) / (C + x - D - y) = T
-         *  <=> (C + x) / (C + x - D - y) = T
-         *  <=> C + y*(1+k) = T * (C + y*(1+k) - D - y)
-         *  <=> C + y*(1+k) = T * (C + y*k - D)
-         *  <=> y*(1+k) = T*C + T*y*k - T*D - C
-         *  <=> y*(1+k) - T*y*k = T*C - T*D - C
-         *  <=> y*(1 + k - T*k) = T*(C - D) - C
-         *  <=> y = (T*(C - D) - C) / (1 + (1 - T)*k)
+         *  <=> C + x = T * (C + x - D - y)
+         *  <=> C + x = T * (C + x - D - x*(1+k))
+         *  <=> C + x = T * (C + x - D - x - x*k)
+         *  <=> C + x = T * (C - D - x*k)
+         *  <=> C + x = T*C - T*D - T*x*k
+         *  <=> x + T*x*k = T*C - T*D - C
+         *  <=> x*(1 + T*k) = T*(C - D) - C
+         *  <=> x = (T*(C - D) - C) / (1 + T*k)
          *
          * Suppose that:
          *      TT = T * ONE_HUNDRED_PERCENT_BPS
@@ -1254,45 +1256,23 @@ abstract contract DLoopCoreBase is
          *      - kk is the subsidy in basis points unit
          *
          * We have:
-         *      y = (T*(C - D) - C) / (1 + (1 - T)*k)
-         *  <=> y = (TT*(C - D) / ONE_HUNDRED_PERCENT_BPS - C) / (1 + (1 - TT / ONE_HUNDRED_PERCENT_BPS) * k)
-         *  <=> y = (TT*(C - D) - C*ONE_HUNDRED_PERCENT_BPS) / (ONE_HUNDRED_PERCENT_BPS + (ONE_HUNDRED_PERCENT_BPS - TT) * k)
-         *  <=> y = (TT*(C - D) - C*ONE_HUNDRED_PERCENT_BPS) / (ONE_HUNDRED_PERCENT_BPS + (ONE_HUNDRED_PERCENT_BPS - TT) * kk / ONE_HUNDRED_PERCENT_BPS)
-         *  <=> y = ((TT*(C - D) - C*ONE_HUNDRED_PERCENT_BPS) * ONE_HUNDRED_PERCENT_BPS) / (ONE_HUNDRED_PERCENT_BPS^2 + (ONE_HUNDRED_PERCENT_BPS - TT) * kk)
-         *
-         * However, the calculation of ONE_HUNDRED_PERCENT_BPS^2 causes arithmetic overflow, thus we need to use the non square root version
-         *   => y = (TT*(C - D) - C*ONE_HUNDRED_PERCENT_BPS) / (ONE_HUNDRED_PERCENT_BPS + (ONE_HUNDRED_PERCENT_BPS - TT) * kk / ONE_HUNDRED_PERCENT_BPS)
-         *
-         * The (ONE_HUNDRED_PERCENT_BPS - TT) will cause underflow in the denominator, so we need to use the following formula:
-         *  <=> y = (TT*(C - D) - C*ONE_HUNDRED_PERCENT_BPS) / (ONE_HUNDRED_PERCENT_BPS + kk - TT * kk / ONE_HUNDRED_PERCENT_BPS)
-         *  <=> y = (TT*(C - D) - C*ONE_HUNDRED_PERCENT_BPS) / denominator
+         *      x = (T*(C - D) - C) / (1 + T*k)
+         *  <=> x = (TT*(C - D)/ONE_HUNDRED_PERCENT_BPS - C) / (1 + TT*kk/ONE_HUNDRED_PERCENT_BPS^2)
+         *  <=> x = (TT*(C - D) - C*ONE_HUNDRED_PERCENT_BPS) / (ONE_HUNDRED_PERCENT_BPS + TT*kk/ONE_HUNDRED_PERCENT_BPS)
+         *  <=> x = (TT*(C - D) - C*ONE_HUNDRED_PERCENT_BPS) / denominator
          * where:
-         *  - denominator = ONE_HUNDRED_PERCENT_BPS + kk - TT * kk / ONE_HUNDRED_PERCENT_BPS
+         *      denominator = ONE_HUNDRED_PERCENT_BPS + TT*kk/ONE_HUNDRED_PERCENT_BPS
          *
-         * If y > 0, it means the user should increase the leverage, so the direction is 1
-         *    => y = (TT*(C - D) - C*ONE_HUNDRED_PERCENT_BPS) / denominator
+         * If x < 0, the transaction will be reverted due to the underflow/overflow
          *
-         * If y < 0, it means the user should decrease the leverage, so the direction is -1
-         *    => y = (C*ONE_HUNDRED_PERCENT_BPS - TT*(C - D)) / denominator
+         * If x = 0, it means the user should not rebalance, so the direction is 0
          *
-         * If y = 0, it means the user should not rebalance, so the direction is 0
+         * Finally, we have y = (1+k)*x:
+         *   => y = (1+k) * x
+         *  <=> y = (1 + kk/ONE_HUNDRED_PERCENT_BPS) * x
+         *  <=> y = (ONE_HUNDRED_PERCENT_BPS + kk) * x / ONE_HUNDRED_PERCENT_BPS
          *
-         * Finally, we have x = (1+k)*y:
-         *   => x = (1+k) * y
-         *  <=> x = (1 + kk/ONE_HUNDRED_PERCENT_BPS) * y
-         *  <=> x = (ONE_HUNDRED_PERCENT_BPS + kk) * y / ONE_HUNDRED_PERCENT_BPS
-         *
-         * As we are using unsigned integer, we need to check the sign of y and change the direction accordingly to avoid the underflow/overflow
-         *
-         * If y > 0 means x > 0, it means the user should increase the leverage, so the direction is 1
-         *   => x = (ONE_HUNDRED_PERCENT_BPS + kk) * y / ONE_HUNDRED_PERCENT_BPS
-         *  <=> x = (ONE_HUNDRED_PERCENT_BPS + kk) * (TT*(C - D) - C*ONE_HUNDRED_PERCENT_BPS) / (denominator * ONE_HUNDRED_PERCENT_BPS)
-         *
-         * If y < 0 means x < 0, it means the user should decrease the leverage, so the direction is -1
-         *   => x = (ONE_HUNDRED_PERCENT_BPS + kk) * y / ONE_HUNDRED_PERCENT_BPS
-         *  <=> x = (ONE_HUNDRED_PERCENT_BPS + kk) * (C*ONE_HUNDRED_PERCENT_BPS - TT*(C - D)) / (denominator * ONE_HUNDRED_PERCENT_BPS)
-         *
-         * If y = 0 means x = 0, it means the user should not rebalance, so the direction is 0
+         * The value of y here is for reference (the expected amount of debt to borrow)
          */
         if (totalCollateralBase == 0) {
             revert TotalCollateralBaseIsZero();
@@ -1304,45 +1284,69 @@ abstract contract DLoopCoreBase is
             );
         }
 
-        uint256 requiredDebtTokenAmountInBase = (expectedTargetLeverageBps *
-            (totalCollateralBase - totalDebtBase) -
-            totalCollateralBase *
-            BasisPointConstants.ONE_HUNDRED_PERCENT_BPS) /
-            (BasisPointConstants.ONE_HUNDRED_PERCENT_BPS +
-                subsidyBps -
-                (expectedTargetLeverageBps * subsidyBps) /
-                BasisPointConstants.ONE_HUNDRED_PERCENT_BPS);
-
-        uint256 requiredCollateralTokenAmountInBase = (requiredDebtTokenAmountInBase *
-                (BasisPointConstants.ONE_HUNDRED_PERCENT_BPS + subsidyBps)) /
-                BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
-
-        // Convert to token unit
-        uint256 requiredCollateralTokenAmount = convertFromBaseCurrencyToToken(
-            requiredCollateralTokenAmountInBase,
-            address(collateralToken)
-        );
-
-        if (useVaultTokenBalance) {
-            // Get the current collateral token balance in the vault to compensate the required collateral amount
-            // when increasing the leverage
-            uint256 collateralBalanceInVault = collateralToken.balanceOf(
-                address(this)
+        uint256 denominator = BasisPointConstants.ONE_HUNDRED_PERCENT_BPS +
+            Math.mulDiv(
+                expectedTargetLeverageBps,
+                subsidyBps,
+                BasisPointConstants.ONE_HUNDRED_PERCENT_BPS
             );
 
-            // If the required collateral token amount is more than the collateral balance in the vault,
-            // the caller need to call increaseLeverage with the additional collateral token amount
-            if (requiredCollateralTokenAmount > collateralBalanceInVault) {
-                return requiredCollateralTokenAmount - collateralBalanceInVault;
-            }
+        // Use ceilDiv as we want to round up required collateral deposit amount in base currency
+        // to avoid getting the new leverage above the target leverage, which will revert the
+        // rebalance process (due to post-process assertion)
+        // The logic is to deposit a bit more collateral, and borrow a bit more debt (due to rounding),
+        // which will guarantee the new leverage cannot be more than the target leverage, avoid
+        // unexpected post-process assertion revert.
+        requiredCollateralDepositAmountInBase = Math.ceilDiv(
+            expectedTargetLeverageBps *
+                (totalCollateralBase - totalDebtBase) -
+                totalCollateralBase *
+                BasisPointConstants.ONE_HUNDRED_PERCENT_BPS,
+            denominator
+        );
 
-            // Otherwise, it is a free lunch, the user call increaseLeverage without having to pay
-            // for the collateral token
-            return 0;
-        }
+        return requiredCollateralDepositAmountInBase;
+    }
 
-        // Otherwise, the user can call increaseLeverage with the required collateral token amount
-        return requiredCollateralTokenAmount;
+    /**
+     * @dev Gets the debt amount in base currency to be borrowed to increase the leverage
+     * @param inputCollateralDepositAmountInBase The collateral deposit amount in base currency
+     * @param subsidyBps The subsidy in basis points unit
+     * @return outputDebtBorrowAmountInBase The debt amount in base currency to be borrowed
+     */
+    function _getDebtBorrowAmountInBaseToIncreaseLeverage(
+        uint256 inputCollateralDepositAmountInBase,
+        uint256 subsidyBps
+    ) internal pure returns (uint256 outputDebtBorrowAmountInBase) {
+        /**
+         * The formula is:
+         *      y = (1+k) * x
+         *  <=> y = (1 + kk/ONE_HUNDRED_PERCENT_BPS) * x
+         *  <=> y = (ONE_HUNDRED_PERCENT_BPS + kk) * x / ONE_HUNDRED_PERCENT_BPS
+         *
+         * where:
+         *      - y is the debt amount in base currency to be borrowed
+         *      - x is the collateral amount in base currency to be deposited
+         *      - kk is the subsidy in basis points unit
+         *
+         * For more detail, check the comment in _getCollateralTokenDepositAmountToReachTargetLeverage()
+         */
+
+        // Use rounding down with mulDiv with Rounding.Floor as we want to borrow a bit less, to avoid
+        // getting the new leverage above the target leverage, which will revert the
+        // rebalance process (due to post-process assertion)
+        // Borrow a bit less debt (rounding), given the same deposit amount of collateral token
+        // means the new leverage should be lower than the actual leverage (with decimal without rounding)
+        // As we calculate the estimated final leverage is reaching the target leverage,
+        // if we round up, the new leverage can be more than the target leverage (given
+        // the same deposit amount of collateral token), which will revert the rebalance process (due to post-process assertion)
+        return
+            Math.mulDiv(
+                inputCollateralDepositAmountInBase,
+                BasisPointConstants.ONE_HUNDRED_PERCENT_BPS + subsidyBps,
+                BasisPointConstants.ONE_HUNDRED_PERCENT_BPS,
+                Math.Rounding.Floor
+            );
     }
 
     /**
@@ -1362,7 +1366,9 @@ abstract contract DLoopCoreBase is
         uint256 subsidyBps
     ) internal pure returns (uint256 requiredDebtRepayAmountInBase) {
         /**
-         * We need to find the amount of collateral to be withdraw to rebalance which is a bit more than the repay amount of debt token
+         * Find the amount of debt to be repaid and the corresponding amount of collateral to be withdraw to rebalance
+         *
+         * The amount of collateral to be withdraw to rebalance which is a bit more than the repay amount of debt token
          * to pay for the rebalancing subsidy
          * - Rebalancing caller will receive the collateral token as the subsidy
          *
@@ -1379,7 +1385,6 @@ abstract contract DLoopCoreBase is
          *
          * Because this is a repay debt and withdraw collateral process, the formula is:
          *      (C - x) / (C - x - D + y) = T
-         *  <=> (C - x) / (C - x - D + y) = T
          *  <=> C - y*(1+k) = T * (C - y*(1+k) - D + y)
          *  <=> C - y*(1+k) = T * (C - y - y*k - D + y)
          *  <=> C - y*(1+k) = T * (C - D - y*k)
@@ -1459,7 +1464,7 @@ abstract contract DLoopCoreBase is
      * @param subsidyBps The subsidy in basis points unit
      * @return outputCollateralTokenAmount The collateral token amount to be withdraw
      */
-    function _getCollateralTokenWithdrawAmountToDecreaseLeverage(
+    function _getCollateralWithdrawAmountInBaseToDecreaseLeverage(
         uint256 inputDebtRepayAmountInBase,
         uint256 subsidyBps
     ) internal pure returns (uint256 outputCollateralTokenAmount) {
@@ -1483,7 +1488,7 @@ abstract contract DLoopCoreBase is
         // Withdraw a bit more collateral (rounding), given the same repay amount of debt token
         // means the new leverage should be higher than the actual leverage (with decimal without rounding)
         // As we calculate the estimated final leverage is reaching the target leverage,
-        // if we round down the denominator, the new leverage cannot be less than the target leverage (given
+        // if we round down, the new leverage can be less than the target leverage (given
         // the same repay amount of debt token), which will revert the rebalance process (due to post-process assertion)
         return
             Math.mulDiv(
@@ -1498,9 +1503,6 @@ abstract contract DLoopCoreBase is
      * @dev Gets the rebalance amount to reach the target leverage in token unit
      *      - This method is supposed to be used by the rebalancing service which will use it to quote the required
      *        collateral/debt amount and the corresponding direction (increase or decrease)
-     * @param useVaultTokenBalance Whether to use the current token balance in the vault as the amount to rebalance
-     *      - It will help to save the additional collateral/debt token transfer from the caller to the vault, while getting
-     *        the same effect as calling increaseLeverage or decreaseLeverage with the required collateral/debt token amount
      * @return inputTokenAmount The amount of token to call increaseLeverage or decreaseLeverage (in token unit)
      *         - If the direction is 1, the amount is in collateral token
      *         - If the direction is -1, the amount is in debt token
@@ -1509,9 +1511,7 @@ abstract contract DLoopCoreBase is
      *         - If the direction is -1, the amount is in collateral token
      * @return direction The direction of the rebalance (1 for increase, -1 for decrease, 0 means no rebalance)
      */
-    function quoteRebalanceAmountToReachTargetLeverage(
-        bool useVaultTokenBalance
-    )
+    function quoteRebalanceAmountToReachTargetLeverage()
         public
         view
         returns (
@@ -1534,17 +1534,26 @@ abstract contract DLoopCoreBase is
 
         // If the current leverage is below the target leverage, the user should increase the leverage
         if (currentLeverageBps < targetLeverageBps) {
-            return (
-                _getCollateralTokenDepositAmountToReachTargetLeverage(
+            uint256 requiredCollateralDepositAmountInBase = _getCollateralTokenDepositAmountToReachTargetLeverage(
                     targetLeverageBps,
                     totalCollateralBase,
                     totalDebtBase,
-                    subsidyBps,
-                    useVaultTokenBalance
-                ),
-                0, // dummy value
-                1
+                    subsidyBps
+                );
+            inputTokenAmount = convertFromBaseCurrencyToToken(
+                requiredCollateralDepositAmountInBase,
+                address(collateralToken)
             );
+            uint256 receivedDebtBorrowAmountInBase = _getDebtBorrowAmountInBaseToIncreaseLeverage(
+                    requiredCollateralDepositAmountInBase,
+                    subsidyBps
+                );
+            estimatedOutputTokenAmount = convertFromBaseCurrencyToToken(
+                receivedDebtBorrowAmountInBase,
+                address(debtToken)
+            );
+            direction = 1;
+            return (inputTokenAmount, estimatedOutputTokenAmount, direction);
         }
         // If the current leverage is above the target leverage, the user should decrease the leverage
         else if (currentLeverageBps > targetLeverageBps) {
@@ -1558,7 +1567,7 @@ abstract contract DLoopCoreBase is
                 requiredDebtRepayAmountInBase,
                 address(debtToken)
             );
-            uint256 receivedCollateralWithdrawAmountInBase = _getCollateralTokenWithdrawAmountToDecreaseLeverage(
+            uint256 receivedCollateralWithdrawAmountInBase = _getCollateralWithdrawAmountInBaseToDecreaseLeverage(
                     requiredDebtRepayAmountInBase,
                     subsidyBps
                 );
@@ -1567,7 +1576,7 @@ abstract contract DLoopCoreBase is
                 address(collateralToken)
             );
             direction = -1;
-            return (inputTokenAmount, estimatedOutputTokenAmount, -1);
+            return (inputTokenAmount, estimatedOutputTokenAmount, direction);
         }
 
         // If the current leverage is equal to the target leverage, the user should not rebalance
@@ -1575,58 +1584,14 @@ abstract contract DLoopCoreBase is
     }
 
     /**
-     * @dev Gets the required collateral token amount to reach the target leverage
-     * @param expectedTargetLeverageBps The expected target leverage in basis points unit
-     * @param totalCollateralBase The total collateral base
-     * @param totalDebtBase The total debt base
-     * @param subsidyBps The subsidy in basis points unit
-     * @param additionalCollateralTokenAmount The additional collateral token amount to supply
-     * @return requiredCollateralTokenAmount The required collateral token amount to reach the target leverage
-     */
-    function _getRequiredCollateralTokenAmountToRebalance(
-        uint256 expectedTargetLeverageBps,
-        uint256 totalCollateralBase,
-        uint256 totalDebtBase,
-        uint256 subsidyBps,
-        uint256 additionalCollateralTokenAmount
-    ) internal view returns (uint256 requiredCollateralTokenAmount) {
-        /* If the additional collateral token amount is 0, it means the expected collateral token amount to reach the target leverage
-         * can be less than or equal to the current collateral token balance in the vault
-         * Thus, we need to calculate the actual required collateral token amount to reach the target leverage
-         * and then use the current collateral token balance in the vault to supply
-         * - It is to avoid the situation where the current collateral token balance in the vault is too high
-         *   and thus cannot call increaseLeverage with this balance as it will increase the leverage above the target leverage
-         *
-         * This function is only being used internally
-         */
-        if (additionalCollateralTokenAmount == 0) {
-            return
-                _getCollateralTokenDepositAmountToReachTargetLeverage(
-                    expectedTargetLeverageBps,
-                    totalCollateralBase,
-                    totalDebtBase,
-                    subsidyBps,
-                    false
-                );
-        }
-
-        // Otherwise, it means the expected collateral token amount to reach the target leverage
-        // is less than the current collateral token balance in the vault
-        uint256 collateralTokenBalanceInVault = collateralToken.balanceOf(
-            address(this)
-        );
-        return collateralTokenBalanceInVault + additionalCollateralTokenAmount;
-    }
-
-    /**
      * @dev Increases the leverage of the user by supplying collateral token and borrowing more debt token
      *      - It requires to spend the collateral token from the user's wallet to supply to the pool
      *      - It will send the borrowed debt token to the user's wallet
-     * @param additionalCollateralTokenAmount The additional amount of collateral token to supply
+     * @param inputCollateralTokenAmount The amount of collateral token to deposit
      * @param minReceivedDebtTokenAmount The minimum amount of debt token to receive
      */
     function increaseLeverage(
-        uint256 additionalCollateralTokenAmount,
+        uint256 inputCollateralTokenAmount,
         uint256 minReceivedDebtTokenAmount
     ) public nonReentrant {
         /**
@@ -1654,11 +1619,10 @@ abstract contract DLoopCoreBase is
          *    - Leverage: 300,000 / (300,000 - 140,000) = 1.875x
          */
 
-        (
-            uint256 totalCollateralBase,
-            uint256 totalDebtBase
-        ) = getTotalCollateralAndDebtOfUserInBase(address(this));
-        uint256 subsidyBps = getCurrentSubsidyBps();
+        // Make sure the input collateral token amount is not zero
+        if (inputCollateralTokenAmount == 0) {
+            revert InputCollateralTokenAmountIsZero();
+        }
 
         // Make sure only increase the leverage if it is below the target leverage
         uint256 currentLeverageBps = getCurrentLeverageBps();
@@ -1666,70 +1630,60 @@ abstract contract DLoopCoreBase is
             revert LeverageExceedsTarget(currentLeverageBps, targetLeverageBps);
         }
 
-        // Need to calculate the required collateral token amount before transferring the additional collateral token
-        // to the vault as it will change the current collateral token balance in the vault
-        uint256 requiredCollateralTokenAmount = _getRequiredCollateralTokenAmountToRebalance(
-                targetLeverageBps,
-                totalCollateralBase,
-                totalDebtBase,
-                subsidyBps,
-                additionalCollateralTokenAmount
-            );
+        // Calculate everything before transferring, supplying and borrowing to avoid
+        // any potential impact from the child contract implementation
 
-        // Only transfer the collateral token if there is an additional amount to supply
-        if (additionalCollateralTokenAmount > 0) {
-            // Transfer the additional collateral token from the caller to the vault
-            collateralToken.safeTransferFrom(
-                msg.sender,
-                address(this),
-                additionalCollateralTokenAmount
-            );
-        }
-
-        // Calculate the amount of collateral token in base currency
-        uint256 requiredCollateralTokenAmountInBase = convertFromTokenAmountToBaseCurrency(
-                requiredCollateralTokenAmount,
+        // Calculate the amount of collateral token in base currency to deposit
+        uint256 inputCollateralDepositAmountInBase = convertFromTokenAmountToBaseCurrency(
+                inputCollateralTokenAmount,
                 address(collateralToken)
             );
 
-        // According to the formula:
-        //      y = x / (1+k)
-        //  <=> y = x * (1+kk/ONE_HUNDRED_PERCENT_BPS)
-        //  <=> y = ONE_HUNDRED_PERCENT_BPS * x / (ONE_HUNDRED_PERCENT_BPS + kk)
-        uint256 borrowedDebtTokenInBase = (requiredCollateralTokenAmountInBase *
-            BasisPointConstants.ONE_HUNDRED_PERCENT_BPS) /
-            (BasisPointConstants.ONE_HUNDRED_PERCENT_BPS + subsidyBps);
+        // The amount of debt token to borrow is equal to the amount of collateral token deposited
+        // plus the subsidy (bonus for the caller)
+        uint256 borrowedDebtTokenInBase = _getDebtBorrowAmountInBaseToIncreaseLeverage(
+                inputCollateralDepositAmountInBase,
+                getCurrentSubsidyBps()
+            );
 
-        // Supply the collateral token to the lending pool
-        _supplyToPool(
-            address(collateralToken),
-            requiredCollateralTokenAmount,
-            address(this)
-        );
-
-        // Borrow debt token
+        // Convert the amount of debt token in base currency to token unit
         uint256 borrowedDebtTokenAmount = convertFromBaseCurrencyToToken(
             borrowedDebtTokenInBase,
             address(debtToken)
         );
 
-        // Slippage protection, to make sure the user receives at least minReceivedDebtTokenAmount
-        if (borrowedDebtTokenAmount < minReceivedDebtTokenAmount) {
-            revert IncreaseLeverageReceiveLessThanMinAmount(
-                borrowedDebtTokenAmount,
-                minReceivedDebtTokenAmount
-            );
-        }
+        // Transfer the input collateral token from the caller to the vault
+        collateralToken.safeTransferFrom(
+            msg.sender,
+            address(this),
+            inputCollateralTokenAmount
+        );
+
+        // Supply the collateral token to the lending pool
+        uint256 suppliedCollateralTokenAmount = _supplyToPool(
+            address(collateralToken),
+            inputCollateralTokenAmount,
+            address(this)
+        );
 
         // At this step, the _borrowFromPool wrapper function will also assert that
         // the borrowed amount is exactly the amount requested, thus we can safely
         // have the slippage check before calling this function
         // Update the debt token amount borrowed to the actual amount
-        borrowedDebtTokenAmount = _borrowFromPool(
+        uint256 actualBorrowedDebtTokenAmount = _borrowFromPool(
             address(debtToken),
             borrowedDebtTokenAmount,
             address(this)
         );
+
+        // Slippage protection, to make sure the user receives at least minReceivedDebtTokenAmount
+        // At this step, we check against the actual amount borrowed from the pool
+        if (actualBorrowedDebtTokenAmount < minReceivedDebtTokenAmount) {
+            revert IncreaseLeverageReceiveLessThanMinAmount(
+                actualBorrowedDebtTokenAmount,
+                minReceivedDebtTokenAmount
+            );
+        }
 
         // Make sure new current leverage is increased and not above the target leverage
         uint256 newCurrentLeverageBps = getCurrentLeverageBps();
@@ -1744,15 +1698,17 @@ abstract contract DLoopCoreBase is
             );
         }
 
-        // Transfer the debt token to the user
-        debtToken.safeTransfer(msg.sender, borrowedDebtTokenAmount);
+        if (actualBorrowedDebtTokenAmount > 0) {
+            // Transfer the debt token to the user
+            debtToken.safeTransfer(msg.sender, actualBorrowedDebtTokenAmount);
+        }
 
         emit IncreaseLeverage(
             msg.sender,
-            additionalCollateralTokenAmount,
+            inputCollateralTokenAmount,
             minReceivedDebtTokenAmount,
-            requiredCollateralTokenAmount, // Supplied collateral token amount
-            borrowedDebtTokenAmount // Borrowed debt token amount
+            suppliedCollateralTokenAmount, // Supplied collateral token amount
+            actualBorrowedDebtTokenAmount // Borrowed debt token amount
         );
     }
 
@@ -1791,15 +1747,15 @@ abstract contract DLoopCoreBase is
          *    - Leverage: 180,000 / (180,000 - 130,000) = 3.6x
          */
 
+        // Make sure the input debt token amount is not zero
+        if (inputDebtTokenAmount == 0) {
+            revert InputDebtTokenAmountIsZero();
+        }
+
         // Make sure only decrease the leverage if it is above the target leverage
         uint256 currentLeverageBps = getCurrentLeverageBps();
         if (currentLeverageBps <= targetLeverageBps) {
             revert LeverageBelowTarget(currentLeverageBps, targetLeverageBps);
-        }
-
-        // Make sure the input debt token amount is not zero
-        if (inputDebtTokenAmount == 0) {
-            revert InputDebtTokenAmountIsZero();
         }
 
         // Calculate everything before transferring, repaying and withdrawing to avoid
@@ -1818,7 +1774,7 @@ abstract contract DLoopCoreBase is
                 getCurrentSubsidyBps()
             );
 
-        // Withdraw collateral
+        // Convert the amount of collateral token in base currency to token unit
         uint256 withdrawnCollateralTokenAmount = convertFromBaseCurrencyToToken(
             withdrawCollateralTokenInBase,
             address(collateralToken)
@@ -1842,7 +1798,7 @@ abstract contract DLoopCoreBase is
         // the withdrawn amount is exactly the amount requested, thus we can safely
         // have the slippage check before calling this function
         // Update the withdrawn collateral token amount to the actual amount
-        withdrawnCollateralTokenAmount = _withdrawFromPool(
+        uint256 actualWithdrawnCollateralTokenAmount = _withdrawFromPool(
             address(collateralToken),
             withdrawnCollateralTokenAmount,
             address(this)
@@ -1850,9 +1806,12 @@ abstract contract DLoopCoreBase is
 
         // Slippage protection, to make sure the user receives at least minReceivedAmount
         // At this step, we check against the actual amount withdrawn from the pool
-        if (withdrawnCollateralTokenAmount < minReceivedCollateralTokenAmount) {
+        if (
+            actualWithdrawnCollateralTokenAmount <
+            minReceivedCollateralTokenAmount
+        ) {
             revert DecreaseLeverageReceiveLessThanMinAmount(
-                withdrawnCollateralTokenAmount,
+                actualWithdrawnCollateralTokenAmount,
                 minReceivedCollateralTokenAmount
             );
         }
@@ -1870,18 +1829,20 @@ abstract contract DLoopCoreBase is
             );
         }
 
-        // Transfer the collateral asset to the user
-        collateralToken.safeTransfer(
-            msg.sender,
-            withdrawnCollateralTokenAmount
-        );
+        if (actualWithdrawnCollateralTokenAmount > 0) {
+            // Transfer the collateral asset to the user
+            collateralToken.safeTransfer(
+                msg.sender,
+                actualWithdrawnCollateralTokenAmount
+            );
+        }
 
         emit DecreaseLeverage(
             msg.sender,
             inputDebtTokenAmount,
             minReceivedCollateralTokenAmount,
             inputDebtTokenAmount, // Repaid debt token amount
-            withdrawnCollateralTokenAmount // Withdrawn collateral token amount
+            actualWithdrawnCollateralTokenAmount // Withdrawn collateral token amount
         );
     }
 
