@@ -1802,6 +1802,28 @@ abstract contract DLoopCoreBase is
             revert InputDebtTokenAmountIsZero();
         }
 
+        // Calculate everything before transferring, repaying and withdrawing to avoid
+        // any potential impact from the child contract implementation
+
+        // Calculate the amount of debt token in base currency to repay
+        uint256 inputDebtRepayAmountInBase = convertFromTokenAmountToBaseCurrency(
+                inputDebtTokenAmount,
+                address(debtToken)
+            );
+
+        // The amount of collateral asset to withdraw is equal to the amount of debt token repaid
+        // plus the subsidy (bonus for the caller)
+        uint256 withdrawCollateralTokenInBase = _getCollateralWithdrawAmountInBaseToDecreaseLeverage(
+                inputDebtRepayAmountInBase,
+                getCurrentSubsidyBps()
+            );
+
+        // Withdraw collateral
+        uint256 withdrawnCollateralTokenAmount = convertFromBaseCurrencyToToken(
+            withdrawCollateralTokenInBase,
+            address(collateralToken)
+        );
+
         // Transfer the additional debt token from the caller to the vault
         debtToken.safeTransferFrom(
             msg.sender,
@@ -1814,25 +1836,6 @@ abstract contract DLoopCoreBase is
             address(debtToken),
             inputDebtTokenAmount,
             address(this)
-        );
-
-        // Calculate the amount of debt token in base currency to repay
-        uint256 inputDebtRepayAmountInBase = convertFromTokenAmountToBaseCurrency(
-                inputDebtTokenAmount,
-                address(debtToken)
-            );
-
-        // The amount of collateral asset to withdraw is equal to the amount of debt token repaid
-        // plus the subsidy (bonus for the caller)
-        uint256 withdrawCollateralTokenInBase = _getCollateralTokenWithdrawAmountToDecreaseLeverage(
-                inputDebtRepayAmountInBase,
-                getCurrentSubsidyBps()
-            );
-
-        // Withdraw collateral
-        uint256 withdrawnCollateralTokenAmount = convertFromBaseCurrencyToToken(
-            withdrawCollateralTokenInBase,
-            address(collateralToken)
         );
 
         // At this step, the _withdrawFromPool wrapper function will also assert that
