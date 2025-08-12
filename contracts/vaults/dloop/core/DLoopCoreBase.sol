@@ -24,6 +24,7 @@ import {Erc20Helper} from "contracts/common/Erc20Helper.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {RescuableVault} from "contracts/common/RescuableVault.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
+import {CoreLogic} from "./CoreLogic.sol";
 
 /**
  * @title DLoopCoreBase
@@ -635,11 +636,7 @@ abstract contract DLoopCoreBase is
         uint256 assets
     ) public view returns (uint256) {
         return
-            Math.mulDiv(
-                assets,
-                targetLeverageBps,
-                BasisPointConstants.ONE_HUNDRED_PERCENT_BPS
-            );
+            CoreLogic.getLeveragedAssetsWithLeverage(assets, targetLeverageBps);
     }
 
     /**
@@ -651,8 +648,10 @@ abstract contract DLoopCoreBase is
         uint256 assets
     ) public view returns (uint256) {
         return
-            (assets * getCurrentLeverageBps()) /
-            BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
+            CoreLogic.getLeveragedAssetsWithLeverage(
+                assets,
+                getCurrentLeverageBps()
+            );
     }
 
     /**
@@ -664,9 +663,8 @@ abstract contract DLoopCoreBase is
         uint256 leveragedAssets
     ) public view returns (uint256) {
         return
-            Math.mulDiv(
+            CoreLogic.getUnleveragedAssetsWithLeverage(
                 leveragedAssets,
-                BasisPointConstants.ONE_HUNDRED_PERCENT_BPS,
                 targetLeverageBps
             );
     }
@@ -680,8 +678,10 @@ abstract contract DLoopCoreBase is
         uint256 leveragedAssets
     ) public view returns (uint256) {
         return
-            (leveragedAssets * BasisPointConstants.ONE_HUNDRED_PERCENT_BPS) /
-            getCurrentLeverageBps();
+            CoreLogic.getUnleveragedAssetsWithLeverage(
+                leveragedAssets,
+                getCurrentLeverageBps()
+            );
     }
 
     /**
@@ -712,13 +712,11 @@ abstract contract DLoopCoreBase is
         uint256 amountInBase,
         address token
     ) public view returns (uint256) {
-        // The price decimals is cancelled out in the division (as the amount and price are in the same unit)
-        uint256 tokenPriceInBase = getAssetPriceFromOracle(token);
         return
-            Math.mulDiv(
+            CoreLogic.convertFromBaseCurrencyToToken(
                 amountInBase,
-                10 ** ERC20(token).decimals(),
-                tokenPriceInBase
+                ERC20(token).decimals(),
+                getAssetPriceFromOracle(token)
             );
     }
 
@@ -732,13 +730,11 @@ abstract contract DLoopCoreBase is
         uint256 amountInToken,
         address token
     ) public view returns (uint256) {
-        // The token decimals is cancelled out in the division (as the amount and price are in the same unit)
-        uint256 tokenPriceInBase = getAssetPriceFromOracle(token);
         return
-            Math.mulDiv(
+            CoreLogic.convertFromTokenAmountToBaseCurrency(
                 amountInToken,
-                tokenPriceInBase,
-                10 ** ERC20(token).decimals()
+                ERC20(token).decimals(),
+                getAssetPriceFromOracle(token)
             );
     }
 
@@ -768,12 +764,12 @@ abstract contract DLoopCoreBase is
      * @return bool True if leverage is too imbalanced, false otherwise
      */
     function isTooImbalanced() public view returns (bool) {
-        uint256 currentLeverageBps = getCurrentLeverageBps();
-        // If there is no deposit yet, we don't need to rebalance, thus it is not too imbalanced
         return
-            currentLeverageBps != 0 &&
-            (currentLeverageBps < lowerBoundTargetLeverageBps ||
-                currentLeverageBps > upperBoundTargetLeverageBps);
+            CoreLogic.isTooImbalanced(
+                getCurrentLeverageBps(),
+                lowerBoundTargetLeverageBps,
+                upperBoundTargetLeverageBps
+            );
     }
 
     /* Deposit and Mint */
@@ -1858,23 +1854,8 @@ abstract contract DLoopCoreBase is
             uint256 totalDebtBase
         ) = getTotalCollateralAndDebtOfUserInBase(address(this));
 
-        if (totalCollateralBase < totalDebtBase) {
-            revert CollateralLessThanDebt(totalCollateralBase, totalDebtBase);
-        }
-        if (totalCollateralBase == 0) {
-            return 0;
-        }
-        if (totalCollateralBase == totalDebtBase) {
-            return type(uint256).max; // infinite leverage
-        }
-        // The leverage will be 1 if totalDebtBase is 0 (no more debt)
-        uint256 leverageBps = ((totalCollateralBase *
-            BasisPointConstants.ONE_HUNDRED_PERCENT_BPS) /
-            (totalCollateralBase - totalDebtBase));
-        if (leverageBps < BasisPointConstants.ONE_HUNDRED_PERCENT_BPS) {
-            revert InvalidLeverage(leverageBps);
-        }
-        return leverageBps;
+        return
+            CoreLogic.getCurrentLeverageBps(totalCollateralBase, totalDebtBase);
     }
 
     /**
@@ -1882,24 +1863,12 @@ abstract contract DLoopCoreBase is
      * @return uint256 The current subsidy in basis points
      */
     function getCurrentSubsidyBps() public view returns (uint256) {
-        uint256 currentLeverageBps = getCurrentLeverageBps();
-
-        uint256 subsidyBps;
-        if (currentLeverageBps > targetLeverageBps) {
-            subsidyBps =
-                ((currentLeverageBps - targetLeverageBps) *
-                    BasisPointConstants.ONE_HUNDRED_PERCENT_BPS) /
-                targetLeverageBps;
-        } else {
-            subsidyBps =
-                ((targetLeverageBps - currentLeverageBps) *
-                    BasisPointConstants.ONE_HUNDRED_PERCENT_BPS) /
-                targetLeverageBps;
-        }
-        if (subsidyBps > maxSubsidyBps) {
-            return maxSubsidyBps;
-        }
-        return subsidyBps;
+        return
+            CoreLogic.getCurrentSubsidyBps(
+                getCurrentLeverageBps(),
+                targetLeverageBps,
+                maxSubsidyBps
+            );
     }
 
     /**
