@@ -24,4 +24,4 @@ contract OdosSwapUtilsHarness {
             swapData
         );
     }
-} 
+}
