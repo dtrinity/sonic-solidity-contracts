@@ -1197,7 +1197,7 @@ abstract contract DLoopCoreBase is
 
     /**
      * @dev Gets the collateral token amount to reach the target leverage
-     *      - This method is only being called for increasing the leverage quote in getRebalanceAmountToReachTargetLeverage()
+     *      - This method is only being called for increasing the leverage quote in quoteRebalanceAmountToReachTargetLeverage()
      *      - It will failed if the current leverage is above the target leverage (which requires the user to call decreaseLeverage)
      * @param expectedTargetLeverageBps The expected target leverage in basis points unit
      * @param totalCollateralBase The total collateral base
@@ -1375,7 +1375,7 @@ abstract contract DLoopCoreBase is
      *         - If the direction is -1, the amount is in debt token
      * @return direction The direction of the rebalance (1 for increase, -1 for decrease, 0 means no rebalance)
      */
-    function getRebalanceAmountToReachTargetLeverage(
+    function quoteRebalanceAmountToReachTargetLeverage(
         bool useVaultTokenBalance
     ) public view returns (uint256 tokenAmount, int8 direction) {
         /**

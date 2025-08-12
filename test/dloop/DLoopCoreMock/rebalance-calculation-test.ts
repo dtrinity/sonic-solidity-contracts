@@ -44,7 +44,7 @@ describe("DLoopCoreMock Rebalance Calculation Tests", function () {
   });
 
   describe("I. Rebalance Calculation Functions", function () {
-    describe("getRebalanceAmountToReachTargetLeverage", function () {
+    describe("quoteRebalanceAmountToReachTargetLeverage", function () {
       const testCases: {
         name: string;
         currentCollateral: bigint;
@@ -393,7 +393,7 @@ describe("DLoopCoreMock Rebalance Calculation Tests", function () {
             }
 
             const [tokenAmount, direction] =
-              await dloopMock.getRebalanceAmountToReachTargetLeverage(
+              await dloopMock.quoteRebalanceAmountToReachTargetLeverage(
                 useVaultTokenBalance,
               );
 
@@ -832,7 +832,7 @@ describe("DLoopCoreMock Rebalance Calculation Tests", function () {
       }
     });
 
-    describe("getDebtTokenRepayAmountToReachTargetLeverage", function () {
+    describe("_getDebtRepayAmountInBaseToReachTargetLeverage", function () {
       const testCases: {
         name: string;
         targetLeverage: bigint;
@@ -1210,7 +1210,7 @@ async function validateRebalanceLeverage(
 
   // If useVaultTokenBalance is true, we need to add the vault token balance to the rebalance amount
   // because the vault token balance is already included in the formula
-  // of getRebalanceAmountToReachTargetLeverage
+  // of quoteRebalanceAmountToReachTargetLeverage
   if (direction > 0) {
     if (vaultCollateralBalance > 0n) {
       const valutCollateralBalanceInBase =
