@@ -49,7 +49,11 @@ contract MockOdosRouterV2 {
 
         // Pull input tokens from the caller and send output tokens back
         if (b.amountSpent > 0) {
-            IERC20(b.inputToken).transferFrom(msg.sender, address(this), b.amountSpent);
+            IERC20(b.inputToken).transferFrom(
+                msg.sender,
+                address(this),
+                b.amountSpent
+            );
         }
         if (b.amountReceived > 0) {
             IERC20(b.outputToken).transfer(msg.sender, b.amountReceived);
@@ -57,4 +61,4 @@ contract MockOdosRouterV2 {
 
         return b.amountSpent;
     }
-} 
+}

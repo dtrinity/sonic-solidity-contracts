@@ -90,7 +90,9 @@ abstract contract BaseOdosSellAdapter is BaseOdosSwapAdapter {
             swapData
         );
 
-        amountReceived = assetToSwapTo.balanceOf(address(this)) - balanceBeforeAssetTo;
+        amountReceived =
+            assetToSwapTo.balanceOf(address(this)) -
+            balanceBeforeAssetTo;
 
         emit Bought(tokenIn, tokenOut, amountSpent, amountReceived);
     }
