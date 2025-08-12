@@ -389,7 +389,8 @@ abstract contract DLoopCoreBase is
 
         // Now, as balance before must be greater than balance after, we can just check if the difference is the expected amount
         // Allow a 1-wei rounding tolerance when comparing the observed balance change with `amount`
-        uint256 observedDiffSupply = tokenBalanceBeforeSupply - tokenBalanceAfterSupply;
+        uint256 observedDiffSupply = tokenBalanceBeforeSupply -
+            tokenBalanceAfterSupply;
 
         if (observedDiffSupply > amount) {
             if (observedDiffSupply - amount > BALANCE_DIFF_TOLERANCE) {
@@ -1428,10 +1429,17 @@ abstract contract DLoopCoreBase is
             );
         }
 
+        // Use rounding up in mulDiv as we want to withdraw a bit more, to avoid
+        // getting the new leverage below the target leverage, which will revert the
+        // rebalance process (due to post-process assertion)
         uint256 denominator = BasisPointConstants.ONE_HUNDRED_PERCENT_BPS +
             subsidyBps -
-            (expectedTargetLeverageBps * subsidyBps) /
-            BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
+            Math.mulDiv(
+                expectedTargetLeverageBps,
+                subsidyBps,
+                BasisPointConstants.ONE_HUNDRED_PERCENT_BPS,
+                Math.Rounding.Ceil
+            );
 
         requiredDebtRepayAmountInBase =
             (totalCollateralBase *
