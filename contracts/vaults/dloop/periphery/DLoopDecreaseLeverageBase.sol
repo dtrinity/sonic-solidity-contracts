@@ -181,7 +181,7 @@ abstract contract DLoopDecreaseLeverageBase is
 
         // Calculate the required debt amount to reach target leverage
         (uint256 requiredDebtAmount, int8 direction) = dLoopCore
-            .getAmountToReachTargetLeverage(true); // Use vault token balance
+            .getRebalanceAmountToReachTargetLeverage(true); // Use vault token balance
 
         // Verify we need to decrease leverage
         if (direction != -1) {

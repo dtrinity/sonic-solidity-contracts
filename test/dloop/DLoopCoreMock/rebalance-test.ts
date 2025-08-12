@@ -137,7 +137,7 @@ describe("DLoopCoreMock Rebalance Tests", function () {
 
         // Get expected quote for increase leverage
         const [, direction] =
-          await dloopMock.getAmountToReachTargetLeverage(false);
+          await dloopMock.getRebalanceAmountToReachTargetLeverage(false);
         expect(direction).to.equal(testCase.expectedDirection);
 
         // Get user balances before increase leverage
@@ -276,7 +276,7 @@ describe("DLoopCoreMock Rebalance Tests", function () {
 
         // Get expected quote for decrease leverage
         const [, direction] =
-          await dloopMock.getAmountToReachTargetLeverage(false);
+          await dloopMock.getRebalanceAmountToReachTargetLeverage(false);
         expect(direction).to.equal(testCase.expectedDirection);
 
         // Get user balances before decrease leverage
@@ -859,9 +859,9 @@ describe("DLoopCoreMock Rebalance Tests", function () {
 
         // Get quotes with and without vault balance
         const [tokenAmountWithVault] =
-          await dloopMock.getAmountToReachTargetLeverage(true);
+          await dloopMock.getRebalanceAmountToReachTargetLeverage(true);
         const [tokenAmountWithoutVault] =
-          await dloopMock.getAmountToReachTargetLeverage(false);
+          await dloopMock.getRebalanceAmountToReachTargetLeverage(false);
 
         // Should require less additional tokens when using vault balance
         expect(tokenAmountWithVault).to.be.lte(tokenAmountWithoutVault);
@@ -1038,7 +1038,7 @@ describe("DLoopCoreMock Rebalance Tests", function () {
   describe("VIII. Exact Target Leverage Achievement Tests", function () {
     const exactTargetTests = [
       {
-        name: "Should achieve exact target leverage when using getAmountToReachTargetLeverage for increase (debt price higher)",
+        name: "Should achieve exact target leverage when using getRebalanceAmountToReachTargetLeverage for increase (debt price higher)",
         initialPrices: {
           collateral: ethers.parseUnits("1", 8),
           debt: ethers.parseUnits("1.3", 8),
@@ -1051,7 +1051,7 @@ describe("DLoopCoreMock Rebalance Tests", function () {
         toleranceBps: 50, // 0.05% tolerance
       },
       {
-        name: "Should achieve exact target leverage when using getAmountToReachTargetLeverage for decrease (collateral price lower)",
+        name: "Should achieve exact target leverage when using getRebalanceAmountToReachTargetLeverage for decrease (collateral price lower)",
         initialPrices: {
           collateral: ethers.parseUnits("1.1", 8),
           debt: ethers.parseUnits("0.9", 8),
@@ -1163,7 +1163,7 @@ describe("DLoopCoreMock Rebalance Tests", function () {
 
         // Get exact amount needed to reach target leverage
         const [exactAmount, direction] =
-          await dloopMock.getAmountToReachTargetLeverage(false);
+          await dloopMock.getRebalanceAmountToReachTargetLeverage(false);
 
         // Verify direction matches expected operation
         if (testCase.operation === "increase") {
@@ -1236,7 +1236,7 @@ describe("DLoopCoreMock Rebalance Tests", function () {
 
       // Get amount when already at target
       const [amount, _direction] =
-        await dloopMock.getAmountToReachTargetLeverage(false);
+        await dloopMock.getRebalanceAmountToReachTargetLeverage(false);
 
       // When already at target, amount should be very small
       // Direction might not be exactly 0 due to precision, but should indicate minimal adjustment

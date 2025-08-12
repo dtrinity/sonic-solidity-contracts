@@ -1197,7 +1197,8 @@ abstract contract DLoopCoreBase is
 
     /**
      * @dev Gets the collateral token amount to reach the target leverage
-     *      - This method is only being called for increasing the leverage quote in getAmountToReachTargetLeverage()
+     *      - This method is only being called for increasing the leverage quote in getRebalanceAmountToReachTargetLeverage()
+     *      - It will failed if the current leverage is above the target leverage (which requires the user to call decreaseLeverage)
      * @param expectedTargetLeverageBps The expected target leverage in basis points unit
      * @param totalCollateralBase The total collateral base
      * @param totalDebtBase The total debt base
@@ -1205,7 +1206,7 @@ abstract contract DLoopCoreBase is
      * @param useVaultTokenBalance Whether to use the current token balance in the vault as the amount to rebalance
      * @return collateralTokenAmount The collateral token amount to reach the target leverage
      */
-    function _getCollateralTokenAmountToReachTargetLeverage(
+    function _getCollateralTokenDepositAmountToReachTargetLeverage(
         uint256 expectedTargetLeverageBps,
         uint256 totalCollateralBase,
         uint256 totalDebtBase,
@@ -1284,7 +1285,8 @@ abstract contract DLoopCoreBase is
 
     /**
      * @dev Gets the debt token amount to reach the target leverage
-     *      - This method is only being called for decreasing the leverage quote in getAmountToReachTargetLeverage()
+     *      - This method is only being called for decreasing the leverage quote in getRebalanceAmountToReachTargetLeverage()
+     *      - It will failed if the current leverage is below the target leverage (which requires the user to call increaseLeverage)
      * @param expectedTargetLeverageBps The expected target leverage in basis points unit
      * @param totalCollateralBase The total collateral base
      * @param totalDebtBase The total debt base
@@ -1292,7 +1294,7 @@ abstract contract DLoopCoreBase is
      * @param useVaultTokenBalance Whether to use the current token balance in the vault as the amount to rebalance
      * @return requiredDebtTokenAmount The debt token amount to reach the target leverage
      */
-    function _getDebtTokenAmountToReachTargetLeverage(
+    function getDebtTokenRepayAmountToReachTargetLeverage(
         uint256 expectedTargetLeverageBps,
         uint256 totalCollateralBase,
         uint256 totalDebtBase,
@@ -1373,7 +1375,7 @@ abstract contract DLoopCoreBase is
      *         - If the direction is -1, the amount is in debt token
      * @return direction The direction of the rebalance (1 for increase, -1 for decrease, 0 means no rebalance)
      */
-    function getAmountToReachTargetLeverage(
+    function getRebalanceAmountToReachTargetLeverage(
         bool useVaultTokenBalance
     ) public view returns (uint256 tokenAmount, int8 direction) {
         /**
@@ -1440,7 +1442,7 @@ abstract contract DLoopCoreBase is
         // If the current leverage is below the target leverage, the user should increase the leverage
         if (currentLeverageBps < targetLeverageBps) {
             return (
-                _getCollateralTokenAmountToReachTargetLeverage(
+                _getCollateralTokenDepositAmountToReachTargetLeverage(
                     targetLeverageBps,
                     totalCollateralBase,
                     totalDebtBase,
@@ -1453,7 +1455,7 @@ abstract contract DLoopCoreBase is
         // If the current leverage is above the target leverage, the user should decrease the leverage
         else if (currentLeverageBps > targetLeverageBps) {
             return (
-                _getDebtTokenAmountToReachTargetLeverage(
+                getDebtTokenRepayAmountToReachTargetLeverage(
                     targetLeverageBps,
                     totalCollateralBase,
                     totalDebtBase,
@@ -1495,7 +1497,7 @@ abstract contract DLoopCoreBase is
          */
         if (additionalCollateralTokenAmount == 0) {
             return
-                _getCollateralTokenAmountToReachTargetLeverage(
+                _getCollateralTokenDepositAmountToReachTargetLeverage(
                     expectedTargetLeverageBps,
                     totalCollateralBase,
                     totalDebtBase,
@@ -1539,7 +1541,7 @@ abstract contract DLoopCoreBase is
          */
         if (additionalDebtTokenAmount == 0) {
             return
-                _getDebtTokenAmountToReachTargetLeverage(
+                getDebtTokenRepayAmountToReachTargetLeverage(
                     expectedTargetLeverageBps,
                     totalCollateralBase,
                     totalDebtBase,

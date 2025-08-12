@@ -475,9 +475,9 @@ contract DLoopCoreMock is DLoopCoreBase {
     }
 
     /**
-     * @dev Test wrapper for _getCollateralTokenAmountToReachTargetLeverage
+     * @dev Test wrapper for _getCollateralTokenDepositAmountToReachTargetLeverage
      */
-    function testGetCollateralTokenAmountToReachTargetLeverage(
+    function testGetCollateralTokenDepositAmountToReachTargetLeverage(
         uint256 expectedTargetLeverageBps,
         uint256 totalCollateralBase,
         uint256 totalDebtBase,
@@ -485,7 +485,7 @@ contract DLoopCoreMock is DLoopCoreBase {
         bool useVaultTokenBalance
     ) external view returns (uint256) {
         return
-            _getCollateralTokenAmountToReachTargetLeverage(
+            _getCollateralTokenDepositAmountToReachTargetLeverage(
                 expectedTargetLeverageBps,
                 totalCollateralBase,
                 totalDebtBase,
@@ -495,7 +495,7 @@ contract DLoopCoreMock is DLoopCoreBase {
     }
 
     /**
-     * @dev Test wrapper for _getDebtTokenAmountToReachTargetLeverage
+     * @dev Test wrapper for getDebtTokenRepayAmountToReachTargetLeverage
      */
     function testGetDebtTokenAmountToReachTargetLeverage(
         uint256 expectedTargetLeverageBps,
@@ -505,7 +505,7 @@ contract DLoopCoreMock is DLoopCoreBase {
         bool useVaultTokenBalance
     ) external view returns (uint256) {
         return
-            _getDebtTokenAmountToReachTargetLeverage(
+            getDebtTokenRepayAmountToReachTargetLeverage(
                 expectedTargetLeverageBps,
                 totalCollateralBase,
                 totalDebtBase,

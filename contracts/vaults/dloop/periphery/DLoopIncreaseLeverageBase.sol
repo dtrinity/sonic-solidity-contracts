@@ -180,7 +180,7 @@ abstract contract DLoopIncreaseLeverageBase is
 
         // Calculate the required collateral amount to reach target leverage
         (uint256 requiredCollateralAmount, int8 direction) = dLoopCore
-            .getAmountToReachTargetLeverage(true); // Use vault token balance
+            .getRebalanceAmountToReachTargetLeverage(true); // Use vault token balance
 
         // Verify we need to increase leverage
         if (direction != 1) {
