@@ -708,6 +708,7 @@ describe("DLoopCoreMock Post-Execution Leverage Validation Tests (Hats Finance I
             await dloopMock.connect(user).increaseLeverage(leverageAmount, 0);
           } catch (error) {
             // May fail due to precision/over-leverage protection - this is expected
+            expect(error).to.have.property("message");
           }
         } else if (
           op.operation === "decrease" &&
@@ -717,6 +718,7 @@ describe("DLoopCoreMock Post-Execution Leverage Validation Tests (Hats Finance I
             await dloopMock.connect(user).decreaseLeverage(leverageAmount, 0);
           } catch (error) {
             // May fail due to precision/under-leverage protection - this is expected
+            expect(error).to.have.property("message");
           }
         }
 
