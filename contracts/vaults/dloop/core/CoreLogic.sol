@@ -645,4 +645,102 @@ library CoreLogic {
                 Math.Rounding.Ceil
             );
     }
+
+    /**
+     * @dev Quotes the rebalance amount to reach the target leverage in token unit
+     * @param totalCollateralBase The total collateral base
+     * @param totalDebtBase The total debt base
+     * @param currentLeverageBps The current leverage in basis points unit
+     * @param targetLeverageBps The target leverage in basis points unit
+     * @param subsidyBps The subsidy in basis points unit
+     * @param collateralTokenDecimals The collateral token decimals
+     * @param collateralTokenPriceInBase The collateral token price in base currency
+     * @param debtTokenDecimals The debt token decimals
+     * @param debtTokenPriceInBase The debt token price in base currency
+     * @return inputTokenAmount The amount of token to call increaseLeverage or decreaseLeverage (in token unit)
+     * @return estimatedOutputTokenAmount The estimated output token amount after the rebalance (in token unit)
+     * @return direction The direction of the rebalance (1 for increase, -1 for decrease, 0 means no rebalance)
+     */
+    function quoteRebalanceAmountToReachTargetLeverage(
+        uint256 totalCollateralBase,
+        uint256 totalDebtBase,
+        uint256 currentLeverageBps,
+        uint256 targetLeverageBps,
+        uint256 subsidyBps,
+        uint256 collateralTokenDecimals,
+        uint256 collateralTokenPriceInBase,
+        uint256 debtTokenDecimals,
+        uint256 debtTokenPriceInBase
+    )
+        public
+        pure
+        returns (
+            uint256 inputTokenAmount,
+            uint256 estimatedOutputTokenAmount,
+            int8 direction
+        )
+    {
+        if (totalCollateralBase == 0) {
+            // No collateral means no debt and no leverage, so no rebalance is needed
+            return (0, 0, 0);
+        }
+
+        // If the current leverage is below the target leverage, the user should increase the leverage
+        if (currentLeverageBps < targetLeverageBps) {
+            // In this case, the input amount is the collateral amount to be deposit
+            // and the output amount is the debt amount to be borrow
+            uint256 inputCollateralAmountInBase = getCollateralTokenDepositAmountToReachTargetLeverage(
+                    targetLeverageBps,
+                    totalCollateralBase,
+                    totalDebtBase,
+                    subsidyBps
+                );
+            inputTokenAmount = convertFromBaseCurrencyToToken(
+                inputCollateralAmountInBase,
+                collateralTokenDecimals,
+                collateralTokenPriceInBase
+            );
+            uint256 estimatedDebtAmountInBase = getDebtBorrowAmountInBaseToIncreaseLeverage(
+                    inputCollateralAmountInBase,
+                    subsidyBps
+                );
+            estimatedOutputTokenAmount = convertFromBaseCurrencyToToken(
+                estimatedDebtAmountInBase,
+                debtTokenDecimals,
+                debtTokenPriceInBase
+            );
+            direction = 1;
+            return (inputTokenAmount, estimatedOutputTokenAmount, direction);
+        }
+        // If the current leverage is above the target leverage, the user should decrease the leverage
+        else if (currentLeverageBps > targetLeverageBps) {
+            // In this case, the input amount is the debt amount to be repaid
+            // and the output amount is the collateral amount to be withdraw
+            uint256 inputDebtAmountInBase = getDebtRepayAmountInBaseToReachTargetLeverage(
+                    targetLeverageBps,
+                    totalCollateralBase,
+                    totalDebtBase,
+                    subsidyBps
+                );
+            inputTokenAmount = convertFromBaseCurrencyToToken(
+                inputDebtAmountInBase,
+                debtTokenDecimals,
+                debtTokenPriceInBase
+            );
+            uint256 estimatedCollateralAmountInBase = getCollateralWithdrawAmountInBaseToDecreaseLeverage(
+                    inputDebtAmountInBase,
+                    subsidyBps
+                );
+            estimatedOutputTokenAmount = convertFromBaseCurrencyToToken(
+                estimatedCollateralAmountInBase,
+                collateralTokenDecimals,
+                collateralTokenPriceInBase
+            );
+            direction = -1;
+            return (inputTokenAmount, estimatedOutputTokenAmount, direction);
+        }
+
+        // If the current leverage is equal to the target leverage, the user should not rebalance
+        return (0, 0, 0);
+    }
 }

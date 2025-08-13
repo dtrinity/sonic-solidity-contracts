@@ -1063,71 +1063,23 @@ abstract contract DLoopCoreBase is
             int8 direction
         )
     {
-        uint256 currentLeverageBps = getCurrentLeverageBps();
-        uint256 subsidyBps = getCurrentSubsidyBps();
         (
             uint256 totalCollateralBase,
             uint256 totalDebtBase
         ) = getTotalCollateralAndDebtOfUserInBase(address(this));
 
-        if (totalCollateralBase == 0) {
-            // No collateral means no debt and no leverage, so no rebalance is needed
-            return (0, 0, 0);
-        }
-
-        // If the current leverage is below the target leverage, the user should increase the leverage
-        if (currentLeverageBps < targetLeverageBps) {
-            uint256 requiredCollateralDepositAmountInBase = CoreLogic
-                .getCollateralTokenDepositAmountToReachTargetLeverage(
-                    targetLeverageBps,
-                    totalCollateralBase,
-                    totalDebtBase,
-                    subsidyBps
-                );
-            inputTokenAmount = convertFromBaseCurrencyToToken(
-                requiredCollateralDepositAmountInBase,
-                address(collateralToken)
+        return
+            CoreLogic.quoteRebalanceAmountToReachTargetLeverage(
+                totalCollateralBase,
+                totalDebtBase,
+                getCurrentLeverageBps(),
+                targetLeverageBps,
+                getCurrentSubsidyBps(),
+                ERC20(collateralToken).decimals(),
+                getAssetPriceFromOracle(address(collateralToken)),
+                ERC20(debtToken).decimals(),
+                getAssetPriceFromOracle(address(debtToken))
             );
-            uint256 receivedDebtBorrowAmountInBase = CoreLogic
-                .getDebtBorrowAmountInBaseToIncreaseLeverage(
-                    requiredCollateralDepositAmountInBase,
-                    subsidyBps
-                );
-            estimatedOutputTokenAmount = convertFromBaseCurrencyToToken(
-                receivedDebtBorrowAmountInBase,
-                address(debtToken)
-            );
-            direction = 1;
-            return (inputTokenAmount, estimatedOutputTokenAmount, direction);
-        }
-        // If the current leverage is above the target leverage, the user should decrease the leverage
-        else if (currentLeverageBps > targetLeverageBps) {
-            uint256 requiredDebtRepayAmountInBase = CoreLogic
-                .getDebtRepayAmountInBaseToReachTargetLeverage(
-                    targetLeverageBps,
-                    totalCollateralBase,
-                    totalDebtBase,
-                    subsidyBps
-                );
-            inputTokenAmount = convertFromBaseCurrencyToToken(
-                requiredDebtRepayAmountInBase,
-                address(debtToken)
-            );
-            uint256 receivedCollateralWithdrawAmountInBase = CoreLogic
-                .getCollateralWithdrawAmountInBaseToDecreaseLeverage(
-                    requiredDebtRepayAmountInBase,
-                    subsidyBps
-                );
-            estimatedOutputTokenAmount = convertFromBaseCurrencyToToken(
-                receivedCollateralWithdrawAmountInBase,
-                address(collateralToken)
-            );
-            direction = -1;
-            return (inputTokenAmount, estimatedOutputTokenAmount, direction);
-        }
-
-        // If the current leverage is equal to the target leverage, the user should not rebalance
-        return (0, 0, 0);
     }
 
     /**
