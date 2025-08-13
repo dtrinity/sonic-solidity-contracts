@@ -54,12 +54,6 @@ abstract contract DLoopIncreaseLeverageBase is
     /* Core state */
 
     IERC3156FlashLender public immutable flashLender;
-    // [dLoopCore][tokenAddress] -> leftOverAmount
-    mapping(address => mapping(address => uint256))
-        public minLeftoverDebtTokenAmount;
-    // [tokenAddress] -> exists (for gas efficient token tracking)
-    mapping(address => bool) private _existingDebtTokensMap;
-    address[] public existingDebtTokens;
 
     /* Errors */
 
@@ -99,21 +93,6 @@ abstract contract DLoopIncreaseLeverageBase is
 
     /* Events */
 
-    event LeftoverDebtTokensTransferred(
-        address indexed dLoopCore,
-        address indexed debtToken,
-        uint256 amount
-    );
-    event MinLeftoverDebtTokenAmountSet(
-        address indexed dLoopCore,
-        address indexed debtToken,
-        uint256 minAmount
-    );
-    event MinLeftoverDebtTokenAmountRemoved(
-        address indexed dLoopCore,
-        address indexed debtToken
-    );
-
     /* Structs */
 
     struct FlashLoanParams {
@@ -145,8 +124,8 @@ abstract contract DLoopIncreaseLeverageBase is
         override
         returns (address[] memory restrictedTokens)
     {
-        // Return the existing tokens as we handle leftover debt tokens
-        return existingDebtTokens;
+        // Return empty array as we no longer handle leftover debt tokens
+        return new address[](0);
     }
 
     /* Increase Leverage */
@@ -258,18 +237,10 @@ abstract contract DLoopIncreaseLeverageBase is
         // Transfer received debt tokens to user
         debtToken.safeTransfer(msg.sender, receivedDebtTokenAmount);
 
-        // Handle any leftover debt tokens
+        // Transfer any leftover debt tokens directly to the user
         uint256 leftoverAmount = debtToken.balanceOf(address(this));
-        if (
-            leftoverAmount >
-            minLeftoverDebtTokenAmount[address(dLoopCore)][address(debtToken)]
-        ) {
-            debtToken.safeTransfer(address(dLoopCore), leftoverAmount);
-            emit LeftoverDebtTokensTransferred(
-                address(dLoopCore),
-                address(debtToken),
-                leftoverAmount
-            );
+        if (leftoverAmount > 0) {
+            debtToken.safeTransfer(msg.sender, leftoverAmount);
         }
 
         return receivedDebtTokenAmount;
@@ -372,43 +343,7 @@ abstract contract DLoopIncreaseLeverageBase is
 
     /* Setters */
 
-    /**
-     * @dev Sets the minimum leftover debt token amount for a given dLoopCore and debt token
-     * @param dLoopCore Address of the dLoopCore contract
-     * @param debtToken Address of the debt token
-     * @param minAmount Minimum leftover debt token amount for the given dLoopCore and debt token
-     *                  Setting minAmount to 0 removes the token from the array using efficient swap-and-pop
-     */
-    function setMinLeftoverDebtTokenAmount(
-        address dLoopCore,
-        address debtToken,
-        uint256 minAmount
-    ) external nonReentrant onlyOwner {
-        minLeftoverDebtTokenAmount[dLoopCore][debtToken] = minAmount;
 
-        // If the min amount is 0, we need to remove the debt token from the existing debt tokens array
-        if (minAmount == 0) {
-            delete _existingDebtTokensMap[debtToken];
-            // Remove the debt token from the existing debt tokens array
-            for (uint256 i = 0; i < existingDebtTokens.length; i++) {
-                // Remove the current token by replacing it with the last element and then pop the last element
-                if (existingDebtTokens[i] == debtToken) {
-                    existingDebtTokens[i] = existingDebtTokens[
-                        existingDebtTokens.length - 1
-                    ];
-                    existingDebtTokens.pop();
-                    break; // Exit loop once token is found and removed
-                }
-            }
-            emit MinLeftoverDebtTokenAmountRemoved(dLoopCore, debtToken);
-        } else {
-            if (!_existingDebtTokensMap[debtToken]) {
-                _existingDebtTokensMap[debtToken] = true;
-                existingDebtTokens.push(debtToken);
-            }
-            emit MinLeftoverDebtTokenAmountSet(dLoopCore, debtToken, minAmount);
-        }
-    }
 
     /* Internal helpers */
 
