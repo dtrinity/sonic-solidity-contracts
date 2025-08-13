@@ -49,13 +49,19 @@ contract DLoopCoreDLend is DLoopCoreBase, RewardClaimable {
     /* State */
 
     IPoolAddressesProvider public immutable lendingPoolAddressesProvider;
-    IRewardsController public immutable dLendRewardsController;
     address public immutable dLendAssetToClaimFor;
     address public immutable targetStaticATokenWrapper;
+    IRewardsController public dLendRewardsController;
 
     /* Errors */
 
     error ZeroAddress();
+
+    /* Events */
+    event DLendRewardsControllerUpdated(
+        address indexed oldController,
+        address indexed newController
+    );
 
     /**
      * @dev Constructor for the DLoopCoreDLend contract
@@ -126,6 +132,25 @@ contract DLoopCoreDLend is DLoopCoreBase, RewardClaimable {
         if (oracleUnit != 10 ** AAVE_PRICE_ORACLE_DECIMALS) {
             revert("Invalid price oracle unit");
         }
+    }
+
+    /**
+     * @notice Sets the address of the dLEND RewardsController contract.
+     * @dev Only callable by the owner.
+     * @param _newDLendRewardsController The address of the new rewards controller.
+     */
+    function setDLendRewardsController(
+        address _newDLendRewardsController
+    ) external onlyOwner {
+        if (_newDLendRewardsController == address(0)) {
+            revert ZeroAddress();
+        }
+        address oldController = address(dLendRewardsController);
+        dLendRewardsController = IRewardsController(_newDLendRewardsController);
+        emit DLendRewardsControllerUpdated(
+            oldController,
+            _newDLendRewardsController
+        );
     }
 
     /**
