@@ -129,7 +129,7 @@ export async function deployDLoopDecreaseLeverageFixture(): Promise<DLoopDecreas
 /**
  * Setup the test environment with prices, balances, and allowances
  *
- * @param fixture
+ * @param fixture Test fixture containing contracts, signers, and helpers
  */
 export async function testSetup(
   fixture: DLoopDecreaseLeverageFixture,
@@ -219,9 +219,9 @@ export async function testSetup(
 /**
  * Create a leveraged position for testing decrease leverage functionality
  *
- * @param fixture
- * @param user
- * @param depositAmount
+ * @param fixture Test fixture with deployed contracts and signers
+ * @param user User who will create the leveraged position
+ * @param depositAmount Amount of collateral to deposit
  */
 export async function createLeveragePosition(
   fixture: DLoopDecreaseLeverageFixture,
@@ -248,9 +248,9 @@ export async function createLeveragePosition(
 /**
  * Create an imbalanced leveraged position that requires decrease leverage
  *
- * @param fixture
- * @param user
- * @param depositAmount
+ * @param fixture Test fixture with deployed contracts and signers
+ * @param user User who will create the leveraged position
+ * @param depositAmount Amount of collateral to deposit
  */
 export async function createImbalancedLeveragePosition(
   fixture: DLoopDecreaseLeverageFixture,

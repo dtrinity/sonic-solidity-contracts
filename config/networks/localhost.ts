@@ -192,7 +192,7 @@ export async function getConfig(
       frxUSD: emptyStringIfUndefined(frxUSDDeployment?.address), // Used by dPOOL
     },
     walletAddresses: {
-      governanceMultisig: deployer,
+      governanceMultisig: user1,
       incentivesVault: deployer,
     },
     dStables: {

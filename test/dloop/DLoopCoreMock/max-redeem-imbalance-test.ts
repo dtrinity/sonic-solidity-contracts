@@ -1,7 +1,9 @@
+import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { ethers } from "hardhat";
 
+import { DLoopCoreMock } from "../../../typechain-types";
 import {
   deployDLoopMockFixture,
   TARGET_LEVERAGE_BPS,
@@ -17,9 +19,14 @@ import {
 
 describe("DLoopCoreMock.maxRedeem: leverage guard", function () {
   /**
+   * Deploys a mock dLoop, seeds a healthy position, then pushes leverage above the upper bound.
    *
+   * @returns Object containing the vault and deployer signer
    */
-  async function deployAndImbalance() {
+  async function deployAndImbalance(): Promise<{
+    dloopMock: DLoopCoreMock;
+    deployer: HardhatEthersSigner;
+  }> {
     const fixture = await deployDLoopMockFixture();
     await testSetup(fixture);
 

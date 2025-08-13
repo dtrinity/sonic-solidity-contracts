@@ -8,7 +8,15 @@ import {IERC20Detailed} from "contracts/dlend/core/dependencies/openzeppelin/con
 
 /// @dev Dummy implementation of BaseOdosBuyAdapter exposing internal function for tests.
 contract TestBuyAdapter is BaseOdosBuyAdapter {
-    constructor(IOdosRouterV2 router) BaseOdosBuyAdapter(IPoolAddressesProvider(address(0)), address(0), router) {}
+    constructor(
+        IOdosRouterV2 router
+    )
+        BaseOdosBuyAdapter(
+            IPoolAddressesProvider(address(0)),
+            address(0),
+            router
+        )
+    {}
 
     // ----------------- Required abstract stubs -------------------
     function _getReserveData(
@@ -32,6 +40,13 @@ contract TestBuyAdapter is BaseOdosBuyAdapter {
         uint256 amountToReceive,
         bytes calldata swapData
     ) external returns (uint256) {
-        return _buyOnOdos(assetFrom, assetTo, maxAmountToSwap, amountToReceive, swapData);
+        return
+            _buyOnOdos(
+                assetFrom,
+                assetTo,
+                maxAmountToSwap,
+                amountToReceive,
+                swapData
+            );
     }
-} 
+}

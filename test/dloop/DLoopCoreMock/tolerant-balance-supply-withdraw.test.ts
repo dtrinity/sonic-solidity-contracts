@@ -1,7 +1,7 @@
 import { expect } from "chai";
 
-import { deployDLoopMockFixture, testSetup } from "./fixture";
 import { ONE_PERCENT_BPS } from "../../../typescript/common/bps_constants";
+import { deployDLoopMockFixture, testSetup } from "./fixture";
 
 /**
  * Additional tolerance tests for _supplyToPool and _withdrawFromPool wrapper functions
@@ -35,7 +35,9 @@ describe("DLoopCoreMock – tolerant balance differences (supply / withdraw)", f
         ),
       ).to.not.be.reverted;
 
-      const poolBalAfterCase1 = await collateralToken.balanceOf(mockPool.address);
+      const poolBalAfterCase1 = await collateralToken.balanceOf(
+        mockPool.address,
+      );
       expect(poolBalAfterCase1 - poolBalBefore).to.equal(99n);
       expect(await collateralToken.balanceOf(vault)).to.equal(1n);
 
@@ -92,7 +94,9 @@ describe("DLoopCoreMock – tolerant balance differences (supply / withdraw)", f
         ),
       ).to.not.be.reverted;
 
-      const poolBalAfterCase1 = await collateralToken.balanceOf(mockPool.address);
+      const poolBalAfterCase1 = await collateralToken.balanceOf(
+        mockPool.address,
+      );
       expect(poolBalBefore - poolBalAfterCase1).to.equal(99n);
       expect(await collateralToken.balanceOf(vault)).to.equal(99n); // vault got 99 back
 
@@ -108,4 +112,4 @@ describe("DLoopCoreMock – tolerant balance differences (supply / withdraw)", f
       ).to.be.reverted;
     });
   });
-}); 
+});
