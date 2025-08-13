@@ -35,15 +35,7 @@ library CoreLogic {
         uint256 totalDebtBase
     );
     error InputCollateralTokenAmountIsZero();
-    error LeverageExceedsTarget(
-        uint256 currentLeverageBps,
-        uint256 targetLeverageBps
-    );
     error InputDebtTokenAmountIsZero();
-    error LeverageBelowTarget(
-        uint256 currentLeverageBps,
-        uint256 targetLeverageBps
-    );
 
     /**
      * @dev Gets the current leverage in basis points

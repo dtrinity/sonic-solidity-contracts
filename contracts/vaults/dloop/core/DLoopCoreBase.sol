@@ -23,7 +23,6 @@ import {ERC4626, ERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/ext
 import {Erc20Helper} from "contracts/common/Erc20Helper.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {RescuableVault} from "contracts/common/RescuableVault.sol";
-import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {CoreLogic} from "./CoreLogic.sol";
 import {Compare} from "contracts/common/Compare.sol";
 
@@ -105,24 +104,6 @@ abstract contract DLoopCoreBase is
         address collateralAsset,
         uint256 requiredAllowance
     );
-    error DepositInsufficientToSupply(
-        uint256 currentBalance,
-        uint256 newTotalAssets
-    );
-    error CollateralLessThanDebt(
-        uint256 totalCollateralBase,
-        uint256 totalDebtBase
-    );
-    error InsufficientShareBalanceToRedeem(
-        address owner,
-        uint256 sharesToRedeem,
-        uint256 shareBalance
-    );
-    error WithdrawableIsLessThanRequired(
-        address token,
-        uint256 assetToRemoveFromLending,
-        uint256 withdrawableAmount
-    );
     error DecreaseLeverageOutOfRange(
         uint256 newLeverageBps,
         uint256 targetLeverageBps, // lower bound
@@ -203,27 +184,7 @@ abstract contract DLoopCoreBase is
         uint256 receivedCollateralTokenAmount,
         uint256 minReceivedCollateralTokenAmount
     );
-    error InvalidLeverage(uint256 leverageBps);
-    error TotalCollateralBaseIsZero();
-    error TotalCollateralBaseIsLessThanTotalDebtBase(
-        uint256 totalCollateralBase,
-        uint256 totalDebtBase
-    );
-    error WithdrawCollateralTokenInBaseGreaterThanTotalCollateralBase(
-        uint256 withdrawCollateralTokenInBase,
-        uint256 totalCollateralBase
-    );
-    error RequiredDebtTokenAmountInBaseGreaterThanTotalDebtBase(
-        uint256 requiredDebtTokenAmountInBase,
-        uint256 totalDebtBase
-    );
-    error NewTotalCollateralBaseLessThanNewTotalDebtBase(
-        uint256 newTotalCollateralBase,
-        uint256 newTotalDebtBase
-    );
     error ZeroShares();
-    error InputDebtTokenAmountIsZero();
-    error InputCollateralTokenAmountIsZero();
 
     /**
      * @dev Constructor for the DLoopCore contract
