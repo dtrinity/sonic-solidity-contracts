@@ -34,6 +34,16 @@ library CoreLogic {
         uint256 totalCollateralBase,
         uint256 totalDebtBase
     );
+    error InputCollateralTokenAmountIsZero();
+    error LeverageExceedsTarget(
+        uint256 currentLeverageBps,
+        uint256 targetLeverageBps
+    );
+    error InputDebtTokenAmountIsZero();
+    error LeverageBelowTarget(
+        uint256 currentLeverageBps,
+        uint256 targetLeverageBps
+    );
 
     /**
      * @dev Gets the current leverage in basis points
@@ -497,6 +507,56 @@ library CoreLogic {
     }
 
     /**
+     * @dev Gets the debt token amount to be borrowed to increase the leverage, given the input collateral token amount
+     * @param inputCollateralDepositTokenAmount The collateral deposit amount in token unit
+     * @param subsidyBps The subsidy in basis points unit
+     * @param collateralTokenDecimals The collateral token decimals
+     * @param collateralTokenPriceInBase The collateral token price in base currency
+     * @param debtTokenDecimals The debt token decimals
+     * @param debtTokenPriceInBase The debt token price in base currency
+     * @return outputDebtBorrowTokenAmount The debt token amount to be borrowed in token unit
+     */
+    function getDebtBorrowTokenAmountToIncreaseLeverage(
+        uint256 inputCollateralDepositTokenAmount,
+        uint256 subsidyBps,
+        uint256 collateralTokenDecimals,
+        uint256 collateralTokenPriceInBase,
+        uint256 debtTokenDecimals,
+        uint256 debtTokenPriceInBase
+    ) public pure returns (uint256 outputDebtBorrowTokenAmount) {
+        // Make sure the input collateral token amount is not zero
+        if (inputCollateralDepositTokenAmount == 0) {
+            revert InputCollateralTokenAmountIsZero();
+        }
+
+        // Calculate everything before transferring, supplying and borrowing to avoid
+        // any potential impact from the child contract implementation
+
+        // Calculate the amount of collateral token in base currency to deposit
+        uint256 inputCollateralDepositAmountInBase = convertFromTokenAmountToBaseCurrency(
+                inputCollateralDepositTokenAmount,
+                collateralTokenDecimals,
+                collateralTokenPriceInBase
+            );
+
+        // The amount of debt token to borrow is equal to the amount of collateral token deposited
+        // plus the subsidy (bonus for the caller)
+        uint256 borrowedDebtTokenInBase = getDebtBorrowAmountInBaseToIncreaseLeverage(
+                inputCollateralDepositAmountInBase,
+                subsidyBps
+            );
+
+        // Convert the amount of debt token in base currency to token unit
+        outputDebtBorrowTokenAmount = convertFromBaseCurrencyToToken(
+            borrowedDebtTokenInBase,
+            debtTokenDecimals,
+            debtTokenPriceInBase
+        );
+
+        return outputDebtBorrowTokenAmount;
+    }
+
+    /**
      * @dev Gets the debt amount in base currency to reach the target leverage
      *      - This method is only being called for decreasing the leverage quote in quoteRebalanceAmountToReachTargetLeverage()
      *      - It will failed if the current leverage is below the target leverage (which requires the user to call increaseLeverage)
@@ -644,6 +704,56 @@ library CoreLogic {
                 BasisPointConstants.ONE_HUNDRED_PERCENT_BPS,
                 Math.Rounding.Ceil
             );
+    }
+
+    /**
+     * @dev Gets the collateral token amount to be withdraw to repay the debt token
+     * @param inputDebtRepayTokenAmount The debt amount in token unit to be repaid
+     * @param subsidyBps The subsidy in basis points unit
+     * @param collateralTokenDecimals The collateral token decimals
+     * @param collateralTokenPriceInBase The collateral token price in base currency
+     * @param debtTokenDecimals The debt token decimals
+     * @param debtTokenPriceInBase The debt token price in base currency
+     * @return outputCollateralWithdrawTokenAmount The collateral token amount to be withdraw in token unit
+     */
+    function getCollateralWithdrawTokenAmountToDecreaseLeverage(
+        uint256 inputDebtRepayTokenAmount,
+        uint256 subsidyBps,
+        uint256 collateralTokenDecimals,
+        uint256 collateralTokenPriceInBase,
+        uint256 debtTokenDecimals,
+        uint256 debtTokenPriceInBase
+    ) public pure returns (uint256 outputCollateralWithdrawTokenAmount) {
+        // Make sure the input debt token amount is not zero
+        if (inputDebtRepayTokenAmount == 0) {
+            revert InputDebtTokenAmountIsZero();
+        }
+
+        // Calculate everything before transferring, repaying and withdrawing to avoid
+        // any potential impact from the child contract implementation
+
+        // Calculate the amount of debt token in base currency to repay
+        uint256 inputDebtRepayAmountInBase = convertFromTokenAmountToBaseCurrency(
+                inputDebtRepayTokenAmount,
+                debtTokenDecimals,
+                debtTokenPriceInBase
+            );
+
+        // The amount of collateral asset to withdraw is equal to the amount of debt token repaid
+        // plus the subsidy (bonus for the caller)
+        uint256 withdrawCollateralTokenInBase = getCollateralWithdrawAmountInBaseToDecreaseLeverage(
+                inputDebtRepayAmountInBase,
+                subsidyBps
+            );
+
+        // Convert the amount of collateral token in base currency to token unit
+        outputCollateralWithdrawTokenAmount = convertFromBaseCurrencyToToken(
+            withdrawCollateralTokenInBase,
+            collateralTokenDecimals,
+            collateralTokenPriceInBase
+        );
+
+        return outputCollateralWithdrawTokenAmount;
     }
 
     /**

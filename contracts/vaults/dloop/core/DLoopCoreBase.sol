@@ -1122,39 +1122,25 @@ abstract contract DLoopCoreBase is
          *    - Leverage: 300,000 / (300,000 - 140,000) = 1.875x
          */
 
-        // Make sure the input collateral token amount is not zero
-        if (inputCollateralTokenAmount == 0) {
-            revert InputCollateralTokenAmountIsZero();
-        }
-
         // Make sure only increase the leverage if it is below the target leverage
-        uint256 currentLeverageBps = getCurrentLeverageBps();
-        if (currentLeverageBps >= targetLeverageBps) {
-            revert LeverageExceedsTarget(currentLeverageBps, targetLeverageBps);
+        uint256 currentLeverageBpsBeforeIncreaseLeverage = getCurrentLeverageBps();
+        if (currentLeverageBpsBeforeIncreaseLeverage >= targetLeverageBps) {
+            revert LeverageExceedsTarget(
+                currentLeverageBpsBeforeIncreaseLeverage,
+                targetLeverageBps
+            );
         }
 
-        // Calculate everything before transferring, supplying and borrowing to avoid
-        // any potential impact from the child contract implementation
-
-        // Calculate the amount of collateral token in base currency to deposit
-        uint256 inputCollateralDepositAmountInBase = convertFromTokenAmountToBaseCurrency(
+        // Get the amount of debt token to borrow to increase the leverage, given the input collateral token amount
+        uint256 borrowedDebtTokenAmount = CoreLogic
+            .getDebtBorrowTokenAmountToIncreaseLeverage(
                 inputCollateralTokenAmount,
-                address(collateralToken)
+                getCurrentSubsidyBps(),
+                ERC20(collateralToken).decimals(),
+                getAssetPriceFromOracle(address(collateralToken)),
+                ERC20(debtToken).decimals(),
+                getAssetPriceFromOracle(address(debtToken))
             );
-
-        // The amount of debt token to borrow is equal to the amount of collateral token deposited
-        // plus the subsidy (bonus for the caller)
-        uint256 borrowedDebtTokenInBase = CoreLogic
-            .getDebtBorrowAmountInBaseToIncreaseLeverage(
-                inputCollateralDepositAmountInBase,
-                getCurrentSubsidyBps()
-            );
-
-        // Convert the amount of debt token in base currency to token unit
-        uint256 borrowedDebtTokenAmount = convertFromBaseCurrencyToToken(
-            borrowedDebtTokenInBase,
-            address(debtToken)
-        );
 
         // Transfer the input collateral token from the caller to the vault
         collateralToken.safeTransferFrom(
@@ -1164,7 +1150,7 @@ abstract contract DLoopCoreBase is
         );
 
         // Supply the collateral token to the lending pool
-        uint256 suppliedCollateralTokenAmount = _supplyToPool(
+        uint256 actualSuppliedCollateralTokenAmount = _supplyToPool(
             address(collateralToken),
             inputCollateralTokenAmount,
             address(this)
@@ -1193,12 +1179,12 @@ abstract contract DLoopCoreBase is
         uint256 newCurrentLeverageBps = getCurrentLeverageBps();
         if (
             newCurrentLeverageBps > targetLeverageBps ||
-            newCurrentLeverageBps <= currentLeverageBps
+            newCurrentLeverageBps <= currentLeverageBpsBeforeIncreaseLeverage
         ) {
             revert IncreaseLeverageOutOfRange(
                 newCurrentLeverageBps,
                 targetLeverageBps,
-                currentLeverageBps
+                currentLeverageBpsBeforeIncreaseLeverage
             );
         }
 
@@ -1211,7 +1197,7 @@ abstract contract DLoopCoreBase is
             msg.sender,
             inputCollateralTokenAmount,
             minReceivedDebtTokenAmount,
-            suppliedCollateralTokenAmount, // Supplied collateral token amount
+            actualSuppliedCollateralTokenAmount, // Supplied collateral token amount
             actualBorrowedDebtTokenAmount // Borrowed debt token amount
         );
     }
@@ -1251,39 +1237,22 @@ abstract contract DLoopCoreBase is
          *    - Leverage: 180,000 / (180,000 - 130,000) = 3.6x
          */
 
-        // Make sure the input debt token amount is not zero
-        if (inputDebtTokenAmount == 0) {
-            revert InputDebtTokenAmountIsZero();
-        }
-
         // Make sure only decrease the leverage if it is above the target leverage
         uint256 currentLeverageBps = getCurrentLeverageBps();
         if (currentLeverageBps <= targetLeverageBps) {
             revert LeverageBelowTarget(currentLeverageBps, targetLeverageBps);
         }
 
-        // Calculate everything before transferring, repaying and withdrawing to avoid
-        // any potential impact from the child contract implementation
-
-        // Calculate the amount of debt token in base currency to repay
-        uint256 inputDebtRepayAmountInBase = convertFromTokenAmountToBaseCurrency(
+        // Get the amount of collateral token to withdraw to decrease the leverage, given the input debt token amount
+        uint256 withdrawnCollateralTokenAmount = CoreLogic
+            .getCollateralWithdrawTokenAmountToDecreaseLeverage(
                 inputDebtTokenAmount,
-                address(debtToken)
+                getCurrentSubsidyBps(),
+                ERC20(collateralToken).decimals(),
+                getAssetPriceFromOracle(address(collateralToken)),
+                ERC20(debtToken).decimals(),
+                getAssetPriceFromOracle(address(debtToken))
             );
-
-        // The amount of collateral asset to withdraw is equal to the amount of debt token repaid
-        // plus the subsidy (bonus for the caller)
-        uint256 withdrawCollateralTokenInBase = CoreLogic
-            .getCollateralWithdrawAmountInBaseToDecreaseLeverage(
-                inputDebtRepayAmountInBase,
-                getCurrentSubsidyBps()
-            );
-
-        // Convert the amount of collateral token in base currency to token unit
-        uint256 withdrawnCollateralTokenAmount = convertFromBaseCurrencyToToken(
-            withdrawCollateralTokenInBase,
-            address(collateralToken)
-        );
 
         // Transfer the additional debt token from the caller to the vault
         debtToken.safeTransferFrom(
