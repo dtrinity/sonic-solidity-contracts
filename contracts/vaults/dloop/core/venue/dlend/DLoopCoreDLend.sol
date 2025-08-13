@@ -104,14 +104,14 @@ contract DLoopCoreDLend is DLoopCoreBase, RewardClaimable {
             _maxSubsidyBps
         )
         RewardClaimable(
-            address(_debtToken),
+            address(this), // Use the vault shares as the exchange asset
             _treasury,
             _maxTreasuryFeeBps,
             _initialTreasuryFeeBps,
             _initialExchangeThreshold
         )
     {
-        // Always use the debt token as the exchange asset in reward claim logic
+        // Always use the vault shares as the exchange asset in reward claim logic
         lendingPoolAddressesProvider = _lendingPoolAddressesProvider;
         dLendRewardsController = _rewardsController;
         dLendAssetToClaimFor = _dLendAssetToClaimFor;
@@ -376,8 +376,8 @@ contract DLoopCoreDLend is DLoopCoreBase, RewardClaimable {
      * @param amount The amount of exchange asset to deposit
      */
     function _processExchangeAssetDeposit(uint256 amount) internal override {
-        // As the exchange asset is the debt token, we use it to repay the debt,
-        // which means to reduce the borrowing interest to be paid
-        _repayDebtToPoolImplementation(exchangeAsset, amount, address(this));
+        // As the exchange asset is the vault shares, we need to burn it
+        // to increase the share's value
+        _burn(address(this), amount);
     }
 }
