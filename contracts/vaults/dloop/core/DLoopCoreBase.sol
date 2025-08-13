@@ -99,6 +99,12 @@ abstract contract DLoopCoreBase is
         address debtAsset,
         uint256 requiredAllowance
     );
+    error InsufficientAllowanceOfCollateralAssetToSupply(
+        address owner,
+        address spender,
+        address collateralAsset,
+        uint256 requiredAllowance
+    );
     error DepositInsufficientToSupply(
         uint256 currentBalance,
         uint256 newTotalAssets
@@ -820,12 +826,30 @@ abstract contract DLoopCoreBase is
      * @dev Handles the logic of supplying collateral token and borrowing debt token
      * @param caller Address of the caller
      * @param supplyAssetAmount Amount of assets to supply
-     * @return debtAssetAmountToBorrow Amount of debt asset to borrow
+     * @return borrowedDebtTokenAmount Amount of debt asset to borrow
      */
     function _supplyAndBorrowFromPoolImplementation(
         address caller,
         uint256 supplyAssetAmount // supply amount
-    ) private returns (uint256) {
+    ) private returns (uint256 borrowedDebtTokenAmount) {
+        // Get current leverage before transferring, supplying and borrowing
+        // to avoid unexpected impact from the child contract implementation
+        // IMPORTANT: this is the leverage before supplying
+        uint256 currentLeverageBpsBeforeSupply = getCurrentLeverageBps();
+
+        // If do not have enough allowance, revert with the error message
+        // This is to early-revert with instruction in the error message
+        if (
+            collateralToken.allowance(caller, address(this)) < supplyAssetAmount
+        ) {
+            revert InsufficientAllowanceOfCollateralAssetToSupply(
+                caller,
+                address(this),
+                address(collateralToken),
+                supplyAssetAmount
+            );
+        }
+
         // Transfer the assets to the vault (need the allowance before calling this function)
         collateralToken.safeTransferFrom(
             caller,
@@ -833,39 +857,23 @@ abstract contract DLoopCoreBase is
             supplyAssetAmount
         );
 
-        // At this step, we assume that the funds from the depositor are already in the vault
-
-        // Get current leverage before supplying (IMPORTANT: this is the leverage before supplying)
-        uint256 currentLeverageBpsBeforeSupply = getCurrentLeverageBps();
-
-        // Make sure we have enough balance to supply before supplying
-        uint256 currentCollateralTokenBalance = collateralToken.balanceOf(
-            address(this)
-        );
-        if (currentCollateralTokenBalance < supplyAssetAmount) {
-            revert DepositInsufficientToSupply(
-                currentCollateralTokenBalance,
-                supplyAssetAmount
-            );
-        }
+        // At this step, the fund from the depositor is already in the vault
 
         // In this case, the vault is user of the lending pool
         // So, we need to supply the collateral token to the pool on behalf of the vault
         // and then borrow the debt token from the pool on behalf of the vault
 
         // Supply the collateral token to the lending pool
-        // Update the supply asset amount to the actual amount
-        supplyAssetAmount = _supplyToPool(
+        uint256 actualSupplyAssetAmount = _supplyToPool(
             address(collateralToken),
             supplyAssetAmount,
             address(this) // the vault is the supplier
         );
 
         // Get the amount of debt token to borrow that keeps the current leverage
-        // If there is no deposit yet (leverage=0), we use the target leverage
         uint256 debtTokenAmountToBorrow = CoreLogic
             .getBorrowAmountThatKeepCurrentLeverage(
-                supplyAssetAmount,
+                actualSupplyAssetAmount,
                 currentLeverageBpsBeforeSupply,
                 targetLeverageBps,
                 ERC20(collateralToken).decimals(),
@@ -875,14 +883,13 @@ abstract contract DLoopCoreBase is
             );
 
         // Borrow the max amount of debt token
-        // Update the debt token amount borrowed to the actual amount
-        debtTokenAmountToBorrow = _borrowFromPool(
+        borrowedDebtTokenAmount = _borrowFromPool(
             address(debtToken),
             debtTokenAmountToBorrow,
             address(this) // the vault is the borrower
         );
 
-        return debtTokenAmountToBorrow;
+        return borrowedDebtTokenAmount;
     }
 
     /* Withdraw and Redeem */
@@ -941,12 +948,6 @@ abstract contract DLoopCoreBase is
             _spendAllowance(owner, caller, shares);
         }
 
-        // Check user's balance before burning shares
-        uint256 userShares = balanceOf(owner);
-        if (userShares < shares) {
-            revert InsufficientShareBalanceToRedeem(owner, shares, userShares);
-        }
-
         // Burn the shares
         _burn(owner, shares);
 
@@ -983,10 +984,12 @@ abstract contract DLoopCoreBase is
         address caller,
         uint256 collateralTokenToWithdraw
     ) private returns (uint256 repaidDebtTokenAmount) {
-        // Get the current leverage before repaying the debt (IMPORTANT: this is the leverage before repaying the debt)
-        // It is used to calculate the expected withdrawable amount that keeps the current leverage
+        // Get current leverage before transferring, repaying and withdrawing
+        // to avoid unexpected impact from the child contract implementation
+        // IMPORTANT: this is the leverage before repaying the debt
         uint256 leverageBpsBeforeRepayDebt = getCurrentLeverageBps();
 
+        // Get the amount of debt token to repay to keep the current leverage
         repaidDebtTokenAmount = CoreLogic.getRepayAmountThatKeepCurrentLeverage(
             collateralTokenToWithdraw,
             leverageBpsBeforeRepayDebt,
@@ -1021,7 +1024,8 @@ abstract contract DLoopCoreBase is
         // and then withdraw the collateral from the pool on behalf of the vault
 
         // Repay the debt to withdraw the collateral
-        // Update the repaid debt token amount to the actual amount
+        // Update the repaid debt token amount to the actual amount as this
+        // variable is also the return value of this function
         repaidDebtTokenAmount = _repayDebtToPool(
             address(debtToken),
             repaidDebtTokenAmount,
