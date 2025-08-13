@@ -18,6 +18,7 @@
 pragma solidity 0.8.20;
 
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
+import {Compare} from "contracts/common/Compare.sol";
 
 /**
  * @title SwappableVault
@@ -121,20 +122,17 @@ abstract contract SwappableVault {
             }
 
             // Second check: ensure spent amount matches returned amount within tolerance
-            if (spentInputTokenAmount > amountIn) {
-                if (spentInputTokenAmount - amountIn > BALANCE_DIFF_TOLERANCE) {
-                    revert SpentInputTokenAmountNotEqualReturnedAmountIn(
-                        spentInputTokenAmount,
-                        amountIn
-                    );
-                }
-            } else if (amountIn > spentInputTokenAmount) {
-                if (amountIn - spentInputTokenAmount > BALANCE_DIFF_TOLERANCE) {
-                    revert SpentInputTokenAmountNotEqualReturnedAmountIn(
-                        spentInputTokenAmount,
-                        amountIn
-                    );
-                }
+            if (
+                !Compare.isWithinTolerance(
+                    spentInputTokenAmount,
+                    amountIn,
+                    BALANCE_DIFF_TOLERANCE
+                )
+            ) {
+                revert SpentInputTokenAmountNotEqualReturnedAmountIn(
+                    spentInputTokenAmount,
+                    amountIn
+                );
             }
             // If spentInputTokenAmount == amountIn, no need to check (perfect match)
         }
@@ -148,28 +146,17 @@ abstract contract SwappableVault {
 
             // Allow receiving slightly more than requested (beneficial)
             // but restrict receiving significantly less than requested
-            if (receivedOutputTokenAmount < amountOut) {
-                // Received less than expected - check if within tolerance
-                if (
-                    amountOut - receivedOutputTokenAmount >
+            if (
+                !Compare.isWithinTolerance(
+                    receivedOutputTokenAmount,
+                    amountOut,
                     BALANCE_DIFF_TOLERANCE
-                ) {
-                    revert ReceivedOutputTokenAmountNotEqualAmountOut(
-                        receivedOutputTokenAmount,
-                        amountOut
-                    );
-                }
-            } else if (receivedOutputTokenAmount > amountOut) {
-                // Received more than expected - check if within tolerance
-                if (
-                    receivedOutputTokenAmount - amountOut >
-                    BALANCE_DIFF_TOLERANCE
-                ) {
-                    revert ReceivedOutputTokenAmountNotEqualAmountOut(
-                        receivedOutputTokenAmount,
-                        amountOut
-                    );
-                }
+                )
+            ) {
+                revert ReceivedOutputTokenAmountNotEqualAmountOut(
+                    receivedOutputTokenAmount,
+                    amountOut
+                );
             }
             // If receivedOutputTokenAmount == amountOut, no need to check (perfect match)
         } else {

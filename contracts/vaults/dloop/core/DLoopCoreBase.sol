@@ -25,6 +25,7 @@ import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol
 import {RescuableVault} from "contracts/common/RescuableVault.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {CoreLogic} from "./CoreLogic.sol";
+import {Compare} from "contracts/common/Compare.sol";
 
 /**
  * @title DLoopCoreBase
@@ -393,25 +394,19 @@ abstract contract DLoopCoreBase is
         // Allow a 1-wei rounding tolerance when comparing the observed balance change with `amount`
         uint256 observedDiffSupply = tokenBalanceBeforeSupply -
             tokenBalanceAfterSupply;
-
-        if (observedDiffSupply > amount) {
-            if (observedDiffSupply - amount > BALANCE_DIFF_TOLERANCE) {
-                revert UnexpectedSupplyAmountToPool(
-                    token,
-                    tokenBalanceBeforeSupply,
-                    tokenBalanceAfterSupply,
-                    amount
-                );
-            }
-        } else {
-            if (amount - observedDiffSupply > BALANCE_DIFF_TOLERANCE) {
-                revert UnexpectedSupplyAmountToPool(
-                    token,
-                    tokenBalanceBeforeSupply,
-                    tokenBalanceAfterSupply,
-                    amount
-                );
-            }
+        if (
+            !Compare.isWithinTolerance(
+                observedDiffSupply,
+                amount,
+                BALANCE_DIFF_TOLERANCE
+            )
+        ) {
+            revert UnexpectedSupplyAmountToPool(
+                token,
+                tokenBalanceBeforeSupply,
+                tokenBalanceAfterSupply,
+                amount
+            );
         }
 
         // Return the observed value to avoid the case when the actual amount is 1 wei different from the expected amount
@@ -449,24 +444,19 @@ abstract contract DLoopCoreBase is
         // Allow a 1-wei rounding tolerance when comparing the observed balance change with `amount`
         uint256 observedDiffBorrow = tokenBalanceAfterBorrow -
             tokenBalanceBeforeBorrow;
-        if (observedDiffBorrow > amount) {
-            if (observedDiffBorrow - amount > BALANCE_DIFF_TOLERANCE) {
-                revert UnexpectedBorrowAmountFromPool(
-                    token,
-                    tokenBalanceBeforeBorrow,
-                    tokenBalanceAfterBorrow,
-                    amount
-                );
-            }
-        } else {
-            if (amount - observedDiffBorrow > BALANCE_DIFF_TOLERANCE) {
-                revert UnexpectedBorrowAmountFromPool(
-                    token,
-                    tokenBalanceBeforeBorrow,
-                    tokenBalanceAfterBorrow,
-                    amount
-                );
-            }
+        if (
+            !Compare.isWithinTolerance(
+                observedDiffBorrow,
+                amount,
+                BALANCE_DIFF_TOLERANCE
+            )
+        ) {
+            revert UnexpectedBorrowAmountFromPool(
+                token,
+                tokenBalanceBeforeBorrow,
+                tokenBalanceAfterBorrow,
+                amount
+            );
         }
 
         // Now, as balance before must be less than balance after, we can just check if the difference is the expected amount
@@ -512,24 +502,19 @@ abstract contract DLoopCoreBase is
         // Now, allow a 1-wei rounding tolerance on the observed balance decrease.
         uint256 observedDiffRepay = tokenBalanceBeforeRepay -
             tokenBalanceAfterRepay;
-        if (observedDiffRepay > amount) {
-            if (observedDiffRepay - amount > BALANCE_DIFF_TOLERANCE) {
-                revert UnexpectedRepayAmountToPool(
-                    token,
-                    tokenBalanceBeforeRepay,
-                    tokenBalanceAfterRepay,
-                    amount
-                );
-            }
-        } else {
-            if (amount - observedDiffRepay > BALANCE_DIFF_TOLERANCE) {
-                revert UnexpectedRepayAmountToPool(
-                    token,
-                    tokenBalanceBeforeRepay,
-                    tokenBalanceAfterRepay,
-                    amount
-                );
-            }
+        if (
+            !Compare.isWithinTolerance(
+                observedDiffRepay,
+                amount,
+                BALANCE_DIFF_TOLERANCE
+            )
+        ) {
+            revert UnexpectedRepayAmountToPool(
+                token,
+                tokenBalanceBeforeRepay,
+                tokenBalanceAfterRepay,
+                amount
+            );
         }
 
         // Return the observed value to avoid the case when the actual amount is 1 wei different from the expected amount
@@ -569,24 +554,19 @@ abstract contract DLoopCoreBase is
         // Allow a 1-wei rounding tolerance on the observed balance increase
         uint256 observedDiffWithdraw = tokenBalanceAfterWithdraw -
             tokenBalanceBeforeWithdraw;
-        if (observedDiffWithdraw > amount) {
-            if (observedDiffWithdraw - amount > BALANCE_DIFF_TOLERANCE) {
-                revert UnexpectedWithdrawAmountFromPool(
-                    token,
-                    tokenBalanceBeforeWithdraw,
-                    tokenBalanceAfterWithdraw,
-                    amount
-                );
-            }
-        } else {
-            if (amount - observedDiffWithdraw > BALANCE_DIFF_TOLERANCE) {
-                revert UnexpectedWithdrawAmountFromPool(
-                    token,
-                    tokenBalanceBeforeWithdraw,
-                    tokenBalanceAfterWithdraw,
-                    amount
-                );
-            }
+        if (
+            !Compare.isWithinTolerance(
+                observedDiffWithdraw,
+                amount,
+                BALANCE_DIFF_TOLERANCE
+            )
+        ) {
+            revert UnexpectedWithdrawAmountFromPool(
+                token,
+                tokenBalanceBeforeWithdraw,
+                tokenBalanceAfterWithdraw,
+                amount
+            );
         }
 
         // Return the observed value to avoid the case when the actual amount is 1 wei different from the expected amount
