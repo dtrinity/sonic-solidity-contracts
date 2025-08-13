@@ -13,6 +13,11 @@ library CoreLogic {
         uint256 totalDebtBase
     );
     error InvalidLeverage(uint256 leverageBps);
+    error TotalCollateralBaseIsZero();
+    error TotalCollateralBaseIsLessThanTotalDebtBase(
+        uint256 totalCollateralBase,
+        uint256 totalDebtBase
+    );
 
     /**
      * @dev Gets the current leverage in basis points
@@ -158,6 +163,470 @@ library CoreLogic {
                 assets,
                 leverageBps,
                 BasisPointConstants.ONE_HUNDRED_PERCENT_BPS
+            );
+    }
+
+    /**
+     * @dev Gets the repay amount that keeps the current leverage
+     * @param targetWithdrawAmount The target withdraw amount
+     * @param leverageBpsBeforeRepayDebt The leverage in basis points before repaying debt
+     * @param collateralTokenDecimals The decimals of the collateral token
+     * @param collateralTokenPriceInBase The price of the collateral token in base currency
+     * @param debtTokenDecimals The decimals of the debt token
+     * @param debtTokenPriceInBase The price of the debt token in base currency
+     * @return repayAmount The repay amount that keeps the current leverage
+     */
+    function getRepayAmountThatKeepCurrentLeverage(
+        uint256 targetWithdrawAmount,
+        uint256 leverageBpsBeforeRepayDebt,
+        uint256 collateralTokenDecimals,
+        uint256 collateralTokenPriceInBase,
+        uint256 debtTokenDecimals,
+        uint256 debtTokenPriceInBase
+    ) public pure returns (uint256 repayAmount) {
+        /* Formula definition:
+         * - C1: totalCollateralBase before repay (in base currency)
+         * - D1: totalDebtBase before repay (in base currency)
+         * - C2: totalCollateralBase after repay (in base currency)
+         * - D2: totalDebtBase after repay (in base currency)
+         * - T: target leverage
+         * - x: withdraw amount in base currency
+         * - y: repay amount in base currency
+         *
+         * We have:
+         *        C1 / (C1-D1) = C2 / (C2-D2)
+         *        C2 = C1-x
+         *        D2 = D1-y
+         *        C1 / (C1-D1) = T <=> C1 = (C1-D1) * T <=> C1 = C1*T - D1*T <=> C1*T - C1 = D1*T <=> C1 = D1*T/(T-1)
+         *
+         * Formula expression:
+         *        C1 / (C1-D1) = (C1-x) / (C1-x-D1+y)
+         *    <=> C1 * (C1-x-D1+y) = (C1-x) * (C1-D1)
+         *    <=> C1^2 - C1*x - C1*D1 + C1*y = C1^2 - C1*D1 - C1*x + D1*x
+         *    <=> C1^2 - C1*x - C1*D1 + C1*y = C1^2 - C1*x - C1*D1 + D1*x
+         *    <=> C1*y = x*D1
+         *    <=> y = x*D1 / C1
+         *    <=> y = x*D1 / [D1*T / (T-1)]
+         *    <=> y = x * (T-1)/T
+         *
+         * Suppose that T' = T * ONE_HUNDRED_PERCENT_BPS, then:
+         *
+         *  => T = T' / ONE_HUNDRED_PERCENT_BPS
+         * where T' is the target leverage in basis points unit
+         *
+         * We have:
+         *      y = x * (T-1)/T
+         *  <=> y = x * (T' / ONE_HUNDRED_PERCENT_BPS - 1) / (T' / ONE_HUNDRED_PERCENT_BPS)
+         *  <=> y = x * (T' - ONE_HUNDRED_PERCENT_BPS) / T'
+         */
+
+        // Short-circuit when leverageBpsBeforeRepayDebt == 0
+        if (leverageBpsBeforeRepayDebt == 0) {
+            // no collateral means no debt yet, so nothing to repay
+            return 0;
+        }
+
+        // Convert the target withdraw amount to base
+        uint256 targetWithdrawAmountInBase = convertFromTokenAmountToBaseCurrency(
+                targetWithdrawAmount,
+                collateralTokenDecimals,
+                collateralTokenPriceInBase
+            );
+
+        // Calculate the repay amount in base
+        uint256 repayAmountInBase = Math.mulDiv(
+            targetWithdrawAmountInBase,
+            leverageBpsBeforeRepayDebt -
+                BasisPointConstants.ONE_HUNDRED_PERCENT_BPS,
+            leverageBpsBeforeRepayDebt
+        );
+
+        return
+            convertFromBaseCurrencyToToken(
+                repayAmountInBase,
+                debtTokenDecimals,
+                debtTokenPriceInBase
+            );
+    }
+
+    /**
+     * @dev Gets the borrow amount that keeps the current leverage
+     * @param suppliedCollateralAmount The actual supplied amount of collateral asset
+     * @param leverageBpsBeforeSupply Leverage in basis points before supplying
+     * @param targetLeverageBps The target leverage in basis points
+     * @param collateralTokenDecimals The decimals of the collateral token
+     * @param collateralTokenPriceInBase The price of the collateral token in base currency
+     * @param debtTokenDecimals The decimals of the debt token
+     * @param debtTokenPriceInBase The price of the debt token in base currency
+     * @return expectedBorrowAmount The expected borrow amount that keeps the current leverage
+     */
+    function getBorrowAmountThatKeepCurrentLeverage(
+        uint256 suppliedCollateralAmount,
+        uint256 leverageBpsBeforeSupply,
+        uint256 targetLeverageBps,
+        uint256 collateralTokenDecimals,
+        uint256 collateralTokenPriceInBase,
+        uint256 debtTokenDecimals,
+        uint256 debtTokenPriceInBase
+    ) public pure returns (uint256 expectedBorrowAmount) {
+        /* Formula definition:
+         * - C1: totalCollateralBase before supply (in base currency)
+         * - D1: totalDebtBase before supply (in base currency)
+         * - C2: totalCollateralBase after supply (in base currency)
+         * - D2: totalDebtBase after supply (in base currency)
+         * - T: target leverage
+         * - x: supply amount in base currency
+         * - y: borrow amount in base currency
+         *
+         * We have:
+         *      C1 / (C1-D1) = C2 / (C2-D2)
+         *      C2 = C1+x
+         *      D2 = D1+y
+         *      C1 / (C1-D1) = T <=> C1 = (C1-D1) * T <=> C1 = C1*T - D1*T <=> C1*T - C1 = D1*T <=> C1 = D1*T/(T-1)
+         *
+         * Formula expression:
+         *      C1 / (C1-D1) = (C1+x) / (C1+x-D1-y)
+         *  <=> C1 * (C1+x-D1-y) = (C1+x) * (C1-D1)
+         *  <=> C1^2 + C1*x - C1*D1 - C1*y = C1^2 - C1*D1 + C1*x - D1*x
+         *  <=> C1*y = x*D1
+         *  <=> y = x*D1 / C1
+         *  <=> y = x * (T-1)/T
+         *
+         * Suppose that:
+         *      T' = T * ONE_HUNDRED_PERCENT_BPS, then:
+         *   => T = T' / ONE_HUNDRED_PERCENT_BPS
+         * where:
+         *      - T' is the target leverage in basis points unit
+         *
+         * This is the formula to calculate the borrow amount that keeps the current leverage:
+         *      y = x * (T-1)/T
+         *  <=> y = x * (T' / ONE_HUNDRED_PERCENT_BPS - 1) / (T' / ONE_HUNDRED_PERCENT_BPS)
+         *  <=> y = x * (T' - ONE_HUNDRED_PERCENT_BPS) / T'
+         */
+
+        if (leverageBpsBeforeSupply == 0) {
+            // This is the case when there is no deposit yet, so we use the target leverage
+            leverageBpsBeforeSupply = targetLeverageBps;
+        }
+
+        // Convert the actual supplied amount to base
+        uint256 suppliedCollateralAmountInBase = convertFromTokenAmountToBaseCurrency(
+                suppliedCollateralAmount,
+                collateralTokenDecimals,
+                collateralTokenPriceInBase
+            );
+
+        // Calculate the borrow amount in base currency that keeps the current leverage
+        uint256 borrowAmountInBase = Math.mulDiv(
+            suppliedCollateralAmountInBase,
+            leverageBpsBeforeSupply -
+                BasisPointConstants.ONE_HUNDRED_PERCENT_BPS,
+            leverageBpsBeforeSupply
+        );
+
+        return
+            convertFromBaseCurrencyToToken(
+                borrowAmountInBase,
+                debtTokenDecimals,
+                debtTokenPriceInBase
+            );
+    }
+
+    /**
+     * @dev Gets the collateral token amount to reach the target leverage
+     *      - This method is only being called for increasing the leverage quote in quoteRebalanceAmountToReachTargetLeverage()
+     *      - It will failed if the current leverage is above the target leverage (which requires the user to call decreaseLeverage)
+     * @param expectedTargetLeverageBps The expected target leverage in basis points unit
+     * @param totalCollateralBase The total collateral base
+     * @param totalDebtBase The total debt base
+     * @param subsidyBps The subsidy in basis points unit
+     * @return requiredCollateralDepositAmountInBase The collateral deposit amount in base currency
+     */
+    function getCollateralTokenDepositAmountToReachTargetLeverage(
+        uint256 expectedTargetLeverageBps,
+        uint256 totalCollateralBase,
+        uint256 totalDebtBase,
+        uint256 subsidyBps
+    ) public pure returns (uint256 requiredCollateralDepositAmountInBase) {
+        /**
+         * Find the amount of collateral to be deposited and the corresponding amount of debt token to be borrowed to rebalance
+         *
+         * The amount of debt token to be borrowed is a bit more than the deposited collateral to pay for the rebalancing subsidy
+         * - Rebalancing caller will receive the debt token as the subsidy
+         *
+         * Formula definition:
+         * - C: totalCollateralBase
+         * - D: totalDebtBase
+         * - T: target leverage
+         * - k: subsidy (0.01 means 1%)
+         * - x: change amount of collateral in base currency
+         * - y: change amount of debt in base currency
+         *
+         * We have:
+         *      y = x*(1+k)   (borrow a bit more debt than the deposited collateral to pay for the rebalancing subsidy)
+         *
+         * Because this is a deposit collateral and borrow debt process, the formula is:
+         *      (C + x) / (C + x - D - y) = T
+         *  <=> C + x = T * (C + x - D - y)
+         *  <=> C + x = T * (C + x - D - x*(1+k))
+         *  <=> C + x = T * (C + x - D - x - x*k)
+         *  <=> C + x = T * (C - D - x*k)
+         *  <=> C + x = T*C - T*D - T*x*k
+         *  <=> x + T*x*k = T*C - T*D - C
+         *  <=> x*(1 + T*k) = T*(C - D) - C
+         *  <=> x = (T*(C - D) - C) / (1 + T*k)
+         *
+         * Suppose that:
+         *      TT = T * ONE_HUNDRED_PERCENT_BPS
+         *      kk = k * ONE_HUNDRED_PERCENT_BPS
+         * then:
+         *      T = TT / ONE_HUNDRED_PERCENT_BPS
+         *      k = kk / ONE_HUNDRED_PERCENT_BPS
+         * where:
+         *      - TT is the target leverage in basis points unit
+         *      - kk is the subsidy in basis points unit
+         *
+         * We have:
+         *      x = (T*(C - D) - C) / (1 + T*k)
+         *  <=> x = (TT*(C - D)/ONE_HUNDRED_PERCENT_BPS - C) / (1 + TT*kk/ONE_HUNDRED_PERCENT_BPS^2)
+         *  <=> x = (TT*(C - D) - C*ONE_HUNDRED_PERCENT_BPS) / (ONE_HUNDRED_PERCENT_BPS + TT*kk/ONE_HUNDRED_PERCENT_BPS)
+         *  <=> x = (TT*(C - D) - C*ONE_HUNDRED_PERCENT_BPS) / denominator
+         * where:
+         *      denominator = ONE_HUNDRED_PERCENT_BPS + TT*kk/ONE_HUNDRED_PERCENT_BPS
+         *
+         * If x < 0, the transaction will be reverted due to the underflow/overflow
+         *
+         * If x = 0, it means the user should not rebalance, so the direction is 0
+         *
+         * Finally, we have y = (1+k)*x:
+         *   => y = (1+k) * x
+         *  <=> y = (1 + kk/ONE_HUNDRED_PERCENT_BPS) * x
+         *  <=> y = (ONE_HUNDRED_PERCENT_BPS + kk) * x / ONE_HUNDRED_PERCENT_BPS
+         *
+         * The value of y here is for reference (the expected amount of debt to borrow)
+         */
+        if (totalCollateralBase == 0) {
+            revert TotalCollateralBaseIsZero();
+        }
+        if (totalCollateralBase < totalDebtBase) {
+            revert TotalCollateralBaseIsLessThanTotalDebtBase(
+                totalCollateralBase,
+                totalDebtBase
+            );
+        }
+
+        uint256 denominator = BasisPointConstants.ONE_HUNDRED_PERCENT_BPS +
+            Math.mulDiv(
+                expectedTargetLeverageBps,
+                subsidyBps,
+                BasisPointConstants.ONE_HUNDRED_PERCENT_BPS
+            );
+
+        // Use ceilDiv as we want to round up required collateral deposit amount in base currency
+        // to avoid getting the new leverage above the target leverage, which will revert the
+        // rebalance process (due to post-process assertion)
+        // The logic is to deposit a bit more collateral, and borrow a bit more debt (due to rounding),
+        // which will guarantee the new leverage cannot be more than the target leverage, avoid
+        // unexpected post-process assertion revert.
+        requiredCollateralDepositAmountInBase = Math.ceilDiv(
+            expectedTargetLeverageBps *
+                (totalCollateralBase - totalDebtBase) -
+                totalCollateralBase *
+                BasisPointConstants.ONE_HUNDRED_PERCENT_BPS,
+            denominator
+        );
+
+        return requiredCollateralDepositAmountInBase;
+    }
+
+    /**
+     * @dev Gets the debt amount in base currency to be borrowed to increase the leverage
+     * @param inputCollateralDepositAmountInBase The collateral deposit amount in base currency
+     * @param subsidyBps The subsidy in basis points unit
+     * @return outputDebtBorrowAmountInBase The debt amount in base currency to be borrowed
+     */
+    function getDebtBorrowAmountInBaseToIncreaseLeverage(
+        uint256 inputCollateralDepositAmountInBase,
+        uint256 subsidyBps
+    ) public pure returns (uint256 outputDebtBorrowAmountInBase) {
+        /**
+         * The formula is:
+         *      y = (1+k) * x
+         *  <=> y = (1 + kk/ONE_HUNDRED_PERCENT_BPS) * x
+         *  <=> y = (ONE_HUNDRED_PERCENT_BPS + kk) * x / ONE_HUNDRED_PERCENT_BPS
+         *
+         * where:
+         *      - y is the debt amount in base currency to be borrowed
+         *      - x is the collateral amount in base currency to be deposited
+         *      - kk is the subsidy in basis points unit
+         *
+         * For more detail, check the comment in _getCollateralTokenDepositAmountToReachTargetLeverage()
+         */
+
+        // Use rounding down with mulDiv with Rounding.Floor as we want to borrow a bit less, to avoid
+        // getting the new leverage above the target leverage, which will revert the
+        // rebalance process (due to post-process assertion)
+        // Borrow a bit less debt (rounding), given the same deposit amount of collateral token
+        // means the new leverage should be lower than the actual leverage (with decimal without rounding)
+        // As we calculate the estimated final leverage is reaching the target leverage,
+        // if we round up, the new leverage can be more than the target leverage (given
+        // the same deposit amount of collateral token), which will revert the rebalance process (due to post-process assertion)
+        return
+            Math.mulDiv(
+                inputCollateralDepositAmountInBase,
+                BasisPointConstants.ONE_HUNDRED_PERCENT_BPS + subsidyBps,
+                BasisPointConstants.ONE_HUNDRED_PERCENT_BPS,
+                Math.Rounding.Floor
+            );
+    }
+
+    /**
+     * @dev Gets the debt amount in base currency to reach the target leverage
+     *      - This method is only being called for decreasing the leverage quote in quoteRebalanceAmountToReachTargetLeverage()
+     *      - It will failed if the current leverage is below the target leverage (which requires the user to call increaseLeverage)
+     * @param expectedTargetLeverageBps The expected target leverage in basis points unit
+     * @param totalCollateralBase The total collateral base
+     * @param totalDebtBase The total debt base
+     * @param subsidyBps The subsidy in basis points unit
+     * @return requiredDebtRepayAmountInBase The debt amount in base currency to be repaid
+     */
+    function getDebtRepayAmountInBaseToReachTargetLeverage(
+        uint256 expectedTargetLeverageBps,
+        uint256 totalCollateralBase,
+        uint256 totalDebtBase,
+        uint256 subsidyBps
+    ) public pure returns (uint256 requiredDebtRepayAmountInBase) {
+        /**
+         * Find the amount of debt to be repaid and the corresponding amount of collateral to be withdraw to rebalance
+         *
+         * The amount of collateral to be withdraw to rebalance which is a bit more than the repay amount of debt token
+         * to pay for the rebalancing subsidy
+         * - Rebalancing caller will receive the collateral token as the subsidy
+         *
+         * Formula definition:
+         * - C: totalCollateralBase
+         * - D: totalDebtBase
+         * - T: target leverage
+         * - k: subsidy (0.01 means 1%)
+         * - x: change amount of collateral in base currency
+         * - y: change amount of debt in base currency
+         *
+         * We have:
+         *      x = y*(1+k)   (withdraw a bit more collateral than the debt to pay for the rebalancing subsidy)
+         *
+         * Because this is a repay debt and withdraw collateral process, the formula is:
+         *      (C - x) / (C - x - D + y) = T
+         *  <=> C - y*(1+k) = T * (C - y*(1+k) - D + y)
+         *  <=> C - y*(1+k) = T * (C - y - y*k - D + y)
+         *  <=> C - y*(1+k) = T * (C - D - y*k)
+         *  <=> y*(1+k) = C - T * (C - D - y*k)
+         *  <=> y*(1+k) = C - T*C + T*D + T*y*k
+         *  <=> y*(1+k) - T*y*k = C - T*C + T*D
+         *  <=> y*(1 + k - T*k) = C - T*C + T*D
+         *  <=> y = (C - T*C + T*D) / (1 + k - T*k)
+         *
+         * Suppose that:
+         *      TT = T * ONE_HUNDRED_PERCENT_BPS
+         *      kk = k * ONE_HUNDRED_PERCENT_BPS
+         * then:
+         *      T = TT / ONE_HUNDRED_PERCENT_BPS
+         *      k = kk / ONE_HUNDRED_PERCENT_BPS
+         * where:
+         *      - TT is the target leverage in basis points unit
+         *      - kk is the subsidy in basis points unit
+         *
+         * We have:
+         *      y = (C - T*C + T*D) / (1 + k - T*k)
+         *  <=> y = (C - TT*C/ONE_HUNDRED_PERCENT_BPS + TT*D/ONE_HUNDRED_PERCENT_BPS) / (1 + kk/ONE_HUNDRED_PERCENT_BPS - TT*kk/ONE_HUNDRED_PERCENT_BPS^2)
+         *  <=> y = (C*ONE_HUNDRED_PERCENT_BPS - TT*C + TT*D) / (ONE_HUNDRED_PERCENT_BPS + kk - TT*kk/ONE_HUNDRED_PERCENT_BPS)
+         *  <=> y = (C*ONE_HUNDRED_PERCENT_BPS - TT*C + TT*D) / denominator
+         *  <=> y = (C*ONE_HUNDRED_PERCENT_BPS - TT*(C - D)) / denominator
+         * where:
+         *      denominator = ONE_HUNDRED_PERCENT_BPS + kk - TT*kk/ONE_HUNDRED_PERCENT_BPS
+         *
+         * If y < 0, the transaction will be reverted due to the underflow/overflow
+         *
+         * If y = 0, it means the user should not rebalance, so the direction is 0
+         *
+         * Finally, we have x = (1+k)*y:
+         *   => x = (1+k) * y
+         *  <=> x = (1 + kk/ONE_HUNDRED_PERCENT_BPS) * y
+         *  <=> x = (ONE_HUNDRED_PERCENT_BPS + kk) * y / ONE_HUNDRED_PERCENT_BPS
+         *
+         * The value of x here is for reference (the expected amount of collateral to withdraw)
+         */
+        if (totalCollateralBase == 0) {
+            revert TotalCollateralBaseIsZero();
+        }
+        if (totalCollateralBase < totalDebtBase) {
+            revert TotalCollateralBaseIsLessThanTotalDebtBase(
+                totalCollateralBase,
+                totalDebtBase
+            );
+        }
+
+        uint256 denominator = BasisPointConstants.ONE_HUNDRED_PERCENT_BPS +
+            subsidyBps -
+            Math.mulDiv(
+                expectedTargetLeverageBps,
+                subsidyBps,
+                BasisPointConstants.ONE_HUNDRED_PERCENT_BPS
+            );
+
+        // Do not use ceilDiv as we want to round down required debt repay amount in base currency
+        // to avoid getting the new leverage below the target leverage, which will revert the
+        // rebalance process (due to post-process assertion)
+        // The logic is to repay a bit less, and withdraw a bit more collateral (due to rounding),
+        // which will guarantee the new leverage cannot be less than the target leverage, avoid
+        // unexpected post-process assertion revert.
+        requiredDebtRepayAmountInBase =
+            (totalCollateralBase *
+                BasisPointConstants.ONE_HUNDRED_PERCENT_BPS -
+                expectedTargetLeverageBps *
+                (totalCollateralBase - totalDebtBase)) /
+            denominator;
+
+        return requiredDebtRepayAmountInBase;
+    }
+
+    /**
+     * @dev Gets the collateral token amount to be withdraw to repay the debt token
+     * @param inputDebtRepayAmountInBase The debt amount in base currency to be repaid
+     * @param subsidyBps The subsidy in basis points unit
+     * @return outputCollateralTokenAmount The collateral token amount to be withdraw
+     */
+    function getCollateralWithdrawAmountInBaseToDecreaseLeverage(
+        uint256 inputDebtRepayAmountInBase,
+        uint256 subsidyBps
+    ) public pure returns (uint256 outputCollateralTokenAmount) {
+        /**
+         * The formula is:
+         *      x = (1+k) * y
+         *  <=> x = (1 + kk/ONE_HUNDRED_PERCENT_BPS) * y
+         *  <=> x = (ONE_HUNDRED_PERCENT_BPS + kk) * y / ONE_HUNDRED_PERCENT_BPS
+         *
+         * where:
+         *      - x is the collateral amount in base currency to be withdraw
+         *      - y is the debt amount in base currency to be repaid
+         *      - kk is the subsidy in basis points unit
+         *
+         * For more detail, check the comment in _getDebtRepayAmountInBaseToReachTargetLeverage()
+         */
+
+        // Use rounding up with mulDiv with Rounding.Ceil as we want to withdraw a bit more, to avoid
+        // getting the new leverage below the target leverage, which will revert the
+        // rebalance process (due to post-process assertion)
+        // Withdraw a bit more collateral (rounding), given the same repay amount of debt token
+        // means the new leverage should be higher than the actual leverage (with decimal without rounding)
+        // As we calculate the estimated final leverage is reaching the target leverage,
+        // if we round down, the new leverage can be less than the target leverage (given
+        // the same repay amount of debt token), which will revert the rebalance process (due to post-process assertion)
+        return
+            Math.mulDiv(
+                inputDebtRepayAmountInBase,
+                BasisPointConstants.ONE_HUNDRED_PERCENT_BPS + subsidyBps,
+                BasisPointConstants.ONE_HUNDRED_PERCENT_BPS,
+                Math.Rounding.Ceil
             );
     }
 }

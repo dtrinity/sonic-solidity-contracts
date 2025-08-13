@@ -224,7 +224,7 @@ abstract contract DLoopRedeemerBase is
          * In redeeming, we do not need to calculate the _calculateEstimatedOverallSlippageBps(), as the
          * withdrawn collateral token amount is always larger than the flashloan debt token amount (due to the leverage logic):
          *
-         * According to the formula in DLoopCoreBase.getRepayAmountThatKeepCurrentLeverage():
+         * According to the formula in getRepayAmountThatKeepCurrentLeverage() of CoreLogic:
          *       y = x * (T-1)/T
          *   and
          *       y = x * (T' - ONE_HUNDRED_PERCENT_BPS) / T'
