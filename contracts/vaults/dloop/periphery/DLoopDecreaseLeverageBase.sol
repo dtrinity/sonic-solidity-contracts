@@ -180,8 +180,11 @@ abstract contract DLoopDecreaseLeverageBase is
         }
 
         // Calculate the required debt amount to reach target leverage
-        (uint256 requiredDebtAmount, int8 direction) = dLoopCore
-            .quoteRebalanceAmountToReachTargetLeverage(true); // Use vault token balance
+        (
+            uint256 requiredDebtAmount,
+            uint256 estimatedOutputTokenAmount,
+            int8 direction
+        ) = dLoopCore.quoteRebalanceAmountToReachTargetLeverage(); // Use vault token balance
 
         // Verify we need to decrease leverage
         if (direction != -1) {
