@@ -56,6 +56,7 @@ contract DLoopCoreDLend is DLoopCoreBase, RewardClaimable {
     /* Errors */
 
     error ZeroAddress();
+    error InvalidRewardsController();
 
     /* Events */
     event DLendRewardsControllerUpdated(
@@ -144,6 +145,10 @@ contract DLoopCoreDLend is DLoopCoreBase, RewardClaimable {
     ) external onlyOwner {
         if (_newDLendRewardsController == address(0)) {
             revert ZeroAddress();
+        }
+        // Make sure the new rewards controller is a valid contract
+        if (_newDLendRewardsController.code.length == 0) {
+            revert InvalidRewardsController();
         }
         address oldController = address(dLendRewardsController);
         dLendRewardsController = IRewardsController(_newDLendRewardsController);
