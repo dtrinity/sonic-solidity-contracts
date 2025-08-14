@@ -951,15 +951,13 @@ describe("DLoopRedeemerMock Redeem Tests", function () {
     });
   });
 
-  describe("VI. Leftover Token Handling", function () {
+  describe("VI. Leftover Token Handling - Receiver Gets Leftover", function () {
     const leftoverTokenTests = [
       {
         name: "Should handle leftover collateral tokens for small redeem",
         depositAmount: ethers.parseEther("50"),
         redeemPercentage: 100,
         slippagePercentage: 0.1 * ONE_PERCENT_BPS, // 0.1% slippage tolerance
-        setMinLeftover: true,
-        minLeftoverAmount: 0,
         expectedReceivedCollateral: ethers.parseEther("49.75"),
       },
       {
@@ -967,8 +965,6 @@ describe("DLoopRedeemerMock Redeem Tests", function () {
         depositAmount: ethers.parseEther("100"),
         redeemPercentage: 100,
         slippagePercentage: 0.1 * ONE_PERCENT_BPS, // 0.1% slippage tolerance
-        setMinLeftover: true,
-        minLeftoverAmount: 0,
         expectedReceivedCollateral: ethers.parseEther("99.5"),
       },
       {
@@ -976,23 +972,12 @@ describe("DLoopRedeemerMock Redeem Tests", function () {
         depositAmount: ethers.parseEther("200"),
         redeemPercentage: 100,
         slippagePercentage: 0.1 * ONE_PERCENT_BPS, // 0.1% slippage tolerance
-        setMinLeftover: true,
-        minLeftoverAmount: 0,
         expectedReceivedCollateral: ethers.parseEther("199"),
       },
     ];
 
     for (const testCase of leftoverTokenTests) {
       it(testCase.name, async function () {
-        // Set minimum leftover amount if specified
-        if (testCase.setMinLeftover) {
-          await dLoopRedeemerMock.setMinLeftoverCollateralTokenAmount(
-            await dloopMock.getAddress(),
-            await collateralToken.getAddress(),
-            testCase.minLeftoverAmount,
-          );
-        }
-
         // Create position first
         const { shares } = await createPosition(
           dloopMock,
@@ -1017,7 +1002,7 @@ describe("DLoopRedeemerMock Redeem Tests", function () {
             dloopMock,
           );
 
-        await dLoopRedeemerMock
+        const tx = await dLoopRedeemerMock
           .connect(user1)
           .redeem(
             sharesToRedeem,
@@ -1026,6 +1011,7 @@ describe("DLoopRedeemerMock Redeem Tests", function () {
             "0x",
             dloopMock,
           );
+        await tx.wait();
 
         // Verify user received expected collateral
         const finalUserCollateralBalance = await collateralToken.balanceOf(
@@ -1039,24 +1025,15 @@ describe("DLoopRedeemerMock Redeem Tests", function () {
           (testCase.expectedReceivedCollateral * BigInt(ONE_PERCENT_BPS)) /
             BigInt(0.1 * ONE_HUNDRED_PERCENT_BPS), // 0.1% tolerance for slippage and fees
         );
-
-        // Core vault may have received leftover collateral tokens
-        const finalCoreCollateralBalance = await collateralToken.balanceOf(
-          await dloopMock.getAddress(),
-        );
-
-        // Balance should be >= initial (may have received leftovers)
-        expect(finalCoreCollateralBalance).to.be.gte(0); // Just ensure no negative balances
       });
     }
 
-    it("Should emit LeftoverCollateralTokenTransferred event when applicable", async function () {
+    it("Should transfer leftover collateral tokens to receiver (no event)", async function () {
       const eventTests = [
         {
           depositAmount: ethers.parseEther("100"),
           redeemPercentage: 100,
           slippagePercentage: 0.1 * ONE_PERCENT_BPS, // 0.1% slippage tolerance
-          minLeftoverAmount: 0,
         },
       ];
 
@@ -1080,14 +1057,7 @@ describe("DLoopRedeemerMock Redeem Tests", function () {
             dloopMock,
           );
 
-        // Set minimum leftover to 0 to ensure transfer
-        await dLoopRedeemerMock.setMinLeftoverCollateralTokenAmount(
-          await dloopMock.getAddress(),
-          await collateralToken.getAddress(),
-          testCase.minLeftoverAmount,
-        );
-
-        // May emit leftover transfer event
+        const before = await collateralToken.balanceOf(user1.address);
         const tx = await dLoopRedeemerMock
           .connect(user1)
           .redeem(
@@ -1097,9 +1067,10 @@ describe("DLoopRedeemerMock Redeem Tests", function () {
             "0x",
             dloopMock,
           );
-
-        // Note: We can't guarantee leftovers, so this test just ensures it doesn't revert
         await tx.wait();
+        const after = await collateralToken.balanceOf(user1.address);
+
+        expect(after).to.be.gte(before);
       }
     });
   });
