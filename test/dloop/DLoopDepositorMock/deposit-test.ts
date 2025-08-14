@@ -768,48 +768,32 @@ describe("DLoopDepositorMock Deposit Tests", function () {
     });
   });
 
-  describe("VI. Leftover Token Handling", function () {
+  describe("VI. Leftover Token Handling - Receiver Gets Leftover", function () {
     const leftoverTokenTests = [
       {
         name: "Should handle leftover debt tokens for small deposit",
         depositAmount: ethers.parseEther("50"),
         slippagePercentage: 0.1 * ONE_PERCENT_BPS,
-        setMinLeftover: true,
-        minLeftoverAmount: 0,
         expectedReceivedShares: ethers.parseEther("149.85"),
       },
       {
         name: "Should handle leftover debt tokens for medium deposit",
         depositAmount: ethers.parseEther("100"),
         slippagePercentage: 0.1 * ONE_PERCENT_BPS,
-        setMinLeftover: true,
-        minLeftoverAmount: 0,
         expectedReceivedShares: ethers.parseEther("299.7"),
       },
       {
         name: "Should handle leftover debt tokens for large deposit",
         depositAmount: ethers.parseEther("200"),
         slippagePercentage: 0.1 * ONE_PERCENT_BPS,
-        setMinLeftover: true,
-        minLeftoverAmount: 0,
         expectedReceivedShares: ethers.parseEther("599.4"),
       },
     ];
 
     for (const testCase of leftoverTokenTests) {
       it(testCase.name, async function () {
-        // Set minimum leftover amount if specified
-        if (testCase.setMinLeftover) {
-          await dLoopDepositorMock.setMinLeftoverDebtTokenAmount(
-            await dloopMock.getAddress(),
-            await debtToken.getAddress(),
-            testCase.minLeftoverAmount,
-          );
-        }
-
-        const initialCoreDebtBalance = await debtToken.balanceOf(
-          await dloopMock.getAddress(),
-        );
+        // Record receiver debt balance before
+        const receiverDebtBefore = await debtToken.balanceOf(user1.address);
 
         // Get initial user share balance
         const initialUserShareBalance = await dloopMock.balanceOf(
@@ -823,7 +807,7 @@ describe("DLoopDepositorMock Deposit Tests", function () {
             dloopMock,
           );
 
-        await dLoopDepositorMock
+        const tx = await dLoopDepositorMock
           .connect(user1)
           .deposit(
             testCase.depositAmount,
@@ -832,6 +816,7 @@ describe("DLoopDepositorMock Deposit Tests", function () {
             "0x",
             dloopMock,
           );
+        await tx.wait();
 
         // Verify user received expected shares
         const finalUserShareBalance = await dloopMock.balanceOf(user1.address);
@@ -843,22 +828,17 @@ describe("DLoopDepositorMock Deposit Tests", function () {
             BigInt(0.1 * ONE_HUNDRED_PERCENT_BPS), // 0.1% tolerance for slippage and fees
         );
 
-        // Core vault may have received leftover debt tokens
-        const finalCoreDebtBalance = await debtToken.balanceOf(
-          await dloopMock.getAddress(),
-        );
-
-        // Balance should be >= initial (may have received leftovers)
-        expect(finalCoreDebtBalance).to.be.gte(initialCoreDebtBalance);
+        // Verify any leftover debt after flash loan repay was sent to receiver
+        const receiverDebtAfter = await debtToken.balanceOf(user1.address);
+        expect(receiverDebtAfter).to.be.gte(receiverDebtBefore);
       });
     }
 
-    it("Should emit LeftoverDebtTokensTransferred event when applicable", async function () {
+    it("Should transfer leftover debt tokens to receiver (no event)", async function () {
       const eventTests = [
         {
           depositAmount: ethers.parseEther("100"),
           slippagePercentage: 0.1 * ONE_PERCENT_BPS,
-          minLeftoverAmount: 0,
         },
       ];
 
@@ -870,14 +850,7 @@ describe("DLoopDepositorMock Deposit Tests", function () {
             dloopMock,
           );
 
-        // Set minimum leftover to 0 to ensure transfer
-        await dLoopDepositorMock.setMinLeftoverDebtTokenAmount(
-          await dloopMock.getAddress(),
-          await debtToken.getAddress(),
-          testCase.minLeftoverAmount,
-        );
-
-        // May emit leftover transfer event
+        const receiverDebtBefore = await debtToken.balanceOf(user1.address);
         const tx = await dLoopDepositorMock
           .connect(user1)
           .deposit(
@@ -887,9 +860,10 @@ describe("DLoopDepositorMock Deposit Tests", function () {
             "0x",
             dloopMock,
           );
-
-        // Note: We can't guarantee leftovers, so this test just ensures it doesn't revert
         await tx.wait();
+        const receiverDebtAfter = await debtToken.balanceOf(user1.address);
+
+        expect(receiverDebtAfter).to.be.gte(receiverDebtBefore);
       }
     });
   });
