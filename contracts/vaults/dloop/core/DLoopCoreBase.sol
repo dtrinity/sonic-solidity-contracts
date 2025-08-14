@@ -563,22 +563,7 @@ abstract contract DLoopCoreBase is
         returns (address[] memory)
     {
         // Get the additional rescue tokens from the derived contract
-        address[]
-            memory additionalRescueTokens = _getAdditionalRescueTokensImplementation();
-
-        // Restrict the rescue tokens to the collateral token and the debt token
-        // as they are going to be used to compensate subsidies during the rebalance
-        address[] memory restrictedRescueTokens = new address[](
-            2 + additionalRescueTokens.length
-        );
-        restrictedRescueTokens[0] = address(collateralToken);
-        restrictedRescueTokens[1] = address(debtToken);
-
-        // Concatenate the restricted rescue tokens and the additional rescue tokens
-        for (uint256 i = 0; i < additionalRescueTokens.length; i++) {
-            restrictedRescueTokens[2 + i] = additionalRescueTokens[i];
-        }
-        return restrictedRescueTokens;
+        return _getAdditionalRescueTokensImplementation();
     }
 
     /* Helper Functions */
