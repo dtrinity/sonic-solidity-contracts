@@ -50,6 +50,7 @@ abstract contract DLoopCoreBase is
     uint32 public lowerBoundTargetLeverageBps;
     uint32 public upperBoundTargetLeverageBps;
     uint256 public maxSubsidyBps;
+    uint256 public minDeviationBps;
 
     /* Constants */
 
@@ -78,7 +79,12 @@ abstract contract DLoopCoreBase is
         uint256 withdrawnCollateralTokenAmount
     );
 
-    event MaxSubsidyBpsSet(uint256 maxSubsidyBps);
+    event MaxSubsidyBpsSet(uint256 oldMaxSubsidyBps, uint256 newMaxSubsidyBps);
+
+    event MinDeviationBpsSet(
+        uint256 oldMinDeviationBps,
+        uint256 newMinDeviationBps
+    );
 
     event LeverageBoundsSet(
         uint32 lowerBoundTargetLeverageBps,
@@ -196,6 +202,7 @@ abstract contract DLoopCoreBase is
      * @param _lowerBoundTargetLeverageBps Lower bound of target leverage in basis points
      * @param _upperBoundTargetLeverageBps Upper bound of target leverage in basis points
      * @param _maxSubsidyBps Maximum subsidy in basis points
+     * @param _minDeviationBps Minimum deviation of leverage from the target leverage in basis points
      */
     constructor(
         string memory _name,
@@ -205,7 +212,8 @@ abstract contract DLoopCoreBase is
         uint32 _targetLeverageBps,
         uint32 _lowerBoundTargetLeverageBps,
         uint32 _upperBoundTargetLeverageBps,
-        uint256 _maxSubsidyBps
+        uint256 _maxSubsidyBps,
+        uint256 _minDeviationBps
     ) ERC20(_name, _symbol) ERC4626(_collateralToken) Ownable(msg.sender) {
         debtToken = _debtToken;
         collateralToken = _collateralToken;
@@ -239,6 +247,7 @@ abstract contract DLoopCoreBase is
         lowerBoundTargetLeverageBps = _lowerBoundTargetLeverageBps;
         upperBoundTargetLeverageBps = _upperBoundTargetLeverageBps;
         maxSubsidyBps = _maxSubsidyBps;
+        minDeviationBps = _minDeviationBps;
     }
 
     /* Virtual Methods - Required to be implemented by derived contracts */
@@ -1306,7 +1315,8 @@ abstract contract DLoopCoreBase is
             CoreLogic.getCurrentSubsidyBps(
                 getCurrentLeverageBps(),
                 targetLeverageBps,
-                maxSubsidyBps
+                maxSubsidyBps,
+                minDeviationBps
             );
     }
 
@@ -1343,8 +1353,21 @@ abstract contract DLoopCoreBase is
     function setMaxSubsidyBps(
         uint256 _maxSubsidyBps
     ) public onlyOwner nonReentrant {
+        uint256 oldMaxSubsidyBps = maxSubsidyBps;
         maxSubsidyBps = _maxSubsidyBps;
-        emit MaxSubsidyBpsSet(_maxSubsidyBps);
+        emit MaxSubsidyBpsSet(oldMaxSubsidyBps, _maxSubsidyBps);
+    }
+
+    /**
+     * @dev Sets the minimum deviation of leverage from the target leverage in basis points
+     * @param _minDeviationBps New minimum deviation of leverage from the target leverage in basis points
+     */
+    function setMinDeviationBps(
+        uint256 _minDeviationBps
+    ) public onlyOwner nonReentrant {
+        uint256 oldMinDeviationBps = minDeviationBps;
+        minDeviationBps = _minDeviationBps;
+        emit MinDeviationBpsSet(oldMinDeviationBps, _minDeviationBps);
     }
 
     /**

@@ -71,24 +71,36 @@ library CoreLogic {
      * @param currentLeverageBps The current leverage in basis points
      * @param targetLeverageBps The target leverage in basis points
      * @param maxSubsidyBps The maximum subsidy in basis points
+     * @param minDeviationBps The minimum deviation of leverage from the target leverage in basis points
      * @return uint256 The current subsidy in basis points
      */
     function getCurrentSubsidyBps(
         uint256 currentLeverageBps,
         uint256 targetLeverageBps,
-        uint256 maxSubsidyBps
+        uint256 maxSubsidyBps,
+        uint256 minDeviationBps
     ) public pure returns (uint256) {
         uint256 subsidyBps;
         if (currentLeverageBps > targetLeverageBps) {
-            subsidyBps =
-                ((currentLeverageBps - targetLeverageBps) *
-                    BasisPointConstants.ONE_HUNDRED_PERCENT_BPS) /
-                targetLeverageBps;
+            uint256 deviationBps = currentLeverageBps - targetLeverageBps;
+            if (deviationBps < minDeviationBps) {
+                return 0;
+            }
+            subsidyBps = Math.mulDiv(
+                deviationBps,
+                BasisPointConstants.ONE_HUNDRED_PERCENT_BPS,
+                targetLeverageBps
+            );
         } else {
-            subsidyBps =
-                ((targetLeverageBps - currentLeverageBps) *
-                    BasisPointConstants.ONE_HUNDRED_PERCENT_BPS) /
-                targetLeverageBps;
+            uint256 deviationBps = targetLeverageBps - currentLeverageBps;
+            if (deviationBps < minDeviationBps) {
+                return 0;
+            }
+            subsidyBps = Math.mulDiv(
+                deviationBps,
+                BasisPointConstants.ONE_HUNDRED_PERCENT_BPS,
+                targetLeverageBps
+            );
         }
         if (subsidyBps > maxSubsidyBps) {
             return maxSubsidyBps;
