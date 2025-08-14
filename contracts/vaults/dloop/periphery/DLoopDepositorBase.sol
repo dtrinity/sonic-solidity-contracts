@@ -57,12 +57,6 @@ abstract contract DLoopDepositorBase is
     /* Core state */
 
     IERC3156FlashLender public immutable flashLender;
-    // [dLoopCore][tokenAddress] -> leftOverAmount
-    mapping(address => mapping(address => uint256))
-        public minLeftoverDebtTokenAmount;
-    // [tokenAddress] -> exists (for gas efficient token tracking)
-    mapping(address => bool) private _existingDebtTokensMap;
-    address[] public existingDebtTokens;
 
     /* Errors */
 
@@ -106,18 +100,9 @@ abstract contract DLoopDepositorBase is
     /* Events */
 
     event LeftoverDebtTokensTransferred(
-        address indexed dLoopCore,
         address indexed debtToken,
-        uint256 amount
-    );
-    event MinLeftoverDebtTokenAmountSet(
-        address indexed dLoopCore,
-        address indexed debtToken,
-        uint256 minAmount
-    );
-    event MinLeftoverDebtTokenAmountRemoved(
-        address indexed dLoopCore,
-        address indexed debtToken
+        uint256 amount,
+        address indexed receiver
     );
 
     /* Structs */
@@ -151,8 +136,8 @@ abstract contract DLoopDepositorBase is
         override
         returns (address[] memory restrictedTokens)
     {
-        // Return the existing tokens as we handle leftover debt tokens
-        return existingDebtTokens;
+        // Return empty array as we no longer handle leftover debt tokens
+        return new address[](0);
     }
 
     /* Deposit */
@@ -451,69 +436,7 @@ abstract contract DLoopDepositorBase is
 
     /* Setters */
 
-    /**
-     * @dev Sets the minimum leftover debt token amount for a given dLoopCore and debt token
-     * @param dLoopCore Address of the dLoopCore contract
-     * @param debtToken Address of the debt token
-     * @param minAmount Minimum leftover debt token amount for the given dLoopCore and debt token
-     *                  Setting minAmount to 0 removes the token from the array using efficient swap-and-pop
-     */
-    function setMinLeftoverDebtTokenAmount(
-        address dLoopCore,
-        address debtToken,
-        uint256 minAmount
-    ) external nonReentrant onlyOwner {
-        minLeftoverDebtTokenAmount[dLoopCore][debtToken] = minAmount;
-
-        // If the min amount is 0, we need to remove the debt token from the existing debt tokens array
-        if (minAmount == 0) {
-            delete _existingDebtTokensMap[debtToken];
-            // Remove the debt token from the existing debt tokens array
-            for (uint256 i = 0; i < existingDebtTokens.length; i++) {
-                // Remove the by replacing the debt token with the last element and then pop the last element
-                if (existingDebtTokens[i] == debtToken) {
-                    existingDebtTokens[i] = existingDebtTokens[
-                        existingDebtTokens.length - 1
-                    ];
-                    existingDebtTokens.pop();
-                    break; // Exit loop once token is found and removed
-                }
-            }
-            emit MinLeftoverDebtTokenAmountRemoved(dLoopCore, debtToken);
-        } else {
-            if (!_existingDebtTokensMap[debtToken]) {
-                _existingDebtTokensMap[debtToken] = true;
-                existingDebtTokens.push(debtToken);
-            }
-            emit MinLeftoverDebtTokenAmountSet(dLoopCore, debtToken, minAmount);
-        }
-    }
-
     /* Internal helpers */
-
-    /**
-     * @dev Handles leftover debt tokens by transferring them to the dLoopCore contract if above minimum threshold
-     * @param dLoopCore The dLoopCore contract
-     * @param debtToken The debt token to handle
-     */
-    function _handleLeftoverDebtTokens(
-        DLoopCoreBase dLoopCore,
-        ERC20 debtToken
-    ) internal {
-        uint256 leftoverAmount = debtToken.balanceOf(address(this));
-        if (
-            leftoverAmount >
-            minLeftoverDebtTokenAmount[address(dLoopCore)][address(debtToken)]
-        ) {
-            // Transfer any leftover debt tokens to the core contract
-            debtToken.safeTransfer(address(dLoopCore), leftoverAmount);
-            emit LeftoverDebtTokensTransferred(
-                address(dLoopCore),
-                address(debtToken),
-                leftoverAmount
-            );
-        }
-    }
 
     /**
      * @dev Calculates and validates the required additional collateral amount
@@ -644,8 +567,16 @@ abstract contract DLoopDepositorBase is
         // There is no leftover collateral token, as all swapped collateral token
         // (using flash loaned debt token) is used to deposit to the core contract
 
-        // Handle any leftover debt tokens and transfer them to the dLoopCore contract
-        _handleLeftoverDebtTokens(dLoopCore, debtToken);
+        // Transfer any leftover debt tokens directly to the receiver
+        uint256 leftoverAmount = debtToken.balanceOf(address(this));
+        if (leftoverAmount > 0) {
+            debtToken.safeTransfer(receiver, leftoverAmount);
+            emit LeftoverDebtTokensTransferred(
+                address(debtToken),
+                leftoverAmount,
+                receiver
+            );
+        }
 
         // Transfer the minted shares to the receiver
         SafeERC20.safeTransfer(dLoopCore, receiver, shares);
