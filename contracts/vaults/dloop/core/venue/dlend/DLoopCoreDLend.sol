@@ -92,6 +92,7 @@ contract DLoopCoreDLend is DLoopCoreBase, RewardClaimable {
         uint32 _lowerBoundTargetLeverageBps,
         uint32 _upperBoundTargetLeverageBps,
         uint256 _maxSubsidyBps,
+        uint256 _minDeviationBps,
         IRewardsController _rewardsController,
         address _dLendAssetToClaimFor,
         address _targetStaticATokenWrapper,
@@ -108,7 +109,8 @@ contract DLoopCoreDLend is DLoopCoreBase, RewardClaimable {
             _targetLeverageBps,
             _lowerBoundTargetLeverageBps,
             _upperBoundTargetLeverageBps,
-            _maxSubsidyBps
+            _maxSubsidyBps,
+            _minDeviationBps
         )
         RewardClaimable(
             address(_debtToken),

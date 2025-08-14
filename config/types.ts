@@ -81,6 +81,7 @@ export interface DLoopCoreConfig {
   readonly lowerBoundTargetLeverageBps: number;
   readonly upperBoundTargetLeverageBps: number;
   readonly maxSubsidyBps: number;
+  readonly minDeviationBps: number;
   readonly extraParams: { [key: string]: any }; // Add more params here
 }
 
