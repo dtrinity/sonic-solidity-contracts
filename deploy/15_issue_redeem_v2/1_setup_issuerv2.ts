@@ -195,6 +195,54 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
     const newIssuerAddress = result.address;
 
+    // Preemptively disable minting for wstkscUSD on this issuer BEFORE granting MINTER_ROLE
+    // Do this only if the asset exists in config and is supported by the vault
+    try {
+      const wstkscUSDAddress = (config as any).tokenAddresses.wstkscUSD as
+        | string
+        | undefined;
+
+      if (wstkscUSDAddress && wstkscUSDAddress !== "") {
+        const vaultContract = await hre.ethers.getContractAt(
+          "CollateralHolderVault",
+          collateralVaultAddress,
+        );
+
+        if (await vaultContract.isCollateralSupported(wstkscUSDAddress)) {
+          const issuer = await hre.ethers.getContractAt(
+            "IssuerV2",
+            newIssuerAddress,
+            deployerSigner,
+          );
+          const isEnabled: boolean =
+            await issuer.isAssetMintingEnabled(wstkscUSDAddress);
+
+          if (isEnabled) {
+            await issuer.setAssetMintingPause(wstkscUSDAddress, true);
+            console.log(
+              `    ⛔ Disabled minting for wstkscUSD on issuer ${newIssuerAddress}`,
+            );
+          } else {
+            console.log(
+              `    ✓ Minting for wstkscUSD already disabled on issuer ${newIssuerAddress}`,
+            );
+          }
+        } else {
+          console.log(
+            `    ℹ️ wstkscUSD not supported by collateral vault ${collateralVaultAddress}; skipping issuer-level pause`,
+          );
+        }
+      } else {
+        console.log(
+          "    ℹ️ wstkscUSD address not present in config.tokenAddresses; skipping issuer-level pause",
+        );
+      }
+    } catch (e) {
+      console.log(
+        `    ⚠️ Could not pre-disable wstkscUSD minting: ${(e as Error).message}`,
+      );
+    }
+
     // Grant MINTER_ROLE on the token to the new issuer (idempotent)
     await ensureMinterRole(hre, tokenAddress, newIssuerAddress);
 

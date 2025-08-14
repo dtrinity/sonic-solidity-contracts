@@ -94,18 +94,14 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   for (const instanceKey in config.dStake) {
     const instanceConfig = config.dStake[instanceKey] as DStakeInstanceConfig;
     const DStakeTokenDeploymentName = `DStakeToken_${instanceKey}`;
-    const proxyAdminDeploymentName = `DStakeProxyAdmin_${instanceKey}`;
 
     const DStakeTokenDeployment = await deploy(DStakeTokenDeploymentName, {
       from: deployer,
       contract: "DStakeToken",
       proxy: {
-        // Use a dedicated ProxyAdmin so dSTAKE is isolated from the global DefaultProxyAdmin
-        viaAdminContract: {
-          name: proxyAdminDeploymentName,
-          artifact: "DStakeProxyAdmin",
-        },
-        owner: deployer, // keep ownership with deployer for now; migrated later
+        // OZ v5 TransparentUpgradeableProxy mints a dedicated ProxyAdmin internally per proxy.
+        // We therefore avoid viaAdminContract and just set the initial owner for that ProxyAdmin here.
+        owner: deployer, // keep ownership with deployer for now; migrate later in role-migration script
         proxyContract: "OpenZeppelinTransparentProxy",
         execute: {
           init: {
