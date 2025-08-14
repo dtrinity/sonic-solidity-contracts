@@ -83,6 +83,12 @@ abstract contract DLoopDecreaseLeverageBase is
 
     /* Events */
 
+    event LeftoverCollateralTokensTransferred(
+        address indexed collateralToken,
+        uint256 amount,
+        address indexed receiver
+    );
+
     /* Structs */
 
     struct FlashLoanParams {
@@ -315,6 +321,11 @@ abstract contract DLoopDecreaseLeverageBase is
         uint256 leftoverAmount = collateralToken.balanceOf(address(this));
         if (leftoverAmount > 0) {
             collateralToken.safeTransfer(msg.sender, leftoverAmount);
+            emit LeftoverCollateralTokensTransferred(
+                address(collateralToken),
+                leftoverAmount,
+                msg.sender
+            );
         }
 
         return receivedCollateralTokenAmount;
@@ -405,8 +416,6 @@ abstract contract DLoopDecreaseLeverageBase is
     }
 
     /* Setters */
-
-
 
     /* Data encoding/decoding helpers */
 

@@ -99,6 +99,12 @@ abstract contract DLoopDepositorBase is
 
     /* Events */
 
+    event LeftoverDebtTokensTransferred(
+        address indexed debtToken,
+        uint256 amount,
+        address indexed receiver
+    );
+
     /* Structs */
 
     struct FlashLoanParams {
@@ -430,8 +436,6 @@ abstract contract DLoopDepositorBase is
 
     /* Setters */
 
-
-
     /* Internal helpers */
 
     /**
@@ -567,6 +571,11 @@ abstract contract DLoopDepositorBase is
         uint256 leftoverAmount = debtToken.balanceOf(address(this));
         if (leftoverAmount > 0) {
             debtToken.safeTransfer(receiver, leftoverAmount);
+            emit LeftoverDebtTokensTransferred(
+                address(debtToken),
+                leftoverAmount,
+                receiver
+            );
         }
 
         // Transfer the minted shares to the receiver

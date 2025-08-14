@@ -96,6 +96,12 @@ abstract contract DLoopRedeemerBase is
 
     /* Events */
 
+    event LeftoverCollateralTokensTransferred(
+        address indexed collateralToken,
+        uint256 amount,
+        address indexed receiver
+    );
+
     /* Structs */
 
     struct FlashLoanParams {
@@ -475,6 +481,11 @@ abstract contract DLoopRedeemerBase is
         uint256 leftoverAmount = collateralToken.balanceOf(address(this));
         if (leftoverAmount > 0) {
             collateralToken.safeTransfer(receiver, leftoverAmount);
+            emit LeftoverCollateralTokensTransferred(
+                address(collateralToken),
+                leftoverAmount,
+                receiver
+            );
         }
     }
 

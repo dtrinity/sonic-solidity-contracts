@@ -93,6 +93,12 @@ abstract contract DLoopIncreaseLeverageBase is
 
     /* Events */
 
+    event LeftoverDebtTokensTransferred(
+        address indexed debtToken,
+        uint256 amount,
+        address indexed receiver
+    );
+
     /* Structs */
 
     struct FlashLoanParams {
@@ -241,6 +247,11 @@ abstract contract DLoopIncreaseLeverageBase is
         uint256 leftoverAmount = debtToken.balanceOf(address(this));
         if (leftoverAmount > 0) {
             debtToken.safeTransfer(msg.sender, leftoverAmount);
+            emit LeftoverDebtTokensTransferred(
+                address(debtToken),
+                leftoverAmount,
+                msg.sender
+            );
         }
 
         return receivedDebtTokenAmount;
@@ -342,8 +353,6 @@ abstract contract DLoopIncreaseLeverageBase is
     }
 
     /* Setters */
-
-
 
     /* Internal helpers */
 
