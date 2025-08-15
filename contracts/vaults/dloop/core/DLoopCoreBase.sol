@@ -1016,7 +1016,10 @@ abstract contract DLoopCoreBase is
         ) = _repayDebtAndWithdrawFromPoolImplementation(caller, assets);
 
         // Apply withdrawal fee on output collateral
-        uint256 feeAmount = getWithdrawFee(withdrawnCollateralTokenAmount);
+        // We use the unleveraged assets (principal amount) with the current leverage to calculate the fee
+        uint256 feeAmount = getWithdrawFee(
+            getUnleveragedAssetsWithCurrentLeverage(assets)
+        );
         uint256 netAmount = withdrawnCollateralTokenAmount - feeAmount;
 
         // Transfer the net asset to the receiver
@@ -1820,15 +1823,11 @@ abstract contract DLoopCoreBase is
             address(collateralToken)
         );
 
-        // Apply withdrawal fee on output collateral
-        uint256 feeAmount = getWithdrawFee(withdrawnCollateralTokenAmount);
-        uint256 netAmount = withdrawnCollateralTokenAmount - feeAmount;
-
         // Slippage protection, to make sure the user receives at least minReceivedAmount
-        if (netAmount < minReceivedAmount) {
+        if (withdrawnCollateralTokenAmount < minReceivedAmount) {
             revert RebalanceReceiveLessThanMinAmount(
                 "decreaseLeverage",
-                netAmount,
+                withdrawnCollateralTokenAmount,
                 minReceivedAmount
             );
         }
@@ -1856,25 +1855,18 @@ abstract contract DLoopCoreBase is
             );
         }
 
-        // Transfer the collateral asset to the user (NET after fee)
-        collateralToken.safeTransfer(msg.sender, netAmount);
-
-        // Transfer fee to fee receiver when applicable
-        if (feeAmount > 0) {
-            address _receiver = getFeeReceiver();
-            if (_receiver == address(0)) {
-                revert FeeReceiverIsZeroAddress();
-            }
-            collateralToken.safeTransfer(_receiver, feeAmount);
-            emit WithdrawalFee(msg.sender, msg.sender, feeAmount);
-        }
+        // Transfer the collateral asset to the user
+        collateralToken.safeTransfer(
+            msg.sender,
+            withdrawnCollateralTokenAmount
+        );
 
         emit DecreaseLeverage(
             msg.sender,
             additionalDebtTokenAmount,
             minReceivedAmount,
             requiredDebtTokenAmount, // Repaid debt token amount
-            netAmount // Withdrawn collateral token amount (net)
+            withdrawnCollateralTokenAmount // Withdrawn collateral token amount
         );
     }
 
@@ -2032,65 +2024,5 @@ abstract contract DLoopCoreBase is
             return 0;
         }
         return super.maxRedeem(_user);
-    }
-
-    function previewWithdraw(
-        uint256 assets
-    ) public view virtual override returns (uint256) {
-        // Caller asks for net assets; convert to gross by adding fee on the same amount.
-        uint256 feeOnNet = getWithdrawFee(assets);
-        uint256 grossAssets = assets + feeOnNet;
-        return super.previewWithdraw(grossAssets);
-    }
-
-    function previewRedeem(
-        uint256 shares
-    ) public view virtual override returns (uint256) {
-        uint256 grossAssets = super.previewRedeem(shares);
-        uint256 fee = getWithdrawFee(grossAssets);
-        return grossAssets - fee;
-    }
-
-    function withdraw(
-        uint256 assets,
-        address receiver,
-        address owner
-    ) public virtual override returns (uint256 shares) {
-        // Enforce assets within maxWithdraw to preserve ERC4626 error semantics expected by tests
-        uint256 maxAssets = maxWithdraw(owner);
-        if (assets > maxAssets) {
-            revert ERC4626ExceededMaxWithdraw(owner, assets, maxAssets);
-        }
-
-        // assets is NET desired by user. Compute shares needed, then translate to GROSS assets
-        shares = previewWithdraw(assets);
-
-        // Enforce owner has enough shares
-        uint256 maxShares = maxRedeem(owner);
-        if (shares > maxShares) {
-            revert ERC4626ExceededMaxRedeem(owner, shares, maxShares);
-        }
-
-        uint256 grossAssets = convertToAssets(shares);
-        _withdraw(_msgSender(), receiver, owner, grossAssets, shares);
-        return shares;
-    }
-
-    function redeem(
-        uint256 shares,
-        address receiver,
-        address owner
-    ) public virtual override returns (uint256 assets) {
-        uint256 maxShares = maxRedeem(owner);
-        if (shares > maxShares) {
-            revert ERC4626ExceededMaxRedeem(owner, shares, maxShares);
-        }
-
-        uint256 grossAssets = convertToAssets(shares);
-        _withdraw(_msgSender(), receiver, owner, grossAssets, shares);
-
-        // Return NET assets effectively received
-        assets = grossAssets - getWithdrawFee(grossAssets);
-        return assets;
     }
 }
