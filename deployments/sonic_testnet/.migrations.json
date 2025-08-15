@@ -69,5 +69,8 @@
   "PendleDecimalConverters:PT-aUSDC:PT-wstkscUSD": 1751647271,
   "OSWOSDecimalConverters": 1751647271,
   "ChainlinkCompositeAggregator_OS_S_USD": 1751647271,
-  "ERC20VestingNFT": 1752502704
+  "ERC20VestingNFT": 1752502704,
+  "1_setup_issuerv2": 1755172510,
+  "2_setup_redeemerv2": 1755172541,
+  "transfer_dstake_roles_to_multisig": 1755172568
 }
