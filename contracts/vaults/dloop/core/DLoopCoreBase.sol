@@ -363,7 +363,7 @@ abstract contract DLoopCoreBase is
      */
     function getWithdrawFee(
         uint256 collateralTokenAmount
-    ) public view virtual returns (uint256) {}
+    ) public view virtual returns (uint256);
 
     /**
      * @dev Gets the fee receiver address for withdrawal fees

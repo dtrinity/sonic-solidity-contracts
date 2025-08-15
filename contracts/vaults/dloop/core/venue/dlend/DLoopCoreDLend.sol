@@ -26,6 +26,7 @@ import {DLoopCoreBase} from "../../DLoopCoreBase.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {RewardClaimable} from "contracts/vaults/rewards_claimable/RewardClaimable.sol";
 import {IRewardsController} from "./interface/IRewardsController.sol";
+import {BasisPointConstants} from "contracts/common/BasisPointConstants.sol";
 
 /**
  * @title DLoopCoreDLend
@@ -52,6 +53,11 @@ contract DLoopCoreDLend is DLoopCoreBase, RewardClaimable {
     address public immutable dLendAssetToClaimFor;
     address public immutable targetStaticATokenWrapper;
     IRewardsController public dLendRewardsController;
+
+    // Withdrawal fee configuration
+    uint256 public feeBps; // default 0 bps
+    uint256 public constant MAX_FEE_BPS =
+        5 * BasisPointConstants.ONE_PERCENT_BPS; // 5%
 
     /* Errors */
 
@@ -160,6 +166,32 @@ contract DLoopCoreDLend is DLoopCoreBase, RewardClaimable {
             oldController,
             _newDLendRewardsController
         );
+    }
+
+    /**
+     * @dev Sets withdrawal fee in basis points. Only owner can set. Capped by MAX_FEE_BPS.
+     */
+    function setFeeBps(uint256 _feeBps) external onlyOwner {
+        require(_feeBps <= MAX_FEE_BPS, "FeeTooHigh");
+        feeBps = _feeBps;
+    }
+
+    /**
+     * @inheritdoc DLoopCoreBase
+     * @return uint256 The withdrawal fee
+     */
+    function getWithdrawFee(
+        uint256 collateralTokenAmount
+    ) public view override returns (uint256) {
+        if (feeBps == 0 || collateralTokenAmount == 0) {
+            return 0;
+        }
+        return
+            Math.mulDiv(
+                collateralTokenAmount,
+                feeBps,
+                BasisPointConstants.ONE_HUNDRED_PERCENT_BPS
+            );
     }
 
     /**
