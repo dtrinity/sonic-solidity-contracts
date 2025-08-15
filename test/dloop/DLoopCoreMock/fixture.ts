@@ -9,6 +9,7 @@ export const TARGET_LEVERAGE_BPS = 300 * ONE_PERCENT_BPS; // 3x leverage
 export const LOWER_BOUND_BPS = 200 * ONE_PERCENT_BPS; // 2x leverage
 export const UPPER_BOUND_BPS = 400 * ONE_PERCENT_BPS; // 4x leverage
 export const MAX_SUBSIDY_BPS = 1 * ONE_PERCENT_BPS; // 1%
+export const MIN_DEVIATION_BPS = 2 * ONE_PERCENT_BPS; // 2% deviation
 export const DEFAULT_PRICE = 100000000; // 1.0 in 8 decimals
 export const COLLATERAL_DECIMALS = 18;
 export const DEBT_DECIMALS = 18;
@@ -79,6 +80,7 @@ export async function deployDLoopMockFixture(): Promise<DLoopMockFixture> {
     LOWER_BOUND_BPS,
     UPPER_BOUND_BPS,
     MAX_SUBSIDY_BPS,
+    MIN_DEVIATION_BPS,
     mockPool,
   );
 

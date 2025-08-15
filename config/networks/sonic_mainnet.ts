@@ -173,6 +173,7 @@ export async function getConfig(
           lowerBoundTargetLeverageBps: 200 * ONE_PERCENT_BPS, // 200% leverage, meaning 2x leverage
           upperBoundTargetLeverageBps: 400 * ONE_PERCENT_BPS, // 400% leverage, meaning 4x leverage
           maxSubsidyBps: 2 * ONE_PERCENT_BPS, // 2% subsidy
+          minDeviationBps: 2 * ONE_PERCENT_BPS, // 2% deviation
           extraParams: {
             targetStaticATokenWrapper:
               dLendATokenWrapperDUSDDeployment?.address,

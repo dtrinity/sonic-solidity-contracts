@@ -12,6 +12,14 @@ import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
  * @dev Simple mock implementation of DLoopCoreBase for testing
  */
 contract DLoopCoreMock is DLoopCoreBase {
+    // Error
+    error NotEnoughBalanceToSupply(
+        address user,
+        string tokenSymbol,
+        uint256 balance,
+        uint256 amount
+    );
+
     // Mock state for prices and balances
     mapping(address => uint256) public mockPrices;
     mapping(address => mapping(address => uint256)) private mockCollateral; // user => token => amount
@@ -36,6 +44,7 @@ contract DLoopCoreMock is DLoopCoreBase {
         uint32 _lowerBoundTargetLeverageBps,
         uint32 _upperBoundTargetLeverageBps,
         uint256 _maxSubsidyBps,
+        uint256 _minDeviationBps,
         address _mockPool
     )
         DLoopCoreBase(
@@ -46,7 +55,8 @@ contract DLoopCoreMock is DLoopCoreBase {
             _targetLeverageBps,
             _lowerBoundTargetLeverageBps,
             _upperBoundTargetLeverageBps,
-            _maxSubsidyBps
+            _maxSubsidyBps,
+            _minDeviationBps
         )
     {
         mockPool = _mockPool;
@@ -186,10 +196,15 @@ contract DLoopCoreMock is DLoopCoreBase {
             BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
 
         // Make sure target user has enough balance to supply
-        require(
-            ERC20(token).balanceOf(onBehalfOf) >= amount,
-            "Mock: not enough balance to supply"
-        );
+        if (ERC20(token).balanceOf(onBehalfOf) < amount) {
+            string memory tokenSymbol = ERC20(token).symbol();
+            revert NotEnoughBalanceToSupply(
+                onBehalfOf,
+                tokenSymbol,
+                ERC20(token).balanceOf(onBehalfOf),
+                amount
+            );
+        }
 
         if (amount > 0) {
             // Switch between transfer and transferFrom based on the onBehalfOf
@@ -459,86 +474,6 @@ contract DLoopCoreMock is DLoopCoreBase {
         address onBehalfOf
     ) external {
         _withdrawFromPoolImplementation(token, amount, onBehalfOf);
-    }
-
-    /**
-     * @dev Test wrapper for _getCollateralTokenAmountToReachTargetLeverage
-     */
-    function testGetCollateralTokenAmountToReachTargetLeverage(
-        uint256 expectedTargetLeverageBps,
-        uint256 totalCollateralBase,
-        uint256 totalDebtBase,
-        uint256 subsidyBps,
-        bool useVaultTokenBalance
-    ) external view returns (uint256) {
-        return
-            _getCollateralTokenAmountToReachTargetLeverage(
-                expectedTargetLeverageBps,
-                totalCollateralBase,
-                totalDebtBase,
-                subsidyBps,
-                useVaultTokenBalance
-            );
-    }
-
-    /**
-     * @dev Test wrapper for _getDebtTokenAmountToReachTargetLeverage
-     */
-    function testGetDebtTokenAmountToReachTargetLeverage(
-        uint256 expectedTargetLeverageBps,
-        uint256 totalCollateralBase,
-        uint256 totalDebtBase,
-        uint256 subsidyBps,
-        bool useVaultTokenBalance
-    ) external view returns (uint256) {
-        return
-            _getDebtTokenAmountToReachTargetLeverage(
-                expectedTargetLeverageBps,
-                totalCollateralBase,
-                totalDebtBase,
-                subsidyBps,
-                useVaultTokenBalance
-            );
-    }
-
-    /**
-     * @dev Test wrapper for _getRequiredCollateralTokenAmountToRebalance
-     */
-    function testGetRequiredCollateralTokenAmountToRebalance(
-        uint256 expectedTargetLeverageBps,
-        uint256 totalCollateralBase,
-        uint256 totalDebtBase,
-        uint256 subsidyBps,
-        uint256 additionalCollateralTokenAmount
-    ) external view returns (uint256) {
-        return
-            _getRequiredCollateralTokenAmountToRebalance(
-                expectedTargetLeverageBps,
-                totalCollateralBase,
-                totalDebtBase,
-                subsidyBps,
-                additionalCollateralTokenAmount
-            );
-    }
-
-    /**
-     * @dev Test wrapper for _getRequiredDebtTokenAmountToRebalance
-     */
-    function testGetRequiredDebtTokenAmountToRebalance(
-        uint256 expectedTargetLeverageBps,
-        uint256 totalCollateralBase,
-        uint256 totalDebtBase,
-        uint256 subsidyBps,
-        uint256 additionalDebtTokenAmount
-    ) external view returns (uint256) {
-        return
-            _getRequiredDebtTokenAmountToRebalance(
-                expectedTargetLeverageBps,
-                totalCollateralBase,
-                totalDebtBase,
-                subsidyBps,
-                additionalDebtTokenAmount
-            );
     }
 
     // --- Mock State Getters for Testing ---

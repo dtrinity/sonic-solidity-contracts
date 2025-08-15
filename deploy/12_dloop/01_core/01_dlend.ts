@@ -102,6 +102,7 @@ async function deployDLoopCoreDLend(
       vaultInfo.lowerBoundTargetLeverageBps,
       vaultInfo.upperBoundTargetLeverageBps,
       vaultInfo.maxSubsidyBps,
+      vaultInfo.minDeviationBps,
       assertNotEmpty(incentivesProxyDeployment.address), // _rewardsController
       assertNotEmpty(aTokenAddress), // _dLendAssetToClaimFor
       assertNotEmpty(targetStaticATokenWrapper), // _targetStaticATokenWrapper
