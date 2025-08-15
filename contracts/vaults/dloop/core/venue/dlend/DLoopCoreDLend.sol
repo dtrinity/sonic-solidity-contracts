@@ -43,9 +43,6 @@ contract DLoopCoreDLend is DLoopCoreBase, RewardClaimable {
     // See contracts/lending/core/protocol/libraries/types/DataTypes.sol
     uint256 public constant VARIABLE_LENDING_INTERST_RATE_MODE = 2; // 0 = NONE, 1 = STABLE, 2 = VARIABLE
 
-    // Maximum percentage factor (100.00%)
-    uint256 public constant PERCENTAGE_FACTOR = 1e4;
-
     /* State */
 
     IPoolAddressesProvider public immutable lendingPoolAddressesProvider;
@@ -128,9 +125,7 @@ contract DLoopCoreDLend is DLoopCoreBase, RewardClaimable {
             revert("Invalid price oracle base currency");
         }
 
-        uint256 oracleUnit = getLendingOracle().BASE_CURRENCY_UNIT();
-
-        if (oracleUnit != 10 ** AAVE_PRICE_ORACLE_DECIMALS) {
+        if (getLendingOracle().BASE_CURRENCY_UNIT() != 10 ** AAVE_PRICE_ORACLE_DECIMALS) {
             revert("Invalid price oracle unit");
         }
     }
