@@ -98,6 +98,7 @@ export async function deployDLoopDecreaseLeverageFixture(): Promise<DLoopDecreas
     LOWER_BOUND_BPS,
     UPPER_BOUND_BPS,
     MAX_SUBSIDY_BPS,
+    deployer.address,
     mockPool,
   );
 

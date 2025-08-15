@@ -83,6 +83,13 @@ abstract contract DLoopCoreBase is
         uint32 upperBoundTargetLeverageBps
     );
 
+    // --- Withdrawal fee ---
+    event WithdrawalFee(
+        address indexed owner,
+        address indexed receiver,
+        uint256 feeAmount
+    );
+
     /* Errors */
 
     error TooImbalanced(
@@ -198,6 +205,7 @@ abstract contract DLoopCoreBase is
         uint256 totalDebtBase
     );
     error ZeroShares();
+    error FeeReceiverIsZeroAddress();
 
     /**
      * @dev Constructor for the DLoopCore contract
@@ -209,6 +217,7 @@ abstract contract DLoopCoreBase is
      * @param _lowerBoundTargetLeverageBps Lower bound of target leverage in basis points
      * @param _upperBoundTargetLeverageBps Upper bound of target leverage in basis points
      * @param _maxSubsidyBps Maximum subsidy in basis points
+     * @param _feeReceiver Address that receives withdrawal fees
      */
     constructor(
         string memory _name,
@@ -218,7 +227,8 @@ abstract contract DLoopCoreBase is
         uint32 _targetLeverageBps,
         uint32 _lowerBoundTargetLeverageBps,
         uint32 _upperBoundTargetLeverageBps,
-        uint256 _maxSubsidyBps
+        uint256 _maxSubsidyBps,
+        address _feeReceiver
     ) ERC20(_name, _symbol) ERC4626(_collateralToken) Ownable(msg.sender) {
         debtToken = _debtToken;
         collateralToken = _collateralToken;
@@ -252,7 +262,14 @@ abstract contract DLoopCoreBase is
         lowerBoundTargetLeverageBps = _lowerBoundTargetLeverageBps;
         upperBoundTargetLeverageBps = _upperBoundTargetLeverageBps;
         maxSubsidyBps = _maxSubsidyBps;
+
+        if (_feeReceiver == address(0)) {
+            revert FeeReceiverIsZeroAddress();
+        }
+        feeReceiver = _feeReceiver;
     }
+
+    address private feeReceiver;
 
     /* Virtual Methods - Required to be implemented by derived contracts */
 
@@ -339,6 +356,33 @@ abstract contract DLoopCoreBase is
         uint256 amount,
         address onBehalfOf
     ) internal virtual;
+
+    /**
+     * @dev Gets withdraw fee for a given collateral token amount (in collateral token units)
+     *      - Implemented by child contracts
+     */
+    function getWithdrawFee(
+        uint256 collateralTokenAmount
+    ) public view virtual returns (uint256) {}
+
+    /**
+     * @dev Gets the fee receiver address for withdrawal fees
+     */
+    function getFeeReceiver() public view returns (address) {
+        return feeReceiver;
+    }
+
+    /**
+     * @dev Sets the fee receiver address. Only owner can set. Must be non-zero.
+     */
+    function setFeeReceiver(
+        address _newReceiver
+    ) external onlyOwner nonReentrant {
+        if (_newReceiver == address(0)) {
+            revert FeeReceiverIsZeroAddress();
+        }
+        feeReceiver = _newReceiver;
+    }
 
     /* Wrapper Functions */
 
@@ -966,12 +1010,30 @@ abstract contract DLoopCoreBase is
         // Withdraw the collateral from the lending pool
         // After this step, the _withdrawFromPool wrapper function will also assert that
         // the withdrawn amount is exactly the amount requested.
-        _repayDebtAndWithdrawFromPoolImplementation(caller, assets);
+        (
+            uint256 withdrawnCollateralTokenAmount,
 
-        // Transfer the asset to the receiver
-        collateralToken.safeTransfer(receiver, assets);
+        ) = _repayDebtAndWithdrawFromPoolImplementation(caller, assets);
 
-        emit Withdraw(caller, receiver, owner, assets, shares);
+        // Apply withdrawal fee on output collateral
+        uint256 feeAmount = getWithdrawFee(withdrawnCollateralTokenAmount);
+        uint256 netAmount = withdrawnCollateralTokenAmount - feeAmount;
+
+        // Transfer the net asset to the receiver
+        collateralToken.safeTransfer(receiver, netAmount);
+
+        // Transfer fee to fee receiver when applicable
+        if (feeAmount > 0) {
+            address _receiver = getFeeReceiver();
+            if (_receiver == address(0)) {
+                revert FeeReceiverIsZeroAddress();
+            }
+            collateralToken.safeTransfer(_receiver, feeAmount);
+            emit WithdrawalFee(owner, receiver, feeAmount);
+        }
+
+        // Emit ERC4626 Withdraw with NET amount actually sent
+        emit Withdraw(caller, receiver, owner, netAmount, shares);
     }
 
     /**
@@ -981,12 +1043,19 @@ abstract contract DLoopCoreBase is
      *      - Then performs the actual repay and withdraw
      * @param caller Address of the caller
      * @param collateralTokenToWithdraw The amount of collateral token to withdraw
+     * @return withdrawnCollateralTokenAmount The amount of collateral token withdrawn
      * @return repaidDebtTokenAmount The amount of debt token repaid
      */
     function _repayDebtAndWithdrawFromPoolImplementation(
         address caller,
         uint256 collateralTokenToWithdraw
-    ) private returns (uint256 repaidDebtTokenAmount) {
+    )
+        private
+        returns (
+            uint256 withdrawnCollateralTokenAmount,
+            uint256 repaidDebtTokenAmount
+        )
+    {
         // Get the current leverage before repaying the debt (IMPORTANT: this is the leverage before repaying the debt)
         // It is used to calculate the expected withdrawable amount that keeps the current leverage
         uint256 leverageBpsBeforeRepayDebt = getCurrentLeverageBps();
@@ -1033,13 +1102,13 @@ abstract contract DLoopCoreBase is
         // Withdraw the collateral
         // At this step, the _withdrawFromPool wrapper function will also assert that
         // the withdrawn amount is exactly the amount requested.
-        _withdrawFromPool(
+        withdrawnCollateralTokenAmount = _withdrawFromPool(
             address(collateralToken),
             collateralTokenToWithdraw,
             address(this) // the vault is the receiver
         );
 
-        return repaidDebtTokenAmount;
+        return (withdrawnCollateralTokenAmount, repaidDebtTokenAmount);
     }
 
     /* Calculate */
@@ -1751,11 +1820,15 @@ abstract contract DLoopCoreBase is
             address(collateralToken)
         );
 
+        // Apply withdrawal fee on output collateral
+        uint256 feeAmount = getWithdrawFee(withdrawnCollateralTokenAmount);
+        uint256 netAmount = withdrawnCollateralTokenAmount - feeAmount;
+
         // Slippage protection, to make sure the user receives at least minReceivedAmount
-        if (withdrawnCollateralTokenAmount < minReceivedAmount) {
+        if (netAmount < minReceivedAmount) {
             revert RebalanceReceiveLessThanMinAmount(
                 "decreaseLeverage",
-                withdrawnCollateralTokenAmount,
+                netAmount,
                 minReceivedAmount
             );
         }
@@ -1783,18 +1856,25 @@ abstract contract DLoopCoreBase is
             );
         }
 
-        // Transfer the collateral asset to the user
-        collateralToken.safeTransfer(
-            msg.sender,
-            withdrawnCollateralTokenAmount
-        );
+        // Transfer the collateral asset to the user (NET after fee)
+        collateralToken.safeTransfer(msg.sender, netAmount);
+
+        // Transfer fee to fee receiver when applicable
+        if (feeAmount > 0) {
+            address _receiver = getFeeReceiver();
+            if (_receiver == address(0)) {
+                revert FeeReceiverIsZeroAddress();
+            }
+            collateralToken.safeTransfer(_receiver, feeAmount);
+            emit WithdrawalFee(msg.sender, msg.sender, feeAmount);
+        }
 
         emit DecreaseLeverage(
             msg.sender,
             additionalDebtTokenAmount,
             minReceivedAmount,
             requiredDebtTokenAmount, // Repaid debt token amount
-            withdrawnCollateralTokenAmount // Withdrawn collateral token amount
+            netAmount // Withdrawn collateral token amount (net)
         );
     }
 
@@ -1952,5 +2032,65 @@ abstract contract DLoopCoreBase is
             return 0;
         }
         return super.maxRedeem(_user);
+    }
+
+    function previewWithdraw(
+        uint256 assets
+    ) public view virtual override returns (uint256) {
+        // Caller asks for net assets; convert to gross by adding fee on the same amount.
+        uint256 feeOnNet = getWithdrawFee(assets);
+        uint256 grossAssets = assets + feeOnNet;
+        return super.previewWithdraw(grossAssets);
+    }
+
+    function previewRedeem(
+        uint256 shares
+    ) public view virtual override returns (uint256) {
+        uint256 grossAssets = super.previewRedeem(shares);
+        uint256 fee = getWithdrawFee(grossAssets);
+        return grossAssets - fee;
+    }
+
+    function withdraw(
+        uint256 assets,
+        address receiver,
+        address owner
+    ) public virtual override returns (uint256 shares) {
+        // Enforce assets within maxWithdraw to preserve ERC4626 error semantics expected by tests
+        uint256 maxAssets = maxWithdraw(owner);
+        if (assets > maxAssets) {
+            revert ERC4626ExceededMaxWithdraw(owner, assets, maxAssets);
+        }
+
+        // assets is NET desired by user. Compute shares needed, then translate to GROSS assets
+        shares = previewWithdraw(assets);
+
+        // Enforce owner has enough shares
+        uint256 maxShares = maxRedeem(owner);
+        if (shares > maxShares) {
+            revert ERC4626ExceededMaxRedeem(owner, shares, maxShares);
+        }
+
+        uint256 grossAssets = convertToAssets(shares);
+        _withdraw(_msgSender(), receiver, owner, grossAssets, shares);
+        return shares;
+    }
+
+    function redeem(
+        uint256 shares,
+        address receiver,
+        address owner
+    ) public virtual override returns (uint256 assets) {
+        uint256 maxShares = maxRedeem(owner);
+        if (shares > maxShares) {
+            revert ERC4626ExceededMaxRedeem(owner, shares, maxShares);
+        }
+
+        uint256 grossAssets = convertToAssets(shares);
+        _withdraw(_msgSender(), receiver, owner, grossAssets, shares);
+
+        // Return NET assets effectively received
+        assets = grossAssets - getWithdrawFee(grossAssets);
+        return assets;
     }
 }
