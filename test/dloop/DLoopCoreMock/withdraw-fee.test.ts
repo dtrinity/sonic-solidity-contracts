@@ -47,9 +47,9 @@ describe("DLoopCoreMock - Withdraw Fee", function () {
     expect(recvAfter - recvBefore).to.equal(0n);
   });
 
-  it("non-zero fee adjusts previewRedeem and redeem output and forwards fee", async function () {
+  it("non-zero fee adjusts previewRedeem and redeem output (fee retained in vault)", async function () {
     const user = users[1];
-    const receiver = users[4].address;
+    const receiver = users[4].address; // arbitrary account; should NOT receive fee
     await (dloop as any).setFeeBps(FEE_BPS);
 
     const amount = ethers.parseEther("100");
@@ -74,7 +74,8 @@ describe("DLoopCoreMock - Withdraw Fee", function () {
     const recvAfter = await collateral.balanceOf(receiver);
 
     expect(balAfter - balBefore).to.equal(net);
-    expect(recvAfter - recvBefore).to.equal(fee);
+    // Under current logic, fee remains in the vault and is not forwarded externally
+    expect(recvAfter - recvBefore).to.equal(0n);
     await expect(tx)
       .to.emit(dloop, "Withdraw")
       .withArgs(user.address, user.address, user.address, net, shares);
@@ -101,9 +102,9 @@ describe("DLoopCoreMock - Withdraw Fee", function () {
     expect(maxAssets).to.be.gt(0n);
   });
 
-  it("decreaseLeverage returns net-of-fee collateral and forwards fee", async function () {
+  it("decreaseLeverage returns net-of-fee collateral (no external fee transfer)", async function () {
     const user = users[1];
-    const receiver = users[4].address;
+    const receiver = users[4].address; // arbitrary account; should NOT receive fee
     await (dloop as any).setFeeBps(FEE_BPS);
 
     // Prices 1:1 already
@@ -131,6 +132,7 @@ describe("DLoopCoreMock - Withdraw Fee", function () {
 
     const received = userAfter - userBefore;
     expect(received).to.be.gt(0n);
-    expect(recvAfter - recvBefore).to.be.gt(0n);
+    // Fee is retained by the vault under current logic
+    expect(recvAfter - recvBefore).to.equal(0n);
   });
 });

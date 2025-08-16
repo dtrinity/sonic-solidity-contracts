@@ -1996,13 +1996,15 @@ abstract contract DLoopCoreBase is
         if (isTooImbalanced()) {
             return 0;
         }
-        uint256 withdrawalFeeBps = getWithdrawalFeeBps();
-        uint256 maxGrossWithdrawAmount = Math.mulDiv(
-            super.maxWithdraw(_user),
-            BasisPointConstants.ONE_HUNDRED_PERCENT_BPS,
-            BasisPointConstants.ONE_HUNDRED_PERCENT_BPS - withdrawalFeeBps
+        // Return the maximum NET assets after fee
+        uint256 grossAssets = super.maxWithdraw(_user);
+        uint256 feeBps = getWithdrawalFeeBps();
+        uint256 netAssets = Math.mulDiv(
+            grossAssets,
+            BasisPointConstants.ONE_HUNDRED_PERCENT_BPS - feeBps,
+            BasisPointConstants.ONE_HUNDRED_PERCENT_BPS
         );
-        return maxGrossWithdrawAmount;
+        return netAssets;
     }
 
     /**
@@ -2015,12 +2017,8 @@ abstract contract DLoopCoreBase is
         if (isTooImbalanced()) {
             return 0;
         }
-        uint256 maxGrossRedeemAmount = Math.mulDiv(
-            super.maxRedeem(_user),
-            getWithdrawalFeeBps(),
-            BasisPointConstants.ONE_HUNDRED_PERCENT_BPS
-        );
-        return maxGrossRedeemAmount;
+        // Fee applies on assets, not on shares. Max redeemable shares remain unchanged.
+        return super.maxRedeem(_user);
     }
 
     /**
