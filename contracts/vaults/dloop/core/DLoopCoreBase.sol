@@ -205,10 +205,6 @@ abstract contract DLoopCoreBase is
         uint256 totalDebtBase
     );
     error ZeroShares();
-    error WithdrawalFeeIsGreaterThanAssets(
-        uint256 withdrawalFee,
-        uint256 assets
-    );
 
     /**
      * @dev Constructor for the DLoopCore contract
