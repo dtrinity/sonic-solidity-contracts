@@ -79,7 +79,6 @@ export async function deployDLoopMockFixture(): Promise<DLoopMockFixture> {
     LOWER_BOUND_BPS,
     UPPER_BOUND_BPS,
     MAX_SUBSIDY_BPS,
-    deployer.address,
     mockPool,
   );
 

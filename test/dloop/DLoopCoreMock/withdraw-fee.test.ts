@@ -26,7 +26,6 @@ describe("DLoopCoreMock - Withdraw Fee", function () {
   it("zero fee keeps previous behavior", async function () {
     const user = users[1];
     const receiver = users[4].address; // arbitrary receiver
-    await (dloop as any).setFeeReceiver(receiver);
 
     const amount = ethers.parseEther("100");
     await collateral.connect(user).approve(await dloop.getAddress(), amount);
@@ -52,7 +51,6 @@ describe("DLoopCoreMock - Withdraw Fee", function () {
     const user = users[1];
     const receiver = users[4].address;
     await (dloop as any).setFeeBps(FEE_BPS);
-    await (dloop as any).setFeeReceiver(receiver);
 
     const amount = ethers.parseEther("100");
     await collateral.connect(user).approve(await dloop.getAddress(), amount);
@@ -85,7 +83,6 @@ describe("DLoopCoreMock - Withdraw Fee", function () {
   it("previewWithdraw inverts net→shares using gross+fee", async function () {
     const user = users[1];
     await (dloop as any).setFeeBps(FEE_BPS);
-    await (dloop as any).setFeeReceiver(users[4].address);
 
     const amount = ethers.parseEther("100");
     await collateral.connect(user).approve(await dloop.getAddress(), amount);
@@ -108,7 +105,6 @@ describe("DLoopCoreMock - Withdraw Fee", function () {
     const user = users[1];
     const receiver = users[4].address;
     await (dloop as any).setFeeBps(FEE_BPS);
-    await (dloop as any).setFeeReceiver(receiver);
 
     // Prices 1:1 already
     const depositAmt = ethers.parseEther("100");

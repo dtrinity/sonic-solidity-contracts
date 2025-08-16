@@ -63,12 +63,14 @@ contract DLoopCoreDLend is DLoopCoreBase, RewardClaimable {
 
     error ZeroAddress();
     error InvalidRewardsController();
+    error FeeTooHigh(uint256 feeBps, uint256 maxFeeBps);
 
     /* Events */
     event DLendRewardsControllerUpdated(
         address indexed oldController,
         address indexed newController
     );
+    event FeeBpsSet(uint256 oldFeeBps, uint256 newFeeBps);
 
     /**
      * @dev Constructor for the DLoopCoreDLend contract
@@ -85,7 +87,6 @@ contract DLoopCoreDLend is DLoopCoreBase, RewardClaimable {
      * @param _dLendAssetToClaimFor Address of the dLEND asset to claim for
      * @param _targetStaticATokenWrapper Address of the target static aToken wrapper
      * @param _treasury Address of the treasury
-     * @param _feeReceiver Address that will receive withdrawal fees
      * @param _maxTreasuryFeeBps Maximum treasury fee in basis points
      * @param _initialTreasuryFeeBps Initial treasury fee in basis points
      * @param _initialExchangeThreshold Minimum amount of rewards (in debt token units) required before exchanging to treasury
@@ -104,7 +105,6 @@ contract DLoopCoreDLend is DLoopCoreBase, RewardClaimable {
         address _dLendAssetToClaimFor,
         address _targetStaticATokenWrapper,
         address _treasury,
-        address _feeReceiver,
         uint256 _maxTreasuryFeeBps,
         uint256 _initialTreasuryFeeBps,
         uint256 _initialExchangeThreshold
@@ -117,8 +117,7 @@ contract DLoopCoreDLend is DLoopCoreBase, RewardClaimable {
             _targetLeverageBps,
             _lowerBoundTargetLeverageBps,
             _upperBoundTargetLeverageBps,
-            _maxSubsidyBps,
-            _feeReceiver
+            _maxSubsidyBps
         )
         RewardClaimable(
             address(_debtToken),
@@ -172,8 +171,12 @@ contract DLoopCoreDLend is DLoopCoreBase, RewardClaimable {
      * @dev Sets withdrawal fee in basis points. Only owner can set. Capped by MAX_FEE_BPS.
      */
     function setFeeBps(uint256 _feeBps) external onlyOwner {
-        require(_feeBps <= MAX_FEE_BPS, "FeeTooHigh");
+        if (_feeBps > MAX_FEE_BPS) {
+            revert FeeTooHigh(_feeBps, MAX_FEE_BPS);
+        }
+        uint256 oldFeeBps = feeBps;
         feeBps = _feeBps;
+        emit FeeBpsSet(oldFeeBps, _feeBps);
     }
 
     /**

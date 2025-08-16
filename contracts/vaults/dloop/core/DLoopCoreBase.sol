@@ -205,7 +205,6 @@ abstract contract DLoopCoreBase is
         uint256 totalDebtBase
     );
     error ZeroShares();
-    error FeeReceiverIsZeroAddress();
 
     /**
      * @dev Constructor for the DLoopCore contract
@@ -217,7 +216,6 @@ abstract contract DLoopCoreBase is
      * @param _lowerBoundTargetLeverageBps Lower bound of target leverage in basis points
      * @param _upperBoundTargetLeverageBps Upper bound of target leverage in basis points
      * @param _maxSubsidyBps Maximum subsidy in basis points
-     * @param _feeReceiver Address that receives withdrawal fees
      */
     constructor(
         string memory _name,
@@ -227,8 +225,7 @@ abstract contract DLoopCoreBase is
         uint32 _targetLeverageBps,
         uint32 _lowerBoundTargetLeverageBps,
         uint32 _upperBoundTargetLeverageBps,
-        uint256 _maxSubsidyBps,
-        address _feeReceiver
+        uint256 _maxSubsidyBps
     ) ERC20(_name, _symbol) ERC4626(_collateralToken) Ownable(msg.sender) {
         debtToken = _debtToken;
         collateralToken = _collateralToken;
@@ -262,14 +259,7 @@ abstract contract DLoopCoreBase is
         lowerBoundTargetLeverageBps = _lowerBoundTargetLeverageBps;
         upperBoundTargetLeverageBps = _upperBoundTargetLeverageBps;
         maxSubsidyBps = _maxSubsidyBps;
-
-        if (_feeReceiver == address(0)) {
-            revert FeeReceiverIsZeroAddress();
-        }
-        feeReceiver = _feeReceiver;
     }
-
-    address private feeReceiver;
 
     /* Virtual Methods - Required to be implemented by derived contracts */
 
@@ -364,25 +354,6 @@ abstract contract DLoopCoreBase is
     function getWithdrawFee(
         uint256 collateralTokenAmount
     ) public view virtual returns (uint256);
-
-    /**
-     * @dev Gets the fee receiver address for withdrawal fees
-     */
-    function getFeeReceiver() public view returns (address) {
-        return feeReceiver;
-    }
-
-    /**
-     * @dev Sets the fee receiver address. Only owner can set. Must be non-zero.
-     */
-    function setFeeReceiver(
-        address _newReceiver
-    ) external onlyOwner nonReentrant {
-        if (_newReceiver == address(0)) {
-            revert FeeReceiverIsZeroAddress();
-        }
-        feeReceiver = _newReceiver;
-    }
 
     /* Wrapper Functions */
 
@@ -1015,28 +986,17 @@ abstract contract DLoopCoreBase is
 
         ) = _repayDebtAndWithdrawFromPoolImplementation(caller, assets);
 
-        // Apply withdrawal fee on output collateral
-        // We use the unleveraged assets (principal amount) with the current leverage to calculate the fee
-        uint256 feeAmount = getWithdrawFee(
-            getUnleveragedAssetsWithCurrentLeverage(assets)
-        );
-        uint256 netAmount = withdrawnCollateralTokenAmount - feeAmount;
-
         // Transfer the net asset to the receiver
-        collateralToken.safeTransfer(receiver, netAmount);
+        collateralToken.safeTransfer(receiver, withdrawnCollateralTokenAmount);
 
-        // Transfer fee to fee receiver when applicable
-        if (feeAmount > 0) {
-            address _receiver = getFeeReceiver();
-            if (_receiver == address(0)) {
-                revert FeeReceiverIsZeroAddress();
-            }
-            collateralToken.safeTransfer(_receiver, feeAmount);
-            emit WithdrawalFee(owner, receiver, feeAmount);
-        }
-
-        // Emit ERC4626 Withdraw with NET amount actually sent
-        emit Withdraw(caller, receiver, owner, netAmount, shares);
+        // Emit ERC4626 Withdraw with amount actually sent
+        emit Withdraw(
+            caller,
+            receiver,
+            owner,
+            withdrawnCollateralTokenAmount,
+            shares
+        );
     }
 
     /**
@@ -1112,6 +1072,29 @@ abstract contract DLoopCoreBase is
         );
 
         return (withdrawnCollateralTokenAmount, repaidDebtTokenAmount);
+    }
+
+    /* Withdrawal fee */
+
+    /**
+     * @dev Preview withdraw including withdrawal fee.
+     */
+    function previewWithdraw(
+        uint256 assets
+    ) public view virtual override returns (uint256) {
+        uint256 withdrawalFee = getWithdrawFee(assets);
+        // Calculate the requires shares to be burned when withdrawing with the withdrawal fee
+        return super.previewWithdraw(assets + withdrawalFee);
+    }
+
+    /**
+     * @dev Preview redeem including withdrawal fee.
+     */
+    function previewRedeem(
+        uint256 shares
+    ) public view virtual override returns (uint256) {
+        uint256 assets = super.previewRedeem(shares);
+        return assets - getWithdrawFee(assets);
     }
 
     /* Calculate */
