@@ -125,7 +125,10 @@ contract DLoopCoreDLend is DLoopCoreBase, RewardClaimable {
             revert("Invalid price oracle base currency");
         }
 
-        if (getLendingOracle().BASE_CURRENCY_UNIT() != 10 ** AAVE_PRICE_ORACLE_DECIMALS) {
+        if (
+            getLendingOracle().BASE_CURRENCY_UNIT() !=
+            10 ** AAVE_PRICE_ORACLE_DECIMALS
+        ) {
             revert("Invalid price oracle unit");
         }
     }
@@ -277,8 +280,37 @@ contract DLoopCoreDLend is DLoopCoreBase, RewardClaimable {
         override
         returns (uint256 totalCollateralBase, uint256 totalDebtBase)
     {
-        (totalCollateralBase, totalDebtBase, , , , ) = getLendingPool()
-            .getUserAccountData(user);
+        // Collateral side: balance of the aToken corresponding to collateralToken
+        {
+            DataTypes.ReserveData memory reserveCol = _getReserveData(
+                address(collateralToken)
+            );
+            uint256 aTokenBalance = ERC20(reserveCol.aTokenAddress).balanceOf(
+                user
+            );
+            totalCollateralBase = convertFromTokenAmountToBaseCurrency(
+                aTokenBalance,
+                address(collateralToken)
+            );
+        }
+
+        // Debt side: sum of variable + stable debt token balances corresponding to debtToken
+        {
+            DataTypes.ReserveData memory reserveDebt = _getReserveData(
+                address(debtToken)
+            );
+            uint256 variableDebt = ERC20(reserveDebt.variableDebtTokenAddress)
+                .balanceOf(user);
+            uint256 stableDebt = ERC20(reserveDebt.stableDebtTokenAddress)
+                .balanceOf(user);
+            uint256 totalUnderlyingDebt = variableDebt + stableDebt;
+            if (totalUnderlyingDebt > 0) {
+                totalDebtBase = convertFromTokenAmountToBaseCurrency(
+                    totalUnderlyingDebt,
+                    address(debtToken)
+                );
+            }
+        }
         return (totalCollateralBase, totalDebtBase);
     }
 

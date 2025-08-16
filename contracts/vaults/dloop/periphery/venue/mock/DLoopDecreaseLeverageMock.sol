@@ -58,12 +58,15 @@ contract DLoopDecreaseLeverageMock is DLoopDecreaseLeverageBase {
         // Approve the SimpleDEXMock to spend the input token
         inputToken.forceApprove(address(simpleDEXMock), amountInMaximum);
 
+        if (amountOut == 0) {
+            return 0;
+        }
         return
             simpleDEXMock.executeSwapExactOutput(
                 IERC20Metadata(address(inputToken)),
                 IERC20Metadata(address(outputToken)),
                 amountOut,
-                amountInMaximum,
+                amountInMaximum, // maxInputAmount
                 receiver
             );
     }
