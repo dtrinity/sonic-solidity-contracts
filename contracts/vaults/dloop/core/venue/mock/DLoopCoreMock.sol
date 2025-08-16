@@ -347,18 +347,8 @@ contract DLoopCoreMock is DLoopCoreBase {
     }
 
     // --- Withdrawal fee implementation ---
-    function getWithdrawFee(
-        uint256 collateralTokenAmount
-    ) public view override returns (uint256) {
-        if (feeBps == 0 || collateralTokenAmount == 0) {
-            return 0;
-        }
-        return
-            Math.mulDiv(
-                collateralTokenAmount,
-                feeBps,
-                BasisPointConstants.ONE_HUNDRED_PERCENT_BPS
-            );
+    function getWithdrawalFeeBps() public view override returns (uint256) {
+        return feeBps;
     }
 
     // getFeeReceiver provided by base

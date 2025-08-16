@@ -351,14 +351,6 @@ abstract contract DLoopCoreBase is
         address onBehalfOf
     ) internal virtual;
 
-    /**
-     * @dev Gets withdraw fee for a given collateral token amount (in collateral token units)
-     *      - Implemented by child contracts
-     */
-    function getWithdrawFee(
-        uint256 collateralTokenAmount
-    ) public view virtual returns (uint256);
-
     /* Wrapper Functions */
 
     /**
@@ -915,6 +907,7 @@ abstract contract DLoopCoreBase is
      *      - It requires to spend the debt token to repay the debt
      *      - It will send the withdrawn collateral assets to the receiver and burn the shares
      *      - The burned shares represent the position of the withdrawn assets in the lending pool
+     *      - The shares and assets are now reflected the charged withdrawal fee, thus no need to apply withdrawal fee again
      * @param caller Address of the caller
      * @param receiver Address to receive the withdrawn assets
      * @param owner Address of the owner
@@ -1081,29 +1074,11 @@ abstract contract DLoopCoreBase is
     /* Withdrawal fee */
 
     /**
-     * @dev Preview withdraw including withdrawal fee.
+     * @dev Gets the withdrawal fee in basis points
+     *      - Implemented by child contracts
+     * @return uint256 The withdrawal fee in basis points
      */
-    function previewWithdraw(
-        uint256 assets
-    ) public view virtual override returns (uint256) {
-        uint256 withdrawalFee = getWithdrawFee(assets);
-        // Calculate the requires shares to be burned when withdrawing with the withdrawal fee
-        return super.previewWithdraw(assets + withdrawalFee);
-    }
-
-    /**
-     * @dev Preview redeem including withdrawal fee.
-     */
-    function previewRedeem(
-        uint256 shares
-    ) public view virtual override returns (uint256) {
-        uint256 assets = super.previewRedeem(shares);
-        uint256 withdrawalFee = getWithdrawFee(assets);
-        if (withdrawalFee > assets) {
-            revert WithdrawalFeeIsGreaterThanAssets(withdrawalFee, assets);
-        }
-        return assets - withdrawalFee;
-    }
+    function getWithdrawalFeeBps() public view virtual returns (uint256);
 
     /* Calculate */
 
@@ -1985,6 +1960,11 @@ abstract contract DLoopCoreBase is
 
     /* Overrides to add leverage check */
 
+    /**
+     * @dev Gets the maximum amount of assets that can be deposited
+     * @param _user The address of the user
+     * @return uint256 The maximum amount of assets that can be deposited
+     */
     function maxDeposit(address _user) public view override returns (uint256) {
         // Don't allow deposit if the leverage is too imbalanced
         if (isTooImbalanced()) {
@@ -1993,6 +1973,11 @@ abstract contract DLoopCoreBase is
         return super.maxDeposit(_user);
     }
 
+    /**
+     * @dev Gets the maximum amount of shares that can be minted
+     * @param _user The address of the user
+     * @return uint256 The maximum amount of shares that can be minted
+     */
     function maxMint(address _user) public view override returns (uint256) {
         // Don't allow mint if the leverage is too imbalanced
         if (isTooImbalanced()) {
@@ -2001,19 +1986,77 @@ abstract contract DLoopCoreBase is
         return super.maxMint(_user);
     }
 
+    /**
+     * @dev Gets the maximum amount of assets that can be withdrawn
+     * @param _user The address of the user
+     * @return uint256 The maximum amount of assets that can be withdrawn
+     */
     function maxWithdraw(address _user) public view override returns (uint256) {
         // Don't allow withdraw if the leverage is too imbalanced
         if (isTooImbalanced()) {
             return 0;
         }
-        return super.maxWithdraw(_user);
+        uint256 withdrawalFeeBps = getWithdrawalFeeBps();
+        uint256 maxGrossWithdrawAmount = Math.mulDiv(
+            super.maxWithdraw(_user),
+            BasisPointConstants.ONE_HUNDRED_PERCENT_BPS,
+            BasisPointConstants.ONE_HUNDRED_PERCENT_BPS - withdrawalFeeBps
+        );
+        return maxGrossWithdrawAmount;
     }
 
+    /**
+     * @dev Gets the maximum amount of shares that can be redeemed
+     * @param _user The address of the user
+     * @return uint256 The maximum amount of shares that can be redeemed
+     */
     function maxRedeem(address _user) public view override returns (uint256) {
         // Don't allow redeem if the leverage is too imbalanced
         if (isTooImbalanced()) {
             return 0;
         }
-        return super.maxRedeem(_user);
+        uint256 maxGrossRedeemAmount = Math.mulDiv(
+            super.maxRedeem(_user),
+            getWithdrawalFeeBps(),
+            BasisPointConstants.ONE_HUNDRED_PERCENT_BPS
+        );
+        return maxGrossRedeemAmount;
+    }
+
+    /**
+     * @dev Preview withdraw including withdrawal fee.
+     *      - The assets parameter is the gross amount of assets, not the net amount
+     * @param assets The gross amount of assets to withdraw
+     * @return uint256 The net amount of assets to withdraw
+     */
+    function previewWithdraw(
+        uint256 assets
+    ) public view virtual override returns (uint256) {
+        uint256 withdrawalFeeBps = getWithdrawalFeeBps();
+        uint256 grossAssets = Math.mulDiv(
+            assets,
+            BasisPointConstants.ONE_HUNDRED_PERCENT_BPS,
+            BasisPointConstants.ONE_HUNDRED_PERCENT_BPS - withdrawalFeeBps
+        );
+        // Calculate the requires shares to be burned when withdrawing with the withdrawal fee
+        return super.previewWithdraw(grossAssets);
+    }
+
+    /**
+     * @dev Preview redeem including withdrawal fee.
+     *      - The shares parameter is the gross amount of shares, not the net amount
+     * @param shares The gross amount of shares to redeem
+     * @return uint256 The net amount of shares to redeem
+     */
+    function previewRedeem(
+        uint256 shares
+    ) public view virtual override returns (uint256) {
+        uint256 assets = super.previewRedeem(shares);
+        uint256 withdrawalFee = Math.mulDiv(
+            assets,
+            getWithdrawalFeeBps(),
+            BasisPointConstants.ONE_HUNDRED_PERCENT_BPS
+        );
+        return assets - withdrawalFee;
     }
 }

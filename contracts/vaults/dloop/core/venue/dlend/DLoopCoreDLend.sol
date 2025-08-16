@@ -180,21 +180,11 @@ contract DLoopCoreDLend is DLoopCoreBase, RewardClaimable {
     }
 
     /**
-     * @inheritdoc DLoopCoreBase
-     * @return uint256 The withdrawal fee
+     * @dev Gets the withdrawal fee in basis points
+     * @return uint256 The withdrawal fee in basis points
      */
-    function getWithdrawFee(
-        uint256 collateralTokenAmount
-    ) public view override returns (uint256) {
-        if (feeBps == 0 || collateralTokenAmount == 0) {
-            return 0;
-        }
-        return
-            Math.mulDiv(
-                collateralTokenAmount,
-                feeBps,
-                BasisPointConstants.ONE_HUNDRED_PERCENT_BPS
-            );
+    function getWithdrawalFeeBps() public view override returns (uint256) {
+        return feeBps;
     }
 
     /**
