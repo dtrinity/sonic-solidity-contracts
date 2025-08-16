@@ -83,6 +83,13 @@ abstract contract DLoopCoreBase is
         uint32 upperBoundTargetLeverageBps
     );
 
+    // --- Withdrawal fee ---
+    event WithdrawalFee(
+        address indexed owner,
+        address indexed receiver,
+        uint256 feeAmount
+    );
+
     /* Errors */
 
     error TooImbalanced(
@@ -896,6 +903,7 @@ abstract contract DLoopCoreBase is
      *      - It requires to spend the debt token to repay the debt
      *      - It will send the withdrawn collateral assets to the receiver and burn the shares
      *      - The burned shares represent the position of the withdrawn assets in the lending pool
+     *      - The shares and assets are now reflected the charged withdrawal fee, thus no need to apply withdrawal fee again
      * @param caller Address of the caller
      * @param receiver Address to receive the withdrawn assets
      * @param owner Address of the owner
@@ -966,12 +974,22 @@ abstract contract DLoopCoreBase is
         // Withdraw the collateral from the lending pool
         // After this step, the _withdrawFromPool wrapper function will also assert that
         // the withdrawn amount is exactly the amount requested.
-        _repayDebtAndWithdrawFromPoolImplementation(caller, assets);
+        (
+            uint256 withdrawnCollateralTokenAmount,
 
-        // Transfer the asset to the receiver
-        collateralToken.safeTransfer(receiver, assets);
+        ) = _repayDebtAndWithdrawFromPoolImplementation(caller, assets);
 
-        emit Withdraw(caller, receiver, owner, assets, shares);
+        // Transfer the net asset to the receiver
+        collateralToken.safeTransfer(receiver, withdrawnCollateralTokenAmount);
+
+        // Emit ERC4626 Withdraw with amount actually sent
+        emit Withdraw(
+            caller,
+            receiver,
+            owner,
+            withdrawnCollateralTokenAmount,
+            shares
+        );
     }
 
     /**
@@ -981,12 +999,19 @@ abstract contract DLoopCoreBase is
      *      - Then performs the actual repay and withdraw
      * @param caller Address of the caller
      * @param collateralTokenToWithdraw The amount of collateral token to withdraw
+     * @return withdrawnCollateralTokenAmount The amount of collateral token withdrawn
      * @return repaidDebtTokenAmount The amount of debt token repaid
      */
     function _repayDebtAndWithdrawFromPoolImplementation(
         address caller,
         uint256 collateralTokenToWithdraw
-    ) private returns (uint256 repaidDebtTokenAmount) {
+    )
+        private
+        returns (
+            uint256 withdrawnCollateralTokenAmount,
+            uint256 repaidDebtTokenAmount
+        )
+    {
         // Get the current leverage before repaying the debt (IMPORTANT: this is the leverage before repaying the debt)
         // It is used to calculate the expected withdrawable amount that keeps the current leverage
         uint256 leverageBpsBeforeRepayDebt = getCurrentLeverageBps();
@@ -1033,14 +1058,23 @@ abstract contract DLoopCoreBase is
         // Withdraw the collateral
         // At this step, the _withdrawFromPool wrapper function will also assert that
         // the withdrawn amount is exactly the amount requested.
-        _withdrawFromPool(
+        withdrawnCollateralTokenAmount = _withdrawFromPool(
             address(collateralToken),
             collateralTokenToWithdraw,
             address(this) // the vault is the receiver
         );
 
-        return repaidDebtTokenAmount;
+        return (withdrawnCollateralTokenAmount, repaidDebtTokenAmount);
     }
+
+    /* Withdrawal fee */
+
+    /**
+     * @dev Gets the withdrawal fee in basis points
+     *      - Implemented by child contracts
+     * @return uint256 The withdrawal fee in basis points
+     */
+    function getWithdrawalFeeBps() public view virtual returns (uint256);
 
     /* Calculate */
 
@@ -1922,6 +1956,11 @@ abstract contract DLoopCoreBase is
 
     /* Overrides to add leverage check */
 
+    /**
+     * @dev Gets the maximum amount of assets that can be deposited
+     * @param _user The address of the user
+     * @return uint256 The maximum amount of assets that can be deposited
+     */
     function maxDeposit(address _user) public view override returns (uint256) {
         // Don't allow deposit if the leverage is too imbalanced
         if (isTooImbalanced()) {
@@ -1930,6 +1969,11 @@ abstract contract DLoopCoreBase is
         return super.maxDeposit(_user);
     }
 
+    /**
+     * @dev Gets the maximum amount of shares that can be minted
+     * @param _user The address of the user
+     * @return uint256 The maximum amount of shares that can be minted
+     */
     function maxMint(address _user) public view override returns (uint256) {
         // Don't allow mint if the leverage is too imbalanced
         if (isTooImbalanced()) {
@@ -1938,19 +1982,75 @@ abstract contract DLoopCoreBase is
         return super.maxMint(_user);
     }
 
+    /**
+     * @dev Gets the maximum amount of assets that can be withdrawn
+     * @param _user The address of the user
+     * @return uint256 The maximum amount of assets that can be withdrawn
+     */
     function maxWithdraw(address _user) public view override returns (uint256) {
         // Don't allow withdraw if the leverage is too imbalanced
         if (isTooImbalanced()) {
             return 0;
         }
-        return super.maxWithdraw(_user);
+        // Return the maximum NET assets after fee
+        uint256 grossAssets = super.maxWithdraw(_user);
+        uint256 feeBps = getWithdrawalFeeBps();
+        uint256 netAssets = Math.mulDiv(
+            grossAssets,
+            BasisPointConstants.ONE_HUNDRED_PERCENT_BPS - feeBps,
+            BasisPointConstants.ONE_HUNDRED_PERCENT_BPS
+        );
+        return netAssets;
     }
 
+    /**
+     * @dev Gets the maximum amount of shares that can be redeemed
+     * @param _user The address of the user
+     * @return uint256 The maximum amount of shares that can be redeemed
+     */
     function maxRedeem(address _user) public view override returns (uint256) {
         // Don't allow redeem if the leverage is too imbalanced
         if (isTooImbalanced()) {
             return 0;
         }
+        // Fee applies on assets, not on shares. Max redeemable shares remain unchanged.
         return super.maxRedeem(_user);
+    }
+
+    /**
+     * @dev Preview withdraw including withdrawal fee.
+     *      - The assets parameter is the gross amount of assets, not the net amount
+     * @param assets The gross amount of assets to withdraw
+     * @return uint256 The net amount of assets to withdraw
+     */
+    function previewWithdraw(
+        uint256 assets
+    ) public view virtual override returns (uint256) {
+        uint256 withdrawalFeeBps = getWithdrawalFeeBps();
+        uint256 grossAssets = Math.mulDiv(
+            assets,
+            BasisPointConstants.ONE_HUNDRED_PERCENT_BPS,
+            BasisPointConstants.ONE_HUNDRED_PERCENT_BPS - withdrawalFeeBps
+        );
+        // Calculate the requires shares to be burned when withdrawing with the withdrawal fee
+        return super.previewWithdraw(grossAssets);
+    }
+
+    /**
+     * @dev Preview redeem including withdrawal fee.
+     *      - The shares parameter is the gross amount of shares, not the net amount
+     * @param shares The gross amount of shares to redeem
+     * @return uint256 The net amount of shares to redeem
+     */
+    function previewRedeem(
+        uint256 shares
+    ) public view virtual override returns (uint256) {
+        uint256 assets = super.previewRedeem(shares);
+        uint256 withdrawalFee = Math.mulDiv(
+            assets,
+            getWithdrawalFeeBps(),
+            BasisPointConstants.ONE_HUNDRED_PERCENT_BPS
+        );
+        return assets - withdrawalFee;
     }
 }

@@ -26,6 +26,7 @@ import {DLoopCoreBase} from "../../DLoopCoreBase.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {RewardClaimable} from "contracts/vaults/rewards_claimable/RewardClaimable.sol";
 import {IRewardsController} from "./interface/IRewardsController.sol";
+import {BasisPointConstants} from "contracts/common/BasisPointConstants.sol";
 
 /**
  * @title DLoopCoreDLend
@@ -50,16 +51,23 @@ contract DLoopCoreDLend is DLoopCoreBase, RewardClaimable {
     address public immutable targetStaticATokenWrapper;
     IRewardsController public dLendRewardsController;
 
+    // Withdrawal fee configuration
+    uint256 public feeBps; // default 0 bps
+    uint256 public constant MAX_FEE_BPS =
+        5 * BasisPointConstants.ONE_PERCENT_BPS; // 5%
+
     /* Errors */
 
     error ZeroAddress();
     error InvalidRewardsController();
+    error FeeTooHigh(uint256 feeBps, uint256 maxFeeBps);
 
     /* Events */
     event DLendRewardsControllerUpdated(
         address indexed oldController,
         address indexed newController
     );
+    event FeeBpsSet(uint256 oldFeeBps, uint256 newFeeBps);
 
     /**
      * @dev Constructor for the DLoopCoreDLend contract
@@ -78,6 +86,7 @@ contract DLoopCoreDLend is DLoopCoreBase, RewardClaimable {
      * @param _treasury Address of the treasury
      * @param _maxTreasuryFeeBps Maximum treasury fee in basis points
      * @param _initialTreasuryFeeBps Initial treasury fee in basis points
+     * @param _initialExchangeThreshold Minimum amount of rewards (in debt token units) required before exchanging to treasury
      */
     constructor(
         string memory _name,
@@ -151,6 +160,26 @@ contract DLoopCoreDLend is DLoopCoreBase, RewardClaimable {
             oldController,
             _newDLendRewardsController
         );
+    }
+
+    /**
+     * @dev Sets withdrawal fee in basis points. Only owner can set. Capped by MAX_FEE_BPS.
+     */
+    function setFeeBps(uint256 _feeBps) external onlyOwner {
+        if (_feeBps > MAX_FEE_BPS) {
+            revert FeeTooHigh(_feeBps, MAX_FEE_BPS);
+        }
+        uint256 oldFeeBps = feeBps;
+        feeBps = _feeBps;
+        emit FeeBpsSet(oldFeeBps, _feeBps);
+    }
+
+    /**
+     * @dev Gets the withdrawal fee in basis points
+     * @return uint256 The withdrawal fee in basis points
+     */
+    function getWithdrawalFeeBps() public view override returns (uint256) {
+        return feeBps;
     }
 
     /**
