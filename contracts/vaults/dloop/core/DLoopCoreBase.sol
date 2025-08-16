@@ -205,6 +205,10 @@ abstract contract DLoopCoreBase is
         uint256 totalDebtBase
     );
     error ZeroShares();
+    error WithdrawalFeeIsGreaterThanAssets(
+        uint256 withdrawalFee,
+        uint256 assets
+    );
 
     /**
      * @dev Constructor for the DLoopCore contract
@@ -1094,7 +1098,11 @@ abstract contract DLoopCoreBase is
         uint256 shares
     ) public view virtual override returns (uint256) {
         uint256 assets = super.previewRedeem(shares);
-        return assets - getWithdrawFee(assets);
+        uint256 withdrawalFee = getWithdrawFee(assets);
+        if (withdrawalFee > assets) {
+            revert WithdrawalFeeIsGreaterThanAssets(withdrawalFee, assets);
+        }
+        return assets - withdrawalFee;
     }
 
     /* Calculate */
