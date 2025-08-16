@@ -9,7 +9,7 @@ import {
 } from "./fixture";
 
 describe("DLoopDecreaseLeverageMock - Leftover Collateral Token Handling", function () {
-  it.skip("transfers leftover collateral tokens to user and emits event", async function () {
+  it("transfers leftover collateral tokens to user and emits event", async function () {
     const fixture = await loadFixture(deployDLoopDecreaseLeverageFixture);
     await testSetup(fixture);
 
@@ -37,6 +37,15 @@ describe("DLoopDecreaseLeverageMock - Leftover Collateral Token Handling", funct
       .approve(await decreaseLeverageMock.getAddress(), ethers.MaxUint256);
 
     const before = await collateralToken.balanceOf(user1.address);
+
+    // Ensure transferPortionBps is 100% for deterministic transfer behavior
+    await dloopCoreMock.setTransferPortionBps(1_000_000);
+
+    // Ensure the core holds enough debt tokens to perform repay (mock uses transfer from core)
+    const [requiredDebtAmount, direction] =
+      await dloopCoreMock.getAmountToReachTargetLeverage(true);
+    expect(direction).to.equal(-1n);
+    await debtToken.mint(await dloopCoreMock.getAddress(), requiredDebtAmount);
 
     const tx = await decreaseLeverageMock
       .connect(user1)

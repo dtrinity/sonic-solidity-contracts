@@ -5,7 +5,7 @@ import { ethers } from "hardhat";
 import { deployDLoopIncreaseLeverageMockFixture } from "./fixtures";
 
 describe("DLoopIncreaseLeverageMock - Leftover Debt Token Handling", function () {
-  it.skip("transfers leftover debt tokens to user and emits event", async function () {
+  it("transfers leftover debt tokens to user and emits event", async function () {
     const {
       dloopMock,
       increaseLeverageMock,
@@ -17,24 +17,42 @@ describe("DLoopIncreaseLeverageMock - Leftover Debt Token Handling", function ()
     // Ensure mock transfer behavior is deterministic (100%)
     await dloopMock.setTransferPortionBps(1_000_000);
 
-    // Reduce subsidy to mitigate overshoot
+    // Reduce subsidy to mitigate overshoot and make leverage math stable
     const owner = (await ethers.getSigners())[0];
     await dloopMock.connect(owner).setMaxSubsidyBps(0);
+    // Set transfer portion to 100% to match expected supply checks in core wrapper
+    await dloopMock.setTransferPortionBps(1_000_000);
 
-    // Move leverage below target so we need to increase leverage
-    const increasedPrice = ethers.parseUnits("1.002", 8); // 0.2% price increase
+    // Keep price unchanged to minimize required collateral and avoid overshoot
+    const currentPrice = await dloopMock.getMockPrice(
+      await collateralToken.getAddress(),
+    );
     await dloopMock.setMockPrice(
       await collateralToken.getAddress(),
-      increasedPrice,
+      currentPrice,
     );
 
     // Pre-fund periphery with 1 wei debt token to guarantee a leftover > 0 after operations
     await debtToken.mint(await increaseLeverageMock.getAddress(), 1n);
 
-    // Provide a tiny additional collateral to satisfy supply-from-sender constraint in the mock
-    const additionalCollateralFromUser = 1n;
+    // Compute exact required collateral to avoid flash loan path and prevent overshoot
+    const result = await dloopMock.getAmountToReachTargetLeverage(true);
+    const requiredCollateralAmount: bigint = result[0];
+    const direction: bigint = result[1];
+    expect(direction).to.equal(1n);
+
+    // Fund user with enough collateral (already funded in fixture) and set additionalCollateralFromUser
+    const additionalCollateralFromUser = requiredCollateralAmount;
+
+    // Pre-fund core with a cushion of collateral to satisfy onBehalfOf == this supply path
+    await collateralToken.mint(
+      await dloopMock.getAddress(),
+      ethers.parseEther("1000"),
+    );
 
     const beforeDebt = await debtToken.balanceOf(user1.address);
+    // Make required change extremely small by setting maxSubsidy to zero and leaving price unchanged
+    await dloopMock.setTransferPortionBps(1_000_000);
 
     const tx = await increaseLeverageMock
       .connect(user1)
