@@ -47,7 +47,7 @@ library CoreLogic {
     function getCurrentLeverageBps(
         uint256 totalCollateralBase,
         uint256 totalDebtBase
-    ) public pure returns (uint256) {
+    ) internal pure returns (uint256) {
         if (totalCollateralBase < totalDebtBase) {
             revert CollateralLessThanDebt(totalCollateralBase, totalDebtBase);
         }
@@ -80,7 +80,7 @@ library CoreLogic {
         uint256 targetLeverageBps,
         uint256 maxSubsidyBps,
         uint256 minDeviationBps
-    ) public pure returns (uint256) {
+    ) internal pure returns (uint256) {
         uint256 subsidyBps;
         if (currentLeverageBps > targetLeverageBps) {
             uint256 deviationBps = currentLeverageBps - targetLeverageBps;
@@ -120,7 +120,7 @@ library CoreLogic {
         uint256 amountInBase,
         uint256 tokenDecimals,
         uint256 tokenPriceInBase
-    ) public pure returns (uint256) {
+    ) internal pure returns (uint256) {
         // The price decimals is cancelled out in the division (as the amount and price are in the same unit)
         return Math.mulDiv(amountInBase, 10 ** tokenDecimals, tokenPriceInBase);
     }
@@ -136,7 +136,7 @@ library CoreLogic {
         uint256 amountInToken,
         uint256 tokenDecimals,
         uint256 tokenPriceInBase
-    ) public pure returns (uint256) {
+    ) internal pure returns (uint256) {
         // The token decimals is cancelled out in the division (as the amount and price are in the same unit)
         return
             Math.mulDiv(amountInToken, tokenPriceInBase, 10 ** tokenDecimals);
@@ -153,7 +153,7 @@ library CoreLogic {
         uint256 currentLeverageBps,
         uint256 lowerBoundTargetLeverageBps,
         uint256 upperBoundTargetLeverageBps
-    ) public pure returns (bool) {
+    ) internal pure returns (bool) {
         // If there is no deposit yet, we don't need to rebalance, thus it is not too imbalanced
         return
             currentLeverageBps != 0 &&
@@ -170,7 +170,7 @@ library CoreLogic {
     function getUnleveragedAssetsWithLeverage(
         uint256 leveragedAssets,
         uint256 leverageBps
-    ) public pure returns (uint256) {
+    ) internal pure returns (uint256) {
         return
             Math.mulDiv(
                 leveragedAssets,
@@ -188,7 +188,7 @@ library CoreLogic {
     function getLeveragedAssetsWithLeverage(
         uint256 assets,
         uint256 leverageBps
-    ) public pure returns (uint256) {
+    ) internal pure returns (uint256) {
         return
             Math.mulDiv(
                 assets,
@@ -214,7 +214,7 @@ library CoreLogic {
         uint256 collateralTokenPriceInBase,
         uint256 debtTokenDecimals,
         uint256 debtTokenPriceInBase
-    ) public pure returns (uint256 repayAmount) {
+    ) internal pure returns (uint256 repayAmount) {
         /* Formula definition:
          * - C1: totalCollateralBase before repay (in base currency)
          * - D1: totalDebtBase before repay (in base currency)
@@ -299,7 +299,7 @@ library CoreLogic {
         uint256 collateralTokenPriceInBase,
         uint256 debtTokenDecimals,
         uint256 debtTokenPriceInBase
-    ) public pure returns (uint256 expectedBorrowAmount) {
+    ) internal pure returns (uint256 expectedBorrowAmount) {
         /* Formula definition:
          * - C1: totalCollateralBase before supply (in base currency)
          * - D1: totalDebtBase before supply (in base currency)
@@ -378,7 +378,7 @@ library CoreLogic {
         uint256 totalCollateralBase,
         uint256 totalDebtBase,
         uint256 subsidyBps
-    ) public pure returns (uint256 requiredCollateralDepositAmountInBase) {
+    ) internal pure returns (uint256 requiredCollateralDepositAmountInBase) {
         /**
          * Find the amount of collateral to be deposited and the corresponding amount of debt token to be borrowed to rebalance
          *
@@ -479,7 +479,7 @@ library CoreLogic {
     function getDebtBorrowAmountInBaseToIncreaseLeverage(
         uint256 inputCollateralDepositAmountInBase,
         uint256 subsidyBps
-    ) public pure returns (uint256 outputDebtBorrowAmountInBase) {
+    ) internal pure returns (uint256 outputDebtBorrowAmountInBase) {
         /**
          * The formula is:
          *      y = (1+k) * x
@@ -528,7 +528,7 @@ library CoreLogic {
         uint256 collateralTokenPriceInBase,
         uint256 debtTokenDecimals,
         uint256 debtTokenPriceInBase
-    ) public pure returns (uint256 outputDebtBorrowTokenAmount) {
+    ) internal pure returns (uint256 outputDebtBorrowTokenAmount) {
         // Make sure the input collateral token amount is not zero
         if (inputCollateralDepositTokenAmount == 0) {
             revert InputCollateralTokenAmountIsZero();
@@ -576,7 +576,7 @@ library CoreLogic {
         uint256 totalCollateralBase,
         uint256 totalDebtBase,
         uint256 subsidyBps
-    ) public pure returns (uint256 requiredDebtRepayAmountInBase) {
+    ) internal pure returns (uint256 requiredDebtRepayAmountInBase) {
         /**
          * Find the amount of debt to be repaid and the corresponding amount of collateral to be withdraw to rebalance
          *
@@ -679,7 +679,7 @@ library CoreLogic {
     function getCollateralWithdrawAmountInBaseToDecreaseLeverage(
         uint256 inputDebtRepayAmountInBase,
         uint256 subsidyBps
-    ) public pure returns (uint256 outputCollateralTokenAmount) {
+    ) internal pure returns (uint256 outputCollateralTokenAmount) {
         /**
          * The formula is:
          *      x = (1+k) * y
@@ -728,7 +728,7 @@ library CoreLogic {
         uint256 collateralTokenPriceInBase,
         uint256 debtTokenDecimals,
         uint256 debtTokenPriceInBase
-    ) public pure returns (uint256 outputCollateralWithdrawTokenAmount) {
+    ) internal pure returns (uint256 outputCollateralWithdrawTokenAmount) {
         // Make sure the input debt token amount is not zero
         if (inputDebtRepayTokenAmount == 0) {
             revert InputDebtTokenAmountIsZero();
@@ -868,7 +868,7 @@ library CoreLogic {
     function getGrossAmountRequiredForNet(
         uint256 netAmount,
         uint256 withdrawalFeeBps
-    ) public pure returns (uint256 grossAmount) {
+    ) internal pure returns (uint256 grossAmount) {
         return
             Math.mulDiv(
                 netAmount,
@@ -886,7 +886,7 @@ library CoreLogic {
     function getNetAmountAfterFee(
         uint256 grossAmount,
         uint256 withdrawalFeeBps
-    ) public pure returns (uint256 netAmount) {
+    ) internal pure returns (uint256 netAmount) {
         return
             Math.mulDiv(
                 grossAmount,
