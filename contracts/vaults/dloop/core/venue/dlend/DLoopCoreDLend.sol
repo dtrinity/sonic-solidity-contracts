@@ -134,7 +134,10 @@ contract DLoopCoreDLend is DLoopCoreBase, RewardClaimable {
             revert("Invalid price oracle base currency");
         }
 
-        if (getLendingOracle().BASE_CURRENCY_UNIT() != 10 ** AAVE_PRICE_ORACLE_DECIMALS) {
+        if (
+            getLendingOracle().BASE_CURRENCY_UNIT() !=
+            10 ** AAVE_PRICE_ORACLE_DECIMALS
+        ) {
             revert("Invalid price oracle unit");
         }
     }

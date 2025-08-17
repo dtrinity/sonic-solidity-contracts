@@ -1957,9 +1957,7 @@ abstract contract DLoopCoreBase is
     /* Overrides to add leverage check */
 
     /**
-     * @dev Gets the maximum amount of assets that can be deposited
-     * @param _user The address of the user
-     * @return uint256 The maximum amount of assets that can be deposited
+     * @dev See {IERC4626-maxDeposit}.
      */
     function maxDeposit(address _user) public view override returns (uint256) {
         // Don't allow deposit if the leverage is too imbalanced
@@ -1970,9 +1968,7 @@ abstract contract DLoopCoreBase is
     }
 
     /**
-     * @dev Gets the maximum amount of shares that can be minted
-     * @param _user The address of the user
-     * @return uint256 The maximum amount of shares that can be minted
+     * @dev See {IERC4626-maxMint}.
      */
     function maxMint(address _user) public view override returns (uint256) {
         // Don't allow mint if the leverage is too imbalanced
@@ -1983,9 +1979,7 @@ abstract contract DLoopCoreBase is
     }
 
     /**
-     * @dev Gets the maximum amount of assets that can be withdrawn
-     * @param _user The address of the user
-     * @return uint256 The maximum amount of assets that can be withdrawn
+     * @dev See {IERC4626-maxWithdraw}.
      */
     function maxWithdraw(address _user) public view override returns (uint256) {
         // Don't allow withdraw if the leverage is too imbalanced
@@ -2004,9 +1998,7 @@ abstract contract DLoopCoreBase is
     }
 
     /**
-     * @dev Gets the maximum amount of shares that can be redeemed
-     * @param _user The address of the user
-     * @return uint256 The maximum amount of shares that can be redeemed
+     * @dev See {IERC4626-maxRedeem}.
      */
     function maxRedeem(address _user) public view override returns (uint256) {
         // Don't allow redeem if the leverage is too imbalanced
@@ -2018,10 +2010,7 @@ abstract contract DLoopCoreBase is
     }
 
     /**
-     * @dev Preview withdraw including withdrawal fee.
-     *      - The assets parameter is the gross amount of assets, not the net amount
-     * @param assets The gross amount of assets to withdraw
-     * @return uint256 The net amount of assets to withdraw
+     * @dev See {IERC4626-previewWithdraw}.
      */
     function previewWithdraw(
         uint256 assets
@@ -2037,10 +2026,7 @@ abstract contract DLoopCoreBase is
     }
 
     /**
-     * @dev Preview redeem including withdrawal fee.
-     *      - The shares parameter is the gross amount of shares, not the net amount
-     * @param shares The gross amount of shares to redeem
-     * @return uint256 The net amount of shares to redeem
+     * @dev See {IERC4626-previewRedeem}.
      */
     function previewRedeem(
         uint256 shares
@@ -2051,6 +2037,7 @@ abstract contract DLoopCoreBase is
             getWithdrawalFeeBps(),
             BasisPointConstants.ONE_HUNDRED_PERCENT_BPS
         );
+        // Calculate the net amount of assets to be received after the withdrawal fee
         return assets - withdrawalFee;
     }
 }
