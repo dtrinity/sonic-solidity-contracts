@@ -83,6 +83,7 @@ describe("DLoopCoreDLend – Reward Compounding (vault shares as exchange asset)
       LOWER_BPS,
       UPPER_BPS,
       0, // max subsidy bps (not important for this test)
+      0, // withdrawalFeeBps
       await rewardsController.getAddress(),
       await collateral.getAddress(), // dLendAssetToClaimFor (arbitrary for mock)
       ethers.ZeroAddress, // targetStaticATokenWrapper (arbitrary for mock)

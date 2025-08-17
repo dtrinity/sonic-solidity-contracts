@@ -51,7 +51,7 @@ describe("DLoopCoreMock - Withdraw Fee", function () {
   it("non-zero fee adjusts previewRedeem and redeem output (fee retained in vault)", async function () {
     const user = users[1];
     const receiver = users[4].address; // arbitrary account; should NOT receive fee
-    await (dloop as any).setFeeBps(FEE_BPS);
+    await dloop.setWithdrawalFeeBps(FEE_BPS);
 
     const amount = ethers.parseEther("100");
     await collateral.connect(user).approve(await dloop.getAddress(), amount);
@@ -84,7 +84,7 @@ describe("DLoopCoreMock - Withdraw Fee", function () {
 
   it("previewWithdraw inverts net→shares using gross+fee", async function () {
     const user = users[1];
-    await (dloop as any).setFeeBps(FEE_BPS);
+    await dloop.setWithdrawalFeeBps(FEE_BPS);
 
     const amount = ethers.parseEther("100");
     await collateral.connect(user).approve(await dloop.getAddress(), amount);
@@ -106,7 +106,7 @@ describe("DLoopCoreMock - Withdraw Fee", function () {
   it("decreaseLeverage returns net-of-fee collateral (no external fee transfer)", async function () {
     const user = users[1];
     const receiver = users[4].address; // arbitrary account; should NOT receive fee
-    await (dloop as any).setFeeBps(FEE_BPS);
+    await dloop.setWithdrawalFeeBps(FEE_BPS);
 
     // Prices 1:1 already
     const depositAmt = ethers.parseEther("100");
@@ -146,13 +146,13 @@ describe("DLoopCoreMock - Withdraw Fee", function () {
     const shares = await dloop.balanceOf(user.address);
     expect(await dloop.maxRedeem(user.address)).to.equal(shares);
 
-    await (dloop as any).setFeeBps(FEE_BPS);
+    await dloop.setWithdrawalFeeBps(FEE_BPS);
     expect(await dloop.maxRedeem(user.address)).to.equal(shares);
   });
 
   it("previewRedeem and previewWithdraw handle zero and tiny amounts", async function () {
     const user = users[1];
-    await (dloop as any).setFeeBps(FEE_BPS);
+    await dloop.setWithdrawalFeeBps(FEE_BPS);
 
     // Zero inputs
     expect(await dloop.previewRedeem(0)).to.equal(0);
@@ -187,7 +187,7 @@ describe("DLoopCoreMock - Withdraw Fee", function () {
 
   it("maxWithdraw returns net-of-fee and withdraw(max) burns expected shares", async function () {
     const user = users[1];
-    await (dloop as any).setFeeBps(FEE_BPS);
+    await dloop.setWithdrawalFeeBps(FEE_BPS);
 
     const amount = ethers.parseEther("100");
     await collateral.connect(user).approve(await dloop.getAddress(), amount);
@@ -212,10 +212,10 @@ describe("DLoopCoreMock - Withdraw Fee", function () {
 
   it("supports MAX_FEE_BPS (5%) and rejects above max", async function () {
     const user = users[1];
-    const MAX_FEE_BPS = 5 * 100 * ONE_BPS_UNIT; // 5%
+    const MAX_FEE_BPS = await dloop.MAX_WITHDRAWAL_FEE_BPS();
 
     // Setting to max should succeed
-    await (dloop as any).setFeeBps(MAX_FEE_BPS);
+    await dloop.setWithdrawalFeeBps(MAX_FEE_BPS);
 
     const amount = ethers.parseEther("100");
     await collateral.connect(user).approve(await dloop.getAddress(), amount);
@@ -223,18 +223,18 @@ describe("DLoopCoreMock - Withdraw Fee", function () {
 
     const shares = amount;
     const gross = await dloop.convertToAssets(shares);
-    const expectedNet = gross - (gross * BigInt(MAX_FEE_BPS)) / DENOM; // 95 ether
+    const expectedNet = gross - (gross * BigInt(MAX_FEE_BPS)) / DENOM;
     expect(await dloop.previewRedeem(shares)).to.equal(expectedNet);
 
-    // Above max should revert
-    await expect((dloop as any).setFeeBps(MAX_FEE_BPS + 1)).to.be.revertedWith(
-      "Mock: fee too high",
-    );
+    // Above max should revert with custom error
+    await expect(
+      dloop.setWithdrawalFeeBps(MAX_FEE_BPS + 1n),
+    ).to.be.revertedWithCustomError(dloop, "WithdrawalFeeIsGreaterThanMaxFee");
   });
 
   it("large amounts maintain precision and match previews", async function () {
     const user = users[1];
-    await (dloop as any).setFeeBps(FEE_BPS);
+    await dloop.setWithdrawalFeeBps(FEE_BPS);
 
     const amount = ethers.parseEther("9000"); // large within minted balance
     await collateral.connect(user).approve(await dloop.getAddress(), amount);
