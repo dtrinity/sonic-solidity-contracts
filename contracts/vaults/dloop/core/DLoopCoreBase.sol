@@ -35,6 +35,10 @@ import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
  *      - In order to keep the vault balanced, user can call increaseLeverage or decreaseLeverage to increase or decrease the leverage
  *        when it is away from the target leverage
  *      - There is a subsidy for the caller when increasing the leverage.
+ *      - The withdrawal fee is being applied when calling redeem and withdraw. The fee is not being transferred to a fee receiver, instead
+ *        it is being shared to the current shares holders. It means, the vault of the vault's share will be a bit increased after a user's withdrawal.
+ *      - The withdrawal fee is not applied for decreaseLeverage(), as this operation is not a vault withdrawal, instead, it repay and withdraw
+ *        from the underlying pool to rebalance the vault position, not vault's shares are being burned.
  */
 abstract contract DLoopCoreBase is
     ERC4626,
@@ -57,6 +61,8 @@ abstract contract DLoopCoreBase is
     ERC20 public immutable debtToken;
 
     uint256 public constant BALANCE_DIFF_TOLERANCE = 1;
+    uint256 public constant MAX_WITHDRAWAL_FEE_BPS =
+        10 * BasisPointConstants.ONE_PERCENT_BPS; // 100%
 
     /* Events */
 
@@ -1981,7 +1987,10 @@ abstract contract DLoopCoreBase is
         }
         // Return the maximum NET assets after fee
         uint256 grossAssets = super.maxWithdraw(_user);
-        uint256 feeBps = getWithdrawalFeeBps();
+        uint256 feeBps = Math.min(
+            getWithdrawalFeeBps(),
+            MAX_WITHDRAWAL_FEE_BPS
+        );
         uint256 netAssets = Math.mulDiv(
             grossAssets,
             BasisPointConstants.ONE_HUNDRED_PERCENT_BPS - feeBps,
@@ -2008,7 +2017,10 @@ abstract contract DLoopCoreBase is
     function previewWithdraw(
         uint256 assets
     ) public view virtual override returns (uint256) {
-        uint256 withdrawalFeeBps = getWithdrawalFeeBps();
+        uint256 withdrawalFeeBps = Math.min(
+            getWithdrawalFeeBps(),
+            MAX_WITHDRAWAL_FEE_BPS
+        );
         uint256 grossAssets = Math.mulDiv(
             assets,
             BasisPointConstants.ONE_HUNDRED_PERCENT_BPS,
@@ -2027,7 +2039,7 @@ abstract contract DLoopCoreBase is
         uint256 assets = super.previewRedeem(shares);
         uint256 withdrawalFee = Math.mulDiv(
             assets,
-            getWithdrawalFeeBps(),
+            Math.min(getWithdrawalFeeBps(), MAX_WITHDRAWAL_FEE_BPS),
             BasisPointConstants.ONE_HUNDRED_PERCENT_BPS
         );
         // Calculate the net amount of assets to be received after the withdrawal fee
