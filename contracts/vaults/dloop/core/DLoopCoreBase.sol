@@ -24,6 +24,7 @@ import {Erc20Helper} from "contracts/common/Erc20Helper.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {RescuableVault} from "contracts/common/RescuableVault.sol";
 import {CoreLogic} from "./CoreLogic.sol";
+import {Compare} from "contracts/common/Compare.sol";
 
 /**
  * @title DLoopCoreBase
@@ -384,12 +385,12 @@ abstract contract DLoopCoreBase is
 
         uint256 tokenBalanceAfterSupply = ERC20(token).balanceOf(onBehalfOf);
 
-        CoreLogic.BalanceCheckResult memory check = CoreLogic.checkBalanceDelta(
+        Compare.BalanceCheckResult memory check = Compare.checkBalanceDelta(
             tokenBalanceBeforeSupply,
             tokenBalanceAfterSupply,
             amount,
             BALANCE_DIFF_TOLERANCE,
-            CoreLogic.BalanceDirection.Decrease
+            Compare.BalanceDirection.Decrease
         );
         if (!check.directionOk) {
             revert TokenBalanceNotDecreasedAfterSupply(
@@ -432,12 +433,12 @@ abstract contract DLoopCoreBase is
 
         uint256 tokenBalanceAfterBorrow = ERC20(token).balanceOf(onBehalfOf);
 
-        CoreLogic.BalanceCheckResult memory check = CoreLogic.checkBalanceDelta(
+        Compare.BalanceCheckResult memory check = Compare.checkBalanceDelta(
             tokenBalanceBeforeBorrow,
             tokenBalanceAfterBorrow,
             amount,
             BALANCE_DIFF_TOLERANCE,
-            CoreLogic.BalanceDirection.Increase
+            Compare.BalanceDirection.Increase
         );
         if (!check.directionOk) {
             revert TokenBalanceNotIncreasedAfterBorrow(
@@ -480,12 +481,12 @@ abstract contract DLoopCoreBase is
 
         uint256 tokenBalanceAfterRepay = ERC20(token).balanceOf(onBehalfOf);
 
-        CoreLogic.BalanceCheckResult memory check = CoreLogic.checkBalanceDelta(
+        Compare.BalanceCheckResult memory check = Compare.checkBalanceDelta(
             tokenBalanceBeforeRepay,
             tokenBalanceAfterRepay,
             amount,
             BALANCE_DIFF_TOLERANCE,
-            CoreLogic.BalanceDirection.Decrease
+            Compare.BalanceDirection.Decrease
         );
         if (!check.directionOk) {
             revert TokenBalanceNotDecreasedAfterRepay(
@@ -528,12 +529,12 @@ abstract contract DLoopCoreBase is
 
         uint256 tokenBalanceAfterWithdraw = ERC20(token).balanceOf(onBehalfOf);
 
-        CoreLogic.BalanceCheckResult memory check = CoreLogic.checkBalanceDelta(
+        Compare.BalanceCheckResult memory check = Compare.checkBalanceDelta(
             tokenBalanceBeforeWithdraw,
             tokenBalanceAfterWithdraw,
             amount,
             BALANCE_DIFF_TOLERANCE,
-            CoreLogic.BalanceDirection.Increase
+            Compare.BalanceDirection.Increase
         );
         if (!check.directionOk) {
             revert TokenBalanceNotIncreasedAfterWithdraw(
