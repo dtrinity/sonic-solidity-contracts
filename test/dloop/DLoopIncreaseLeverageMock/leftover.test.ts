@@ -36,7 +36,7 @@ describe("DLoopIncreaseLeverageMock - Leftover Debt Token Handling", function ()
     await debtToken.mint(await increaseLeverageMock.getAddress(), 1n);
 
     // Compute exact required collateral to avoid flash loan path and prevent overshoot
-    const result = await dloopMock.getAmountToReachTargetLeverage(true);
+    const result = await dloopMock.quoteRebalanceAmountToReachTargetLeverage();
     const requiredCollateralAmount: bigint = result[0];
     const direction: bigint = result[1];
     expect(direction).to.equal(1n);

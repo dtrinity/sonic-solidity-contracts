@@ -34,7 +34,7 @@ describe("DLoopIncreaseLeverageBase – double-counting collateral bug", functio
 
     // 2️⃣  Query how much collateral is actually needed to get back to target
     const [requiredCollateralAmount, direction] =
-      await dloopMock.quoteRebalanceAmountToReachTargetLeverage(true);
+      await dloopMock.quoteRebalanceAmountToReachTargetLeverage();
     // In some setups rounding can keep leverage at/above target; relax to >= 0 and just assert success path
     expect(direction).to.not.equal(-1);
     expect(requiredCollateralAmount).to.be.gte(0n);
