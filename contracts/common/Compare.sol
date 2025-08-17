@@ -29,7 +29,7 @@ library Compare {
         uint256 observed,
         uint256 expected,
         uint256 tolerance
-    ) public pure returns (bool) {
+    ) internal pure returns (bool) {
         if (observed > expected) {
             return observed - expected <= tolerance;
         }
@@ -66,7 +66,7 @@ library Compare {
         uint256 expectedDelta,
         uint256 tolerance,
         BalanceDirection direction
-    ) public pure returns (BalanceCheckResult memory result) {
+    ) internal pure returns (BalanceCheckResult memory result) {
         if (direction == BalanceDirection.Increase) {
             result.directionOk = afterBalance > beforeBalance;
             if (result.directionOk) {
