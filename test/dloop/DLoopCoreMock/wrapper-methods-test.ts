@@ -134,8 +134,12 @@ describe("DLoopCoreMock Wrapper Methods Tests", function () {
           transferPortionBps: 0 * ONE_PERCENT_BPS,
           expectedError: "TokenBalanceNotDecreasedAfterRepay",
         },
-        // Note: Repay shortfall no longer reverts even when shortfall > tolerance
-        // because the wrapper accepts beneficial shortfall and higher-level flows refund surplus.
+        {
+          // Set transfer portion bps to 50% so that only half the amount is transferred
+          name: "Should trigger UnexpectedRepayAmountToPool validation error",
+          transferPortionBps: 50 * ONE_PERCENT_BPS,
+          expectedError: "UnexpectedRepayAmountToPool",
+        },
       ];
 
       for (const testCase of testCases) {

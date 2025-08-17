@@ -43,10 +43,9 @@ describe("DLoopCoreMock – tolerant balance differences", function () {
     // Set transferPortionBps to create a 2-wei difference (98/100)
     await dloopMock.setTransferPortionBps(980000); // 98.00%
 
-    // With updated logic, large shortfall on repay should no longer revert
     await expect(
       dloopMock.testRepayDebtToPool(await debtToken.getAddress(), 100n, vault),
-    ).to.not.be.reverted;
+    ).to.be.reverted;
   });
 
   it("allows 1 wei rounding difference on borrow", async function () {

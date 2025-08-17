@@ -503,12 +503,14 @@ abstract contract DLoopCoreBase is
                 );
             }
         } else {
-            // Accept spending less than requested (beneficial to the vault) even when the
-            // difference is larger than the rounding tolerance. This can happen if external
-            // actors repaid part of the debt directly to the lending pool on behalf of the
-            // vault, causing the pool to pull fewer tokens than `amount` from the vault.
-            // In such cases, higher-level callers must handle refunding any surplus tokens
-            // that were transferred to the vault prior to this call.
+            if (amount - observedDiffRepay > BALANCE_DIFF_TOLERANCE) {
+                revert UnexpectedRepayAmountToPool(
+                    token,
+                    tokenBalanceBeforeRepay,
+                    tokenBalanceAfterRepay,
+                    amount
+                );
+            }
         }
 
         // Return the observed value to avoid the case when the actual amount is 1 wei different from the expected amount
@@ -1022,22 +1024,11 @@ abstract contract DLoopCoreBase is
 
         // Repay the debt to withdraw the collateral
         // Update the repaid debt token amount to the actual amount
-        uint256 requestedRepayAmount = repaidDebtTokenAmount;
         repaidDebtTokenAmount = _repayDebtToPool(
             address(debtToken),
             repaidDebtTokenAmount,
             address(this) // the vault is the borrower
         );
-
-        // If the pool pulled fewer tokens than requested (e.g., because part of the
-        // debt was already repaid externally), refund the surplus back to the caller
-        // who originally provided the debt tokens to this vault in this flow.
-        if (requestedRepayAmount > repaidDebtTokenAmount) {
-            uint256 surplus = requestedRepayAmount - repaidDebtTokenAmount;
-            if (surplus > 0) {
-                debtToken.safeTransfer(caller, surplus);
-            }
-        }
 
         // Withdraw the collateral
         // At this step, the _withdrawFromPool wrapper function will also assert that
