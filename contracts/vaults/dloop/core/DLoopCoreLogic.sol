@@ -24,7 +24,7 @@ import {Compare} from "contracts/common/Compare.sol";
 /**
  * This library contains the stateless implementation of the DLoopCore logic
  */
-library CoreLogic {
+library DLoopCoreLogic {
     error CollateralLessThanDebt(
         uint256 totalCollateralBase,
         uint256 totalDebtBase

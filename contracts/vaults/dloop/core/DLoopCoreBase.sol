@@ -23,7 +23,7 @@ import {ERC4626, ERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/ext
 import {Erc20Helper} from "contracts/common/Erc20Helper.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {RescuableVault} from "contracts/common/RescuableVault.sol";
-import {CoreLogic} from "./CoreLogic.sol";
+import {DLoopCoreLogic} from "./DLoopCoreLogic.sol";
 import {Compare} from "contracts/common/Compare.sol";
 
 /**
@@ -585,7 +585,7 @@ abstract contract DLoopCoreBase is
         uint256 assets
     ) public view returns (uint256) {
         return
-            CoreLogic.getLeveragedAssetsWithLeverage(assets, targetLeverageBps);
+            DLoopCoreLogic.getLeveragedAssetsWithLeverage(assets, targetLeverageBps);
     }
 
     /**
@@ -597,7 +597,7 @@ abstract contract DLoopCoreBase is
         uint256 assets
     ) public view returns (uint256) {
         return
-            CoreLogic.getLeveragedAssetsWithLeverage(
+            DLoopCoreLogic.getLeveragedAssetsWithLeverage(
                 assets,
                 getCurrentLeverageBps()
             );
@@ -612,7 +612,7 @@ abstract contract DLoopCoreBase is
         uint256 leveragedAssets
     ) public view returns (uint256) {
         return
-            CoreLogic.getUnleveragedAssetsWithLeverage(
+            DLoopCoreLogic.getUnleveragedAssetsWithLeverage(
                 leveragedAssets,
                 targetLeverageBps
             );
@@ -627,7 +627,7 @@ abstract contract DLoopCoreBase is
         uint256 leveragedAssets
     ) public view returns (uint256) {
         return
-            CoreLogic.getUnleveragedAssetsWithLeverage(
+            DLoopCoreLogic.getUnleveragedAssetsWithLeverage(
                 leveragedAssets,
                 getCurrentLeverageBps()
             );
@@ -662,7 +662,7 @@ abstract contract DLoopCoreBase is
         address token
     ) public view returns (uint256) {
         return
-            CoreLogic.convertFromBaseCurrencyToToken(
+            DLoopCoreLogic.convertFromBaseCurrencyToToken(
                 amountInBase,
                 ERC20(token).decimals(),
                 getAssetPriceFromOracle(token)
@@ -680,7 +680,7 @@ abstract contract DLoopCoreBase is
         address token
     ) public view returns (uint256) {
         return
-            CoreLogic.convertFromTokenAmountToBaseCurrency(
+            DLoopCoreLogic.convertFromTokenAmountToBaseCurrency(
                 amountInToken,
                 ERC20(token).decimals(),
                 getAssetPriceFromOracle(token)
@@ -714,7 +714,7 @@ abstract contract DLoopCoreBase is
      */
     function isTooImbalanced() public view returns (bool) {
         return
-            CoreLogic.isTooImbalanced(
+            DLoopCoreLogic.isTooImbalanced(
                 getCurrentLeverageBps(),
                 lowerBoundTargetLeverageBps,
                 upperBoundTargetLeverageBps
@@ -834,7 +834,7 @@ abstract contract DLoopCoreBase is
         );
 
         // Get the amount of debt token to borrow that keeps the current leverage
-        uint256 debtTokenAmountToBorrow = CoreLogic
+        uint256 debtTokenAmountToBorrow = DLoopCoreLogic
             .getBorrowAmountThatKeepCurrentLeverage(
                 actualSupplyAssetAmount,
                 currentLeverageBpsBeforeSupply,
@@ -970,7 +970,7 @@ abstract contract DLoopCoreBase is
         uint256 leverageBpsBeforeRepayDebt = getCurrentLeverageBps();
 
         // Get the amount of debt token to repay to keep the current leverage
-        uint256 estimatedRepaidDebtTokenAmount = CoreLogic
+        uint256 estimatedRepaidDebtTokenAmount = DLoopCoreLogic
             .getRepayAmountThatKeepCurrentLeverage(
                 collateralTokenToWithdraw,
                 leverageBpsBeforeRepayDebt,
@@ -1075,7 +1075,7 @@ abstract contract DLoopCoreBase is
         ) = getTotalCollateralAndDebtOfUserInBase(address(this));
 
         return
-            CoreLogic.quoteRebalanceAmountToReachTargetLeverage(
+            DLoopCoreLogic.quoteRebalanceAmountToReachTargetLeverage(
                 totalCollateralBase,
                 totalDebtBase,
                 getCurrentLeverageBps(),
@@ -1134,7 +1134,7 @@ abstract contract DLoopCoreBase is
         }
 
         // Get the amount of debt token to borrow to increase the leverage, given the input collateral token amount
-        uint256 borrowedDebtTokenAmount = CoreLogic
+        uint256 borrowedDebtTokenAmount = DLoopCoreLogic
             .getDebtBorrowTokenAmountToIncreaseLeverage(
                 inputCollateralTokenAmount,
                 getCurrentSubsidyBps(),
@@ -1246,7 +1246,7 @@ abstract contract DLoopCoreBase is
         }
 
         // Get the amount of collateral token to withdraw to decrease the leverage, given the input debt token amount
-        uint256 withdrawnCollateralTokenAmount = CoreLogic
+        uint256 withdrawnCollateralTokenAmount = DLoopCoreLogic
             .getCollateralWithdrawTokenAmountToDecreaseLeverage(
                 inputDebtTokenAmount,
                 getCurrentSubsidyBps(),
@@ -1335,7 +1335,7 @@ abstract contract DLoopCoreBase is
         ) = getTotalCollateralAndDebtOfUserInBase(address(this));
 
         return
-            CoreLogic.getCurrentLeverageBps(totalCollateralBase, totalDebtBase);
+            DLoopCoreLogic.getCurrentLeverageBps(totalCollateralBase, totalDebtBase);
     }
 
     /**
@@ -1344,7 +1344,7 @@ abstract contract DLoopCoreBase is
      */
     function getCurrentSubsidyBps() public view returns (uint256) {
         return
-            CoreLogic.getCurrentSubsidyBps(
+            DLoopCoreLogic.getCurrentSubsidyBps(
                 getCurrentLeverageBps(),
                 targetLeverageBps,
                 maxSubsidyBps,
@@ -1465,7 +1465,7 @@ abstract contract DLoopCoreBase is
         }
         // Return the maximum NET assets after fee
         return
-            CoreLogic.getNetAmountAfterFee(
+            DLoopCoreLogic.getNetAmountAfterFee(
                 super.maxWithdraw(_user),
                 withdrawalFeeBps
             );
@@ -1491,7 +1491,7 @@ abstract contract DLoopCoreBase is
     ) public view virtual override returns (uint256) {
         return
             super.previewWithdraw(
-                CoreLogic.getGrossAmountRequiredForNet(assets, withdrawalFeeBps)
+                DLoopCoreLogic.getGrossAmountRequiredForNet(assets, withdrawalFeeBps)
             );
     }
 
@@ -1502,7 +1502,7 @@ abstract contract DLoopCoreBase is
         uint256 shares
     ) public view virtual override returns (uint256) {
         return
-            CoreLogic.getNetAmountAfterFee(
+            DLoopCoreLogic.getNetAmountAfterFee(
                 super.previewRedeem(shares),
                 withdrawalFeeBps
             );

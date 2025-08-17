@@ -196,7 +196,7 @@ abstract contract DLoopDepositorBase is
         uint256 minOutputShares
     ) internal pure returns (uint256) {
         /*
-         * According to the formula in getBorrowAmountThatKeepCurrentLeverage() of CoreLogic,
+         * According to the formula in getBorrowAmountThatKeepCurrentLeverage() of DLoopCoreLogic,
          * we have:
          *      y = x * (T-1)/T
          *  and
