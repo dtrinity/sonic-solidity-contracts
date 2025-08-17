@@ -24,7 +24,6 @@ import {Erc20Helper} from "contracts/common/Erc20Helper.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {RescuableVault} from "contracts/common/RescuableVault.sol";
 import {CoreLogic} from "./CoreLogic.sol";
-import {Compare} from "contracts/common/Compare.sol";
 
 /**
  * @title DLoopCoreBase
@@ -384,7 +383,15 @@ abstract contract DLoopCoreBase is
         _supplyToPoolImplementation(token, amount, onBehalfOf);
 
         uint256 tokenBalanceAfterSupply = ERC20(token).balanceOf(onBehalfOf);
-        if (tokenBalanceAfterSupply >= tokenBalanceBeforeSupply) {
+
+        CoreLogic.BalanceCheckResult memory check = CoreLogic.checkBalanceDelta(
+            tokenBalanceBeforeSupply,
+            tokenBalanceAfterSupply,
+            amount,
+            BALANCE_DIFF_TOLERANCE,
+            CoreLogic.BalanceDirection.Decrease
+        );
+        if (!check.directionOk) {
             revert TokenBalanceNotDecreasedAfterSupply(
                 token,
                 tokenBalanceBeforeSupply,
@@ -392,18 +399,7 @@ abstract contract DLoopCoreBase is
                 amount
             );
         }
-
-        // Now, as balance before must be greater than balance after, we can just check if the difference is the expected amount
-        // Allow a 1-wei rounding tolerance when comparing the observed balance change with `amount`
-        uint256 observedDiffSupply = tokenBalanceBeforeSupply -
-            tokenBalanceAfterSupply;
-        if (
-            !Compare.isWithinTolerance(
-                observedDiffSupply,
-                amount,
-                BALANCE_DIFF_TOLERANCE
-            )
-        ) {
+        if (!check.toleranceOk) {
             revert UnexpectedSupplyAmountToPool(
                 token,
                 tokenBalanceBeforeSupply,
@@ -413,7 +409,7 @@ abstract contract DLoopCoreBase is
         }
 
         // Return the observed value to avoid the case when the actual amount is 1 wei different from the expected amount
-        return observedDiffSupply;
+        return check.observedDelta;
     }
 
     /**
@@ -435,7 +431,15 @@ abstract contract DLoopCoreBase is
         _borrowFromPoolImplementation(token, amount, onBehalfOf);
 
         uint256 tokenBalanceAfterBorrow = ERC20(token).balanceOf(onBehalfOf);
-        if (tokenBalanceAfterBorrow <= tokenBalanceBeforeBorrow) {
+
+        CoreLogic.BalanceCheckResult memory check = CoreLogic.checkBalanceDelta(
+            tokenBalanceBeforeBorrow,
+            tokenBalanceAfterBorrow,
+            amount,
+            BALANCE_DIFF_TOLERANCE,
+            CoreLogic.BalanceDirection.Increase
+        );
+        if (!check.directionOk) {
             revert TokenBalanceNotIncreasedAfterBorrow(
                 token,
                 tokenBalanceBeforeBorrow,
@@ -443,17 +447,7 @@ abstract contract DLoopCoreBase is
                 amount
             );
         }
-
-        // Allow a 1-wei rounding tolerance when comparing the observed balance change with `amount`
-        uint256 observedDiffBorrow = tokenBalanceAfterBorrow -
-            tokenBalanceBeforeBorrow;
-        if (
-            !Compare.isWithinTolerance(
-                observedDiffBorrow,
-                amount,
-                BALANCE_DIFF_TOLERANCE
-            )
-        ) {
+        if (!check.toleranceOk) {
             revert UnexpectedBorrowAmountFromPool(
                 token,
                 tokenBalanceBeforeBorrow,
@@ -462,14 +456,8 @@ abstract contract DLoopCoreBase is
             );
         }
 
-        // Now, as balance before must be less than balance after, we can just check if the difference is the expected amount
-        // NOTE: A second strict equality comparison is no longer necessary.
-        // The tolerance enforcement performed above (±BALANCE_DIFF_TOLERANCE)
-        // already guarantees that any rounding variance is within an
-        // acceptable 1-wei window, so we purposefully avoid reverting here.
-
         // Return the observed value to avoid the case when the actual amount is 1 wei different from the expected amount
-        return observedDiffBorrow;
+        return check.observedDelta;
     }
 
     /**
@@ -492,8 +480,14 @@ abstract contract DLoopCoreBase is
 
         uint256 tokenBalanceAfterRepay = ERC20(token).balanceOf(onBehalfOf);
 
-        // Ensure the balance actually decreased
-        if (tokenBalanceAfterRepay >= tokenBalanceBeforeRepay) {
+        CoreLogic.BalanceCheckResult memory check = CoreLogic.checkBalanceDelta(
+            tokenBalanceBeforeRepay,
+            tokenBalanceAfterRepay,
+            amount,
+            BALANCE_DIFF_TOLERANCE,
+            CoreLogic.BalanceDirection.Decrease
+        );
+        if (!check.directionOk) {
             revert TokenBalanceNotDecreasedAfterRepay(
                 token,
                 tokenBalanceBeforeRepay,
@@ -501,17 +495,7 @@ abstract contract DLoopCoreBase is
                 amount
             );
         }
-
-        // Now, allow a 1-wei rounding tolerance on the observed balance decrease.
-        uint256 observedDiffRepay = tokenBalanceBeforeRepay -
-            tokenBalanceAfterRepay;
-        if (
-            !Compare.isWithinTolerance(
-                observedDiffRepay,
-                amount,
-                BALANCE_DIFF_TOLERANCE
-            )
-        ) {
+        if (!check.toleranceOk) {
             revert UnexpectedRepayAmountToPool(
                 token,
                 tokenBalanceBeforeRepay,
@@ -521,7 +505,7 @@ abstract contract DLoopCoreBase is
         }
 
         // Return the observed value to avoid the case when the actual amount is 1 wei different from the expected amount
-        return observedDiffRepay;
+        return check.observedDelta;
     }
 
     /**
@@ -544,8 +528,14 @@ abstract contract DLoopCoreBase is
 
         uint256 tokenBalanceAfterWithdraw = ERC20(token).balanceOf(onBehalfOf);
 
-        // Ensure the balance actually increased
-        if (tokenBalanceAfterWithdraw <= tokenBalanceBeforeWithdraw) {
+        CoreLogic.BalanceCheckResult memory check = CoreLogic.checkBalanceDelta(
+            tokenBalanceBeforeWithdraw,
+            tokenBalanceAfterWithdraw,
+            amount,
+            BALANCE_DIFF_TOLERANCE,
+            CoreLogic.BalanceDirection.Increase
+        );
+        if (!check.directionOk) {
             revert TokenBalanceNotIncreasedAfterWithdraw(
                 token,
                 tokenBalanceBeforeWithdraw,
@@ -553,17 +543,7 @@ abstract contract DLoopCoreBase is
                 amount
             );
         }
-
-        // Allow a 1-wei rounding tolerance on the observed balance increase
-        uint256 observedDiffWithdraw = tokenBalanceAfterWithdraw -
-            tokenBalanceBeforeWithdraw;
-        if (
-            !Compare.isWithinTolerance(
-                observedDiffWithdraw,
-                amount,
-                BALANCE_DIFF_TOLERANCE
-            )
-        ) {
+        if (!check.toleranceOk) {
             revert UnexpectedWithdrawAmountFromPool(
                 token,
                 tokenBalanceBeforeWithdraw,
@@ -573,7 +553,7 @@ abstract contract DLoopCoreBase is
         }
 
         // Return the observed value to avoid the case when the actual amount is 1 wei different from the expected amount
-        return observedDiffWithdraw;
+        return check.observedDelta;
     }
 
     /* Safety */

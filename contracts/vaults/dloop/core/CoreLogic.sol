@@ -19,6 +19,7 @@ pragma solidity 0.8.20;
 
 import {BasisPointConstants} from "contracts/common/BasisPointConstants.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
+import {Compare} from "contracts/common/Compare.sol";
 
 /**
  * This library contains the stateless implementation of the DLoopCore logic
@@ -892,5 +893,62 @@ library CoreLogic {
                 BasisPointConstants.ONE_HUNDRED_PERCENT_BPS - withdrawalFeeBps,
                 BasisPointConstants.ONE_HUNDRED_PERCENT_BPS
             );
+    }
+
+    /**
+     * @dev Direction of expected balance change between two observations
+     */
+    enum BalanceDirection {
+        Increase,
+        Decrease
+    }
+
+    struct BalanceCheckResult {
+        bool directionOk;
+        uint256 observedDelta;
+        bool toleranceOk;
+    }
+
+    /**
+     * @dev Checks a balance change from before to after against an expected delta and tolerance.
+     *      This helper allows callers to keep custom error types local while sharing the core logic.
+     * @param beforeBalance The balance before the operation
+     * @param afterBalance The balance after the operation
+     * @param expectedDelta The expected absolute change amount
+     * @param tolerance The allowed absolute difference between observed and expected
+     * @param direction The expected direction of change (Increase or Decrease)
+     * @return result Struct containing: directionOk, observedDelta, toleranceOk
+     */
+    function checkBalanceDelta(
+        uint256 beforeBalance,
+        uint256 afterBalance,
+        uint256 expectedDelta,
+        uint256 tolerance,
+        BalanceDirection direction
+    ) public pure returns (BalanceCheckResult memory result) {
+        if (direction == BalanceDirection.Increase) {
+            result.directionOk = afterBalance > beforeBalance;
+            if (result.directionOk) {
+                result.observedDelta = afterBalance - beforeBalance;
+            }
+        } else {
+            result.directionOk = afterBalance < beforeBalance;
+            if (result.directionOk) {
+                result.observedDelta = beforeBalance - afterBalance;
+            }
+        }
+
+        if (!result.directionOk) {
+            // Short-circuit: when direction is not satisfied, tolerance check is irrelevant
+            result.toleranceOk = false;
+            return result;
+        }
+
+        result.toleranceOk = Compare.isWithinTolerance(
+            result.observedDelta,
+            expectedDelta,
+            tolerance
+        );
+        return result;
     }
 }
