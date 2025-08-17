@@ -83,13 +83,6 @@ abstract contract DLoopCoreBase is
         uint32 upperBoundTargetLeverageBps
     );
 
-    // --- Withdrawal fee ---
-    event WithdrawalFee(
-        address indexed owner,
-        address indexed receiver,
-        uint256 feeAmount
-    );
-
     /* Errors */
 
     error TooImbalanced(
