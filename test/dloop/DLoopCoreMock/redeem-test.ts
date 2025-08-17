@@ -29,6 +29,41 @@ describe("DLoopCoreMock Redeem Tests", function () {
     accounts = fixture.accounts;
   });
 
+  it("does not revert when pool consumes less than requested during redeem (beneficial shortfall)", async function () {
+    const fixture = await deployDLoopMockFixture();
+    await testSetup(fixture);
+
+    const { dloopMock, collateralToken, debtToken, accounts } = fixture;
+    const user = accounts[1];
+    const userAddress = user.address;
+
+    // User deposits to create position
+    const depositAmount = ethers.parseEther("100");
+    await collateralToken.connect(user).approve(await dloopMock.getAddress(), depositAmount);
+    await dloopMock.connect(user).deposit(depositAmount, userAddress);
+
+    // Prepare for a small redeem
+    const initialShares = await dloopMock.balanceOf(userAddress);
+    const smallShares = initialShares / 1000n;
+    const expectedAssets = await dloopMock.previewRedeem(smallShares);
+    const leverageBefore = await dloopMock.getCurrentLeverageBps();
+    const requiredDebtRepayment = await dloopMock.getRepayAmountThatKeepCurrentLeverage(
+      await dloopMock.getCollateralTokenAddress(),
+      await dloopMock.getDebtTokenAddress(),
+      expectedAssets,
+      leverageBefore,
+    );
+
+    // User approves debt tokens to vault
+    await debtToken.connect(user).approve(await dloopMock.getAddress(), requiredDebtRepayment);
+
+    // Simulate pool taking only 98% (so vault will keep 2% surplus) by adjusting transferPortionBps
+    await dloopMock.setTransferPortionBps(980000); // 98%
+
+    // Execute redeem
+    await dloopMock.connect(user).redeem(smallShares, userAddress, userAddress);
+  });
+
   describe("I. Basic Redeem Functionality", function () {
     const basicRedeemTests = [
       {
