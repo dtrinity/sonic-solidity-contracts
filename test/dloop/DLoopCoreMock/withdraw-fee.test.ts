@@ -232,6 +232,14 @@ describe("DLoopCoreMock - Withdraw Fee", function () {
     ).to.be.revertedWithCustomError(dloop, "WithdrawalFeeIsGreaterThanMaxFee");
   });
 
+  it("setWithdrawalFeeBps is onlyOwner", async function () {
+    const user = users[1]; // not the deployer/owner
+    const nonOwner = dloop.connect(user);
+    await expect(
+      nonOwner.setWithdrawalFeeBps(FEE_BPS),
+    ).to.be.revertedWithCustomError(dloop, "OwnableUnauthorizedAccount");
+  });
+
   it("large amounts maintain precision and match previews", async function () {
     const user = users[1];
     await dloop.setWithdrawalFeeBps(FEE_BPS);
