@@ -2031,8 +2031,6 @@ abstract contract DLoopCoreBase is
 
     /**
      * @dev See {IERC4626-previewWithdraw}.
-     * @param assets The net amount of assets the user wants to withdraw
-     * @return The number of shares that will be burned to withdraw the (assets + withdrawal fee) amount
      */
     function previewWithdraw(
         uint256 assets
@@ -2047,8 +2045,6 @@ abstract contract DLoopCoreBase is
 
     /**
      * @dev See {IERC4626-previewRedeem}.
-     * @param shares The number of shares to burn
-     * @return The net amount of assets that will be received after the withdrawal fee is applied
      */
     function previewRedeem(
         uint256 shares
