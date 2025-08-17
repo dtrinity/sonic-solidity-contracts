@@ -585,7 +585,10 @@ abstract contract DLoopCoreBase is
         uint256 assets
     ) public view returns (uint256) {
         return
-            DLoopCoreLogic.getLeveragedAssetsWithLeverage(assets, targetLeverageBps);
+            DLoopCoreLogic.getLeveragedAssetsWithLeverage(
+                assets,
+                targetLeverageBps
+            );
     }
 
     /**
@@ -1335,7 +1338,10 @@ abstract contract DLoopCoreBase is
         ) = getTotalCollateralAndDebtOfUserInBase(address(this));
 
         return
-            DLoopCoreLogic.getCurrentLeverageBps(totalCollateralBase, totalDebtBase);
+            DLoopCoreLogic.getCurrentLeverageBps(
+                totalCollateralBase,
+                totalDebtBase
+            );
     }
 
     /**
@@ -1491,7 +1497,10 @@ abstract contract DLoopCoreBase is
     ) public view virtual override returns (uint256) {
         return
             super.previewWithdraw(
-                DLoopCoreLogic.getGrossAmountRequiredForNet(assets, withdrawalFeeBps)
+                DLoopCoreLogic.getGrossAmountRequiredForNet(
+                    assets,
+                    withdrawalFeeBps
+                )
             );
     }
 
