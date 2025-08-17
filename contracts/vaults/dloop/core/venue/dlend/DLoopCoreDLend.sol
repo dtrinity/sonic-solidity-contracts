@@ -43,9 +43,6 @@ contract DLoopCoreDLend is DLoopCoreBase, RewardClaimable {
     // See contracts/lending/core/protocol/libraries/types/DataTypes.sol
     uint256 public constant VARIABLE_LENDING_INTERST_RATE_MODE = 2; // 0 = NONE, 1 = STABLE, 2 = VARIABLE
 
-    // Maximum percentage factor (100.00%)
-    uint256 public constant PERCENTAGE_FACTOR = 1e4;
-
     /* State */
 
     IPoolAddressesProvider public immutable lendingPoolAddressesProvider;
@@ -113,14 +110,14 @@ contract DLoopCoreDLend is DLoopCoreBase, RewardClaimable {
             _minDeviationBps
         )
         RewardClaimable(
-            address(_debtToken),
+            address(this), // Use the vault shares as the exchange asset
             _treasury,
             _maxTreasuryFeeBps,
             _initialTreasuryFeeBps,
             _initialExchangeThreshold
         )
     {
-        // Always use the debt token as the exchange asset in reward claim logic
+        // Always use the vault shares as the exchange asset in reward claim logic
         lendingPoolAddressesProvider = _lendingPoolAddressesProvider;
         dLendRewardsController = _rewardsController;
         dLendAssetToClaimFor = _dLendAssetToClaimFor;
@@ -130,9 +127,10 @@ contract DLoopCoreDLend is DLoopCoreBase, RewardClaimable {
             revert("Invalid price oracle base currency");
         }
 
-        uint256 oracleUnit = getLendingOracle().BASE_CURRENCY_UNIT();
-
-        if (oracleUnit != 10 ** AAVE_PRICE_ORACLE_DECIMALS) {
+        if (
+            getLendingOracle().BASE_CURRENCY_UNIT() !=
+            10 ** AAVE_PRICE_ORACLE_DECIMALS
+        ) {
             revert("Invalid price oracle unit");
         }
     }
@@ -284,8 +282,37 @@ contract DLoopCoreDLend is DLoopCoreBase, RewardClaimable {
         override
         returns (uint256 totalCollateralBase, uint256 totalDebtBase)
     {
-        (totalCollateralBase, totalDebtBase, , , , ) = getLendingPool()
-            .getUserAccountData(user);
+        // Collateral side: balance of the aToken corresponding to collateralToken
+        {
+            DataTypes.ReserveData memory reserveCol = _getReserveData(
+                address(collateralToken)
+            );
+            uint256 aTokenBalance = ERC20(reserveCol.aTokenAddress).balanceOf(
+                user
+            );
+            totalCollateralBase = convertFromTokenAmountToBaseCurrency(
+                aTokenBalance,
+                address(collateralToken)
+            );
+        }
+
+        // Debt side: sum of variable + stable debt token balances corresponding to debtToken
+        {
+            DataTypes.ReserveData memory reserveDebt = _getReserveData(
+                address(debtToken)
+            );
+            uint256 variableDebt = ERC20(reserveDebt.variableDebtTokenAddress)
+                .balanceOf(user);
+            uint256 stableDebt = ERC20(reserveDebt.stableDebtTokenAddress)
+                .balanceOf(user);
+            uint256 totalUnderlyingDebt = variableDebt + stableDebt;
+            if (totalUnderlyingDebt > 0) {
+                totalDebtBase = convertFromTokenAmountToBaseCurrency(
+                    totalUnderlyingDebt,
+                    address(debtToken)
+                );
+            }
+        }
         return (totalCollateralBase, totalDebtBase);
     }
 
@@ -408,8 +435,8 @@ contract DLoopCoreDLend is DLoopCoreBase, RewardClaimable {
      * @param amount The amount of exchange asset to deposit
      */
     function _processExchangeAssetDeposit(uint256 amount) internal override {
-        // As the exchange asset is the debt token, we use it to repay the debt,
-        // which means to reduce the borrowing interest to be paid
-        _repayDebtToPoolImplementation(exchangeAsset, amount, address(this));
+        // As the exchange asset is the vault shares, we need to burn it
+        // to increase the share's value
+        _burn(address(this), amount);
     }
 }
