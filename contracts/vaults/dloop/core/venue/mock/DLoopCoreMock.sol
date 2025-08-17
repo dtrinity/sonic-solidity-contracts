@@ -41,6 +41,7 @@ contract DLoopCoreMock is DLoopCoreBase {
         uint32 _lowerBoundTargetLeverageBps,
         uint32 _upperBoundTargetLeverageBps,
         uint256 _maxSubsidyBps,
+        uint256 _withdrawalFeeBps,
         address _mockPool
     )
         DLoopCoreBase(
@@ -51,7 +52,8 @@ contract DLoopCoreMock is DLoopCoreBase {
             _targetLeverageBps,
             _lowerBoundTargetLeverageBps,
             _upperBoundTargetLeverageBps,
-            _maxSubsidyBps
+            _maxSubsidyBps,
+            _withdrawalFeeBps
         )
     {
         mockPool = _mockPool;
@@ -345,13 +347,6 @@ contract DLoopCoreMock is DLoopCoreBase {
             mockCollateral[onBehalfOf][token] - amount
         );
     }
-
-    // --- Withdrawal fee implementation ---
-    function getWithdrawalFeeBps() public view override returns (uint256) {
-        return feeBps;
-    }
-
-    // getFeeReceiver provided by base
 
     function getTotalCollateralAndDebtOfUserInBase(
         address user

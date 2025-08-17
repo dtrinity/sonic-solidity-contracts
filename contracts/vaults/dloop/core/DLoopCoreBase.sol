@@ -53,6 +53,7 @@ abstract contract DLoopCoreBase is
     uint32 public lowerBoundTargetLeverageBps;
     uint32 public upperBoundTargetLeverageBps;
     uint256 public maxSubsidyBps;
+    uint256 public withdrawalFeeBps;
 
     /* Constants */
 
@@ -87,6 +88,11 @@ abstract contract DLoopCoreBase is
     event LeverageBoundsSet(
         uint32 lowerBoundTargetLeverageBps,
         uint32 upperBoundTargetLeverageBps
+    );
+
+    event WithdrawalFeeBpsSet(
+        uint256 oldWithdrawalFeeBps,
+        uint256 newWithdrawalFeeBps
     );
 
     /* Errors */
@@ -204,6 +210,10 @@ abstract contract DLoopCoreBase is
         uint256 totalDebtBase
     );
     error ZeroShares();
+    error WithdrawalFeeIsGreaterThanMaxFee(
+        uint256 withdrawalFeeBps,
+        uint256 maxWithdrawalFeeBps
+    );
 
     /**
      * @dev Constructor for the DLoopCore contract
@@ -215,6 +225,7 @@ abstract contract DLoopCoreBase is
      * @param _lowerBoundTargetLeverageBps Lower bound of target leverage in basis points
      * @param _upperBoundTargetLeverageBps Upper bound of target leverage in basis points
      * @param _maxSubsidyBps Maximum subsidy in basis points
+     * @param _withdrawalFeeBps Initial withdrawal fee in basis points
      */
     constructor(
         string memory _name,
@@ -224,7 +235,8 @@ abstract contract DLoopCoreBase is
         uint32 _targetLeverageBps,
         uint32 _lowerBoundTargetLeverageBps,
         uint32 _upperBoundTargetLeverageBps,
-        uint256 _maxSubsidyBps
+        uint256 _maxSubsidyBps,
+        uint256 _withdrawalFeeBps
     ) ERC20(_name, _symbol) ERC4626(_collateralToken) Ownable(msg.sender) {
         debtToken = _debtToken;
         collateralToken = _collateralToken;
@@ -258,6 +270,7 @@ abstract contract DLoopCoreBase is
         lowerBoundTargetLeverageBps = _lowerBoundTargetLeverageBps;
         upperBoundTargetLeverageBps = _upperBoundTargetLeverageBps;
         maxSubsidyBps = _maxSubsidyBps;
+        withdrawalFeeBps = _withdrawalFeeBps;
     }
 
     /* Virtual Methods - Required to be implemented by derived contracts */
@@ -1069,11 +1082,20 @@ abstract contract DLoopCoreBase is
     /* Withdrawal fee */
 
     /**
-     * @dev Gets the withdrawal fee in basis points
-     *      - Implemented by child contracts
-     * @return uint256 The withdrawal fee in basis points
+     * @dev Sets the withdrawal fee in basis points
+     * @param newWithdrawalFeeBps The new withdrawal fee in basis points
      */
-    function getWithdrawalFeeBps() public view virtual returns (uint256);
+    function setWithdrawalFeeBps(uint256 newWithdrawalFeeBps) public {
+        if (newWithdrawalFeeBps > MAX_WITHDRAWAL_FEE_BPS) {
+            revert WithdrawalFeeIsGreaterThanMaxFee(
+                newWithdrawalFeeBps,
+                MAX_WITHDRAWAL_FEE_BPS
+            );
+        }
+        uint256 oldWithdrawalFeeBps = withdrawalFeeBps;
+        withdrawalFeeBps = newWithdrawalFeeBps;
+        emit WithdrawalFeeBpsSet(oldWithdrawalFeeBps, newWithdrawalFeeBps);
+    }
 
     /* Calculate */
 
@@ -1987,13 +2009,9 @@ abstract contract DLoopCoreBase is
         }
         // Return the maximum NET assets after fee
         uint256 grossAssets = super.maxWithdraw(_user);
-        uint256 feeBps = Math.min(
-            getWithdrawalFeeBps(),
-            MAX_WITHDRAWAL_FEE_BPS
-        );
         uint256 netAssets = Math.mulDiv(
             grossAssets,
-            BasisPointConstants.ONE_HUNDRED_PERCENT_BPS - feeBps,
+            BasisPointConstants.ONE_HUNDRED_PERCENT_BPS - withdrawalFeeBps,
             BasisPointConstants.ONE_HUNDRED_PERCENT_BPS
         );
         return netAssets;
@@ -2019,10 +2037,6 @@ abstract contract DLoopCoreBase is
     function previewWithdraw(
         uint256 assets
     ) public view virtual override returns (uint256) {
-        uint256 withdrawalFeeBps = Math.min(
-            getWithdrawalFeeBps(),
-            MAX_WITHDRAWAL_FEE_BPS
-        );
         uint256 grossAssets = Math.mulDiv(
             assets,
             BasisPointConstants.ONE_HUNDRED_PERCENT_BPS,
@@ -2042,7 +2056,7 @@ abstract contract DLoopCoreBase is
         uint256 assets = super.previewRedeem(shares);
         uint256 withdrawalFee = Math.mulDiv(
             assets,
-            Math.min(getWithdrawalFeeBps(), MAX_WITHDRAWAL_FEE_BPS),
+            withdrawalFeeBps,
             BasisPointConstants.ONE_HUNDRED_PERCENT_BPS
         );
         return assets - withdrawalFee;

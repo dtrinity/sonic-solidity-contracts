@@ -80,6 +80,7 @@ contract DLoopCoreDLend is DLoopCoreBase, RewardClaimable {
      * @param _lowerBoundTargetLeverageBps Lower bound of target leverage in basis points
      * @param _upperBoundTargetLeverageBps Upper bound of target leverage in basis points
      * @param _maxSubsidyBps Maximum subsidy in basis points
+     * @param _withdrawalFeeBps Initial withdrawal fee in basis points
      * @param _rewardsController Address of the dLEND rewards controller
      * @param _dLendAssetToClaimFor Address of the dLEND asset to claim for
      * @param _targetStaticATokenWrapper Address of the target static aToken wrapper
@@ -98,6 +99,7 @@ contract DLoopCoreDLend is DLoopCoreBase, RewardClaimable {
         uint32 _lowerBoundTargetLeverageBps,
         uint32 _upperBoundTargetLeverageBps,
         uint256 _maxSubsidyBps,
+        uint256 _withdrawalFeeBps,
         IRewardsController _rewardsController,
         address _dLendAssetToClaimFor,
         address _targetStaticATokenWrapper,
@@ -114,7 +116,8 @@ contract DLoopCoreDLend is DLoopCoreBase, RewardClaimable {
             _targetLeverageBps,
             _lowerBoundTargetLeverageBps,
             _upperBoundTargetLeverageBps,
-            _maxSubsidyBps
+            _maxSubsidyBps,
+            _withdrawalFeeBps
         )
         RewardClaimable(
             address(this), // Use the vault shares as the exchange asset
@@ -175,14 +178,6 @@ contract DLoopCoreDLend is DLoopCoreBase, RewardClaimable {
         uint256 oldFeeBps = feeBps;
         feeBps = _feeBps;
         emit FeeBpsSet(oldFeeBps, _feeBps);
-    }
-
-    /**
-     * @dev Gets the withdrawal fee in basis points
-     * @return uint256 The withdrawal fee in basis points
-     */
-    function getWithdrawalFeeBps() public view override returns (uint256) {
-        return feeBps;
     }
 
     /**

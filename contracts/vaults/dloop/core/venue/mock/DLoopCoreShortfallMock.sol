@@ -21,6 +21,7 @@ contract DLoopCoreShortfallMock is DLoopCoreMock {
         uint32 _lowerBoundTargetLeverageBps,
         uint32 _upperBoundTargetLeverageBps,
         uint256 _maxSubsidyBps,
+        uint256 _withdrawalFeeBps,
         address _mockPool
     )
         DLoopCoreMock(
@@ -32,6 +33,7 @@ contract DLoopCoreShortfallMock is DLoopCoreMock {
             _lowerBoundTargetLeverageBps,
             _upperBoundTargetLeverageBps,
             _maxSubsidyBps,
+            _withdrawalFeeBps,
             _mockPool
         )
     {}
