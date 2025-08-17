@@ -2028,7 +2028,6 @@ abstract contract DLoopCoreBase is
             BasisPointConstants.ONE_HUNDRED_PERCENT_BPS,
             BasisPointConstants.ONE_HUNDRED_PERCENT_BPS - withdrawalFeeBps
         );
-        // Calculate the requires shares to be burned when withdrawing with the withdrawal fee
         return super.previewWithdraw(grossAssets);
     }
 
@@ -2046,7 +2045,6 @@ abstract contract DLoopCoreBase is
             Math.min(getWithdrawalFeeBps(), MAX_WITHDRAWAL_FEE_BPS),
             BasisPointConstants.ONE_HUNDRED_PERCENT_BPS
         );
-        // Calculate the net amount of assets to be received after the withdrawal fee
         return assets - withdrawalFee;
     }
 }
