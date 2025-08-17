@@ -952,7 +952,7 @@ abstract contract DLoopCoreBase is
      * @param caller Address of the caller
      * @param collateralTokenToWithdraw The amount of collateral token to withdraw
      * @return withdrawnCollateralTokenAmount The amount of collateral token withdrawn
-     * @return repaidDebtTokenAmount The amount of debt token repaid
+     * @return actualRepaidDebtTokenAmount The amount of debt token repaid
      */
     function _repayDebtAndWithdrawFromPoolImplementation(
         address caller,
@@ -961,7 +961,7 @@ abstract contract DLoopCoreBase is
         private
         returns (
             uint256 withdrawnCollateralTokenAmount,
-            uint256 repaidDebtTokenAmount
+            uint256 actualRepaidDebtTokenAmount
         )
     {
         // Get the current leverage before repaying the debt (IMPORTANT: this is the leverage before repaying the debt)
@@ -969,25 +969,27 @@ abstract contract DLoopCoreBase is
         uint256 leverageBpsBeforeRepayDebt = getCurrentLeverageBps();
 
         // Get the amount of debt token to repay to keep the current leverage
-        repaidDebtTokenAmount = CoreLogic.getRepayAmountThatKeepCurrentLeverage(
-            collateralTokenToWithdraw,
-            leverageBpsBeforeRepayDebt,
-            ERC20(collateralToken).decimals(),
-            getAssetPriceFromOracle(address(collateralToken)),
-            ERC20(debtToken).decimals(),
-            getAssetPriceFromOracle(address(debtToken))
-        );
+        uint256 estimatedRepaidDebtTokenAmount = CoreLogic
+            .getRepayAmountThatKeepCurrentLeverage(
+                collateralTokenToWithdraw,
+                leverageBpsBeforeRepayDebt,
+                ERC20(collateralToken).decimals(),
+                getAssetPriceFromOracle(address(collateralToken)),
+                ERC20(debtToken).decimals(),
+                getAssetPriceFromOracle(address(debtToken))
+            );
 
         // If don't have enough allowance, revert with the error message
         // This is to early-revert with instruction in the error message
         if (
-            debtToken.allowance(caller, address(this)) < repaidDebtTokenAmount
+            debtToken.allowance(caller, address(this)) <
+            estimatedRepaidDebtTokenAmount
         ) {
             revert InsufficientAllowanceOfDebtAssetToRepay(
                 caller,
                 address(this),
                 address(debtToken),
-                repaidDebtTokenAmount
+                estimatedRepaidDebtTokenAmount
             );
         }
 
@@ -995,7 +997,7 @@ abstract contract DLoopCoreBase is
         debtToken.safeTransferFrom(
             caller,
             address(this),
-            repaidDebtTokenAmount
+            estimatedRepaidDebtTokenAmount
         );
 
         // In this case, the vault is user of the lending pool
@@ -1005,9 +1007,9 @@ abstract contract DLoopCoreBase is
         // Repay the debt to withdraw the collateral
         // Update the repaid debt token amount to the actual amount as this
         // variable is also the return value of this function
-        repaidDebtTokenAmount = _repayDebtToPool(
+        actualRepaidDebtTokenAmount = _repayDebtToPool(
             address(debtToken),
-            repaidDebtTokenAmount,
+            estimatedRepaidDebtTokenAmount,
             address(this) // the vault is the borrower
         );
 
@@ -1020,7 +1022,7 @@ abstract contract DLoopCoreBase is
             address(this) // the vault is the receiver
         );
 
-        return (withdrawnCollateralTokenAmount, repaidDebtTokenAmount);
+        return (withdrawnCollateralTokenAmount, actualRepaidDebtTokenAmount);
     }
 
     /* Withdrawal fee */
