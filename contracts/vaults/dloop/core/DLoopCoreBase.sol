@@ -1481,13 +1481,11 @@ abstract contract DLoopCoreBase is
             return 0;
         }
         // Return the maximum NET assets after fee
-        uint256 grossAssets = super.maxWithdraw(_user);
-        uint256 netAssets = Math.mulDiv(
-            grossAssets,
-            BasisPointConstants.ONE_HUNDRED_PERCENT_BPS - withdrawalFeeBps,
-            BasisPointConstants.ONE_HUNDRED_PERCENT_BPS
-        );
-        return netAssets;
+        return
+            CoreLogic.getNetAmountAfterFee(
+                super.maxWithdraw(_user),
+                withdrawalFeeBps
+            );
     }
 
     /**
@@ -1508,12 +1506,10 @@ abstract contract DLoopCoreBase is
     function previewWithdraw(
         uint256 assets
     ) public view virtual override returns (uint256) {
-        uint256 grossAssets = Math.mulDiv(
-            assets,
-            BasisPointConstants.ONE_HUNDRED_PERCENT_BPS,
-            BasisPointConstants.ONE_HUNDRED_PERCENT_BPS - withdrawalFeeBps
-        );
-        return super.previewWithdraw(grossAssets);
+        return
+            super.previewWithdraw(
+                CoreLogic.getGrossAmountRequiredForNet(assets, withdrawalFeeBps)
+            );
     }
 
     /**
@@ -1522,12 +1518,10 @@ abstract contract DLoopCoreBase is
     function previewRedeem(
         uint256 shares
     ) public view virtual override returns (uint256) {
-        uint256 assets = super.previewRedeem(shares);
-        uint256 withdrawalFee = Math.mulDiv(
-            assets,
-            withdrawalFeeBps,
-            BasisPointConstants.ONE_HUNDRED_PERCENT_BPS
-        );
-        return assets - withdrawalFee;
+        return
+            CoreLogic.getNetAmountAfterFee(
+                super.previewRedeem(shares),
+                withdrawalFeeBps
+            );
     }
 }

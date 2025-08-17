@@ -857,4 +857,40 @@ library CoreLogic {
         // If the current leverage is equal to the target leverage, the user should not rebalance
         return (0, 0, 0);
     }
+
+    /**
+     * @dev Gets the gross amount required for a given net amount
+     * @param netAmount The net amount
+     * @param withdrawalFeeBps The withdrawal fee in basis points
+     * @return grossAmount The gross amount
+     */
+    function getGrossAmountRequiredForNet(
+        uint256 netAmount,
+        uint256 withdrawalFeeBps
+    ) public pure returns (uint256 grossAmount) {
+        return
+            Math.mulDiv(
+                netAmount,
+                BasisPointConstants.ONE_HUNDRED_PERCENT_BPS,
+                BasisPointConstants.ONE_HUNDRED_PERCENT_BPS - withdrawalFeeBps
+            );
+    }
+
+    /**
+     * @dev Gets the net amount after fee for a given gross amount
+     * @param grossAmount The gross amount
+     * @param withdrawalFeeBps The withdrawal fee in basis points
+     * @return netAmount The net amount
+     */
+    function getNetAmountAfterFee(
+        uint256 grossAmount,
+        uint256 withdrawalFeeBps
+    ) public pure returns (uint256 netAmount) {
+        return
+            Math.mulDiv(
+                grossAmount,
+                BasisPointConstants.ONE_HUNDRED_PERCENT_BPS - withdrawalFeeBps,
+                BasisPointConstants.ONE_HUNDRED_PERCENT_BPS
+            );
+    }
 }
