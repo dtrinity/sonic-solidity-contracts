@@ -45,6 +45,7 @@ contract DLoopCoreMock is DLoopCoreBase {
         uint32 _upperBoundTargetLeverageBps,
         uint256 _maxSubsidyBps,
         uint256 _minDeviationBps,
+        uint256 _withdrawalFeeBps,
         address _mockPool
     )
         DLoopCoreBase(
@@ -56,7 +57,8 @@ contract DLoopCoreMock is DLoopCoreBase {
             _lowerBoundTargetLeverageBps,
             _upperBoundTargetLeverageBps,
             _maxSubsidyBps,
-            _minDeviationBps
+            _minDeviationBps,
+            _withdrawalFeeBps
         )
     {
         mockPool = _mockPool;

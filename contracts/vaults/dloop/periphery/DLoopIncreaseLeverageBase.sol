@@ -302,25 +302,34 @@ abstract contract DLoopIncreaseLeverageBase is
             flashLoanParams.additionalCollateralFromUser -
             collateralToken.balanceOf(address(this));
 
-        uint256 debtTokenUsedInSwap = _swapExactOutput(
-            debtToken,
-            collateralToken,
-            requiredCollateralFromFlashLoan,
-            type(uint256).max, // No slippage protection here
-            address(this),
-            block.timestamp,
-            flashLoanParams.debtTokenToCollateralSwapData
-        );
+        uint256 debtTokenUsedInSwap = 0;
+        if (requiredCollateralFromFlashLoan > 0) {
+            debtTokenUsedInSwap = _swapExactOutput(
+                debtToken,
+                collateralToken,
+                requiredCollateralFromFlashLoan,
+                type(uint256).max, // No slippage protection here
+                address(this),
+                block.timestamp,
+                flashLoanParams.debtTokenToCollateralSwapData
+            );
 
-        // Record debt token balance before increase leverage
-        uint256 debtTokenBalanceBeforeIncrease = debtToken.balanceOf(
-            address(this)
-        );
+            // Transfer the swapped collateral to the core so it can supply from its own balance
+            collateralToken.safeTransfer(
+                address(flashLoanParams.dLoopCore),
+                requiredCollateralFromFlashLoan
+            );
+        }
 
         // Approve collateral for core contract
         collateralToken.forceApprove(
             address(dLoopCore),
             flashLoanParams.requiredCollateralAmount
+        );
+
+        // Record debt token balance before calling core increaseLeverage
+        uint256 debtTokenBalanceBeforeIncrease = debtToken.balanceOf(
+            address(this)
         );
 
         // Call increase leverage on core contract

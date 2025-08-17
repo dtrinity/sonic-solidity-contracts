@@ -405,15 +405,18 @@ abstract contract DLoopDecreaseLeverageBase is
             flashLoanParams.additionalDebtFromUser -
             debtToken.balanceOf(address(this));
 
-        _swapExactOutput(
-            collateralToken,
-            debtToken,
-            requiredDebtFromFlashLoan + fee,
-            type(uint256).max, // No slippage protection here
-            address(this),
-            block.timestamp,
-            flashLoanParams.collateralToDebtTokenSwapData
-        );
+        uint256 amountOutToRepay = requiredDebtFromFlashLoan + fee;
+        if (amountOutToRepay > 0) {
+            _swapExactOutput(
+                collateralToken,
+                debtToken,
+                amountOutToRepay,
+                type(uint256).max, // No slippage protection here
+                address(this),
+                block.timestamp,
+                flashLoanParams.collateralToDebtTokenSwapData
+            );
+        }
 
         return FLASHLOAN_CALLBACK;
     }

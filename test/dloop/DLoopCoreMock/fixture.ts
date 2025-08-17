@@ -81,6 +81,7 @@ export async function deployDLoopMockFixture(): Promise<DLoopMockFixture> {
     UPPER_BOUND_BPS,
     MAX_SUBSIDY_BPS,
     MIN_DEVIATION_BPS,
+    0, // withdrawalFeeBps
     mockPool,
   );
 
