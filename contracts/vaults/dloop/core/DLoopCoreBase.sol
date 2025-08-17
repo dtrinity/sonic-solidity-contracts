@@ -39,6 +39,14 @@ import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
  *        it is being shared to the current shares holders. It means, the vault of the vault's share will be a bit increased after a user's withdrawal.
  *      - The withdrawal fee is not applied for decreaseLeverage(), as this operation is not a vault withdrawal, instead, it repay and withdraw
  *        from the underlying pool to rebalance the vault position, not vault's shares are being burned.
+ *
+ * @notice Withdrawal fee retention (no external transfers)
+ * @dev The withdrawal fee is retained by the vault and is not sent to any external recipient.
+ *      Users receive net assets after fee; the difference remains in the vault and accrues to remaining shares.
+ *      - previewWithdraw treats `assets` as the desired net and converts to gross using:
+ *        gross = assets * ONE_HUNDRED_PERCENT_BPS / (ONE_HUNDRED_PERCENT_BPS - withdrawalFeeBps).
+ *      - previewRedeem returns the net assets after applying the fee.
+ *      - During _withdraw, only the net amount is transferred to `receiver`; the fee stays in the vault balance.
  */
 abstract contract DLoopCoreBase is
     ERC4626,
