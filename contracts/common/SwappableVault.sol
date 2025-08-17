@@ -108,62 +108,57 @@ abstract contract SwappableVault {
         uint256 inputTokenBalanceAfter = inputToken.balanceOf(address(this));
         uint256 outputTokenBalanceAfter = outputToken.balanceOf(address(this));
 
-        // Make sure the spent input token amount is not greater than the amount in maximum
-        if (inputTokenBalanceAfter < inputTokenBalanceBefore) {
-            uint256 spentInputTokenAmount = inputTokenBalanceBefore -
-                inputTokenBalanceAfter;
-
-            // First check: ensure we don't spend more than the maximum allowed
-            if (spentInputTokenAmount > amountInMaximum) {
-                revert SpentInputTokenAmountGreaterThanAmountInMaximum(
-                    spentInputTokenAmount,
-                    amountInMaximum
-                );
-            }
-
-            // Second check: ensure spent amount matches returned amount within tolerance
-            if (
-                !Compare.isWithinTolerance(
-                    spentInputTokenAmount,
+        // Input token: if decreased, ensure not over max and within tolerance of amountIn
+        {
+            Compare.BalanceCheckResult memory inCheck = Compare
+                .checkBalanceDelta(
+                    inputTokenBalanceBefore,
+                    inputTokenBalanceAfter,
                     amountIn,
-                    BALANCE_DIFF_TOLERANCE
-                )
-            ) {
-                revert SpentInputTokenAmountNotEqualReturnedAmountIn(
-                    spentInputTokenAmount,
-                    amountIn
+                    BALANCE_DIFF_TOLERANCE,
+                    Compare.BalanceDirection.Decrease
+                );
+            if (inCheck.directionOk) {
+                // First check: ensure we don't spend more than the maximum allowed
+                if (inCheck.observedDelta > amountInMaximum) {
+                    revert SpentInputTokenAmountGreaterThanAmountInMaximum(
+                        inCheck.observedDelta,
+                        amountInMaximum
+                    );
+                }
+                // Second check: ensure spent amount matches returned amount within tolerance
+                if (!inCheck.toleranceOk) {
+                    revert SpentInputTokenAmountNotEqualReturnedAmountIn(
+                        inCheck.observedDelta,
+                        amountIn
+                    );
+                }
+            }
+            // If not decreased, no checks needed (not a risk for the caller)
+        }
+
+        // Output token: must increase and be within tolerance of amountOut
+        {
+            Compare.BalanceCheckResult memory outCheck = Compare
+                .checkBalanceDelta(
+                    outputTokenBalanceBefore,
+                    outputTokenBalanceAfter,
+                    amountOut,
+                    BALANCE_DIFF_TOLERANCE,
+                    Compare.BalanceDirection.Increase
+                );
+            if (!outCheck.directionOk) {
+                revert OutputTokenBalanceNotIncreasedAfterSwap(
+                    outputTokenBalanceBefore,
+                    outputTokenBalanceAfter
                 );
             }
-            // If spentInputTokenAmount == amountIn, no need to check (perfect match)
-        }
-        // Do not need to check the input token balance increased after the swap
-        // as it is not a risk for the caller
-
-        // Make sure the received output token amount is close to the amount out (within tolerance)
-        if (outputTokenBalanceAfter > outputTokenBalanceBefore) {
-            uint256 receivedOutputTokenAmount = outputTokenBalanceAfter -
-                outputTokenBalanceBefore;
-
-            // Allow receiving slightly more than requested (beneficial)
-            // but restrict receiving significantly less than requested
-            if (
-                !Compare.isWithinTolerance(
-                    receivedOutputTokenAmount,
-                    amountOut,
-                    BALANCE_DIFF_TOLERANCE
-                )
-            ) {
+            if (!outCheck.toleranceOk) {
                 revert ReceivedOutputTokenAmountNotEqualAmountOut(
-                    receivedOutputTokenAmount,
+                    outCheck.observedDelta,
                     amountOut
                 );
             }
-            // If receivedOutputTokenAmount == amountOut, no need to check (perfect match)
-        } else {
-            revert OutputTokenBalanceNotIncreasedAfterSwap(
-                outputTokenBalanceBefore,
-                outputTokenBalanceAfter
-            );
         }
 
         return amountIn;

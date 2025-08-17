@@ -65,10 +65,10 @@ contract SwappableVaultMock is SwappableVault {
         ERC20 inputToken,
         ERC20 outputToken,
         uint256 amountOut,
-        uint256 amountInMaximum,
-        address receiver,
-        uint256 deadline,
-        bytes memory extraData
+        uint256, // amountInMaximum
+        address, // receiver
+        uint256, // deadline
+        bytes memory // extraData
     ) internal override returns (uint256) {
         if (_shouldRevert) {
             revert(_revertMessage);
