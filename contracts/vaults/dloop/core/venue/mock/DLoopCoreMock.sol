@@ -23,11 +23,6 @@ contract DLoopCoreMock is DLoopCoreBase {
     // This is used to test the supply, borrow, repay, withdraw wrapper validation
     uint256 public transferPortionBps;
 
-    // --- Withdrawal fee config for tests ---
-    uint256 public feeBps; // 0 by default
-    uint256 public constant MAX_FEE_BPS =
-        5 * BasisPointConstants.ONE_PERCENT_BPS; // 5%
-
     uint8 public constant PRICE_DECIMALS = 8;
     uint256 public constant PERCENTAGE_FACTOR = 1e4;
     uint256 public constant LIQUIDATION_THRESHOLD = 8500; // 85% in basis points
@@ -63,8 +58,6 @@ contract DLoopCoreMock is DLoopCoreBase {
         // and send back to the contract when withdraw, borrow.
         // Set transfer portion bps to 100% as it is the default value
         transferPortionBps = BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
-
-        feeBps = 0;
     }
 
     // Allow setting transfer portion bps for testing
@@ -75,14 +68,6 @@ contract DLoopCoreMock is DLoopCoreBase {
         );
         transferPortionBps = _transferPortionBps;
     }
-
-    // Allow setting withdrawal fee bps for testing
-    function setFeeBps(uint256 _feeBps) external {
-        require(_feeBps <= MAX_FEE_BPS, "Mock: fee too high");
-        feeBps = _feeBps;
-    }
-
-    // setFeeReceiver is provided by base contract (onlyOwner)
 
     // Allow setting mock prices for assets
     function setMockPrice(address asset, uint256 price) external {

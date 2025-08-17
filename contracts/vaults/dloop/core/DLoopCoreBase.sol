@@ -1085,7 +1085,9 @@ abstract contract DLoopCoreBase is
      * @dev Sets the withdrawal fee in basis points
      * @param newWithdrawalFeeBps The new withdrawal fee in basis points
      */
-    function setWithdrawalFeeBps(uint256 newWithdrawalFeeBps) public {
+    function setWithdrawalFeeBps(
+        uint256 newWithdrawalFeeBps
+    ) public onlyOwner nonReentrant {
         if (newWithdrawalFeeBps > MAX_WITHDRAWAL_FEE_BPS) {
             revert WithdrawalFeeIsGreaterThanMaxFee(
                 newWithdrawalFeeBps,

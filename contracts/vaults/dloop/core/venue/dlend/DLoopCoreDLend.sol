@@ -51,11 +51,6 @@ contract DLoopCoreDLend is DLoopCoreBase, RewardClaimable {
     address public immutable targetStaticATokenWrapper;
     IRewardsController public dLendRewardsController;
 
-    // Withdrawal fee configuration
-    uint256 public feeBps; // default 0 bps
-    uint256 public constant MAX_FEE_BPS =
-        5 * BasisPointConstants.ONE_PERCENT_BPS; // 5%
-
     /* Errors */
 
     error ZeroAddress();
@@ -166,18 +161,6 @@ contract DLoopCoreDLend is DLoopCoreBase, RewardClaimable {
             oldController,
             _newDLendRewardsController
         );
-    }
-
-    /**
-     * @dev Sets withdrawal fee in basis points. Only owner can set. Capped by MAX_FEE_BPS.
-     */
-    function setFeeBps(uint256 _feeBps) external onlyOwner {
-        if (_feeBps > MAX_FEE_BPS) {
-            revert FeeTooHigh(_feeBps, MAX_FEE_BPS);
-        }
-        uint256 oldFeeBps = feeBps;
-        feeBps = _feeBps;
-        emit FeeBpsSet(oldFeeBps, _feeBps);
     }
 
     /**
