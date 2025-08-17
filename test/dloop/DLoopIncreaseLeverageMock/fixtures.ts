@@ -101,6 +101,12 @@ export async function deployDLoopIncreaseLeverageMockFixture(): Promise<DLoopInc
   await collateralToken.mint(dexAddress, ethers.parseEther("1000000"));
   await debtToken.mint(dexAddress, ethers.parseEther("1000000"));
 
+  // Also pre-fund the periphery contract with some collateral so swaps won't need to pull from user
+  await collateralToken.mint(
+    await increaseLeverageMock.getAddress(),
+    ethers.parseEther("1000"),
+  );
+
   // Set up flash lender (debt token) with tokens for flash loans
   await debtToken.mint(
     await debtToken.getAddress(),
@@ -118,6 +124,12 @@ export async function deployDLoopIncreaseLeverageMockFixture(): Promise<DLoopInc
   await dloopMock
     .connect(user1)
     .deposit(ethers.parseEther("100"), user1.address);
+
+  // Ensure the vault holds collateral for onBehalfOf == this supply path in mocks
+  await collateralToken.mint(
+    await dloopMock.getAddress(),
+    ethers.parseEther("100"),
+  );
 
   return {
     dloopMock,
