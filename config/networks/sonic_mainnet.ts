@@ -65,14 +65,12 @@ export async function getConfig(
   const governanceSafeMultisig = "0xE83c188a7BE46B90715C757A06cF917175f30262";
 
   // Safe configuration for governance multisig
-  // TODO: Update these values with actual Safe owners and configuration
   const safeOwners = [
-    // TODO: Add actual Safe owner addresses
-    "0x0000000000000000000000000000000000000001",
-    "0x0000000000000000000000000000000000000002",
-    "0x0000000000000000000000000000000000000003",
+    "0xDC672ba6e55B71b39FA5423D42B88E7aDF9d24A4",
+    "0x4B58fF1AAE6AdD7465A5584eBCaeb876ec8f21FD",
+    "0x9E0c8376940aBE845A89b7304147a95c72644f59",
   ];
-  const safeThreshold = 2; // TODO: Update with actual threshold
+  const safeThreshold = 2; // 2 of 3 multisig
 
   // Fetch deployed dLend StaticATokenLM wrapper, aToken and RewardsController (may be undefined prior to deployment)
   const dLendATokenWrapperDUSDDeployment = await _hre.deployments.getOrNull(

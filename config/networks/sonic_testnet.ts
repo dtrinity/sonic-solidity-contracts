@@ -90,6 +90,7 @@ export async function getConfig(
     "0xd2f775Ff2cD41bfe43C7A8c016eD10393553fe44";
 
   return {
+    // Note: No Safe deployed on testnet yet - using deployer as single signer for testing
     safeConfig: {
       safeAddress: testnetGovernanceMultisig,
       owners: [deployer], // On testnet, deployer is the only owner
