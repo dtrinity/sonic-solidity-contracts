@@ -52,7 +52,7 @@ contract StaticATokenFactory is IStaticATokenFactory {
                 );
                 StaticATokenLM staticAToken = new StaticATokenLM(
                     POOL,
-                    IRewardsController(address(0)), // TODO: pass correct incentives controller if needed
+                    IRewardsController(address(0)), // NOTE: pass actual incentives controller if rewards are enabled
                     reserveData.aTokenAddress,
                     string(
                         abi.encodePacked(

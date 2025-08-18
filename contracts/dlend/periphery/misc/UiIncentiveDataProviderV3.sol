@@ -74,7 +74,7 @@ contract UiIncentiveDataProviderV3 is IUiIncentiveDataProviderV3 {
             );
 
             // Get aTokens rewards information
-            // TODO: check that this is deployed correctly on contract and remove casting
+            // NOTE: ensure incentive controller address is correctly configured and casting is valid
             IRewardsController aTokenIncentiveController = IRewardsController(
                 address(
                     IncentivizedERC20(baseData.aTokenAddress)

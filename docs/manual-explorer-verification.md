@@ -5,7 +5,7 @@ make explorer.verify.sonic_mainnet
 
 In these cases we must manually verify the contracts one by one using the default `hardhat verify` command with the following syntax:
 ```
-npx hardhat verify --network mainnet DEPLOYED_CONTRACT_ADDRESS "Constructor argument 1"
+npx hardhat verify --network sonic_mainnet DEPLOYED_CONTRACT_ADDRESS "Constructor argument 1"
 ```
 
 Here are the unverified contracts for Sonic mainnet:
