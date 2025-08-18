@@ -11,6 +11,12 @@ import {
   TestMintableERC20,
 } from "../../typechain-types";
 import {
+  DS_REDEEMER_CONTRACT_ID,
+  DS_REDEEMER_WITH_FEES_CONTRACT_ID,
+  DUSD_REDEEMER_CONTRACT_ID,
+  DUSD_REDEEMER_WITH_FEES_CONTRACT_ID,
+} from "../../typescript/deploy-ids";
+import {
   getTokenContractForSymbol,
   TokenInfo,
 } from "../../typescript/token/utils";
@@ -159,6 +165,28 @@ dstableConfigs.forEach((config) => {
           0n,
           "default fee bps should be zero by default"
         );
+      });
+
+      it("revokes withdrawer role from legacy Redeemer and RedeemerWithFees", async function () {
+        const withRole = await collateralVault.COLLATERAL_WITHDRAWER_ROLE();
+        const legacyIds = [
+          config.symbol === "dUSD"
+            ? DUSD_REDEEMER_CONTRACT_ID
+            : DS_REDEEMER_CONTRACT_ID,
+          config.symbol === "dUSD"
+            ? DUSD_REDEEMER_WITH_FEES_CONTRACT_ID
+            : DS_REDEEMER_WITH_FEES_CONTRACT_ID,
+        ];
+
+        for (const id of legacyIds) {
+          const dep = await hre.deployments.getOrNull(id);
+          if (!dep) continue;
+          const has = await collateralVault.hasRole(withRole, dep.address);
+          expect(has).to.equal(
+            false,
+            `${id} should not retain withdrawer role`
+          );
+        }
       });
     });
 
