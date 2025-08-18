@@ -531,7 +531,7 @@ describe("V. Donation griefing causes DoS but no value theft", function () {
     expect(await dloop.isTooImbalanced()).to.equal(true);
 
     // 2. Keeper queries required rebalance amount/direction
-    const [tokenAmount, rawDirection] =
+    const [tokenAmount, , rawDirection] =
       await dloop.quoteRebalanceAmountToReachTargetLeverage();
     const direction = Number(rawDirection);
 

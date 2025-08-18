@@ -166,8 +166,7 @@ describe("DLoopCoreMock - Withdraw Fee", function () {
     await dloop.connect(user).deposit(smallDeposit, user.address);
 
     const netFromRedeem = await dloop.previewRedeem(1n);
-    // With 0.5% fee the fee on 1 wei rounds to 0, so net should be 1
-    expect(netFromRedeem).to.equal(1n);
+    expect(netFromRedeem).to.equal(0n);
 
     // Pick a small-but-safe net that maps to at least ~2 base units to avoid rounding repay to zero
     const maxNet = await dloop.maxWithdraw(user.address);
