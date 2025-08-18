@@ -2,7 +2,10 @@ import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
 
 import { getConfig } from "../../config/config";
-import { ensureDefaultAdminExistsAndRevokeFrom } from "../../typescript/hardhat/access_control";
+import {
+  createGrantRoleTransaction,
+  createRevokeRoleTransaction,
+} from "../../scripts/safe/propose-governance-transaction";
 import {
   DS_COLLATERAL_VAULT_CONTRACT_ID,
   DS_REDEEMER_CONTRACT_ID,
@@ -13,28 +16,34 @@ import {
   S_ORACLE_AGGREGATOR_ID,
   USD_ORACLE_AGGREGATOR_ID,
 } from "../../typescript/deploy-ids";
+import { ensureDefaultAdminExistsAndRevokeFrom } from "../../typescript/hardhat/access_control";
+import { SafeManager } from "../../typescript/safe/SafeManager";
 
 const ZERO_BYTES_32 =
   "0x0000000000000000000000000000000000000000000000000000000000000000";
 
 /**
  * Migrate roles to governance multisig (always idempotent)
+ * Uses Safe SDK for governance operations when available.
  *
  * @param hre HardhatRuntimeEnvironment
  * @param redeemerAddress Address of the RedeemerV2 contract
  * @param deployerAddress Address of the deployer
  * @param governanceMultisig Address of the governance multisig
+ * @param safeManager Optional Safe manager for governance operations
+ * @param manualActions Array to collect manual actions if direct execution fails
  */
 async function migrateRedeemerRolesIdempotent(
   hre: HardhatRuntimeEnvironment,
   redeemerAddress: string,
   deployerAddress: string,
   governanceMultisig: string,
-  manualActions?: string[]
+  safeManager?: SafeManager,
+  manualActions?: string[],
 ): Promise<void> {
   const redeemer = await hre.ethers.getContractAt(
     "RedeemerV2",
-    redeemerAddress
+    redeemerAddress,
   );
   const DEFAULT_ADMIN_ROLE = ZERO_BYTES_32;
   const REDEMPTION_MANAGER_ROLE = await redeemer.REDEMPTION_MANAGER_ROLE();
@@ -53,15 +62,49 @@ async function migrateRedeemerRolesIdempotent(
         console.log(`    ➕ Granted ${role.name} to ${governanceMultisig}`);
       } catch (e) {
         console.log(
-          `    ⚠️ Could not grant ${role.name} to ${governanceMultisig}: ${(e as Error).message}`
+          `    ⚠️ Could not grant ${role.name} to ${governanceMultisig}: ${(e as Error).message}`,
         );
-        manualActions?.push(
-          `RedeemerV2 (${redeemerAddress}).grantRole(${role.name}, ${governanceMultisig})`
-        );
+
+        if (safeManager) {
+          console.log(
+            `    🔄 Creating Safe transaction for ${role.name} grant...`,
+          );
+          const transaction = createGrantRoleTransaction(
+            redeemerAddress,
+            role.hash,
+            governanceMultisig,
+            redeemer.interface,
+          );
+          const result = await safeManager.createTransaction(
+            transaction,
+            `Grant ${role.name} to governance on RedeemerV2`,
+          );
+
+          if (result.success) {
+            if (result.requiresAdditionalSignatures) {
+              console.log(
+                `    📤 Safe transaction created, awaiting governance signatures`,
+              );
+            } else if (result.transactionHash) {
+              console.log(
+                `    ✅ Safe transaction executed: ${result.transactionHash}`,
+              );
+            }
+          } else {
+            console.log(`    ❌ Safe transaction failed: ${result.error}`);
+            manualActions?.push(
+              `RedeemerV2 (${redeemerAddress}).grantRole(${role.name}, ${governanceMultisig})`,
+            );
+          }
+        } else {
+          manualActions?.push(
+            `RedeemerV2 (${redeemerAddress}).grantRole(${role.name}, ${governanceMultisig})`,
+          );
+        }
       }
     } else {
       console.log(
-        `    ✓ ${role.name} already granted to ${governanceMultisig}`
+        `    ✓ ${role.name} already granted to ${governanceMultisig}`,
       );
     }
   }
@@ -74,15 +117,49 @@ async function migrateRedeemerRolesIdempotent(
         console.log(`    ➖ Revoked ${role} from deployer`);
       } catch (e) {
         console.log(
-          `    ⚠️ Could not revoke ${role} from deployer: ${(e as Error).message}`
+          `    ⚠️ Could not revoke ${role} from deployer: ${(e as Error).message}`,
         );
         const roleName =
           role === REDEMPTION_MANAGER_ROLE
             ? "REDEMPTION_MANAGER_ROLE"
             : "PAUSER_ROLE";
-        manualActions?.push(
-          `RedeemerV2 (${redeemerAddress}).revokeRole(${roleName}, ${deployerAddress})`
-        );
+
+        if (safeManager) {
+          console.log(
+            `    🔄 Creating Safe transaction for ${roleName} revoke...`,
+          );
+          const transaction = createRevokeRoleTransaction(
+            redeemerAddress,
+            role,
+            deployerAddress,
+            redeemer.interface,
+          );
+          const result = await safeManager.createTransaction(
+            transaction,
+            `Revoke ${roleName} from deployer on RedeemerV2`,
+          );
+
+          if (result.success) {
+            if (result.requiresAdditionalSignatures) {
+              console.log(
+                `    📤 Safe transaction created, awaiting governance signatures`,
+              );
+            } else if (result.transactionHash) {
+              console.log(
+                `    ✅ Safe transaction executed: ${result.transactionHash}`,
+              );
+            }
+          } else {
+            console.log(`    ❌ Safe transaction failed: ${result.error}`);
+            manualActions?.push(
+              `RedeemerV2 (${redeemerAddress}).revokeRole(${roleName}, ${deployerAddress})`,
+            );
+          }
+        } else {
+          manualActions?.push(
+            `RedeemerV2 (${redeemerAddress}).revokeRole(${roleName}, ${deployerAddress})`,
+          );
+        }
       }
     }
   }
@@ -94,15 +171,43 @@ async function migrateRedeemerRolesIdempotent(
     governanceMultisig,
     deployerAddress,
     await hre.ethers.getSigner(deployerAddress),
-    manualActions
+    manualActions,
   );
 }
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
-  const { deployments } = hre;
+  const { deployments, ethers } = hre;
   const { deployer } = await hre.getNamedAccounts();
+  const deployerSigner = await ethers.getSigner(deployer);
   const config = await getConfig(hre);
   const manualActions: string[] = [];
+
+  // Initialize Safe Manager if Safe configuration is available
+  let safeManager: SafeManager | undefined;
+
+  if (config.safeConfig) {
+    console.log(`🔐 Initializing Safe Manager for governance operations...`);
+
+    try {
+      safeManager = new SafeManager(hre, deployerSigner, {
+        safeConfig: config.safeConfig,
+        enableApiKit: true,
+        enableTransactionService: true,
+      });
+      await safeManager.initialize();
+      console.log(`✅ Safe Manager initialized successfully`);
+    } catch (error) {
+      console.warn(`⚠️ Failed to initialize Safe Manager:`, error);
+      console.log(
+        `🔄 Continuing without Safe Manager - will collect manual actions`,
+      );
+      safeManager = undefined;
+    }
+  } else {
+    console.log(
+      `ℹ️ No Safe configuration found - will collect manual actions for governance`,
+    );
+  }
 
   type Target = {
     symbol: "dUSD" | "dS";
@@ -165,7 +270,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       const vaultContract = await hre.ethers.getContractAt(
         "CollateralHolderVault",
         vault,
-        await hre.ethers.getSigner(deployer)
+        deployerSigner,
       );
       const WITHDRAWER_ROLE = await vaultContract.COLLATERAL_WITHDRAWER_ROLE();
 
@@ -173,15 +278,41 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
         try {
           await vaultContract.grantRole(WITHDRAWER_ROLE, result.address);
           console.log(
-            `    ➕ Granted COLLATERAL_WITHDRAWER_ROLE to new redeemer ${result.address}`
+            `    ➕ Granted COLLATERAL_WITHDRAWER_ROLE to new redeemer ${result.address}`,
           );
         } catch (e) {
           console.log(
-            `    ⚠️ Could not grant COLLATERAL_WITHDRAWER_ROLE to ${result.address}: ${(e as Error).message}`
+            `    ⚠️ Could not grant COLLATERAL_WITHDRAWER_ROLE to ${result.address}: ${(e as Error).message}`,
           );
-          manualActions.push(
-            `CollateralHolderVault (${vault}).grantRole(COLLATERAL_WITHDRAWER_ROLE, ${result.address})`
-          );
+
+          if (safeManager) {
+            console.log(
+              `    🔄 Creating Safe transaction for COLLATERAL_WITHDRAWER_ROLE grant...`,
+            );
+            const transaction = createGrantRoleTransaction(
+              vault,
+              WITHDRAWER_ROLE,
+              result.address,
+              vaultContract.interface,
+            );
+            const safeResult = await safeManager.createTransaction(
+              transaction,
+              `Grant COLLATERAL_WITHDRAWER_ROLE to new redeemer ${result.address}`,
+            );
+
+            if (!safeResult.success) {
+              console.log(
+                `    ❌ Safe transaction failed: ${safeResult.error}`,
+              );
+              manualActions.push(
+                `CollateralHolderVault (${vault}).grantRole(COLLATERAL_WITHDRAWER_ROLE, ${result.address})`,
+              );
+            }
+          } else {
+            manualActions.push(
+              `CollateralHolderVault (${vault}).grantRole(COLLATERAL_WITHDRAWER_ROLE, ${result.address})`,
+            );
+          }
         }
       }
       const oldRedeemerDeployment = await deployments.getOrNull(t.redeemerId);
@@ -190,33 +321,89 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
         oldRedeemerDeployment &&
         (await vaultContract.hasRole(
           WITHDRAWER_ROLE,
-          oldRedeemerDeployment.address
+          oldRedeemerDeployment.address,
         ))
       ) {
         try {
           await vaultContract.revokeRole(
             WITHDRAWER_ROLE,
-            oldRedeemerDeployment.address
+            oldRedeemerDeployment.address,
           );
           console.log(
-            `    ➖ Revoked COLLATERAL_WITHDRAWER_ROLE from old redeemer ${oldRedeemerDeployment.address}`
+            `    ➖ Revoked COLLATERAL_WITHDRAWER_ROLE from old redeemer ${oldRedeemerDeployment.address}`,
           );
         } catch (e) {
           console.log(
-            `    ⚠️ Could not revoke COLLATERAL_WITHDRAWER_ROLE from old redeemer: ${(e as Error).message}`
+            `    ⚠️ Could not revoke COLLATERAL_WITHDRAWER_ROLE from old redeemer: ${(e as Error).message}`,
           );
-          manualActions.push(
-            `CollateralHolderVault (${vault}).revokeRole(COLLATERAL_WITHDRAWER_ROLE, ${oldRedeemerDeployment.address})`
-          );
+
+          if (safeManager) {
+            console.log(
+              `    🔄 Creating Safe transaction for COLLATERAL_WITHDRAWER_ROLE revoke...`,
+            );
+            const transaction = createRevokeRoleTransaction(
+              vault,
+              WITHDRAWER_ROLE,
+              oldRedeemerDeployment.address,
+              vaultContract.interface,
+            );
+            const safeResult = await safeManager.createTransaction(
+              transaction,
+              `Revoke COLLATERAL_WITHDRAWER_ROLE from old redeemer ${oldRedeemerDeployment.address}`,
+            );
+
+            if (!safeResult.success) {
+              console.log(
+                `    ❌ Safe transaction failed: ${safeResult.error}`,
+              );
+              manualActions.push(
+                `CollateralHolderVault (${vault}).revokeRole(COLLATERAL_WITHDRAWER_ROLE, ${oldRedeemerDeployment.address})`,
+              );
+            }
+          } else {
+            manualActions.push(
+              `CollateralHolderVault (${vault}).revokeRole(COLLATERAL_WITHDRAWER_ROLE, ${oldRedeemerDeployment.address})`,
+            );
+          }
         }
       }
     } catch (e) {
       console.log(
-        `    ⚠️ Could not update vault withdrawer roles: ${(e as Error).message}`
+        `    ⚠️ Could not update vault withdrawer roles: ${(e as Error).message}`,
       );
-      manualActions.push(
-        `CollateralHolderVault (${vault}).grantRole(COLLATERAL_WITHDRAWER_ROLE, ${result.address})`
-      );
+
+      if (safeManager) {
+        console.log(
+          `    🔄 Creating Safe transaction for vault withdrawer role grant (fallback)...`,
+        );
+        const vaultContract = await hre.ethers.getContractAt(
+          "CollateralHolderVault",
+          vault,
+        );
+        const WITHDRAWER_ROLE =
+          await vaultContract.COLLATERAL_WITHDRAWER_ROLE();
+        const transaction = createGrantRoleTransaction(
+          vault,
+          WITHDRAWER_ROLE,
+          result.address,
+          vaultContract.interface,
+        );
+        const safeResult = await safeManager.createTransaction(
+          transaction,
+          `Grant COLLATERAL_WITHDRAWER_ROLE to new redeemer ${result.address} (fallback)`,
+        );
+
+        if (!safeResult.success) {
+          console.log(`    ❌ Safe transaction failed: ${safeResult.error}`);
+          manualActions.push(
+            `CollateralHolderVault (${vault}).grantRole(COLLATERAL_WITHDRAWER_ROLE, ${result.address})`,
+          );
+        }
+      } else {
+        manualActions.push(
+          `CollateralHolderVault (${vault}).grantRole(COLLATERAL_WITHDRAWER_ROLE, ${result.address})`,
+        );
+      }
     }
 
     // Post-deploy configuration no longer needed for fee receiver and default fee,
@@ -230,13 +417,29 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       result.address,
       deployer,
       config.walletAddresses.governanceMultisig,
-      manualActions
+      safeManager,
+      manualActions,
     );
   }
 
   if (manualActions.length > 0) {
     console.log("\n⚠️  Manual actions required to finalize RedeemerV2 setup:");
     manualActions.forEach((a: string) => console.log(`   - ${a}`));
+
+    if (safeManager) {
+      console.log(
+        "\n💡 Safe transactions have been created for governance operations.",
+      );
+      console.log(
+        "   Check the Safe Transaction Service or deployment artifacts for pending transactions.",
+      );
+    }
+  } else if (safeManager) {
+    console.log(
+      "\n✅ All operations completed successfully via Safe transactions.",
+    );
+  } else {
+    console.log("\n✅ All operations completed successfully.");
   }
 
   console.log(`\n≻ ${__filename.split("/").slice(-2).join("/")}: ✅`);

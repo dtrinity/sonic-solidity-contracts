@@ -64,6 +64,16 @@ export async function getConfig(
 
   const governanceSafeMultisig = "0xE83c188a7BE46B90715C757A06cF917175f30262";
 
+  // Safe configuration for governance multisig
+  // TODO: Update these values with actual Safe owners and configuration
+  const safeOwners = [
+    // TODO: Add actual Safe owner addresses
+    "0x0000000000000000000000000000000000000001",
+    "0x0000000000000000000000000000000000000002",
+    "0x0000000000000000000000000000000000000003",
+  ];
+  const safeThreshold = 2; // TODO: Update with actual threshold
+
   // Fetch deployed dLend StaticATokenLM wrapper, aToken and RewardsController (may be undefined prior to deployment)
   const dLendATokenWrapperDUSDDeployment = await _hre.deployments.getOrNull(
     "dLend_ATokenWrapper_dUSD",
@@ -85,6 +95,15 @@ export async function getConfig(
   }
 
   return {
+    safeConfig: {
+      safeAddress: governanceSafeMultisig,
+      owners: safeOwners,
+      threshold: safeThreshold,
+      chainId: 146, // Sonic mainnet chain ID
+      rpcUrl: "https://rpc.sonic.fantom.network",
+      // TODO: Add Safe Transaction Service URL when available for Sonic
+      // txServiceUrl: "https://safe-transaction-sonic.safe.global"
+    },
     tokenAddresses: {
       dUSD: emptyStringIfUndefined(dUSDDeployment?.address),
       dS: emptyStringIfUndefined(dSDeployment?.address),

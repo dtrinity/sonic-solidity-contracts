@@ -229,7 +229,9 @@ export async function getPTMarketInfo(
     const underlyingAsset = extractAddressFromChainId(market.underlyingAsset);
 
     // Determine if market is active or inactive
-    const isActiveMarket = activeMarkets.some((m: PendleMarket) => m.address === market.address);
+    const isActiveMarket = activeMarkets.some(
+      (m: PendleMarket) => m.address === market.address,
+    );
     const marketStatus = isActiveMarket ? "active" : "inactive";
 
     console.log(`Found PT market info via API:`, {

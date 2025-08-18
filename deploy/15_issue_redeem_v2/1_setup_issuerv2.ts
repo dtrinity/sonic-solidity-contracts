@@ -3,7 +3,12 @@ import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
 
 import { getConfig } from "../../config/config";
-import { ensureDefaultAdminExistsAndRevokeFrom } from "../../typescript/hardhat/access_control";
+import {
+  createGrantMinterRoleTransaction,
+  createGrantRoleTransaction,
+  createRevokeRoleTransaction,
+  createSetAssetMintingPauseTransaction,
+} from "../../scripts/safe/propose-governance-transaction";
 import {
   DS_AMO_MANAGER_ID,
   DS_COLLATERAL_VAULT_CONTRACT_ID,
@@ -18,27 +23,32 @@ import {
   S_ORACLE_AGGREGATOR_ID,
   USD_ORACLE_AGGREGATOR_ID,
 } from "../../typescript/deploy-ids";
+import { ensureDefaultAdminExistsAndRevokeFrom } from "../../typescript/hardhat/access_control";
+import { SafeManager } from "../../typescript/safe/SafeManager";
 
 const ZERO_BYTES_32 =
   "0x0000000000000000000000000000000000000000000000000000000000000000";
 
 /**
  * Ensure the given `grantee` holds MINTER_ROLE on the specified dStable token.
- * Idempotent: grants the role only if it is not already present.
+ * Uses Safe SDK for governance operations when available.
  *
  * @param hre Hardhat runtime environment
  * @param stableAddress Address of the ERC20StablecoinUpgradeable token
  * @param grantee Address that should be granted MINTER_ROLE
+ * @param safeManager Optional Safe manager for governance operations
+ * @param manualActions Array to collect manual actions if direct execution fails
  */
 async function ensureMinterRole(
   hre: HardhatRuntimeEnvironment,
   stableAddress: string,
   grantee: string,
-  manualActions?: string[]
+  safeManager?: SafeManager,
+  manualActions?: string[],
 ): Promise<void> {
   const stable = await hre.ethers.getContractAt(
     "ERC20StablecoinUpgradeable",
-    stableAddress
+    stableAddress,
   );
   const MINTER_ROLE = await stable.MINTER_ROLE();
 
@@ -48,11 +58,44 @@ async function ensureMinterRole(
       console.log(`    ➕ Granted MINTER_ROLE to ${grantee}`);
     } catch (e) {
       console.log(
-        `    ⚠️ Could not grant MINTER_ROLE to ${grantee}: ${(e as Error).message}`
+        `    ⚠️ Could not grant MINTER_ROLE to ${grantee}: ${(e as Error).message}`,
       );
-      manualActions?.push(
-        `ERC20StablecoinUpgradeable (${stableAddress}).grantRole(MINTER_ROLE, ${grantee})`
-      );
+
+      if (safeManager) {
+        console.log(
+          `    🔄 Creating Safe transaction for MINTER_ROLE grant...`,
+        );
+        const transaction = createGrantMinterRoleTransaction(
+          stableAddress,
+          grantee,
+          stable.interface,
+        );
+        const result = await safeManager.createTransaction(
+          transaction,
+          `Grant MINTER_ROLE to ${grantee} on ${stableAddress}`,
+        );
+
+        if (result.success) {
+          if (result.requiresAdditionalSignatures) {
+            console.log(
+              `    📤 Safe transaction created, awaiting governance signatures`,
+            );
+          } else if (result.transactionHash) {
+            console.log(
+              `    ✅ Safe transaction executed: ${result.transactionHash}`,
+            );
+          }
+        } else {
+          console.log(`    ❌ Safe transaction failed: ${result.error}`);
+          manualActions?.push(
+            `ERC20StablecoinUpgradeable (${stableAddress}).grantRole(MINTER_ROLE, ${grantee})`,
+          );
+        }
+      } else {
+        manualActions?.push(
+          `ERC20StablecoinUpgradeable (${stableAddress}).grantRole(MINTER_ROLE, ${grantee})`,
+        );
+      }
     }
   } else {
     console.log(`    ✓ MINTER_ROLE already granted to ${grantee}`);
@@ -62,12 +105,15 @@ async function ensureMinterRole(
 /**
  * Migrate IssuerV2 roles to governance in a safe, idempotent sequence.
  * Grants roles to governance first, then revokes them from the deployer.
+ * Uses Safe SDK for governance operations when available.
  *
  * @param hre Hardhat runtime environment
  * @param issuerName Logical name/id of the issuer deployment
  * @param issuerAddress Address of the IssuerV2 contract
  * @param deployerSigner Deployer signer currently holding roles
  * @param governanceMultisig Governance multisig address to receive roles
+ * @param safeManager Optional Safe manager for governance operations
+ * @param manualActions Array to collect manual actions if direct execution fails
  */
 async function migrateIssuerRolesIdempotent(
   hre: HardhatRuntimeEnvironment,
@@ -75,12 +121,13 @@ async function migrateIssuerRolesIdempotent(
   issuerAddress: string,
   deployerSigner: Signer,
   governanceMultisig: string,
-  manualActions?: string[]
+  safeManager?: SafeManager,
+  manualActions?: string[],
 ): Promise<void> {
   const issuer = await hre.ethers.getContractAt(
     "IssuerV2",
     issuerAddress,
-    deployerSigner
+    deployerSigner,
   );
 
   const DEFAULT_ADMIN_ROLE = ZERO_BYTES_32;
@@ -104,15 +151,49 @@ async function migrateIssuerRolesIdempotent(
         console.log(`    ➕ Granted ${role.name} to ${governanceMultisig}`);
       } catch (e) {
         console.log(
-          `    ⚠️ Could not grant ${role.name} to ${governanceMultisig}: ${(e as Error).message}`
+          `    ⚠️ Could not grant ${role.name} to ${governanceMultisig}: ${(e as Error).message}`,
         );
-        manualActions?.push(
-          `${issuerName} (${issuerAddress}).grantRole(${role.name}, ${governanceMultisig})`
-        );
+
+        if (safeManager) {
+          console.log(
+            `    🔄 Creating Safe transaction for ${role.name} grant...`,
+          );
+          const transaction = createGrantRoleTransaction(
+            issuerAddress,
+            role.hash,
+            governanceMultisig,
+            issuer.interface,
+          );
+          const result = await safeManager.createTransaction(
+            transaction,
+            `Grant ${role.name} to governance on ${issuerName}`,
+          );
+
+          if (result.success) {
+            if (result.requiresAdditionalSignatures) {
+              console.log(
+                `    📤 Safe transaction created, awaiting governance signatures`,
+              );
+            } else if (result.transactionHash) {
+              console.log(
+                `    ✅ Safe transaction executed: ${result.transactionHash}`,
+              );
+            }
+          } else {
+            console.log(`    ❌ Safe transaction failed: ${result.error}`);
+            manualActions?.push(
+              `${issuerName} (${issuerAddress}).grantRole(${role.name}, ${governanceMultisig})`,
+            );
+          }
+        } else {
+          manualActions?.push(
+            `${issuerName} (${issuerAddress}).grantRole(${role.name}, ${governanceMultisig})`,
+          );
+        }
       }
     } else {
       console.log(
-        `    ✓ ${role.name} already granted to ${governanceMultisig}`
+        `    ✓ ${role.name} already granted to ${governanceMultisig}`,
       );
     }
   }
@@ -128,7 +209,7 @@ async function migrateIssuerRolesIdempotent(
         console.log(`    ➖ Revoked ${role} from deployer`);
       } catch (e) {
         console.log(
-          `    ⚠️ Could not revoke role ${role} from deployer: ${(e as Error).message}`
+          `    ⚠️ Could not revoke role ${role} from deployer: ${(e as Error).message}`,
         );
         const roleName =
           role === AMO_MANAGER_ROLE
@@ -136,9 +217,43 @@ async function migrateIssuerRolesIdempotent(
             : role === INCENTIVES_MANAGER_ROLE
               ? "INCENTIVES_MANAGER_ROLE"
               : "PAUSER_ROLE";
-        manualActions?.push(
-          `${issuerName} (${issuerAddress}).revokeRole(${roleName}, ${deployerAddress})`
-        );
+
+        if (safeManager) {
+          console.log(
+            `    🔄 Creating Safe transaction for ${roleName} revoke...`,
+          );
+          const transaction = createRevokeRoleTransaction(
+            issuerAddress,
+            role,
+            deployerAddress,
+            issuer.interface,
+          );
+          const result = await safeManager.createTransaction(
+            transaction,
+            `Revoke ${roleName} from deployer on ${issuerName}`,
+          );
+
+          if (result.success) {
+            if (result.requiresAdditionalSignatures) {
+              console.log(
+                `    📤 Safe transaction created, awaiting governance signatures`,
+              );
+            } else if (result.transactionHash) {
+              console.log(
+                `    ✅ Safe transaction executed: ${result.transactionHash}`,
+              );
+            }
+          } else {
+            console.log(`    ❌ Safe transaction failed: ${result.error}`);
+            manualActions?.push(
+              `${issuerName} (${issuerAddress}).revokeRole(${roleName}, ${deployerAddress})`,
+            );
+          }
+        } else {
+          manualActions?.push(
+            `${issuerName} (${issuerAddress}).revokeRole(${roleName}, ${deployerAddress})`,
+          );
+        }
       }
     }
   }
@@ -150,7 +265,7 @@ async function migrateIssuerRolesIdempotent(
     governanceMultisig,
     deployerAddress,
     deployerSigner,
-    manualActions
+    manualActions,
   );
 }
 
@@ -160,6 +275,33 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const deployerSigner = await ethers.getSigner(deployer);
   const config = await getConfig(hre);
   const manualActions: string[] = [];
+
+  // Initialize Safe Manager if Safe configuration is available
+  let safeManager: SafeManager | undefined;
+
+  if (config.safeConfig) {
+    console.log(`🔐 Initializing Safe Manager for governance operations...`);
+
+    try {
+      safeManager = new SafeManager(hre, deployerSigner, {
+        safeConfig: config.safeConfig,
+        enableApiKit: true,
+        enableTransactionService: true,
+      });
+      await safeManager.initialize();
+      console.log(`✅ Safe Manager initialized successfully`);
+    } catch (error) {
+      console.warn(`⚠️ Failed to initialize Safe Manager:`, error);
+      console.log(
+        `🔄 Continuing without Safe Manager - will collect manual actions`,
+      );
+      safeManager = undefined;
+    }
+  } else {
+    console.log(
+      `ℹ️ No Safe configuration found - will collect manual actions for governance`,
+    );
+  }
 
   // Upgrade flow for each dStable: deploy IssuerV2, grant minter role, migrate roles idempotently
   type UpgradeTarget = {
@@ -200,17 +342,17 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
     if (!oldDeployment) {
       console.log(
-        `  ⚠️ Old issuer ${t.oldId} not found. Skipping ${t.symbol}.`
+        `  ⚠️ Old issuer ${t.oldId} not found. Skipping ${t.symbol}.`,
       );
       continue;
     }
 
     // Resolve dependency addresses
     const { address: oracleAggregatorAddress } = await deployments.get(
-      t.oracleId
+      t.oracleId,
     );
     const { address: collateralVaultAddress } = await deployments.get(
-      t.vaultId
+      t.vaultId,
     );
     const { address: amoManagerAddress } = await deployments.get(t.amoId);
     const tokenAddress = (config as any).tokenAddresses[t.symbol];
@@ -247,14 +389,14 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       if (wstkscUSDAddress && wstkscUSDAddress !== "") {
         const vaultContract = await hre.ethers.getContractAt(
           "CollateralHolderVault",
-          collateralVaultAddress
+          collateralVaultAddress,
         );
 
         if (await vaultContract.isCollateralSupported(wstkscUSDAddress)) {
           const issuer = await hre.ethers.getContractAt(
             "IssuerV2",
             newIssuerAddress,
-            deployerSigner
+            deployerSigner,
           );
           const isEnabled: boolean =
             await issuer.isAssetMintingEnabled(wstkscUSDAddress);
@@ -263,47 +405,79 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
             try {
               await issuer.setAssetMintingPause(wstkscUSDAddress, true);
               console.log(
-                `    ⛔ Disabled minting for wstkscUSD on issuer ${newIssuerAddress}`
+                `    ⛔ Disabled minting for wstkscUSD on issuer ${newIssuerAddress}`,
               );
             } catch (e) {
               console.log(
-                `    ⚠️ Could not disable minting for wstkscUSD: ${(e as Error).message}`
+                `    ⚠️ Could not disable minting for wstkscUSD: ${(e as Error).message}`,
               );
-              manualActions.push(
-                `IssuerV2 (${newIssuerAddress}).setAssetMintingPause(${wstkscUSDAddress}, true)`
-              );
+
+              if (safeManager) {
+                console.log(
+                  `    🔄 Creating Safe transaction for wstkscUSD minting pause...`,
+                );
+                const transaction = createSetAssetMintingPauseTransaction(
+                  newIssuerAddress,
+                  wstkscUSDAddress,
+                  true,
+                  issuer.interface,
+                );
+                const result = await safeManager.createTransaction(
+                  transaction,
+                  `Disable wstkscUSD minting on ${newIssuerAddress}`,
+                );
+
+                if (!result.success) {
+                  console.log(
+                    `    ❌ Safe transaction failed: ${result.error}`,
+                  );
+                  manualActions.push(
+                    `IssuerV2 (${newIssuerAddress}).setAssetMintingPause(${wstkscUSDAddress}, true)`,
+                  );
+                }
+              } else {
+                manualActions.push(
+                  `IssuerV2 (${newIssuerAddress}).setAssetMintingPause(${wstkscUSDAddress}, true)`,
+                );
+              }
             }
           } else {
             console.log(
-              `    ✓ Minting for wstkscUSD already disabled on issuer ${newIssuerAddress}`
+              `    ✓ Minting for wstkscUSD already disabled on issuer ${newIssuerAddress}`,
             );
           }
         } else {
           console.log(
-            `    ℹ️ wstkscUSD not supported by collateral vault ${collateralVaultAddress}; skipping issuer-level pause`
+            `    ℹ️ wstkscUSD not supported by collateral vault ${collateralVaultAddress}; skipping issuer-level pause`,
           );
         }
       } else {
         console.log(
-          "    ℹ️ wstkscUSD address not present in config.tokenAddresses; skipping issuer-level pause"
+          "    ℹ️ wstkscUSD address not present in config.tokenAddresses; skipping issuer-level pause",
         );
       }
     } catch (e) {
       console.log(
-        `    ⚠️ Could not pre-disable wstkscUSD minting: ${(e as Error).message}`
+        `    ⚠️ Could not pre-disable wstkscUSD minting: ${(e as Error).message}`,
       );
       // As a best-effort, add manual action to disable if applicable
       // (We cannot know collateral support here without the successful call.)
     }
 
     // Grant MINTER_ROLE on the token to the new issuer (idempotent)
-    await ensureMinterRole(hre, tokenAddress, newIssuerAddress, manualActions);
+    await ensureMinterRole(
+      hre,
+      tokenAddress,
+      newIssuerAddress,
+      safeManager,
+      manualActions,
+    );
 
     // Revoke MINTER_ROLE from the old issuer, but only after the new issuer has it
     try {
       const stable = await hre.ethers.getContractAt(
         "ERC20StablecoinUpgradeable",
-        tokenAddress
+        tokenAddress,
       );
       const MINTER_ROLE = await stable.MINTER_ROLE();
 
@@ -315,28 +489,81 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
         try {
           await stable.revokeRole(MINTER_ROLE, oldDeployment.address);
           console.log(
-            `    ➖ Revoked MINTER_ROLE from old issuer ${oldDeployment.address}`
+            `    ➖ Revoked MINTER_ROLE from old issuer ${oldDeployment.address}`,
           );
         } catch (e) {
           console.log(
-            `    ⚠️ Could not revoke MINTER_ROLE from old issuer: ${(e as Error).message}`
+            `    ⚠️ Could not revoke MINTER_ROLE from old issuer: ${(e as Error).message}`,
           );
-          manualActions.push(
-            `ERC20StablecoinUpgradeable (${tokenAddress}).revokeRole(MINTER_ROLE, ${oldDeployment.address})`
-          );
+
+          if (safeManager) {
+            console.log(
+              `    🔄 Creating Safe transaction for old issuer MINTER_ROLE revoke...`,
+            );
+            const transaction = createRevokeRoleTransaction(
+              tokenAddress,
+              MINTER_ROLE,
+              oldDeployment.address,
+              stable.interface,
+            );
+            const result = await safeManager.createTransaction(
+              transaction,
+              `Revoke MINTER_ROLE from old issuer ${oldDeployment.address}`,
+            );
+
+            if (!result.success) {
+              console.log(`    ❌ Safe transaction failed: ${result.error}`);
+              manualActions.push(
+                `ERC20StablecoinUpgradeable (${tokenAddress}).revokeRole(MINTER_ROLE, ${oldDeployment.address})`,
+              );
+            }
+          } else {
+            manualActions.push(
+              `ERC20StablecoinUpgradeable (${tokenAddress}).revokeRole(MINTER_ROLE, ${oldDeployment.address})`,
+            );
+          }
         }
       } else {
         console.log(
-          `    ✓ Old issuer ${oldDeployment.address} does not have MINTER_ROLE or equals new issuer`
+          `    ✓ Old issuer ${oldDeployment.address} does not have MINTER_ROLE or equals new issuer`,
         );
       }
     } catch (e) {
       console.log(
-        `    ⚠️ Could not check/revoke MINTER_ROLE on old issuer: ${(e as Error).message}`
+        `    ⚠️ Could not check/revoke MINTER_ROLE on old issuer: ${(e as Error).message}`,
       );
-      manualActions.push(
-        `ERC20StablecoinUpgradeable (${tokenAddress}).revokeRole(MINTER_ROLE, ${oldDeployment.address})`
-      );
+
+      if (safeManager && oldDeployment) {
+        console.log(
+          `    🔄 Creating Safe transaction for old issuer MINTER_ROLE revoke (fallback)...`,
+        );
+        const stable = await hre.ethers.getContractAt(
+          "ERC20StablecoinUpgradeable",
+          tokenAddress,
+        );
+        const MINTER_ROLE = await stable.MINTER_ROLE();
+        const transaction = createRevokeRoleTransaction(
+          tokenAddress,
+          MINTER_ROLE,
+          oldDeployment.address,
+          stable.interface,
+        );
+        const result = await safeManager.createTransaction(
+          transaction,
+          `Revoke MINTER_ROLE from old issuer ${oldDeployment.address} (fallback)`,
+        );
+
+        if (!result.success) {
+          console.log(`    ❌ Safe transaction failed: ${result.error}`);
+          manualActions.push(
+            `ERC20StablecoinUpgradeable (${tokenAddress}).revokeRole(MINTER_ROLE, ${oldDeployment.address})`,
+          );
+        }
+      } else {
+        manualActions.push(
+          `ERC20StablecoinUpgradeable (${tokenAddress}).revokeRole(MINTER_ROLE, ${oldDeployment?.address || "OLD_ISSUER_ADDRESS"})`,
+        );
+      }
     }
 
     // Migrate roles to governance multisig (always idempotent)
@@ -346,12 +573,13 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       newIssuerAddress,
       deployerSigner,
       config.walletAddresses.governanceMultisig,
-      manualActions
+      safeManager,
+      manualActions,
     );
 
     // Optional: keep old issuer operational until governance flips references
     console.log(
-      `  ℹ️ New issuer ${t.newId} deployed and permissioned. Ensure dApp/services reference ${newIssuerAddress}.`
+      `  ℹ️ New issuer ${t.newId} deployed and permissioned. Ensure dApp/services reference ${newIssuerAddress}.`,
     );
   }
 
@@ -359,6 +587,21 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   if (manualActions.length > 0) {
     console.log("\n⚠️  Manual actions required to finalize IssuerV2 setup:");
     manualActions.forEach((a: string) => console.log(`   - ${a}`));
+
+    if (safeManager) {
+      console.log(
+        "\n💡 Safe transactions have been created for governance operations.",
+      );
+      console.log(
+        "   Check the Safe Transaction Service or deployment artifacts for pending transactions.",
+      );
+    }
+  } else if (safeManager) {
+    console.log(
+      "\n✅ All operations completed successfully via Safe transactions.",
+    );
+  } else {
+    console.log("\n✅ All operations completed successfully.");
   }
 
   console.log(`\n≻ ${__filename.split("/").slice(-2).join("/")}: ✅`);

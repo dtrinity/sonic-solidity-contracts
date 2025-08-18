@@ -85,7 +85,20 @@ export async function getConfig(
 
   const { deployer } = await _hre.getNamedAccounts();
 
+  // Safe configuration for testnet governance (using deployer as single owner for testing)
+  const testnetGovernanceMultisig =
+    "0xd2f775Ff2cD41bfe43C7A8c016eD10393553fe44";
+
   return {
+    safeConfig: {
+      safeAddress: testnetGovernanceMultisig,
+      owners: [deployer], // On testnet, deployer is the only owner
+      threshold: 1,
+      chainId: 64165, // Sonic testnet chain ID
+      rpcUrl: "https://rpc.sonic.fantom.network", // Same RPC for testnet
+      // TODO: Add Safe Transaction Service URL when available for Sonic testnet
+      // txServiceUrl: "https://safe-transaction-sonic-testnet.safe.global"
+    },
     MOCK_ONLY: {
       tokens: {
         USDC: {

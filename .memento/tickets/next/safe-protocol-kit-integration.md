@@ -31,10 +31,7 @@ These are operations where the governance wallet needs to sign and execute trans
    - These scripts collect failed operations in a `manualActions` array that outputs "Manual actions required to finalize setup"
    - Example operations: `ERC20StablecoinUpgradeable.grantRole(MINTER_ROLE, address)`, `IssuerV2.revokeRole(role, deployerAddress)`
 
-2. **Manual Confirmation Script**: 
-   - `scripts/roles/scan-forfeit-roles.ts` - Contains interactive readline prompts for governance operations
-
-3. **Future Governance Operations**:
+2. **Future Governance Operations**:
    - Protocol parameter updates
    - Emergency operations
    - Contract upgrades
@@ -66,7 +63,6 @@ Integrate **Safe Protocol Kit SDK** to automate multi-signature governance opera
 #### 1. Scripts That Need Safe SDK Integration (Governance Wallet Operations):
 - `deploy/15_issue_redeem_v2/1_setup_issuerv2.ts` - Parse and execute manualActions array
 - `deploy/15_issue_redeem_v2/2_setup_redeemerv2.ts` - Parse and execute manualActions array
-- `scripts/roles/scan-forfeit-roles.ts` - Replace readline prompts with Safe transactions
 
 #### 2. Scripts That DO NOT Need Modification (Deployer Operations):
 The following scripts already work correctly and don't need Safe SDK since the deployer signs locally:
@@ -168,36 +164,25 @@ The following scripts already work correctly and don't need Safe SDK since the d
    - Add transaction status tracking in deployment artifacts
    - Handle script re-runs after partial governance execution
 
-2. **Update Manual Confirmation Script**:
-   - Replace readline prompts with Safe transaction creation
-   - Add transaction preview and confirmation mechanisms
-   - Implement dry-run capabilities for testing
-
-3. **Implement Async Handling**:
+2. **Implement Async Handling**:
    - Create mechanism to track pending Safe transactions
    - Add status checks for governance execution completion
    - Implement graceful failure with clear status reporting
    - Enable scripts to resume after governance signs
 
-4. **Testing**:
+3. **Testing**:
    - Test idempotent script execution
    - Validate transaction ordering and dependencies
    - Test re-run scenarios with partial governance execution
    - Validate against sonic_testnet before mainnet deployment
 
-### Phase 3: Advanced Features and Production Readiness (Week 3)
-1. **Enhanced Features**:
-   - Implement transaction simulation before execution
-   - Add gas estimation and optimization
-   - Create governance operation templates for common tasks
-   - Add monitoring and logging for governance operations
-
-2. **Documentation**:
+### Phase 3: Testing and Deployment (Week 3)
+1. **Documentation**:
    - Update deployment documentation with Safe procedures
-   - Create governance operations playbook
-   - Document emergency procedures and fallback mechanisms
+   - Document the new async deployment workflow
+   - Create runbook for governance signers
 
-3. **Production Deployment**:
+2. **Production Deployment**:
    - Deploy and test on sonic_testnet
    - Coordinate with governance multisig signers for testing
    - Execute controlled migration to production environment
