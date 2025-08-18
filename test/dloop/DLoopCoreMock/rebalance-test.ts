@@ -137,7 +137,7 @@ describe("DLoopCoreMock Rebalance Tests", function () {
 
         // Get expected quote for increase leverage
         const [, direction] =
-          await dloopMock.quoteRebalanceInputForTargetLeverage(false);
+          await dloopMock.quoteRebalanceAmountToReachTargetLeverage(false);
         expect(direction).to.equal(testCase.expectedDirection);
 
         // Get user balances before increase leverage
@@ -276,7 +276,7 @@ describe("DLoopCoreMock Rebalance Tests", function () {
 
         // Get expected quote for decrease leverage
         const [, direction] =
-          await dloopMock.quoteRebalanceInputForTargetLeverage(false);
+          await dloopMock.quoteRebalanceAmountToReachTargetLeverage(false);
         expect(direction).to.equal(testCase.expectedDirection);
 
         // Get user balances before decrease leverage
@@ -859,9 +859,9 @@ describe("DLoopCoreMock Rebalance Tests", function () {
 
         // Get quotes with and without vault balance
         const [tokenAmountWithVault] =
-          await dloopMock.quoteRebalanceInputForTargetLeverage(true);
+          await dloopMock.quoteRebalanceAmountToReachTargetLeverage(true);
         const [tokenAmountWithoutVault] =
-          await dloopMock.quoteRebalanceInputForTargetLeverage(false);
+          await dloopMock.quoteRebalanceAmountToReachTargetLeverage(false);
 
         // Should require less additional tokens when using vault balance
         expect(tokenAmountWithVault).to.be.lte(tokenAmountWithoutVault);
@@ -1163,7 +1163,7 @@ describe("DLoopCoreMock Rebalance Tests", function () {
 
         // Get exact amount needed to reach target leverage
         const [exactAmount, direction] =
-          await dloopMock.quoteRebalanceInputForTargetLeverage(false);
+          await dloopMock.quoteRebalanceAmountToReachTargetLeverage(false);
 
         // Verify direction matches expected operation
         if (testCase.operation === "increase") {
@@ -1236,7 +1236,7 @@ describe("DLoopCoreMock Rebalance Tests", function () {
 
       // Get amount when already at target
       const [amount, _direction] =
-        await dloopMock.quoteRebalanceInputForTargetLeverage(false);
+        await dloopMock.quoteRebalanceAmountToReachTargetLeverage(false);
 
       // When already at target, amount should be very small
       // Direction might not be exactly 0 due to precision, but should indicate minimal adjustment

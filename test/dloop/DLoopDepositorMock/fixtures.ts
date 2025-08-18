@@ -130,16 +130,8 @@ export async function deployDLoopMockLogic(): Promise<DLoopMockFixture> {
   await collateralToken.mint(mockPool, ethers.parseEther("1000000"));
   await debtToken.mint(mockPool, ethers.parseEther("1000000"));
 
-  // Deploy and link the DLoopCoreLogic library
-  const DLoopCoreLogicFactory = await ethers.getContractFactory("DLoopCoreLogic");
-  const dloopCoreLogicLib = await DLoopCoreLogicFactory.deploy();
-
   // Get the exact nonce for deployment and set up allowances correctly
-  const DLoopCoreMock = await ethers.getContractFactory("DLoopCoreMock", {
-    libraries: {
-      DLoopCoreLogic: await dloopCoreLogicLib.getAddress(),
-    },
-  });
+  const DLoopCoreMock = await ethers.getContractFactory("DLoopCoreMock");
   const currentNonce = await ethers.provider.getTransactionCount(deployer);
 
   // We'll have 2 approve transactions, so deployment will be at currentNonce + 2
@@ -166,7 +158,6 @@ export async function deployDLoopMockLogic(): Promise<DLoopMockFixture> {
     LOWER_BOUND_BPS,
     UPPER_BOUND_BPS,
     MAX_SUBSIDY_BPS,
-    0, // minDeviationBps
     0, // withdrawalFeeBps
     mockPool,
   );

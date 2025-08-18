@@ -202,9 +202,13 @@ abstract contract DLoopCoreBase is
         uint256 currentLeverageBps,
         uint256 targetLeverageBps
     );
-    error RebalanceReceiveLessThanMinAmount(
-        uint256 receivedAmount,
-        uint256 minReceivedAmount
+    error IncreaseLeverageReceiveLessThanMinAmount(
+        uint256 receivedDebtTokenAmount,
+        uint256 minReceivedDebtTokenAmount
+    );
+    error DecreaseLeverageReceiveLessThanMinAmount(
+        uint256 receivedCollateralTokenAmount,
+        uint256 minReceivedCollateralTokenAmount
     );
     error ZeroShares();
     error WithdrawalFeeIsGreaterThanMaxFee(
@@ -566,15 +570,8 @@ abstract contract DLoopCoreBase is
         override
         returns (address[] memory)
     {
-        // Always restrict collateral and debt tokens from rescue
-        address[] memory additional = _getAdditionalRescueTokensImplementation();
-        address[] memory restricted = new address[](2 + additional.length);
-        restricted[0] = address(collateralToken);
-        restricted[1] = address(debtToken);
-        for (uint256 i = 0; i < additional.length; i++) {
-            restricted[2 + i] = additional[i];
-        }
-        return restricted;
+        // Get the additional rescue tokens from the derived contract
+        return _getAdditionalRescueTokensImplementation();
     }
 
     /* Helper Functions */
@@ -1177,7 +1174,7 @@ abstract contract DLoopCoreBase is
         // Slippage protection, to make sure the user receives at least minReceivedDebtTokenAmount
         // At this step, we check against the actual amount borrowed from the pool
         if (actualBorrowedDebtTokenAmount < minReceivedDebtTokenAmount) {
-            revert RebalanceReceiveLessThanMinAmount(
+            revert IncreaseLeverageReceiveLessThanMinAmount(
                 actualBorrowedDebtTokenAmount,
                 minReceivedDebtTokenAmount
             );
@@ -1292,7 +1289,7 @@ abstract contract DLoopCoreBase is
             actualWithdrawnCollateralTokenAmount <
             minReceivedCollateralTokenAmount
         ) {
-            revert RebalanceReceiveLessThanMinAmount(
+            revert DecreaseLeverageReceiveLessThanMinAmount(
                 actualWithdrawnCollateralTokenAmount,
                 minReceivedCollateralTokenAmount
             );
