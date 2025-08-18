@@ -59,7 +59,8 @@ contract DLoopCoreShortfallMock is DLoopCoreMock {
         if (amount <= 1) revert MockBorrowAmountTooSmall(amount);
         uint256 sendAmount = amount - 1;
         uint256 poolBalance = ERC20(token).balanceOf(mockPool);
-        if (poolBalance < sendAmount) revert MockPoolLacksLiquidity(sendAmount, poolBalance);
+        if (poolBalance < sendAmount)
+            revert MockPoolLacksLiquidity(sendAmount, poolBalance);
         ERC20(token).transferFrom(mockPool, onBehalfOf, sendAmount);
         transferPortionBps = BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
         _setMockDebt(onBehalfOf, token, sendAmount);
@@ -78,7 +79,8 @@ contract DLoopCoreShortfallMock is DLoopCoreMock {
         if (amount <= 1) revert MockWithdrawAmountTooSmall(amount);
         uint256 sendAmount = amount - 1;
         uint256 poolBalance = ERC20(token).balanceOf(mockPool);
-        if (poolBalance < sendAmount) revert MockPoolLacksCollateral(sendAmount, poolBalance);
+        if (poolBalance < sendAmount)
+            revert MockPoolLacksCollateral(sendAmount, poolBalance);
         ERC20(token).transferFrom(mockPool, onBehalfOf, sendAmount);
         transferPortionBps = BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
         // For testing we don't keep collateral accounting exact.

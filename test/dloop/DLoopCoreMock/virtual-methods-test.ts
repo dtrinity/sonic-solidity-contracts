@@ -159,7 +159,7 @@ describe("DLoopCoreMock Virtual Methods Tests", function () {
 
         await expect(
           dloopMock.getAssetPriceFromOracle(await newToken.getAddress()),
-        ).to.be.revertedWith("Mock price not set");
+        ).to.be.revertedWithCustomError(dloopMock, "MockPriceNotSet");
       });
 
       it("Should fail when pool has insufficient balance to borrow", async function () {
@@ -183,7 +183,7 @@ describe("DLoopCoreMock Virtual Methods Tests", function () {
             largeAmount,
             user1,
           ),
-        ).to.be.revertedWith("Mock: not enough balance to supply");
+        ).to.be.revertedWithCustomError(dloopMock, "NotEnoughBalanceToSupply");
       });
     });
   });

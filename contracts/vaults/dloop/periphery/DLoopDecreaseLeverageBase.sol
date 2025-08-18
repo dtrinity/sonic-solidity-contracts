@@ -75,7 +75,10 @@ abstract contract DLoopDecreaseLeverageBase is
         uint256 leverageBeforeDecrease,
         uint256 leverageAfterDecrease
     );
-    error LeverageAlreadyAtOrBelowTarget(uint256 currentLeverage, uint256 targetLeverage);
+    error LeverageAlreadyAtOrBelowTarget(
+        uint256 currentLeverage,
+        uint256 targetLeverage
+    );
 
     /* Events */
 
@@ -150,7 +153,10 @@ abstract contract DLoopDecreaseLeverageBase is
         if (direction != -1) {
             uint256 currentLeverage = dLoopCore.getCurrentLeverageBps();
             uint256 targetLeverage = dLoopCore.targetLeverageBps();
-            revert LeverageAlreadyAtOrBelowTarget(currentLeverage, targetLeverage);
+            revert LeverageAlreadyAtOrBelowTarget(
+                currentLeverage,
+                targetLeverage
+            );
         }
 
         // Record initial leverage

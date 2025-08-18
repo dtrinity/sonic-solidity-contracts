@@ -81,7 +81,10 @@ abstract contract DLoopIncreaseLeverageBase is
         uint256 leverageAfterIncrease
     );
     error RequiredFlashLoanCollateralAmountIsZero();
-    error LeverageAlreadyAtOrAboveTarget(uint256 currentLeverage, uint256 targetLeverage);
+    error LeverageAlreadyAtOrAboveTarget(
+        uint256 currentLeverage,
+        uint256 targetLeverage
+    );
 
     /* Events */
 
@@ -148,7 +151,10 @@ abstract contract DLoopIncreaseLeverageBase is
         if (direction != 1) {
             uint256 currentLeverage = dLoopCore.getCurrentLeverageBps();
             uint256 targetLeverage = dLoopCore.targetLeverageBps();
-            revert LeverageAlreadyAtOrAboveTarget(currentLeverage, targetLeverage);
+            revert LeverageAlreadyAtOrAboveTarget(
+                currentLeverage,
+                targetLeverage
+            );
         }
 
         // Record initial leverage
