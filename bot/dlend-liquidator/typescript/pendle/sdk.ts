@@ -190,18 +190,30 @@ export async function getPTMarketInfo(
   chainId: number,
 ): Promise<PTMarketInfo> {
   try {
-    // Call markets API directly (different structure than SDK endpoints)
-    const response = await axios.get<PendleMarketsResponse>(
-      HOSTED_SDK_URL + `v1/${chainId}/markets/active`,
-    );
-    const marketsData = response.data;
+    // Call markets API for both active and inactive markets
+    const [activeResponse, inactiveResponse] = await Promise.all([
+      axios.get<PendleMarketsResponse>(
+        HOSTED_SDK_URL + `v1/${chainId}/markets/active`,
+      ),
+      axios.get<PendleMarketsResponse>(
+        HOSTED_SDK_URL + `v1/${chainId}/markets/inactive`,
+      ),
+    ]);
 
-    if (!marketsData || !marketsData.markets) {
+    const activeMarketsData = activeResponse.data;
+    const inactiveMarketsData = inactiveResponse.data;
+
+    if (!activeMarketsData?.markets || !inactiveMarketsData?.markets) {
       throw new Error("Invalid markets response format");
     }
 
-    // Find market where PT matches our token
-    const market = marketsData.markets.find((m: PendleMarket) => {
+    // Compose two lists - active and inactive markets
+    const activeMarkets = activeMarketsData.markets;
+    const inactiveMarkets = inactiveMarketsData.markets;
+    const allMarkets = [...activeMarkets, ...inactiveMarkets];
+
+    // Find market where PT matches our token in both active and inactive markets
+    const market = allMarkets.find((m: PendleMarket) => {
       const ptAddress = extractAddressFromChainId(m.pt);
       return ptAddress.toLowerCase() === ptTokenAddress.toLowerCase();
     });
@@ -217,10 +229,15 @@ export async function getPTMarketInfo(
     const marketAddress = market.address;
     const underlyingAsset = extractAddressFromChainId(market.underlyingAsset);
 
+    // Determine if market is active or inactive
+    const isActiveMarket = activeMarkets.some((m: PendleMarket) => m.address === market.address);
+    const marketStatus = isActiveMarket ? "active" : "inactive";
+
     console.log(`Found PT market info via API:`, {
       ptToken: ptTokenAddress,
       marketAddress,
       underlyingAsset,
+      status: marketStatus,
     });
 
     return {
