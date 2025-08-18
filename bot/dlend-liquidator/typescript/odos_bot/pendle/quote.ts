@@ -1,7 +1,7 @@
 import hre from "hardhat";
 
 import { OdosClient } from "../../odos/client";
-import { getPTMarketInfo, swapExactIn } from "../../pendle/sdk";
+import { getPTMarketInfo, estimateSwapExactIn } from "../../pendle/sdk";
 import { getERC4626UnderlyingAsset } from "../../token/erc4626";
 
 /**
@@ -182,7 +182,7 @@ export async function getPTOdosSwapQuote(
     Number(ptDecimals),
   );
 
-  const rateResponse = await swapExactIn(
+  const rateResponse = await estimateSwapExactIn(
     effectivePTAddress,
     ptEstimationAmount,
     pyMarketInfo.underlyingAsset,
@@ -215,7 +215,7 @@ export async function getPTOdosSwapQuote(
 
   // Step 3: Get the actual Pendle swap data for the calculated PT amount
   console.log("Step 3: Getting Pendle swap data for calculated PT amount");
-  const pendleResponse = await swapExactIn(
+  const pendleResponse = await estimateSwapExactIn(
     effectivePTAddress,
     formattedPTAmount,
     pyMarketInfo.underlyingAsset,

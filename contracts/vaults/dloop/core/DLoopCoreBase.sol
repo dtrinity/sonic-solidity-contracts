@@ -35,6 +35,18 @@ import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
  *      - In order to keep the vault balanced, user can call increaseLeverage or decreaseLeverage to increase or decrease the leverage
  *        when it is away from the target leverage
  *      - There is a subsidy for the caller when increasing the leverage.
+ *      - The withdrawal fee is being applied when calling redeem and withdraw. The fee is not being transferred to a fee receiver, instead
+ *        it is being shared to the current shares holders. It means, the vault of the vault's share will be a bit increased after a user's withdrawal.
+ *      - The withdrawal fee is not applied for decreaseLeverage(), as this operation is not a vault withdrawal, instead, it repay and withdraw
+ *        from the underlying pool to rebalance the vault position, not vault's shares are being burned.
+ *
+ * @notice Withdrawal fee retention (no external transfers)
+ * @dev The withdrawal fee is retained by the vault and is not sent to any external recipient.
+ *      Users receive net assets after fee; the difference remains in the vault and accrues to remaining shares.
+ *      - previewWithdraw treats `assets` as the desired net and converts to gross using:
+ *        gross = assets * ONE_HUNDRED_PERCENT_BPS / (ONE_HUNDRED_PERCENT_BPS - withdrawalFeeBps).
+ *      - previewRedeem returns the net assets after applying the fee.
+ *      - During _withdraw, only the net amount is transferred to `receiver`; the fee stays in the vault balance.
  */
 abstract contract DLoopCoreBase is
     ERC4626,
@@ -49,6 +61,7 @@ abstract contract DLoopCoreBase is
     uint32 public lowerBoundTargetLeverageBps;
     uint32 public upperBoundTargetLeverageBps;
     uint256 public maxSubsidyBps;
+    uint256 public withdrawalFeeBps;
 
     /* Constants */
 
@@ -57,6 +70,8 @@ abstract contract DLoopCoreBase is
     ERC20 public immutable debtToken;
 
     uint256 public constant BALANCE_DIFF_TOLERANCE = 1;
+    uint256 public constant MAX_WITHDRAWAL_FEE_BPS =
+        10 * BasisPointConstants.ONE_PERCENT_BPS; // 100%
 
     /* Events */
 
@@ -81,6 +96,11 @@ abstract contract DLoopCoreBase is
     event LeverageBoundsSet(
         uint32 lowerBoundTargetLeverageBps,
         uint32 upperBoundTargetLeverageBps
+    );
+
+    event WithdrawalFeeBpsSet(
+        uint256 oldWithdrawalFeeBps,
+        uint256 newWithdrawalFeeBps
     );
 
     /* Errors */
@@ -198,6 +218,10 @@ abstract contract DLoopCoreBase is
         uint256 totalDebtBase
     );
     error ZeroShares();
+    error WithdrawalFeeIsGreaterThanMaxFee(
+        uint256 withdrawalFeeBps,
+        uint256 maxWithdrawalFeeBps
+    );
 
     /**
      * @dev Constructor for the DLoopCore contract
@@ -209,6 +233,7 @@ abstract contract DLoopCoreBase is
      * @param _lowerBoundTargetLeverageBps Lower bound of target leverage in basis points
      * @param _upperBoundTargetLeverageBps Upper bound of target leverage in basis points
      * @param _maxSubsidyBps Maximum subsidy in basis points
+     * @param _withdrawalFeeBps Initial withdrawal fee in basis points
      */
     constructor(
         string memory _name,
@@ -218,7 +243,8 @@ abstract contract DLoopCoreBase is
         uint32 _targetLeverageBps,
         uint32 _lowerBoundTargetLeverageBps,
         uint32 _upperBoundTargetLeverageBps,
-        uint256 _maxSubsidyBps
+        uint256 _maxSubsidyBps,
+        uint256 _withdrawalFeeBps
     ) ERC20(_name, _symbol) ERC4626(_collateralToken) Ownable(msg.sender) {
         debtToken = _debtToken;
         collateralToken = _collateralToken;
@@ -252,6 +278,7 @@ abstract contract DLoopCoreBase is
         lowerBoundTargetLeverageBps = _lowerBoundTargetLeverageBps;
         upperBoundTargetLeverageBps = _upperBoundTargetLeverageBps;
         maxSubsidyBps = _maxSubsidyBps;
+        withdrawalFeeBps = _withdrawalFeeBps;
     }
 
     /* Virtual Methods - Required to be implemented by derived contracts */
@@ -896,6 +923,7 @@ abstract contract DLoopCoreBase is
      *      - It requires to spend the debt token to repay the debt
      *      - It will send the withdrawn collateral assets to the receiver and burn the shares
      *      - The burned shares represent the position of the withdrawn assets in the lending pool
+     *      - The shares and assets are now reflected the charged withdrawal fee, thus no need to apply withdrawal fee again
      * @param caller Address of the caller
      * @param receiver Address to receive the withdrawn assets
      * @param owner Address of the owner
@@ -966,12 +994,22 @@ abstract contract DLoopCoreBase is
         // Withdraw the collateral from the lending pool
         // After this step, the _withdrawFromPool wrapper function will also assert that
         // the withdrawn amount is exactly the amount requested.
-        _repayDebtAndWithdrawFromPoolImplementation(caller, assets);
+        (
+            uint256 withdrawnCollateralTokenAmount,
 
-        // Transfer the asset to the receiver
-        collateralToken.safeTransfer(receiver, assets);
+        ) = _repayDebtAndWithdrawFromPoolImplementation(caller, assets);
 
-        emit Withdraw(caller, receiver, owner, assets, shares);
+        // Transfer the net asset to the receiver
+        collateralToken.safeTransfer(receiver, withdrawnCollateralTokenAmount);
+
+        // Emit ERC4626 Withdraw with amount actually sent
+        emit Withdraw(
+            caller,
+            receiver,
+            owner,
+            withdrawnCollateralTokenAmount,
+            shares
+        );
     }
 
     /**
@@ -981,12 +1019,19 @@ abstract contract DLoopCoreBase is
      *      - Then performs the actual repay and withdraw
      * @param caller Address of the caller
      * @param collateralTokenToWithdraw The amount of collateral token to withdraw
+     * @return withdrawnCollateralTokenAmount The amount of collateral token withdrawn
      * @return repaidDebtTokenAmount The amount of debt token repaid
      */
     function _repayDebtAndWithdrawFromPoolImplementation(
         address caller,
         uint256 collateralTokenToWithdraw
-    ) private returns (uint256 repaidDebtTokenAmount) {
+    )
+        private
+        returns (
+            uint256 withdrawnCollateralTokenAmount,
+            uint256 repaidDebtTokenAmount
+        )
+    {
         // Get the current leverage before repaying the debt (IMPORTANT: this is the leverage before repaying the debt)
         // It is used to calculate the expected withdrawable amount that keeps the current leverage
         uint256 leverageBpsBeforeRepayDebt = getCurrentLeverageBps();
@@ -1033,13 +1078,33 @@ abstract contract DLoopCoreBase is
         // Withdraw the collateral
         // At this step, the _withdrawFromPool wrapper function will also assert that
         // the withdrawn amount is exactly the amount requested.
-        _withdrawFromPool(
+        withdrawnCollateralTokenAmount = _withdrawFromPool(
             address(collateralToken),
             collateralTokenToWithdraw,
             address(this) // the vault is the receiver
         );
 
-        return repaidDebtTokenAmount;
+        return (withdrawnCollateralTokenAmount, repaidDebtTokenAmount);
+    }
+
+    /* Withdrawal fee */
+
+    /**
+     * @dev Sets the withdrawal fee in basis points
+     * @param newWithdrawalFeeBps The new withdrawal fee in basis points
+     */
+    function setWithdrawalFeeBps(
+        uint256 newWithdrawalFeeBps
+    ) public onlyOwner nonReentrant {
+        if (newWithdrawalFeeBps > MAX_WITHDRAWAL_FEE_BPS) {
+            revert WithdrawalFeeIsGreaterThanMaxFee(
+                newWithdrawalFeeBps,
+                MAX_WITHDRAWAL_FEE_BPS
+            );
+        }
+        uint256 oldWithdrawalFeeBps = withdrawalFeeBps;
+        withdrawalFeeBps = newWithdrawalFeeBps;
+        emit WithdrawalFeeBpsSet(oldWithdrawalFeeBps, newWithdrawalFeeBps);
     }
 
     /* Calculate */
@@ -1922,6 +1987,9 @@ abstract contract DLoopCoreBase is
 
     /* Overrides to add leverage check */
 
+    /**
+     * @dev See {IERC4626-maxDeposit}.
+     */
     function maxDeposit(address _user) public view override returns (uint256) {
         // Don't allow deposit if the leverage is too imbalanced
         if (isTooImbalanced()) {
@@ -1930,6 +1998,9 @@ abstract contract DLoopCoreBase is
         return super.maxDeposit(_user);
     }
 
+    /**
+     * @dev See {IERC4626-maxMint}.
+     */
     function maxMint(address _user) public view override returns (uint256) {
         // Don't allow mint if the leverage is too imbalanced
         if (isTooImbalanced()) {
@@ -1938,19 +2009,62 @@ abstract contract DLoopCoreBase is
         return super.maxMint(_user);
     }
 
+    /**
+     * @dev See {IERC4626-maxWithdraw}.
+     */
     function maxWithdraw(address _user) public view override returns (uint256) {
         // Don't allow withdraw if the leverage is too imbalanced
         if (isTooImbalanced()) {
             return 0;
         }
-        return super.maxWithdraw(_user);
+        // Return the maximum NET assets after fee
+        uint256 grossAssets = super.maxWithdraw(_user);
+        uint256 netAssets = Math.mulDiv(
+            grossAssets,
+            BasisPointConstants.ONE_HUNDRED_PERCENT_BPS - withdrawalFeeBps,
+            BasisPointConstants.ONE_HUNDRED_PERCENT_BPS
+        );
+        return netAssets;
     }
 
+    /**
+     * @dev See {IERC4626-maxRedeem}.
+     */
     function maxRedeem(address _user) public view override returns (uint256) {
         // Don't allow redeem if the leverage is too imbalanced
         if (isTooImbalanced()) {
             return 0;
         }
+        // Fee applies on assets, not on shares. Max redeemable shares remain unchanged.
         return super.maxRedeem(_user);
+    }
+
+    /**
+     * @dev See {IERC4626-previewWithdraw}.
+     */
+    function previewWithdraw(
+        uint256 assets
+    ) public view virtual override returns (uint256) {
+        uint256 grossAssets = Math.mulDiv(
+            assets,
+            BasisPointConstants.ONE_HUNDRED_PERCENT_BPS,
+            BasisPointConstants.ONE_HUNDRED_PERCENT_BPS - withdrawalFeeBps
+        );
+        return super.previewWithdraw(grossAssets);
+    }
+
+    /**
+     * @dev See {IERC4626-previewRedeem}.
+     */
+    function previewRedeem(
+        uint256 shares
+    ) public view virtual override returns (uint256) {
+        uint256 assets = super.previewRedeem(shares);
+        uint256 withdrawalFee = Math.mulDiv(
+            assets,
+            withdrawalFeeBps,
+            BasisPointConstants.ONE_HUNDRED_PERCENT_BPS
+        );
+        return assets - withdrawalFee;
     }
 }

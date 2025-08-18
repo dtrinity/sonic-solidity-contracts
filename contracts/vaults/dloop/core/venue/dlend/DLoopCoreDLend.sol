@@ -26,6 +26,7 @@ import {DLoopCoreBase} from "../../DLoopCoreBase.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {RewardClaimable} from "contracts/vaults/rewards_claimable/RewardClaimable.sol";
 import {IRewardsController} from "./interface/IRewardsController.sol";
+import {BasisPointConstants} from "contracts/common/BasisPointConstants.sol";
 
 /**
  * @title DLoopCoreDLend
@@ -54,12 +55,14 @@ contract DLoopCoreDLend is DLoopCoreBase, RewardClaimable {
 
     error ZeroAddress();
     error InvalidRewardsController();
+    error FeeTooHigh(uint256 feeBps, uint256 maxFeeBps);
 
     /* Events */
     event DLendRewardsControllerUpdated(
         address indexed oldController,
         address indexed newController
     );
+    event FeeBpsSet(uint256 oldFeeBps, uint256 newFeeBps);
 
     /**
      * @dev Constructor for the DLoopCoreDLend contract
@@ -72,12 +75,14 @@ contract DLoopCoreDLend is DLoopCoreBase, RewardClaimable {
      * @param _lowerBoundTargetLeverageBps Lower bound of target leverage in basis points
      * @param _upperBoundTargetLeverageBps Upper bound of target leverage in basis points
      * @param _maxSubsidyBps Maximum subsidy in basis points
+     * @param _withdrawalFeeBps Initial withdrawal fee in basis points
      * @param _rewardsController Address of the dLEND rewards controller
      * @param _dLendAssetToClaimFor Address of the dLEND asset to claim for
      * @param _targetStaticATokenWrapper Address of the target static aToken wrapper
      * @param _treasury Address of the treasury
      * @param _maxTreasuryFeeBps Maximum treasury fee in basis points
      * @param _initialTreasuryFeeBps Initial treasury fee in basis points
+     * @param _initialExchangeThreshold Minimum amount of rewards (in debt token units) required before exchanging to treasury
      */
     constructor(
         string memory _name,
@@ -89,6 +94,7 @@ contract DLoopCoreDLend is DLoopCoreBase, RewardClaimable {
         uint32 _lowerBoundTargetLeverageBps,
         uint32 _upperBoundTargetLeverageBps,
         uint256 _maxSubsidyBps,
+        uint256 _withdrawalFeeBps,
         IRewardsController _rewardsController,
         address _dLendAssetToClaimFor,
         address _targetStaticATokenWrapper,
@@ -105,7 +111,8 @@ contract DLoopCoreDLend is DLoopCoreBase, RewardClaimable {
             _targetLeverageBps,
             _lowerBoundTargetLeverageBps,
             _upperBoundTargetLeverageBps,
-            _maxSubsidyBps
+            _maxSubsidyBps,
+            _withdrawalFeeBps
         )
         RewardClaimable(
             address(this), // Use the vault shares as the exchange asset
@@ -125,7 +132,10 @@ contract DLoopCoreDLend is DLoopCoreBase, RewardClaimable {
             revert("Invalid price oracle base currency");
         }
 
-        if (getLendingOracle().BASE_CURRENCY_UNIT() != 10 ** AAVE_PRICE_ORACLE_DECIMALS) {
+        if (
+            getLendingOracle().BASE_CURRENCY_UNIT() !=
+            10 ** AAVE_PRICE_ORACLE_DECIMALS
+        ) {
             revert("Invalid price oracle unit");
         }
     }
@@ -277,8 +287,37 @@ contract DLoopCoreDLend is DLoopCoreBase, RewardClaimable {
         override
         returns (uint256 totalCollateralBase, uint256 totalDebtBase)
     {
-        (totalCollateralBase, totalDebtBase, , , , ) = getLendingPool()
-            .getUserAccountData(user);
+        // Collateral side: balance of the aToken corresponding to collateralToken
+        {
+            DataTypes.ReserveData memory reserveCol = _getReserveData(
+                address(collateralToken)
+            );
+            uint256 aTokenBalance = ERC20(reserveCol.aTokenAddress).balanceOf(
+                user
+            );
+            totalCollateralBase = convertFromTokenAmountToBaseCurrency(
+                aTokenBalance,
+                address(collateralToken)
+            );
+        }
+
+        // Debt side: sum of variable + stable debt token balances corresponding to debtToken
+        {
+            DataTypes.ReserveData memory reserveDebt = _getReserveData(
+                address(debtToken)
+            );
+            uint256 variableDebt = ERC20(reserveDebt.variableDebtTokenAddress)
+                .balanceOf(user);
+            uint256 stableDebt = ERC20(reserveDebt.stableDebtTokenAddress)
+                .balanceOf(user);
+            uint256 totalUnderlyingDebt = variableDebt + stableDebt;
+            if (totalUnderlyingDebt > 0) {
+                totalDebtBase = convertFromTokenAmountToBaseCurrency(
+                    totalUnderlyingDebt,
+                    address(debtToken)
+                );
+            }
+        }
         return (totalCollateralBase, totalDebtBase);
     }
 
