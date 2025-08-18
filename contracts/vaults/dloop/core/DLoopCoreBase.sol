@@ -291,7 +291,51 @@ abstract contract DLoopCoreBase is
         public
         view
         virtual
-        returns (uint256 totalCollateralBase, uint256 totalDebtBase);
+        returns (uint256 totalCollateralBase, uint256 totalDebtBase)
+    {
+        // Collateral side: balance of the aToken corresponding to collateralToken
+        uint256 collateralBalanceInTokenAmount = getCollateralValueInTokenAmount(
+                address(collateralToken),
+                user
+            );
+        totalCollateralBase = convertFromTokenAmountToBaseCurrency(
+            collateralBalanceInTokenAmount,
+            address(collateralToken)
+        );
+
+        // Debt side: sum of variable + stable debt token balances corresponding to debtToken
+        uint256 debtBalanceInTokenAmount = getDebtValueInTokenAmount(
+            address(debtToken),
+            user
+        );
+        totalDebtBase = convertFromTokenAmountToBaseCurrency(
+            debtBalanceInTokenAmount,
+            address(debtToken)
+        );
+        return (totalCollateralBase, totalDebtBase);
+    }
+
+    /**
+     * @dev Get the collateral value in token amount in the underlying pool
+     * @param token The address of the token
+     * @param user The address of the user
+     * @return collateralTokenAmount The collateral token amount
+     */
+    function getCollateralValueInTokenAmount(
+        address token,
+        address user
+    ) public view virtual returns (uint256 collateralTokenAmount);
+
+    /**
+     * @dev Get the debt value in token amount in the underlying pool
+     * @param token The address of the token
+     * @param user The address of the user
+     * @return debtTokenAmount The debt token amount
+     */
+    function getDebtValueInTokenAmount(
+        address token,
+        address user
+    ) public view virtual returns (uint256 debtTokenAmount);
 
     /**
      * @dev Gets the additional rescue tokens

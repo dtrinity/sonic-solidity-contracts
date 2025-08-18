@@ -348,44 +348,32 @@ contract DLoopCoreMock is DLoopCoreBase {
         );
     }
 
-    function getTotalCollateralAndDebtOfUserInBase(
+    /**
+     * @dev Get the collateral value in token amount in the underlying pool
+     * @param token The address of the token
+     * @param user The address of the user
+     * @return collateralTokenAmount The collateral token amount
+     */
+    function getCollateralValueInTokenAmount(
+        address token,
         address user
-    )
-        public
-        view
-        override
-        returns (uint256 totalCollateralBase, uint256 totalDebtBase)
-    {
-        totalCollateralBase = 0;
-        totalDebtBase = 0;
+    ) public view override returns (uint256 collateralTokenAmount) {
+        collateralTokenAmount = mockCollateral[user][token];
+        return collateralTokenAmount;
+    }
 
-        // Calculate total collateral in base unit (from mockCollateral)
-        // Get all users' tokens from mockCollateral[user]
-        for (uint256 i = 0; i < mockCollateralTokens[user].length; i++) {
-            address token = mockCollateralTokens[user][i];
-
-            // Convert collateral to base unit
-            uint256 price = mockPrices[token];
-            require(price > 0, "Mock price not set");
-            uint256 amount = mockCollateral[user][token];
-            uint256 assetTokenUnit = 10 ** ERC20(token).decimals();
-            uint256 amountInBase = (amount * price) / assetTokenUnit;
-
-            totalCollateralBase += amountInBase;
-        }
-        for (uint256 i = 0; i < mockDebtTokens[user].length; i++) {
-            address token = mockDebtTokens[user][i];
-
-            // Convert debt to base unit
-            uint256 price = mockPrices[token];
-            require(price > 0, "Mock price not set");
-            uint256 amount = mockDebt[user][token];
-            uint256 assetTokenUnit = 10 ** ERC20(token).decimals();
-            uint256 amountInBase = (amount * price) / assetTokenUnit;
-
-            totalDebtBase += amountInBase;
-        }
-        return (totalCollateralBase, totalDebtBase);
+    /**
+     * @dev Get the debt value in token amount in the underlying pool
+     * @param token The address of the token
+     * @param user The address of the user
+     * @return debtTokenAmount The total underlying debt token amount
+     */
+    function getDebtValueInTokenAmount(
+        address token,
+        address user
+    ) public view override returns (uint256 debtTokenAmount) {
+        debtTokenAmount = mockDebt[user][token];
+        return debtTokenAmount;
     }
 
     // --- Test-only public wrappers for internal pool logic ---
@@ -522,6 +510,8 @@ contract DLoopCoreMock is DLoopCoreBase {
      * @dev Get mock price for an asset
      */
     function getMockPrice(address asset) external view returns (uint256) {
-        return mockPrices[asset];
+        uint256 price = mockPrices[asset];
+        require(price > 0, "Mock price not set");
+        return price;
     }
 }
