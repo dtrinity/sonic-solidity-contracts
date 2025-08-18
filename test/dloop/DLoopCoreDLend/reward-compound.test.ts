@@ -69,9 +69,20 @@ describe("DLoopCoreDLend – Reward Compounding (vault shares as exchange asset)
       await rewardSource.getAddress(),
     );
 
-    // DLoopCoreDLend harness deployment
+    // DLoopCoreDLend harness deployment (link required DLoopCoreLogic library)
+    const DLoopCoreLogicFactory =
+      await ethers.getContractFactory("DLoopCoreLogic");
+    const dloopCoreLogicLib = await DLoopCoreLogicFactory.deploy();
+    await dloopCoreLogicLib.waitForDeployment();
+
     DLoopCoreDLendHarness = await ethers.getContractFactory(
       "DLoopCoreDLendHarness",
+      {
+        libraries: {
+          "contracts/vaults/dloop/core/DLoopCoreLogic.sol:DLoopCoreLogic":
+            await dloopCoreLogicLib.getAddress(),
+        },
+      },
     );
     dloop = await DLoopCoreDLendHarness.deploy(
       "DLend Vault",
@@ -83,6 +94,7 @@ describe("DLoopCoreDLend – Reward Compounding (vault shares as exchange asset)
       LOWER_BPS,
       UPPER_BPS,
       0, // max subsidy bps (not important for this test)
+      0, // minDeviationBps
       0, // withdrawalFeeBps
       await rewardsController.getAddress(),
       await collateral.getAddress(), // dLendAssetToClaimFor (arbitrary for mock)

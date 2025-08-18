@@ -95,8 +95,20 @@ describe("DLoopCoreDLend.getTotalCollateralAndDebtOfUserInBase — per-asset onl
       await priceOracle.getAddress(),
     );
 
+    // Deploy and link DLoopCoreLogic library required by DLoopCoreDLendHarness
+    const DLoopCoreLogicFactory =
+      await ethers.getContractFactory("DLoopCoreLogic");
+    const dloopCoreLogicLib = await DLoopCoreLogicFactory.deploy();
+    await dloopCoreLogicLib.waitForDeployment();
+
     DLoopCoreDLendHarness = await ethers.getContractFactory(
       "DLoopCoreDLendHarness",
+      {
+        libraries: {
+          "contracts/vaults/dloop/core/DLoopCoreLogic.sol:DLoopCoreLogic":
+            await dloopCoreLogicLib.getAddress(),
+        },
+      },
     );
     dloop = await DLoopCoreDLendHarness.deploy(
       "DLend Vault",
@@ -108,7 +120,9 @@ describe("DLoopCoreDLend.getTotalCollateralAndDebtOfUserInBase — per-asset onl
       2_500_000, // lowerBoundTargetLeverageBps
       3_500_000, // upperBoundTargetLeverageBps
       0, // maxSubsidyBps
-      ethers.ZeroAddress, // minDeviationBps
+      0, // minDeviationBps
+      0, // withdrawalFeeBps
+      ethers.ZeroAddress, // rewardsController
       await collateral.getAddress(), // dLendAssetToClaimFor
       ethers.ZeroAddress, // targetStaticATokenWrapper
       await admin.getAddress(), // treasury
@@ -303,10 +317,12 @@ describe("DLoopCoreDLend.getTotalCollateralAndDebtOfUserInBase — per-asset onl
         3_000_000,
         2_500_000,
         3_500_000,
-        0,
-        ethers.ZeroAddress,
-        await token8.getAddress(),
-        ethers.ZeroAddress,
+        0, // maxSubsidyBps
+        0, // minDeviationBps
+        0, // withdrawalFeeBps
+        ethers.ZeroAddress, // rewardsController
+        await token8.getAddress(), // dLendAssetToClaimFor
+        ethers.ZeroAddress, // targetStaticATokenWrapper
         await admin.getAddress(),
         300_000,
         100_000,
