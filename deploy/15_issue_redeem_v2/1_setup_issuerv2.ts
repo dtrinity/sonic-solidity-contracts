@@ -68,9 +68,7 @@ async function ensureMinterRole(
         );
       }
 
-      console.log(
-        `    🔄 Creating Safe transaction for MINTER_ROLE grant...`,
-      );
+      console.log(`    🔄 Creating Safe transaction for MINTER_ROLE grant...`);
       const transaction = createGrantMinterRoleTransaction(
         stableAddress,
         grantee,
@@ -220,6 +218,7 @@ async function migrateIssuerRolesIdempotent(
 
     if (deployerHasRole && governanceHasRole) {
       const roleName = role.name;
+
       try {
         await issuer.revokeRole(role.hash, deployerAddress);
         console.log(`    ➖ Revoked ${roleName} from deployer`);
@@ -269,15 +268,16 @@ async function migrateIssuerRolesIdempotent(
   }
 
   // Safely migrate DEFAULT_ADMIN_ROLE away from deployer
-  const adminMigrationComplete = await ensureDefaultAdminExistsAndRevokeFromWithSafe(
-    hre,
-    "IssuerV2",
-    issuerAddress,
-    governanceMultisig,
-    deployerAddress,
-    deployerSigner,
-    safeManager,
-  );
+  const adminMigrationComplete =
+    await ensureDefaultAdminExistsAndRevokeFromWithSafe(
+      hre,
+      "IssuerV2",
+      issuerAddress,
+      governanceMultisig,
+      deployerAddress,
+      deployerSigner,
+      safeManager,
+    );
 
   if (!adminMigrationComplete) {
     allComplete = false;
@@ -288,6 +288,14 @@ async function migrateIssuerRolesIdempotent(
 
 /**
  * Wrapper for ensureDefaultAdminExistsAndRevokeFrom that returns boolean status
+ *
+ * @param hre - Hardhat runtime environment
+ * @param contractName - Name of the contract for logging
+ * @param contractAddress - Address of the contract
+ * @param governanceMultisig - Address of governance multisig
+ * @param deployerAddress - Address of the deployer
+ * @param deployerSigner - Signer for the deployer
+ * @param safeManager - Optional Safe manager instance
  */
 async function ensureDefaultAdminExistsAndRevokeFromWithSafe(
   hre: HardhatRuntimeEnvironment,
@@ -311,7 +319,7 @@ async function ensureDefaultAdminExistsAndRevokeFromWithSafe(
       deployerSigner,
       manualActions,
     );
-    
+
     // If there are manual actions, it means we need Safe transactions
     if (manualActions.length > 0) {
       if (!safeManager) {
@@ -323,7 +331,7 @@ async function ensureDefaultAdminExistsAndRevokeFromWithSafe(
       // For now, we'll return false to indicate pending
       return false;
     }
-    
+
     return true;
   } catch (error) {
     if (!safeManager) {
@@ -407,7 +415,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     const collateralVaultAddress = collateralVaultDeployment.address;
 
     const amoManagerDeployment = await deployments.get(t.amoManagerId);
-    const amoManagerAddress = amoManagerDeployment.address;
+    const _amoManagerAddress = amoManagerDeployment.address;
 
     // 1. Grant minter role on stablecoin to the new issuer
     console.log(
@@ -419,6 +427,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       newIssuerAddress,
       safeManager,
     );
+
     if (!minterRoleComplete) {
       allOperationsComplete = false;
     }
@@ -474,9 +483,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
         );
 
         if (!result.success) {
-          throw new Error(
-            `Failed to create Safe transaction: ${result.error}`,
-          );
+          throw new Error(`Failed to create Safe transaction: ${result.error}`);
         }
 
         if (result.requiresAdditionalSignatures) {
@@ -501,14 +508,15 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
     // Example: allow USDC
     const collateralAssets = config.dStable.collateralAssets;
+
     for (const ca of collateralAssets) {
       const assetSymbol = ca.symbol;
       const assetAddress = ca.address;
 
       try {
-        const isAllowed = await newIssuer.allowedAssetsForIssuance(
-          assetAddress,
-        );
+        const isAllowed =
+          await newIssuer.allowedAssetsForIssuance(assetAddress);
+
         if (!isAllowed) {
           await newIssuer.setAllowedAssetsForIssuance(assetAddress, true);
           console.log(`    ➕ Allowed ${assetSymbol} for issuance`);
@@ -533,15 +541,16 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
     // 4. Set assetMintingPause on new issuer to match configuration
     console.log(`  ⏸️ Configuring asset minting pause states...`);
+
     for (const ca of collateralAssets) {
       const assetSymbol = ca.symbol;
       const assetAddress = ca.address;
       const shouldPause = ca.mintingPaused || false;
 
       try {
-        const currentPauseState = await newIssuer.assetMintingPause(
-          assetAddress,
-        );
+        const currentPauseState =
+          await newIssuer.assetMintingPause(assetAddress);
+
         if (currentPauseState !== shouldPause) {
           await newIssuer.setAssetMintingPause(assetAddress, shouldPause);
           console.log(
@@ -578,9 +587,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
         );
 
         if (!result.success) {
-          throw new Error(
-            `Failed to create Safe transaction: ${result.error}`,
-          );
+          throw new Error(`Failed to create Safe transaction: ${result.error}`);
         }
 
         if (result.requiresAdditionalSignatures) {
@@ -606,6 +613,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       governanceMultisig,
       safeManager,
     );
+
     if (!rolesMigrationComplete) {
       allOperationsComplete = false;
     }
@@ -617,9 +625,15 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   }
 
   if (!allOperationsComplete) {
-    console.log("\n⏳ Some operations require governance signatures to complete.");
-    console.log("   The deployment script will exit and can be re-run after governance executes the transactions.");
-    console.log(`\n≻ ${__filename.split("/").slice(-2).join("/")}: pending governance ⏳`);
+    console.log(
+      "\n⏳ Some operations require governance signatures to complete.",
+    );
+    console.log(
+      "   The deployment script will exit and can be re-run after governance executes the transactions.",
+    );
+    console.log(
+      `\n≻ ${__filename.split("/").slice(-2).join("/")}: pending governance ⏳`,
+    );
     return false; // Fail idempotently - script can be re-run
   }
 

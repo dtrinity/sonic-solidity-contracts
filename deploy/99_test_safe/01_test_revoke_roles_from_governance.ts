@@ -8,12 +8,12 @@ import { SafeManager } from "../../typescript/safe/SafeManager";
 /**
  * Test deployment script to demonstrate Safe SDK functionality by revoking
  * specific roles from the governance Safe wallet itself.
- * 
+ *
  * This script is MAINNET ONLY and will test the Safe integration by creating
  * transactions to revoke the following roles from governance:
- * 
+ *
  * - USD_OracleAggregator: ORACLE_MANAGER_ROLE
- * - USD_RedstoneChainlinkCompositeWrapperWithThresholding: ORACLE_MANAGER_ROLE  
+ * - USD_RedstoneChainlinkCompositeWrapperWithThresholding: ORACLE_MANAGER_ROLE
  * - USD_RedstoneChainlinkWrapperWithThresholding: ORACLE_MANAGER_ROLE
  * - dS_RedeemerWithFees: DEFAULT_ADMIN_ROLE, REDEMPTION_MANAGER_ROLE
  * - dUSD_RedeemerWithFees: REDEMPTION_MANAGER_ROLE
@@ -45,7 +45,9 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   // This script is mainnet only
   if (hre.network.name !== "sonic_mainnet") {
-    console.log(`⏭️ Skipping Safe test script - mainnet only (current: ${hre.network.name})`);
+    console.log(
+      `⏭️ Skipping Safe test script - mainnet only (current: ${hre.network.name})`,
+    );
     return true;
   }
 
@@ -59,8 +61,9 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   }
 
   console.log(`🔐 Initializing Safe Manager for test operations...`);
-  
+
   let safeManager: SafeManager;
+
   try {
     safeManager = new SafeManager(hre, deployerSigner, {
       safeConfig: config.safeConfig,
@@ -105,7 +108,9 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     {
       contractAddress: "0x1f5d6E62E1BA39264B9A66E544065b0e45c2B221",
       contractName: "dUSD_RedeemerWithFees",
-      roles: [{ name: "REDEMPTION_MANAGER_ROLE", hash: REDEMPTION_MANAGER_ROLE }],
+      roles: [
+        { name: "REDEMPTION_MANAGER_ROLE", hash: REDEMPTION_MANAGER_ROLE },
+      ],
     },
   ];
 
@@ -113,7 +118,9 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const transactions = [];
 
   for (const revocation of revocations) {
-    console.log(`\n📄 Processing ${revocation.contractName} at ${revocation.contractAddress}`);
+    console.log(
+      `\n📄 Processing ${revocation.contractName} at ${revocation.contractAddress}`,
+    );
 
     // Get contract interface - we'll use a generic AccessControl interface
     const contract = await hre.ethers.getContractAt(
@@ -126,10 +133,12 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
       // Check if governance has the role
       const hasRole = await contract.hasRole(role.hash, governanceMultisig);
-      
+
       if (hasRole) {
-        console.log(`    ✓ Governance has ${role.name}, creating revocation transaction...`);
-        
+        console.log(
+          `    ✓ Governance has ${role.name}, creating revocation transaction...`,
+        );
+
         // Create the revocation transaction
         const transaction = createRevokeRoleTransaction(
           revocation.contractAddress,
@@ -137,7 +146,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
           governanceMultisig,
           contract.interface,
         );
-        
+
         transactions.push({
           ...transaction,
           description: `Revoke ${role.name} from governance on ${revocation.contractName}`,
@@ -149,16 +158,20 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   }
 
   if (transactions.length === 0) {
-    console.log(`\n✅ No roles to revoke - governance doesn't hold any of the specified roles`);
+    console.log(
+      `\n✅ No roles to revoke - governance doesn't hold any of the specified roles`,
+    );
     return true;
   }
 
-  console.log(`\n📦 Creating batch Safe transaction for ${transactions.length} role revocations...`);
+  console.log(
+    `\n📦 Creating batch Safe transaction for ${transactions.length} role revocations...`,
+  );
 
   try {
     // Create batch transaction
     const batchResult = await safeManager.createBatchTransaction(
-      transactions.map(t => ({
+      transactions.map((t) => ({
         to: t.to,
         value: t.value,
         data: t.data,
@@ -167,17 +180,23 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     );
 
     if (!batchResult.success) {
-      console.error(`❌ Failed to create Safe transaction: ${batchResult.error}`);
+      console.error(
+        `❌ Failed to create Safe transaction: ${batchResult.error}`,
+      );
       return false;
     }
 
     if (batchResult.requiresAdditionalSignatures) {
       console.log(`\n📤 Safe transaction created successfully!`);
-      console.log(`   Awaiting ${batchResult.signaturesRequired} signatures from governance multisig owners`);
+      console.log(
+        `   Awaiting ${batchResult.signaturesRequired} signatures from governance multisig owners`,
+      );
       console.log(`\n⏳ Test transaction pending governance execution`);
       allOperationsComplete = false;
     } else if (batchResult.transactionHash) {
-      console.log(`\n✅ Safe transaction executed immediately: ${batchResult.transactionHash}`);
+      console.log(
+        `\n✅ Safe transaction executed immediately: ${batchResult.transactionHash}`,
+      );
     }
   } catch (error) {
     console.error(`❌ Error creating Safe transaction:`, error);
@@ -185,9 +204,15 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   }
 
   if (!allOperationsComplete) {
-    console.log(`\n≻ ${__filename.split("/").slice(-2).join("/")}: pending governance ⏳`);
-    console.log(`   The test transaction has been created and awaits governance signatures.`);
-    console.log(`   This script can be re-run to check if the transaction has been executed.`);
+    console.log(
+      `\n≻ ${__filename.split("/").slice(-2).join("/")}: pending governance ⏳`,
+    );
+    console.log(
+      `   The test transaction has been created and awaits governance signatures.`,
+    );
+    console.log(
+      `   This script can be re-run to check if the transaction has been executed.`,
+    );
     return false; // Fail idempotently
   }
 

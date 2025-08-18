@@ -172,14 +172,15 @@ async function migrateRedeemerRolesIdempotent(
   }
 
   // Safely migrate DEFAULT_ADMIN_ROLE away from deployer
-  const adminMigrationComplete = await ensureDefaultAdminExistsAndRevokeFromWithSafe(
-    hre,
-    "RedeemerV2",
-    redeemerAddress,
-    governanceMultisig,
-    deployerAddress,
-    safeManager,
-  );
+  const adminMigrationComplete =
+    await ensureDefaultAdminExistsAndRevokeFromWithSafe(
+      hre,
+      "RedeemerV2",
+      redeemerAddress,
+      governanceMultisig,
+      deployerAddress,
+      safeManager,
+    );
 
   if (!adminMigrationComplete) {
     allComplete = false;
@@ -190,6 +191,13 @@ async function migrateRedeemerRolesIdempotent(
 
 /**
  * Wrapper for ensureDefaultAdminExistsAndRevokeFrom that returns boolean status
+ *
+ * @param hre - Hardhat runtime environment
+ * @param contractName - Name of the contract for logging
+ * @param contractAddress - Address of the contract
+ * @param governanceMultisig - Address of governance multisig
+ * @param deployerAddress - Address of the deployer
+ * @param safeManager - Optional Safe manager instance
  */
 async function ensureDefaultAdminExistsAndRevokeFromWithSafe(
   hre: HardhatRuntimeEnvironment,
@@ -212,7 +220,7 @@ async function ensureDefaultAdminExistsAndRevokeFromWithSafe(
       deployerSigner,
       manualActions,
     );
-    
+
     // If there are manual actions, it means we need Safe transactions
     if (manualActions.length > 0) {
       if (!safeManager) {
@@ -224,7 +232,7 @@ async function ensureDefaultAdminExistsAndRevokeFromWithSafe(
       // For now, we'll return false to indicate pending
       return false;
     }
-    
+
     return true;
   } catch (error) {
     if (!safeManager) {
@@ -298,7 +306,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     );
 
     const tokenDeployment = await deployments.get(t.tokenId);
-    const tokenAddress = tokenDeployment.address;
+    const _tokenAddress = tokenDeployment.address;
 
     const collateralVaultDeployment = await deployments.get(
       t.collateralVaultId,
@@ -356,9 +364,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
         );
 
         if (!result.success) {
-          throw new Error(
-            `Failed to create Safe transaction: ${result.error}`,
-          );
+          throw new Error(`Failed to create Safe transaction: ${result.error}`);
         }
 
         if (result.requiresAdditionalSignatures) {
@@ -387,9 +393,9 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       const assetAddress = ca.address;
 
       try {
-        const isAllowed = await newRedeemer.allowedRedemptionAssets(
-          assetAddress,
-        );
+        const isAllowed =
+          await newRedeemer.allowedRedemptionAssets(assetAddress);
+
         if (!isAllowed) {
           await newRedeemer.setAllowedRedemptionAssets(assetAddress, true);
           console.log(`    ➕ Allowed ${assetSymbol} for redemption`);
@@ -418,15 +424,16 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
     // 3. Configure redemption pause states
     console.log(`  ⏸️ Configuring asset redemption pause states...`);
+
     for (const ca of collateralAssets) {
       const assetSymbol = ca.symbol;
       const assetAddress = ca.address;
       const shouldPause = ca.redemptionPaused || false;
 
       try {
-        const currentPauseState = await newRedeemer.assetRedemptionPause(
-          assetAddress,
-        );
+        const currentPauseState =
+          await newRedeemer.assetRedemptionPause(assetAddress);
+
         if (currentPauseState !== shouldPause) {
           await newRedeemer.setAssetRedemptionPause(assetAddress, shouldPause);
           console.log(
@@ -465,6 +472,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       governanceMultisig,
       safeManager,
     );
+
     if (!rolesMigrationComplete) {
       allOperationsComplete = false;
     }
@@ -475,9 +483,15 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   }
 
   if (!allOperationsComplete) {
-    console.log("\n⏳ Some operations require governance signatures to complete.");
-    console.log("   The deployment script will exit and can be re-run after governance executes the transactions.");
-    console.log(`\n≻ ${__filename.split("/").slice(-2).join("/")}: pending governance ⏳`);
+    console.log(
+      "\n⏳ Some operations require governance signatures to complete.",
+    );
+    console.log(
+      "   The deployment script will exit and can be re-run after governance executes the transactions.",
+    );
+    console.log(
+      `\n≻ ${__filename.split("/").slice(-2).join("/")}: pending governance ⏳`,
+    );
     return false; // Fail idempotently - script can be re-run
   }
 
