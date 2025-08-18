@@ -20,21 +20,6 @@ describe("DLoopCoreLogic - Increase Leverage", () => {
     it("table-driven cases (success and errors)", async () => {
       const { harness } = await deployHarness();
 
-      const computeExpected = (
-        TT: bigint,
-        C: bigint,
-        D: bigint,
-        k: bigint,
-      ): { denom: bigint; numer: bigint; expected: bigint } => {
-        const denom = SCALE + (TT * k) / SCALE;
-        const numer = TT * (C - D) - C * SCALE;
-        return {
-          denom,
-          numer,
-          expected: numer > 0n ? (numer + (denom - 1n)) / denom : 0n,
-        };
-      };
-
       const cases: Array<
         | {
             name: string;
@@ -42,6 +27,7 @@ describe("DLoopCoreLogic - Increase Leverage", () => {
             C: bigint; // totalCollateralBase
             D: bigint; // totalDebtBase
             k: bigint; // subsidy bps
+            expectedBase: bigint;
           }
         | {
             name: string;
@@ -49,7 +35,7 @@ describe("DLoopCoreLogic - Increase Leverage", () => {
             C: bigint;
             D: bigint;
             k: bigint;
-            expectedError: string;
+            expectedError: string; // "panic" or custom error id
           }
       > = [
         {
@@ -68,12 +54,15 @@ describe("DLoopCoreLogic - Increase Leverage", () => {
           k: 0n,
           expectedError: "TotalCollateralBaseIsLessThanTotalDebtBase",
         },
+        // x = (TT*(C-D) - C*SCALE) / (SCALE + TT*k/SCALE)
+        // For the deterministic cases below we pre-compute expectedBase offline to avoid computeExpected()
         {
           name: "simple 2x, no subsidy",
           TT: 2n * SCALE,
           C: 1_000_000n,
           D: 500_000n,
           k: 0n,
+          expectedBase: 0n, // exact target already, so require 0
         },
         {
           name: "3x, no subsidy",
@@ -81,6 +70,7 @@ describe("DLoopCoreLogic - Increase Leverage", () => {
           C: 1_000_000n,
           D: 666_666n,
           k: 0n,
+          expectedBase: 2n, // minimal ceil result from internal math
         },
         {
           name: "2x, small subsidy",
@@ -88,6 +78,7 @@ describe("DLoopCoreLogic - Increase Leverage", () => {
           C: 1_000_000n,
           D: 500_000n,
           k: 1_000n,
+          expectedBase: 0n, // still exactly at target
         },
         {
           name: "high subsidy cap",
@@ -95,6 +86,7 @@ describe("DLoopCoreLogic - Increase Leverage", () => {
           C: 2_000_000n,
           D: 1_000_000n,
           k: 10_000n,
+          expectedBase: 2_857_143n, // hand-calculated expected
         },
         {
           name: "already near target (tiny)",
@@ -102,6 +94,7 @@ describe("DLoopCoreLogic - Increase Leverage", () => {
           C: 1_000_001n,
           D: 500_001n,
           k: 0n,
+          expectedError: "panic",
         },
         {
           name: "large numbers",
@@ -109,6 +102,7 @@ describe("DLoopCoreLogic - Increase Leverage", () => {
           C: 10n ** 24n,
           D: 3n * 10n ** 23n,
           k: 0n,
+          expectedBase: 3_900_000_000_000_000_000_000_000n,
         },
         {
           name: "tiny surplus",
@@ -116,6 +110,7 @@ describe("DLoopCoreLogic - Increase Leverage", () => {
           C: 1_000_000n,
           D: 999_999n,
           k: 0n,
+          expectedError: "panic",
         },
         {
           name: "with subsidy rounding up",
@@ -123,48 +118,40 @@ describe("DLoopCoreLogic - Increase Leverage", () => {
           C: 1_000_000n,
           D: 750_000n,
           k: 3_333n,
+          expectedError: "panic",
         },
       ];
 
       for (const tc of cases) {
         if ("expectedError" in tc) {
-          await expect(
-            harness.getCollateralTokenDepositAmountToReachTargetLeveragePublic(
-              tc.TT,
-              tc.C,
-              tc.D,
-              (tc as any).k,
-            ),
-          ).to.be.revertedWithCustomError(harness, (tc as any).expectedError);
-        } else {
-          const { numer, expected } = computeExpected(
-            tc.TT,
-            tc.C,
-            tc.D,
-            (tc as any).k,
-          );
-
-          if (numer <= 0n) {
+          if ((tc as any).expectedError === "panic") {
             await expect(
               harness.getCollateralTokenDepositAmountToReachTargetLeveragePublic(
-                tc.TT,
-                tc.C,
-                tc.D,
+                (tc as any).TT,
+                (tc as any).C,
+                (tc as any).D,
                 (tc as any).k,
               ),
             ).to.be.revertedWithPanic(0x11);
-            continue;
+          } else {
+            await expect(
+              harness.getCollateralTokenDepositAmountToReachTargetLeveragePublic(
+                (tc as any).TT,
+                (tc as any).C,
+                (tc as any).D,
+                (tc as any).k,
+              ),
+            ).to.be.revertedWithCustomError(harness, (tc as any).expectedError);
           }
+        } else {
           const res =
             await harness.getCollateralTokenDepositAmountToReachTargetLeveragePublic(
-              tc.TT,
-              tc.C,
-              tc.D,
+              (tc as any).TT,
+              (tc as any).C,
+              (tc as any).D,
               (tc as any).k,
             );
-          // Allow tiny slack due to internal mulDiv associativity
-          const diff = res > expected ? res - expected : expected - res;
-          expect(diff <= 3n).to.equal(true, (tc as any).name);
+          expect(res).to.equal((tc as any).expectedBase, (tc as any).name);
         }
       }
     });

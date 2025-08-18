@@ -364,5 +364,28 @@ describe("DLoopCoreLogic - Maintain Leverage", () => {
         expect(res).to.equal(tc.expected, tc.name);
       }
     });
+
+    it("uses target leverage when prior leverage is zero", async () => {
+      const { harness } = await deployHarness();
+      const supplied = 1_000_000n;
+      const L0 = 0n;
+      const T = 3_000_000n; // 3x
+      const cDec = 18n;
+      const cPrice = 10n ** 18n;
+      const dDec = 18n;
+      const dPrice = 10n ** 18n;
+
+      const res = await harness.getBorrowAmountThatKeepCurrentLeveragePublic(
+        supplied,
+        L0,
+        T,
+        Number(cDec),
+        cPrice,
+        Number(dDec),
+        dPrice,
+      );
+      const expected = (supplied * (T - 1_000_000n)) / T;
+      expect(res).to.equal(expected);
+    });
   });
 });

@@ -114,6 +114,40 @@ describe("DLoopCoreLogic - Decrease Leverage", () => {
         expect(L2 >= tc.TT).to.equal(true, tc.name);
       }
     });
+
+    it("returns zero when equal to target, reverts when below target", async () => {
+      const { harness } = await deployHarness();
+
+      // equal to target => returns 0
+      {
+        const tc = { C: 1_000_000n, D: 500_000n, TT: 2_000_000n, k: 0n };
+        const Lcur = await harness.getCurrentLeverageBpsPublic(tc.C, tc.D);
+        expect(Lcur === tc.TT).to.equal(true);
+        const res =
+          await harness.getDebtRepayAmountInBaseToReachTargetLeveragePublic(
+            tc.TT,
+            tc.C,
+            tc.D,
+            tc.k,
+          );
+        expect(res).to.equal(0n);
+      }
+
+      // below target => revert with panic 0x11
+      {
+        const tc = { C: 1_000_000n, D: 333_333n, TT: 2_000_000n, k: 0n };
+        const Lcur = await harness.getCurrentLeverageBpsPublic(tc.C, tc.D);
+        expect(Lcur < tc.TT).to.equal(true);
+        await expect(
+          harness.getDebtRepayAmountInBaseToReachTargetLeveragePublic(
+            tc.TT,
+            tc.C,
+            tc.D,
+            tc.k,
+          ),
+        ).to.be.revertedWithPanic(0x11);
+      }
+    });
   });
 
   describe("getCollateralWithdrawAmountInBaseToDecreaseLeverage", () => {
