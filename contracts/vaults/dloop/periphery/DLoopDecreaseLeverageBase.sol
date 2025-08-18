@@ -281,6 +281,12 @@ abstract contract DLoopDecreaseLeverageBase is
         return FLASHLOAN_CALLBACK;
     }
 
+    /**
+     * @dev Decreases leverage with flash loan
+     * @param requiredDebtAmount Required debt amount
+     * @param collateralToDebtTokenSwapData Swap data from collateral token to debt token
+     * @param dLoopCore DLoop core contract
+     */
     function _decreaseLeverageWithFlashLoan(
         uint256 requiredDebtAmount,
         bytes calldata collateralToDebtTokenSwapData,
