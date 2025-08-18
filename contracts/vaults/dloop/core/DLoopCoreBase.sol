@@ -112,6 +112,18 @@ abstract contract DLoopCoreBase is
         uint256 newWithdrawalFeeBps
     );
 
+    event LeftoverCollateralTokensTransferred(
+        address indexed token,
+        uint256 amount,
+        address indexed receiver
+    );
+
+    event LeftoverDebtTokensTransferred(
+        address indexed token,
+        uint256 amount,
+        address indexed receiver
+    );
+
     /* Errors */
 
     error TooImbalanced(
@@ -920,6 +932,20 @@ abstract contract DLoopCoreBase is
             address(this) // the vault is the borrower
         );
 
+        // Transfer the unused collateral token to the caller
+        if (
+            actualSupplyAssetAmount < supplyAssetAmount - BALANCE_DIFF_TOLERANCE
+        ) {
+            uint256 unusedCollateralTokenAmount = supplyAssetAmount -
+                actualSupplyAssetAmount;
+            collateralToken.safeTransfer(caller, unusedCollateralTokenAmount);
+            emit LeftoverCollateralTokensTransferred(
+                address(collateralToken),
+                unusedCollateralTokenAmount,
+                caller
+            );
+        }
+
         return borrowedDebtTokenAmount;
     }
 
@@ -1090,6 +1116,21 @@ abstract contract DLoopCoreBase is
             collateralTokenToWithdraw,
             address(this) // the vault is the receiver
         );
+
+        // Transfer the unused debt token to the caller
+        if (
+            actualRepaidDebtTokenAmount <
+            estimatedRepaidDebtTokenAmount - BALANCE_DIFF_TOLERANCE
+        ) {
+            uint256 unusedDebtTokenAmount = estimatedRepaidDebtTokenAmount -
+                actualRepaidDebtTokenAmount;
+            debtToken.safeTransfer(caller, unusedDebtTokenAmount);
+            emit LeftoverDebtTokensTransferred(
+                address(debtToken),
+                unusedDebtTokenAmount,
+                caller
+            );
+        }
 
         return (withdrawnCollateralTokenAmount, actualRepaidDebtTokenAmount);
     }
