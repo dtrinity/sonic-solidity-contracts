@@ -15,7 +15,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   if (!config.dStake) {
     console.log(
-      "No dStake configuration found for this network. Skipping core deployment."
+      "No dStake configuration found for this network. Skipping core deployment.",
     );
     return;
   }
@@ -29,7 +29,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       instanceConfig.dStable === ethers.ZeroAddress
     ) {
       throw new Error(
-        `Missing dStable address for dSTAKE instance ${instanceKey}`
+        `Missing dStable address for dSTAKE instance ${instanceKey}`,
       );
     }
 
@@ -46,7 +46,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       instanceConfig.initialAdmin === ethers.ZeroAddress
     ) {
       throw new Error(
-        `Missing initialAdmin for dSTAKE instance ${instanceKey}`
+        `Missing initialAdmin for dSTAKE instance ${instanceKey}`,
       );
     }
 
@@ -55,19 +55,19 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       instanceConfig.initialFeeManager === ethers.ZeroAddress
     ) {
       throw new Error(
-        `Missing initialFeeManager for dSTAKE instance ${instanceKey}`
+        `Missing initialFeeManager for dSTAKE instance ${instanceKey}`,
       );
     }
 
     if (typeof instanceConfig.initialWithdrawalFeeBps !== "number") {
       throw new Error(
-        `Missing initialWithdrawalFeeBps for dSTAKE instance ${instanceKey}`
+        `Missing initialWithdrawalFeeBps for dSTAKE instance ${instanceKey}`,
       );
     }
 
     if (!instanceConfig.adapters || !Array.isArray(instanceConfig.adapters)) {
       throw new Error(
-        `Missing adapters array for dSTAKE instance ${instanceKey}`
+        `Missing adapters array for dSTAKE instance ${instanceKey}`,
       );
     }
 
@@ -76,7 +76,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       instanceConfig.defaultDepositVaultAsset === ethers.ZeroAddress
     ) {
       throw new Error(
-        `Missing defaultDepositVaultAsset for dSTAKE instance ${instanceKey}`
+        `Missing defaultDepositVaultAsset for dSTAKE instance ${instanceKey}`,
       );
     }
 
@@ -85,7 +85,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       !Array.isArray(instanceConfig.collateralExchangers)
     ) {
       throw new Error(
-        `Missing collateralExchangers array for dSTAKE instance ${instanceKey}`
+        `Missing collateralExchangers array for dSTAKE instance ${instanceKey}`,
       );
     }
   }
@@ -97,17 +97,18 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
     // If dSTAKE core already exists on this network, skip re-deployment (idempotent on mainnet)
     const existingTokenImpl = await deployments.getOrNull(
-      `${DStakeTokenDeploymentName}_Implementation`
+      `${DStakeTokenDeploymentName}_Implementation`,
     );
     const existingVault = await deployments.getOrNull(
-      `DStakeCollateralVault_${instanceKey}`
+      `DStakeCollateralVault_${instanceKey}`,
     );
     const existingRouter = await deployments.getOrNull(
-      `DStakeRouter_${instanceKey}`
+      `DStakeRouter_${instanceKey}`,
     );
+
     if (existingTokenImpl || existingVault || existingRouter) {
       console.log(
-        `dSTAKE core for ${instanceKey} already deployed. Skipping core deployment.`
+        `dSTAKE core for ${instanceKey} already deployed. Skipping core deployment.`,
       );
       continue;
     }
@@ -144,7 +145,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
         contract: "DStakeCollateralVault",
         args: [DStakeTokenDeployment.address, instanceConfig.dStable],
         log: false,
-      }
+      },
     );
 
     const routerDeploymentName = `DStakeRouter_${instanceKey}`;
@@ -172,7 +173,7 @@ func.dependencies = ["dStable", "dUSD-aTokenWrapper", "dS-aTokenWrapper"]; // En
 func.id = "deploy_dstake_core";
 
 // Hard stop early when dSTAKE core is already present (prevents admin-owner reconciliation on existing proxies)
-func.skip = async (hre: HardhatRuntimeEnvironment) => {
+func.skip = async (hre: HardhatRuntimeEnvironment): Promise<boolean> => {
   const { deployments } = hre;
   const config = await getConfig(hre);
   if (!config.dStake) return true;
@@ -182,9 +183,10 @@ func.skip = async (hre: HardhatRuntimeEnvironment) => {
     const proxy = await deployments.getOrNull(name);
     const impl = await deployments.getOrNull(`${name}_Implementation`);
     const vault = await deployments.getOrNull(
-      `DStakeCollateralVault_${instanceKey}`
+      `DStakeCollateralVault_${instanceKey}`,
     );
     const router = await deployments.getOrNull(`DStakeRouter_${instanceKey}`);
+
     // If any required piece is missing, allow the script to run
     if (!proxy || !impl || !vault || !router) {
       return false;
