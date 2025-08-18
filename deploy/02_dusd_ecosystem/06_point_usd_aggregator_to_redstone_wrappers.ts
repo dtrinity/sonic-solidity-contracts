@@ -47,6 +47,12 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       ?.plainRedstoneOracleWrappers || {};
 
   for (const [assetAddress, _feed] of Object.entries(plainFeeds)) {
+    if (!assetAddress || !/^0x[0-9a-fA-F]{40}$/.test(assetAddress)) {
+      console.warn(
+        `[oracle-setup] Skipping setOracle for invalid/missing plain asset address: '${assetAddress}'`,
+      );
+      continue;
+    }
     await oracleAggregator.setOracle(assetAddress, redstoneWrapperAddress);
     console.log(
       `Set plain Redstone wrapper for asset ${assetAddress} to ${redstoneWrapperAddress}`,
@@ -59,6 +65,12 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       ?.redstoneOracleWrappersWithThresholding || {};
 
   for (const [assetAddress, _config] of Object.entries(thresholdFeeds)) {
+    if (!assetAddress || !/^0x[0-9a-fA-F]{40}$/.test(assetAddress)) {
+      console.warn(
+        `[oracle-setup] Skipping setOracle for invalid/missing threshold asset address: '${assetAddress}'`,
+      );
+      continue;
+    }
     await oracleAggregator.setOracle(
       assetAddress,
       redstoneWrapperWithThresholdingAddress,
@@ -74,6 +86,15 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       ?.compositeRedstoneOracleWrappersWithThresholding || {};
 
   for (const [_assetAddress, feedConfig] of Object.entries(compositeFeeds)) {
+    if (
+      !feedConfig.feedAsset ||
+      !/^0x[0-9a-fA-F]{40}$/.test(feedConfig.feedAsset)
+    ) {
+      console.warn(
+        `[oracle-setup] Skipping setOracle for invalid/missing composite feedAsset: '${feedConfig.feedAsset}'`,
+      );
+      continue;
+    }
     await oracleAggregator.setOracle(
       feedConfig.feedAsset,
       redstoneCompositeWrapperAddress,

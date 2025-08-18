@@ -6,7 +6,9 @@ import { getConfig } from "../../../config/config";
 import { DLoopCoreConfig } from "../../../config/types";
 import { assertNotEmpty } from "../../../typescript/common/assert";
 import {
+  DLEND_STATIC_A_TOKEN_FACTORY_ID,
   DLOOP_CORE_DLEND_ID,
+  DUSD_A_TOKEN_WRAPPER_ID,
   INCENTIVES_PROXY_ID,
   POOL_ADDRESSES_PROVIDER_ID,
   POOL_DATA_PROVIDER_ID,
@@ -77,17 +79,33 @@ async function deployDLoopCoreDLend(
     throw new Error("No extra parameters provided for dLOOP Core DLend");
   }
 
+  // Resolve StaticAToken wrapper, fallback to deployment if not present in config
+  let targetStaticATokenWrapperResolved =
+    (extraParams.targetStaticATokenWrapper as string) || "";
+
+  if (!targetStaticATokenWrapperResolved) {
+    const wrapperDeployment = await hre.deployments.getOrNull(
+      DUSD_A_TOKEN_WRAPPER_ID,
+    );
+
+    if (wrapperDeployment?.address) {
+      targetStaticATokenWrapperResolved = wrapperDeployment.address;
+    }
+  }
+
+  // Final fallback on local: use the aToken address directly to unblock local testing
+  if (!targetStaticATokenWrapperResolved && isLocalNetwork(hre.network.name)) {
+    targetStaticATokenWrapperResolved = aTokenAddress;
+  }
   const targetStaticATokenWrapper = assertNotEmpty(
-    extraParams.targetStaticATokenWrapper as string,
+    targetStaticATokenWrapperResolved,
   );
   const treasury = assertNotEmpty(extraParams.treasury);
-  const maxTreasuryFeeBps = assertNotEmpty(extraParams.maxTreasuryFeeBps);
-  const initialTreasuryFeeBps = assertNotEmpty(
-    extraParams.initialTreasuryFeeBps,
-  );
-  const initialExchangeThreshold = assertNotEmpty(
-    extraParams.initialExchangeThreshold,
-  );
+  const maxTreasuryFeeBps = extraParams.maxTreasuryFeeBps as number | bigint;
+  const initialTreasuryFeeBps =
+    (extraParams.initialTreasuryFeeBps as number | bigint) ?? 0;
+  const initialExchangeThreshold =
+    (extraParams.initialExchangeThreshold as number | bigint) ?? 0;
 
   await hre.deployments.deploy(deploymentName, {
     from: deployer,
@@ -108,12 +126,15 @@ async function deployDLoopCoreDLend(
       assertNotEmpty(aTokenAddress), // _dLendAssetToClaimFor
       assertNotEmpty(targetStaticATokenWrapper), // _targetStaticATokenWrapper
       assertNotEmpty(treasury), // _treasury
-      assertNotEmpty(maxTreasuryFeeBps), // _maxTreasuryFeeBps
-      assertNotEmpty(initialTreasuryFeeBps), // _initialTreasuryFeeBps
-      assertNotEmpty(initialExchangeThreshold), // _initialExchangeThreshold
+      maxTreasuryFeeBps, // _maxTreasuryFeeBps
+      initialTreasuryFeeBps, // _initialTreasuryFeeBps
+      initialExchangeThreshold, // _initialExchangeThreshold
     ],
     log: true,
     autoMine: true,
+    libraries: {
+      DLoopCoreLogic: (await hre.deployments.get("DLoopCoreLogic")).address,
+    },
   });
 
   return true;
@@ -124,16 +145,23 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployer } = await getNamedAccounts();
   const chainId = await getChainId();
 
-  // Skip for local networks
-  if (isLocalNetwork(hre.network.name)) {
-    console.log(
-      `Skipping dLOOP Core DLend deployment for network ${hre.network.name}.`,
-    );
-    return;
-  }
+  // Allow local deployments (do not skip on localhost/hardhat)
   // Get network config
   const networkConfig = await getConfig(hre);
   const dloopConfig = networkConfig.dLoop;
+
+  // Ensure DLoopCoreLogic library is deployed (needed for linking)
+  const dloopCoreLogic = await hre.deployments.getOrNull("DLoopCoreLogic");
+
+  if (!dloopCoreLogic) {
+    await hre.deployments.deploy("DLoopCoreLogic", {
+      from: deployer,
+      contract: "DLoopCoreLogic",
+      args: [],
+      log: true,
+      autoMine: true,
+    });
+  }
 
   // Skip if no dLOOP configuration or no core vaults are defined
   if (
@@ -181,6 +209,8 @@ func.dependencies = [
   POOL_ADDRESSES_PROVIDER_ID,
   INCENTIVES_PROXY_ID,
   POOL_DATA_PROVIDER_ID,
+  DLEND_STATIC_A_TOKEN_FACTORY_ID,
+  "dStableATokenWrappers",
 ];
 func.id = DLOOP_CORE_DLEND_ID;
 

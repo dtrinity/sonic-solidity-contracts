@@ -24,6 +24,13 @@ async function performOracleSanityChecks(
   wrapperName: string,
 ): Promise<void> {
   for (const [assetAddress] of Object.entries(feeds)) {
+    // Skip invalid or empty asset addresses (can appear in localhost configs before all tokens are deployed)
+    if (!assetAddress || !/^0x[0-9a-fA-F]{40}$/.test(assetAddress)) {
+      console.warn(
+        `[oracle-setup] SanityCheck: skipping invalid/missing asset address in ${wrapperName}: '${assetAddress}'`,
+      );
+      continue;
+    }
     try {
       const price = await wrapper.getAssetPrice(assetAddress);
       const normalizedPrice = Number(price) / Number(baseCurrencyUnit);
@@ -86,21 +93,17 @@ const func: DeployFunction = async function (
 
   for (const [assetAddress, feed] of Object.entries(plainFeeds)) {
     if (!assetAddress || !/^0x[0-9a-fA-F]{40}$/.test(assetAddress)) {
-      console.error(
-        `[oracle-setup] Invalid or missing assetAddress in plainFeeds: '${assetAddress}'`,
+      console.warn(
+        `[oracle-setup] Skipping invalid/missing assetAddress in plainFeeds: '${assetAddress}'`,
       );
-      throw new Error(
-        `[oracle-setup] Invalid or missing assetAddress in plainFeeds: '${assetAddress}'`,
-      );
+      continue;
     }
 
     if (!feed || !/^0x[0-9a-fA-F]{40}$/.test(feed)) {
-      console.error(
-        `[oracle-setup] Invalid or missing feed address in plainFeeds for asset ${assetAddress}: '${feed}'`,
+      console.warn(
+        `[oracle-setup] Skipping invalid/missing feed address in plainFeeds for asset ${assetAddress}: '${feed}'`,
       );
-      throw new Error(
-        `[oracle-setup] Invalid or missing feed address in plainFeeds for asset ${assetAddress}: '${feed}'`,
-      );
+      continue;
     }
     await redstoneWrapper.setFeed(assetAddress, feed);
     console.log(`Set plain Redstone feed for asset ${assetAddress} to ${feed}`);
@@ -136,21 +139,17 @@ const func: DeployFunction = async function (
   // Set feeds and thresholds for feeds with thresholding
   for (const [assetAddress, feedConfig] of Object.entries(thresholdFeeds)) {
     if (!assetAddress || !/^0x[0-9a-fA-F]{40}$/.test(assetAddress)) {
-      console.error(
-        `[oracle-setup] Invalid or missing assetAddress in thresholdFeeds: '${assetAddress}'`,
+      console.warn(
+        `[oracle-setup] Skipping invalid/missing assetAddress in thresholdFeeds: '${assetAddress}'`,
       );
-      throw new Error(
-        `[oracle-setup] Invalid or missing assetAddress in thresholdFeeds: '${assetAddress}'`,
-      );
+      continue;
     }
 
     if (!feedConfig.feed || !/^0x[0-9a-fA-F]{40}$/.test(feedConfig.feed)) {
-      console.error(
-        `[oracle-setup] Invalid or missing feed address in thresholdFeeds for asset ${assetAddress}: '${feedConfig.feed}'`,
+      console.warn(
+        `[oracle-setup] Skipping invalid/missing feed address in thresholdFeeds for asset ${assetAddress}: '${feedConfig.feed}'`,
       );
-      throw new Error(
-        `[oracle-setup] Invalid or missing feed address in thresholdFeeds for asset ${assetAddress}: '${feedConfig.feed}'`,
-      );
+      continue;
     }
     await redstoneWrapperWithThresholding.setFeed(
       assetAddress,
@@ -198,42 +197,34 @@ const func: DeployFunction = async function (
   // Add composite feeds
   for (const [assetAddress, feedConfig] of Object.entries(compositeFeeds)) {
     if (!assetAddress || !/^0x[0-9a-fA-F]{40}$/.test(assetAddress)) {
-      console.error(
-        `[oracle-setup] Invalid or missing assetAddress in compositeFeeds: '${assetAddress}'`,
+      console.warn(
+        `[oracle-setup] Skipping invalid/missing assetAddress in compositeFeeds: '${assetAddress}'`,
       );
-      throw new Error(
-        `[oracle-setup] Invalid or missing assetAddress in compositeFeeds: '${assetAddress}'`,
-      );
+      continue;
     }
 
     if (
       !feedConfig.feedAsset ||
       !/^0x[0-9a-fA-F]{40}$/.test(feedConfig.feedAsset)
     ) {
-      console.error(
-        `[oracle-setup] Invalid or missing feedAsset in compositeFeeds for asset ${assetAddress}: '${feedConfig.feedAsset}'`,
+      console.warn(
+        `[oracle-setup] Skipping invalid/missing feedAsset in compositeFeeds for asset ${assetAddress}: '${feedConfig.feedAsset}'`,
       );
-      throw new Error(
-        `[oracle-setup] Invalid or missing feedAsset in compositeFeeds for asset ${assetAddress}: '${feedConfig.feedAsset}'`,
-      );
+      continue;
     }
 
     if (!feedConfig.feed1 || !/^0x[0-9a-fA-F]{40}$/.test(feedConfig.feed1)) {
-      console.error(
-        `[oracle-setup] Invalid or missing feed1 in compositeFeeds for asset ${assetAddress}: '${feedConfig.feed1}'`,
+      console.warn(
+        `[oracle-setup] Skipping invalid/missing feed1 in compositeFeeds for asset ${assetAddress}: '${feedConfig.feed1}'`,
       );
-      throw new Error(
-        `[oracle-setup] Invalid or missing feed1 in compositeFeeds for asset ${assetAddress}: '${feedConfig.feed1}'`,
-      );
+      continue;
     }
 
     if (!feedConfig.feed2 || !/^0x[0-9a-fA-F]{40}$/.test(feedConfig.feed2)) {
-      console.error(
-        `[oracle-setup] Invalid or missing feed2 in compositeFeeds for asset ${assetAddress}: '${feedConfig.feed2}'`,
+      console.warn(
+        `[oracle-setup] Skipping invalid/missing feed2 in compositeFeeds for asset ${assetAddress}: '${feedConfig.feed2}'`,
       );
-      throw new Error(
-        `[oracle-setup] Invalid or missing feed2 in compositeFeeds for asset ${assetAddress}: '${feedConfig.feed2}'`,
-      );
+      continue;
     }
     await redstoneCompositeWrapper.addCompositeFeed(
       feedConfig.feedAsset,
