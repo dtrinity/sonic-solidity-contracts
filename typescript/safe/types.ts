@@ -100,4 +100,5 @@ export interface SafeManagerOptions {
   readonly enableTransactionService?: boolean;
   readonly retryAttempts?: number;
   readonly retryDelayMs?: number;
+  readonly signingMode?: "owner" | "none";
 }

@@ -41,7 +41,7 @@ import { Config } from "../types";
  * @returns The configuration for the network
  */
 export async function getConfig(
-  _hre: HardhatRuntimeEnvironment,
+  _hre: HardhatRuntimeEnvironment
 ): Promise<Config> {
   const dUSDDeployment = await _hre.deployments.getOrNull(DUSD_TOKEN_ID);
   const dSDeployment = await _hre.deployments.getOrNull(DS_TOKEN_ID);
@@ -74,7 +74,7 @@ export async function getConfig(
 
   // Fetch deployed dLend StaticATokenLM wrapper, aToken and RewardsController (may be undefined prior to deployment)
   const dLendATokenWrapperDUSDDeployment = await _hre.deployments.getOrNull(
-    "dLend_ATokenWrapper_dUSD",
+    "dLend_ATokenWrapper_dUSD"
   );
   const rewardsControllerDeployment =
     await _hre.deployments.getOrNull(INCENTIVES_PROXY_ID);
@@ -99,8 +99,8 @@ export async function getConfig(
       threshold: safeThreshold,
       chainId: 146, // Sonic mainnet chain ID
       rpcUrl: "https://rpc.sonic.fantom.network",
-      // TODO: Add Safe Transaction Service URL when available for Sonic
-      // txServiceUrl: "https://safe-transaction-sonic.safe.global"
+      // Temporary test: point to Ethereum mainnet Safe Transaction Service
+      txServiceUrl: "https://safe-transaction-mainnet.safe.global",
     },
     tokenAddresses: {
       dUSD: emptyStringIfUndefined(dUSDDeployment?.address),
@@ -405,25 +405,25 @@ export async function getConfig(
         adapters: [
           {
             vaultAsset: emptyStringIfUndefined(
-              dLendATokenWrapperDUSDDeployment?.address,
+              dLendATokenWrapperDUSDDeployment?.address
             ),
             adapterContract: "WrappedDLendConversionAdapter",
           },
         ],
         defaultDepositVaultAsset: emptyStringIfUndefined(
-          dLendATokenWrapperDUSDDeployment?.address,
+          dLendATokenWrapperDUSDDeployment?.address
         ),
         collateralVault: "DStakeCollateralVault_sdUSD", // Keep in sync with deploy ID constants
         collateralExchangers: [governanceSafeMultisig],
         dLendRewardManager: {
           managedVaultAsset: emptyStringIfUndefined(
-            dLendATokenWrapperDUSDDeployment?.address,
+            dLendATokenWrapperDUSDDeployment?.address
           ), // StaticATokenLM wrapper
           dLendAssetToClaimFor: emptyStringIfUndefined(
-            aTokenDUSDDeployment?.address,
+            aTokenDUSDDeployment?.address
           ), // dLEND aToken for dUSD
           dLendRewardsController: emptyStringIfUndefined(
-            rewardsControllerDeployment?.address,
+            rewardsControllerDeployment?.address
           ), // RewardsController proxy
           treasury: governanceSafeMultisig,
           maxTreasuryFeeBps: 20 * ONE_PERCENT_BPS, // 20%
