@@ -94,6 +94,7 @@ contract DLoopCoreDLend is DLoopCoreBase, RewardClaimable {
         uint32 _lowerBoundTargetLeverageBps,
         uint32 _upperBoundTargetLeverageBps,
         uint256 _maxSubsidyBps,
+        uint256 _minDeviationBps,
         uint256 _withdrawalFeeBps,
         IRewardsController _rewardsController,
         address _dLendAssetToClaimFor,
@@ -112,6 +113,7 @@ contract DLoopCoreDLend is DLoopCoreBase, RewardClaimable {
             _lowerBoundTargetLeverageBps,
             _upperBoundTargetLeverageBps,
             _maxSubsidyBps,
+            _minDeviationBps,
             _withdrawalFeeBps
         )
         RewardClaimable(
@@ -273,54 +275,6 @@ contract DLoopCoreDLend is DLoopCoreBase, RewardClaimable {
         getLendingPool().withdraw(token, amount, onBehalfOf);
     }
 
-    /**
-     * @dev Gets the total collateral and debt of a user in base currency
-     * @param user Address of the user
-     * @return totalCollateralBase Total collateral in base currency
-     * @return totalDebtBase Total debt in base currency
-     */
-    function getTotalCollateralAndDebtOfUserInBase(
-        address user
-    )
-        public
-        view
-        override
-        returns (uint256 totalCollateralBase, uint256 totalDebtBase)
-    {
-        // Collateral side: balance of the aToken corresponding to collateralToken
-        {
-            DataTypes.ReserveData memory reserveCol = _getReserveData(
-                address(collateralToken)
-            );
-            uint256 aTokenBalance = ERC20(reserveCol.aTokenAddress).balanceOf(
-                user
-            );
-            totalCollateralBase = convertFromTokenAmountToBaseCurrency(
-                aTokenBalance,
-                address(collateralToken)
-            );
-        }
-
-        // Debt side: sum of variable + stable debt token balances corresponding to debtToken
-        {
-            DataTypes.ReserveData memory reserveDebt = _getReserveData(
-                address(debtToken)
-            );
-            uint256 variableDebt = ERC20(reserveDebt.variableDebtTokenAddress)
-                .balanceOf(user);
-            uint256 stableDebt = ERC20(reserveDebt.stableDebtTokenAddress)
-                .balanceOf(user);
-            uint256 totalUnderlyingDebt = variableDebt + stableDebt;
-            if (totalUnderlyingDebt > 0) {
-                totalDebtBase = convertFromTokenAmountToBaseCurrency(
-                    totalUnderlyingDebt,
-                    address(debtToken)
-                );
-            }
-        }
-        return (totalCollateralBase, totalDebtBase);
-    }
-
     /* Helper functions */
 
     /**
@@ -368,25 +322,37 @@ contract DLoopCoreDLend is DLoopCoreBase, RewardClaimable {
     }
 
     /**
-     * @dev Gets the DToken address for a token
-     * @param tokenAddress The address of the token
-     * @return address The DToken address
+     * @dev Get the collateral value in token amount in the underlying pool
+     * @param token The address of the token
+     * @param user The address of the user
+     * @return collateralTokenAmount The collateral token amount
      */
-    function _getDTokenAddress(
-        address tokenAddress
-    ) internal view returns (address) {
-        return _getReserveData(tokenAddress).aTokenAddress;
+    function getCollateralValueInTokenAmount(
+        address token,
+        address user
+    ) public view override returns (uint256 collateralTokenAmount) {
+        collateralTokenAmount = ERC20(_getReserveData(token).aTokenAddress)
+            .balanceOf(user);
+        return collateralTokenAmount;
     }
 
     /**
-     * @dev Gets the DToken balance of the vault
-     * @param tokenAddress The address of the token
-     * @return uint256 The DToken balance of the vault
+     * @dev Get the debt value in token amount in the underlying pool
+     * @param token The address of the token
+     * @param user The address of the user
+     * @return debtTokenAmount The debt token amount
      */
-    function getDTokenBalance(
-        address tokenAddress
-    ) public view returns (uint256) {
-        return ERC20(_getDTokenAddress(tokenAddress)).balanceOf(address(this));
+    function getDebtValueInTokenAmount(
+        address token,
+        address user
+    ) public view override returns (uint256 debtTokenAmount) {
+        DataTypes.ReserveData memory reserveDebt = _getReserveData(token);
+        uint256 variableDebt = ERC20(reserveDebt.variableDebtTokenAddress)
+            .balanceOf(user);
+        uint256 stableDebt = ERC20(reserveDebt.stableDebtTokenAddress)
+            .balanceOf(user);
+        debtTokenAmount = variableDebt + stableDebt;
+        return debtTokenAmount;
     }
 
     /* RewardClaimable functions */

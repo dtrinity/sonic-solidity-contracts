@@ -65,7 +65,7 @@ const config: HardhatUserConfig = {
         },
       },
       // Testing harness that imports DLoopCoreDLend; ensure the compilation job uses IR
-      "contracts/testing/dlend/DLoopCoreDLendHarness.sol": {
+      "contracts/testing/dloop/DLoopCoreDLendHarness.sol": {
         version: "0.8.20",
         settings: {
           optimizer: {

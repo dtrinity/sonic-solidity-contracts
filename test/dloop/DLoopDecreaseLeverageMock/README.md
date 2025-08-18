@@ -5,6 +5,7 @@ This directory contains comprehensive tests verifying the fix for **Issue #324: 
 ## Background
 
 The original vulnerability occurred in `DLoopDecreaseLeverageBase.sol` where:
+
 1. The contract would first transfer ALL remaining collateral tokens to `dLoopCore`
 2. Then attempt to transfer the user's entitled collateral to the receiver  
 3. This caused a revert since the contract's balance was already depleted
@@ -12,15 +13,17 @@ The original vulnerability occurred in `DLoopDecreaseLeverageBase.sol` where:
 ## Fix
 
 The fix ensures correct ordering:
+
 1. **User collateral is transferred FIRST** (line 329 in DLoopDecreaseLeverageBase.sol)
 2. **Leftover collateral is transferred AFTER** (line 332-345)
 
 ## Test Coverage
 
 ### 1. `happy-path.test.ts` - Main Fix Verification
+
 - **Test 1**: `transfers user collateral first, then handles leftovers without reverting`
   - Creates leveraged position that becomes imbalanced (4.6x leverage)
-  - Executes decrease leverage operation 
+  - Executes decrease leverage operation
   - ✅ **Verifies transaction does NOT revert** (would have failed with old bug)
   - ✅ **Verifies user receives collateral**
   - ✅ **Verifies periphery contract has 0 balance after operation**
@@ -30,11 +33,13 @@ The fix ensures correct ordering:
   - ✅ **Proves the fix works at the event level**
 
 ### 2. `zero-leftover.test.ts` - Edge Case: No Leftovers
+
 - Tests scenario where entire collateral balance goes to user (no leftovers)
 - ✅ **Verifies no `LeftoverCollateralTokensTransferred` event is emitted**
 - ✅ **Verifies transaction succeeds**
 
 ### 3. `dust-leftover.test.ts` - Edge Case: Minimal Leftovers  
+
 - Tests scenario with very small leftover amounts (wei-level)
 - ✅ **Verifies transaction succeeds even with dust amounts**
 - ✅ **Verifies dust is properly transferred to core**
@@ -60,10 +65,11 @@ npx hardhat test test/dloop/DLoopDecreaseLeverageMock/happy-path.test.ts
 ## Confidence Level
 
 These tests provide **high confidence** that Issue #324 is resolved:
+
 - ✅ Direct reproduction of the vulnerable scenario  
 - ✅ Verification that the fix prevents the DoS
 - ✅ Edge case coverage (zero and dust leftovers)
 - ✅ Event-level verification of correct ordering
 - ✅ State invariant preservation
 
-Any regression of this bug would immediately cause these tests to fail. 
+Any regression of this bug would immediately cause these tests to fail.
