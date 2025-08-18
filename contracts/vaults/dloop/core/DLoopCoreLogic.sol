@@ -15,7 +15,7 @@
  * dTRINITY Protocol: https://github.com/dtrinity                                   *
  * ———————————————————————————————————————————————————————————————————————————————— */
 
-pragma solidity 0.8.20;
+pragma solidity ^0.8.20;
 
 import {BasisPointConstants} from "contracts/common/BasisPointConstants.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";

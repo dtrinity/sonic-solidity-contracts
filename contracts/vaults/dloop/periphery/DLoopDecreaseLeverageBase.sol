@@ -15,7 +15,7 @@
  * dTRINITY Protocol: https://github.com/dtrinity                                   *
  * ———————————————————————————————————————————————————————————————————————————————— */
 
-pragma solidity 0.8.20;
+pragma solidity ^0.8.20;
 
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {ERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
@@ -74,6 +74,10 @@ abstract contract DLoopDecreaseLeverageBase is
     error LeverageNotDecreased(
         uint256 leverageBeforeDecrease,
         uint256 leverageAfterDecrease
+    );
+    error LeverageAlreadyAtOrBelowTarget(
+        uint256 currentLeverage,
+        uint256 targetLeverage
     );
 
     /* Events */
@@ -147,7 +151,12 @@ abstract contract DLoopDecreaseLeverageBase is
 
         // Verify we need to decrease leverage
         if (direction != -1) {
-            revert("Current leverage is already at or below target");
+            uint256 currentLeverage = dLoopCore.getCurrentLeverageBps();
+            uint256 targetLeverage = dLoopCore.targetLeverageBps();
+            revert LeverageAlreadyAtOrBelowTarget(
+                currentLeverage,
+                targetLeverage
+            );
         }
 
         // Record initial leverage
