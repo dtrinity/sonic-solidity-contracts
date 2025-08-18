@@ -26,7 +26,7 @@ const ZERO_BYTES_32 =
  * @param redeemerAddress Address of the RedeemerV2 contract
  * @param deployerAddress Address of the deployer
  * @param governanceMultisig Address of the governance multisig
- * @param manualActions
+ * @param manualActions Array to collect manual actions that need to be performed
  */
 async function migrateRedeemerRolesIdempotent(
   hre: HardhatRuntimeEnvironment,

@@ -43,7 +43,7 @@ describe("DLoopDecreaseLeverageMock - Leftover Collateral Token Handling", funct
     const result =
       await dloopCoreMock.quoteRebalanceAmountToReachTargetLeverage();
     const requiredDebtAmount = result[0];
-    const estimatedOutputTokenAmount = result[1];
+    const _estimatedOutputTokenAmount = result[1];
     const direction = result[2];
     expect(direction).to.equal(-1n);
     await debtToken.mint(await dloopCoreMock.getAddress(), requiredDebtAmount);

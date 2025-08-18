@@ -29,7 +29,7 @@ const ZERO_BYTES_32 =
  * @param hre Hardhat runtime environment
  * @param stableAddress Address of the ERC20StablecoinUpgradeable token
  * @param grantee Address that should be granted MINTER_ROLE
- * @param manualActions
+ * @param manualActions Array to collect manual actions that need to be performed
  */
 async function ensureMinterRole(
   hre: HardhatRuntimeEnvironment,
@@ -69,7 +69,7 @@ async function ensureMinterRole(
  * @param issuerAddress Address of the IssuerV2 contract
  * @param deployerSigner Deployer signer currently holding roles
  * @param governanceMultisig Governance multisig address to receive roles
- * @param manualActions
+ * @param manualActions Array to collect manual actions that need to be performed
  */
 async function migrateIssuerRolesIdempotent(
   hre: HardhatRuntimeEnvironment,

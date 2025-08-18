@@ -12,13 +12,13 @@ export const ZERO_BYTES_32 =
  * - If caller is the same as `adminToRevoke`, will self-renounce via renounceRole once `adminToKeep` is confirmed.
  * - Falls back to manual actions when permissions are insufficient.
  *
- * @param hre
- * @param contractName
- * @param contractAddress
- * @param adminToKeep
- * @param adminToRevoke
- * @param callerSigner
- * @param manualActions
+ * @param hre Hardhat runtime environment
+ * @param contractName Name of the contract
+ * @param contractAddress Address of the contract
+ * @param adminToKeep Address that should retain DEFAULT_ADMIN_ROLE
+ * @param adminToRevoke Address from which DEFAULT_ADMIN_ROLE should be revoked
+ * @param callerSigner Signer that will execute the transactions
+ * @param manualActions Array to collect manual actions that need to be performed
  */
 export async function ensureDefaultAdminExistsAndRevokeFrom(
   hre: HardhatRuntimeEnvironment,

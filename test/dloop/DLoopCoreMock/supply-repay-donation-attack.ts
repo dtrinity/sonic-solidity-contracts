@@ -227,7 +227,7 @@ describe("DLoopCoreMock - Supply/Repay Donation Edge Case Tests", function () {
       expect(currentLeverage).to.equal(ONE_HUNDRED_PERCENT_BPS);
 
       // Try calling getRepayAmountThatKeepCurrentLeverage directly with leverage = 0
-      const withdrawAmount = ethers.parseEther("100");
+      const _withdrawAmount = ethers.parseEther("100");
 
       // const repayAmount = await dloopMock.getRepayAmountThatKeepCurrentLeverage(
       //   await collateralToken.getAddress(),

@@ -759,7 +759,7 @@ describe.skip("DLoopCoreMock Rebalance Calculation Tests", function () {
               }
             }
 
-            const testExpectedResult: {
+            const _testExpectedResult: {
               expectedRevertError?: string;
               expectedAmount: bigint;
             } = useVaultTokenBalance
@@ -1077,7 +1077,7 @@ describe.skip("DLoopCoreMock Rebalance Calculation Tests", function () {
               }
             }
 
-            const testExpectedResult: {
+            const _testExpectedResult: {
               expectedRevertError?: string;
               expectedRevertPanic?: string;
               expectedAmount: bigint;

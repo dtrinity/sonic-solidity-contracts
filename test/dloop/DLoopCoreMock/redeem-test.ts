@@ -95,7 +95,7 @@ describe.skip("DLoopCoreMock Redeem Tests", function () {
         );
 
         // Calculate expected values for redeem
-        const expectedAssets = await dloopMock.previewRedeem(
+        const _expectedAssets = await dloopMock.previewRedeem(
           testCase.sharesToRedeem,
         );
         // const requiredDebtRepayment =
@@ -121,7 +121,7 @@ describe.skip("DLoopCoreMock Redeem Tests", function () {
         // const sharesBefore = await dloopMock.balanceOf(userAddress);
 
         // // Get leverage before redeem
-        // const leverageBeforeRedeem = await dloopMock.getCurrentLeverageBps();
+        // const _leverageBeforeRedeem = await dloopMock.getCurrentLeverageBps();
 
         // // Perform redeem
         // const redeemTx = await dloopMock
@@ -268,7 +268,7 @@ describe.skip("DLoopCoreMock Redeem Tests", function () {
         );
 
         // Check leverage after price change but before redeem
-        const leverageBeforeRedeem = await dloopMock.getCurrentLeverageBps();
+        const _leverageBeforeRedeem = await dloopMock.getCurrentLeverageBps();
         expect(leverageBeforeRedeem).to.be.gte(
           testCase.expectedLeverageRange[0],
         );
@@ -277,7 +277,7 @@ describe.skip("DLoopCoreMock Redeem Tests", function () {
         );
 
         // Calculate required debt repayment for redeem
-        const expectedAssets = await dloopMock.previewRedeem(redeemShares);
+        const _expectedAssets = await dloopMock.previewRedeem(redeemShares);
         // const requiredDebtRepayment =
         //   await dloopMock.getRepayAmountThatKeepCurrentLeverage(
         //     await collateralToken.getAddress(),
@@ -361,10 +361,10 @@ describe.skip("DLoopCoreMock Redeem Tests", function () {
         const redeemShares = redeemAmounts[i];
 
         // Get leverage before redeem
-        const leverageBeforeRedeem = await dloopMock.getCurrentLeverageBps();
+        const _leverageBeforeRedeem = await dloopMock.getCurrentLeverageBps();
 
         // Calculate required debt repayment
-        const expectedAssets = await dloopMock.previewRedeem(redeemShares);
+        const _expectedAssets = await dloopMock.previewRedeem(redeemShares);
         // const requiredDebtRepayment =
         //   await dloopMock.getRepayAmountThatKeepCurrentLeverage(
         //     await collateralToken.getAddress(),
@@ -464,10 +464,10 @@ describe.skip("DLoopCoreMock Redeem Tests", function () {
         );
 
         // Get leverage before redeem (after price change)
-        const leverageBeforeRedeem = await dloopMock.getCurrentLeverageBps();
+        const _leverageBeforeRedeem = await dloopMock.getCurrentLeverageBps();
 
         // Calculate required debt repayment
-        const expectedAssets = await dloopMock.previewRedeem(
+        const _expectedAssets = await dloopMock.previewRedeem(
           scenario.redeemShares,
         );
         // const requiredDebtRepayment =
@@ -614,10 +614,10 @@ describe.skip("DLoopCoreMock Redeem Tests", function () {
           );
         } else {
           // Get leverage before redeem (after rebalancing)
-          const leverageBeforeRedeem = await dloopMock.getCurrentLeverageBps();
+          const _leverageBeforeRedeem = await dloopMock.getCurrentLeverageBps();
 
           // Calculate required debt repayment
-          const expectedAssets = await dloopMock.previewRedeem(
+          const _expectedAssets = await dloopMock.previewRedeem(
             testCase.redeemShares,
           );
           // const requiredDebtRepayment =
@@ -783,7 +783,7 @@ describe.skip("DLoopCoreMock Redeem Tests", function () {
         const owner = accounts[testCase.ownerIndex];
         const relayer = accounts[testCase.relayerIndex];
         const ownerAddress = owner.address;
-        const relayerAddress = relayer.address;
+        const _relayerAddress = relayer.address;
 
         // Set initial prices
         await dloopMock.setMockPrice(
@@ -856,8 +856,8 @@ describe.skip("DLoopCoreMock Redeem Tests", function () {
         }
 
         // Calculate expected values for redeem
-        const leverageBeforeRedeem = await dloopMock.getCurrentLeverageBps();
-        const expectedAssets = await dloopMock.previewRedeem(
+        const _leverageBeforeRedeem = await dloopMock.getCurrentLeverageBps();
+        const _expectedAssets = await dloopMock.previewRedeem(
           testCase.sharesToRedeem,
         );
         // const requiredDebtRepayment =
@@ -934,7 +934,7 @@ describe.skip("DLoopCoreMock Redeem Tests", function () {
       const owner = accounts[1];
       const relayer = accounts[2];
       const ownerAddress = owner.address;
-      const relayerAddress = relayer.address;
+      const _relayerAddress = relayer.address;
       const depositAmount = ethers.parseEther("100");
       const sharesToRedeem = ethers.parseEther("40");
 
@@ -955,8 +955,8 @@ describe.skip("DLoopCoreMock Redeem Tests", function () {
       await dloopMock.connect(owner).deposit(depositAmount, ownerAddress);
 
       // Calculate required debt repayment
-      const leverageBeforeRedeem = await dloopMock.getCurrentLeverageBps();
-      const expectedAssets = await dloopMock.previewRedeem(sharesToRedeem);
+      const _leverageBeforeRedeem = await dloopMock.getCurrentLeverageBps();
+      const _expectedAssets = await dloopMock.previewRedeem(sharesToRedeem);
       // const requiredDebtRepayment =
       //   await dloopMock.getRepayAmountThatKeepCurrentLeverage(
       //     await collateralToken.getAddress(),
@@ -1026,7 +1026,7 @@ describe.skip("DLoopCoreMock Redeem Tests", function () {
       const owner = accounts[1];
       const relayer = accounts[2];
       const ownerAddress = owner.address;
-      const relayerAddress = relayer.address;
+      const _relayerAddress = relayer.address;
       const depositAmount = ethers.parseEther("100");
       const sharesToRedeem = ethers.parseEther("30");
 
@@ -1049,8 +1049,8 @@ describe.skip("DLoopCoreMock Redeem Tests", function () {
       await dloopMock.connect(owner).approve(relayerAddress, sharesToRedeem);
 
       // Calculate required debt repayment
-      const leverageBeforeRedeem = await dloopMock.getCurrentLeverageBps();
-      const expectedAssets = await dloopMock.previewRedeem(sharesToRedeem);
+      const _leverageBeforeRedeem = await dloopMock.getCurrentLeverageBps();
+      const _expectedAssets = await dloopMock.previewRedeem(sharesToRedeem);
       // const requiredDebtRepayment =
       //   await dloopMock.getRepayAmountThatKeepCurrentLeverage(
       //     await collateralToken.getAddress(),
@@ -1090,7 +1090,7 @@ describe.skip("DLoopCoreMock Redeem Tests", function () {
       const owner = accounts[1];
       const relayer = accounts[2];
       const ownerAddress = owner.address;
-      const relayerAddress = relayer.address;
+      const _relayerAddress = relayer.address;
       const depositAmount = ethers.parseEther("100");
       const sharesToRedeem = ethers.parseEther("30");
 
@@ -1113,8 +1113,8 @@ describe.skip("DLoopCoreMock Redeem Tests", function () {
       await dloopMock.connect(owner).approve(relayerAddress, sharesToRedeem);
 
       // Calculate required debt repayment
-      const leverageBeforeRedeem = await dloopMock.getCurrentLeverageBps();
-      const expectedAssets = await dloopMock.previewRedeem(sharesToRedeem);
+      const _leverageBeforeRedeem = await dloopMock.getCurrentLeverageBps();
+      const _expectedAssets = await dloopMock.previewRedeem(sharesToRedeem);
       // const requiredDebtRepayment =
       //   await dloopMock.getRepayAmountThatKeepCurrentLeverage(
       //     await collateralToken.getAddress(),
@@ -1154,7 +1154,7 @@ describe.skip("DLoopCoreMock Redeem Tests", function () {
       const owner = accounts[1];
       const relayer = accounts[2];
       const ownerAddress = owner.address;
-      const relayerAddress = relayer.address;
+      const _relayerAddress = relayer.address;
       const depositAmount = ethers.parseEther("100");
       const sharesToRedeem = ethers.parseEther("30");
 
@@ -1174,8 +1174,8 @@ describe.skip("DLoopCoreMock Redeem Tests", function () {
       await dloopMock.connect(owner).deposit(depositAmount, ownerAddress);
 
       // Calculate required debt repayment
-      const leverageBeforeRedeem = await dloopMock.getCurrentLeverageBps();
-      const expectedAssets = await dloopMock.previewRedeem(sharesToRedeem);
+      const _leverageBeforeRedeem = await dloopMock.getCurrentLeverageBps();
+      const _expectedAssets = await dloopMock.previewRedeem(sharesToRedeem);
       // const requiredDebtRepayment =
       //   await dloopMock.getRepayAmountThatKeepCurrentLeverage(
       //     await collateralToken.getAddress(),
@@ -1304,11 +1304,11 @@ describe.skip("DLoopCoreMock Redeem Tests", function () {
       );
 
       // Get leverage before redeem
-      const leverageBeforeRedeem = await dloopMock.getCurrentLeverageBps();
+      const _leverageBeforeRedeem = await dloopMock.getCurrentLeverageBps();
 
       // Redeem should work normally
       const redeemShares = ethers.parseEther("25");
-      const expectedAssets = await dloopMock.previewRedeem(redeemShares);
+      const _expectedAssets = await dloopMock.previewRedeem(redeemShares);
       // const requiredDebtRepayment =
       //   await dloopMock.getRepayAmountThatKeepCurrentLeverage(
       //     await collateralToken.getAddress(),
@@ -1360,12 +1360,12 @@ describe.skip("DLoopCoreMock Redeem Tests", function () {
       const collateralBefore = await collateralToken.balanceOf(userAddress);
 
       // Get leverage before redeem
-      const leverageBeforeRedeem = await dloopMock.getCurrentLeverageBps();
+      const _leverageBeforeRedeem = await dloopMock.getCurrentLeverageBps();
 
       // Redeem small but meaningful amount (0.1% of shares)
       const initialShares = await dloopMock.balanceOf(userAddress);
       const smallShares = initialShares / 1000n; // 0.1%
-      const expectedAssets = await dloopMock.previewRedeem(smallShares);
+      const _expectedAssets = await dloopMock.previewRedeem(smallShares);
       // const requiredDebtRepayment =
       //   await dloopMock.getRepayAmountThatKeepCurrentLeverage(
       //     await collateralToken.getAddress(),
