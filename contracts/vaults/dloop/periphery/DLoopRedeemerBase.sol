@@ -29,6 +29,7 @@ import {DLoopCoreBase} from "../core/DLoopCoreBase.sol";
 import {SwappableVault} from "contracts/common/SwappableVault.sol";
 import {RescuableVault} from "contracts/common/RescuableVault.sol";
 import {SharedLogic} from "./helper/SharedLogic.sol";
+import {DLoopRedeemerLogic} from "./helper/DLoopRedeemerLogic.sol";
 
 /**
  * @title DLoopRedeemerBase
@@ -149,19 +150,11 @@ abstract contract DLoopRedeemerBase is
         uint256 slippageBps,
         DLoopCoreBase dLoopCore
     ) public view returns (uint256) {
-        if (slippageBps > BasisPointConstants.ONE_HUNDRED_PERCENT_BPS) {
-            revert SlippageBpsCannotExceedOneHundredPercent(slippageBps);
-        }
-        uint256 expectedLeverageCollateral = dLoopCore.previewRedeem(shares);
-        uint256 unleveragedCollateral = getUnleveragedAssets(
-            expectedLeverageCollateral,
-            dLoopCore
-        );
         return
-            Math.mulDiv(
-                unleveragedCollateral,
-                BasisPointConstants.ONE_HUNDRED_PERCENT_BPS - slippageBps,
-                BasisPointConstants.ONE_HUNDRED_PERCENT_BPS
+            DLoopRedeemerLogic.calculateMinOutputCollateral(
+                shares,
+                slippageBps,
+                dLoopCore
             );
     }
 
@@ -285,7 +278,7 @@ abstract contract DLoopRedeemerBase is
         );
 
         // Validate shares burned correctly
-        _validateSharesBurned(
+        DLoopRedeemerLogic.validateSharesBurned(
             dLoopCore,
             address(this),
             shares,
@@ -499,11 +492,12 @@ abstract contract DLoopRedeemerBase is
     function _encodeParamsToData(
         FlashLoanParams memory _flashLoanParams
     ) internal pure returns (bytes memory data) {
-        data = abi.encode(
-            _flashLoanParams.shares,
-            _flashLoanParams.collateralToDebtTokenSwapData,
-            _flashLoanParams.dLoopCore
-        );
+        return
+            DLoopRedeemerLogic.encodeFlashLoanParams(
+                _flashLoanParams.shares,
+                _flashLoanParams.collateralToDebtTokenSwapData,
+                _flashLoanParams.dLoopCore
+            );
     }
 
     /**
@@ -518,6 +512,6 @@ abstract contract DLoopRedeemerBase is
             _flashLoanParams.shares,
             _flashLoanParams.collateralToDebtTokenSwapData,
             _flashLoanParams.dLoopCore
-        ) = abi.decode(data, (uint256, bytes, DLoopCoreBase));
+        ) = DLoopRedeemerLogic.decodeFlashLoanParams(data);
     }
 }
