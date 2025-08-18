@@ -6,7 +6,7 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 import {IDStakeRouter} from "./interfaces/IDStakeRouter.sol";
 import {IDStableConversionAdapter} from "./interfaces/IDStableConversionAdapter.sol";
-import {IDStakeCollateralVault} from "./DStakeCollateralVault.sol";
+import {IDStakeCollateralVault} from "./interfaces/IDStakeCollateralVault.sol";
 import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 
 /**

@@ -15,7 +15,7 @@
  * dTRINITY Protocol: https://github.com/dtrinity                                   *
  * ———————————————————————————————————————————————————————————————————————————————— */
 
-pragma solidity 0.8.20;
+pragma solidity ^0.8.20;
 
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {ERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
@@ -367,9 +367,11 @@ abstract contract DLoopDepositorBase is
     /* Flash loan entrypoint */
 
     /**
-     * @dev Callback function for flash loans
+     * @notice Callback function for flash loans
+     * @dev Handles the flash loan execution for leveraged deposits. Only callable by the flash lender.
      * @param initiator Address that initiated the flash loan
      * @param token Address of the flash-borrowed token
+     * @param flashLoanFee Flash loan fee amount
      * @param data Additional data passed to the flash loan
      * @return bytes32 The flash loan callback success bytes
      */

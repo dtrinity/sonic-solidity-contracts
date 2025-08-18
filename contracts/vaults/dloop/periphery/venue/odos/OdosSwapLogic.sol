@@ -15,7 +15,7 @@
  * dTRINITY Protocol: https://github.com/dtrinity                                   *
  * ———————————————————————————————————————————————————————————————————————————————— */
 
-pragma solidity 0.8.20;
+pragma solidity ^0.8.20;
 
 import {ERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 import {IOdosRouterV2} from "contracts/odos/interface/IOdosRouterV2.sol";

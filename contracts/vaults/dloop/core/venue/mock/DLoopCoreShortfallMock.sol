@@ -1,9 +1,15 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.20;
+pragma solidity ^0.8.20;
 
 import "./DLoopCoreMock.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {BasisPointConstants} from "contracts/common/BasisPointConstants.sol";
+
+// Custom errors for gas optimization
+error MockBorrowAmountTooSmall(uint256 amount);
+error MockWithdrawAmountTooSmall(uint256 amount);
+error MockPoolLacksLiquidity(uint256 requested, uint256 available);
+error MockPoolLacksCollateral(uint256 requested, uint256 available);
 
 /**
  * @title DLoopCoreShortfallMock
@@ -50,12 +56,10 @@ contract DLoopCoreShortfallMock is DLoopCoreMock {
         address onBehalfOf
     ) internal virtual override {
         _checkRequiredAllowance();
-        require(amount > 1, "Mock: borrow amount too small");
+        if (amount <= 1) revert MockBorrowAmountTooSmall(amount);
         uint256 sendAmount = amount - 1;
-        require(
-            ERC20(token).balanceOf(mockPool) >= sendAmount,
-            "Mock: pool lacks liquidity"
-        );
+        uint256 poolBalance = ERC20(token).balanceOf(mockPool);
+        if (poolBalance < sendAmount) revert MockPoolLacksLiquidity(sendAmount, poolBalance);
         ERC20(token).transferFrom(mockPool, onBehalfOf, sendAmount);
         transferPortionBps = BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
         _setMockDebt(onBehalfOf, token, sendAmount);
@@ -71,12 +75,10 @@ contract DLoopCoreShortfallMock is DLoopCoreMock {
         address onBehalfOf
     ) internal virtual override {
         _checkRequiredAllowance();
-        require(amount > 1, "Mock: withdraw amount too small");
+        if (amount <= 1) revert MockWithdrawAmountTooSmall(amount);
         uint256 sendAmount = amount - 1;
-        require(
-            ERC20(token).balanceOf(mockPool) >= sendAmount,
-            "Mock: pool lacks collateral"
-        );
+        uint256 poolBalance = ERC20(token).balanceOf(mockPool);
+        if (poolBalance < sendAmount) revert MockPoolLacksCollateral(sendAmount, poolBalance);
         ERC20(token).transferFrom(mockPool, onBehalfOf, sendAmount);
         transferPortionBps = BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
         // For testing we don't keep collateral accounting exact.

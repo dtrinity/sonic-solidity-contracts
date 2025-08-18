@@ -75,33 +75,33 @@ async function setupDLendFixture(): Promise<DLendFixtureResult> {
 
   // Get the PoolDataProvider contract
   const { address: dataProviderAddress } = await deployments.get(
-    POOL_DATA_PROVIDER_ID
+    POOL_DATA_PROVIDER_ID,
   );
   const dataProvider = await hre.ethers.getContractAt(
     "AaveProtocolDataProvider",
-    dataProviderAddress
+    dataProviderAddress,
   );
 
   // Get additional required contracts *early*
   const { address: addressesProviderAddress } = await deployments.get(
-    "PoolAddressesProvider"
+    "PoolAddressesProvider",
   );
   const poolAddressesProvider = await hre.ethers.getContractAt(
     "PoolAddressesProvider",
-    addressesProviderAddress
+    addressesProviderAddress,
   );
 
   const priceOracleAddress = await poolAddressesProvider.getPriceOracle();
   const priceOracle = await hre.ethers.getContractAt(
     "IAaveOracle",
-    priceOracleAddress
+    priceOracleAddress,
   );
 
   const poolConfiguratorAddress =
     await poolAddressesProvider.getPoolConfigurator();
   const poolConfigurator = await hre.ethers.getContractAt(
     "PoolConfigurator",
-    poolConfiguratorAddress
+    poolConfiguratorAddress,
   );
 
   // Get all reserves
@@ -131,15 +131,15 @@ async function setupDLendFixture(): Promise<DLendFixtureResult> {
     // Get token contracts
     aTokens[asset] = await hre.ethers.getContractAt(
       "AToken",
-      reserveData.aTokenAddress
+      reserveData.aTokenAddress,
     );
     stableDebtTokens[asset] = await hre.ethers.getContractAt(
       "StableDebtToken",
-      reserveData.stableDebtTokenAddress
+      reserveData.stableDebtTokenAddress,
     );
     variableDebtTokens[asset] = await hre.ethers.getContractAt(
       "VariableDebtToken",
-      reserveData.variableDebtTokenAddress
+      reserveData.variableDebtTokenAddress,
     );
 
     // Store asset configuration
@@ -159,7 +159,7 @@ async function setupDLendFixture(): Promise<DLendFixtureResult> {
   // Ensure dStables are in the reserves
   if (!reservesList.includes(dUsdAddress)) {
     throw new Error(
-      `dUSD (${dUsdAddress}) not found in reserves: ${reservesList}`
+      `dUSD (${dUsdAddress}) not found in reserves: ${reservesList}`,
     );
   }
 
@@ -173,13 +173,13 @@ async function setupDLendFixture(): Promise<DLendFixtureResult> {
   ).address;
   const dusdIssuer = await hre.ethers.getContractAt(
     "IssuerV2",
-    dusdIssuerAddress
+    dusdIssuerAddress,
   );
   const usdOracleAddress = (await hre.deployments.get(USD_ORACLE_AGGREGATOR_ID))
     .address;
   const usdOracle = await hre.ethers.getContractAt(
     "OracleAggregator",
-    usdOracleAddress
+    usdOracleAddress,
   );
 
   // Get collateral token (sfrxUSD) for dUSD
@@ -191,10 +191,10 @@ async function setupDLendFixture(): Promise<DLendFixtureResult> {
   // Mint dUSD
   const usdCollateralAmount = ethers.parseUnits(
     "1000000",
-    usdCollateralInfo.decimals
+    usdCollateralInfo.decimals,
   );
   const usdCollateralPrice = await usdOracle.getAssetPrice(
-    usdCollateralInfo.address
+    usdCollateralInfo.address,
   );
   const dUsdPrice = await usdOracle.getAssetPrice(dUsdInfo.address);
   const usdBaseValue =
@@ -207,12 +207,12 @@ async function setupDLendFixture(): Promise<DLendFixtureResult> {
   // Note: Approval is for the Issuer, not the Pool
   await usdCollateralToken.approve(
     await dusdIssuer.getAddress(),
-    usdCollateralAmount
+    usdCollateralAmount,
   );
   await dusdIssuer.issue(
     usdCollateralAmount,
     usdCollateralInfo.address,
-    expectedDusdAmount
+    expectedDusdAmount,
   );
 
   // Then mint dS
@@ -223,7 +223,7 @@ async function setupDLendFixture(): Promise<DLendFixtureResult> {
     .address;
   const sOracle = await hre.ethers.getContractAt(
     "OracleAggregator",
-    sOracleAddress
+    sOracleAddress,
   );
 
   // Get collateral token (stS) for dS
@@ -235,7 +235,7 @@ async function setupDLendFixture(): Promise<DLendFixtureResult> {
   // Mint dS
   const sCollateralAmount = ethers.parseUnits(
     "1000000",
-    sCollateralInfo.decimals
+    sCollateralInfo.decimals,
   );
   const sCollateralPrice = await sOracle.getAssetPrice(sCollateralInfo.address);
   const dSPrice = await sOracle.getAssetPrice(dSInfo.address);
@@ -249,12 +249,12 @@ async function setupDLendFixture(): Promise<DLendFixtureResult> {
   // Note: Approval is for the Issuer, not the Pool
   await sCollateralToken.approve(
     await dsIssuer.getAddress(),
-    sCollateralAmount
+    sCollateralAmount,
   );
   await dsIssuer.issue(
     sCollateralAmount,
     sCollateralInfo.address,
-    expectedDsAmount
+    expectedDsAmount,
   );
 
   return {

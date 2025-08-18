@@ -15,7 +15,7 @@
  * dTRINITY Protocol: https://github.com/dtrinity                                   *
  * ———————————————————————————————————————————————————————————————————————————————— */
 
-pragma solidity 0.8.20;
+pragma solidity ^0.8.20;
 
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {BasisPointConstants} from "contracts/common/BasisPointConstants.sol";
@@ -228,6 +228,9 @@ abstract contract DLoopCoreBase is
         uint256 withdrawalFeeBps,
         uint256 maxWithdrawalFeeBps
     );
+    error InvalidTargetLeverage(uint256 targetLeverageBps);
+    error InvalidCollateralToken(address token);
+    error InvalidDebtToken(address token);
 
     /**
      * @dev Constructor for the DLoopCore contract
@@ -258,7 +261,7 @@ abstract contract DLoopCoreBase is
         collateralToken = _collateralToken;
 
         if (_targetLeverageBps < BasisPointConstants.ONE_HUNDRED_PERCENT_BPS) {
-            revert("Target leverage must be at least 100% in basis points");
+            revert InvalidTargetLeverage(_targetLeverageBps);
         }
 
         if (
@@ -274,12 +277,12 @@ abstract contract DLoopCoreBase is
 
         // Make sure collateral token is ERC-20
         if (!Erc20Helper.isERC20(address(_collateralToken))) {
-            revert("Collateral token must be an ERC-20");
+            revert InvalidCollateralToken(address(_collateralToken));
         }
 
         // Make sure debt token is ERC-20
         if (!Erc20Helper.isERC20(address(_debtToken))) {
-            revert("Debt token must be an ERC-20");
+            revert InvalidDebtToken(address(_debtToken));
         }
 
         targetLeverageBps = _targetLeverageBps;
@@ -1138,7 +1141,8 @@ abstract contract DLoopCoreBase is
     /* Withdrawal fee */
 
     /**
-     * @dev Sets the withdrawal fee in basis points
+     * @notice Sets the withdrawal fee in basis points
+     * @dev Only callable by the contract owner
      * @param newWithdrawalFeeBps The new withdrawal fee in basis points
      */
     function setWithdrawalFeeBps(
@@ -1158,15 +1162,15 @@ abstract contract DLoopCoreBase is
     /* Rebalance */
 
     /**
-     * @dev Gets the rebalance amount to reach the target leverage in token unit
-     *      - This method is supposed to be used by the rebalancing service which will use it to quote the required
-     *        collateral/debt amount and the corresponding direction (increase or decrease)
+     * @notice Gets the rebalance amount to reach the target leverage in token units
+     * @dev This method is used by rebalancing services to quote required collateral/debt amounts
+     *      and determine the rebalancing direction (increase or decrease leverage)
      * @return inputTokenAmount The amount of token to call increaseLeverage or decreaseLeverage (in token unit)
-     *         - If the direction is 1, the amount is in collateral token
-     *         - If the direction is -1, the amount is in debt token
+     *         - If direction is 1, the amount is in collateral token
+     *         - If direction is -1, the amount is in debt token
      * @return estimatedOutputTokenAmount The estimated output token amount after the rebalance (in token unit)
-     *         - If the direction is 1, the amount is in debt token
-     *         - If the direction is -1, the amount is in collateral token
+     *         - If direction is 1, the amount is in debt token
+     *         - If direction is -1, the amount is in collateral token
      * @return direction The direction of the rebalance (1 for increase, -1 for decrease, 0 means no rebalance)
      */
     function quoteRebalanceAmountToReachTargetLeverage()
@@ -1198,9 +1202,9 @@ abstract contract DLoopCoreBase is
     }
 
     /**
-     * @dev Increases the leverage of the user by supplying collateral token and borrowing more debt token
-     *      - It requires to spend the collateral token from the user's wallet to supply to the pool
-     *      - It will send the borrowed debt token to the user's wallet
+     * @notice Increases the leverage of the user by supplying collateral token and borrowing more debt token
+     * @dev Requires spending collateral token from the user's wallet to supply to the pool.
+     *      Will send the borrowed debt token to the user's wallet.
      * @param inputCollateralTokenAmount The amount of collateral token to deposit
      * @param minReceivedDebtTokenAmount The minimum amount of debt token to receive
      */
@@ -1314,9 +1318,9 @@ abstract contract DLoopCoreBase is
     }
 
     /**
-     * @dev Decreases the leverage of the user by repaying debt and withdrawing collateral
-     *      - It requires to spend the debt token from the user's wallet to repay the debt to the pool
-     *      - It will send the withdrawn collateral asset to the user's wallet
+     * @notice Decreases the leverage of the user by repaying debt and withdrawing collateral
+     * @dev Requires spending debt token from the user's wallet to repay debt to the pool.
+     *      Will send the withdrawn collateral asset to the user's wallet.
      * @param inputDebtTokenAmount The amount of debt token to repay
      * @param minReceivedCollateralTokenAmount The minimum amount of collateral asset to receive
      */
@@ -1434,7 +1438,8 @@ abstract contract DLoopCoreBase is
     /* Informational */
 
     /**
-     * @dev Gets the current leverage in basis points
+     * @notice Gets the current leverage in basis points
+     * @dev Calculates leverage based on total collateral and debt values
      * @return uint256 The current leverage in basis points
      */
     function getCurrentLeverageBps() public view returns (uint256) {
@@ -1451,7 +1456,8 @@ abstract contract DLoopCoreBase is
     }
 
     /**
-     * @dev Gets the current subsidy in basis points
+     * @notice Gets the current subsidy in basis points
+     * @dev Calculates subsidy based on leverage deviation from target
      * @return uint256 The current subsidy in basis points
      */
     function getCurrentSubsidyBps() public view returns (uint256) {
@@ -1465,7 +1471,7 @@ abstract contract DLoopCoreBase is
     }
 
     /**
-     * @dev Gets the address of the collateral token
+     * @notice Gets the address of the collateral token
      * @return address The address of the collateral token
      */
     function getCollateralTokenAddress() public view returns (address) {
@@ -1473,7 +1479,7 @@ abstract contract DLoopCoreBase is
     }
 
     /**
-     * @dev Gets the address of the debt token
+     * @notice Gets the address of the debt token
      * @return address The address of the debt token
      */
     function getDebtTokenAddress() public view returns (address) {
@@ -1481,7 +1487,7 @@ abstract contract DLoopCoreBase is
     }
 
     /**
-     * @dev Gets the default maximum subsidy in basis points
+     * @notice Gets the default maximum subsidy in basis points
      * @return uint256 The default maximum subsidy in basis points
      */
     function getDefaultMaxSubsidyBps() public view returns (uint256) {
@@ -1491,7 +1497,8 @@ abstract contract DLoopCoreBase is
     /* Admin */
 
     /**
-     * @dev Sets the maximum subsidy in basis points
+     * @notice Sets the maximum subsidy in basis points
+     * @dev Only callable by the contract owner
      * @param _maxSubsidyBps New maximum subsidy in basis points
      */
     function setMaxSubsidyBps(
@@ -1503,7 +1510,8 @@ abstract contract DLoopCoreBase is
     }
 
     /**
-     * @dev Sets the minimum deviation of leverage from the target leverage in basis points
+     * @notice Sets the minimum deviation of leverage from the target leverage in basis points
+     * @dev Only callable by the contract owner
      * @param _minDeviationBps New minimum deviation of leverage from the target leverage in basis points
      */
     function setMinDeviationBps(

@@ -15,7 +15,7 @@
  * dTRINITY Protocol: https://github.com/dtrinity                                   *
  * ———————————————————————————————————————————————————————————————————————————————— */
 
-pragma solidity 0.8.20;
+pragma solidity ^0.8.20;
 
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {ERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
@@ -81,6 +81,7 @@ abstract contract DLoopIncreaseLeverageBase is
         uint256 leverageAfterIncrease
     );
     error RequiredFlashLoanCollateralAmountIsZero();
+    error LeverageAlreadyAtOrAboveTarget(uint256 currentLeverage, uint256 targetLeverage);
 
     /* Events */
 
@@ -145,7 +146,9 @@ abstract contract DLoopIncreaseLeverageBase is
 
         // Verify we need to increase leverage
         if (direction != 1) {
-            revert("Current leverage is already at or above target");
+            uint256 currentLeverage = dLoopCore.getCurrentLeverageBps();
+            uint256 targetLeverage = dLoopCore.targetLeverageBps();
+            revert LeverageAlreadyAtOrAboveTarget(currentLeverage, targetLeverage);
         }
 
         // Record initial leverage

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.20;
+pragma solidity ^0.8.20;
 
 import {DLoopCoreBase} from "../../DLoopCoreBase.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
@@ -12,13 +12,14 @@ import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
  * @dev Simple mock implementation of DLoopCoreBase for testing
  */
 contract DLoopCoreMock is DLoopCoreBase {
-    // Error
+    // Errors
     error NotEnoughBalanceToSupply(
         address user,
         string tokenSymbol,
         uint256 balance,
         uint256 amount
     );
+    error MockPriceNotSet(address asset);
 
     // Mock state for prices and balances
     mapping(address => uint256) public mockPrices;
@@ -181,7 +182,7 @@ contract DLoopCoreMock is DLoopCoreBase {
         address asset
     ) internal view override returns (uint256) {
         uint256 price = mockPrices[asset];
-        require(price > 0, "Mock price not set");
+        if (price == 0) revert MockPriceNotSet(asset);
         return price;
     }
 
@@ -511,7 +512,7 @@ contract DLoopCoreMock is DLoopCoreBase {
      */
     function getMockPrice(address asset) external view returns (uint256) {
         uint256 price = mockPrices[asset];
-        require(price > 0, "Mock price not set");
+        if (price == 0) revert MockPriceNotSet(asset);
         return price;
     }
 }

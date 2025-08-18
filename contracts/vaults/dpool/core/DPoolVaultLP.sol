@@ -296,7 +296,11 @@ abstract contract DPoolVaultLP is
 
     // --- Fee management ---
 
-    /// @inheritdoc IDPoolVaultLP
+    /**
+     * @notice Sets the withdrawal fee for the vault
+     * @dev Only callable by FEE_MANAGER_ROLE
+     * @param newFeeBps The new withdrawal fee in basis points
+     */
     function setWithdrawalFee(
         uint256 newFeeBps
     ) external override onlyRole(FEE_MANAGER_ROLE) {

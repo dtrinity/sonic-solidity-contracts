@@ -1,5 +1,6 @@
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
+
 import { getConfig } from "../config/config";
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
@@ -11,22 +12,34 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   // Skip if no mock config or curve pools config
   if (!config.MOCK_ONLY?.curvePools) {
-    console.log("No mock curve pools configuration found, skipping mock Curve pool deployment");
+    console.log(
+      "No mock curve pools configuration found, skipping mock Curve pool deployment",
+    );
     return true;
   }
 
   console.log(`\n--- Deploying Mock Curve Pools ---`);
 
   // Deploy mock Curve pools from mock configuration
-  for (const [poolId, poolConfig] of Object.entries(config.MOCK_ONLY.curvePools)) {
+  for (const [poolId, poolConfig] of Object.entries(
+    config.MOCK_ONLY.curvePools,
+  )) {
     console.log(`\nDeploying pool: ${poolId}`);
-    
+
     // Get token addresses from config
-    const token0Address = config.tokenAddresses[poolConfig.token0 as keyof typeof config.tokenAddresses];
-    const token1Address = config.tokenAddresses[poolConfig.token1 as keyof typeof config.tokenAddresses];
+    const token0Address =
+      config.tokenAddresses[
+        poolConfig.token0 as keyof typeof config.tokenAddresses
+      ];
+    const token1Address =
+      config.tokenAddresses[
+        poolConfig.token1 as keyof typeof config.tokenAddresses
+      ];
 
     if (!token0Address || !token1Address) {
-      console.log(`⚠️  Skipping ${poolId}: missing token addresses for ${poolConfig.token0} or ${poolConfig.token1}`);
+      console.log(
+        `⚠️  Skipping ${poolId}: missing token addresses for ${poolConfig.token0} or ${poolConfig.token1}`,
+      );
       continue;
     }
 
@@ -63,4 +76,4 @@ func.tags = ["local-setup", "curve"];
 func.dependencies = ["tokens"];
 func.id = "local_curve_pools_setup";
 
-export default func; 
+export default func;

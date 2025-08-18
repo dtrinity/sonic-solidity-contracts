@@ -15,7 +15,7 @@
  * dTRINITY Protocol: https://github.com/dtrinity                                   *
  * ———————————————————————————————————————————————————————————————————————————————— */
 
-pragma solidity 0.8.20;
+pragma solidity ^0.8.20;
 
 import {IPriceOracleGetter} from "./interface/IPriceOracleGetter.sol";
 import {IPool as ILendingPool, DataTypes} from "./interface/IPool.sol";

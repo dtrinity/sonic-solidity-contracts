@@ -1,19 +1,23 @@
 import { expect } from "chai";
 import { ethers } from "hardhat";
+
 import { deployMintableERC20, deployMockRouter, mint } from "./utils/setup";
 
 const { parseUnits } = ethers;
 
 describe("BaseOdosBuyAdapter", function () {
+  /**
+   *
+   */
   async function fixture() {
     const [deployer] = await ethers.getSigners();
     const tokenIn = await deployMintableERC20("TokenIn", "TIN");
     const tokenOut = await deployMintableERC20("TokenOut", "TOUT");
     const router = await deployMockRouter();
-    
+
     const AdapterFactory = await ethers.getContractFactory("TestBuyAdapter");
     const adapter = await AdapterFactory.deploy(await router.getAddress());
-    
+
     return { deployer, tokenIn, tokenOut, router, adapter };
   }
 
@@ -29,11 +33,11 @@ describe("BaseOdosBuyAdapter", function () {
     await mint(tokenIn, adapterAddr, parseUnits("10000", 18));
     await mint(tokenOut, await router.getAddress(), amountReceived);
     await router.setSwapBehaviour(
-      await tokenIn.getAddress(), 
-      await tokenOut.getAddress(), 
-      amountSpent, 
-      amountReceived, 
-      false
+      await tokenIn.getAddress(),
+      await tokenOut.getAddress(),
+      amountSpent,
+      amountReceived,
+      false,
     );
     const swapData = router.interface.encodeFunctionData("performSwap");
 
@@ -46,7 +50,7 @@ describe("BaseOdosBuyAdapter", function () {
       await tokenOut.getAddress(),
       maxAmountToSwap,
       amountReceived,
-      swapData
+      swapData,
     );
 
     // Assert
@@ -63,7 +67,7 @@ describe("BaseOdosBuyAdapter", function () {
         await tokenIn.getAddress(),
         await tokenOut.getAddress(),
         amountSpent,
-        amountReceived
+        amountReceived,
       );
   });
 
@@ -82,7 +86,7 @@ describe("BaseOdosBuyAdapter", function () {
       await tokenOut.getAddress(),
       amountSpent,
       amountReceived,
-      false
+      false,
     );
     const swapData = router.interface.encodeFunctionData("performSwap");
 
@@ -92,8 +96,8 @@ describe("BaseOdosBuyAdapter", function () {
         await tokenOut.getAddress(),
         maxAmountToSwap,
         amountReceived,
-        swapData
-      )
+        swapData,
+      ),
     ).to.be.revertedWithCustomError(adapter, "InsufficientBalanceBeforeSwap");
   });
 
@@ -111,7 +115,7 @@ describe("BaseOdosBuyAdapter", function () {
       await tokenOut.getAddress(),
       amountSpent,
       amountReceived,
-      false
+      false,
     );
     const swapData = router.interface.encodeFunctionData("performSwap");
 
@@ -121,8 +125,8 @@ describe("BaseOdosBuyAdapter", function () {
         await tokenOut.getAddress(),
         maxAmountToSwap,
         parseUnits("2000", 18), // Requesting more than router will deliver
-        swapData
-      )
+        swapData,
+      ),
     ).to.be.revertedWithCustomError(adapter, "InsufficientOutput");
   });
-}); 
+});

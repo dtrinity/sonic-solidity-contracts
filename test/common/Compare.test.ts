@@ -2,6 +2,9 @@ import { expect } from "chai";
 import { ethers } from "hardhat";
 
 describe("Compare library", function () {
+  /**
+   *
+   */
   async function deployHarness() {
     const HarnessFactory = await ethers.getContractFactory("CompareHarness");
     const harness = await HarnessFactory.deploy();
@@ -11,54 +14,48 @@ describe("Compare library", function () {
   describe("isWithinTolerance", function () {
     it("returns true when values are equal and tolerance is 0", async function () {
       const { harness } = await deployHarness();
-      expect(
-        await harness.isWithinTolerancePublic(100n, 100n, 0n)
-      ).to.equal(true);
+      expect(await harness.isWithinTolerancePublic(100n, 100n, 0n)).to.equal(
+        true,
+      );
     });
 
     it("returns false when difference is 1 and tolerance is 0", async function () {
       const { harness } = await deployHarness();
-      expect(
-        await harness.isWithinTolerancePublic(101n, 100n, 0n)
-      ).to.equal(false);
-      expect(
-        await harness.isWithinTolerancePublic(100n, 101n, 0n)
-      ).to.equal(false);
+      expect(await harness.isWithinTolerancePublic(101n, 100n, 0n)).to.equal(
+        false,
+      );
+      expect(await harness.isWithinTolerancePublic(100n, 101n, 0n)).to.equal(
+        false,
+      );
     });
 
     it("returns true when difference equals tolerance boundary", async function () {
       const { harness } = await deployHarness();
-      expect(
-        await harness.isWithinTolerancePublic(105n, 100n, 5n)
-      ).to.equal(true);
-      expect(
-        await harness.isWithinTolerancePublic(100n, 105n, 5n)
-      ).to.equal(true);
+      expect(await harness.isWithinTolerancePublic(105n, 100n, 5n)).to.equal(
+        true,
+      );
+      expect(await harness.isWithinTolerancePublic(100n, 105n, 5n)).to.equal(
+        true,
+      );
     });
 
     it("returns true when difference is below tolerance and false when above", async function () {
       const { harness } = await deployHarness();
       // below
-      expect(
-        await harness.isWithinTolerancePublic(104n, 100n, 5n)
-      ).to.equal(true);
+      expect(await harness.isWithinTolerancePublic(104n, 100n, 5n)).to.equal(
+        true,
+      );
       // above
-      expect(
-        await harness.isWithinTolerancePublic(106n, 100n, 5n)
-      ).to.equal(false);
+      expect(await harness.isWithinTolerancePublic(106n, 100n, 5n)).to.equal(
+        false,
+      );
     });
 
     it("handles zero values correctly", async function () {
       const { harness } = await deployHarness();
-      expect(
-        await harness.isWithinTolerancePublic(0n, 0n, 0n)
-      ).to.equal(true);
-      expect(
-        await harness.isWithinTolerancePublic(0n, 1n, 1n)
-      ).to.equal(true);
-      expect(
-        await harness.isWithinTolerancePublic(1n, 0n, 0n)
-      ).to.equal(false);
+      expect(await harness.isWithinTolerancePublic(0n, 0n, 0n)).to.equal(true);
+      expect(await harness.isWithinTolerancePublic(0n, 1n, 1n)).to.equal(true);
+      expect(await harness.isWithinTolerancePublic(1n, 0n, 0n)).to.equal(false);
     });
 
     it("handles extreme max uint256 values", async function () {
@@ -66,24 +63,24 @@ describe("Compare library", function () {
       const UINT_MAX = (1n << 256n) - 1n;
       // equal
       expect(
-        await harness.isWithinTolerancePublic(UINT_MAX, UINT_MAX, 0n)
+        await harness.isWithinTolerancePublic(UINT_MAX, UINT_MAX, 0n),
       ).to.equal(true);
       // far apart: require max tolerance
       expect(
-        await harness.isWithinTolerancePublic(UINT_MAX, 0n, UINT_MAX - 1n)
+        await harness.isWithinTolerancePublic(UINT_MAX, 0n, UINT_MAX - 1n),
       ).to.equal(false);
       expect(
-        await harness.isWithinTolerancePublic(UINT_MAX, 0n, UINT_MAX)
+        await harness.isWithinTolerancePublic(UINT_MAX, 0n, UINT_MAX),
       ).to.equal(true);
     });
 
     it("is symmetric for observed < expected and observed > expected", async function () {
       const { harness } = await deployHarness();
       expect(
-        await harness.isWithinTolerancePublic(1_000_010n, 1_000_000n, 10n)
+        await harness.isWithinTolerancePublic(1_000_010n, 1_000_000n, 10n),
       ).to.equal(true);
       expect(
-        await harness.isWithinTolerancePublic(1_000_000n, 1_000_010n, 10n)
+        await harness.isWithinTolerancePublic(1_000_000n, 1_000_010n, 10n),
       ).to.equal(true);
     });
   });
@@ -91,13 +88,14 @@ describe("Compare library", function () {
   describe("checkBalanceDelta", function () {
     it("Increase: direction false when after <= before", async function () {
       const { harness } = await deployHarness();
-      const [directionOk, observedDelta, toleranceOk] = await harness.checkBalanceDeltaPublic(
-        100n,
-        100n,
-        0n,
-        0n,
-        0 // Compare.BalanceDirection.Increase
-      );
+      const [directionOk, observedDelta, toleranceOk] =
+        await harness.checkBalanceDeltaPublic(
+          100n,
+          100n,
+          0n,
+          0n,
+          0, // Compare.BalanceDirection.Increase
+        );
       expect(directionOk).to.equal(false);
       expect(observedDelta).to.equal(0n);
       expect(toleranceOk).to.equal(false);
@@ -131,13 +129,14 @@ describe("Compare library", function () {
 
     it("Decrease: direction false when after >= before", async function () {
       const { harness } = await deployHarness();
-      const [directionOk, observedDelta, toleranceOk] = await harness.checkBalanceDeltaPublic(
-        100n,
-        100n,
-        0n,
-        0n,
-        1 // Compare.BalanceDirection.Decrease
-      );
+      const [directionOk, observedDelta, toleranceOk] =
+        await harness.checkBalanceDeltaPublic(
+          100n,
+          100n,
+          0n,
+          0n,
+          1, // Compare.BalanceDirection.Decrease
+        );
       expect(directionOk).to.equal(false);
       expect(observedDelta).to.equal(0n);
       expect(toleranceOk).to.equal(false);
@@ -172,7 +171,13 @@ describe("Compare library", function () {
     it("handles extreme max uint256 delta for Increase", async function () {
       const { harness } = await deployHarness();
       const UINT_MAX = (1n << 256n) - 1n;
-      const res = await harness.checkBalanceDeltaPublic(0n, UINT_MAX, UINT_MAX, 0n, 0);
+      const res = await harness.checkBalanceDeltaPublic(
+        0n,
+        UINT_MAX,
+        UINT_MAX,
+        0n,
+        0,
+      );
       expect(res[0]).to.equal(true);
       expect(res[1]).to.equal(UINT_MAX);
       expect(res[2]).to.equal(true);
@@ -181,7 +186,13 @@ describe("Compare library", function () {
     it("handles extreme max uint256 delta for Decrease", async function () {
       const { harness } = await deployHarness();
       const UINT_MAX = (1n << 256n) - 1n;
-      const res = await harness.checkBalanceDeltaPublic(UINT_MAX, 0n, UINT_MAX, 0n, 1);
+      const res = await harness.checkBalanceDeltaPublic(
+        UINT_MAX,
+        0n,
+        UINT_MAX,
+        0n,
+        1,
+      );
       expect(res[0]).to.equal(true);
       expect(res[1]).to.equal(UINT_MAX);
       expect(res[2]).to.equal(true);
@@ -190,11 +201,22 @@ describe("Compare library", function () {
     it("tolerance = max always passes when direction is satisfied", async function () {
       const { harness } = await deployHarness();
       const UINT_MAX = (1n << 256n) - 1n;
-      let res = await harness.checkBalanceDeltaPublic(10n, 20n, 0n, UINT_MAX, 0);
+      let res = await harness.checkBalanceDeltaPublic(
+        10n,
+        20n,
+        0n,
+        UINT_MAX,
+        0,
+      );
       expect(res[2]).to.equal(true);
-      res = await harness.checkBalanceDeltaPublic(20n, 10n, UINT_MAX, UINT_MAX, 1);
+      res = await harness.checkBalanceDeltaPublic(
+        20n,
+        10n,
+        UINT_MAX,
+        UINT_MAX,
+        1,
+      );
       expect(res[2]).to.equal(true);
     });
   });
 });
-
