@@ -144,7 +144,7 @@ describe("DLoopCoreLogic - Increase Leverage", () => {
             (tc as any).k,
           );
 
-          if (numer <= 0n) {
+          if (numer < 0n) {
             await expect(
               harness.getCollateralTokenDepositAmountToReachTargetLeveragePublic(
                 tc.TT,
@@ -153,6 +153,16 @@ describe("DLoopCoreLogic - Increase Leverage", () => {
                 (tc as any).k,
               ),
             ).to.be.revertedWithPanic(0x11);
+            continue;
+          } else if (numer === 0n) {
+            const res =
+              await harness.getCollateralTokenDepositAmountToReachTargetLeveragePublic(
+                tc.TT,
+                tc.C,
+                tc.D,
+                (tc as any).k,
+              );
+            expect(res).to.equal(0n);
             continue;
           }
           const res =

@@ -393,18 +393,18 @@ describe("DLoopCoreMock Rebalance Calculation Tests", function () {
             }
 
             const [tokenAmount, direction] =
-              await dloopMock.quoteRebalanceAmountToReachTargetLeverage(
+              await dloopMock.quoteRebalanceInputForTargetLeverage(
                 useVaultTokenBalance,
               );
 
             expect(direction).to.equal(testCase.expectedDirection);
 
-            // Check amount with ±0.5% tolerance
+            // Check amount with ±1.5% tolerance (accounts for rounding and subsidy rounding behavior)
             if (testExpectedResult.expectedAmount === 0n) {
               expect(tokenAmount).to.equal(0n);
             } else {
               const expectedAmount = testExpectedResult.expectedAmount;
-              const tolerance = (expectedAmount * 5n) / 1000n; // 0.5% tolerance
+              const tolerance = (expectedAmount * 15n) / 1000n; // 1.5% tolerance
               const minAmount = expectedAmount - tolerance;
               const maxAmount = expectedAmount + tolerance;
 

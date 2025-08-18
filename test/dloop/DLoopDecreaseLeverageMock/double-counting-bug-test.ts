@@ -44,7 +44,7 @@ describe("DLoopDecreaseLeverageBase – double-counting collateral protection", 
 
     // 3️⃣ Query how much debt is actually needed to get back to target
     const [requiredDebtAmount, direction] =
-      await dloopCoreMock.quoteRebalanceAmountToReachTargetLeverage(true);
+      await dloopCoreMock.quoteRebalanceInputForTargetLeverage(true);
     expect(direction).to.equal(-1); // We need to decrease leverage
     expect(requiredDebtAmount).to.be.gt(0n);
 

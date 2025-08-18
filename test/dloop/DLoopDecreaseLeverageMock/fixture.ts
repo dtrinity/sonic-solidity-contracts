@@ -87,8 +87,16 @@ export async function deployDLoopDecreaseLeverageFixture(): Promise<DLoopDecreas
     .connect(deployer)
     .approve(dloopCoreAddress, ethers.MaxUint256);
 
-  // Deploy DLoopCoreMock
-  const DLoopCoreMockFactory = await ethers.getContractFactory("DLoopCoreMock");
+  // Deploy and link the DLoopCoreLogic library
+  const DLoopCoreLogicFactory = await ethers.getContractFactory("DLoopCoreLogic");
+  const dloopCoreLogicLib = await DLoopCoreLogicFactory.deploy();
+
+  // Deploy DLoopCoreMock (linked with library)
+  const DLoopCoreMockFactory = await ethers.getContractFactory("DLoopCoreMock", {
+    libraries: {
+      DLoopCoreLogic: await dloopCoreLogicLib.getAddress(),
+    },
+  });
   const dloopCoreMock = await DLoopCoreMockFactory.deploy(
     "Mock dLoop Vault",
     "mdLOOP",

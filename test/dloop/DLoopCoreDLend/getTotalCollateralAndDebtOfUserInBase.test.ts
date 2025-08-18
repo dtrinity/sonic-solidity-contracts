@@ -95,8 +95,18 @@ describe("DLoopCoreDLend.getTotalCollateralAndDebtOfUserInBase — per-asset onl
       await priceOracle.getAddress(),
     );
 
+    // Deploy and link the DLoopCoreLogic library for the DLend harness
+    const DLoopCoreLogicFactory = await ethers.getContractFactory(
+      "DLoopCoreLogic",
+    );
+    const dloopCoreLogicLib = await DLoopCoreLogicFactory.deploy();
     DLoopCoreDLendHarness = await ethers.getContractFactory(
       "DLoopCoreDLendHarness",
+      {
+        libraries: {
+          DLoopCoreLogic: await dloopCoreLogicLib.getAddress(),
+        },
+      },
     );
     dloop = await DLoopCoreDLendHarness.deploy(
       "DLend Vault",

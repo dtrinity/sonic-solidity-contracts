@@ -6,6 +6,7 @@ import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {BasisPointConstants} from "contracts/common/BasisPointConstants.sol";
 import {PercentageMath} from "contracts/dlend/core/protocol/libraries/math/PercentageMath.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
+import {DLoopCoreLogic} from "../../DLoopCoreLogic.sol";
 
 /**
  * @title DLoopCoreMock
@@ -199,13 +200,7 @@ contract DLoopCoreMock is DLoopCoreBase {
 
         // Make sure target user has enough balance to supply
         if (ERC20(token).balanceOf(onBehalfOf) < amount) {
-            string memory tokenSymbol = ERC20(token).symbol();
-            revert NotEnoughBalanceToSupply(
-                onBehalfOf,
-                tokenSymbol,
-                ERC20(token).balanceOf(onBehalfOf),
-                amount
-            );
+            revert("Mock: not enough balance to supply");
         }
 
         if (amount > 0) {
@@ -386,6 +381,214 @@ contract DLoopCoreMock is DLoopCoreBase {
             totalDebtBase += amountInBase;
         }
         return (totalCollateralBase, totalDebtBase);
+    }
+
+    /**
+     * Test/view helpers for quoting with optional use of vault balances
+     */
+
+    function quoteRebalanceInputForTargetLeverage(
+        bool useVaultTokenBalance
+    ) public view returns (uint256 inputTokenAmount, int8 direction) {
+        (uint256 totalCollateralBase, uint256 totalDebtBase) =
+            this.getTotalCollateralAndDebtOfUserInBase(address(this));
+
+        if (totalCollateralBase == 0) {
+            return (0, 0);
+        }
+
+        uint256 currentLeverageBps = this.getCurrentLeverageBps();
+        uint256 subsidyBps = this.getCurrentSubsidyBps();
+
+        if (currentLeverageBps < targetLeverageBps) {
+            uint256 requiredCollateralInBase = DLoopCoreLogic
+                .getCollateralTokenDepositAmountToReachTargetLeverage(
+                    targetLeverageBps,
+                    totalCollateralBase,
+                    totalDebtBase,
+                    subsidyBps
+                );
+
+            if (useVaultTokenBalance) {
+                uint256 vaultCollateral = ERC20(collateralToken).balanceOf(
+                    address(this)
+                );
+                if (vaultCollateral > 0) {
+                    uint256 vaultCollateralInBase = DLoopCoreLogic
+                        .convertFromTokenAmountToBaseCurrency(
+                            vaultCollateral,
+                            ERC20(collateralToken).decimals(),
+                            this.getAssetPriceFromOracle(
+                                address(collateralToken)
+                            )
+                        );
+                    if (vaultCollateralInBase >= requiredCollateralInBase) {
+                        requiredCollateralInBase = 0;
+                    } else {
+                        requiredCollateralInBase -= vaultCollateralInBase;
+                    }
+                }
+            }
+
+            inputTokenAmount = DLoopCoreLogic.convertFromBaseCurrencyToToken(
+                requiredCollateralInBase,
+                ERC20(collateralToken).decimals(),
+                this.getAssetPriceFromOracle(address(collateralToken))
+            );
+            direction = 1;
+            return (inputTokenAmount, direction);
+        } else if (currentLeverageBps > targetLeverageBps) {
+            uint256 requiredDebtInBase = DLoopCoreLogic
+                .getDebtRepayAmountInBaseToReachTargetLeverage(
+                    targetLeverageBps,
+                    totalCollateralBase,
+                    totalDebtBase,
+                    subsidyBps
+                );
+
+            if (useVaultTokenBalance) {
+                uint256 vaultDebt = ERC20(debtToken).balanceOf(address(this));
+                if (vaultDebt > 0) {
+                    uint256 vaultDebtInBase = DLoopCoreLogic
+                        .convertFromTokenAmountToBaseCurrency(
+                            vaultDebt,
+                            ERC20(debtToken).decimals(),
+                            this.getAssetPriceFromOracle(address(debtToken))
+                        );
+                    if (vaultDebtInBase >= requiredDebtInBase) {
+                        requiredDebtInBase = 0;
+                    } else {
+                        requiredDebtInBase -= vaultDebtInBase;
+                    }
+                }
+            }
+
+            inputTokenAmount = DLoopCoreLogic.convertFromBaseCurrencyToToken(
+                requiredDebtInBase,
+                ERC20(debtToken).decimals(),
+                this.getAssetPriceFromOracle(address(debtToken))
+            );
+            direction = -1;
+            return (inputTokenAmount, direction);
+        }
+
+        return (0, 0);
+    }
+
+
+    function testGetCollateralTokenDepositAmountToReachTargetLeverage(
+        uint256 expectedTargetLeverageBps,
+        uint256 totalCollateralBase,
+        uint256 totalDebtBase,
+        uint256 subsidyBps,
+        bool useVaultTokenBalance
+    ) external view returns (uint256) {
+        uint256 requiredCollateralInBase = DLoopCoreLogic
+            .getCollateralTokenDepositAmountToReachTargetLeverage(
+                expectedTargetLeverageBps,
+                totalCollateralBase,
+                totalDebtBase,
+                subsidyBps
+            );
+
+        if (useVaultTokenBalance) {
+            uint256 vaultCollateral = ERC20(collateralToken).balanceOf(
+                address(this)
+            );
+            if (vaultCollateral > 0) {
+                uint256 vaultCollateralInBase = DLoopCoreLogic
+                    .convertFromTokenAmountToBaseCurrency(
+                        vaultCollateral,
+                        ERC20(collateralToken).decimals(),
+                        this.getAssetPriceFromOracle(address(collateralToken))
+                    );
+                if (vaultCollateralInBase >= requiredCollateralInBase) {
+                    requiredCollateralInBase = 0;
+                } else {
+                    requiredCollateralInBase -= vaultCollateralInBase;
+                }
+            }
+        }
+
+        return DLoopCoreLogic.convertFromBaseCurrencyToToken(
+            requiredCollateralInBase,
+            ERC20(collateralToken).decimals(),
+            this.getAssetPriceFromOracle(address(collateralToken))
+        );
+    }
+
+    function testGetDebtTokenAmountToReachTargetLeverage(
+        uint256 expectedTargetLeverageBps,
+        uint256 totalCollateralBase,
+        uint256 totalDebtBase,
+        uint256 subsidyBps,
+        bool useVaultTokenBalance
+    ) external view returns (uint256) {
+        uint256 requiredDebtInBase = DLoopCoreLogic
+            .getDebtRepayAmountInBaseToReachTargetLeverage(
+                expectedTargetLeverageBps,
+                totalCollateralBase,
+                totalDebtBase,
+                subsidyBps
+            );
+
+        if (useVaultTokenBalance) {
+            uint256 vaultDebt = ERC20(debtToken).balanceOf(address(this));
+            if (vaultDebt > 0) {
+                uint256 vaultDebtInBase = DLoopCoreLogic
+                    .convertFromTokenAmountToBaseCurrency(
+                        vaultDebt,
+                        ERC20(debtToken).decimals(),
+                        this.getAssetPriceFromOracle(address(debtToken))
+                    );
+                if (vaultDebtInBase >= requiredDebtInBase) {
+                    requiredDebtInBase = 0;
+                } else {
+                    requiredDebtInBase -= vaultDebtInBase;
+                }
+            }
+        }
+
+        return DLoopCoreLogic.convertFromBaseCurrencyToToken(
+            requiredDebtInBase,
+            ERC20(debtToken).decimals(),
+            this.getAssetPriceFromOracle(address(debtToken))
+        );
+    }
+
+    function getRepayAmountThatKeepCurrentLeverage(
+        address collateral,
+        address debt,
+        uint256 targetWithdrawAmount,
+        uint256 leverageBpsBeforeRepayDebt
+    ) external view returns (uint256) {
+        return
+            DLoopCoreLogic.getRepayAmountThatKeepCurrentLeverage(
+                targetWithdrawAmount,
+                leverageBpsBeforeRepayDebt,
+                ERC20(collateral).decimals(),
+                this.getAssetPriceFromOracle(collateral),
+                ERC20(debt).decimals(),
+                this.getAssetPriceFromOracle(debt)
+            );
+    }
+
+    function getBorrowAmountThatKeepCurrentLeverage(
+        address collateral,
+        address debt,
+        uint256 suppliedCollateralAmount,
+        uint256 leverageBpsBeforeSupply
+    ) external view returns (uint256) {
+        return
+            DLoopCoreLogic.getBorrowAmountThatKeepCurrentLeverage(
+                suppliedCollateralAmount,
+                leverageBpsBeforeSupply,
+                targetLeverageBps,
+                ERC20(collateral).decimals(),
+                this.getAssetPriceFromOracle(collateral),
+                ERC20(debt).decimals(),
+                this.getAssetPriceFromOracle(debt)
+            );
     }
 
     // --- Test-only public wrappers for internal pool logic ---
