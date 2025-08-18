@@ -384,46 +384,9 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       );
     }
 
-    // 2. Configure redemption assets on the new redeemer
-    console.log(`  💎 Configuring allowed redemption assets...`);
-    const collateralAssets = config.dStable.collateralAssets;
-
-    for (const ca of collateralAssets) {
-      const assetSymbol = ca.symbol;
-      const assetAddress = ca.address;
-
-      try {
-        const isAllowed =
-          await newRedeemer.allowedRedemptionAssets(assetAddress);
-
-        if (!isAllowed) {
-          await newRedeemer.setAllowedRedemptionAssets(assetAddress, true);
-          console.log(`    ➕ Allowed ${assetSymbol} for redemption`);
-        } else {
-          console.log(`    ✓ ${assetSymbol} already allowed for redemption`);
-        }
-      } catch (e) {
-        console.log(
-          `    ⚠️ Could not set ${assetSymbol} allowed for redemption: ${(e as Error).message}`,
-        );
-
-        if (!safeManager) {
-          throw new Error(
-            `Failed to set allowed redemption assets and no Safe manager configured`,
-          );
-        }
-
-        // For now, we'll fail and require governance action
-        // In a full implementation, we'd create a Safe transaction for this
-        console.log(
-          `    🔄 Creating Safe transaction for redemption asset configuration...`,
-        );
-        allOperationsComplete = false;
-      }
-    }
-
-    // 3. Configure redemption pause states
+    // 2. Configure redemption pause states
     console.log(`  ⏸️ Configuring asset redemption pause states...`);
+    const collateralAssets = config.dStable.collateralAssets;
 
     for (const ca of collateralAssets) {
       const assetSymbol = ca.symbol;
@@ -432,7 +395,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
       try {
         const currentPauseState =
-          await newRedeemer.assetRedemptionPause(assetAddress);
+          await newRedeemer.assetRedemptionPaused(assetAddress);
 
         if (currentPauseState !== shouldPause) {
           await newRedeemer.setAssetRedemptionPause(assetAddress, shouldPause);
@@ -463,7 +426,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       }
     }
 
-    // 4. Migrate roles to governance
+    // 3. Migrate roles to governance
     console.log(`  🔐 Migrating ${t.newId} roles to governance...`);
     const rolesMigrationComplete = await migrateRedeemerRolesIdempotent(
       hre,

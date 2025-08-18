@@ -503,44 +503,9 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       );
     }
 
-    // 3. Set allowedAssetsForIssuance on the new issuer
-    console.log(`  💎 Configuring allowed assets for issuance...`);
-
-    // Example: allow USDC
-    const collateralAssets = config.dStable.collateralAssets;
-
-    for (const ca of collateralAssets) {
-      const assetSymbol = ca.symbol;
-      const assetAddress = ca.address;
-
-      try {
-        const isAllowed =
-          await newIssuer.allowedAssetsForIssuance(assetAddress);
-
-        if (!isAllowed) {
-          await newIssuer.setAllowedAssetsForIssuance(assetAddress, true);
-          console.log(`    ➕ Allowed ${assetSymbol} for issuance`);
-        } else {
-          console.log(`    ✓ ${assetSymbol} already allowed for issuance`);
-        }
-      } catch (e) {
-        console.log(
-          `    ⚠️ Could not set ${assetSymbol} allowed for issuance: ${(e as Error).message}`,
-        );
-
-        if (!safeManager) {
-          throw new Error(
-            `Failed to set allowed assets and no Safe manager configured`,
-          );
-        }
-
-        // Create Safe transaction for this operation
-        allOperationsComplete = false;
-      }
-    }
-
-    // 4. Set assetMintingPause on new issuer to match configuration
+    // 3. Set assetMintingPause on new issuer to match configuration
     console.log(`  ⏸️ Configuring asset minting pause states...`);
+    const collateralAssets = config.dStable.collateralAssets;
 
     for (const ca of collateralAssets) {
       const assetSymbol = ca.symbol;
@@ -549,7 +514,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
       try {
         const currentPauseState =
-          await newIssuer.assetMintingPause(assetAddress);
+          await newIssuer.assetMintingPaused(assetAddress);
 
         if (currentPauseState !== shouldPause) {
           await newIssuer.setAssetMintingPause(assetAddress, shouldPause);
@@ -603,7 +568,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       }
     }
 
-    // 5. Migrate roles to governance
+    // 4. Migrate roles to governance
     console.log(`  🔐 Migrating ${t.newId} roles to governance...`);
     const rolesMigrationComplete = await migrateIssuerRolesIdempotent(
       hre,
