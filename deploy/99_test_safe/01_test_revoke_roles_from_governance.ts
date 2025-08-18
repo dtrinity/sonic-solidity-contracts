@@ -77,7 +77,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     return false;
   }
 
-  const governanceMultisig = config.governanceMultisig;
+  const governanceMultisig = config.walletAddresses.governanceMultisig;
   console.log(`🔐 Governance multisig: ${governanceMultisig}`);
 
   // Define the roles to revoke
@@ -170,14 +170,14 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   try {
     // Create batch transaction
-    const batchResult = await safeManager.createBatchTransaction(
-      transactions.map((t) => ({
+    const batchResult = await safeManager.createBatchTransaction({
+      transactions: transactions.map((t) => ({
         to: t.to,
         value: t.value,
         data: t.data,
       })),
-      `Test: Revoke ${transactions.length} roles from governance`,
-    );
+      description: `Test: Revoke ${transactions.length} roles from governance`,
+    });
 
     if (!batchResult.success) {
       console.error(
@@ -189,7 +189,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     if (batchResult.requiresAdditionalSignatures) {
       console.log(`\n📤 Safe transaction created successfully!`);
       console.log(
-        `   Awaiting ${batchResult.signaturesRequired} signatures from governance multisig owners`,
+        `   Awaiting additional signatures from governance multisig owners`,
       );
       console.log(`\n⏳ Test transaction pending governance execution`);
       allOperationsComplete = false;

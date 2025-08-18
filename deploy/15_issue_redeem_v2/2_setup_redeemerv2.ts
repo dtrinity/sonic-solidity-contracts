@@ -275,7 +275,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   console.log(`\n≻ ${__filename.split("/").slice(-2).join("/")}: executing...`);
 
-  const governanceMultisig = config.governanceMultisig;
+  const governanceMultisig = config.walletAddresses.governanceMultisig;
   console.log(`🔐 Governance multisig: ${governanceMultisig}`);
 
   const redeemerTransitions = [
@@ -384,47 +384,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       );
     }
 
-    // 2. Configure redemption pause states
-    console.log(`  ⏸️ Configuring asset redemption pause states...`);
-    const collateralAssets = config.dStable.collateralAssets;
-
-    for (const ca of collateralAssets) {
-      const assetSymbol = ca.symbol;
-      const assetAddress = ca.address;
-      const shouldPause = ca.redemptionPaused || false;
-
-      try {
-        const currentPauseState =
-          await newRedeemer.assetRedemptionPaused(assetAddress);
-
-        if (currentPauseState !== shouldPause) {
-          await newRedeemer.setAssetRedemptionPause(assetAddress, shouldPause);
-          console.log(
-            `    ${shouldPause ? "⏸️" : "▶️"} Set ${assetSymbol} redemption pause to ${shouldPause}`,
-          );
-        } else {
-          console.log(
-            `    ✓ ${assetSymbol} redemption pause already set to ${shouldPause}`,
-          );
-        }
-      } catch (e) {
-        console.log(
-          `    ⚠️ Could not set ${assetSymbol} redemption pause: ${(e as Error).message}`,
-        );
-
-        if (!safeManager) {
-          throw new Error(
-            `Failed to set redemption pause and no Safe manager configured`,
-          );
-        }
-
-        // For now, we'll fail and require governance action
-        console.log(
-          `    🔄 Creating Safe transaction for redemption pause configuration...`,
-        );
-        allOperationsComplete = false;
-      }
-    }
+    // 2. Note: Asset redemption pause configuration would go here if needed
+    // Currently all assets default to unpaused (redemption enabled)
 
     // 3. Migrate roles to governance
     console.log(`  🔐 Migrating ${t.newId} roles to governance...`);

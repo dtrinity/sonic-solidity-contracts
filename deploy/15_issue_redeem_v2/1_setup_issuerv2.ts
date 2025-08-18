@@ -7,7 +7,6 @@ import {
   createGrantMinterRoleTransaction,
   createGrantRoleTransaction,
   createRevokeRoleTransaction,
-  createSetAssetMintingPauseTransaction,
 } from "../../scripts/safe/propose-governance-transaction";
 import {
   DS_AMO_MANAGER_ID,
@@ -374,7 +373,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   console.log(`\n≻ ${__filename.split("/").slice(-2).join("/")}: executing...`);
 
-  const governanceMultisig = config.governanceMultisig;
+  const governanceMultisig = config.walletAddresses.governanceMultisig;
   console.log(`🔐 Governance multisig: ${governanceMultisig}`);
 
   const issuerTransitions = [
@@ -503,70 +502,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       );
     }
 
-    // 3. Set assetMintingPause on new issuer to match configuration
-    console.log(`  ⏸️ Configuring asset minting pause states...`);
-    const collateralAssets = config.dStable.collateralAssets;
-
-    for (const ca of collateralAssets) {
-      const assetSymbol = ca.symbol;
-      const assetAddress = ca.address;
-      const shouldPause = ca.mintingPaused || false;
-
-      try {
-        const currentPauseState =
-          await newIssuer.assetMintingPaused(assetAddress);
-
-        if (currentPauseState !== shouldPause) {
-          await newIssuer.setAssetMintingPause(assetAddress, shouldPause);
-          console.log(
-            `    ${shouldPause ? "⏸️" : "▶️"} Set ${assetSymbol} minting pause to ${shouldPause}`,
-          );
-        } else {
-          console.log(
-            `    ✓ ${assetSymbol} minting pause already set to ${shouldPause}`,
-          );
-        }
-      } catch (e) {
-        console.log(
-          `    ⚠️ Could not set ${assetSymbol} minting pause: ${(e as Error).message}`,
-        );
-
-        if (!safeManager) {
-          throw new Error(
-            `Failed to set minting pause and no Safe manager configured`,
-          );
-        }
-
-        console.log(
-          `    🔄 Creating Safe transaction for minting pause configuration...`,
-        );
-        const transaction = createSetAssetMintingPauseTransaction(
-          newIssuerAddress,
-          assetAddress,
-          shouldPause,
-          newIssuer.interface,
-        );
-        const result = await safeManager.createTransaction(
-          transaction,
-          `Set ${assetSymbol} minting pause to ${shouldPause}`,
-        );
-
-        if (!result.success) {
-          throw new Error(`Failed to create Safe transaction: ${result.error}`);
-        }
-
-        if (result.requiresAdditionalSignatures) {
-          console.log(
-            `    📤 Safe transaction created, awaiting governance signatures`,
-          );
-          allOperationsComplete = false;
-        } else if (result.transactionHash) {
-          console.log(
-            `    ✅ Safe transaction executed: ${result.transactionHash}`,
-          );
-        }
-      }
-    }
+    // 3. Note: Asset minting pause configuration would go here if needed
+    // Currently all assets default to unpaused (minting enabled)
 
     // 4. Migrate roles to governance
     console.log(`  🔐 Migrating ${t.newId} roles to governance...`);
