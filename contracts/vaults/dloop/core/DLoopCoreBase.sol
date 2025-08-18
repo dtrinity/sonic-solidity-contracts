@@ -25,6 +25,7 @@ import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol
 import {RescuableVault} from "contracts/common/RescuableVault.sol";
 import {DLoopCoreLogic} from "./DLoopCoreLogic.sol";
 import {Compare} from "contracts/common/Compare.sol";
+import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
 /**
  * @title DLoopCoreBase
@@ -517,6 +518,16 @@ abstract contract DLoopCoreBase is
         uint256 amount,
         address onBehalfOf
     ) internal returns (uint256) {
+        // Get the debt position before repaying
+        uint256 debtPositionBeforeRepay = getDebtValueInTokenAmount(
+            token,
+            onBehalfOf
+        );
+
+        // Cap the amount to repay to the debt position to avoid
+        // later balance assertion
+        amount = Math.min(amount, debtPositionBeforeRepay);
+
         // At this step, we assume that the funds from the depositor are already in the vault
 
         uint256 tokenBalanceBeforeRepay = ERC20(token).balanceOf(onBehalfOf);
@@ -565,6 +576,16 @@ abstract contract DLoopCoreBase is
         uint256 amount,
         address onBehalfOf
     ) internal returns (uint256) {
+        // Get the collateral position before withdrawing
+        uint256 collateralPositionBeforeWithdraw = getCollateralValueInTokenAmount(
+                token,
+                onBehalfOf
+            );
+
+        // Cap the amount to withdraw to the collateral position to avoid
+        // later balance assertion
+        amount = Math.min(amount, collateralPositionBeforeWithdraw);
+
         // At this step, we assume that the funds from the depositor are already in the vault
 
         uint256 tokenBalanceBeforeWithdraw = ERC20(token).balanceOf(onBehalfOf);
