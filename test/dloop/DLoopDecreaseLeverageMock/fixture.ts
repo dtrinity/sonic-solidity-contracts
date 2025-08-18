@@ -72,6 +72,12 @@ export async function deployDLoopDecreaseLeverageFixture(): Promise<DLoopDecreas
   await collateralToken.mint(mockPool, ethers.parseEther("1000000"));
   await debtToken.mint(mockPool, ethers.parseEther("1000000"));
 
+  // Deploy and link DLoopCoreLogic library before deploying DLoopCoreMock
+  const DLoopCoreLogicFactory =
+    await ethers.getContractFactory("DLoopCoreLogic");
+  const dloopCoreLogicLib = await DLoopCoreLogicFactory.deploy();
+  await dloopCoreLogicLib.waitForDeployment();
+
   // Get exact nonce for DLoopCoreMock deployment and set up allowances
   const currentNonce = await ethers.provider.getTransactionCount(deployer);
   const dloopCoreAddress = ethers.getCreateAddress({
@@ -87,8 +93,16 @@ export async function deployDLoopDecreaseLeverageFixture(): Promise<DLoopDecreas
     .connect(deployer)
     .approve(dloopCoreAddress, ethers.MaxUint256);
 
-  // Deploy DLoopCoreMock
-  const DLoopCoreMockFactory = await ethers.getContractFactory("DLoopCoreMock");
+  // Deploy DLoopCoreMock (linking the DLoopCoreLogic library)
+  const DLoopCoreMockFactory = await ethers.getContractFactory(
+    "DLoopCoreMock",
+    {
+      libraries: {
+        "contracts/vaults/dloop/core/DLoopCoreLogic.sol:DLoopCoreLogic":
+          await dloopCoreLogicLib.getAddress(),
+      },
+    },
+  );
   const dloopCoreMock = await DLoopCoreMockFactory.deploy(
     "Mock dLoop Vault",
     "mdLOOP",
@@ -98,6 +112,7 @@ export async function deployDLoopDecreaseLeverageFixture(): Promise<DLoopDecreas
     LOWER_BOUND_BPS,
     UPPER_BOUND_BPS,
     MAX_SUBSIDY_BPS,
+    0, // minDeviationBps
     0, // withdrawalFeeBps
     mockPool,
   );

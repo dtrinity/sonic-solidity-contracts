@@ -393,9 +393,7 @@ describe("DLoopCoreMock Rebalance Calculation Tests", function () {
             }
 
             const [tokenAmount, direction] =
-              await dloopMock.quoteRebalanceAmountToReachTargetLeverage(
-                useVaultTokenBalance,
-              );
+              await dloopMock.quoteRebalanceAmountToReachTargetLeverage();
 
             expect(direction).to.equal(testCase.expectedDirection);
 
