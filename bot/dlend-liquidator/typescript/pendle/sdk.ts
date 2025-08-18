@@ -155,7 +155,7 @@ export async function callSDK<Data>(
  * @param slippage The slippage tolerance for the swap
  * @returns The SDK response containing transaction data and result data
  */
-export async function swapExactIn(
+export async function estimateSwapExactIn(
   tokenIn: string,
   amountIn: string,
   tokenOut: string,

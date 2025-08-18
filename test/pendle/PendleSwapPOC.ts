@@ -1,6 +1,6 @@
 import { ethers, network } from "hardhat";
 
-import { swapExactIn } from "../../typescript/pendle/sdk";
+import { estimateSwapExactIn } from "../../typescript/pendle/sdk";
 import { SONIC_MAINNET_PT_TOKENS } from "./fixture";
 
 describe("PendleSwapPOC - Mainnet Integration", function () {
@@ -58,7 +58,7 @@ describe("PendleSwapPOC - Mainnet Integration", function () {
     console.log(`Receiver: ${receiver}`);
 
     try {
-      const response = await swapExactIn(
+      const response = await estimateSwapExactIn(
         ptToken,
         amountIn,
         tokenOut,
