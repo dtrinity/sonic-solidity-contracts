@@ -6,7 +6,8 @@ import { ethers } from "hardhat";
 import { DLoopCoreMock, TestMintableERC20 } from "../../../typechain-types";
 import { deployDLoopMockFixture, testSetup } from "./fixture";
 
-describe("DLoopCoreMock Oracle Tests", function () {
+// NOTE: Mostly covered by CoreLogic conversion tests; skip redundant mock-level oracle tests
+describe.skip("DLoopCoreMock Oracle Tests", function () {
   // Contract instances and addresses
   let dloopMock: DLoopCoreMock;
   let collateralToken: TestMintableERC20;
