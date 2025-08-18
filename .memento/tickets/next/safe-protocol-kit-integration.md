@@ -7,9 +7,11 @@
 
 ## Problem Statement
 
-The dTRINITY protocol currently requires **manual intervention** for critical governance operations, particularly for multi-signature wallet transactions that transfer admin roles from deployer accounts to the governance multisig. This manual process presents several issues:
+The dTRINITY protocol currently requires **manual intervention** for governance wallet (Safe multisig) operations. It's important to distinguish between two types of operations:
 
-### Current Manual Operations Identified:
+### Operations That DO NOT Need Safe SDK (Deployer → Governance Transfers):
+
+These are operations where the deployer wallet transfers roles TO the governance wallet. The deployer can sign these locally:
 
 1. **Role Transfer Scripts** (Deploy scripts in `deploy/04_assign_roles_to_multisig/`):
    - `01_transfer_dstable_roles_to_multisig.ts` - Transfers dStable ecosystem roles
@@ -18,21 +20,31 @@ The dTRINITY protocol currently requires **manual intervention** for critical go
    - `04_transfer_oracle_wrapper_roles_to_multisig.ts` - Transfers oracle wrapper roles
    - `deploy/08_dstake/05_transfer_dstake_roles_to_multisig.ts` - Transfers dStake roles
 
-2. **Manual Confirmation Script**: 
-   - `scripts/roles/scan-forfeit-roles.ts` - Contains interactive readline prompt asking "Do you want to transfer the listed roles and ownership to the governance multisig? (yes/no):"
+**Current Status**: These are already automated with idempotency checks and work correctly.
 
-3. **Critical Governance Operations** requiring multisig execution:
-   - **AccessControl Role Management**: DEFAULT_ADMIN_ROLE, PAUSER_ROLE, MINTER_ROLE, AMO_MANAGER_ROLE, INCENTIVES_MANAGER_ROLE, REDEMPTION_MANAGER_ROLE, ORACLE_MANAGER_ROLE, COLLATERAL_MANAGER_ROLE, etc.
-   - **Ownership Transfers**: Pool addresses provider, emission manager, reserves setup helper ownership
-   - **ACL Management**: Pool admin, emergency admin roles in dLend
-   - **Oracle Configuration**: Oracle aggregator and wrapper configurations
-   - **Protocol Parameter Updates**: Fee settings, leverage bounds, collateral configurations
+### Operations That DO Need Safe SDK (Governance Wallet Execution):
+
+These are operations where the governance wallet needs to sign and execute transactions:
+
+1. **Post-Transfer Configuration** (Critical Path Blockers):
+   - **IssuerV2/RedeemerV2 Setup** (`deploy/15_issue_redeem_v2/*.ts`): After governance receives admin roles, the deployer can no longer grant/revoke roles on these contracts
+   - These scripts collect failed operations in a `manualActions` array that outputs "Manual actions required to finalize setup"
+   - Example operations: `ERC20StablecoinUpgradeable.grantRole(MINTER_ROLE, address)`, `IssuerV2.revokeRole(role, deployerAddress)`
+
+2. **Manual Confirmation Script**: 
+   - `scripts/roles/scan-forfeit-roles.ts` - Contains interactive readline prompts for governance operations
+
+3. **Future Governance Operations**:
+   - Protocol parameter updates
+   - Emergency operations
+   - Contract upgrades
+   - Oracle feed updates
 
 ### Pain Points:
-- **Security Risk**: Manual signing process prone to human error
-- **Operational Overhead**: Requires coordination between multiple signers
-- **Deployment Bottlenecks**: Cannot fully automate deployment pipelines
-- **Inconsistent Execution**: Manual processes may be executed differently each time
+- **Async Execution Challenge**: Governance signing is asynchronous - deployment scripts finish but governance transactions remain queued
+- **Execution Order Dependencies**: Safe transactions must be executed in correct order to avoid failures
+- **Idempotency Requirements**: Deploy scripts must handle cases where they're re-run after partial governance execution
+- **Manual Intervention**: Currently requires manual creation and signing of Safe transactions
 - **No Transaction Batching**: Each operation requires separate manual signing
 
 ## Proposed Solution
@@ -51,15 +63,18 @@ Integrate **Safe Protocol Kit SDK** to automate multi-signature governance opera
 
 ### Files Requiring Modification:
 
-#### 1. Core Deployment Scripts:
+#### 1. Scripts That Need Safe SDK Integration (Governance Wallet Operations):
+- `deploy/15_issue_redeem_v2/1_setup_issuerv2.ts` - Parse and execute manualActions array
+- `deploy/15_issue_redeem_v2/2_setup_redeemerv2.ts` - Parse and execute manualActions array
+- `scripts/roles/scan-forfeit-roles.ts` - Replace readline prompts with Safe transactions
+
+#### 2. Scripts That DO NOT Need Modification (Deployer Operations):
+The following scripts already work correctly and don't need Safe SDK since the deployer signs locally:
 - `deploy/04_assign_roles_to_multisig/01_transfer_dstable_roles_to_multisig.ts`
 - `deploy/04_assign_roles_to_multisig/02_transfer_oracle_roles_to_multisig.ts`  
 - `deploy/04_assign_roles_to_multisig/03_transfer_dlend_roles_to_multisig.ts`
 - `deploy/04_assign_roles_to_multisig/04_transfer_oracle_wrapper_roles_to_multisig.ts`
 - `deploy/08_dstake/05_transfer_dstake_roles_to_multisig.ts`
-
-#### 2. Manual Confirmation Scripts:
-- `scripts/roles/scan-forfeit-roles.ts` - Remove readline prompts, add Safe integration
 
 #### 3. Configuration Files:
 - `config/networks/sonic_mainnet.ts` - Add Safe configuration
@@ -74,6 +89,54 @@ Integrate **Safe Protocol Kit SDK** to automate multi-signature governance opera
 
 #### 5. Package Dependencies:
 - `package.json` - Add Safe Protocol Kit dependencies
+
+## Async Execution and Idempotency Requirements
+
+### Critical Design Considerations:
+
+1. **Asynchronous Governance Signing**:
+   - Deploy scripts complete immediately after creating Safe transactions
+   - Governance multisig signers review and sign transactions asynchronously
+   - Transactions may be executed hours or days after creation
+   - Scripts must NOT block waiting for governance signatures
+
+2. **Execution Order Dependencies**:
+   - Safe transactions must maintain correct execution order
+   - Example: Must grant role before revoking from another address
+   - Transactions should be numbered or include nonce for ordering
+   - Failed transactions should not block subsequent valid operations
+
+3. **Idempotency Requirements**:
+   - Deploy scripts must be re-runnable without duplicating transactions
+   - Check if Safe transaction already exists before creating new one
+   - Verify on-chain state before proposing governance operations
+   - Example flow:
+     ```typescript
+     // First run: Script creates Safe transaction and exits
+     if (!hasRole(MINTER_ROLE, newAddress)) {
+       await safeManager.proposeTransaction(grantMinterRole);
+       console.log("Safe transaction proposed, awaiting governance execution");
+       return false; // Script indicates incomplete
+     }
+     
+     // Second run (after governance executes): Script detects role granted
+     if (hasRole(MINTER_ROLE, newAddress)) {
+       console.log("Role already granted via governance");
+       return true; // Script indicates complete
+     }
+     ```
+
+4. **Script Completion Strategy**:
+   - Scripts should return status indicating if governance action is pending
+   - Use deployment state tracking to record pending Safe transactions
+   - On re-run, check if pending transactions were executed
+   - Only proceed with dependent operations after governance execution
+
+5. **Transaction Tracking**:
+   - Store Safe transaction hashes in deployment artifacts
+   - Track transaction status (proposed, signed, executed)
+   - Provide visibility into pending governance operations
+   - Enable querying of transaction execution status
 
 ## Implementation Plan
 
@@ -98,21 +161,28 @@ Integrate **Safe Protocol Kit SDK** to automate multi-signature governance opera
    - `scripts/safe/execute-governance-batch.ts` - For executing batched transactions
    - `scripts/safe/propose-governance-transaction.ts` - For proposing transactions to other signers
 
-### Phase 2: Migration of Role Transfer Scripts (Week 2)
-1. **Refactor Role Transfer Scripts**:
-   - Replace direct contract interactions with Safe transactions
-   - Implement transaction batching for efficient execution
-   - Add pre-transaction validation and simulation
-   - Maintain backward compatibility during transition
+### Phase 2: Integration with Governance Operations (Week 2)
+1. **Update IssuerV2/RedeemerV2 Setup Scripts**:
+   - Parse `manualActions` array and convert to Safe transactions
+   - Implement idempotency checks before creating transactions
+   - Add transaction status tracking in deployment artifacts
+   - Handle script re-runs after partial governance execution
 
 2. **Update Manual Confirmation Script**:
    - Replace readline prompts with Safe transaction creation
    - Add transaction preview and confirmation mechanisms
    - Implement dry-run capabilities for testing
 
-3. **Testing**:
-   - Create comprehensive test suite for Safe integration
-   - Test transaction batching and role transfer scenarios
+3. **Implement Async Handling**:
+   - Create mechanism to track pending Safe transactions
+   - Add status checks for governance execution completion
+   - Implement graceful failure with clear status reporting
+   - Enable scripts to resume after governance signs
+
+4. **Testing**:
+   - Test idempotent script execution
+   - Validate transaction ordering and dependencies
+   - Test re-run scenarios with partial governance execution
    - Validate against sonic_testnet before mainnet deployment
 
 ### Phase 3: Advanced Features and Production Readiness (Week 3)
