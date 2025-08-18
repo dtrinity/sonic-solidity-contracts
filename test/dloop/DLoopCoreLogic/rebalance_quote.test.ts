@@ -19,131 +19,116 @@ describe("DLoopCoreLogic - Rebalance Quote", () => {
   }
 
   describe("quoteRebalanceAmountToReachTargetLeverage", () => {
-    it("table-driven cases", async () => {
-      const { harness } = await deployHarness();
+    const cases = [
+      {
+        name: "no collateral",
+        C: 0n,
+        D: 0n,
+        current: 0n,
+        target: 2n * SCALE,
+        k: 0n,
+        cDec: 18n,
+        cPrice: pow10(18n),
+        dDec: 18n,
+        dPrice: pow10(18n),
+        expectedDir: 0,
+      },
+      {
+        name: "increase simple",
+        C: 1_000_000n,
+        D: 500_000n,
+        current: 2n * SCALE,
+        target: 3n * SCALE,
+        k: 0n,
+        cDec: 18n,
+        cPrice: pow10(18n),
+        dDec: 18n,
+        dPrice: pow10(18n),
+        expectedDir: 1,
+      },
+      {
+        name: "decrease with subsidy (label corrected)",
+        C: 1_000_000n,
+        D: 666_666n,
+        current: 3n * SCALE,
+        target: 2n * SCALE,
+        k: 100n,
+        cDec: 18n,
+        cPrice: pow10(18n),
+        dDec: 18n,
+        dPrice: pow10(18n),
+        expectedDir: -1,
+      },
+      {
+        name: "decrease simple",
+        C: 2_000_000n,
+        D: 1_000_000n,
+        current: 3n * SCALE,
+        target: 2n * SCALE,
+        k: 0n,
+        cDec: 18n,
+        cPrice: pow10(18n),
+        dDec: 18n,
+        dPrice: pow10(18n),
+        expectedDir: -1,
+      },
+      {
+        name: "decrease with subsidy",
+        C: 2_000_000n,
+        D: 1_000_000n,
+        current: 3n * SCALE,
+        target: 2n * SCALE,
+        k: 333n,
+        cDec: 18n,
+        cPrice: pow10(18n),
+        dDec: 18n,
+        dPrice: pow10(18n),
+        expectedDir: -1,
+      },
+      {
+        name: "already at target",
+        C: 1_000_000n,
+        D: 500_000n,
+        current: 2n * SCALE,
+        target: 2n * SCALE,
+        k: 0n,
+        cDec: 18n,
+        cPrice: pow10(18n),
+        dDec: 18n,
+        dPrice: pow10(18n),
+        expectedDir: 0,
+      },
+      {
+        name: "increase with decimals/prices mismatch",
+        C: 5_000_000n,
+        D: 2_000_000n,
+        current: (5n * SCALE) / 2n, // 2.5x
+        target: 3n * SCALE, // 3x
+        k: 0n,
+        cDec: 6n,
+        cPrice: 1_000_000n, // 1e6
+        dDec: 18n,
+        dPrice: 5n * pow10(17n), // 0.5e18
+        expectedDir: 1,
+      },
+      {
+        name: "decrease with decimals/prices mismatch",
+        C: 2_000_000n,
+        D: 1_600_000n,
+        current: (2_000_000n * SCALE) / 400_000n, // 5x
+        target: 3n * SCALE, // 3x
+        k: 250n,
+        cDec: 18n,
+        cPrice: 2n * pow10(18n), // 2e18
+        dDec: 6n,
+        dPrice: 1_000_000n, // 1e6
+        expectedDir: -1,
+      },
+    ];
 
-      type Case = {
-        name: string;
-        C: bigint; // totalCollateralBase
-        D: bigint; // totalDebtBase
-        current: bigint;
-        target: bigint;
-        k: bigint; // subsidyBps
-        cDec: bigint;
-        cPrice: bigint;
-        dDec: bigint;
-        dPrice: bigint;
-        expectedDir: number;
-      };
-
-      const cases: Case[] = [
-        {
-          name: "no collateral",
-          C: 0n,
-          D: 0n,
-          current: 0n,
-          target: 2n * SCALE,
-          k: 0n,
-          cDec: 18n,
-          cPrice: pow10(18n),
-          dDec: 18n,
-          dPrice: pow10(18n),
-          expectedDir: 0,
-        },
-        {
-          name: "increase simple",
-          C: 1_000_000n,
-          D: 500_000n,
-          current: 2n * SCALE,
-          target: 3n * SCALE,
-          k: 0n,
-          cDec: 18n,
-          cPrice: pow10(18n),
-          dDec: 18n,
-          dPrice: pow10(18n),
-          expectedDir: 1,
-        },
-        {
-          name: "decrease with subsidy (label corrected)",
-          C: 1_000_000n,
-          D: 666_666n,
-          current: 3n * SCALE,
-          target: 2n * SCALE,
-          k: 100n,
-          cDec: 18n,
-          cPrice: pow10(18n),
-          dDec: 18n,
-          dPrice: pow10(18n),
-          expectedDir: -1,
-        },
-        {
-          name: "decrease simple",
-          C: 2_000_000n,
-          D: 1_000_000n,
-          current: 3n * SCALE,
-          target: 2n * SCALE,
-          k: 0n,
-          cDec: 18n,
-          cPrice: pow10(18n),
-          dDec: 18n,
-          dPrice: pow10(18n),
-          expectedDir: -1,
-        },
-        {
-          name: "decrease with subsidy",
-          C: 2_000_000n,
-          D: 1_000_000n,
-          current: 3n * SCALE,
-          target: 2n * SCALE,
-          k: 333n,
-          cDec: 18n,
-          cPrice: pow10(18n),
-          dDec: 18n,
-          dPrice: pow10(18n),
-          expectedDir: -1,
-        },
-        {
-          name: "already at target",
-          C: 1_000_000n,
-          D: 500_000n,
-          current: 2n * SCALE,
-          target: 2n * SCALE,
-          k: 0n,
-          cDec: 18n,
-          cPrice: pow10(18n),
-          dDec: 18n,
-          dPrice: pow10(18n),
-          expectedDir: 0,
-        },
-        {
-          name: "increase with decimals/prices mismatch",
-          C: 5_000_000n,
-          D: 2_000_000n,
-          current: (5n * SCALE) / 2n, // 2.5x
-          target: 3n * SCALE, // 3x
-          k: 0n,
-          cDec: 6n,
-          cPrice: 1_000_000n, // 1e6
-          dDec: 18n,
-          dPrice: 5n * pow10(17n), // 0.5e18
-          expectedDir: 1,
-        },
-        {
-          name: "decrease with decimals/prices mismatch",
-          C: 2_000_000n,
-          D: 1_600_000n,
-          current: (2_000_000n * SCALE) / 400_000n, // 5x
-          target: 3n * SCALE, // 3x
-          k: 250n,
-          cDec: 18n,
-          cPrice: 2n * pow10(18n), // 2e18
-          dDec: 6n,
-          dPrice: 1_000_000n, // 1e6
-          expectedDir: -1,
-        },
-      ];
-
-      for (const tc of cases) {
+    for (const tc of cases) {
+      it(tc.name, async () => {
+        const { harness } = await deployHarness();
         const [inputTokenAmount, estimatedOutputTokenAmount, direction] =
           await harness.quoteRebalanceAmountToReachTargetLeveragePublic(
             tc.C,
@@ -172,10 +157,7 @@ describe("DLoopCoreLogic - Rebalance Quote", () => {
               Number(tc.cDec),
               tc.cPrice,
             );
-          expect(inputTokenAmount).to.equal(
-            expectedInputToken,
-            tc.name + " input",
-          );
+          expect(inputTokenAmount).to.equal(expectedInputToken);
           const yBase =
             await harness.getDebtBorrowAmountInBaseToIncreaseLeveragePublic(
               xBase,
@@ -187,10 +169,7 @@ describe("DLoopCoreLogic - Rebalance Quote", () => {
               Number(tc.dDec),
               tc.dPrice,
             );
-          expect(estimatedOutputTokenAmount).to.equal(
-            expectedOutputToken,
-            tc.name + " output",
-          );
+          expect(estimatedOutputTokenAmount).to.equal(expectedOutputToken);
         } else if (tc.current > tc.target && direction === -1n) {
           const yBase =
             await harness.getDebtRepayAmountInBaseToReachTargetLeveragePublic(
@@ -205,10 +184,7 @@ describe("DLoopCoreLogic - Rebalance Quote", () => {
               Number(tc.dDec),
               tc.dPrice,
             );
-          expect(inputTokenAmount).to.equal(
-            expectedInputToken,
-            tc.name + " input",
-          );
+          expect(inputTokenAmount).to.equal(expectedInputToken);
           const xBase =
             await harness.getCollateralWithdrawAmountInBaseToDecreaseLeveragePublic(
               yBase,
@@ -220,10 +196,7 @@ describe("DLoopCoreLogic - Rebalance Quote", () => {
               Number(tc.cDec),
               tc.cPrice,
             );
-          expect(estimatedOutputTokenAmount).to.equal(
-            expectedOutputToken,
-            tc.name + " output",
-          );
+          expect(estimatedOutputTokenAmount).to.equal(expectedOutputToken);
         } else {
           // At target: both amounts should be zero
           if (tc.current === tc.target) {
@@ -231,9 +204,9 @@ describe("DLoopCoreLogic - Rebalance Quote", () => {
             expect(estimatedOutputTokenAmount).to.equal(0n);
           }
         }
-        expect(direction).to.equal(tc.expectedDir, tc.name + " dir");
-      }
-    });
+        expect(direction).to.equal(tc.expectedDir);
+      });
+    }
 
     it("produces final leverage close to target (property)", async () => {
       const { harness } = await deployHarness();
