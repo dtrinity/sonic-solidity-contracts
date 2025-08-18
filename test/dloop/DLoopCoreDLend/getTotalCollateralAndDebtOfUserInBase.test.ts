@@ -101,19 +101,19 @@ describe("DLoopCoreDLend.getTotalCollateralAndDebtOfUserInBase — per-asset onl
     dloop = await DLoopCoreDLendHarness.deploy(
       "DLend Vault",
       "DLV",
-      await collateral.getAddress(),
-      await debt.getAddress(),
-      await addressesProvider.getAddress(),
+      await collateral.getAddress(), // collateralToken
+      await debt.getAddress(), // debtToken
+      await addressesProvider.getAddress(), // lendingPoolAddressesProvider
       3_000_000, // targetLeverageBps
-      2_500_000, // lower
-      3_500_000, // upper
-      0,
-      ethers.ZeroAddress,
-      await collateral.getAddress(),
-      ethers.ZeroAddress,
-      await admin.getAddress(),
-      300_000,
-      100_000,
+      2_500_000, // lowerBoundTargetLeverageBps
+      3_500_000, // upperBoundTargetLeverageBps
+      0, // maxSubsidyBps
+      ethers.ZeroAddress, // minDeviationBps
+      await collateral.getAddress(), // dLendAssetToClaimFor
+      ethers.ZeroAddress, // targetStaticATokenWrapper
+      await admin.getAddress(), // treasury
+      300_000, // maxTreasuryFeeBps
+      100_000, // initialTreasuryFeeBps
       ethers.parseEther("1"),
     );
   });
