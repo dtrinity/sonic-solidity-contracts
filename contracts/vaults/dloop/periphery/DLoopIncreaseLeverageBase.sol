@@ -27,7 +27,6 @@ import {DLoopCoreBase} from "../core/DLoopCoreBase.sol";
 import {SwappableVault} from "contracts/common/SwappableVault.sol";
 import {RescuableVault} from "contracts/common/RescuableVault.sol";
 import {BasisPointConstants} from "contracts/common/BasisPointConstants.sol";
-import {DLoopIncreaseLeverageLogic} from "./helper/DLoopIncreaseLeverageLogic.sol";
 
 /**
  * @title DLoopIncreaseLeverageBase
@@ -165,8 +164,11 @@ abstract contract DLoopIncreaseLeverageBase is
         }
 
         // Calculate the required collateral amount to reach target leverage
-        (uint256 requiredCollateralAmount, , int8 direction) = dLoopCore
-            .quoteRebalanceAmountToReachTargetLeverage(); // Use vault token balance
+        (
+            uint256 requiredCollateralAmount,
+            uint256 estimatedOutputTokenAmount,
+            int8 direction
+        ) = dLoopCore.quoteRebalanceAmountToReachTargetLeverage(); // Use vault token balance
 
         // Verify we need to increase leverage
         if (direction != 1) {
@@ -480,14 +482,13 @@ abstract contract DLoopIncreaseLeverageBase is
     function _encodeParamsToData(
         FlashLoanParams memory _flashLoanParams
     ) internal pure returns (bytes memory data) {
-        return
-            DLoopIncreaseLeverageLogic.encodeFlashLoanParams(
-                _flashLoanParams.user,
-                _flashLoanParams.additionalCollateralFromUser,
-                _flashLoanParams.requiredCollateralAmount,
-                _flashLoanParams.debtTokenToCollateralSwapData,
-                _flashLoanParams.dLoopCore
-            );
+        data = abi.encode(
+            _flashLoanParams.user,
+            _flashLoanParams.additionalCollateralFromUser,
+            _flashLoanParams.requiredCollateralAmount,
+            _flashLoanParams.debtTokenToCollateralSwapData,
+            _flashLoanParams.dLoopCore
+        );
     }
 
     /**
@@ -504,6 +505,6 @@ abstract contract DLoopIncreaseLeverageBase is
             _flashLoanParams.requiredCollateralAmount,
             _flashLoanParams.debtTokenToCollateralSwapData,
             _flashLoanParams.dLoopCore
-        ) = DLoopIncreaseLeverageLogic.decodeFlashLoanParams(data);
+        ) = abi.decode(data, (address, uint256, uint256, bytes, DLoopCoreBase));
     }
 }

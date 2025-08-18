@@ -29,7 +29,6 @@ import {RescuableVault} from "contracts/common/RescuableVault.sol";
 import {BasisPointConstants} from "contracts/common/BasisPointConstants.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {SharedLogic} from "./helper/SharedLogic.sol";
-import {DLoopDepositorLogic} from "./helper/DLoopDepositorLogic.sol";
 
 /**
  * @title DLoopDepositorBase
@@ -155,11 +154,21 @@ abstract contract DLoopDepositorBase is
         uint256 slippageBps,
         DLoopCoreBase dLoopCore
     ) public view returns (uint256) {
+        if (slippageBps > BasisPointConstants.ONE_HUNDRED_PERCENT_BPS) {
+            revert SlippageBpsCannotExceedOneHundredPercent(slippageBps);
+        }
+        uint256 expectedLeveragedAssets = getLeveragedAssets(
+            depositAmount,
+            dLoopCore
+        );
+        uint256 expectedShares = dLoopCore.convertToShares(
+            expectedLeveragedAssets
+        );
         return
-            DLoopDepositorLogic.calculateMinOutputShares(
-                depositAmount,
-                slippageBps,
-                dLoopCore
+            Math.mulDiv(
+                expectedShares,
+                BasisPointConstants.ONE_HUNDRED_PERCENT_BPS - slippageBps,
+                BasisPointConstants.ONE_HUNDRED_PERCENT_BPS
             );
     }
 
@@ -186,10 +195,57 @@ abstract contract DLoopDepositorBase is
         uint256 currentEstimatedShares,
         uint256 minOutputShares
     ) internal pure returns (uint256) {
-        return
-            DLoopDepositorLogic.calculateEstimatedOverallSlippageBps(
+        /*
+         * According to the formula in getBorrowAmountThatKeepCurrentLeverage() of DLoopCoreLogic,
+         * we have:
+         *      y = x * (T-1)/T
+         *  and
+         *      y = x * (T' - ONE_HUNDRED_PERCENT_BPS) / T'
+         *  and
+         *      T' = T * ONE_HUNDRED_PERCENT_BPS
+         * where:
+         *      - T: target leverage
+         *      - T': target leverage in basis points unit
+         *      - x: supply amount in base currency
+         *      - y: borrow amount in base currency
+         *
+         * We have:
+         *      x = (d + f) * (1 - s)
+         *   => y = (d + f) * (1 - s) * (T-1) / T
+         * where:
+         *      - d is the user's deposit collateral amount (original deposit amount) in base currency
+         *      - f is the flash loan amount of debt token in base currency
+         *      - s is the swap slippage (0.01 means 1%)
+         *
+         * We want find what is the condition of f so that we can borrow the debt token
+         * which is sufficient to cover up the flash loan amount. We want:
+         *      y >= f
+         *  <=> (d+f) * (1-s) * (T-1) / T >= f
+         *  <=> (d+f) * (1-s) * (T-1) >= T*f
+         *  <=> d * (1-s) * (T-1) >= T*f - f * (1-s) * (T-1)
+         *  <=> d * (1-s) * (T-1) >= f * (T - (1-s) * (T-1))
+         *  <=> (d * (1-s) * (T-1)) / (T - (1-s) * (T-1)) >= f    (as the denominator is greater than 0)
+         *  <=> f <= (d * (1-s) * (T-1)) / (T - (1-s) * (T-1))
+         *  <=> f <= (d * (1-s) * (T-1)) / (T - T + 1 + T*s - s)
+         *  <=> f <= (d * (1-s) * (T-1)) / (1 + T*s - s)
+         *
+         * Based on the above inequation, it means we can just adjust the flashloan amount to make
+         * sure the flashloan can be covered by the borrow amount.
+         *
+         * Thus, just need to infer the estimated slippage based on the provided min output shares
+         * and the current estimated shares
+         */
+        if (currentEstimatedShares < minOutputShares) {
+            revert EstimatedSharesLessThanMinOutputShares(
                 currentEstimatedShares,
                 minOutputShares
+            );
+        }
+        return
+            Math.mulDiv(
+                currentEstimatedShares - minOutputShares,
+                BasisPointConstants.ONE_HUNDRED_PERCENT_BPS,
+                currentEstimatedShares
             );
     }
 
@@ -390,11 +446,21 @@ abstract contract DLoopDepositorBase is
     function _calculateRequiredAdditionalCollateral(
         FlashLoanParams memory flashLoanParams
     ) internal pure returns (uint256 requiredAdditionalCollateralAmount) {
-        return
-            DLoopDepositorLogic.calculateRequiredAdditionalCollateral(
+        // Calculate the required additional collateral amount to reach the leveraged amount
+        // and make sure the overall slippage is included, which is to make sure the output
+        // shares can be at least the min output shares (proven with formula)
+        if (
+            flashLoanParams.leveragedCollateralAmount <
+            flashLoanParams.depositCollateralAmount
+        ) {
+            revert LeveragedCollateralAmountLessThanDepositCollateralAmount(
                 flashLoanParams.leveragedCollateralAmount,
                 flashLoanParams.depositCollateralAmount
             );
+        }
+        requiredAdditionalCollateralAmount = (flashLoanParams
+            .leveragedCollateralAmount -
+            flashLoanParams.depositCollateralAmount);
     }
 
     /**
@@ -526,14 +592,13 @@ abstract contract DLoopDepositorBase is
     function _encodeParamsToData(
         FlashLoanParams memory _flashLoanParams
     ) internal pure returns (bytes memory data) {
-        return
-            DLoopDepositorLogic.encodeFlashLoanParams(
-                _flashLoanParams.receiver,
-                _flashLoanParams.depositCollateralAmount,
-                _flashLoanParams.leveragedCollateralAmount,
-                _flashLoanParams.debtTokenToCollateralSwapData,
-                _flashLoanParams.dLoopCore
-            );
+        data = abi.encode(
+            _flashLoanParams.receiver,
+            _flashLoanParams.depositCollateralAmount,
+            _flashLoanParams.leveragedCollateralAmount,
+            _flashLoanParams.debtTokenToCollateralSwapData,
+            _flashLoanParams.dLoopCore
+        );
     }
 
     /**
@@ -550,6 +615,6 @@ abstract contract DLoopDepositorBase is
             _flashLoanParams.leveragedCollateralAmount,
             _flashLoanParams.debtTokenToCollateralSwapData,
             _flashLoanParams.dLoopCore
-        ) = DLoopDepositorLogic.decodeFlashLoanParams(data);
+        ) = abi.decode(data, (address, uint256, uint256, bytes, DLoopCoreBase));
     }
 }
