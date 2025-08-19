@@ -2,7 +2,8 @@ node_modules
 .env
 
 # Yarn cache
-.yarn
+.yarn/*
+!.yarn/releases/
 
 # Hardhat files
 /cache
