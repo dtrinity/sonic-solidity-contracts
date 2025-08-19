@@ -29,18 +29,19 @@ export class SafeManager {
   constructor(
     hre: HardhatRuntimeEnvironment,
     signer: Signer,
-    options: SafeManagerOptions
+    options: SafeManagerOptions,
   ) {
     this.hre = hre;
     this.signer = signer;
     this.config = options.safeConfig;
     this.options = {
+      ...options,
+      retryAttempts: options.retryAttempts ?? 3,
+      retryDelayMs: options.retryDelayMs ?? 1000,
+      // Enforce offline-only mode regardless of provided options
       enableApiKit: false,
       enableTransactionService: false,
-      retryAttempts: 3,
-      retryDelayMs: 1000,
-      signingMode: "owner",
-      ...options,
+      signingMode: "none",
     };
   }
 
@@ -50,14 +51,25 @@ export class SafeManager {
   async initialize(): Promise<void> {
     try {
       console.log(
-        `🔄 Initializing Safe Protocol Kit for Safe ${this.config.safeAddress}`
+        `🔄 Initializing Safe Protocol Kit for Safe ${this.config.safeAddress}`,
       );
+
+      // Resolve signer address synchronously so we pass a concrete string
+      // value to Safe.init instead of a Promise (satisfies linter types).
+      let signerAddress: string;
+
+      try {
+        signerAddress = await this.signer.getAddress();
+      } catch {
+        signerAddress = this.config.owners?.[0] || this.config.safeAddress;
+      }
 
       this.protocolKit = await Safe.init({
         // Safe Protocol Kit v4 expects an EIP-1193 provider (e.g., window.ethereum or Hardhat's provider)
         provider: this.hre.network.provider,
         // Provide a hex address string to avoid triggering Passkey signer flow
-        signer: await this.signer.getAddress(),
+        // Use an explicitly typed async IIFE to satisfy the linter's explicit return type rule
+        signer: signerAddress,
         safeAddress: this.config.safeAddress,
       });
 
@@ -66,7 +78,7 @@ export class SafeManager {
 
       if (this.options.enableApiKit && this.config.txServiceUrl) {
         console.log(
-          `🔄 Initializing Safe API Kit for chain ${this.config.chainId}`
+          `🔄 Initializing Safe API Kit for chain ${this.config.chainId}`,
         );
         this.apiKit = new SafeApiKit({
           chainId: BigInt(this.config.chainId),
@@ -93,25 +105,27 @@ export class SafeManager {
     const onChainThreshold = await this.protocolKit.getThreshold();
 
     console.log(
-      `📊 Safe owners: ${onChainOwners.length}, threshold: ${onChainThreshold}`
+      `📊 Safe owners: ${onChainOwners.length}, threshold: ${onChainThreshold}`,
     );
 
     // Verify threshold matches
     if (onChainThreshold !== this.config.threshold) {
       console.warn(
-        `⚠️ Threshold mismatch: config=${this.config.threshold}, on-chain=${onChainThreshold}`
+        `⚠️ Threshold mismatch: config=${this.config.threshold}, on-chain=${onChainThreshold}`,
       );
     }
 
     // Verify all configured owners are actual owners
     const missingOwners = this.config.owners.filter(
       (owner) =>
-        !onChainOwners.map((o) => o.toLowerCase()).includes(owner.toLowerCase())
+        !onChainOwners
+          .map((o) => o.toLowerCase())
+          .includes(owner.toLowerCase()),
     );
 
     if (missingOwners.length > 0) {
       console.warn(
-        `⚠️ Config owners not found on-chain: ${missingOwners.join(", ")}`
+        `⚠️ Config owners not found on-chain: ${missingOwners.join(", ")}`,
       );
     }
 
@@ -119,122 +133,13 @@ export class SafeManager {
       (owner) =>
         !this.config.owners
           .map((o) => o.toLowerCase())
-          .includes(owner.toLowerCase())
+          .includes(owner.toLowerCase()),
     );
 
     if (extraOwners.length > 0) {
       console.warn(
-        `⚠️ Unexpected owners found on-chain: ${extraOwners.join(", ")}`
+        `⚠️ Unexpected owners found on-chain: ${extraOwners.join(", ")}`,
       );
-    }
-  }
-
-  /**
-   * Create a Safe transaction for a single operation
-   *
-   * @param transactionData - The transaction data to execute
-   * @param description - Optional description for the transaction
-   */
-  async createTransaction(
-    transactionData: SafeTransactionData,
-    description?: string
-  ): Promise<SafeOperationResult> {
-    if (!this.protocolKit) {
-      throw new Error("Safe Manager not initialized. Call initialize() first.");
-    }
-
-    try {
-      console.log(
-        `🔄 Creating Safe transaction: ${description || "Unnamed operation"}`
-      );
-      console.log(`   Target: ${transactionData.to}`);
-      console.log(`   Value: ${transactionData.value}`);
-      console.log(`   Data: ${transactionData.data.slice(0, 10)}...`);
-
-      // Check if transaction would succeed by simulation
-      await this.simulateTransaction(transactionData);
-
-      const safeTransaction = await this.protocolKit.createTransaction({
-        transactions: [transactionData],
-      });
-
-      if (this.options.signingMode === "none") {
-        const safeTxHash =
-          await this.protocolKit.getTransactionHash(safeTransaction);
-        console.log(
-          `📝 Transaction prepared (no-sign mode). Hash: ${safeTxHash}`
-        );
-        await this.storePendingTransaction(
-          safeTxHash,
-          transactionData,
-          description || "Safe transaction"
-        );
-        await this.exportTransactionBuilderBatch(
-          [transactionData],
-          description || "Safe transaction",
-          safeTxHash
-        );
-        // Skip proposing to transaction service in no-sign mode
-        return {
-          success: true,
-          safeTxHash,
-          requiresAdditionalSignatures: true,
-        };
-      }
-
-      const safeTxHash =
-        await this.protocolKit.getTransactionHash(safeTransaction);
-
-      // Sign the transaction with current signer
-      const signedTransaction =
-        await this.protocolKit.signTransaction(safeTransaction);
-
-      console.log(`📝 Transaction created with hash: ${safeTxHash}`);
-
-      // Check if we have enough signatures to execute
-      const threshold = await this.protocolKit.getThreshold();
-      const currentSignatures = signedTransaction.signatures.size;
-
-      if (currentSignatures >= threshold) {
-        console.log(
-          `✅ Sufficient signatures (${currentSignatures}/${threshold}), executing...`
-        );
-        return await this.executeSignedTransaction(
-          signedTransaction,
-          description
-        );
-      } else {
-        console.log(
-          `📊 Transaction signed (${currentSignatures}/${threshold}), awaiting additional signatures`
-        );
-
-        if (this.apiKit) {
-          await this.proposeTransactionToService(
-            safeTransaction,
-            safeTxHash,
-            description
-          );
-        }
-
-        // Store transaction info in deployment artifacts
-        await this.storePendingTransaction(
-          safeTxHash,
-          transactionData,
-          description || "Safe transaction"
-        );
-
-        return {
-          success: true,
-          safeTxHash,
-          requiresAdditionalSignatures: true,
-        };
-      }
-    } catch (error) {
-      console.error(`❌ Failed to create Safe transaction:`, error);
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : String(error),
-      };
     }
   }
 
@@ -244,7 +149,7 @@ export class SafeManager {
    * @param batch - The batch of transactions to execute
    */
   async createBatchTransaction(
-    batch: SafeTransactionBatch
+    batch: SafeTransactionBatch,
   ): Promise<SafeOperationResult> {
     if (!this.protocolKit) {
       throw new Error("Safe Manager not initialized. Call initialize() first.");
@@ -257,7 +162,7 @@ export class SafeManager {
       // Simulate all transactions in the batch
       for (let i = 0; i < batch.transactions.length; i++) {
         console.log(
-          `   Simulating operation ${i + 1}/${batch.transactions.length}...`
+          `   Simulating operation ${i + 1}/${batch.transactions.length}...`,
         );
         await this.simulateTransaction(batch.transactions[i]);
       }
@@ -265,124 +170,27 @@ export class SafeManager {
       const safeTransaction = await this.protocolKit.createTransaction({
         transactions: batch.transactions,
       });
-
-      if (this.options.signingMode === "none") {
-        const safeTxHash =
-          await this.protocolKit.getTransactionHash(safeTransaction);
-        console.log(`📝 Batch prepared (no-sign mode). Hash: ${safeTxHash}`);
-        await this.storePendingTransaction(
-          safeTxHash,
-          batch.transactions[0],
-          `${batch.description} (${batch.transactions.length} operations)`
-        );
-        await this.exportTransactionBuilderBatch(
-          batch.transactions,
-          `${batch.description} (${batch.transactions.length} operations)`,
-          safeTxHash
-        );
-        // Skip proposing to transaction service in no-sign mode
-        return {
-          success: true,
-          safeTxHash,
-          requiresAdditionalSignatures: true,
-        };
-      }
-
       const safeTxHash =
         await this.protocolKit.getTransactionHash(safeTransaction);
-
-      // Sign the transaction with current signer
-      const signedTransaction =
-        await this.protocolKit.signTransaction(safeTransaction);
-
-      console.log(`📝 Batch transaction created with hash: ${safeTxHash}`);
-
-      // Check if we have enough signatures to execute
-      const threshold = await this.protocolKit.getThreshold();
-      const currentSignatures = signedTransaction.signatures.size;
-
-      if (currentSignatures >= threshold) {
-        console.log(
-          `✅ Sufficient signatures (${currentSignatures}/${threshold}), executing batch...`
-        );
-        return await this.executeSignedTransaction(
-          signedTransaction,
-          batch.description
-        );
-      } else {
-        console.log(
-          `📊 Batch transaction signed (${currentSignatures}/${threshold}), awaiting additional signatures`
-        );
-
-        if (this.apiKit) {
-          await this.proposeTransactionToService(
-            safeTransaction,
-            safeTxHash,
-            batch.description
-          );
-        }
-
-        // Store the first transaction data for reference (batch transactions are stored as single pending tx)
-        await this.storePendingTransaction(
-          safeTxHash,
-          batch.transactions[0],
-          `${batch.description} (${batch.transactions.length} operations)`
-        );
-
-        return {
-          success: true,
-          safeTxHash,
-          requiresAdditionalSignatures: true,
-        };
-      }
-    } catch (error) {
-      console.error(`❌ Failed to create Safe batch transaction:`, error);
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : String(error),
-      };
-    }
-  }
-
-  /**
-   * Execute a signed transaction
-   *
-   * @param signedTransaction - The signed Safe transaction to execute
-   * @param description - Optional description for the transaction
-   */
-  private async executeSignedTransaction(
-    signedTransaction: any,
-    description?: string
-  ): Promise<SafeOperationResult> {
-    if (!this.protocolKit) {
-      throw new Error("Protocol Kit not initialized");
-    }
-
-    try {
-      const executionResult =
-        await this.protocolKit.executeTransaction(signedTransaction);
-      const receipt = await executionResult.wait();
-
-      console.log(`✅ Transaction executed successfully: ${receipt?.hash}`);
-
-      if (receipt?.hash) {
-        const safeTxHash =
-          await this.protocolKit.getTransactionHash(signedTransaction);
-        await this.storeCompletedTransaction(
-          safeTxHash,
-          receipt.hash,
-          description || "Safe transaction"
-        );
-      }
-
+      console.log(`📝 Batch prepared (offline mode). Hash: ${safeTxHash}`);
+      await this.storePendingTransaction(
+        safeTxHash,
+        batch.transactions[0],
+        `${batch.description} (${batch.transactions.length} operations)`,
+      );
+      await this.exportTransactionBuilderBatch(
+        batch.transactions,
+        `${batch.description} (${batch.transactions.length} operations)`,
+        safeTxHash,
+      );
+      // Always offline: do not propose, sign or execute
       return {
         success: true,
-        transactionHash: receipt?.hash,
-        safeTxHash:
-          await this.protocolKit.getTransactionHash(signedTransaction),
+        safeTxHash,
+        requiresAdditionalSignatures: true,
       };
     } catch (error) {
-      console.error(`❌ Failed to execute Safe transaction:`, error);
+      console.error(`❌ Failed to create Safe batch transaction:`, error);
       return {
         success: false,
         error: error instanceof Error ? error.message : String(error),
@@ -396,7 +204,7 @@ export class SafeManager {
    * @param transactionData - The transaction data to simulate
    */
   private async simulateTransaction(
-    transactionData: SafeTransactionData
+    transactionData: SafeTransactionData,
   ): Promise<void> {
     if (!this.protocolKit) {
       throw new Error("Protocol Kit not initialized");
@@ -422,7 +230,7 @@ export class SafeManager {
     } catch (error) {
       console.error(`❌ Transaction simulation failed:`, error);
       throw new Error(
-        `Transaction would fail: ${error instanceof Error ? error.message : String(error)}`
+        `Transaction would fail: ${error instanceof Error ? error.message : String(error)}`,
       );
     }
   }
@@ -437,11 +245,11 @@ export class SafeManager {
   private async proposeTransactionToService(
     safeTransaction: any,
     safeTxHash: string,
-    description?: string
+    description?: string,
   ): Promise<void> {
     if (!this.apiKit) {
       console.log(
-        `ℹ️ API Kit not available, skipping transaction service proposal`
+        `ℹ️ API Kit not available, skipping transaction service proposal`,
       );
       return;
     }
@@ -452,6 +260,7 @@ export class SafeManager {
       const senderSignature =
         signature?.data ||
         (this.options.signingMode === "none" ? "0x" : undefined);
+
       if (!senderSignature) {
         throw new Error("Signature not found for current signer");
       }
@@ -478,14 +287,14 @@ export class SafeManager {
    * @param safeTxHash - The Safe transaction hash to check
    */
   async getTransactionStatus(
-    safeTxHash: string
+    safeTxHash: string,
   ): Promise<"pending" | "executed" | "not_found"> {
     const deploymentState = await this.getDeploymentState();
 
     // Check if it's in pending transactions
     if (
       deploymentState.pendingTransactions.some(
-        (tx) => tx.safeTxHash === safeTxHash
+        (tx) => tx.safeTxHash === safeTxHash,
       )
     ) {
       return "pending";
@@ -494,7 +303,7 @@ export class SafeManager {
     // Check if it's in completed transactions
     if (
       deploymentState.completedTransactions.some(
-        (tx) => tx.safeTxHash === safeTxHash
+        (tx) => tx.safeTxHash === safeTxHash,
       )
     ) {
       return "executed";
@@ -510,7 +319,7 @@ export class SafeManager {
    * @param checkFunction - Function that returns true if requirement is met
    */
   async isRequirementMet(
-    checkFunction: () => Promise<boolean>
+    checkFunction: () => Promise<boolean>,
   ): Promise<boolean> {
     try {
       return await checkFunction();
@@ -530,7 +339,7 @@ export class SafeManager {
   private async storePendingTransaction(
     safeTxHash: string,
     transactionData: SafeTransactionData,
-    description: string
+    description: string,
   ): Promise<void> {
     if (!this.protocolKit) return;
 
@@ -545,7 +354,7 @@ export class SafeManager {
         transactionData,
         createdAt: Date.now(),
         requiredSignatures: threshold,
-        currentSignatures: 1, // We just signed it
+        currentSignatures: 0, // Offline mode, no signatures added
       };
 
       deploymentState.pendingTransactions.push(pendingTransaction);
@@ -567,16 +376,19 @@ export class SafeManager {
   private async storeCompletedTransaction(
     safeTxHash: string,
     transactionHash: string,
-    description: string
+    description: string,
   ): Promise<void> {
     try {
       const deploymentState = await this.getDeploymentState();
 
-      // Remove from pending transactions
-      deploymentState.pendingTransactions =
-        deploymentState.pendingTransactions.filter(
-          (tx) => tx.safeTxHash !== safeTxHash
-        );
+      // Remove from pending transactions (avoid reassigning readonly prop)
+      const indexToRemove = deploymentState.pendingTransactions.findIndex(
+        (tx) => tx.safeTxHash === safeTxHash,
+      );
+
+      if (indexToRemove !== -1) {
+        deploymentState.pendingTransactions.splice(indexToRemove, 1);
+      }
 
       // Add to completed transactions
       const completedTransaction: SafeCompletedTransaction = {
@@ -649,11 +461,15 @@ export class SafeManager {
 
   /**
    * Export a Transaction Builder JSON for importing in Safe UI
+   *
+   * @param transactions - Array of SafeTransactionData to export
+   * @param description - Human-readable description for the batch
+   * @param safeTxHash - Safe transaction hash to include in filename
    */
   private async exportTransactionBuilderBatch(
     transactions: SafeTransactionData[],
     description: string,
-    safeTxHash: string
+    safeTxHash: string,
   ): Promise<void> {
     try {
       const rootPath = this.hre.config.paths.root || process.cwd();

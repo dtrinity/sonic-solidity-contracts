@@ -74,8 +74,7 @@ async function main() {
 
   const safeManager = new SafeManager(hre, deployerSigner, {
     safeConfig: config.safeConfig,
-    enableApiKit: true,
-    enableTransactionService: true,
+    // offline-only mode enforced in SafeManager; no API kit or service
     signingMode: "none",
   });
   await safeManager.initialize();

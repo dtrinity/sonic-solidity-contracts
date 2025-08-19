@@ -1,7 +1,5 @@
 import { getConfig } from "../../config/config";
 import { scanRolesAndOwnership } from "./lib/scan";
-import { SafeManager } from "../../typescript/safe/SafeManager";
-import { SafeTransactionData } from "../../typescript/safe/types";
 import * as readline from "readline";
 
 async function main() {
@@ -22,14 +20,12 @@ async function main() {
     (m: string) => console.log(m)
   );
 
-  const txs: SafeTransactionData[] = [];
   let addedOperations = 0;
   const summary: { contract: string; address: string; ops: string[] }[] = [];
 
   // Roles: grant to governance first, then revoke from deployer (non-admin first, admin last)
   for (const c of scan.rolesContracts) {
     const opsForContract: string[] = [];
-    const iface = new ethers.Interface(c.abi as any);
 
     const nonAdminRolesHeldByDeployer = c.rolesHeldByDeployer.filter(
       (r) => r.name !== "DEFAULT_ADMIN_ROLE"
@@ -45,50 +41,24 @@ async function main() {
     // Non-admin roles
     for (const role of nonAdminRolesHeldByDeployer) {
       console.log(
-        `  - Grant ${role.name} to governance, then revoke from deployer`
+        `  - Grant ${role.name} to governance, then renounce from deployer`
       );
-      txs.push({
-        to: c.address,
-        value: "0",
-        data: iface.encodeFunctionData("grantRole", [role.hash, governance]),
-      });
-      txs.push({
-        to: c.address,
-        value: "0",
-        data: iface.encodeFunctionData("revokeRole", [role.hash, deployer]),
-      });
       addedOperations += 2;
       opsForContract.push(
         `grantRole(${role.name})->${governance}`,
-        `revokeRole(${role.name})->${deployer}`
+        `renounceRole(${role.name})->${deployer}`
       );
     }
 
     // Admin role last
     if (adminRole) {
       console.log(
-        `  - Transfer DEFAULT_ADMIN_ROLE to governance and revoke from deployer`
+        `  - Transfer DEFAULT_ADMIN_ROLE to governance and renounce from deployer`
       );
-      txs.push({
-        to: c.address,
-        value: "0",
-        data: iface.encodeFunctionData("grantRole", [
-          adminRole.hash,
-          governance,
-        ]),
-      });
-      txs.push({
-        to: c.address,
-        value: "0",
-        data: iface.encodeFunctionData("revokeRole", [
-          adminRole.hash,
-          deployer,
-        ]),
-      });
       addedOperations += 2;
       opsForContract.push(
         `grantRole(DEFAULT_ADMIN_ROLE)->${governance}`,
-        `revokeRole(DEFAULT_ADMIN_ROLE)->${deployer}`
+        `renounceRole(DEFAULT_ADMIN_ROLE)->${deployer}`
       );
     }
 
@@ -107,12 +77,6 @@ async function main() {
     console.log(
       `\nTransferring ownership of ${c.name} at ${c.address} to governance`
     );
-    const iface = new ethers.Interface(c.abi as any);
-    txs.push({
-      to: c.address,
-      value: "0",
-      data: iface.encodeFunctionData("transferOwnership", [governance]),
-    });
     addedOperations += 1;
     summary.push({
       contract: c.name,
@@ -121,7 +85,7 @@ async function main() {
     });
   }
 
-  if (txs.length === 0) {
+  if (addedOperations === 0) {
     console.log("\nNothing to transfer.");
     return;
   }
@@ -141,7 +105,10 @@ async function main() {
       output: process.stdout,
     });
     const answer: string = await new Promise((resolve) =>
-      rl.question("\nProceed to create Safe batch? (yes/no): ", resolve)
+      rl.question(
+        "\nProceed to execute on-chain migrations? (yes/no): ",
+        resolve
+      )
     );
     rl.close();
     if (answer.trim().toLowerCase() !== "yes") {
@@ -150,30 +117,134 @@ async function main() {
     }
   }
 
-  console.log(`\nCreating Safe batch with ${addedOperations} operations...`);
+  console.log(`\nExecuting on-chain migrations with deployer signer...`);
 
-  if (!config.safeConfig) {
-    throw new Error("Missing safeConfig in current network config");
+  // Execute AccessControl migrations: non-admin roles first, then admin role
+  for (const c of scan.rolesContracts) {
+    const contract = await ethers.getContractAt(
+      c.abi as any,
+      c.address,
+      deployerSigner
+    );
+
+    // Non-admin roles
+    const nonAdminRolesHeldByDeployer = c.rolesHeldByDeployer.filter(
+      (r) => r.name !== "DEFAULT_ADMIN_ROLE"
+    );
+    for (const role of nonAdminRolesHeldByDeployer) {
+      try {
+        const governanceHasRole: boolean = await contract.hasRole(
+          role.hash,
+          governance
+        );
+        if (!governanceHasRole) {
+          console.log(
+            `Granting ${role.name} to governance on ${c.name} (${c.address})...`
+          );
+          const tx = await contract.grantRole(role.hash, governance);
+          await tx.wait();
+        } else {
+          console.log(
+            `Governance already has ${role.name} on ${c.name}; skipping grant.`
+          );
+        }
+
+        const deployerHasRole: boolean = await contract.hasRole(
+          role.hash,
+          deployer
+        );
+        if (deployerHasRole) {
+          console.log(
+            `Renouncing ${role.name} from deployer on ${c.name} (${c.address})...`
+          );
+          const tx2 = await contract.renounceRole(role.hash, deployer);
+          await tx2.wait();
+        } else {
+          console.log(
+            `Deployer does not hold ${role.name} on ${c.name}; skipping renounce.`
+          );
+        }
+      } catch (e) {
+        console.error(
+          `Error migrating role ${role.name} on ${c.name} (${c.address}):`,
+          e
+        );
+      }
+    }
+
+    // Admin role last
+    const adminRole = c.rolesHeldByDeployer.find(
+      (r) => r.name === "DEFAULT_ADMIN_ROLE"
+    );
+    if (adminRole) {
+      try {
+        const governanceHasAdmin: boolean = await contract.hasRole(
+          adminRole.hash,
+          governance
+        );
+        if (!governanceHasAdmin) {
+          console.log(
+            `Granting DEFAULT_ADMIN_ROLE to governance on ${c.name} (${c.address})...`
+          );
+          const tx = await contract.grantRole(adminRole.hash, governance);
+          await tx.wait();
+        } else {
+          console.log(
+            `Governance already has DEFAULT_ADMIN_ROLE on ${c.name}; skipping grant.`
+          );
+        }
+
+        const deployerHasAdmin: boolean = await contract.hasRole(
+          adminRole.hash,
+          deployer
+        );
+        if (deployerHasAdmin) {
+          console.log(
+            `Renouncing DEFAULT_ADMIN_ROLE from deployer on ${c.name} (${c.address})...`
+          );
+          const tx2 = await contract.renounceRole(adminRole.hash, deployer);
+          await tx2.wait();
+        } else {
+          console.log(
+            `Deployer does not hold DEFAULT_ADMIN_ROLE on ${c.name}; skipping renounce.`
+          );
+        }
+      } catch (e) {
+        console.error(
+          `Error migrating DEFAULT_ADMIN_ROLE on ${c.name} (${c.address}):`,
+          e
+        );
+      }
+    }
   }
 
-  // Create Safe batch in no-sign mode
-  const safeManager = new SafeManager(hre, deployerSigner, {
-    safeConfig: config.safeConfig,
-    enableApiKit: true,
-    enableTransactionService: true,
-    signingMode: "none",
-  });
-  await safeManager.initialize();
-
-  const res = await safeManager.createBatchTransaction({
-    transactions: txs,
-    description: `Transfer roles/ownership from deployer to governance (${txs.length} ops)`,
-  });
-
-  if (!res.success) {
-    console.error("Failed to create Safe batch:", res.error);
-  } else {
-    console.log(`\nBatch prepared. SafeTxHash: ${res.safeTxHash}`);
+  // Execute Ownable migrations: transfer ownership to governance
+  for (const c of scan.ownableContracts) {
+    if (!c.deployerIsOwner) continue;
+    try {
+      const contract = await ethers.getContractAt(
+        c.abi as any,
+        c.address,
+        deployerSigner
+      );
+      const currentOwner: string = await contract.owner();
+      if (currentOwner.toLowerCase() === governance.toLowerCase()) {
+        console.log(
+          `Governance already owns ${c.name} (${c.address}); skipping.`
+        );
+        continue;
+      }
+      console.log(
+        `Transferring ownership of ${c.name} (${c.address}) to governance...`
+      );
+      const tx = await contract.transferOwnership(governance);
+      await tx.wait();
+    } catch (e) {
+      console.error(
+        `Error transferring ownership for ${c.name} (${c.address}):`,
+        e
+      );
+    }
   }
 }
 

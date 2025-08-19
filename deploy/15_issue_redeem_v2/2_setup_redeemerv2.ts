@@ -3,10 +3,6 @@ import { DeployFunction } from "hardhat-deploy/types";
 
 import { getConfig } from "../../config/config";
 import {
-  createGrantRoleTransaction,
-  createRevokeRoleTransaction,
-} from "../../scripts/safe/propose-governance-transaction";
-import {
   DS_COLLATERAL_VAULT_CONTRACT_ID,
   DS_REDEEMER_CONTRACT_ID,
   DS_TOKEN_ID,
@@ -18,20 +14,64 @@ import {
 } from "../../typescript/deploy-ids";
 import { ensureDefaultAdminExistsAndRevokeFrom } from "../../typescript/hardhat/access_control";
 import { SafeManager } from "../../typescript/safe/SafeManager";
+// Local helpers for building Safe transactions (offline)
+import { SafeTransactionData } from "../../typescript/safe/types";
+
+/**
+ * Build a Safe transaction payload to grant a role on a target contract.
+ *
+ * @param contractAddress - Address of the contract to call
+ * @param role - Role hash to grant
+ * @param grantee - Address to receive the role
+ * @param contractInterface - Contract interface used to encode the call
+ */
+function createGrantRoleTransaction(
+  contractAddress: string,
+  role: string,
+  grantee: string,
+  contractInterface: any,
+): SafeTransactionData {
+  return {
+    to: contractAddress,
+    value: "0",
+    data: contractInterface.encodeFunctionData("grantRole", [role, grantee]),
+  };
+}
+
+/**
+ * Build a Safe transaction payload to revoke a role on a target contract.
+ *
+ * @param contractAddress - Address of the contract to call
+ * @param role - Role hash to revoke
+ * @param account - Address to revoke the role from
+ * @param contractInterface - Contract interface used to encode the call
+ */
+function createRevokeRoleTransaction(
+  contractAddress: string,
+  role: string,
+  account: string,
+  contractInterface: any,
+): SafeTransactionData {
+  return {
+    to: contractAddress,
+    value: "0",
+    data: contractInterface.encodeFunctionData("revokeRole", [role, account]),
+  };
+}
 
 const ZERO_BYTES_32 =
   "0x0000000000000000000000000000000000000000000000000000000000000000";
 
 /**
- * Migrate roles to governance multisig (always idempotent)
- * Uses Safe SDK for governance operations when available.
- * Fails idempotently if Safe transaction proposal fails.
+ * Migrate roles to governance multisig (always idempotent).
+ * Uses Safe SDK for governance operations when available. If direct on-chain
+ * execution fails, Safe transactions are appended to `transactions`.
  *
- * @param hre HardhatRuntimeEnvironment
- * @param redeemerAddress Address of the RedeemerV2 contract
- * @param deployerAddress Address of the deployer
- * @param governanceMultisig Address of the governance multisig
- * @param safeManager Optional Safe manager for governance operations
+ * @param hre - HardhatRuntimeEnvironment
+ * @param redeemerAddress - Address of the RedeemerV2 contract
+ * @param deployerAddress - Address of the deployer
+ * @param governanceMultisig - Address of the governance multisig
+ * @param transactions - Array to append Safe transactions if governance is required
  * @returns true if all operations complete, false if pending governance
  */
 async function migrateRedeemerRolesIdempotent(
@@ -39,7 +79,7 @@ async function migrateRedeemerRolesIdempotent(
   redeemerAddress: string,
   deployerAddress: string,
   governanceMultisig: string,
-  safeManager?: SafeManager,
+  transactions: SafeTransactionData[],
 ): Promise<boolean> {
   const redeemer = await hre.ethers.getContractAt(
     "RedeemerV2",
@@ -67,42 +107,18 @@ async function migrateRedeemerRolesIdempotent(
           `    ⚠️ Could not grant ${role.name} to ${governanceMultisig}: ${(e as Error).message}`,
         );
 
-        if (!safeManager) {
-          throw new Error(
-            `Failed to grant ${role.name} and no Safe manager configured. Cannot proceed.`,
-          );
-        }
-
         console.log(
-          `    🔄 Creating Safe transaction for ${role.name} grant...`,
+          `    🔄 Queueing governance transaction for ${role.name} grant...`,
         );
-        const transaction = createGrantRoleTransaction(
+        const transaction: SafeTransactionData = createGrantRoleTransaction(
           redeemerAddress,
           role.hash,
           governanceMultisig,
           redeemer.interface,
         );
-        const result = await safeManager.createTransaction(
-          transaction,
-          `Grant ${role.name} to governance on RedeemerV2`,
-        );
-
-        if (!result.success) {
-          throw new Error(
-            `Failed to create Safe transaction for ${role.name} grant: ${result.error}`,
-          );
-        }
-
-        if (result.requiresAdditionalSignatures) {
-          console.log(
-            `    📤 Safe transaction created for ${role.name}, awaiting governance signatures`,
-          );
-          allComplete = false;
-        } else if (result.transactionHash) {
-          console.log(
-            `    ✅ Safe transaction executed for ${role.name}: ${result.transactionHash}`,
-          );
-        }
+        transactions.push(transaction);
+        console.log(`    📥 Added to batch for offline signing`);
+        allComplete = false;
       }
     } else {
       console.log(`    ✓ ${role.name} already granted to governance`);
@@ -131,42 +147,18 @@ async function migrateRedeemerRolesIdempotent(
           `    ⚠️ Could not revoke ${role.name} from deployer: ${(e as Error).message}`,
         );
 
-        if (!safeManager) {
-          throw new Error(
-            `Failed to revoke ${role.name} and no Safe manager configured. Cannot proceed.`,
-          );
-        }
-
         console.log(
-          `    🔄 Creating Safe transaction for ${role.name} revocation...`,
+          `    🔄 Queueing governance transaction for ${role.name} revocation...`,
         );
-        const transaction = createRevokeRoleTransaction(
+        const transaction: SafeTransactionData = createRevokeRoleTransaction(
           redeemerAddress,
           role.hash,
           deployerAddress,
           redeemer.interface,
         );
-        const result = await safeManager.createTransaction(
-          transaction,
-          `Revoke ${role.name} from ${deployerAddress} on RedeemerV2`,
-        );
-
-        if (!result.success) {
-          throw new Error(
-            `Failed to create Safe transaction for ${role.name} revocation: ${result.error}`,
-          );
-        }
-
-        if (result.requiresAdditionalSignatures) {
-          console.log(
-            `    📤 Safe transaction created for ${role.name} revocation, awaiting governance signatures`,
-          );
-          allComplete = false;
-        } else if (result.transactionHash) {
-          console.log(
-            `    ✅ Safe transaction executed for ${role.name} revocation: ${result.transactionHash}`,
-          );
-        }
+        transactions.push(transaction);
+        console.log(`    📥 Added to batch for offline signing`);
+        allComplete = false;
       }
     }
   }
@@ -179,7 +171,6 @@ async function migrateRedeemerRolesIdempotent(
       redeemerAddress,
       governanceMultisig,
       deployerAddress,
-      safeManager,
     );
 
   if (!adminMigrationComplete) {
@@ -190,14 +181,13 @@ async function migrateRedeemerRolesIdempotent(
 }
 
 /**
- * Wrapper for ensureDefaultAdminExistsAndRevokeFrom that returns boolean status
+ * Wrapper for ensureDefaultAdminExistsAndRevokeFrom that returns boolean status.
  *
  * @param hre - Hardhat runtime environment
  * @param contractName - Name of the contract for logging
  * @param contractAddress - Address of the contract
  * @param governanceMultisig - Address of governance multisig
  * @param deployerAddress - Address of the deployer
- * @param safeManager - Optional Safe manager instance
  */
 async function ensureDefaultAdminExistsAndRevokeFromWithSafe(
   hre: HardhatRuntimeEnvironment,
@@ -205,7 +195,6 @@ async function ensureDefaultAdminExistsAndRevokeFromWithSafe(
   contractAddress: string,
   governanceMultisig: string,
   deployerAddress: string,
-  safeManager?: SafeManager,
 ): Promise<boolean> {
   try {
     // The original function uses manualActions array, we need to handle this differently
@@ -221,25 +210,18 @@ async function ensureDefaultAdminExistsAndRevokeFromWithSafe(
       manualActions,
     );
 
-    // If there are manual actions, it means we need Safe transactions
+    // If there are manual actions, it means we need governance action; return pending
     if (manualActions.length > 0) {
-      if (!safeManager) {
-        throw new Error(
-          `Admin role migration requires governance action but no Safe manager configured`,
-        );
-      }
-      // This would need proper Safe transaction creation
-      // For now, we'll return false to indicate pending
       return false;
     }
 
     return true;
   } catch (error) {
-    if (!safeManager) {
-      throw error;
-    }
-    // Create Safe transaction for admin migration
-    console.log(`    🔄 Admin role migration requires Safe transaction`);
+    // Requires governance action; queue not implemented for this path
+    console.warn(
+      `    🔄 Admin role migration likely requires governance action:`,
+      error,
+    );
     return false;
   }
 }
@@ -252,6 +234,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   // Initialize Safe Manager if Safe configuration is available
   let safeManager: SafeManager | undefined;
+  const transactions: SafeTransactionData[] = [];
 
   if (config.safeConfig) {
     console.log(`🔐 Initializing Safe Manager for governance operations...`);
@@ -259,8 +242,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     try {
       safeManager = new SafeManager(hre, deployerSigner, {
         safeConfig: config.safeConfig,
-        enableApiKit: true,
-        enableTransactionService: true,
       });
       await safeManager.initialize();
       console.log(`✅ Safe Manager initialized successfully`);
@@ -300,10 +281,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
     const newRedeemerDeployment = await deployments.get(t.newId);
     const newRedeemerAddress = newRedeemerDeployment.address;
-    const newRedeemer = await hre.ethers.getContractAt(
-      "RedeemerV2",
-      newRedeemerAddress,
-    );
+    // Avoid assigning `newRedeemer` when it's not used to satisfy linter
+    await hre.ethers.getContractAt("RedeemerV2", newRedeemerAddress);
 
     const tokenDeployment = await deployments.get(t.tokenId);
     const _tokenAddress = tokenDeployment.address;
@@ -343,14 +322,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
           `    ⚠️ Could not grant COLLATERAL_WITHDRAWER_ROLE: ${(e as Error).message}`,
         );
 
-        if (!safeManager) {
-          throw new Error(
-            `Failed to grant COLLATERAL_WITHDRAWER_ROLE and no Safe manager configured`,
-          );
-        }
-
         console.log(
-          `    🔄 Creating Safe transaction for COLLATERAL_WITHDRAWER_ROLE grant...`,
+          `    🔄 Queueing governance transaction for COLLATERAL_WITHDRAWER_ROLE grant...`,
         );
         const transaction = createGrantRoleTransaction(
           collateralVaultAddress,
@@ -358,25 +331,9 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
           newRedeemerAddress,
           collateralVault.interface,
         );
-        const result = await safeManager.createTransaction(
-          transaction,
-          `Grant COLLATERAL_WITHDRAWER_ROLE to ${newRedeemerAddress} on ${t.collateralVaultId}`,
-        );
-
-        if (!result.success) {
-          throw new Error(`Failed to create Safe transaction: ${result.error}`);
-        }
-
-        if (result.requiresAdditionalSignatures) {
-          console.log(
-            `    📤 Safe transaction created, awaiting governance signatures`,
-          );
-          allOperationsComplete = false;
-        } else if (result.transactionHash) {
-          console.log(
-            `    ✅ Safe transaction executed: ${result.transactionHash}`,
-          );
-        }
+        transactions.push(transaction);
+        console.log(`    📥 Added to batch for offline signing`);
+        allOperationsComplete = false;
       }
     } else {
       console.log(
@@ -394,7 +351,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       newRedeemerAddress,
       deployer,
       governanceMultisig,
-      safeManager,
+      transactions,
     );
 
     if (!rolesMigrationComplete) {
@@ -407,6 +364,16 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   }
 
   if (!allOperationsComplete) {
+    if (transactions.length > 0 && safeManager) {
+      const res = await safeManager.createBatchTransaction({
+        description: `Setup RedeemerV2: governance operations (${transactions.length})`,
+        transactions,
+      });
+
+      if (!res.success) {
+        console.log(`❌ Failed to prepare governance batch: ${res.error}`);
+      }
+    }
     console.log(
       "\n⏳ Some operations require governance signatures to complete.",
     );
