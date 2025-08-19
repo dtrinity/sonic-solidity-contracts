@@ -860,6 +860,24 @@ library DLoopCoreLogic {
     }
 
     /**
+     * @dev Gets the subsidy amount in token amount
+     * @param outputTokenAmount The output token amount
+     * @param subsidyBps The subsidy in basis points unit
+     * @return subsidyAmountInTokenAmount The subsidy amount in token amount
+     */
+    function getSubsidyAmountInTokenAmount(
+        uint256 outputTokenAmount,
+        uint256 subsidyBps
+    ) internal pure returns (uint256 subsidyAmountInTokenAmount) {
+        return
+            Math.mulDiv(
+                outputTokenAmount,
+                subsidyBps,
+                BasisPointConstants.ONE_HUNDRED_PERCENT_BPS
+            );
+    }
+
+    /**
      * @dev Gets the gross amount required for a given net amount
      * @param netAmount The net amount
      * @param withdrawalFeeBps The withdrawal fee in basis points
