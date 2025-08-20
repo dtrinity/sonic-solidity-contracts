@@ -38,8 +38,7 @@ abstract contract BaseOdosSellAdapterV2 is
     /// @notice The address of the Pendle Router
     address public immutable pendleRouter;
 
-    /// @notice Error for invalid swap data
-    error InvalidSwapData();
+    // Uses InvalidPTSwapData() from IBaseOdosAdapterV2
 
     /**
      * @dev Constructor
@@ -154,7 +153,7 @@ abstract contract BaseOdosSellAdapterV2 is
         );
 
         if (!PTSwapUtils.validatePTSwapData(ptSwapData)) {
-            revert InvalidSwapData();
+            revert InvalidPTSwapData();
         }
 
         if (swapType == ISwapTypes.SwapType.PT_TO_REGULAR) {
@@ -182,7 +181,7 @@ abstract contract BaseOdosSellAdapterV2 is
                     ptSwapData
                 );
         } else if (swapType == ISwapTypes.SwapType.PT_TO_PT) {
-            // PT -> PT (direct Pendle swap)
+            // PT -> PT (hybrid Odos + Pendle swap)
             return
                 PTSwapUtils.executePTToPTSwap(
                     inputToken,
@@ -190,10 +189,11 @@ abstract contract BaseOdosSellAdapterV2 is
                     exactInputAmount,
                     minOutputAmount,
                     pendleRouter,
+                    swapRouter,
                     ptSwapData
                 );
         } else {
-            revert InvalidSwapData(); // Should never reach here
+            revert InvalidPTSwapData(); // Should never reach here
         }
     }
 

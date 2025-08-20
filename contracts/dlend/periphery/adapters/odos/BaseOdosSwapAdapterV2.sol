@@ -127,7 +127,7 @@ abstract contract BaseOdosSwapAdapterV2 is
                     ptSwapData
                 );
         } else if (swapType == ISwapTypes.SwapType.PT_TO_PT) {
-            // PT -> PT (direct Pendle swap)
+            // PT -> PT (hybrid Odos + Pendle swap)
             return
                 PTSwapUtils.executePTToPTSwap(
                     inputToken,
@@ -135,6 +135,7 @@ abstract contract BaseOdosSwapAdapterV2 is
                     inputAmount,
                     minOutputAmount,
                     pendleRouter,
+                    odosRouter,
                     ptSwapData
                 );
         } else {

@@ -23,6 +23,7 @@ import {PendleSwapUtils} from "contracts/pendle/PendleSwapUtils.sol";
 import {OdosSwapUtils} from "contracts/odos/OdosSwapUtils.sol";
 import {IOdosRouterV2} from "contracts/odos/interface/IOdosRouterV2.sol";
 import {ISwapTypes} from "./interfaces/ISwapTypes.sol";
+import {IBaseOdosAdapterV2} from "./interfaces/IBaseOdosAdapterV2.sol";
 
 /**
  * @title PTSwapUtils
@@ -34,8 +35,9 @@ library PTSwapUtils {
 
     /* Custom Errors */
     error InvalidPTToken(address token);
-    error InvalidSwapData();
+    // Use InvalidPTSwapData() from IBaseOdosAdapterV2
     error InsufficientPTSwapOutput(uint256 expected, uint256 actual);
+    error UnderlyingBalanceInsufficient(uint256 required, uint256 available);
     error ComposedSwapFailed(string stage);
 
     /* Events */
@@ -157,7 +159,7 @@ library PTSwapUtils {
     ) internal returns (uint256 actualTargetOut) {
         // Validate swap data
         if (!swapData.isComposed || swapData.underlyingAsset == address(0)) {
-            revert InvalidSwapData();
+            revert IBaseOdosAdapterV2.InvalidPTSwapData();
         }
 
         // Stage 1: PT -> underlying via Pendle
@@ -176,7 +178,7 @@ library PTSwapUtils {
         } else {
             // Need Odos swap: underlying -> target
             if (swapData.odosCalldata.length == 0) {
-                revert InvalidSwapData();
+                revert IBaseOdosAdapterV2.InvalidPTSwapData();
             }
 
             actualTargetOut = OdosSwapUtils.executeSwapOperation(
@@ -220,7 +222,7 @@ library PTSwapUtils {
     ) internal returns (uint256 actualPTOut) {
         // Validate swap data
         if (!swapData.isComposed || swapData.underlyingAsset == address(0)) {
-            revert InvalidSwapData();
+            revert IBaseOdosAdapterV2.InvalidPTSwapData();
         }
 
         uint256 underlyingAmount;
@@ -232,9 +234,12 @@ library PTSwapUtils {
         } else {
             // Need Odos swap: source -> underlying
             if (swapData.odosCalldata.length == 0) {
-                revert InvalidSwapData();
+                revert IBaseOdosAdapterV2.InvalidPTSwapData();
             }
 
+            // Record balance before Odos swap for debugging
+            uint256 underlyingBalanceBeforeOdos = IERC20(swapData.underlyingAsset).balanceOf(address(this));
+            
             underlyingAmount = OdosSwapUtils.executeSwapOperation(
                 odosRouter,
                 sourceToken,
@@ -243,17 +248,44 @@ library PTSwapUtils {
                 0, // minOut is handled in final PT check
                 swapData.odosCalldata
             );
+            
+            // Verify we actually received underlying tokens
+            uint256 underlyingBalanceAfterOdos = IERC20(swapData.underlyingAsset).balanceOf(address(this));
+            uint256 actualReceived = underlyingBalanceAfterOdos - underlyingBalanceBeforeOdos;
+            
+            if (actualReceived == 0) {
+                revert IBaseOdosAdapterV2.OdosSwapFailed("Odos swap returned zero underlying tokens");
+            }
         }
 
         // Stage 2: underlying -> PT via Pendle
         uint256 ptBalanceBefore = IERC20(ptToken).balanceOf(address(this));
+        uint256 underlyingBalanceBefore = IERC20(swapData.underlyingAsset).balanceOf(address(this));
+        
+        // Verify we have sufficient underlying tokens
+        if (underlyingBalanceBefore < underlyingAmount) {
+            revert UnderlyingBalanceInsufficient(underlyingAmount, underlyingBalanceBefore);
+        }
 
-        PendleSwapUtils.executePendleSwap(
-            swapData.underlyingAsset,
-            underlyingAmount,
-            pendleRouter,
-            swapData.pendleCalldata
-        );
+        // For underlying -> PT swaps, we need to execute the Pendle router call directly
+        // because PendleSwapUtils.executePendleSwap is designed for PT -> underlying
+        
+        // Approve underlying token to Pendle router
+        IERC20(swapData.underlyingAsset).safeApprove(pendleRouter, 0);
+        IERC20(swapData.underlyingAsset).safeApprove(pendleRouter, underlyingAmount);
+        
+        // Execute Pendle swap directly
+        (bool success, bytes memory result) = pendleRouter.call(swapData.pendleCalldata);
+        if (!success) {
+            // Decode the revert reason if present
+            if (result.length > 0) {
+                assembly {
+                    let resultLength := mload(result)
+                    revert(add(32, result), resultLength)
+                }
+            }
+            revert IBaseOdosAdapterV2.PendleSwapFailed("Pendle swap execution failed");
+        }
 
         // Calculate actual PT tokens received
         uint256 ptBalanceAfter = IERC20(ptToken).balanceOf(address(this));
@@ -280,13 +312,15 @@ library PTSwapUtils {
     }
 
     /**
-     * @notice Execute direct PT to PT swap using Pendle
+     * @notice Execute hybrid PT to PT swap using Odos + Pendle
+     * @dev Uses Odos for PT input → underlying asset, then Pendle for underlying asset → PT output
      * @param inputPTToken The input PT token
      * @param outputPTToken The output PT token
      * @param inputAmount Amount of input PT tokens to swap
      * @param minOutputAmount Minimum amount of output PT tokens expected
      * @param pendleRouter The Pendle router address
-     * @param swapData The PTSwapDataV2 containing Pendle swap parameters
+     * @param odosRouter The Odos router address
+     * @param swapData The PTSwapDataV2 containing both Odos and Pendle swap parameters
      * @return actualOutputAmount Actual amount of output PT tokens received
      */
     function executePTToPTSwap(
@@ -295,6 +329,7 @@ library PTSwapUtils {
         uint256 inputAmount,
         uint256 minOutputAmount,
         address pendleRouter,
+        IOdosRouterV2 odosRouter,
         PTSwapDataV2 memory swapData
     ) internal returns (uint256 actualOutputAmount) {
         // Validate that this is a PT to PT swap
@@ -305,29 +340,72 @@ library PTSwapUtils {
             revert InvalidPTToken(inputPTToken);
         }
 
-        // For PT to PT, we only need Pendle swap data
-        if (swapData.pendleCalldata.length == 0) {
-            revert InvalidSwapData();
+        // For PT to PT hybrid swap, we need both Odos and Pendle calldata + underlying asset
+        if (!swapData.isComposed || 
+            swapData.underlyingAsset == address(0) ||
+            swapData.odosCalldata.length == 0 || 
+            swapData.pendleCalldata.length == 0) {
+            revert IBaseOdosAdapterV2.InvalidPTSwapData();
         }
 
-        // Record output PT token balance before swap
-        uint256 outputBalanceBefore = IERC20(outputPTToken).balanceOf(
+        // Stage 1: PT input → underlying asset via Odos
+        uint256 underlyingBalanceBefore = IERC20(swapData.underlyingAsset).balanceOf(
             address(this)
         );
 
-        // Execute direct Pendle swap: PT input → PT output
-        PendleSwapUtils.executePendleSwap(
+        OdosSwapUtils.executeSwapOperation(
+            odosRouter,
             inputPTToken,
+            swapData.underlyingAsset,
             inputAmount,
-            pendleRouter,
-            swapData.pendleCalldata
+            0, // minOut handled in final PT check
+            swapData.odosCalldata
         );
+
+        // Verify we received underlying tokens
+        uint256 underlyingBalanceAfter = IERC20(swapData.underlyingAsset).balanceOf(
+            address(this)
+        );
+        uint256 actualUnderlyingReceived = underlyingBalanceAfter - underlyingBalanceBefore;
+
+        if (actualUnderlyingReceived == 0) {
+            revert IBaseOdosAdapterV2.OdosSwapFailed("Odos PT swap returned zero underlying tokens");
+        }
+
+        emit PTSwapExecuted(
+            inputPTToken,
+            swapData.underlyingAsset,
+            inputAmount,
+            actualUnderlyingReceived
+        );
+
+        // Stage 2: underlying asset → PT output via Pendle
+        uint256 outputPTBalanceBefore = IERC20(outputPTToken).balanceOf(
+            address(this)
+        );
+
+        // Approve underlying token to Pendle router
+        IERC20(swapData.underlyingAsset).safeApprove(pendleRouter, 0);
+        IERC20(swapData.underlyingAsset).safeApprove(pendleRouter, actualUnderlyingReceived);
+
+        // Execute Pendle swap: underlying → PT output
+        (bool success, bytes memory result) = pendleRouter.call(swapData.pendleCalldata);
+        if (!success) {
+            // Decode the revert reason if present
+            if (result.length > 0) {
+                assembly {
+                    let resultLength := mload(result)
+                    revert(add(32, result), resultLength)
+                }
+            }
+            revert IBaseOdosAdapterV2.PendleSwapFailed("Pendle underlying to PT swap failed");
+        }
 
         // Calculate actual output PT tokens received
-        uint256 outputBalanceAfter = IERC20(outputPTToken).balanceOf(
+        uint256 outputPTBalanceAfter = IERC20(outputPTToken).balanceOf(
             address(this)
         );
-        actualOutputAmount = outputBalanceAfter - outputBalanceBefore;
+        actualOutputAmount = outputPTBalanceAfter - outputPTBalanceBefore;
 
         if (actualOutputAmount < minOutputAmount) {
             revert InsufficientPTSwapOutput(
@@ -337,9 +415,9 @@ library PTSwapUtils {
         }
 
         emit PTSwapExecuted(
-            inputPTToken,
+            swapData.underlyingAsset,
             outputPTToken,
-            inputAmount,
+            actualUnderlyingReceived,
             actualOutputAmount
         );
         emit ComposedSwapCompleted(
@@ -370,7 +448,7 @@ library PTSwapUtils {
             return false;
         }
 
-        // For PT to PT swaps, we only need Pendle calldata (no underlying asset or Odos data needed)
+        // For PT to PT hybrid swaps, we need both Odos and Pendle calldata + underlying asset
         // For other composed swaps, we need valid underlying asset
         // Odos calldata can be empty (for direct underlying → target cases)
         return true; // If we have Pendle calldata, it's valid (underlying asset check done in specific functions)

@@ -26,35 +26,6 @@ import {IBaseOdosAdapter} from "./IBaseOdosAdapter.sol";
  * @notice Interface for the BaseOdosAdapterV2 with PT token support
  */
 interface IBaseOdosAdapterV2 is IBaseOdosAdapter {
-    /* Events */
-    /**
-     * @dev Emitted when a PT swap is executed
-     * @param ptToken The PT token address
-     * @param underlyingToken The underlying token address
-     * @param ptAmount The amount of PT tokens swapped
-     * @param underlyingReceived The amount of underlying tokens received
-     */
-    event PTSwapExecuted(
-        address indexed ptToken,
-        address indexed underlyingToken,
-        uint256 ptAmount,
-        uint256 underlyingReceived
-    );
-
-    /**
-     * @dev Emitted when a composed PT+Odos swap is executed
-     * @param inputToken The input token address
-     * @param outputToken The final output token address
-     * @param inputAmount The amount of input tokens
-     * @param finalOutputAmount The final amount of output tokens received
-     */
-    event ComposedSwapExecuted(
-        address indexed inputToken,
-        address indexed outputToken,
-        uint256 inputAmount,
-        uint256 finalOutputAmount
-    );
-
     /* Custom Errors */
     /**
      * @dev Thrown when PT swap data is invalid
@@ -80,18 +51,5 @@ interface IBaseOdosAdapterV2 is IBaseOdosAdapter {
      */
     error InsufficientOutputAfterComposedSwap(uint256 expected, uint256 actual);
 
-    /* Structs */
-    /**
-     * @dev Struct to hold PT swap data for composed swaps
-     * @param isComposed True if this is a composed PT+Odos swap
-     * @param underlyingAsset The underlying asset from PT swap (for composed swaps)
-     * @param pendleCalldata The Pendle swap calldata (for composed swaps)
-     * @param odosCalldata The Odos swap calldata (can be empty for direct swaps)
-     */
-    struct PTSwapDataV2 {
-        bool isComposed;
-        address underlyingAsset;
-        bytes pendleCalldata;
-        bytes odosCalldata;
-    }
+    /* Structs intentionally omitted to avoid duplication with PTSwapUtils */
 }

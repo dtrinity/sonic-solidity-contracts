@@ -195,7 +195,7 @@ contract OdosWithdrawSwapAdapterV2 is
                     ptSwapData
                 );
         } else if (swapType == ISwapTypes.SwapType.PT_TO_PT) {
-            // PT -> PT (direct Pendle swap)
+            // PT -> PT (hybrid Odos + Pendle swap)
             return
                 PTSwapUtils.executePTToPTSwap(
                     inputToken,
@@ -203,6 +203,7 @@ contract OdosWithdrawSwapAdapterV2 is
                     exactInputAmount,
                     minOutputAmount,
                     pendleRouter,
+                    swapRouter,
                     ptSwapData
                 );
         } else {
