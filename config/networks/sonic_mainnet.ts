@@ -64,6 +64,14 @@ export async function getConfig(
 
   const governanceSafeMultisig = "0xE83c188a7BE46B90715C757A06cF917175f30262";
 
+  // Safe configuration for governance multisig
+  const safeOwners = [
+    "0xDC672ba6e55B71b39FA5423D42B88E7aDF9d24A4",
+    "0x4B58fF1AAE6AdD7465A5584eBCaeb876ec8f21FD",
+    "0x9E0c8376940aBE845A89b7304147a95c72644f59",
+  ];
+  const safeThreshold = 2; // 2 of 3 multisig
+
   // Fetch deployed dLend StaticATokenLM wrapper, aToken and RewardsController (may be undefined prior to deployment)
   const dLendATokenWrapperDUSDDeployment = await _hre.deployments.getOrNull(
     "dLend_ATokenWrapper_dUSD",
@@ -85,6 +93,15 @@ export async function getConfig(
   }
 
   return {
+    safeConfig: {
+      safeAddress: governanceSafeMultisig,
+      owners: safeOwners,
+      threshold: safeThreshold,
+      chainId: 146, // Sonic mainnet chain ID
+      rpcUrl: "https://rpc.sonic.fantom.network",
+      // Temporary test: point to Ethereum mainnet Safe Transaction Service
+      txServiceUrl: "https://safe-transaction-mainnet.safe.global",
+    },
     tokenAddresses: {
       dUSD: emptyStringIfUndefined(dUSDDeployment?.address),
       dS: emptyStringIfUndefined(dSDeployment?.address),
@@ -105,7 +122,7 @@ export async function getConfig(
     },
     walletAddresses: {
       governanceMultisig: governanceSafeMultisig, // Created via Safe
-      incentivesVault: "0x4B4B5cC616be4cd1947B93f2304d36b3e80D3ef6", // TODO: Add incentives vault address
+      incentivesVault: "0x4B4B5cC616be4cd1947B93f2304d36b3e80D3ef6", // Incentives Safe address
     },
     pendle: {
       ptYtLpOracleAddress: "0x9a9Fa8338dd5E5B2188006f1Cd2Ef26d921650C2", // Universal Pendle PT/YT/LP Oracle address
