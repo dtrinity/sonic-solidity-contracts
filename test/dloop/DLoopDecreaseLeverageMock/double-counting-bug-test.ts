@@ -70,6 +70,7 @@ describe("DLoopDecreaseLeverageBase – double-counting collateral protection", 
     // 6️⃣ The call should now succeed (flash-loan branch is taken)
     await expect(
       decreaseLeverageMock.connect(user1).decreaseLeverage(
+        requiredDebtAmount,
         "0x", // swap data (ignored by SimpleDEXMock)
         dloopCoreMock,
       ),

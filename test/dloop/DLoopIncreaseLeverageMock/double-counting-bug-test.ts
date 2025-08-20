@@ -58,6 +58,7 @@ describe("DLoopIncreaseLeverageBase – double-counting collateral bug", functio
     // 5️⃣  The call should now succeed (flash-loan branch is taken)
     try {
       await increaseLeverageMock.connect(user1).increaseLeverage(
+        requiredCollateralAmount,
         "0x", // swap data (ignored by SimpleDEXMock)
         dloopMock,
       );

@@ -60,9 +60,11 @@ describe("DLoopIncreaseLeverageMock - Leftover Debt Token Handling", function ()
     const beforeDebt = await debtToken.balanceOf(user1.address);
 
     try {
+      const result =
+        await dloopMock.quoteRebalanceAmountToReachTargetLeverage();
       const tx = await increaseLeverageMock
         .connect(user1)
-        .increaseLeverage("0x", dloopMock);
+        .increaseLeverage(result.inputTokenAmount, "0x", dloopMock);
 
       const receipt = await tx.wait();
 
