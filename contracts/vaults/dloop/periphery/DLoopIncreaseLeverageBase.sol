@@ -135,28 +135,19 @@ abstract contract DLoopIncreaseLeverageBase is
      *      - Flash loans debt tokens, swaps to collateral tokens, calls increaseLeverage, uses received debt tokens to repay flash loan
      *      - There is no slippage protection as there is no risky of calling this function
      *        thus a revert due to minOutput may destroy the user's profit, even it is tiny (less than minOutput)
+     *      - We let the caller to specify the amount of collateral token to rebalance as it is more flexible
+     *        for the swap slippage, sometime if swapping a big amount of collateral token, the slippage may be too high
+     *        and the transfer will fail.
+     * @param rebalanceCollateralAmount The amount of collateral token to rebalance
      * @param debtTokenToCollateralSwapData Swap data from debt token to collateral token
      * @param dLoopCore Address of the DLoopCore contract to use
      * @return receivedDebtTokenAmount Amount of debt tokens received from increase leverage operation
      */
     function increaseLeverage(
+        uint256 rebalanceCollateralAmount,
         bytes calldata debtTokenToCollateralSwapData,
         DLoopCoreBase dLoopCore
     ) public nonReentrant returns (uint256 receivedDebtTokenAmount) {
-        // Calculate the required collateral amount to reach target leverage
-        (uint256 requiredCollateralAmount, , int8 direction) = dLoopCore
-            .quoteRebalanceAmountToReachTargetLeverage();
-
-        // Verify we need to increase leverage
-        if (direction != 1) {
-            uint256 currentLeverage = dLoopCore.getCurrentLeverageBps();
-            uint256 targetLeverage = dLoopCore.targetLeverageBps();
-            revert LeverageAlreadyAtOrAboveTarget(
-                currentLeverage,
-                targetLeverage
-            );
-        }
-
         // Record initial leverage
         uint256 leverageBeforeIncrease = dLoopCore.getCurrentLeverageBps();
 
@@ -165,10 +156,10 @@ abstract contract DLoopIncreaseLeverageBase is
         uint256 currentCollateralTokenBalance = collateralToken.balanceOf(
             address(this)
         );
-        if (requiredCollateralAmount > currentCollateralTokenBalance) {
+        if (rebalanceCollateralAmount > currentCollateralTokenBalance) {
             // The caller is expected to receive some debt token as subsidy
             _increaseLeverageWithFlashLoan(
-                requiredCollateralAmount,
+                rebalanceCollateralAmount,
                 debtTokenToCollateralSwapData,
                 dLoopCore
             );
