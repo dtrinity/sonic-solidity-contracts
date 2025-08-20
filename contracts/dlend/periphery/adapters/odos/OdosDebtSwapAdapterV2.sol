@@ -28,8 +28,6 @@ import {IAaveFlashLoanReceiver} from "../curve/interfaces/IAaveFlashLoanReceiver
 import {SafeERC20} from "contracts/dlend/core/dependencies/openzeppelin/contracts/SafeERC20.sol";
 import {IPoolAddressesProvider} from "contracts/dlend/core/interfaces/IPoolAddressesProvider.sol";
 import {DataTypes} from "contracts/dlend/core/protocol/libraries/types/DataTypes.sol";
-import {PTSwapUtils} from "./PTSwapUtils.sol";
-import {ISwapTypes} from "./interfaces/ISwapTypes.sol";
 
 /**
  * @title OdosDebtSwapAdapterV2
@@ -305,31 +303,14 @@ contract OdosDebtSwapAdapterV2 is
 
         // Executing the original flashloan with PT-aware swap logic
         {
-            // Check swap type and execute appropriate swap
-            ISwapTypes.SwapType swapType = PTSwapUtils.determineSwapType(
-                asset,
-                flashParams.debtAsset
+            // Use adaptive buy which handles both regular and PT token swaps intelligently
+            _executeAdaptiveBuy(
+                IERC20Detailed(asset),
+                IERC20Detailed(flashParams.debtAsset),
+                amount,
+                flashParams.debtRepayAmount,
+                flashParams.swapData
             );
-
-            if (swapType == ISwapTypes.SwapType.REGULAR_SWAP) {
-                // Regular swap using parent's _buyOnOdos
-                _buyOnOdos(
-                    IERC20Detailed(asset),
-                    IERC20Detailed(flashParams.debtAsset),
-                    amount,
-                    flashParams.debtRepayAmount,
-                    flashParams.swapData
-                );
-            } else {
-                // PT token involved - use PT-aware swap logic
-                _executeSwapExactOutput(
-                    asset,
-                    flashParams.debtAsset,
-                    amount,
-                    flashParams.debtRepayAmount,
-                    flashParams.swapData
-                );
-            }
 
             // Repay old debt
             IERC20WithPermit(flashParams.debtAsset).safeApprove(

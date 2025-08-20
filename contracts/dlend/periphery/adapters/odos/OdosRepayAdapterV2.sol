@@ -28,8 +28,6 @@ import {IERC20Detailed} from "contracts/dlend/core/dependencies/openzeppelin/con
 import {IPoolAddressesProvider} from "contracts/dlend/core/interfaces/IPoolAddressesProvider.sol";
 import {ReentrancyGuard} from "../../dependencies/openzeppelin/ReentrancyGuard.sol";
 import {IAaveFlashLoanReceiver} from "../curve/interfaces/IAaveFlashLoanReceiver.sol";
-import {PTSwapUtils} from "./PTSwapUtils.sol";
-import {ISwapTypes} from "./interfaces/ISwapTypes.sol";
 
 /**
  * @title OdosRepayAdapterV2
@@ -96,29 +94,14 @@ contract OdosRepayAdapterV2 is
                 collateralATokenPermit
             );
 
-            // Determine swap type and execute accordingly
-            ISwapTypes.SwapType swapType = PTSwapUtils.determineSwapType(
-                repayParams.collateralAsset,
-                repayParams.debtAsset
+            // Use adaptive buy which handles both regular and PT token swaps intelligently
+            _executeAdaptiveBuy(
+                IERC20Detailed(repayParams.collateralAsset),
+                IERC20Detailed(repayParams.debtAsset),
+                collateralAmountReceived,
+                repayParams.repayAmount,
+                repayParams.swapData
             );
-
-            if (swapType == ISwapTypes.SwapType.REGULAR_SWAP) {
-                _executeOdosExactOutput(
-                    repayParams.collateralAsset,
-                    repayParams.debtAsset,
-                    collateralAmountReceived,
-                    repayParams.repayAmount,
-                    repayParams.swapData
-                );
-            } else {
-                _executeSwapExactOutput(
-                    repayParams.collateralAsset,
-                    repayParams.debtAsset,
-                    collateralAmountReceived,
-                    repayParams.repayAmount,
-                    repayParams.swapData
-                );
-            }
 
             // Repay the debt
             _conditionalRenewAllowance(
@@ -197,29 +180,14 @@ contract OdosRepayAdapterV2 is
         // Record balance before swap on flashloan asset to compute amountSold
         uint256 balanceBefore = IERC20(flashLoanAsset).balanceOf(address(this));
 
-        // Determine swap type and execute accordingly (exact-output)
-        ISwapTypes.SwapType swapType = PTSwapUtils.determineSwapType(
-            flashLoanAsset,
-            repayParams.debtAsset
+        // Use adaptive buy which handles both regular and PT token swaps intelligently
+        _executeAdaptiveBuy(
+            IERC20Detailed(flashLoanAsset),
+            IERC20Detailed(repayParams.debtAsset),
+            flashLoanAmount,
+            repayParams.repayAmount,
+            repayParams.swapData
         );
-
-        if (swapType == ISwapTypes.SwapType.REGULAR_SWAP) {
-            _executeOdosExactOutput(
-                flashLoanAsset,
-                repayParams.debtAsset,
-                flashLoanAmount,
-                repayParams.repayAmount,
-                repayParams.swapData
-            );
-        } else {
-            _executeSwapExactOutput(
-                flashLoanAsset,
-                repayParams.debtAsset,
-                flashLoanAmount,
-                repayParams.repayAmount,
-                repayParams.swapData
-            );
-        }
 
         // Repay the debt
         _conditionalRenewAllowance(

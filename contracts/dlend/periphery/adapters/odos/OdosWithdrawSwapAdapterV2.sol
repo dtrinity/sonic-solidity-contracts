@@ -26,8 +26,6 @@ import {ReentrancyGuard} from "../../dependencies/openzeppelin/ReentrancyGuard.s
 import {IOdosWithdrawSwapAdapterV2} from "./interfaces/IOdosWithdrawSwapAdapterV2.sol";
 import {IOdosRouterV2} from "contracts/odos/interface/IOdosRouterV2.sol";
 import {IERC20} from "contracts/dlend/core/dependencies/openzeppelin/contracts/IERC20.sol";
-import {PTSwapUtils} from "./PTSwapUtils.sol";
-import {ISwapTypes} from "./interfaces/ISwapTypes.sol";
 
 /**
  * @title OdosWithdrawSwapAdapterV2
@@ -104,110 +102,19 @@ contract OdosWithdrawSwapAdapterV2 is
             permitInput
         );
 
-        // Check swap type using PTSwapUtils
-        ISwapTypes.SwapType swapType = PTSwapUtils.determineSwapType(
-            withdrawSwapParams.oldAsset,
-            withdrawSwapParams.newAsset
+        // Use adaptive swap which handles both regular and PT token swaps intelligently
+        uint256 amountReceived = _executeAdaptiveSwap(
+            IERC20Detailed(withdrawSwapParams.oldAsset),
+            IERC20Detailed(withdrawSwapParams.newAsset),
+            withdrawSwapParams.oldAssetAmount,
+            withdrawSwapParams.minAmountToReceive,
+            withdrawSwapParams.swapData
         );
-
-        uint256 amountReceived;
-
-        if (swapType == ISwapTypes.SwapType.REGULAR_SWAP) {
-            // Regular Odos swap
-            amountReceived = _sellOnOdos(
-                IERC20Detailed(withdrawSwapParams.oldAsset),
-                IERC20Detailed(withdrawSwapParams.newAsset),
-                withdrawSwapParams.oldAssetAmount,
-                withdrawSwapParams.minAmountToReceive,
-                withdrawSwapParams.swapData
-            );
-        } else {
-            // PT token involved - use PT-aware swap logic
-            amountReceived = _executeSwapExactInput(
-                withdrawSwapParams.oldAsset,
-                withdrawSwapParams.newAsset,
-                withdrawSwapParams.oldAssetAmount,
-                withdrawSwapParams.minAmountToReceive,
-                withdrawSwapParams.swapData
-            );
-        }
 
         // transfer new asset to the user
         IERC20(withdrawSwapParams.newAsset).safeTransfer(
             withdrawSwapParams.user,
             amountReceived
         );
-    }
-
-    /**
-     * @dev Executes exact input swap with PT token support
-     * @param inputToken The input token address
-     * @param outputToken The output token address
-     * @param exactInputAmount The exact amount of input tokens to spend
-     * @param minOutputAmount The minimum amount of output tokens required
-     * @param swapData The swap data (encoded PTSwapDataV2)
-     * @return actualOutputAmount The actual amount of output tokens received
-     */
-    function _executeSwapExactInput(
-        address inputToken,
-        address outputToken,
-        uint256 exactInputAmount,
-        uint256 minOutputAmount,
-        bytes memory swapData
-    ) internal override returns (uint256 actualOutputAmount) {
-        // Decode PTSwapDataV2 and use PTSwapUtils
-        PTSwapUtils.PTSwapDataV2 memory ptSwapData = abi.decode(
-            swapData,
-            (PTSwapUtils.PTSwapDataV2)
-        );
-
-        if (!PTSwapUtils.validatePTSwapData(ptSwapData)) {
-            revert InvalidPTSwapData();
-        }
-
-        ISwapTypes.SwapType swapType = PTSwapUtils.determineSwapType(
-            inputToken,
-            outputToken
-        );
-
-        if (swapType == ISwapTypes.SwapType.PT_TO_REGULAR) {
-            // PT -> regular token
-            return
-                PTSwapUtils.executePTToTargetSwap(
-                    inputToken,
-                    outputToken,
-                    exactInputAmount,
-                    minOutputAmount,
-                    pendleRouter,
-                    swapRouter,
-                    ptSwapData
-                );
-        } else if (swapType == ISwapTypes.SwapType.REGULAR_TO_PT) {
-            // Regular token -> PT
-            return
-                PTSwapUtils.executeSourceToPTSwap(
-                    inputToken,
-                    outputToken,
-                    exactInputAmount,
-                    minOutputAmount,
-                    pendleRouter,
-                    swapRouter,
-                    ptSwapData
-                );
-        } else if (swapType == ISwapTypes.SwapType.PT_TO_PT) {
-            // PT -> PT (hybrid Odos + Pendle swap)
-            return
-                PTSwapUtils.executePTToPTSwap(
-                    inputToken,
-                    outputToken,
-                    exactInputAmount,
-                    minOutputAmount,
-                    pendleRouter,
-                    swapRouter,
-                    ptSwapData
-                );
-        } else {
-            revert InvalidPTSwapData(); // Should never reach here
-        }
     }
 }

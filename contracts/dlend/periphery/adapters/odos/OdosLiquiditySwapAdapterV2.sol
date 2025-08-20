@@ -155,7 +155,7 @@ contract OdosLiquiditySwapAdapterV2 is
 
         // sell the flashLoanAmount minus the premium, so flashloan repayment is guaranteed
         // flashLoan premium stays in the contract
-        uint256 amountReceived = _sellOnOdos(
+        uint256 amountReceived = _executeAdaptiveSwap(
             IERC20Detailed(flashLoanAsset),
             IERC20Detailed(liquiditySwapParams.newCollateralAsset),
             flashLoanAmount - flashLoanPremium,
@@ -212,8 +212,8 @@ contract OdosLiquiditySwapAdapterV2 is
             collateralATokenPermit
         );
 
-        // sell(exact in) old collateral asset to new collateral asset using enhanced swap logic
-        uint256 amountReceived = _sellOnOdos(
+        // sell(exact in) old collateral asset to new collateral asset using adaptive routing
+        uint256 amountReceived = _executeAdaptiveSwap(
             IERC20Detailed(liquiditySwapParams.collateralAsset),
             IERC20Detailed(liquiditySwapParams.newCollateralAsset),
             collateralAmountReceived,

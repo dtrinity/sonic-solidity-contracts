@@ -20,21 +20,25 @@ pragma solidity ^0.8.20;
 import {IERC20Detailed} from "contracts/dlend/core/dependencies/openzeppelin/contracts/IERC20Detailed.sol";
 import {IPoolAddressesProvider} from "contracts/dlend/core/interfaces/IPoolAddressesProvider.sol";
 import {IOdosRouterV2} from "contracts/odos/interface/IOdosRouterV2.sol";
-import {BaseOdosSellAdapter} from "./BaseOdosSellAdapter.sol";
+import {BaseOdosSwapAdapter} from "./BaseOdosSwapAdapter.sol";
 import {IBaseOdosAdapterV2} from "./interfaces/IBaseOdosAdapterV2.sol";
 import {OdosSwapUtils} from "contracts/odos/OdosSwapUtils.sol";
 import {PTSwapUtils} from "./PTSwapUtils.sol";
 import {ISwapTypes} from "./interfaces/ISwapTypes.sol";
+import {SwapExecutorV2} from "./SwapExecutorV2.sol";
 
 /**
  * @title BaseOdosSellAdapterV2
- * @notice Implements the logic for selling tokens on Odos with PT token support
- * @dev Extends BaseOdosSellAdapter with PT token functionality
+ * @notice Implements the logic for adaptive selling with multi-protocol support
+ * @dev Provides composed swapping capabilities (Odos + Pendle) and direct Odos swapping
  */
 abstract contract BaseOdosSellAdapterV2 is
-    BaseOdosSellAdapter,
+    BaseOdosSwapAdapter,
     IBaseOdosAdapterV2
 {
+    /// @notice The address of the Odos Router
+    IOdosRouterV2 public immutable odosRouter;
+
     /// @notice The address of the Pendle Router
     address public immutable pendleRouter;
 
@@ -44,29 +48,36 @@ abstract contract BaseOdosSellAdapterV2 is
      * @dev Constructor
      * @param addressesProvider The address of the Aave PoolAddressesProvider contract
      * @param pool The address of the Aave Pool contract
-     * @param _swapRouter The address of the Odos Router
+     * @param _odosRouter The address of the Odos Router
      * @param _pendleRouter The address of the Pendle Router
      */
     constructor(
         IPoolAddressesProvider addressesProvider,
         address pool,
-        IOdosRouterV2 _swapRouter,
+        IOdosRouterV2 _odosRouter,
         address _pendleRouter
-    ) BaseOdosSellAdapter(addressesProvider, pool, _swapRouter) {
+    ) BaseOdosSwapAdapter(addressesProvider, pool) {
+        odosRouter = _odosRouter;
         pendleRouter = _pendleRouter;
     }
 
     /**
-     * @dev Override _sellOnOdos to support PT tokens
-     * @dev Routes to PT-aware logic or calls parent implementation
+     * @dev Executes adaptive swap with intelligent multi-protocol routing
+     * @dev Automatically chooses between direct Odos or composed Odos+Pendle swaps
+     * @param assetToSwapFrom The asset to swap from
+     * @param assetToSwapTo The asset to swap to
+     * @param amountToSwap Amount of input tokens to swap
+     * @param minAmountToReceive Minimum amount of output tokens required
+     * @param swapData Either regular Odos calldata or encoded PTSwapDataV2
+     * @return amountReceived The amount of output tokens received
      */
-    function _sellOnOdos(
+    function _executeAdaptiveSwap(
         IERC20Detailed assetToSwapFrom,
         IERC20Detailed assetToSwapTo,
         uint256 amountToSwap,
         uint256 minAmountToReceive,
         bytes memory swapData
-    ) internal override returns (uint256 amountReceived) {
+    ) internal returns (uint256 amountReceived) {
         address tokenIn = address(assetToSwapFrom);
         address tokenOut = address(assetToSwapTo);
 
@@ -77,11 +88,11 @@ abstract contract BaseOdosSellAdapterV2 is
         );
 
         if (swapType == ISwapTypes.SwapType.REGULAR_SWAP) {
-            // Regular swap - call parent implementation
+            // Regular swap - use direct Odos execution
             return
-                super._sellOnOdos(
-                    assetToSwapFrom,
-                    assetToSwapTo,
+                _executeDirectOdosExactInput(
+                    tokenIn,
+                    tokenOut,
                     amountToSwap,
                     minAmountToReceive,
                     swapData
@@ -99,8 +110,8 @@ abstract contract BaseOdosSellAdapterV2 is
             );
         }
 
-        // Execute PT-aware swap using PTSwapUtils
-        amountReceived = _executeSwapExactInput(
+        // Execute composed swap with intelligent routing
+        amountReceived = _executeComposedSwapExactInput(
             tokenIn,
             tokenOut,
             amountToSwap,
@@ -113,7 +124,8 @@ abstract contract BaseOdosSellAdapterV2 is
     }
 
     /**
-     * @dev Executes exact input swap with PT token support
+     * @dev Executes composed swap with intelligent routing and PT token support
+     * @dev Can handle: Regular↔Regular, PT↔Regular, Regular↔PT, PT↔PT swaps
      * @param inputToken The input token address
      * @param outputToken The output token address
      * @param exactInputAmount The exact amount of input tokens to spend
@@ -121,92 +133,38 @@ abstract contract BaseOdosSellAdapterV2 is
      * @param swapData The swap data (either regular Odos or PTSwapDataV2)
      * @return actualOutputAmount The actual amount of output tokens received
      */
-    function _executeSwapExactInput(
+    function _executeComposedSwapExactInput(
         address inputToken,
         address outputToken,
         uint256 exactInputAmount,
         uint256 minOutputAmount,
         bytes memory swapData
     ) internal virtual returns (uint256 actualOutputAmount) {
-        // Use PTSwapUtils to determine swap strategy and execute
-        ISwapTypes.SwapType swapType = PTSwapUtils.determineSwapType(
-            inputToken,
-            outputToken
-        );
-
-        if (swapType == ISwapTypes.SwapType.REGULAR_SWAP) {
-            // Regular swap - swapData should be raw Odos calldata
-            return
-                _executeOdosExactInput(
-                    inputToken,
-                    outputToken,
-                    exactInputAmount,
-                    minOutputAmount,
-                    swapData
-                );
-        }
-
-        // PT token involved - decode PTSwapDataV2 and use PTSwapUtils
-        PTSwapUtils.PTSwapDataV2 memory ptSwapData = abi.decode(
-            swapData,
-            (PTSwapUtils.PTSwapDataV2)
-        );
-
-        if (!PTSwapUtils.validatePTSwapData(ptSwapData)) {
-            revert InvalidPTSwapData();
-        }
-
-        if (swapType == ISwapTypes.SwapType.PT_TO_REGULAR) {
-            // PT -> regular token
-            return
-                PTSwapUtils.executePTToTargetSwap(
-                    inputToken,
-                    outputToken,
-                    exactInputAmount,
-                    minOutputAmount,
-                    pendleRouter,
-                    swapRouter,
-                    ptSwapData
-                );
-        } else if (swapType == ISwapTypes.SwapType.REGULAR_TO_PT) {
-            // Regular token -> PT
-            return
-                PTSwapUtils.executeSourceToPTSwap(
-                    inputToken,
-                    outputToken,
-                    exactInputAmount,
-                    minOutputAmount,
-                    pendleRouter,
-                    swapRouter,
-                    ptSwapData
-                );
-        } else if (swapType == ISwapTypes.SwapType.PT_TO_PT) {
-            // PT -> PT (hybrid Odos + Pendle swap)
-            return
-                PTSwapUtils.executePTToPTSwap(
-                    inputToken,
-                    outputToken,
-                    exactInputAmount,
-                    minOutputAmount,
-                    pendleRouter,
-                    swapRouter,
-                    ptSwapData
-                );
-        } else {
-            revert InvalidPTSwapData(); // Should never reach here
-        }
+        return
+            SwapExecutorV2.executeSwapExactInput(
+                SwapExecutorV2.ExactInputParams({
+                    inputToken: inputToken,
+                    outputToken: outputToken,
+                    exactInputAmount: exactInputAmount,
+                    minOutputAmount: minOutputAmount,
+                    swapData: swapData,
+                    pendleRouter: pendleRouter,
+                    odosRouter: odosRouter
+                })
+            );
     }
 
     /**
-     * @dev Executes exact input Odos swap
+     * @dev Executes direct Odos-only swap (no PT routing logic)
+     * @dev Only handles: Regular→Regular token swaps via Odos
      * @param inputToken The input token address
      * @param outputToken The output token address
      * @param exactInputAmount The exact amount of input tokens to spend
      * @param minOutputAmount The minimum amount of output tokens required
-     * @param swapData The Odos swap data
+     * @param swapData The raw Odos swap calldata
      * @return actualOutputAmount The actual amount of output tokens received
      */
-    function _executeOdosExactInput(
+    function _executeDirectOdosExactInput(
         address inputToken,
         address outputToken,
         uint256 exactInputAmount,
@@ -215,7 +173,7 @@ abstract contract BaseOdosSellAdapterV2 is
     ) internal returns (uint256 actualOutputAmount) {
         // Execute Odos swap using OdosSwapUtils
         actualOutputAmount = OdosSwapUtils.executeSwapOperation(
-            swapRouter,
+            odosRouter,
             inputToken,
             outputToken,
             exactInputAmount,
