@@ -60,7 +60,7 @@ export class GovernanceExecutor {
   /**
    * Attempt an on-chain call; on failure, queue a Safe transaction if enabled.
    * Returns whether the requirement is considered complete (true) or pending
-   * governance (false).
+   * governance/manual action (false).
    *
    * @param directCall
    * @param safeTxBuilder
@@ -78,8 +78,11 @@ export class GovernanceExecutor {
         this.transactions.push(tx);
         return false;
       }
-      // Non-safe mode: continue to keep local/test deployments progressing
-      return true;
+      // Non-safe mode: mark as pending to allow callers to surface incomplete state
+      // while still allowing scripts to decide how to proceed.
+      // eslint-disable-next-line no-console
+      console.warn("Direct execution failed; marking requirement as pending:", error);
+      return false;
     }
   }
 

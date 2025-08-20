@@ -156,7 +156,7 @@ async function migrateIssuerRolesIdempotent(
 
   console.log(`  📄 Migrating roles for ${issuerName} at ${issuerAddress}`);
 
-  let allComplete = true;
+  let noPendingActions = true;
 
   for (const role of roles) {
     if (!(await issuer.hasRole(role.hash, governanceMultisig))) {
@@ -175,7 +175,7 @@ async function migrateIssuerRolesIdempotent(
             issuer.interface
           )
       );
-      if (!complete) allComplete = false;
+      if (!complete) noPendingActions = false;
     } else {
       console.log(`    ✓ ${role.name} already granted to governance`);
     }
@@ -210,7 +210,7 @@ async function migrateIssuerRolesIdempotent(
             issuer.interface
           )
       );
-      if (!complete) allComplete = false;
+      if (!complete) noPendingActions = false;
     }
   }
 
@@ -222,14 +222,15 @@ async function migrateIssuerRolesIdempotent(
       issuerAddress,
       governanceMultisig,
       deployerAddress,
-      deployerSigner
+      deployerSigner,
+      executor
     );
 
   if (!adminMigrationComplete) {
-    allComplete = false;
+    noPendingActions = false;
   }
 
-  return allComplete;
+  return noPendingActions;
 }
 
 /**
