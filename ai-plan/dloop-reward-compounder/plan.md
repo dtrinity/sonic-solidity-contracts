@@ -1,338 +1,263 @@
-# DLoop Reward Compounder Bot — Implementation & Test Plan
+Title: DLoop Reward Compounder Bot — Implementation Plan, Test Plan, and Review Checklist
 
-## Overview
+Goals
 
-- Goal: Build a flashloan-based periphery and a bot that compounds rewards for `DLoopCoreDLend` by swapping flashloaned `dUSD` → collateral (e.g., `sfrxUSD`), depositing to mint shares, calling `compoundRewards` with those shares to realize rewards, repaying flash, and keeping surplus as profit.
-- Contracts: New periphery in `bot/dloop-reward-compounder/contracts` with base + venue-specific (Odos) implementation.
-- Bot: Standalone repo under `bot/dloop-reward-compounder` mirroring the style of `bot/dlend-liquidator` (Makefile, Dockerfile, hardhat, TypeScript runner, config, notifications).
-- Decisioning: Bot first “quotes” profitability (thresholded by `exchangeThreshold`, fees, slippage) then triggers the on-chain periphery.
-- Independence: The repo must be self-contained; all interfaces/types needed are vendored inside the bot repo.
+- Build a standalone bot at `bot/dloop-reward-compounder` to compound rewards for `DLoopCoreDLend` using a flashloan-based periphery.
+- Implement and deploy a new periphery contract pair: an abstract base and an Odos venue-specific implementation.
+- Quote expected profitability off-chain, then execute on-chain compounding only when the threshold condition holds.
+- Ensure repo independence, matching style/structure of `dloop-rebalancer` and `dlend-liquidator` where appropriate.
 
-References
+Scope Summary
 
-- Logic/pseudocode: `ai-promt/dloop-reward-compounder/flashloan-reward-compounding-explanation.md`
-- Reward quoting helper: `ai-promt/dloop-reward-compounder/reward-quoting-implementation.md`
-- Style and structure reference: `bot/dlend-liquidator` and `/Users/dinosaurchi/Desktop/Project/stably-prime/trinity/dloop-rebalancer` (eslint setup)
+- Contracts: `RewardCompounderDLendBase.sol` (abstract), `RewardCompounderDLendOdos.sol` (venue-specific), `RewardHelper.sol` (quoting helper, optional but helpful for clean integration), mocks for testing.
+- Bot runtime: TypeScript service that monitors, quotes, and triggers compounding via the periphery; Slack notifications for results.
+- Tooling: Hardhat, eslint (matching `dloop-rebalancer`), Makefile, Dockerfile. Fully self-contained repo.
 
-## Repository Structure
+Repo Structure (to create under `bot/dloop-reward-compounder`)
 
-Following `bot/dlend-liquidator`, adapted for reward compounding:
+- contracts/
+  - base/
+    - RewardCompounderDLendBase.sol
+  - venue/odos/
+    - RewardCompounderDLendOdos.sol
+    - OdosSwapLogic.sol (copy/adapt minimal logic if needed; else import interface)
+  - helpers/
+    - RewardHelper.sol (based on `ai-promt/dloop-reward-compounder/reward-quoting-implementation.md`)
+  - interfaces/
+    - IERC3156FlashBorrower.sol (if not available via deps)
+    - IERC3156FlashLender.sol (if not available via deps)
+    - IDLoopCoreDLend.sol (copy interface from monorepo)
+    - IRewardClaimable.sol (copy if needed)
+    - IOdosRouter.sol / IAggregator.sol (minimal swap interface)
+    - IERC20.sol (local copy if not relying on OZ via deps)
+  - mocks/ (tests only)
+    - MockDLoopCoreDLend.sol (emulates previewMint/mint/compoundRewards/reward flow)
+    - MockFlashLender.sol (ERC-3156)
+    - MockOdosRouter.sol (exactOut/ExactIn toggle + slippage controls)
+    - MockERC20.sol (dUSD, collateral)
+- typescript/
+  - bot/
+    - runner.ts (main loop)
+    - quoting.ts (uses RewardHelper and core view methods)
+    - periphery.ts (tx builder: encode calldata and call periphery)
+    - notification.ts (Slack integration; mirror `dlend-liquidator` pattern)
+    - config.ts (load network addresses and params)
+    - env.ts (env parsing, validation)
+  - utils/
+    - provider.ts, signer.ts, numbers.ts, logger.ts
+  - abis/ (compiled ABIs or minimal hand-written if needed for mocks)
+- config/
+  - networks/
+    - sonic_mainnet.ts (core addresses, tokens, routers)
+    - sonic_testnet.ts
+  - constants.ts
+  - types.ts
+- scripts/
+  - deploy_periphery.ts (deploy base and Odos impl; record addresses)
+  - verify.ts
+  - run_once.ts (one-off compounding)
+- deploy/
+  - sonic_mainnet/
+    - 001_deploy_periphery.ts
+  - sonic_testnet/
+    - 001_deploy_periphery.ts
+- test/
+  - contracts/
+    - RewardCompounder.fullflow.spec.ts
+    - RewardCompounder.reverts.spec.ts
+    - RewardHelper.spec.ts
+    - SwapLogic.exactOut.spec.ts
+  - bot/
+    - quoting.spec.ts
+    - runner.success.spec.ts
+    - runner.failures.spec.ts
+- .env.example, package.json, hardhat.config.ts, eslint.config.mjs, jest.config.js, tsconfig.json
+- Dockerfile, Makefile, README.md
+- .yarn/
+  - releases/
+    - yarn-3.7.0.cjs
+  - install-state.gz
 
-```
-bot/dloop-reward-compounder/
-  .env                      # Secrets and network config (not committed)
-  .gitignore                # Copy from `bot/dlend-liquidator/.gitignore`
-  .solhint.json
-  .yarnrc.yml               # Copy from `bot/dlend-liquidator/.yarnrc.yml`
-  Dockerfile
-  Makefile
-  eslint.config.mjs         # Copy from `bot/dlend-liquidator/eslint.config.mjs`
-  hardhat.config.ts         # Copy from `bot/dlend-liquidator/hardhat.config.ts`
-  jest.config.js            # Copy from `bot/dlend-liquidator/jest.config.js`
-  package.json
-  tsconfig.json
-  yarn.lock                 # Generated by yarn install
+Do not need to copy the `.tmp`, `artifacts`, `typechain-types`, `cache`, `state` folders from the reference repo.
 
-  config/
-    addresses.sonic_mainnet.json
-    addresses.sonic_testnet.json
-    odos.sonic_mainnet.json           # Optional swap-configs
-    odos.sonic_testnet.json
+Key Design Decisions
 
-  contracts/
-    common/
-      Constants.sol
-    interface/
-      IERC3156FlashBorrower.sol
-      IERC3156FlashLender.sol
-      IERC20.sol
-      IDLoopCoreDLend.sol             # Minimal interface for deposit/compoundRewards, preview, threshold
-      IRewardClaimable.sol            # Minimal subset if separated
-      IOdosRouterV2.sol               # Copied from liquidator repo
-    libraries/
-      PercentageMath.sol              # If needed
-    odos/
-      OdosSwapUtils.sol               # Thin wrapper like in liquidator
-    base/
-      RewardCompounderDLendBase.sol   # Abstract orchestration, flash callback, accounting
-    venue/
-      RewardCompounderDLendOdos.sol   # Venue-specific swap execution (exactIn guarded by minOut)
-    helpers/
-      RewardHelper.sol                # From reward-quoting-implementation.md (adapt imports to local)
+- Threshold-based compounding: always target `S = CORE.exchangeThreshold()` and compute `requiredCollateral = CORE.previewMint(S)`; perform an exact-out swap dUSD→collateral for `requiredCollateral` (+ small slippage buffer). This aligns with FCFS and avoids auction dynamics.
+- Profitability check: off-chain feasibility check before sending tx. The on-chain logic remains trustless and reverts if insufficient.
+  - Variables: X = flash amount, fee = flash fee, K = borrowed dUSD from CORE during mint, netZ = dUSD rewards after treasury fee from `compoundRewards`.
+  - Break-even: `K + netZ >= X + fee`.
+- Independence: vendor any missing interfaces locally; pin npm deps; do not import from parent repo via relative paths.
+- No approvals for caller-side tokens: the periphery takes care of inside-transaction approvals for swap and repayment only.
 
-  deploy/
-    00_deploy_reward_compounder_base.ts
-    01_deploy_reward_compounder_odos.ts
+Implementation Plan
 
-  deployments/               # hardhat-deploy outputs (per network)
+1) Bootstrap repository and tooling
+   - Copy eslint config pattern from `dloop-rebalancer` (lint rules, import ordering).
+   - Initialize Hardhat with Solidity compiler versions matching the monorepo; include optimizer settings.
+   - Add Makefile targets: `make compile`, `make lint`, `make test`, `make docker.build`, `make deploy.sonic_mainnet`, `make deploy.sonic_testnet`.
+   - Provide Dockerfile similar to `dlend-liquidator` with runtime entrypoint for the bot and build steps for contracts and TS.
 
-  scripts/
-    sh/clean-deployments.sh
+2) Contracts — Base periphery
+   - `RewardCompounderDLendBase.sol`
+     - Implements IERC3156FlashBorrower.
+     - Params set via constructor: addresses for `CORE`, `FLASH_LENDER`, `DUSD`, `COLLATERAL`, `SWAP_AGG`.
+     - Public `run(bytes swapCalldata, uint256 flashAmount, uint256 slippageBps)`:
+       - Reads `S = CORE.exchangeThreshold()`; require `S > 0`.
+       - `requiredCollateral = CORE.previewMint(S)`; add buffer via `slippageBps`.
+       - Kicks flashloan on dUSD for `flashAmount`, passing encoded `swapCalldata`, `requiredCollateral`, `S`.
+     - `onFlashLoan` callback performs:
+       - Approve and exact-out swap dUSD→collateral to get `requiredCollateral` (guard by reading collateral balance ≥ requiredCollateral).
+       - Approve CORE; `CORE.mint(S, address(this))`; record dUSD delta to estimate K if needed.
+       - Approve shares to CORE; call `compoundRewards(S, [DUSD], address(this))`.
+       - Approve `FLASH_LENDER` and return magic value for ERC-3156.
+     - Emits events: `RunStarted`, `SwapExecuted`, `Minted`, `Compounded`, `FlashRepaid`, `RunFailed` (if try/catch used inside).
+     - Internal functions for validation and safe approvals.
 
-  state/                     # Docker runtime state (mounted volume)
+3) Contracts — Venue-specific Odos implementation
+   - `RewardCompounderDLendOdos.sol`
+     - Extends base; replaces swap execution with Odos-specific call pattern.
+     - `OdosSwapLogic` library or thin contract adapter to perform exact-out swaps (ensure input token is dUSD and output is collateral). Guard for exact-out/in mismatch via calldata parsing or venue flag.
+     - Sanity check slippage by verifying post-swap collateral balance and dUSD spent.
 
-  typescript/
-    common/
-      env.ts
-      networks.ts
-      addrs.ts               # Loads from config/ by network
-      slack.ts               # Wrapper around @slack/web-api, similar to dlend-liquidator
-    quoting/
-      reward_quote.ts        # Off-chain estimator for profitability
-    odos/
-      route.ts               # Build/craft calldata for Odos swap (mocked in tests)
-    bot/
-      run.ts                 # Periodic runner: quote → if profitable, call periphery
-      notify.ts              # Notify helper (success/failure)
-      utils.ts               # Math, thresholds, basis points helpers
+4) Contracts — Reward Helper (quoting)
+   - Implement `RewardHelper.sol` from `ai-promt/dloop-reward-compounder/reward-quoting-implementation.md` under `contracts/helpers/`.
+   - Used by the bot for efficient chain queries (optional; can be replaced with direct ABI calls if deploy footprint is a concern).
 
-  test/
-    contracts/
-      mocks/
-        MockERC20.sol
-        MockOdosRouterV2.sol
-        MockFlashLender.sol
-        MockDLoopCoreDLend.sol        # Minimal core with deposit, compoundRewards, exchangeThreshold
-      RewardCompounderDLendOdos.t.sol # Foundry/Hardhat-style mixed tests (we’ll use hardhat + TS tests)
-    typescript/
-      bot_full_flow.spec.ts           # Full-flow bot test with mocks
-      swap_edgecases.spec.ts          # Slippage, exactIn/out, reverts
-      notify.spec.ts                  # Slack mocked
-```
-
-Notes
-
-- All interfaces vendored locally; do not rely on monorepo pathing.
-- Reuse/conform to `eslint.config.mjs` from dloop-rebalancer.
-- Makefile and Dockerfile modeled on `bot/dlend-liquidator` with target names adjusted.
-
-## Contracts — Design & Responsibilities
-
-1) RewardCompounderDLendBase.sol (abstract)
-
-- Implements IERC3156FlashBorrower callback and shared flow:
-  - Validates lender/token
-  - Executes swap via virtual hook `_swapExactIn(dusdIn, minCollateralOut, swapData)`
-  - Deposits collateral into Core: `deposit(assets, address(this))` → mints shares and receives `K` dUSD
-  - Ensures `shares >= exchangeThreshold()` and optional `maxDeposit > 0`
-  - Calls `compoundRewards(shares, [dUSD], address(this))`
-  - Repays flash amount + fee
-  - Emits detailed events: `RewardCompounded`, `FlashRepaid`, `Profit(realized)`
-- Provides helpers:
-  - `_previewDeposit(assets) → shares`
-  - `_ensureProfitableOrRevert(expectedMinProfit)` with K/netZ accounting
-  - `_approveIfNeeded(token, spender, amount)`
-  - Access control for pausing/owner-only params (optional)
-
-2) RewardCompounderDLendOdos.sol (venue-specific)
-
-- Inherits Base, wires Odos router and swap execution.
-- Swap is exactIn dUSD → collateral; guard using `minOut` from calldata to avoid exactIn/exactOut mismatch.
-- Decodes calldata and calls Odos Router V2, checks received collateral balance delta.
-
-3) RewardHelper.sol
-
-- Implements the reward-quoting helper from `reward-quoting-implementation.md`.
-- Adapt imports to local interfaces; used off-chain and optionally on-chain for sanity checks.
-
-4) Mocks (test only)
-
-- `MockDLoopCoreDLend`:
-  - `deposit(assets, receiver) → shares` with deterministic ratio and transfers `K` dUSD to receiver
-  - `compoundRewards(amount, rewardTokens, receiver)` burns shares and sends net rewards (treasury fee applied)
-  - `exchangeThreshold()` and `treasuryFeeBps()` getters
-- `MockFlashLender`: simple ERC3156 flash loaner with fixed fee bps
-- `MockOdosRouterV2`: consumes `dUSD` and returns fixed collateral out subject to slippage param
-
-## TypeScript Bot — Flow
-
-1) Quote step
-
-- Pull config by network (core address, lender, tokens, odos router, thresholds, feeBps, slippageBps)
-- Read on-chain data: `exchangeThreshold`, treasury fee bps, `maxDeposit`
-- Call price/route service (odos) or use mocked route in tests; compute:
-  - `Y` collateral out for `X` dUSD in
-  - `S = previewDeposit(Y)`
-  - `K` estimation using preview or measure K delta in prior runs
-  - `Z` rewards estimate via RewardHelper and vault state
-- Break-even check: `K + netZ >= X + flashFee + swapCosts`
-- If `S < exchangeThreshold` or not profitable, skip and notify (optional).
-
-2) Execute step
-
-- Build `swapCalldata` for Odos exactIn dUSD → collateral with `minOut` guard
-- Call periphery: `run(flashAmount, swapCalldata, minCollateralOut)`
-- Wait for receipt, parse events, and notify result.
-
-3) Notify
-
-- Use Slack via `@slack/web-api` (same pattern as `bot/dlend-liquidator/typescript/odos_bot/notification.ts`).
-- Include profit, gas used, and reason for failure if reverted.
-
-## Makefile Targets
-
-- `compile`: `yarn hardhat compile --show-stack-traces`
-- `deploy.contracts.sonic_mainnet`: `yarn hardhat deploy --network sonic_mainnet`
-  - Reset variants with keyword filter `RewardCompounderDLend`
-- `lint`: `lint.solidity` + `lint.typescript` (prettier-plugin-solidity, solhint, eslint)
-- `docker.build.(arm64|amd64)`: same shape as liquidator; image name `reward-compounder-bot-sonic`
-- `docker.run`: mounts `.env` and `state/`; args: `<network> odos`
-- `deploy-local.bot.<network>` and `deploy-remote.bot` mirroring liquidator flow
-
-## Hardhat Configuration
-
-- Plugins: `@nomicfoundation/hardhat-toolbox`, `hardhat-deploy`, `typechain`
-- Compiler: `0.8.20` with optimizer 200–1000 runs, via Prettier + Solhint
-- Networks: `sonic_mainnet`, `sonic_testnet`, accounts via `.env`
-- Paths: standard; artifacts included in Docker image during build
-
-## ESLint/Formatting
-
-- Copy `eslint.config.mjs` from dloop-rebalancer and reuse the same rules.
-- Prettier with `prettier-plugin-solidity` for `.sol`.
-
-## Deployment Scripts
-
-1) `00_deploy_reward_compounder_base.ts`
-
-- Deploy `RewardCompounderDLendBase` dependencies (if any utility libs), then `RewardHelper`.
-
-2) `01_deploy_reward_compounder_odos.ts`
-
-- Deploy `RewardCompounderDLendOdos` with ctor args: `core`, `dusd`, `collateral`, `flashLender`, `odosRouter`, `treasury`, config params (slippage bps, minProfit)
-- Verify with Hardhat Etherscan if configured (optional)
-
-Environment variables in `.env` (examples)
-
-- RPC URLs: `SONIC_MAINNET_RPC`, `SONIC_TESTNET_RPC`
-- Keys: `PRIVATE_KEY`
-- Slack: `SONIC_MAINNET_SLACK_BOT_TOKEN`, `SONIC_MAINNET_SLACK_CHANNEL_ID`
-
-## Detailed Implementation Steps
-
-1) Scaffold repo
-
-- Copy baseline from `bot/dlend-liquidator` (Makefile, Dockerfile, hardhat, eslint) and adjust names.
-- Vendor required interfaces into `contracts/interface`.
-
-2) Implement contracts
-
-- Base contract with ERC3156 flash callback and flow control.
-- Odos venue contract implementing `_swapExactIn` using `IOdosRouterV2` and `OdosSwapUtils` pattern; ensure exactIn vs exactOut consistency.
-- RewardHelper per spec; adjust imports to local interfaces.
-
-3) Implement TS bot
-
-- Config loaders, quoting logic, swap route builder (mock Odos in tests), Slack notifier.
-- Runner script that loops at interval or single-run by `make run.%` target.
-
-4) Linting and scripts
-
-- Ensure `make lint`, `yarn eslint .`, `yarn solhint`, and prettier are wired.
-
-5) Dockerization
-
-- Follow liquidator Dockerfile; copy artifacts, ts, configs, and run `node dist/...` via hardhat.
+5) Interfaces and vendor copies
+   - Include minimal interfaces: IERC3156, IOdos, IDLoopCoreDLend, RewardClaimable, IERC20 (if OZ not vendored via npm).
+   - Keep namespaces and versions consistent.
 
 6) Deployment scripts
+   - `scripts/deploy_periphery.ts`: deploy `RewardCompounderDLendOdos` with network-specific addresses from `config/networks/*`. Save deployed addresses to `config/deploy-ids.ts`-like module.
+   - Add `make deploy.sonic_mainnet`/`make deploy.sonic_testnet` targets to invoke hardhat scripts with proper `--network`.
 
-- Write `hardhat-deploy` scripts for base/helper and odos periphery.
+7) Bot runtime (TypeScript)
+   - `quoting.ts`:
+     - Fetch `S = exchangeThreshold()` and `requiredCollateral = previewMint(S)` from CORE.
+     - Estimate `K` by simulating/mirroring borrow math or using deltas from a static call to `mint` if feasible; otherwise conservative bound using current leverage targets and price.
+     - Query rewards via `RewardHelper` or direct controller calls; apply `treasuryFeeBps` to compute `netZ`.
+     - Compute required dUSD input for exact-out (via Odos/0x quote API). In tests, use mock; in prod, call API; pass pre-built `swapCalldata` to periphery.
+     - Feasibility: `K + netZ >= X + fee` with buffers for fees and slippage.
+   - `periphery.ts`:
+     - Build transaction to `RewardCompounderDLendOdos.run(swapCalldata, flashAmount, slippageBps)` and send via signer.
+   - `runner.ts`:
+     - Loop on interval; for each vault from config, run quote; if feasible, submit tx; log and notify outcome.
+   - `notification.ts`:
+     - Slack webhook methods similar to `dlend-liquidator` (channel, message formatting). Fully mocked in unit tests.
+   - `config.ts`/`networks/*`:
+     - Store addresses: CORE, DUSD, COLLATERAL, FLASH_LENDER, ODOS, RewardController, Pool, AddressProvider, RewardHelper (if deployed), leverage parameters, slippage and fee buffers.
 
-7) Testing (contracts + TS)
+8) Linting and formatting
+   - Port `eslint.config.mjs` from `dloop-rebalancer` with matching rules. Add `make lint` that runs eslint for TS and solhint/solhint-config for solidity (if applicable in this repo).
 
-- Add mocks and unit/integration style tests under `test/`.
-- Mock external services (Slack, Odos API) — no real network calls.
+9) Docker
+   - Dockerfile patterned after `dlend-liquidator`: node base image, install deps, build contracts + TS, minimal runtime layer; envs provided via `.env`.
+   - `make docker.build` builds the image; optional `make docker.run` for local runs.
 
-## Test Plan (with Mock Test Cases)
+10) CI (optional stretch)
 
-Contract-level (Hardhat + TS tests using ethers.js):
+- GitHub Actions to run lint, compile, and tests.
 
-1) Successful compounding flow (happy path)
+Test Plan (with mock cases)
+Contract tests (Hardhat, TypeScript)
 
-- Setup: Deploy `MockERC20 dUSD`, `MockERC20 sfrxUSD`, `MockFlashLender` (fee = 8 bps), `MockOdosRouterV2` (exactIn quote slippage 10 bps), `MockDLoopCoreDLend` with target leverage and treasuryFeeBps = 100 (1%).
-- Action: Call `RewardCompounderDLendOdos.run(X, swapCalldata, minCollateralOut)` with X = 100k dUSD; router returns Y, deposit mints S and transfers K dUSD; compound rewards returns netZ.
-- Assert: Flash repaid, profit = K + netZ - (X + fee + swapCosts) > 0; events emitted; no approvals required from the bot caller.
+1) Full-flow success (threshold-based)
+   - Setup mocks: dUSD, collateral, MockDLoopCoreDLend with:
+     - `exchangeThreshold()` returns S > 0
+     - `previewMint(S)` returns requiredCollateral
+     - `mint(S)` transfers `K` dUSD to caller and mints shares
+     - `compoundRewards(S, [dUSD], receiver)` transfers `Z` dUSD to receiver, but pays treasury fee internally so netZ delivered
+   - MockFlashLender lends X dUSD and requires fee. MockOdosRouter consumes ≤ X for exact-out to deliver requiredCollateral.
+   - Call `RewardCompounderDLendOdos.run` with swapCalldata and flashAmount X; assert:
+     - Collateral acquired ≥ requiredCollateral
+     - Exactly S shares minted
+     - compoundRewards succeeds, netZ transferred
+     - Flash repaid and contract ends with profit ≥ 0
+     - Events emitted.
 
-2) Revert when exchangeThreshold not met
+2) Revert: below threshold
+   - `exchangeThreshold()` returns S; force `run` to attempt smaller S via altered calldata (or set S=0 in mock). Expect revert with threshold check.
 
-- Setup: `exchangeThreshold = S+1`; route yields smaller Y → S below threshold.
-- Assert: Revert with descriptive error from base.
+3) Revert: insufficient swap output
+   - MockOdosRouter returns less than requiredCollateral (or consumes > flash X). Expect revert `insufficient collateral` or custom error.
 
-3) Revert when not enough to repay flash
+4) Revert: deposit blocked (imbalanced)
+   - Mock CORE `maxDeposit(address)` returns 0. Expect revert `deposit disabled`.
 
-- Setup: Very low Z (rewards) or high slippage so `K + netZ < X + fee + swapCosts`.
-- Assert: Revert before final approve to lender; dUSD balance invariant checked.
+5) Revert: not enough to repay
+   - Configure `K + netZ < X + fee` (e.g., lower Z or higher fee). Expect revert before approving repayment.
 
-4) Treasury fee applied correctly
+6) Exact-in/out mismatch guard
+   - Provide swapCalldata flagged as exact-in; ensure contract detects and reverts or fails via post-condition checks (i.e., insufficient collateral).
 
-- Setup: treasuryFeeBps = 100; raw Z emitted by mock; base receives `Z * (1 - 0.01)`.
-- Assert: NetZ used in profit calc and in final DUSD balance.
+7) Treasury fee accounting
+   - Vary `treasuryFeeBps`; verify netZ used in profitability and balances is correct.
 
-5) Odos exactIn guard and minOut
+8) Edge: zero rewards
+   - `compoundRewards` returns netZ = 0; ensure flow reverts or produces loss and is guarded by off-chain check (in tests, ensure on-chain reverts via repayment guard).
 
-- Setup: `minOut = Y*(1 - slippageBps)`; router returns below `minOut`.
-- Assert: Swap revert and entire transaction reverts; no partial state changes.
+Bot tests (unit + integration with mocks)
 
-6) Core disabled deposit
+1) Quoting logic — profitable path
+   - Mock helper/controller returns rewards Z, feeBps; mock previewMint(S) and Odos quote for X, fee.
+   - Verify feasibility `K + netZ >= X + fee` passes and runner decides to execute.
 
-- Setup: `maxDeposit(address(this)) = 0` in mock.
-- Assert: Pre-check reverts with “deposit disabled”.
+2) Quoting logic — unprofitable path
+   - Same setup but set `Z` lower; verify runner skips execution.
 
-7) Events coverage
+3) Swap calldata construction
+   - Build mock exact-out calldata; ensure periphery.ts forwards it without modification and contract decodes successfully.
 
-- Assert: `RewardCompounded(shares, netZ)`, `FlashRepaid(amount, fee)`, `Profit(realized)` logged with expected values.
+4) Notifications
+   - Mock Slack webhook; verify success and error messages are sent with transaction hash and metrics (S, X, K, Z, fee, profit).
 
-TypeScript bot-level (with mocks):
+5) Config parsing and safety
+   - Missing envs cause process to exit with a clear error.
 
-8) Quoting determines profitable run
+6) Large test file splitting (if needed)
+   - If any test suite becomes flaky or too heavy, split into smaller describe groups per file per the hint.
 
-- Mock RewardHelper return values and Odos route to yield `K + netZ >= X + fee + swapCosts`.
-- Assert: Bot proceeds to call periphery `run()` with correct calldata and `minOut`.
+Deployment Plan
 
-9) Quoting skips unprofitable run
+- Pre-req: Fill `config/networks/*` with addresses for CORE, tokens, FLASH_LENDER, ODOS, RewardsController, Pool, AddressProvider.
+- Build: `make compile` to compile contracts; confirm no errors.
+- Deploy helper (optional): `hardhat run scripts/deploy_reward_helper.ts --network sonic_mainnet`.
+- Deploy periphery: `make deploy.sonic_mainnet` runs `scripts/deploy_periphery.ts` which deploys `RewardCompounderDLendOdos` and records address.
+- Verify: `scripts/verify.ts` with constructor args; store addresses in config.
 
-- Mock lower Z or higher slippage.
-- Assert: Bot logs and sends Slack “skip” notification; no periphery call.
+Operational Runbook
 
-10) Slack notification success/failure
+- Configure `.env` for RPC, private key, Slack webhook, polling interval, slippageBps, minProfitBps, and safety buffers.
+- Dry-run mode: only quote and log; no tx sent.
+- Live mode: on profitable quote, send `run` tx; handle errors and notify Slack.
 
-- Mock Slack client; assert message contents include network, tx hash, profit or error message.
+Security and Safety Checks
 
-11) Config loading
+- Validate `maxDeposit(address(this)) > 0` before mint.
+- Validate exact-out swap delivered collateral ≥ requiredCollateral; cap dUSD spent to flash amount.
+- Use safe approvals; reset to zero before re-approving if needed.
+- Reentrancy: onFlashLoan internal ordering prevents external callbacks besides swap venue.
+- Access control: periphery callable by anyone; profit accrues to caller or contract owner as designed (decide in constructor).
 
-- Assert: Loads addresses from `config/addresses.<network>.json`; environment overrides honored.
+Review Checklist (to satisfy ai-review expectations)
 
-12) Docker entry
+- Compile: `make compile` passes on a clean checkout.
+- Deploy scripts: `make deploy.sonic_mainnet` is present and correct; constructor args wired from config.
+- Swap logic correctness: exact-out only; mismatch cases tested; slippageBps guard present.
+- Linting: `eslint` setup matches `dloop-rebalancer`; `make lint` passes for TS and Solidity.
+- Tests: `make test` passes; external services are mocked (Slack, Odos API, flash lender).
+- Repo independence: no imports from monorepo paths; all interfaces vendored or pulled via pinned npm deps.
 
-- Smoke test: container command resolves network arg, loads `.env`, and starts run script; no external network calls in tests.
+Risks & Mitigations
 
-Test Utilities
+- Front-running: FCFS and private tx submission recommended; add gas and maxPriorityFee params.
+- Oracle/price movement: slippage buffer adjustable via config; small over-provision on collateral target.
+- Flash liquidity unavailable: handle lender reverts; back off and retry later.
+- Reward drift: off-chain quote refresh before sending tx; small time window between quote and submit minimized.
 
-- Deterministic math helpers; unify basis points handling; mock block timestamps when needed.
+Acceptance Criteria
 
-## Review Checklist (self-review against requirements)
-
-- Contracts compile with `make compile`.
-- Deployment scripts present and correct for `make deploy.sonic_mainnet` (no need to execute, just correctness and ready-to-run).
-- Swap logic exactIn vs exactOut: enforced minOut guard; no mismatched mode.
-- ESLint rules mirror dloop-rebalancer; `make lint` passes.
-- `make test` passes with mocks; all external resources mocked (Slack, Odos API).
-- Repo is self-contained; copying any missing interfaces into `contracts/interface`.
-- No token approvals required from off-chain bot user; periphery handles approvals internally during flash callback.
-
-## Risks & Mitigations
-
-- Front-running on rewards claim: consider private endpoints in production (out of scope for tests).
-- Oracle/preview drift: rely on `previewDeposit` and guards; conservative `minOut`.
-- Flash capacity limits: parameterize `flashAmount` and handle lender errors.
-- Reentrancy: follow checks-effects-interactions and use nonReentrant in base if needed.
-
-## Next Steps
-
-1) Scaffold repo and vendor interfaces
-2) Implement base + Odos contracts
-3) Implement RewardHelper
-4) Write deploy scripts and config
-5) Implement TS quoting + bot runner + notifications
-6) Add mocks and tests, ensure `make lint/test` pass
-7) Prepare Docker image and run scripts
+- Contracts compile and tests pass with mocks.
+- Docker image builds with `make docker.build`.
+- Bot can perform a full-flow compound on mocks, repaying flash with no loss when profitable.
+- Lint passes with config aligned to `dloop-rebalancer`.
