@@ -5,9 +5,11 @@ import { getConfig } from "../../config/config";
 import {
   DS_COLLATERAL_VAULT_CONTRACT_ID,
   DS_REDEEMER_CONTRACT_ID,
+  DS_REDEEMER_WITH_FEES_CONTRACT_ID,
   DS_TOKEN_ID,
   DUSD_COLLATERAL_VAULT_CONTRACT_ID,
   DUSD_REDEEMER_CONTRACT_ID,
+  DUSD_REDEEMER_WITH_FEES_CONTRACT_ID,
   DUSD_TOKEN_ID,
   S_ORACLE_AGGREGATOR_ID,
   USD_ORACLE_AGGREGATOR_ID,
@@ -182,6 +184,11 @@ async function ensureDefaultAdminExistsAndRevokeFromWithSafe(
   governanceMultisig: string,
   deployerAddress: string
 ): Promise<boolean> {
+  // Determine Safe mode once for both try and catch blocks
+  const envForce = process.env.USE_SAFE?.toLowerCase() === "true";
+  const chainIdStr = String(hre.network.config.chainId ?? "");
+  const isSonicMainnet = chainIdStr === "146";
+  const useSafe = isSonicMainnet || envForce;
   try {
     // The original function uses manualActions array, we need to handle this differently
     const deployerSigner = await hre.ethers.getSigner(deployerAddress);
@@ -197,11 +204,6 @@ async function ensureDefaultAdminExistsAndRevokeFromWithSafe(
     );
 
     // If there are manual actions, it means we need governance action when in Safe mode
-    const envForce = process.env.USE_SAFE?.toLowerCase() === "true";
-    const chainIdStr = String(hre.network.config.chainId ?? "");
-    const isSonicMainnet = chainIdStr === "146";
-    const useSafe = isSonicMainnet || envForce;
-
     if (manualActions.length > 0) {
       if (useSafe) {
         return false;
@@ -338,6 +340,50 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       console.log(
         `    ✓ COLLATERAL_WITHDRAWER_ROLE already granted to ${newRedeemerAddress}`
       );
+    }
+
+    // 1b. Revoke COLLATERAL_WITHDRAWER_ROLE from legacy Redeemer contracts
+    const legacyIds = [
+      t.oldId,
+      t.newId === "RedeemerV2_DUSD"
+        ? DUSD_REDEEMER_WITH_FEES_CONTRACT_ID
+        : DS_REDEEMER_WITH_FEES_CONTRACT_ID,
+    ];
+
+    for (const legacyId of legacyIds) {
+      const legacyDep = await deployments.getOrNull(legacyId);
+      if (!legacyDep) continue;
+
+      if (
+        await collateralVault.hasRole(
+          COLLATERAL_WITHDRAWER_ROLE,
+          legacyDep.address
+        )
+      ) {
+        const complete = await executor.tryOrQueue(
+          async () => {
+            await collateralVault.revokeRole(
+              COLLATERAL_WITHDRAWER_ROLE,
+              legacyDep.address
+            );
+            console.log(
+              `    ➖ Revoked COLLATERAL_WITHDRAWER_ROLE from ${legacyId} (${legacyDep.address})`
+            );
+          },
+          () =>
+            createRevokeRoleTransaction(
+              collateralVaultAddress,
+              COLLATERAL_WITHDRAWER_ROLE,
+              legacyDep.address,
+              collateralVault.interface
+            )
+        );
+        if (!complete) allOperationsComplete = false;
+      } else {
+        console.log(
+          `    ✓ ${legacyId} does not have COLLATERAL_WITHDRAWER_ROLE or already revoked`
+        );
+      }
     }
 
     // 2. Note: Asset redemption pause configuration would go here if needed
