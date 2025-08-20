@@ -154,6 +154,9 @@ contract WrappedDLendConversionAdapter is IDStableConversionAdapter {
     /**
      * @inheritdoc IDStableConversionAdapter
      * @dev Preview the result of converting a given dSTABLE amount to wrappedDLendToken.
+     * @param dStableAmount Amount of dSTABLE to convert
+     * @return _vaultAsset Address of the vault asset (wrapped dLend token)
+     * @return vaultAssetAmount Amount of vault asset that would be received
      */
     function previewConvertToVaultAsset(
         uint256 dStableAmount
@@ -172,6 +175,8 @@ contract WrappedDLendConversionAdapter is IDStableConversionAdapter {
     /**
      * @inheritdoc IDStableConversionAdapter
      * @dev Preview the result of converting a given wrappedDLendToken amount to dSTABLE.
+     * @param vaultAssetAmount Amount of vault asset to convert
+     * @return dStableAmount Amount of dSTABLE that would be received
      */
     function previewConvertFromVaultAsset(
         uint256 vaultAssetAmount

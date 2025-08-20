@@ -15,7 +15,7 @@
  * dTRINITY Protocol: https://github.com/dtrinity                                   *
  * ———————————————————————————————————————————————————————————————————————————————— */
 
-pragma solidity 0.8.20;
+pragma solidity ^0.8.20;
 
 import {DLoopDecreaseLeverageBase, ERC20, IERC3156FlashLender} from "../../DLoopDecreaseLeverageBase.sol";
 import {OdosSwapLogic, IOdosRouterV2} from "./OdosSwapLogic.sol";

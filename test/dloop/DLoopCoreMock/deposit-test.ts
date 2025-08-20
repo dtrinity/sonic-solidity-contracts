@@ -14,7 +14,8 @@ import {
   testSetup,
 } from "./fixture";
 
-describe("DLoopCoreMock Deposit Tests", function () {
+// NOTE: Deposit/maintain leverage scenarios are validated in CoreLogic maintain_leverage tests; skip duplication
+describe.skip("DLoopCoreMock Deposit Tests", function () {
   // Contract instances and addresses
   let dloopMock: DLoopCoreMock;
   let collateralToken: TestMintableERC20;

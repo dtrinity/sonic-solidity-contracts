@@ -43,22 +43,23 @@ describe("DLoopDecreaseLeverageBase – double-counting collateral protection", 
     );
 
     // 3️⃣ Query how much debt is actually needed to get back to target
-    const [requiredDebtAmount, direction] =
-      await dloopCoreMock.getAmountToReachTargetLeverage(true);
+    const result =
+      await dloopCoreMock.quoteRebalanceAmountToReachTargetLeverage();
+    const requiredDebtAmount = result[0];
+    const direction = result[2];
     expect(direction).to.equal(-1); // We need to decrease leverage
     expect(requiredDebtAmount).to.be.gt(0n);
 
     /*
-     * 4️⃣ Provide *exactly* that amount as user input.
-     *     The helper should recognise it still lacks debt tokens and therefore
+     * 4️⃣ Pre-fund periphery with less than required amount.
+     *     The helper should recognise it lacks debt tokens and therefore
      *     take a flash-loan for the shortfall.
      */
-    const additionalDebtFromUser = requiredDebtAmount;
-
-    // Approve the helper to pull the debt from the user
-    await debtToken
-      .connect(user1)
-      .approve(await decreaseLeverageMock.getAddress(), additionalDebtFromUser);
+    const partialDebtAmount = requiredDebtAmount / 2n; // Provide only half to trigger flash loan
+    await debtToken.mint(
+      await decreaseLeverageMock.getAddress(),
+      partialDebtAmount,
+    );
 
     // 5️⃣ Capture state before the leverage adjustment
     const leverageBefore = await dloopCoreMock.getCurrentLeverageBps();
@@ -69,8 +70,7 @@ describe("DLoopDecreaseLeverageBase – double-counting collateral protection", 
     // 6️⃣ The call should now succeed (flash-loan branch is taken)
     await expect(
       decreaseLeverageMock.connect(user1).decreaseLeverage(
-        additionalDebtFromUser,
-        0, // minOutputCollateralTokenAmount – no slippage protection in this test
+        requiredDebtAmount,
         "0x", // swap data (ignored by SimpleDEXMock)
         dloopCoreMock,
       ),

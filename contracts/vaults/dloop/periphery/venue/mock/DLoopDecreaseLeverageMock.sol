@@ -15,7 +15,7 @@
  * dTRINITY Protocol: https://github.com/dtrinity                                   *
  * ———————————————————————————————————————————————————————————————————————————————— */
 
-pragma solidity 0.8.20;
+pragma solidity ^0.8.20;
 
 import {DLoopDecreaseLeverageBase, ERC20, IERC3156FlashLender} from "../../DLoopDecreaseLeverageBase.sol";
 import {SimpleDEXMock} from "contracts/testing/dex/SimpleDEXMock.sol";
@@ -58,12 +58,15 @@ contract DLoopDecreaseLeverageMock is DLoopDecreaseLeverageBase {
         // Approve the SimpleDEXMock to spend the input token
         inputToken.forceApprove(address(simpleDEXMock), amountInMaximum);
 
+        if (amountOut == 0) {
+            return 0;
+        }
         return
             simpleDEXMock.executeSwapExactOutput(
                 IERC20Metadata(address(inputToken)),
                 IERC20Metadata(address(outputToken)),
                 amountOut,
-                amountInMaximum,
+                amountInMaximum, // maxInputAmount
                 receiver
             );
     }

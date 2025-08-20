@@ -46,6 +46,15 @@ contract DStakeToken is
         _disableInitializers();
     }
 
+    /**
+     * @notice Initializes the DStakeToken contract
+     * @dev This function replaces the constructor for upgradeable contracts
+     * @param _dStable The underlying dStable asset
+     * @param _name Name of the vault token
+     * @param _symbol Symbol of the vault token
+     * @param _initialAdmin Address to grant DEFAULT_ADMIN_ROLE
+     * @param _initialFeeManager Address to grant FEE_MANAGER_ROLE
+     */
     function initialize(
         IERC20 _dStable,
         string memory _name,

@@ -68,5 +68,7 @@
   "deploy_redeemer_with_fees": 1753850757,
   "transfer_dstake_roles_to_multisig": 1753851408,
   "dLend:OdosAdapters": 1753836115,
-  "dLend:OdosAdaptersV2": 1755074841
+  "dLend:OdosAdaptersV2": 1755074841,
+  "1_setup_issuerv2": 1755241283,
+  "2_setup_redeemerv2": 1755241315
 }

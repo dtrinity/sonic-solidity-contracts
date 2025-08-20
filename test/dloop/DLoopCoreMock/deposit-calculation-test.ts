@@ -11,7 +11,8 @@ import {
 import { deployDLoopMockFixture, testSetup } from "./fixture";
 import { getCorrespondingTotalDebtInBase, getNewLeverageBps } from "./helper";
 
-describe("DLoopCoreMock Calculation Tests", function () {
+// NOTE: Redundant with CoreLogic maintain_leverage tests; skipping
+describe.skip("DLoopCoreMock Calculation Tests", function () {
   // Contract instances and addresses
   let dloopMock: DLoopCoreMock;
   let collateralToken: TestMintableERC20;

@@ -15,7 +15,7 @@
  * dTRINITY Protocol: https://github.com/dtrinity                                   *
  * ———————————————————————————————————————————————————————————————————————————————— */
 
-pragma solidity 0.8.20;
+pragma solidity ^0.8.20;
 
 import {IPriceOracleGetter} from "./interface/IPriceOracleGetter.sol";
 import {IPool as ILendingPool, DataTypes} from "./interface/IPool.sol";
@@ -26,6 +26,7 @@ import {DLoopCoreBase} from "../../DLoopCoreBase.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {RewardClaimable} from "contracts/vaults/rewards_claimable/RewardClaimable.sol";
 import {IRewardsController} from "./interface/IRewardsController.sol";
+import {BasisPointConstants} from "contracts/common/BasisPointConstants.sol";
 
 /**
  * @title DLoopCoreDLend
@@ -43,19 +44,25 @@ contract DLoopCoreDLend is DLoopCoreBase, RewardClaimable {
     // See contracts/lending/core/protocol/libraries/types/DataTypes.sol
     uint256 public constant VARIABLE_LENDING_INTERST_RATE_MODE = 2; // 0 = NONE, 1 = STABLE, 2 = VARIABLE
 
-    // Maximum percentage factor (100.00%)
-    uint256 public constant PERCENTAGE_FACTOR = 1e4;
-
     /* State */
 
     IPoolAddressesProvider public immutable lendingPoolAddressesProvider;
-    IRewardsController public immutable dLendRewardsController;
     address public immutable dLendAssetToClaimFor;
     address public immutable targetStaticATokenWrapper;
+    IRewardsController public dLendRewardsController;
 
     /* Errors */
 
     error ZeroAddress();
+    error InvalidRewardsController();
+    error FeeTooHigh(uint256 feeBps, uint256 maxFeeBps);
+
+    /* Events */
+    event DLendRewardsControllerUpdated(
+        address indexed oldController,
+        address indexed newController
+    );
+    event FeeBpsSet(uint256 oldFeeBps, uint256 newFeeBps);
 
     /**
      * @dev Constructor for the DLoopCoreDLend contract
@@ -68,12 +75,14 @@ contract DLoopCoreDLend is DLoopCoreBase, RewardClaimable {
      * @param _lowerBoundTargetLeverageBps Lower bound of target leverage in basis points
      * @param _upperBoundTargetLeverageBps Upper bound of target leverage in basis points
      * @param _maxSubsidyBps Maximum subsidy in basis points
+     * @param _withdrawalFeeBps Initial withdrawal fee in basis points
      * @param _rewardsController Address of the dLEND rewards controller
      * @param _dLendAssetToClaimFor Address of the dLEND asset to claim for
      * @param _targetStaticATokenWrapper Address of the target static aToken wrapper
      * @param _treasury Address of the treasury
      * @param _maxTreasuryFeeBps Maximum treasury fee in basis points
      * @param _initialTreasuryFeeBps Initial treasury fee in basis points
+     * @param _initialExchangeThreshold Minimum amount of rewards (in debt token units) required before exchanging to treasury
      */
     constructor(
         string memory _name,
@@ -85,6 +94,8 @@ contract DLoopCoreDLend is DLoopCoreBase, RewardClaimable {
         uint32 _lowerBoundTargetLeverageBps,
         uint32 _upperBoundTargetLeverageBps,
         uint256 _maxSubsidyBps,
+        uint256 _minDeviationBps,
+        uint256 _withdrawalFeeBps,
         IRewardsController _rewardsController,
         address _dLendAssetToClaimFor,
         address _targetStaticATokenWrapper,
@@ -101,17 +112,19 @@ contract DLoopCoreDLend is DLoopCoreBase, RewardClaimable {
             _targetLeverageBps,
             _lowerBoundTargetLeverageBps,
             _upperBoundTargetLeverageBps,
-            _maxSubsidyBps
+            _maxSubsidyBps,
+            _minDeviationBps,
+            _withdrawalFeeBps
         )
         RewardClaimable(
-            address(_debtToken),
+            address(this), // Use the vault shares as the exchange asset
             _treasury,
             _maxTreasuryFeeBps,
             _initialTreasuryFeeBps,
             _initialExchangeThreshold
         )
     {
-        // Always use the debt token as the exchange asset in reward claim logic
+        // Always use the vault shares as the exchange asset in reward claim logic
         lendingPoolAddressesProvider = _lendingPoolAddressesProvider;
         dLendRewardsController = _rewardsController;
         dLendAssetToClaimFor = _dLendAssetToClaimFor;
@@ -121,11 +134,35 @@ contract DLoopCoreDLend is DLoopCoreBase, RewardClaimable {
             revert("Invalid price oracle base currency");
         }
 
-        uint256 oracleUnit = getLendingOracle().BASE_CURRENCY_UNIT();
-
-        if (oracleUnit != 10 ** AAVE_PRICE_ORACLE_DECIMALS) {
+        if (
+            getLendingOracle().BASE_CURRENCY_UNIT() !=
+            10 ** AAVE_PRICE_ORACLE_DECIMALS
+        ) {
             revert("Invalid price oracle unit");
         }
+    }
+
+    /**
+     * @notice Sets the address of the dLEND RewardsController contract.
+     * @dev Only callable by the owner.
+     * @param _newDLendRewardsController The address of the new rewards controller.
+     */
+    function setDLendRewardsController(
+        address _newDLendRewardsController
+    ) external onlyOwner {
+        if (_newDLendRewardsController == address(0)) {
+            revert ZeroAddress();
+        }
+        // Make sure the new rewards controller is a valid contract
+        if (_newDLendRewardsController.code.length == 0) {
+            revert InvalidRewardsController();
+        }
+        address oldController = address(dLendRewardsController);
+        dLendRewardsController = IRewardsController(_newDLendRewardsController);
+        emit DLendRewardsControllerUpdated(
+            oldController,
+            _newDLendRewardsController
+        );
     }
 
     /**
@@ -238,25 +275,6 @@ contract DLoopCoreDLend is DLoopCoreBase, RewardClaimable {
         getLendingPool().withdraw(token, amount, onBehalfOf);
     }
 
-    /**
-     * @dev Gets the total collateral and debt of a user in base currency
-     * @param user Address of the user
-     * @return totalCollateralBase Total collateral in base currency
-     * @return totalDebtBase Total debt in base currency
-     */
-    function getTotalCollateralAndDebtOfUserInBase(
-        address user
-    )
-        public
-        view
-        override
-        returns (uint256 totalCollateralBase, uint256 totalDebtBase)
-    {
-        (totalCollateralBase, totalDebtBase, , , , ) = getLendingPool()
-            .getUserAccountData(user);
-        return (totalCollateralBase, totalDebtBase);
-    }
-
     /* Helper functions */
 
     /**
@@ -304,25 +322,37 @@ contract DLoopCoreDLend is DLoopCoreBase, RewardClaimable {
     }
 
     /**
-     * @dev Gets the DToken address for a token
-     * @param tokenAddress The address of the token
-     * @return address The DToken address
+     * @dev Get the collateral value in token amount in the underlying pool
+     * @param token The address of the token
+     * @param user The address of the user
+     * @return collateralTokenAmount The collateral token amount
      */
-    function _getDTokenAddress(
-        address tokenAddress
-    ) internal view returns (address) {
-        return _getReserveData(tokenAddress).aTokenAddress;
+    function getCollateralValueInTokenAmount(
+        address token,
+        address user
+    ) public view override returns (uint256 collateralTokenAmount) {
+        collateralTokenAmount = ERC20(_getReserveData(token).aTokenAddress)
+            .balanceOf(user);
+        return collateralTokenAmount;
     }
 
     /**
-     * @dev Gets the DToken balance of the vault
-     * @param tokenAddress The address of the token
-     * @return uint256 The DToken balance of the vault
+     * @dev Get the debt value in token amount in the underlying pool
+     * @param token The address of the token
+     * @param user The address of the user
+     * @return debtTokenAmount The debt token amount
      */
-    function getDTokenBalance(
-        address tokenAddress
-    ) public view returns (uint256) {
-        return ERC20(_getDTokenAddress(tokenAddress)).balanceOf(address(this));
+    function getDebtValueInTokenAmount(
+        address token,
+        address user
+    ) public view override returns (uint256 debtTokenAmount) {
+        DataTypes.ReserveData memory reserveDebt = _getReserveData(token);
+        uint256 variableDebt = ERC20(reserveDebt.variableDebtTokenAddress)
+            .balanceOf(user);
+        uint256 stableDebt = ERC20(reserveDebt.stableDebtTokenAddress)
+            .balanceOf(user);
+        debtTokenAmount = variableDebt + stableDebt;
+        return debtTokenAmount;
     }
 
     /* RewardClaimable functions */
@@ -376,8 +406,8 @@ contract DLoopCoreDLend is DLoopCoreBase, RewardClaimable {
      * @param amount The amount of exchange asset to deposit
      */
     function _processExchangeAssetDeposit(uint256 amount) internal override {
-        // As the exchange asset is the debt token, we use it to repay the debt,
-        // which means to reduce the borrowing interest to be paid
-        _repayDebtToPoolImplementation(exchangeAsset, amount, address(this));
+        // As the exchange asset is the vault shares, we need to burn it
+        // to increase the share's value
+        _burn(address(this), amount);
     }
 }

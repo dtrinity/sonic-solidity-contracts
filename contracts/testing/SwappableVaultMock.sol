@@ -1,12 +1,9 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.20;
+pragma solidity ^0.8.20;
 
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 import {SwappableVault} from "../common/SwappableVault.sol";
-
-interface IMintableERC20 {
-    function mint(address to, uint256 amount) external;
-}
+import {IMintableERC20} from "../common/IMintableERC20.sol";
 
 /**
  * @title SwappableVaultMock
@@ -65,10 +62,10 @@ contract SwappableVaultMock is SwappableVault {
         ERC20 inputToken,
         ERC20 outputToken,
         uint256 amountOut,
-        uint256 amountInMaximum,
-        address receiver,
-        uint256 deadline,
-        bytes memory extraData
+        uint256, // amountInMaximum
+        address, // receiver
+        uint256, // deadline
+        bytes memory // extraData
     ) internal override returns (uint256) {
         if (_shouldRevert) {
             revert(_revertMessage);

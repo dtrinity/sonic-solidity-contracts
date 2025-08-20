@@ -94,18 +94,32 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   for (const instanceKey in config.dStake) {
     const instanceConfig = config.dStake[instanceKey] as DStakeInstanceConfig;
     const DStakeTokenDeploymentName = `DStakeToken_${instanceKey}`;
-    const proxyAdminDeploymentName = `DStakeProxyAdmin_${instanceKey}`;
+
+    // If dSTAKE core already exists on this network, skip re-deployment (idempotent on mainnet)
+    const existingTokenImpl = await deployments.getOrNull(
+      `${DStakeTokenDeploymentName}_Implementation`,
+    );
+    const existingVault = await deployments.getOrNull(
+      `DStakeCollateralVault_${instanceKey}`,
+    );
+    const existingRouter = await deployments.getOrNull(
+      `DStakeRouter_${instanceKey}`,
+    );
+
+    if (existingTokenImpl || existingVault || existingRouter) {
+      console.log(
+        `dSTAKE core for ${instanceKey} already deployed. Skipping core deployment.`,
+      );
+      continue;
+    }
 
     const DStakeTokenDeployment = await deploy(DStakeTokenDeploymentName, {
       from: deployer,
       contract: "DStakeToken",
       proxy: {
-        // Use a dedicated ProxyAdmin so dSTAKE is isolated from the global DefaultProxyAdmin
-        viaAdminContract: {
-          name: proxyAdminDeploymentName,
-          artifact: "DStakeProxyAdmin",
-        },
-        owner: deployer, // keep ownership with deployer for now; migrated later
+        // OZ v5 TransparentUpgradeableProxy mints a dedicated ProxyAdmin internally per proxy.
+        // We therefore avoid viaAdminContract and just set the initial owner for that ProxyAdmin here.
+        owner: deployer, // keep ownership with deployer for now; migrate later in role-migration script
         proxyContract: "OpenZeppelinTransparentProxy",
         execute: {
           init: {
@@ -157,3 +171,27 @@ func.dependencies = ["dStable", "dUSD-aTokenWrapper", "dS-aTokenWrapper"]; // En
 
 // Mark script as executed so it won't run again.
 func.id = "deploy_dstake_core";
+
+// Hard stop early when dSTAKE core is already present (prevents admin-owner reconciliation on existing proxies)
+func.skip = async (hre: HardhatRuntimeEnvironment): Promise<boolean> => {
+  const { deployments } = hre;
+  const config = await getConfig(hre);
+  if (!config.dStake) return true;
+
+  for (const instanceKey in config.dStake) {
+    const name = `DStakeToken_${instanceKey}`;
+    const proxy = await deployments.getOrNull(name);
+    const impl = await deployments.getOrNull(`${name}_Implementation`);
+    const vault = await deployments.getOrNull(
+      `DStakeCollateralVault_${instanceKey}`,
+    );
+    const router = await deployments.getOrNull(`DStakeRouter_${instanceKey}`);
+
+    // If any required piece is missing, allow the script to run
+    if (!proxy || !impl || !vault || !router) {
+      return false;
+    }
+  }
+  // All instances fully deployed → skip script entirely
+  return true;
+};
