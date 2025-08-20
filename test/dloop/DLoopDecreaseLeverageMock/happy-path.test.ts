@@ -50,9 +50,19 @@ describe("DLoopDecreaseLeverageMock - Issue #324 Fix - Happy Path", function () 
     let receipt: any;
 
     try {
+      const result =
+        await dloopCoreMock.quoteRebalanceAmountToReachTargetLeverage();
+      const requiredDebtAmount = result[0];
+      const direction = result[2];
+      expect(direction).to.equal(-1);
+      expect(requiredDebtAmount).to.be.gt(0n);
       const tx = await decreaseLeverageMock
         .connect(user1)
-        .decreaseLeverage("0x", await dloopCoreMock.getAddress());
+        .decreaseLeverage(
+          requiredDebtAmount,
+          "0x",
+          await dloopCoreMock.getAddress(),
+        );
       receipt = await tx.wait();
     } catch {
       return;

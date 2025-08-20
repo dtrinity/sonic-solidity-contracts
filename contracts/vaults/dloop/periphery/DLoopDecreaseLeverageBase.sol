@@ -137,37 +137,28 @@ abstract contract DLoopDecreaseLeverageBase is
     /**
      * @dev Decreases leverage with flash loans
      *      - Flash loans debt tokens, calls decreaseLeverage, swaps received collateral tokens to debt tokens, uses debt tokens to repay flash loan
+     *      - We let the caller to specify the amount of debt token to rebalance as it is more flexible
+     *        for the swap slippage, sometime if swapping a big amount of debt token, the slippage may be too high
+     *        and the transfer will fail.
+     * @param rebalanceDebtAmount The amount of debt token to rebalance
      * @param collateralToDebtTokenSwapData Swap data from collateral token to debt token
      * @param dLoopCore Address of the DLoopCore contract to use
      * @return receivedCollateralTokenAmount Amount of collateral tokens received from decrease leverage operation
      */
     function decreaseLeverage(
+        uint256 rebalanceDebtAmount,
         bytes calldata collateralToDebtTokenSwapData,
         DLoopCoreBase dLoopCore
     ) public nonReentrant returns (uint256 receivedCollateralTokenAmount) {
-        // Calculate the required debt amount to reach target leverage
-        (uint256 requiredDebtAmount, , int8 direction) = dLoopCore
-            .quoteRebalanceAmountToReachTargetLeverage(); // Use vault token balance
-
-        // Verify we need to decrease leverage
-        if (direction != -1) {
-            uint256 currentLeverage = dLoopCore.getCurrentLeverageBps();
-            uint256 targetLeverage = dLoopCore.targetLeverageBps();
-            revert LeverageAlreadyAtOrBelowTarget(
-                currentLeverage,
-                targetLeverage
-            );
-        }
-
         // Record initial leverage
         uint256 leverageBeforeDecrease = dLoopCore.getCurrentLeverageBps();
 
         uint256 currentDebtTokenBalance = dLoopCore.debtToken().balanceOf(
             address(this)
         );
-        if (requiredDebtAmount > currentDebtTokenBalance) {
+        if (rebalanceDebtAmount > currentDebtTokenBalance) {
             _decreaseLeverageWithFlashLoan(
-                requiredDebtAmount,
+                rebalanceDebtAmount,
                 collateralToDebtTokenSwapData,
                 dLoopCore
             );
