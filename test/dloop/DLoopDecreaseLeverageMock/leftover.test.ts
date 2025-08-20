@@ -25,16 +25,14 @@ describe("DLoopDecreaseLeverageMock - Leftover Collateral Token Handling", funct
     const depositAmount = ethers.parseEther("100");
     await createImbalancedLeveragePosition(fixture, user1, depositAmount);
 
+    // Pre-fund periphery with some debt tokens for the operation
+    await debtToken.mint(
+      await decreaseLeverageMock.getAddress(),
+      ethers.parseEther("10"),
+    );
+
     // Pre-fund periphery with 1 wei of collateral to guarantee leftover after transfer
     await collateralToken.mint(await decreaseLeverageMock.getAddress(), 1n);
-
-    // Provide a tiny amount so repay path has non-zero tokens available
-    const additionalDebtFromUser = 1n;
-    const minOutputCollateralTokenAmount = 0n; // allow any
-
-    await debtToken
-      .connect(user1)
-      .approve(await decreaseLeverageMock.getAddress(), ethers.MaxUint256);
 
     const before = await collateralToken.balanceOf(user1.address);
 
@@ -42,16 +40,17 @@ describe("DLoopDecreaseLeverageMock - Leftover Collateral Token Handling", funct
     await dloopCoreMock.setTransferPortionBps(1_000_000);
 
     // Ensure the core holds enough debt tokens to perform repay (mock uses transfer from core)
-    const [requiredDebtAmount, direction] =
-      await dloopCoreMock.getAmountToReachTargetLeverage(true);
+    const result =
+      await dloopCoreMock.quoteRebalanceAmountToReachTargetLeverage();
+    const requiredDebtAmount = result[0];
+    const direction = result[2];
     expect(direction).to.equal(-1n);
     await debtToken.mint(await dloopCoreMock.getAddress(), requiredDebtAmount);
 
     const tx = await decreaseLeverageMock
       .connect(user1)
       .decreaseLeverage(
-        additionalDebtFromUser,
-        minOutputCollateralTokenAmount,
+        requiredDebtAmount,
         "0x",
         await dloopCoreMock.getAddress(),
       );

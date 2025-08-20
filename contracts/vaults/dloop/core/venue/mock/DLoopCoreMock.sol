@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.20;
+pragma solidity ^0.8.20;
 
 import {DLoopCoreBase} from "../../DLoopCoreBase.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
@@ -12,6 +12,15 @@ import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
  * @dev Simple mock implementation of DLoopCoreBase for testing
  */
 contract DLoopCoreMock is DLoopCoreBase {
+    // Errors
+    error NotEnoughBalanceToSupply(
+        address user,
+        string tokenSymbol,
+        uint256 balance,
+        uint256 amount
+    );
+    error MockPriceNotSet(address asset);
+
     // Mock state for prices and balances
     mapping(address => uint256) public mockPrices;
     mapping(address => mapping(address => uint256)) private mockCollateral; // user => token => amount
@@ -36,6 +45,7 @@ contract DLoopCoreMock is DLoopCoreBase {
         uint32 _lowerBoundTargetLeverageBps,
         uint32 _upperBoundTargetLeverageBps,
         uint256 _maxSubsidyBps,
+        uint256 _minDeviationBps,
         uint256 _withdrawalFeeBps,
         address _mockPool
     )
@@ -48,6 +58,7 @@ contract DLoopCoreMock is DLoopCoreBase {
             _lowerBoundTargetLeverageBps,
             _upperBoundTargetLeverageBps,
             _maxSubsidyBps,
+            _minDeviationBps,
             _withdrawalFeeBps
         )
     {
@@ -171,7 +182,7 @@ contract DLoopCoreMock is DLoopCoreBase {
         address asset
     ) internal view override returns (uint256) {
         uint256 price = mockPrices[asset];
-        require(price > 0, "Mock price not set");
+        if (price == 0) revert MockPriceNotSet(asset);
         return price;
     }
 
@@ -188,10 +199,15 @@ contract DLoopCoreMock is DLoopCoreBase {
             BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
 
         // Make sure target user has enough balance to supply
-        require(
-            ERC20(token).balanceOf(onBehalfOf) >= amount,
-            "Mock: not enough balance to supply"
-        );
+        if (ERC20(token).balanceOf(onBehalfOf) < amount) {
+            string memory tokenSymbol = ERC20(token).symbol();
+            revert NotEnoughBalanceToSupply(
+                onBehalfOf,
+                tokenSymbol,
+                ERC20(token).balanceOf(onBehalfOf),
+                amount
+            );
+        }
 
         if (amount > 0) {
             // Switch between transfer and transferFrom based on the onBehalfOf
@@ -333,6 +349,37 @@ contract DLoopCoreMock is DLoopCoreBase {
         );
     }
 
+    /**
+     * @dev Get the collateral value in token amount in the underlying pool
+     * @param token The address of the token
+     * @param user The address of the user
+     * @return collateralTokenAmount The collateral token amount
+     */
+    function getCollateralValueInTokenAmount(
+        address token,
+        address user
+    ) public view override returns (uint256 collateralTokenAmount) {
+        collateralTokenAmount = mockCollateral[user][token];
+        return collateralTokenAmount;
+    }
+
+    /**
+     * @dev Get the debt value in token amount in the underlying pool
+     * @param token The address of the token
+     * @param user The address of the user
+     * @return debtTokenAmount The total underlying debt token amount
+     */
+    function getDebtValueInTokenAmount(
+        address token,
+        address user
+    ) public view override returns (uint256 debtTokenAmount) {
+        debtTokenAmount = mockDebt[user][token];
+        return debtTokenAmount;
+    }
+
+    /**
+     * @inheritdoc DLoopCoreBase
+     */
     function getTotalCollateralAndDebtOfUserInBase(
         address user
     )
@@ -341,35 +388,32 @@ contract DLoopCoreMock is DLoopCoreBase {
         override
         returns (uint256 totalCollateralBase, uint256 totalDebtBase)
     {
-        totalCollateralBase = 0;
-        totalDebtBase = 0;
-
-        // Calculate total collateral in base unit (from mockCollateral)
-        // Get all users' tokens from mockCollateral[user]
-        for (uint256 i = 0; i < mockCollateralTokens[user].length; i++) {
-            address token = mockCollateralTokens[user][i];
-
-            // Convert collateral to base unit
-            uint256 price = mockPrices[token];
-            require(price > 0, "Mock price not set");
+        // Sum collateral across all collateral tokens tracked for user
+        address[] memory collateralTokens = mockCollateralTokens[user];
+        for (uint256 i = 0; i < collateralTokens.length; i++) {
+            address token = collateralTokens[i];
             uint256 amount = mockCollateral[user][token];
-            uint256 assetTokenUnit = 10 ** ERC20(token).decimals();
-            uint256 amountInBase = (amount * price) / assetTokenUnit;
-
-            totalCollateralBase += amountInBase;
+            if (amount > 0) {
+                totalCollateralBase += convertFromTokenAmountToBaseCurrency(
+                    amount,
+                    token
+                );
+            }
         }
-        for (uint256 i = 0; i < mockDebtTokens[user].length; i++) {
-            address token = mockDebtTokens[user][i];
 
-            // Convert debt to base unit
-            uint256 price = mockPrices[token];
-            require(price > 0, "Mock price not set");
+        // Sum debt across all debt tokens tracked for user
+        address[] memory debtTokens = mockDebtTokens[user];
+        for (uint256 j = 0; j < debtTokens.length; j++) {
+            address token = debtTokens[j];
             uint256 amount = mockDebt[user][token];
-            uint256 assetTokenUnit = 10 ** ERC20(token).decimals();
-            uint256 amountInBase = (amount * price) / assetTokenUnit;
-
-            totalDebtBase += amountInBase;
+            if (amount > 0) {
+                totalDebtBase += convertFromTokenAmountToBaseCurrency(
+                    amount,
+                    token
+                );
+            }
         }
+
         return (totalCollateralBase, totalDebtBase);
     }
 
@@ -463,86 +507,6 @@ contract DLoopCoreMock is DLoopCoreBase {
         _withdrawFromPoolImplementation(token, amount, onBehalfOf);
     }
 
-    /**
-     * @dev Test wrapper for _getCollateralTokenAmountToReachTargetLeverage
-     */
-    function testGetCollateralTokenAmountToReachTargetLeverage(
-        uint256 expectedTargetLeverageBps,
-        uint256 totalCollateralBase,
-        uint256 totalDebtBase,
-        uint256 subsidyBps,
-        bool useVaultTokenBalance
-    ) external view returns (uint256) {
-        return
-            _getCollateralTokenAmountToReachTargetLeverage(
-                expectedTargetLeverageBps,
-                totalCollateralBase,
-                totalDebtBase,
-                subsidyBps,
-                useVaultTokenBalance
-            );
-    }
-
-    /**
-     * @dev Test wrapper for _getDebtTokenAmountToReachTargetLeverage
-     */
-    function testGetDebtTokenAmountToReachTargetLeverage(
-        uint256 expectedTargetLeverageBps,
-        uint256 totalCollateralBase,
-        uint256 totalDebtBase,
-        uint256 subsidyBps,
-        bool useVaultTokenBalance
-    ) external view returns (uint256) {
-        return
-            _getDebtTokenAmountToReachTargetLeverage(
-                expectedTargetLeverageBps,
-                totalCollateralBase,
-                totalDebtBase,
-                subsidyBps,
-                useVaultTokenBalance
-            );
-    }
-
-    /**
-     * @dev Test wrapper for _getRequiredCollateralTokenAmountToRebalance
-     */
-    function testGetRequiredCollateralTokenAmountToRebalance(
-        uint256 expectedTargetLeverageBps,
-        uint256 totalCollateralBase,
-        uint256 totalDebtBase,
-        uint256 subsidyBps,
-        uint256 additionalCollateralTokenAmount
-    ) external view returns (uint256) {
-        return
-            _getRequiredCollateralTokenAmountToRebalance(
-                expectedTargetLeverageBps,
-                totalCollateralBase,
-                totalDebtBase,
-                subsidyBps,
-                additionalCollateralTokenAmount
-            );
-    }
-
-    /**
-     * @dev Test wrapper for _getRequiredDebtTokenAmountToRebalance
-     */
-    function testGetRequiredDebtTokenAmountToRebalance(
-        uint256 expectedTargetLeverageBps,
-        uint256 totalCollateralBase,
-        uint256 totalDebtBase,
-        uint256 subsidyBps,
-        uint256 additionalDebtTokenAmount
-    ) external view returns (uint256) {
-        return
-            _getRequiredDebtTokenAmountToRebalance(
-                expectedTargetLeverageBps,
-                totalCollateralBase,
-                totalDebtBase,
-                subsidyBps,
-                additionalDebtTokenAmount
-            );
-    }
-
     // --- Mock State Getters for Testing ---
 
     /**
@@ -587,6 +551,8 @@ contract DLoopCoreMock is DLoopCoreBase {
      * @dev Get mock price for an asset
      */
     function getMockPrice(address asset) external view returns (uint256) {
-        return mockPrices[asset];
+        uint256 price = mockPrices[asset];
+        if (price == 0) revert MockPriceNotSet(asset);
+        return price;
     }
 }

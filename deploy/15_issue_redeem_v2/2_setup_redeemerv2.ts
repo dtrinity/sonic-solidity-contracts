@@ -71,7 +71,6 @@ const ZERO_BYTES_32 =
  * @param redeemerAddress - Address of the RedeemerV2 contract
  * @param deployerAddress - Address of the deployer
  * @param governanceMultisig - Address of the governance multisig
- * @param transactions - Array to append Safe transactions if governance is required
  * @param executor
  * @returns true if all operations complete, false if pending governance
  */

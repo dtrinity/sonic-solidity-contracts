@@ -76,8 +76,7 @@ const ZERO_BYTES_32 =
  * @param hre - Hardhat runtime environment
  * @param stableAddress - Address of the ERC20StablecoinUpgradeable token
  * @param grantee - Address that should be granted MINTER_ROLE
- * @param transactions - Array to append a Safe transaction if governance is required
- * @param executor
+ * @param executor - Governance executor
  * @returns true if operation succeeded or is already complete, false if pending governance
  */
 async function ensureMinterRole(
@@ -126,7 +125,6 @@ async function ensureMinterRole(
  * @param issuerAddress - Address of the IssuerV2 contract
  * @param deployerSigner - Deployer signer currently holding roles
  * @param governanceMultisig - Governance multisig address to receive roles
- * @param transactions - Array to append Safe transactions if governance is required
  * @param executor
  * @returns true if all operations complete, false if pending governance
  */

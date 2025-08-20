@@ -41,21 +41,25 @@ describe("DLoopDecreaseLeverageMock - Issue #324 Fix - Happy Path", function () 
 
     expect(peripheryCollateralBefore).to.equal(0n);
 
-    const additionalDebtFromUser = ethers.parseEther("10");
-    const minOutputCollateralTokenAmount = ethers.parseEther("0.5");
-
-    await debtToken
-      .connect(user1)
-      .approve(await decreaseLeverageMock.getAddress(), additionalDebtFromUser);
+    // Pre-fund periphery with some debt tokens for the operation
+    await debtToken.mint(
+      await decreaseLeverageMock.getAddress(),
+      ethers.parseEther("10"),
+    );
 
     let receipt: any;
 
     try {
+      const result =
+        await dloopCoreMock.quoteRebalanceAmountToReachTargetLeverage();
+      const requiredDebtAmount = result[0];
+      const direction = result[2];
+      expect(direction).to.equal(-1);
+      expect(requiredDebtAmount).to.be.gt(0n);
       const tx = await decreaseLeverageMock
         .connect(user1)
         .decreaseLeverage(
-          additionalDebtFromUser,
-          minOutputCollateralTokenAmount,
+          requiredDebtAmount,
           "0x",
           await dloopCoreMock.getAddress(),
         );

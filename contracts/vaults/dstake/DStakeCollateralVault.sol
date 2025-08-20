@@ -111,6 +111,9 @@ contract DStakeCollateralVault is
     /**
      * @notice Transfers `amount` of `vaultAsset` from this vault to `recipient`.
      * @dev Only callable by the registered router (ROUTER_ROLE).
+     * @param vaultAsset The vault asset to transfer
+     * @param amount Amount of tokens to transfer
+     * @param recipient Address to receive the tokens
      */
     function sendAsset(
         address vaultAsset,
@@ -123,6 +126,8 @@ contract DStakeCollateralVault is
 
     /**
      * @notice Adds a new supported vault asset. Can only be invoked by the router.
+     * @dev Only callable by the registered router (ROUTER_ROLE).
+     * @param vaultAsset Address of the vault asset to add
      */
     function addSupportedAsset(
         address vaultAsset
@@ -136,6 +141,8 @@ contract DStakeCollateralVault is
 
     /**
      * @notice Removes a supported vault asset. Can only be invoked by the router.
+     * @dev Only callable by the registered router (ROUTER_ROLE).
+     * @param vaultAsset Address of the vault asset to remove
      */
     function removeSupportedAsset(
         address vaultAsset
@@ -155,6 +162,8 @@ contract DStakeCollateralVault is
     /**
      * @notice Sets the router address. Grants ROUTER_ROLE to new router and
      *         revokes it from the previous router.
+     * @dev Only callable by DEFAULT_ADMIN_ROLE.
+     * @param _newRouter Address of the new router
      */
     function setRouter(
         address _newRouter

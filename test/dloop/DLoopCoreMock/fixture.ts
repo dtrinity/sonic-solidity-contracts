@@ -9,6 +9,7 @@ export const TARGET_LEVERAGE_BPS = 300 * ONE_PERCENT_BPS; // 3x leverage
 export const LOWER_BOUND_BPS = 200 * ONE_PERCENT_BPS; // 2x leverage
 export const UPPER_BOUND_BPS = 400 * ONE_PERCENT_BPS; // 4x leverage
 export const MAX_SUBSIDY_BPS = 1 * ONE_PERCENT_BPS; // 1%
+export const MIN_DEVIATION_BPS = 2 * ONE_PERCENT_BPS; // 2% deviation
 export const DEFAULT_PRICE = 100000000; // 1.0 in 8 decimals
 export const COLLATERAL_DECIMALS = 18;
 export const DEBT_DECIMALS = 18;
@@ -51,8 +52,13 @@ export async function deployDLoopMockFixture(): Promise<DLoopMockFixture> {
   await collateralToken.mint(mockPool, ethers.parseEther("1000000"));
   await debtToken.mint(mockPool, ethers.parseEther("1000000"));
 
+  // Deploy and link DLoopCoreLogic library before deploying DLoopCoreMock
+  const DLoopCoreLogicFactory =
+    await ethers.getContractFactory("DLoopCoreLogic");
+  const dloopCoreLogicLib = await DLoopCoreLogicFactory.deploy();
+  await dloopCoreLogicLib.waitForDeployment();
+
   // Get the exact nonce for deployment and set up allowances correctly
-  const DLoopCoreMock = await ethers.getContractFactory("DLoopCoreMock");
   const currentNonce = await ethers.provider.getTransactionCount(deployer);
 
   // We'll have 2 approve transactions, so deployment will be at currentNonce + 2
@@ -69,8 +75,17 @@ export async function deployDLoopMockFixture(): Promise<DLoopMockFixture> {
     .connect(accounts[0])
     .approve(contractAddress, ethers.MaxUint256);
 
-  // Now deploy the contract
-  const dloopMock = await DLoopCoreMock.deploy(
+  // Now deploy the contract (linking the DLoopCoreLogic library)
+  const DLoopCoreMockFactory = await ethers.getContractFactory(
+    "DLoopCoreMock",
+    {
+      libraries: {
+        "contracts/vaults/dloop/core/DLoopCoreLogic.sol:DLoopCoreLogic":
+          await dloopCoreLogicLib.getAddress(),
+      },
+    },
+  );
+  const dloopMock = await DLoopCoreMockFactory.deploy(
     "Mock dLoop Vault",
     "mdLOOP",
     await collateralToken.getAddress(),
@@ -79,6 +94,7 @@ export async function deployDLoopMockFixture(): Promise<DLoopMockFixture> {
     LOWER_BOUND_BPS,
     UPPER_BOUND_BPS,
     MAX_SUBSIDY_BPS,
+    MIN_DEVIATION_BPS,
     0, // withdrawalFeeBps
     mockPool,
   );

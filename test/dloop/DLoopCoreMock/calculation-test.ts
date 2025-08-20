@@ -11,7 +11,8 @@ import {
   testSetup,
 } from "./fixture";
 
-describe("DLoopCoreMock Calculation Tests", function () {
+// NOTE: Redundant with CoreLogic tests; keeping file but skipping suite to avoid duplication
+describe.skip("DLoopCoreMock Calculation Tests", function () {
   // Contract instances and addresses
   let dloopMock: DLoopCoreMock;
   let collateralToken: TestMintableERC20;
