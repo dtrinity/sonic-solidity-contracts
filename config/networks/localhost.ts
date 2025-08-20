@@ -13,6 +13,7 @@ import {
   ORACLE_AGGREGATOR_PRICE_DECIMALS,
 } from "../../typescript/oracle_aggregator/constants";
 import {
+  rateStrategyDUSD,
   rateStrategyHighLiquidityStable,
   rateStrategyHighLiquidityVolatile,
   rateStrategyMediumLiquidityStable,
@@ -412,6 +413,7 @@ export async function getConfig(
         rateStrategyMediumLiquidityVolatile,
         rateStrategyHighLiquidityStable,
         rateStrategyMediumLiquidityStable,
+        rateStrategyDUSD,
       ],
       reservesConfig: {
         dUSD: strategyDUSD,
