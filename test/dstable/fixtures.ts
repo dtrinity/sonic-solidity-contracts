@@ -30,7 +30,8 @@ export const createDStableFixture = (config: DStableFixtureConfig) => {
   return deployments.createFixture(async ({ deployments }) => {
     await deployments.fixture(); // Start from a fresh deployment
     await deployments.fixture(["local-setup", config.symbol.toLowerCase()]); // Include local-setup to use the mock Oracle
-    await deployments.fixture(["setup-issuerv2"]); // Ensure IssuerV2 is deployed and roles migrated
+    // Ensure IssuerV2 and RedeemerV2 are deployed and roles migrated to mirror mainnet
+    await deployments.fixture(["setup-issuerv2", "setup-redeemerv2"]);
   });
 };
 

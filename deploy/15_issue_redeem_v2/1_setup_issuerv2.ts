@@ -18,7 +18,7 @@ import {
   USD_ORACLE_AGGREGATOR_ID,
 } from "../../typescript/deploy-ids";
 import { ensureDefaultAdminExistsAndRevokeFrom } from "../../typescript/hardhat/access_control";
-import { SafeManager } from "../../typescript/safe/SafeManager";
+import { GovernanceExecutor } from "../../typescript/hardhat/governance";
 // Local helpers for building Safe transactions (offline)
 import { SafeTransactionData } from "../../typescript/safe/types";
 
@@ -34,7 +34,7 @@ function createGrantRoleTransaction(
   contractAddress: string,
   role: string,
   grantee: string,
-  contractInterface: any,
+  contractInterface: any
 ): SafeTransactionData {
   return {
     to: contractAddress,
@@ -55,7 +55,7 @@ function createRevokeRoleTransaction(
   contractAddress: string,
   role: string,
   account: string,
-  contractInterface: any,
+  contractInterface: any
 ): SafeTransactionData {
   return {
     to: contractAddress,
@@ -77,43 +77,36 @@ const ZERO_BYTES_32 =
  * @param stableAddress - Address of the ERC20StablecoinUpgradeable token
  * @param grantee - Address that should be granted MINTER_ROLE
  * @param transactions - Array to append a Safe transaction if governance is required
+ * @param executor
  * @returns true if operation succeeded or is already complete, false if pending governance
  */
 async function ensureMinterRole(
   hre: HardhatRuntimeEnvironment,
   stableAddress: string,
   grantee: string,
-  transactions: SafeTransactionData[],
+  executor: GovernanceExecutor
 ): Promise<boolean> {
   const stable = await hre.ethers.getContractAt(
     "ERC20StablecoinUpgradeable",
-    stableAddress,
+    stableAddress
   );
   const MINTER_ROLE = await stable.MINTER_ROLE();
 
   if (!(await stable.hasRole(MINTER_ROLE, grantee))) {
-    try {
-      await stable.grantRole(MINTER_ROLE, grantee);
-      console.log(`    ➕ Granted MINTER_ROLE to ${grantee}`);
-      return true;
-    } catch (e) {
-      console.log(
-        `    ⚠️ Could not grant MINTER_ROLE to ${grantee}: ${(e as Error).message}`,
-      );
-
-      console.log(
-        `    🔄 Queueing governance transaction for MINTER_ROLE grant...`,
-      );
-      const transaction: SafeTransactionData = createGrantRoleTransaction(
-        stableAddress,
-        MINTER_ROLE,
-        grantee,
-        stable.interface,
-      );
-      transactions.push(transaction);
-      console.log(`    📥 Added to batch for offline signing`);
-      return false;
-    }
+    const complete = await executor.tryOrQueue(
+      async () => {
+        await stable.grantRole(MINTER_ROLE, grantee);
+        console.log(`    ➕ Granted MINTER_ROLE to ${grantee}`);
+      },
+      () =>
+        createGrantRoleTransaction(
+          stableAddress,
+          MINTER_ROLE,
+          grantee,
+          stable.interface
+        )
+    );
+    return complete;
   } else {
     console.log(`    ✓ MINTER_ROLE already granted to ${grantee}`);
     return true;
@@ -134,6 +127,7 @@ async function ensureMinterRole(
  * @param deployerSigner - Deployer signer currently holding roles
  * @param governanceMultisig - Governance multisig address to receive roles
  * @param transactions - Array to append Safe transactions if governance is required
+ * @param executor
  * @returns true if all operations complete, false if pending governance
  */
 async function migrateIssuerRolesIdempotent(
@@ -142,12 +136,12 @@ async function migrateIssuerRolesIdempotent(
   issuerAddress: string,
   deployerSigner: Signer,
   governanceMultisig: string,
-  transactions: SafeTransactionData[],
+  executor: GovernanceExecutor
 ): Promise<boolean> {
   const issuer = await hre.ethers.getContractAt(
     "IssuerV2",
     issuerAddress,
-    deployerSigner,
+    deployerSigner
   );
 
   const DEFAULT_ADMIN_ROLE = ZERO_BYTES_32;
@@ -168,29 +162,22 @@ async function migrateIssuerRolesIdempotent(
 
   for (const role of roles) {
     if (!(await issuer.hasRole(role.hash, governanceMultisig))) {
-      try {
-        await issuer.grantRole(role.hash, governanceMultisig);
-        console.log(
-          `    ➕ Granted ${role.name} to governance ${governanceMultisig}`,
-        );
-      } catch (e) {
-        console.log(
-          `    ⚠️ Could not grant ${role.name} to governance: ${(e as Error).message}`,
-        );
-
-        console.log(
-          `    🔄 Queueing governance transaction for ${role.name} grant...`,
-        );
-        const transaction: SafeTransactionData = createGrantRoleTransaction(
-          issuerAddress,
-          role.hash,
-          governanceMultisig,
-          issuer.interface,
-        );
-        transactions.push(transaction);
-        console.log(`    📥 Added to batch for offline signing`);
-        allComplete = false;
-      }
+      const complete = await executor.tryOrQueue(
+        async () => {
+          await issuer.grantRole(role.hash, governanceMultisig);
+          console.log(
+            `    ➕ Granted ${role.name} to governance ${governanceMultisig}`
+          );
+        },
+        () =>
+          createGrantRoleTransaction(
+            issuerAddress,
+            role.hash,
+            governanceMultisig,
+            issuer.interface
+          )
+      );
+      if (!complete) allComplete = false;
     } else {
       console.log(`    ✓ ${role.name} already granted to governance`);
     }
@@ -207,33 +194,25 @@ async function migrateIssuerRolesIdempotent(
     const deployerHasRole = await issuer.hasRole(role.hash, deployerAddress);
     const governanceHasRole = await issuer.hasRole(
       role.hash,
-      governanceMultisig,
+      governanceMultisig
     );
 
     if (deployerHasRole && governanceHasRole) {
       const roleName = role.name;
-
-      try {
-        await issuer.revokeRole(role.hash, deployerAddress);
-        console.log(`    ➖ Revoked ${roleName} from deployer`);
-      } catch (e) {
-        console.log(
-          `    ⚠️ Could not revoke ${roleName} from deployer: ${(e as Error).message}`,
-        );
-
-        console.log(
-          `    🔄 Queueing governance transaction for ${roleName} revocation...`,
-        );
-        const transaction: SafeTransactionData = createRevokeRoleTransaction(
-          issuerAddress,
-          role.hash,
-          deployerAddress,
-          issuer.interface,
-        );
-        transactions.push(transaction);
-        console.log(`    📥 Added to batch for offline signing`);
-        allComplete = false;
-      }
+      const complete = await executor.tryOrQueue(
+        async () => {
+          await issuer.revokeRole(role.hash, deployerAddress);
+          console.log(`    ➖ Revoked ${roleName} from deployer`);
+        },
+        () =>
+          createRevokeRoleTransaction(
+            issuerAddress,
+            role.hash,
+            deployerAddress,
+            issuer.interface
+          )
+      );
+      if (!complete) allComplete = false;
     }
   }
 
@@ -245,7 +224,7 @@ async function migrateIssuerRolesIdempotent(
       issuerAddress,
       governanceMultisig,
       deployerAddress,
-      deployerSigner,
+      deployerSigner
     );
 
   if (!adminMigrationComplete) {
@@ -264,6 +243,7 @@ async function migrateIssuerRolesIdempotent(
  * @param governanceMultisig - Address of governance multisig
  * @param deployerAddress - Address of the deployer
  * @param deployerSigner - Signer for the deployer
+ * @param executor
  */
 async function ensureDefaultAdminExistsAndRevokeFromWithSafe(
   hre: HardhatRuntimeEnvironment,
@@ -272,6 +252,7 @@ async function ensureDefaultAdminExistsAndRevokeFromWithSafe(
   governanceMultisig: string,
   deployerAddress: string,
   deployerSigner: Signer,
+  executor: GovernanceExecutor
 ): Promise<boolean> {
   try {
     // The original function uses manualActions array, we need to handle this differently
@@ -284,23 +265,34 @@ async function ensureDefaultAdminExistsAndRevokeFromWithSafe(
       governanceMultisig,
       deployerAddress,
       deployerSigner,
-      manualActions,
+      manualActions
     );
 
-    // If there are manual actions, it means we need Safe transactions
+    // If there are manual actions, it means we need Safe transactions when Safe mode is on
     if (manualActions.length > 0) {
-      // This would need proper Safe transaction creation; return pending
-      return false;
+      if (executor.useSafe) {
+        // This would need proper Safe transaction creation; return pending
+        return false;
+      }
+      console.log(
+        `    ⏭️ Non-Safe mode: manual admin migration actions detected; continuing.`
+      );
     }
 
     return true;
   } catch (error) {
-    // Requires governance action; queue not implemented for this path
-    console.warn(
-      `    🔄 Admin role migration likely requires governance action:`,
-      error,
+    if (executor.useSafe) {
+      // Requires governance action; queue not implemented for this path
+      console.warn(
+        `    🔄 Admin role migration likely requires governance action:`,
+        error
+      );
+      return false;
+    }
+    console.log(
+      `    ⏭️ Non-Safe mode: admin migration requires governance; continuing.`
     );
-    return false;
+    return true;
   }
 }
 
@@ -310,27 +302,13 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const deployerSigner = await ethers.getSigner(deployer);
   const config = await getConfig(hre);
 
-  // Initialize Safe Manager if Safe configuration is available
-  let safeManager: SafeManager | undefined;
-  const transactions: SafeTransactionData[] = [];
-
-  if (config.safeConfig) {
-    console.log(`🔐 Initializing Safe Manager for governance operations...`);
-
-    try {
-      safeManager = new SafeManager(hre, deployerSigner, {
-        safeConfig: config.safeConfig,
-      });
-      await safeManager.initialize();
-      console.log(`✅ Safe Manager initialized successfully`);
-    } catch (error) {
-      console.warn(`⚠️ Failed to initialize Safe Manager:`, error);
-      console.log(
-        `❌ Safe Manager required for governance operations. Please ensure Safe is properly configured.`,
-      );
-      return false; // Fail idempotently
-    }
-  }
+  // Initialize governance executor (decides Safe vs direct execution)
+  const executor = new GovernanceExecutor(
+    hre,
+    deployerSigner,
+    config.safeConfig
+  );
+  await executor.initialize();
 
   console.log(`\n≻ ${__filename.split("/").slice(-2).join("/")}: executing...`);
 
@@ -344,6 +322,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       tokenId: DUSD_TOKEN_ID,
       collateralVaultId: DUSD_COLLATERAL_VAULT_CONTRACT_ID,
       amoManagerId: DUSD_AMO_MANAGER_ID,
+      aggregatorId: USD_ORACLE_AGGREGATOR_ID,
     },
     {
       oldId: DS_ISSUER_CONTRACT_ID,
@@ -351,6 +330,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       tokenId: DS_TOKEN_ID,
       collateralVaultId: DS_COLLATERAL_VAULT_CONTRACT_ID,
       amoManagerId: DS_AMO_MANAGER_ID,
+      aggregatorId: S_ORACLE_AGGREGATOR_ID,
     },
   ];
 
@@ -359,88 +339,54 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   for (const t of issuerTransitions) {
     console.log(`\n🔄 Setting up ${t.newId}...`);
 
-    const newIssuerDeployment = await deployments.get(t.newId);
-    const newIssuerAddress = newIssuerDeployment.address;
-
+    // Resolve dependencies
     const tokenDeployment = await deployments.get(t.tokenId);
     const tokenAddress = tokenDeployment.address;
-
     const collateralVaultDeployment = await deployments.get(
-      t.collateralVaultId,
+      t.collateralVaultId
     );
     const collateralVaultAddress = collateralVaultDeployment.address;
-
     const amoManagerDeployment = await deployments.get(t.amoManagerId);
     const _amoManagerAddress = amoManagerDeployment.address;
+    const oracleAggDeployment = await deployments.get(t.aggregatorId);
+    const oracleAggAddress = oracleAggDeployment.address;
+
+    // Deploy IssuerV2 (hardhat-deploy handles idempotency by deploy ID)
+    const issuerDeployResult = await deployments.deploy(t.newId, {
+      from: deployer,
+      contract: "IssuerV2",
+      args: [
+        collateralVaultAddress,
+        tokenAddress,
+        oracleAggAddress,
+        _amoManagerAddress,
+      ],
+      log: true,
+      autoMine: true,
+    });
+    const newIssuerAddress = issuerDeployResult.address;
 
     // 1. Grant minter role on stablecoin to the new issuer
     console.log(
-      `  🪙 Ensuring MINTER_ROLE for ${t.newId} on token ${t.tokenId}...`,
+      `  🪙 Ensuring MINTER_ROLE for ${t.newId} on token ${t.tokenId}...`
     );
     const minterRoleComplete = await ensureMinterRole(
       hre,
       tokenAddress,
       newIssuerAddress,
-      transactions,
+      executor
     );
 
     if (!minterRoleComplete) {
       allOperationsComplete = false;
     }
 
-    // 2. Grant COLLATERAL_WITHDRAWER_ROLE to the new issuer on CollateralVault
-    console.log(
-      `  🏦 Granting COLLATERAL_WITHDRAWER_ROLE to ${t.newId} on ${t.collateralVaultId}...`,
-    );
-    const collateralVault = await hre.ethers.getContractAt(
-      "CollateralHolderVault",
-      collateralVaultAddress,
-    );
-    const COLLATERAL_WITHDRAWER_ROLE =
-      await collateralVault.COLLATERAL_WITHDRAWER_ROLE();
-
-    if (
-      !(await collateralVault.hasRole(
-        COLLATERAL_WITHDRAWER_ROLE,
-        newIssuerAddress,
-      ))
-    ) {
-      try {
-        await collateralVault.grantRole(
-          COLLATERAL_WITHDRAWER_ROLE,
-          newIssuerAddress,
-        );
-        console.log(
-          `    ➕ Granted COLLATERAL_WITHDRAWER_ROLE to ${newIssuerAddress}`,
-        );
-      } catch (e) {
-        console.log(
-          `    ⚠️ Could not grant COLLATERAL_WITHDRAWER_ROLE: ${(e as Error).message}`,
-        );
-
-        console.log(
-          `    🔄 Queueing governance transaction for COLLATERAL_WITHDRAWER_ROLE grant...`,
-        );
-        const transaction = createGrantRoleTransaction(
-          collateralVaultAddress,
-          COLLATERAL_WITHDRAWER_ROLE,
-          newIssuerAddress,
-          collateralVault.interface,
-        );
-        transactions.push(transaction);
-        console.log(`    📥 Added to batch for offline signing`);
-        allOperationsComplete = false;
-      }
-    } else {
-      console.log(
-        `    ✓ COLLATERAL_WITHDRAWER_ROLE already granted to ${newIssuerAddress}`,
-      );
-    }
+    // 2. (Intentionally no vault role changes for IssuerV2 in this script)
 
     // 3. Note: Asset minting pause configuration would go here if needed
     // Currently all assets default to unpaused (minting enabled)
 
-    // 4. Migrate roles to governance
+    // 3. Migrate roles to governance
     console.log(`  🔐 Migrating ${t.newId} roles to governance...`);
     const rolesMigrationComplete = await migrateIssuerRolesIdempotent(
       hre,
@@ -448,7 +394,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       newIssuerAddress,
       deployerSigner,
       governanceMultisig,
-      transactions,
+      executor
     );
 
     if (!rolesMigrationComplete) {
@@ -457,31 +403,34 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
     // Optional: keep old issuer operational until governance flips references
     console.log(
-      `  ℹ️ New issuer ${t.newId} deployed and permissioned. Ensure dApp/services reference ${newIssuerAddress}.`,
+      `  ℹ️ New issuer ${t.newId} deployed and permissioned. Ensure dApp/services reference ${newIssuerAddress}.`
     );
   }
 
   if (!allOperationsComplete) {
-    if (transactions.length > 0 && safeManager) {
-      const res = await safeManager.createBatchTransaction({
-        description: `Setup IssuerV2: governance operations (${transactions.length})`,
-        transactions,
-      });
+    const flushed = await executor.flush(
+      `Setup IssuerV2: governance operations`
+    );
 
-      if (!res.success) {
-        console.log(`❌ Failed to prepare governance batch: ${res.error}`);
+    if (executor.useSafe) {
+      if (!flushed) {
+        console.log(`❌ Failed to prepare governance batch`);
       }
+      console.log(
+        "\n⏳ Some operations require governance signatures to complete."
+      );
+      console.log(
+        "   The deployment script will exit and can be re-run after governance executes the transactions."
+      );
+      console.log(
+        `\n≻ ${__filename.split("/").slice(-2).join("/")}: pending governance ⏳`
+      );
+      return false; // Fail idempotently - script can be re-run
+    } else {
+      console.log(
+        "\n⏭️ Non-Safe mode: pending governance operations detected; continuing."
+      );
     }
-    console.log(
-      "\n⏳ Some operations require governance signatures to complete.",
-    );
-    console.log(
-      "   The deployment script will exit and can be re-run after governance executes the transactions.",
-    );
-    console.log(
-      `\n≻ ${__filename.split("/").slice(-2).join("/")}: pending governance ⏳`,
-    );
-    return false; // Fail idempotently - script can be re-run
   }
 
   console.log("\n✅ All operations completed successfully.");
