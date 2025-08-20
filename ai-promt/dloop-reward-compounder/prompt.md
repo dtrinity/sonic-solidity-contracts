@@ -49,6 +49,11 @@ When there is a successful compounding or failed compounding, the bot should:
 
 Please read and write the repo structure of `bot/dlend-liquidator`, then based on that to generate the repo structure for `bot/dloop-reward-compounder`. Make sure it meets the following critical:
 
+- Follow the linting setup with `eslint` in `/Users/dinosaurchi/Desktop/Project/stably-prime/trinity/dloop-rebalancer`.
+- Follow the code style and structure in `/Users/dinosaurchi/Desktop/Project/stably-prime/trinity/dloop-rebalancer`.
+- Follow the naming convention in `/Users/dinosaurchi/Desktop/Project/stably-prime/trinity/dloop-rebalancer`.
+- Follow the code organization in `/Users/dinosaurchi/Desktop/Project/stably-prime/trinity/dloop-rebalancer`.
+- Follow the `docker` setup in `bot/dlend-liquidator`.
 - For missing contract interfaces, just copy the interface from `./` repo.
 - The core contract address will be stored in the config (similar to `bot/dlend-liquidator/config/`).
 - Make sure the docker image can be built with `make docker.build` (similar to `bot/dlend-liquidator/Dockerfile` and `bot/dlend-liquidator/Makefile`).
@@ -57,8 +62,6 @@ The contract logic should be abstracted to `Base` and venue-specific contracts:
 
 - Abstract base: `RewardCompounderDLendBase.sol` (reference `bot/dlend-liquidator/contracts/aave-v3/FlashMintLiquidatorAaveBorrowRepayBase.sol`)
 - Venue-specific: `RewardCompounderDLendOdos.sol` (Odos is the swap venue, reference `bot/dlend-liquidator/contracts/aave-v3/FlashMintLiquidatorAaveBorrowRepayOdos.sol`)
-
-Pleae strictly follow the linting setup with `eslint` in `/Users/dinosaurchi/Desktop/Project/stably-prime/trinity/dloop-rebalancer`.
 
 ## Test requirements
 

@@ -8,14 +8,15 @@ We sometime call it reward claiming as it actually a process to help the vault c
 
 - That's why sometime it called `reward-claiming`, sometime called `reward-compounding`.
 
-High-level idea (user-provided):
+High-level idea (threshold-based flow, corrected):
 
-- Flashloan X dUSD
-- Swap X dUSD -> Y sfrxUSD
-- Mint S shares by depositing sfrxUSD to DLoopCore (not via periphery), receive S shares and K dUSD (borrowed debt)
-- Use S shares to claim the reward (dUSD rebase), get Z dUSD reward amount
-- If (Z + K) < X (+ flash fees + swap costs) revert
-- Otherwise, repay flashloan and keep (Z + K - X - fees) as profit
+- Read `exchangeThreshold` from the core vault.
+- Target `amount = exchangeThreshold` shares for `compoundRewards()` (no auction; FCFS favors minimum valid amount).
+- Compute required collateral using `previewMint(exchangeThreshold)`.
+- Flash-mint/flashloan dUSD and perform an exact-out swap: dUSD -> collateral for exactly the required collateral (+ small slippage buffer).
+- Mint exactly `exchangeThreshold` shares via `CORE.mint(exchangeThreshold, receiver)`; this also transfers borrowed dUSD (`K`) to the bot.
+- Approve and call `compoundRewards(exchangeThreshold, [dUSD], receiver)`; receive net reward dUSD.
+- Repay flash amount + fee; keep the surplus as profit.
 
 This document formalizes and analyzes that approach, gives a numeric example and an actionable pseudocode that another model can implement.
 
@@ -37,62 +38,54 @@ Implications:
 
 ---
 
-## Formalized flow (corrected profit condition)
+## Formalized flow (threshold-based)
 
 Notation:
 
-- X = flashloaned dUSD (amount borrowed up-front from flash lender)
+- X = flashloaned dUSD (amount borrowed up-front from flash lender; should at least cover swap max input + fee)
 - fee = flashloan fee in dUSD
 - swapCosts = swap fees + slippage (dUSD-equivalent loss when swapping)
-- Y = amount of sfrxUSD received after swapping X dUSD (post-swap costs)
-- S = shares minted when depositing Y sfrxUSD to `DLoopCore` (representing vault shares)
+- Y = exact collateral acquired via swap (targeted to mint exactly `S`)
+- S = shares to mint, set to `exchangeThreshold()`
 - K = dUSD amount transferred to depositor by the vault during deposit (borrowed debt from pool)
 - Z = dUSD rewards claimed when calling `compoundRewards(S, [dUSD], receiver)` (gross rewards)
 - tBps = treasury fee basis points; netZ = Z - treasuryFee(Z) = Z * (1 - tBps/10000)
 
 Profit check (must include all costs):
 
-profit = K + netZ - (X + fee + swapCosts)
+profit = K + netZ - (X + fee)
 
-Break-even condition: K + netZ >= X + fee + swapCosts
+Notes:
+
+- Use an exact-out swap (dUSD -> collateral) so swapCosts are implicit in X (you pay whatever dUSD input the aggregator requires up to your max). If you model costs explicitly off-chain, expand the check to include them, i.e., `X = swapInput + otherCosts`.
+- Break-even: `K + netZ >= X + fee`.
 
 Note: earlier user inequality (Z + K < X) is inverted and missing fees; the correct form above accounts for flash fee and swap costs and treasury fee on rewards.
 
 ---
 
-## Numeric example (intuitive table)
+## Numeric intuition (why threshold works)
 
-Assumptions (example numbers):
+At target leverage T (e.g., 3x), a mint of S shares uses collateral with dollar value C and borrows K dUSD such that:
 
-- X = 100,000 dUSD (flashloan)
-- flash fee = 0.08% => fee = 80 dUSD
-- swap slippage+fee = 0.10% => Y = 99,900 sfrxUSD (we assume 1:1 price for simplicity)
-- Target leverage T = 3x => K ≈ Y *(T-1)/T = Y* 2/3 = 66,600 dUSD (approx)
-- Gross rewards Z that will be claimed by burning S shares = 40,000 dUSD
-- Treasury fee tBps = 100 (1 bps = 0.01%?) Note: contract uses BasisPointConstants where 100 = 1 bps, 10_000 = 1%? (read on-chain). For this example assume treasury = 1% => netZ = 40,000 * 0.99 = 39,600 dUSD
+- C collateral value mints S shares and the vault borrows K ≈ C * (T-1)/T (e.g., 2/3 of C when T=3).
+- The economic value carried by S shares is C - K = C/T (e.g., 1/3 of C at 3x).
+- When calling `compoundRewards(S, ...)`, the vault burns S and pays out rewards in dUSD equal to approximately the shares’ economic value (minus treasury fee): netZ ≈ (C/T) * (1 - feeBps).
 
-Step-by-step table:
+Therefore, after minting and compounding S:
 
-| Step | Description | dUSD change (this contract) | Explanation |
-|---|---:|---:|---|
-| 0 | Start | 0 | Start balance 0
-| 1 | Flashloan X | +100,000 | flashloan borrowed; fee owed later = 80
-| 2 | Swap X -> sfrxUSD | -100,000 dUSD, +99,900 sfrxUSD | 0.10% swap cost
-| 3 | Deposit sfrxUSD -> mint shares | -99,900 sfrxUSD, +S shares, +66,600 dUSD (K) | Vault supplies collateral and borrows K to this contract
-| 4 | Call compoundRewards(S, [dUSD], this) | +40,000 gross dUSD -> vault takes treasury; contract receives netZ=39,600 | Vault burns S shares; fee applied
-| 5 | Repay flashloan | -100,080 (100,000 + 80 fee) | Pay flash + fee
-| 6 | End | +6,120 | Profit = 66,600 + 39,600 - 100,080 = 6,120 dUSD
-
-Interpretation: with these numbers profit is positive. If Z is smaller or slippage higher or target leverage lower, profit may be negative. Always include all fees and slippage in estimates.
+- You hold K ≈ C * (T-1)/T from the deposit’s borrow, and
+- You receive netZ ≈ C/T after compounding,
+- Total ≈ C (subject to treasury fee and rounding), which aligns well with repaying the dUSD used to buy C via exact-out swap. Profit depends on swap/flash fees and treasury fee.
 
 ---
 
 ## Practical checks, constraints and risks
 
-- `exchangeThreshold`: `compoundRewards` reverts if `amount < exchangeThreshold`. Ensure `S >= exchangeThreshold()` or use `previewDeposit` to calculate expected shares and supply enough.
+- `exchangeThreshold`: `compoundRewards` reverts if `amount < exchangeThreshold`. Always set `S = exchangeThreshold()` and mint exactly S shares via `previewMint/mint`.
 - `isTooImbalanced()`: `DLoopCoreBase` blocks deposit/mint if leverage is out of bounds. Verify `maxDeposit(address(this)) > 0` before attempting deposit.
 - Race conditions / front-running: `compoundRewards` claims all available rewards from the external controller. Another bot can claim rewards before you; this can make your run unprofitable. Consider private mempool or MEV protection.
-- Price and decimals: `K` depends on oracles and token decimals. Use `CORE.previewDeposit(Y)` and `CORE.previewMint` or `DLoopCoreLogic` helper math to estimate `K` precisely before executing.
+- Price and decimals: `K` depends on oracles and token decimals. Use `CORE.previewMint(S)` and/or `CORE.previewDeposit(Y)` plus `DLoopCoreLogic` to estimate precisely.
 - Swap slippage, aggregator execution failure and approvals must be handled. Use `minExpectedOut` guards for swaps.
 - Treasury fee: compute `getTreasuryFee(Z)` on-chain to understand `netZ` rather than guessing.
 - Flash lenders may have additional constraints (maxLoan, token allowances, etc.).
@@ -100,7 +93,7 @@ Interpretation: with these numbers profit is positive. If Z is smaller or slippa
 
 ---
 
-## Implementation outline & pseudocode (Markdown) for another AI to implement
+## Implementation outline & pseudocode (threshold-based)
 
 Below is a compact, step-by-step pseudocode blueprint. It is written to be unambiguous and implementable.
 
@@ -114,38 +107,51 @@ contract DLendRewardsClaimerBot is IERC3156FlashBorrower {
     address constant SWAP_AGG = /* aggregator address */;
 
     // Entrypoint to run one cycle
-    function run(uint256 flashAmount, bytes calldata swapCallData, uint256 minSfrxOut) external {
-        // optional prechecks
+    function run(uint256 flashAmount, bytes calldata swapExactOutCallData, uint256 slippageBps) external {
         require(CORE.maxDeposit(address(this)) > 0, "deposit disabled");
-        // encode swapCallData + minSfrxOut as flash callback data
-        FLASH.flashLoan(this, address(DUSD), flashAmount, abi.encode(swapCallData, minSfrxOut));
+        require(slippageBps <= 10_000, "slippage too high");
+
+        // Determine target shares = exchangeThreshold
+        uint256 S = CORE.exchangeThreshold();
+        require(S > 0, "zero threshold");
+
+        // Compute required collateral to mint exactly S shares
+        uint256 requiredCollateral = CORE.previewMint(S);
+        // Add small buffer for price movement
+        uint256 collateralWithBuffer = requiredCollateral * (10_000 + slippageBps) / 10_000;
+
+        // Pass swap plan and required collateral to callback
+        FLASH.flashLoan(
+            this,
+            address(DUSD),
+            flashAmount, // must be >= aggregator max input for exact-out + fee
+            abi.encode(swapExactOutCallData, collateralWithBuffer, S)
+        );
     }
 
     // Flash loan callback
     function onFlashLoan(address, address token, uint256 amount, uint256 fee, bytes calldata data) external returns (bytes32) {
         require(msg.sender == address(FLASH), "invalid lender");
         require(token == address(DUSD), "invalid token");
+        (bytes memory swapExactOutCallData, uint256 collateralWithBuffer, uint256 S) = abi.decode(data, (bytes, uint256, uint256));
 
-        (bytes memory swapCallData, uint256 minSfrxOut) = abi.decode(data, (bytes, uint256));
-
-        // 1) Swap DUSD -> sfrxUSD via aggregator; enforce minOut
+        // 1) Exact-out swap: acquire collateralWithBuffer of sfrxUSD using dUSD up to `amount`
         DUSD.approve(SWAP_AGG, amount);
-        // call swap aggregator with swapCallData (must be crafted off-chain)
-        (bool ok,) = SWAP_AGG.call(swapCallData);
+        (bool ok,) = SWAP_AGG.call(swapExactOutCallData); // must encode exact-out buy of collateralWithBuffer
         require(ok, "swap failed");
         uint256 sfrxBalance = SFRX.balanceOf(address(this));
-        require(sfrxBalance >= minSfrxOut, "slippage");
+        require(sfrxBalance >= collateralWithBuffer, "insufficient collateral");
 
-        // 2) Deposit sfrxUSD to CORE to mint shares and receive borrowed dUSD K
+        // 2) Mint exactly S shares (equals exchangeThreshold); receive borrowed dUSD K
         SFRX.approve(address(CORE), sfrxBalance);
-        // Use ERC4626 `deposit(uint256 assets, address receiver)` or `mint` depending on core API
-        uint256 shares = CORE.deposit(sfrxBalance, address(this));
+        uint256 minted = CORE.mint(S, address(this));
+        require(minted == S, "mint mismatch");
 
-        // 3) Call compoundRewards with the minted shares to claim dUSD
-        IERC20(address(CORE)).approve(address(CORE), shares);
+        // 3) Call compoundRewards with S to claim dUSD
+        IERC20(address(CORE)).approve(address(CORE), S);
         address[] memory rewardTokens = new address[](1);
         rewardTokens[0] = address(DUSD);
-        CORE.compoundRewards(shares, rewardTokens, address(this));
+        CORE.compoundRewards(S, rewardTokens, address(this));
 
         // 4) Repay flash loan: amount + fee
         uint256 totalDebt = amount + fee;
@@ -159,11 +165,11 @@ contract DLendRewardsClaimerBot is IERC3156FlashBorrower {
 
 Notes for implementer:
 
-- The `swapCallData` is crafted off-chain (e.g., 1inch calldata) to swap exactly `amount` of dUSD to sfrxUSD and must include a `minSfrxOut` to guard slippage.
-- Use `CORE.previewDeposit(sfrxBalance)` or `CORE.previewMint` to predict `shares` and estimate `K` (the contract's dUSD balance change after deposit).
-- After deposit, measure the delta of dUSD to calculate K: (dUSD balance after deposit) - (dUSD balance before deposit minus borrowed amount if any). Simpler: record dUSD balance before flash and after deposit to isolate K.
+- The `swapExactOutCallData` is crafted off-chain (e.g., 1inch/0x) to buy exactly `collateralWithBuffer` of collateral for dUSD (exact-out). Ensure your flash amount ≥ aggregator max input + flash fee.
+- Use `CORE.previewMint(S)` to compute required collateral for S shares. Optionally cross-check with `CORE.previewDeposit(Y)`.
+- Record dUSD balance delta around mint to estimate `K` precisely if needed.
 - Ensure approvals for `CORE` (shares) and for `FLASH` to take repayment.
-- Do on-chain queries for `treasuryFeeBps()` and `exchangeThreshold()` to compute netZ and guarantee `shares >= exchangeThreshold`.
+- Query `treasuryFeeBps()` and `exchangeThreshold()` on-chain; always set `S = exchangeThreshold()`.
 
 ---
 
