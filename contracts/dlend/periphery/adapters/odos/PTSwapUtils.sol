@@ -56,6 +56,25 @@ library PTSwapUtils {
     );
 
     /**
+     * @dev Lightweight helper to perform a low-level call and bubble up the
+     *      original revert reason from the callee when present. Keeps large
+     *      functions slimmer to avoid "stack too deep".
+     */
+    function _safeExternalCall(address target, bytes memory callData) private {
+        (bool success, bytes memory result) = target.call(callData);
+        if (!success) {
+            // Bubble up revert reason if provided by callee
+            if (result.length > 0) {
+                assembly {
+                    let resultLength := mload(result)
+                    revert(add(32, result), resultLength)
+                }
+            }
+            revert ComposedSwapFailed("external call failed");
+        }
+    }
+
+    /**
      * @notice Data structure for PT swap parameters
      * @param isComposed True if this is a composed PT+Odos swap
      * @param underlyingAsset The underlying asset from PT swap (for composed swaps)
@@ -72,10 +91,10 @@ library PTSwapUtils {
     /**
      * @notice Check if a token is a PT token by calling the SY() method
      * @param token The token address to check
-     * @return isPT True if the token appears to be a PT token
+     * @return result True if the token appears to be a PT token
      * @return sy The SY address if it's a PT token, zero address otherwise
      */
-    function isPTToken(address token) internal returns (bool isPT, address sy) {
+    function isPTToken(address token) internal returns (bool result, address sy) {
         // Try to call SY() method - PT tokens should have this
         (bool success, bytes memory data) = token.staticcall(
             abi.encodeWithSignature("SY()")
@@ -84,9 +103,9 @@ library PTSwapUtils {
         // Check if call was successful and returned a valid address (not zero)
         if (success && data.length == 32) {
             sy = abi.decode(data, (address));
-            isPT = sy != address(0);
+            result = sy != address(0);
 
-            if (isPT) {
+            if (result) {
                 emit PTTokenDetected(token, sy);
             }
         }
@@ -353,7 +372,7 @@ library PTSwapUtils {
         // Validate that this is a PT to PT swap
         (bool inputIsPT, ) = isPTToken(inputPTToken);
         (bool outputIsPT, ) = isPTToken(outputPTToken);
-
+        
         if (!inputIsPT || !outputIsPT) {
             revert InvalidPTToken(inputPTToken);
         }
@@ -369,23 +388,26 @@ library PTSwapUtils {
         }
 
         // Stage 1: PT input → underlying asset via Odos
-        uint256 underlyingBalanceBefore = IERC20(swapData.underlyingAsset)
-            .balanceOf(address(this));
+        uint256 actualUnderlyingReceived;
+        {
+            uint256 underlyingBalanceBefore = IERC20(swapData.underlyingAsset)
+                .balanceOf(address(this));
 
-        OdosSwapUtils.executeSwapOperation(
-            odosRouter,
-            inputPTToken,
-            swapData.underlyingAsset,
-            inputAmount,
-            0, // minOut handled in final PT check
-            swapData.odosCalldata
-        );
+            OdosSwapUtils.executeSwapOperation(
+                odosRouter,
+                inputPTToken,
+                swapData.underlyingAsset,
+                inputAmount,
+                0, // minOut handled in final PT check
+                swapData.odosCalldata
+            );
 
-        // Verify we received underlying tokens
-        uint256 underlyingBalanceAfter = IERC20(swapData.underlyingAsset)
-            .balanceOf(address(this));
-        uint256 actualUnderlyingReceived = underlyingBalanceAfter -
-            underlyingBalanceBefore;
+            // Verify we received underlying tokens
+            uint256 underlyingBalanceAfter = IERC20(swapData.underlyingAsset)
+                .balanceOf(address(this));
+            actualUnderlyingReceived =
+                underlyingBalanceAfter - underlyingBalanceBefore;
+        }
 
         if (actualUnderlyingReceived == 0) {
             revert IBaseOdosAdapterV2.OdosSwapFailed(
@@ -413,21 +435,7 @@ library PTSwapUtils {
         );
 
         // Execute Pendle swap: underlying → PT output
-        (bool success, bytes memory result) = pendleRouter.call(
-            swapData.pendleCalldata
-        );
-        if (!success) {
-            // Decode the revert reason if present
-            if (result.length > 0) {
-                assembly {
-                    let resultLength := mload(result)
-                    revert(add(32, result), resultLength)
-                }
-            }
-            revert IBaseOdosAdapterV2.PendleSwapFailed(
-                "Pendle underlying to PT swap failed"
-            );
-        }
+        _safeExternalCall(pendleRouter, swapData.pendleCalldata);
 
         // Calculate actual output PT tokens received
         uint256 outputPTBalanceAfter = IERC20(outputPTToken).balanceOf(
