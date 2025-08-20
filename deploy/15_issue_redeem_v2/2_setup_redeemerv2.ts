@@ -31,7 +31,7 @@ function createGrantRoleTransaction(
   contractAddress: string,
   role: string,
   grantee: string,
-  contractInterface: any
+  contractInterface: any,
 ): SafeTransactionData {
   return {
     to: contractAddress,
@@ -52,7 +52,7 @@ function createRevokeRoleTransaction(
   contractAddress: string,
   role: string,
   account: string,
-  contractInterface: any
+  contractInterface: any,
 ): SafeTransactionData {
   return {
     to: contractAddress,
@@ -73,7 +73,7 @@ const ZERO_BYTES_32 =
  * @param redeemerAddress - Address of the RedeemerV2 contract
  * @param deployerAddress - Address of the deployer
  * @param governanceMultisig - Address of the governance multisig
- * @param executor
+ * @param executor - Governance executor
  * @returns true if all operations complete, false if pending governance
  */
 async function migrateRedeemerRolesIdempotent(
@@ -81,11 +81,11 @@ async function migrateRedeemerRolesIdempotent(
   redeemerAddress: string,
   deployerAddress: string,
   governanceMultisig: string,
-  executor: GovernanceExecutor
+  executor: GovernanceExecutor,
 ): Promise<boolean> {
   const redeemer = await hre.ethers.getContractAt(
     "RedeemerV2",
-    redeemerAddress
+    redeemerAddress,
   );
   const DEFAULT_ADMIN_ROLE = ZERO_BYTES_32;
   const REDEMPTION_MANAGER_ROLE = await redeemer.REDEMPTION_MANAGER_ROLE();
@@ -111,8 +111,8 @@ async function migrateRedeemerRolesIdempotent(
             redeemerAddress,
             role.hash,
             governanceMultisig,
-            redeemer.interface
-          )
+            redeemer.interface,
+          ),
       );
       if (!complete) allComplete = false;
     } else {
@@ -130,7 +130,7 @@ async function migrateRedeemerRolesIdempotent(
     const deployerHasRole = await redeemer.hasRole(role.hash, deployerAddress);
     const governanceHasRole = await redeemer.hasRole(
       role.hash,
-      governanceMultisig
+      governanceMultisig,
     );
 
     if (deployerHasRole && governanceHasRole) {
@@ -144,8 +144,8 @@ async function migrateRedeemerRolesIdempotent(
             redeemerAddress,
             role.hash,
             deployerAddress,
-            redeemer.interface
-          )
+            redeemer.interface,
+          ),
       );
       if (!complete) allComplete = false;
     }
@@ -158,7 +158,7 @@ async function migrateRedeemerRolesIdempotent(
       "RedeemerV2",
       redeemerAddress,
       governanceMultisig,
-      deployerAddress
+      deployerAddress,
     );
 
   if (!adminMigrationComplete) {
@@ -182,13 +182,14 @@ async function ensureDefaultAdminExistsAndRevokeFromWithSafe(
   contractName: string,
   contractAddress: string,
   governanceMultisig: string,
-  deployerAddress: string
+  deployerAddress: string,
 ): Promise<boolean> {
   // Determine Safe mode once for both try and catch blocks
   const envForce = process.env.USE_SAFE?.toLowerCase() === "true";
   const chainIdStr = String(hre.network.config.chainId ?? "");
   const isSonicMainnet = chainIdStr === "146";
   const useSafe = isSonicMainnet || envForce;
+
   try {
     // The original function uses manualActions array, we need to handle this differently
     const deployerSigner = await hre.ethers.getSigner(deployerAddress);
@@ -200,7 +201,7 @@ async function ensureDefaultAdminExistsAndRevokeFromWithSafe(
       governanceMultisig,
       deployerAddress,
       deployerSigner,
-      manualActions
+      manualActions,
     );
 
     // If there are manual actions, it means we need governance action when in Safe mode
@@ -209,7 +210,7 @@ async function ensureDefaultAdminExistsAndRevokeFromWithSafe(
         return false;
       }
       console.log(
-        `    ⏭️ Non-Safe mode: manual admin migration actions detected; continuing.`
+        `    ⏭️ Non-Safe mode: manual admin migration actions detected; continuing.`,
       );
     }
 
@@ -219,12 +220,12 @@ async function ensureDefaultAdminExistsAndRevokeFromWithSafe(
       // Requires governance action; queue not implemented for this path
       console.warn(
         `    🔄 Admin role migration likely requires governance action:`,
-        error
+        error,
       );
       return false;
     }
     console.log(
-      `    ⏭️ Non-Safe mode: admin migration requires governance; continuing.`
+      `    ⏭️ Non-Safe mode: admin migration requires governance; continuing.`,
     );
     return true;
   }
@@ -240,7 +241,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const executor = new GovernanceExecutor(
     hre,
     deployerSigner,
-    config.safeConfig
+    config.safeConfig,
   );
   await executor.initialize();
 
@@ -275,7 +276,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     const _tokenAddress = tokenDeployment.address;
 
     const collateralVaultDeployment = await deployments.get(
-      t.collateralVaultId
+      t.collateralVaultId,
     );
     const collateralVaultAddress = collateralVaultDeployment.address;
 
@@ -302,11 +303,11 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
     // 1. Grant COLLATERAL_WITHDRAWER_ROLE to the new redeemer on CollateralVault
     console.log(
-      `  🏦 Granting COLLATERAL_WITHDRAWER_ROLE to ${t.newId} on ${t.collateralVaultId}...`
+      `  🏦 Granting COLLATERAL_WITHDRAWER_ROLE to ${t.newId} on ${t.collateralVaultId}...`,
     );
     const collateralVault = await hre.ethers.getContractAt(
       "CollateralHolderVault",
-      collateralVaultAddress
+      collateralVaultAddress,
     );
     const COLLATERAL_WITHDRAWER_ROLE =
       await collateralVault.COLLATERAL_WITHDRAWER_ROLE();
@@ -314,17 +315,17 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     if (
       !(await collateralVault.hasRole(
         COLLATERAL_WITHDRAWER_ROLE,
-        newRedeemerAddress
+        newRedeemerAddress,
       ))
     ) {
       const complete = await executor.tryOrQueue(
         async () => {
           await collateralVault.grantRole(
             COLLATERAL_WITHDRAWER_ROLE,
-            newRedeemerAddress
+            newRedeemerAddress,
           );
           console.log(
-            `    ➕ Granted COLLATERAL_WITHDRAWER_ROLE to ${newRedeemerAddress}`
+            `    ➕ Granted COLLATERAL_WITHDRAWER_ROLE to ${newRedeemerAddress}`,
           );
         },
         () =>
@@ -332,13 +333,13 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
             collateralVaultAddress,
             COLLATERAL_WITHDRAWER_ROLE,
             newRedeemerAddress,
-            collateralVault.interface
-          )
+            collateralVault.interface,
+          ),
       );
       if (!complete) allOperationsComplete = false;
     } else {
       console.log(
-        `    ✓ COLLATERAL_WITHDRAWER_ROLE already granted to ${newRedeemerAddress}`
+        `    ✓ COLLATERAL_WITHDRAWER_ROLE already granted to ${newRedeemerAddress}`,
       );
     }
 
@@ -357,17 +358,17 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       if (
         await collateralVault.hasRole(
           COLLATERAL_WITHDRAWER_ROLE,
-          legacyDep.address
+          legacyDep.address,
         )
       ) {
         const complete = await executor.tryOrQueue(
           async () => {
             await collateralVault.revokeRole(
               COLLATERAL_WITHDRAWER_ROLE,
-              legacyDep.address
+              legacyDep.address,
             );
             console.log(
-              `    ➖ Revoked COLLATERAL_WITHDRAWER_ROLE from ${legacyId} (${legacyDep.address})`
+              `    ➖ Revoked COLLATERAL_WITHDRAWER_ROLE from ${legacyId} (${legacyDep.address})`,
             );
           },
           () =>
@@ -375,13 +376,13 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
               collateralVaultAddress,
               COLLATERAL_WITHDRAWER_ROLE,
               legacyDep.address,
-              collateralVault.interface
-            )
+              collateralVault.interface,
+            ),
         );
         if (!complete) allOperationsComplete = false;
       } else {
         console.log(
-          `    ✓ ${legacyId} does not have COLLATERAL_WITHDRAWER_ROLE or already revoked`
+          `    ✓ ${legacyId} does not have COLLATERAL_WITHDRAWER_ROLE or already revoked`,
         );
       }
     }
@@ -396,7 +397,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       newRedeemerAddress,
       deployer,
       governanceMultisig,
-      executor
+      executor,
     );
 
     if (!rolesMigrationComplete) {
@@ -404,13 +405,13 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     }
 
     console.log(
-      `  ℹ️ New redeemer ${t.newId} deployed and permissioned at ${newRedeemerAddress}.`
+      `  ℹ️ New redeemer ${t.newId} deployed and permissioned at ${newRedeemerAddress}.`,
     );
   }
 
   if (!allOperationsComplete) {
     const flushed = await executor.flush(
-      `Setup RedeemerV2: governance operations`
+      `Setup RedeemerV2: governance operations`,
     );
 
     if (executor.useSafe) {
@@ -418,18 +419,18 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
         console.log(`❌ Failed to prepare governance batch`);
       }
       console.log(
-        "\n⏳ Some operations require governance signatures to complete."
+        "\n⏳ Some operations require governance signatures to complete.",
       );
       console.log(
-        "   The deployment script will exit and can be re-run after governance executes the transactions."
+        "   The deployment script will exit and can be re-run after governance executes the transactions.",
       );
       console.log(
-        `\n≻ ${__filename.split("/").slice(-2).join("/")}: pending governance ⏳`
+        `\n≻ ${__filename.split("/").slice(-2).join("/")}: pending governance ⏳`,
       );
       return false; // Fail idempotently - script can be re-run
     } else {
       console.log(
-        "\n⏭️ Non-Safe mode: pending governance operations detected; continuing."
+        "\n⏭️ Non-Safe mode: pending governance operations detected; continuing.",
       );
     }
   }

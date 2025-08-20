@@ -62,8 +62,8 @@ export class GovernanceExecutor {
    * Returns whether the requirement is considered complete (true) or pending
    * governance/manual action (false).
    *
-   * @param directCall
-   * @param safeTxBuilder
+   * @param directCall - The function to call directly
+   * @param safeTxBuilder - The function to build a Safe transaction if direct call fails
    */
   async tryOrQueue<T>(
     directCall: () => Promise<T>,
@@ -80,8 +80,11 @@ export class GovernanceExecutor {
       }
       // Non-safe mode: mark as pending to allow callers to surface incomplete state
       // while still allowing scripts to decide how to proceed.
-      // eslint-disable-next-line no-console
-      console.warn("Direct execution failed; marking requirement as pending:", error);
+
+      console.warn(
+        "Direct execution failed; marking requirement as pending:",
+        error,
+      );
       return false;
     }
   }
@@ -90,7 +93,7 @@ export class GovernanceExecutor {
    * Flush queued transactions into a Safe batch (if any and in Safe mode).
    * Returns true if either not in Safe mode, or batch prepared successfully.
    *
-   * @param description
+   * @param description - The description of the batch
    */
   async flush(description: string): Promise<boolean> {
     if (!this.useSafe || !this.safeManager || this.transactions.length === 0) {

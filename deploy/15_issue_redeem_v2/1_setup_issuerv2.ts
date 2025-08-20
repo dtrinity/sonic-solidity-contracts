@@ -34,7 +34,7 @@ function createGrantRoleTransaction(
   contractAddress: string,
   role: string,
   grantee: string,
-  contractInterface: any
+  contractInterface: any,
 ): SafeTransactionData {
   return {
     to: contractAddress,
@@ -55,7 +55,7 @@ function createRevokeRoleTransaction(
   contractAddress: string,
   role: string,
   account: string,
-  contractInterface: any
+  contractInterface: any,
 ): SafeTransactionData {
   return {
     to: contractAddress,
@@ -83,11 +83,11 @@ async function ensureMinterRole(
   hre: HardhatRuntimeEnvironment,
   stableAddress: string,
   grantee: string,
-  executor: GovernanceExecutor
+  executor: GovernanceExecutor,
 ): Promise<boolean> {
   const stable = await hre.ethers.getContractAt(
     "ERC20StablecoinUpgradeable",
-    stableAddress
+    stableAddress,
   );
   const MINTER_ROLE = await stable.MINTER_ROLE();
 
@@ -102,8 +102,8 @@ async function ensureMinterRole(
           stableAddress,
           MINTER_ROLE,
           grantee,
-          stable.interface
-        )
+          stable.interface,
+        ),
     );
     return complete;
   } else {
@@ -125,7 +125,7 @@ async function ensureMinterRole(
  * @param issuerAddress - Address of the IssuerV2 contract
  * @param deployerSigner - Deployer signer currently holding roles
  * @param governanceMultisig - Governance multisig address to receive roles
- * @param executor
+ * @param executor - Governance executor
  * @returns true if all operations complete, false if pending governance
  */
 async function migrateIssuerRolesIdempotent(
@@ -134,12 +134,12 @@ async function migrateIssuerRolesIdempotent(
   issuerAddress: string,
   deployerSigner: Signer,
   governanceMultisig: string,
-  executor: GovernanceExecutor
+  executor: GovernanceExecutor,
 ): Promise<boolean> {
   const issuer = await hre.ethers.getContractAt(
     "IssuerV2",
     issuerAddress,
-    deployerSigner
+    deployerSigner,
   );
 
   const DEFAULT_ADMIN_ROLE = ZERO_BYTES_32;
@@ -164,7 +164,7 @@ async function migrateIssuerRolesIdempotent(
         async () => {
           await issuer.grantRole(role.hash, governanceMultisig);
           console.log(
-            `    ➕ Granted ${role.name} to governance ${governanceMultisig}`
+            `    ➕ Granted ${role.name} to governance ${governanceMultisig}`,
           );
         },
         () =>
@@ -172,8 +172,8 @@ async function migrateIssuerRolesIdempotent(
             issuerAddress,
             role.hash,
             governanceMultisig,
-            issuer.interface
-          )
+            issuer.interface,
+          ),
       );
       if (!complete) noPendingActions = false;
     } else {
@@ -192,7 +192,7 @@ async function migrateIssuerRolesIdempotent(
     const deployerHasRole = await issuer.hasRole(role.hash, deployerAddress);
     const governanceHasRole = await issuer.hasRole(
       role.hash,
-      governanceMultisig
+      governanceMultisig,
     );
 
     if (deployerHasRole && governanceHasRole) {
@@ -207,8 +207,8 @@ async function migrateIssuerRolesIdempotent(
             issuerAddress,
             role.hash,
             deployerAddress,
-            issuer.interface
-          )
+            issuer.interface,
+          ),
       );
       if (!complete) noPendingActions = false;
     }
@@ -223,7 +223,7 @@ async function migrateIssuerRolesIdempotent(
       governanceMultisig,
       deployerAddress,
       deployerSigner,
-      executor
+      executor,
     );
 
   if (!adminMigrationComplete) {
@@ -242,7 +242,7 @@ async function migrateIssuerRolesIdempotent(
  * @param governanceMultisig - Address of governance multisig
  * @param deployerAddress - Address of the deployer
  * @param deployerSigner - Signer for the deployer
- * @param executor
+ * @param executor - Governance executor
  */
 async function ensureDefaultAdminExistsAndRevokeFromWithSafe(
   hre: HardhatRuntimeEnvironment,
@@ -251,7 +251,7 @@ async function ensureDefaultAdminExistsAndRevokeFromWithSafe(
   governanceMultisig: string,
   deployerAddress: string,
   deployerSigner: Signer,
-  executor: GovernanceExecutor
+  executor: GovernanceExecutor,
 ): Promise<boolean> {
   try {
     // The original function uses manualActions array, we need to handle this differently
@@ -264,7 +264,7 @@ async function ensureDefaultAdminExistsAndRevokeFromWithSafe(
       governanceMultisig,
       deployerAddress,
       deployerSigner,
-      manualActions
+      manualActions,
     );
 
     // If there are manual actions, it means we need Safe transactions when Safe mode is on
@@ -274,7 +274,7 @@ async function ensureDefaultAdminExistsAndRevokeFromWithSafe(
         return false;
       }
       console.log(
-        `    ⏭️ Non-Safe mode: manual admin migration actions detected; continuing.`
+        `    ⏭️ Non-Safe mode: manual admin migration actions detected; continuing.`,
       );
     }
 
@@ -284,12 +284,12 @@ async function ensureDefaultAdminExistsAndRevokeFromWithSafe(
       // Requires governance action; queue not implemented for this path
       console.warn(
         `    🔄 Admin role migration likely requires governance action:`,
-        error
+        error,
       );
       return false;
     }
     console.log(
-      `    ⏭️ Non-Safe mode: admin migration requires governance; continuing.`
+      `    ⏭️ Non-Safe mode: admin migration requires governance; continuing.`,
     );
     return true;
   }
@@ -305,7 +305,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const executor = new GovernanceExecutor(
     hre,
     deployerSigner,
-    config.safeConfig
+    config.safeConfig,
   );
   await executor.initialize();
 
@@ -342,7 +342,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     const tokenDeployment = await deployments.get(t.tokenId);
     const tokenAddress = tokenDeployment.address;
     const collateralVaultDeployment = await deployments.get(
-      t.collateralVaultId
+      t.collateralVaultId,
     );
     const collateralVaultAddress = collateralVaultDeployment.address;
     const amoManagerDeployment = await deployments.get(t.amoManagerId);
@@ -367,13 +367,13 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
     // 1. Grant minter role on stablecoin to the new issuer
     console.log(
-      `  🪙 Ensuring MINTER_ROLE for ${t.newId} on token ${t.tokenId}...`
+      `  🪙 Ensuring MINTER_ROLE for ${t.newId} on token ${t.tokenId}...`,
     );
     const minterRoleComplete = await ensureMinterRole(
       hre,
       tokenAddress,
       newIssuerAddress,
-      executor
+      executor,
     );
 
     if (!minterRoleComplete) {
@@ -393,7 +393,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       newIssuerAddress,
       deployerSigner,
       governanceMultisig,
-      executor
+      executor,
     );
 
     if (!rolesMigrationComplete) {
@@ -402,13 +402,13 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
     // Optional: keep old issuer operational until governance flips references
     console.log(
-      `  ℹ️ New issuer ${t.newId} deployed and permissioned. Ensure dApp/services reference ${newIssuerAddress}.`
+      `  ℹ️ New issuer ${t.newId} deployed and permissioned. Ensure dApp/services reference ${newIssuerAddress}.`,
     );
   }
 
   if (!allOperationsComplete) {
     const flushed = await executor.flush(
-      `Setup IssuerV2: governance operations`
+      `Setup IssuerV2: governance operations`,
     );
 
     if (executor.useSafe) {
@@ -416,18 +416,18 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
         console.log(`❌ Failed to prepare governance batch`);
       }
       console.log(
-        "\n⏳ Some operations require governance signatures to complete."
+        "\n⏳ Some operations require governance signatures to complete.",
       );
       console.log(
-        "   The deployment script will exit and can be re-run after governance executes the transactions."
+        "   The deployment script will exit and can be re-run after governance executes the transactions.",
       );
       console.log(
-        `\n≻ ${__filename.split("/").slice(-2).join("/")}: pending governance ⏳`
+        `\n≻ ${__filename.split("/").slice(-2).join("/")}: pending governance ⏳`,
       );
       return false; // Fail idempotently - script can be re-run
     } else {
       console.log(
-        "\n⏭️ Non-Safe mode: pending governance operations detected; continuing."
+        "\n⏭️ Non-Safe mode: pending governance operations detected; continuing.",
       );
     }
   }
