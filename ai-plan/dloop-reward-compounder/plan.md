@@ -261,3 +261,157 @@ Acceptance Criteria
 - Docker image builds with `make docker.build`.
 - Bot can perform a full-flow compound on mocks, repaying flash with no loss when profitable.
 - Lint passes with config aligned to `dloop-rebalancer`.
+
+Detailed Contract Specification and Pseudocode
+
+Core Interfaces and Types
+
+- Tokens
+  - `IERC20` with `balanceOf`, `transfer`, `transferFrom`, `approve`, `allowance`, `decimals`.
+  - Optional: `IERC4626Like` (`asset()`, `totalAssets()`).
+- Flashloans
+  - `IERC3156FlashLender.flashLoan(address receiver, address token, uint256 amount, bytes data)`
+  - `IERC3156FlashLender.flashFee(address token, uint256 amount)`
+  - `IERC3156FlashBorrower.onFlashLoan(address initiator, address token, uint256 amount, uint256 fee, bytes data)`
+- DLoop Core (minimal)
+  - `exchangeThreshold() -> uint256`
+  - `previewMint(uint256 shares) -> uint256 assets`
+  - `maxDeposit(address) -> uint256`
+  - `mint(uint256 shares, address receiver) -> uint256 assets`
+  - `compoundRewards(uint256 amount, address[] rewardTokens, address receiver)`
+  - `treasuryFeeBps() -> uint256` (if exposed; else compute off-chain)
+  - `asset() -> address` (collateral token; if available)
+- Odos Router (minimal)
+  - `execute(bytes data) returns (uint256 amountOut)` or generic `call(data)` depending on router ABI
+
+Storage Layout (Base)
+
+- `IERC20 DUSD`, `IERC20 COLLATERAL`, `IERC3156FlashLender FLASH`, `IDLoopCoreDLend CORE`, `address SWAP_AGG`
+- `bytes32 CALLBACK_SUCCESS = keccak256("ERC3156FlashBorrower.onFlashLoan")`
+
+Events and Errors
+
+- Events: `RunStarted`, `SwapExecuted`, `Minted`, `Compounded`, `FlashRepaid`, `RunProfit`
+- Errors: `InvalidLender`, `InvalidToken`, `ZeroThreshold`, `DepositDisabled`, `SwapFailed`, `InsufficientCollateral`, `NotEnoughToRepay`
+
+Pseudocode — RewardCompounderDLendBase.sol
+
+```solidity
+contract RewardCompounderDLendBase is IERC3156FlashBorrower {
+  IERC20 public immutable DUSD;
+  IERC20 public immutable COLLATERAL;
+  IERC3156FlashLender public immutable FLASH;
+  IDLoopCoreDLend public immutable CORE;
+  address public immutable SWAP_AGG;
+  bytes32 internal constant CALLBACK_SUCCESS = keccak256("ERC3156FlashBorrower.onFlashLoan");
+
+  event RunStarted(uint256 sharesTarget, uint256 flashAmount);
+  event SwapExecuted(uint256 spentDUSD, uint256 gotCollateral);
+  event Minted(uint256 sharesMinted, uint256 assetsUsed, uint256 kBorrowed);
+  event Compounded(uint256 netDUSDReward);
+  event FlashRepaid(uint256 totalDebt);
+  event RunProfit(int256 profit);
+
+  error InvalidLender(); error InvalidToken(); error ZeroThreshold(); error DepositDisabled();
+  error SwapFailed(); error InsufficientCollateral(); error NotEnoughToRepay();
+
+  constructor(address _dusd, address _collateral, address _flash, address _core, address _swapAgg) {
+    require(_dusd!=address(0)&&_collateral!=address(0)&&_flash!=address(0)&&_core!=address(0)&&_swapAgg!=address(0),"bad");
+    DUSD = IERC20(_dusd); COLLATERAL = IERC20(_collateral); FLASH = IERC3156FlashLender(_flash);
+    CORE = IDLoopCoreDLend(_core); SWAP_AGG = _swapAgg;
+  }
+
+  function run(bytes calldata swapCalldata, uint256 flashAmount, uint256 slippageBps) external {
+    require(slippageBps <= 10_000, "slippage too high");
+    if (CORE.maxDeposit(address(this)) == 0) revert DepositDisabled();
+    uint256 S = CORE.exchangeThreshold(); if (S == 0) revert ZeroThreshold();
+    uint256 requiredCollateral = CORE.previewMint(S);
+    uint256 bufferedCollateral = requiredCollateral * (10_000 + slippageBps) / 10_000;
+    emit RunStarted(S, flashAmount);
+    FLASH.flashLoan(address(this), address(DUSD), flashAmount, abi.encode(swapCalldata, bufferedCollateral, S));
+  }
+
+  function onFlashLoan(address, address token, uint256 amount, uint256 fee, bytes calldata data) external returns (bytes32) {
+    if (msg.sender != address(FLASH)) revert InvalidLender();
+    if (token != address(DUSD)) revert InvalidToken();
+    (bytes memory swapCalldata, uint256 collateralTarget, uint256 S) = abi.decode(data,(bytes,uint256,uint256));
+
+    uint256 dusdBefore = DUSD.balanceOf(address(this));
+    DUSD.approve(SWAP_AGG, amount);
+    (bool ok,) = SWAP_AGG.call(swapCalldata); if (!ok) revert SwapFailed();
+    uint256 got = COLLATERAL.balanceOf(address(this)); if (got < collateralTarget) revert InsufficientCollateral();
+    uint256 spent = dusdBefore - DUSD.balanceOf(address(this)); emit SwapExecuted(spent, got);
+
+    COLLATERAL.approve(address(CORE), got);
+    uint256 dusdBeforeMint = DUSD.balanceOf(address(this));
+    uint256 minted = CORE.mint(S, address(this)); require(minted == S, "mint mismatch");
+    uint256 kBorrowed = DUSD.balanceOf(address(this)) - dusdBeforeMint; emit Minted(minted, got, kBorrowed);
+
+    IERC20(address(CORE)).approve(address(CORE), S);
+    address[] memory rewardTokens = new address[](1); rewardTokens[0] = address(DUSD);
+    uint256 dusdBeforeComp = DUSD.balanceOf(address(this));
+    CORE.compoundRewards(S, rewardTokens, address(this));
+    uint256 netReward = DUSD.balanceOf(address(this)) - dusdBeforeComp; emit Compounded(netReward);
+
+    uint256 totalDebt = amount + fee; uint256 bal = DUSD.balanceOf(address(this));
+    if (bal < totalDebt) revert NotEnoughToRepay();
+    DUSD.approve(address(FLASH), totalDebt); emit FlashRepaid(totalDebt);
+    emit RunProfit(int256(bal) - int256(totalDebt));
+    return CALLBACK_SUCCESS;
+  }
+}
+```
+
+Pseudocode — RewardCompounderDLendOdos.sol
+
+```solidity
+contract RewardCompounderDLendOdos is RewardCompounderDLendBase {
+  constructor(address d,address c,address f,address core,address agg)
+    RewardCompounderDLendBase(d,c,f,core,agg) {}
+
+  // If using a library/adapter, override internal swap with Odos-specific execution if base factors it out.
+}
+```
+
+Implementation Notes for Aggregator Calldata
+
+- Off-chain quoting must produce exact-out calldata (dUSD→COLLATERAL) to buy `collateralTarget` with max spend ≤ `flashAmount`.
+- In tests, MockOdosRouter can accept `(expectedOut, maxIn, exactOut)` encoded in calldata to assert behavior.
+
+Detailed Bot Logic (TypeScript)
+
+- Quoting and execution loop:
+  - Read `S`, `requiredCollateral`, get Odos quote for exact-out -> `X` and `swapCalldata`.
+  - Estimate `fee` via `FLASH.flashFee` or static bps.
+  - Estimate `K` and `netZ`. If `K + netZ >= X + fee + buffer`, send tx to `periphery.run(swapCalldata, X, slippageBps)`.
+  - Await receipt; on success/failure, send Slack message with structured payload.
+
+Deployment Scripts — Detailed Steps
+
+- `deploy_reward_helper.ts`: deploy helper with Pool, RewardsController, AddressesProvider from `config/networks`.
+- `deploy_periphery.ts`: deploy Odos periphery with CORE, FLASH, DUSD, COLLATERAL, ODOS router.
+- Persist addresses in `config/deploy-ids.ts`.
+
+Makefile Targets (concrete)
+
+- compile, lint, test, docker.build, deploy.sonic_mainnet, deploy.sonic_testnet as described above.
+
+Mock Specifications
+
+- MockERC20 (mint, transfer, decimals), MockFlashLender (feeBps, maxLoan), MockOdosRouter (underfill/revert toggles), MockDLoopCoreDLend (threshold, previewMint, mint->K, compoundRewards->netZ).
+
+Concrete Test Values
+
+- Example defaults: S=1e18; previewMint=300e18; K=200e18; Z=110e18; treasuryFeeBps=500; flashFeeBps=9; Odos maxInput X≈295e18; profitable: K+netZ=304.5e18 vs X+fee≈297.655e18.
+
+Exact-Out vs Exact-In Guarding
+
+- Enforce by post-swap collateral balance check and not exceeding flash amount.
+
+ESLint and Repo Independence
+
+- Mirror `dloop-rebalancer` eslint and avoid monorepo-relative imports; vendor interfaces.
+
+README Key Sections
+
+- Quick start, config, local mocks, Docker, safety notes.
