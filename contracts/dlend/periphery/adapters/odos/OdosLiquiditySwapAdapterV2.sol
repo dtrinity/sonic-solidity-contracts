@@ -102,9 +102,8 @@ contract OdosLiquiditySwapAdapterV2 is
             uint256 balance = IERC20(aToken).balanceOf(
                 liquiditySwapParams.user
             );
-            liquiditySwapParams.collateralAmountToSwap =
-                balance -
-                liquiditySwapParams.allBalanceOffset;
+
+            liquiditySwapParams.collateralAmountToSwap = balance;
         }
 
         // true if flashloan is needed to swap liquidity

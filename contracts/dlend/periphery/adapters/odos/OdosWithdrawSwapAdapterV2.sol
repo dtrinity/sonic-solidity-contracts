@@ -89,9 +89,7 @@ contract OdosWithdrawSwapAdapterV2 is
         (, , address aToken) = _getReserveData(withdrawSwapParams.oldAsset);
         if (withdrawSwapParams.allBalanceOffset != 0) {
             uint256 balance = IERC20(aToken).balanceOf(withdrawSwapParams.user);
-            withdrawSwapParams.oldAssetAmount =
-                balance -
-                withdrawSwapParams.allBalanceOffset;
+            withdrawSwapParams.oldAssetAmount = balance;
         }
 
         // pulls liquidity asset from the user and withdraw
