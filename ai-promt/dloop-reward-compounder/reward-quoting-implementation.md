@@ -1,3 +1,5 @@
+# Reward quoting implementation instructions
+
 ## **Complete Reward Helper Contract Implementation**
 
 Here's the complete Solidity implementation for a reward helper contract that can be integrated into your bot:

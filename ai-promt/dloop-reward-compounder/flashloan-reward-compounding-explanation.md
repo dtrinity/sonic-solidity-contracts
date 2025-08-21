@@ -100,63 +100,63 @@ Below is a compact, step-by-step pseudocode blueprint. It is written to be unamb
 ```solidity
 contract DLendRewardsClaimerBot is IERC3156FlashBorrower {
     // Config (set in constructor or constants)
-    IERC20 constant DUSD = IERC20(/* dUSD address */);
-    IERC20 constant SFRX = IERC20(/* sfrxUSD address */);
-    IDLoopCoreDLend constant CORE = IDLoopCoreDLend(/* core address */);
-    IERC3156FlashLender constant FLASH = IERC3156FlashLender(/* lender address */);
-    address constant SWAP_AGG = /* aggregator address */;
+    IERC20 constant dusd = IERC20(/* dUSD address */);
+    IERC20 constant sfrx = IERC20(/* sfrxUSD address */);
+    IDLoopCoreDLend constant core = IDLoopCoreDLend(/* core address */);
+    IERC3156FlashLender constant flash = IERC3156FlashLender(/* lender address */);
+    address constant swapAgg = /* aggregator address */;
 
     // Entrypoint to run one cycle
     function run(uint256 flashAmount, bytes calldata swapExactOutCallData, uint256 slippageBps) external {
-        require(CORE.maxDeposit(address(this)) > 0, "deposit disabled");
+        require(core.maxDeposit(address(this)) > 0, "deposit disabled");
         require(slippageBps <= 10_000, "slippage too high");
 
         // Determine target shares = exchangeThreshold
-        uint256 S = CORE.exchangeThreshold();
-        require(S > 0, "zero threshold");
+        uint256 shares = core.exchangeThreshold();
+        require(shares > 0, "zero threshold");
 
-        // Compute required collateral to mint exactly S shares
-        uint256 requiredCollateral = CORE.previewMint(S);
+        // Compute required collateral to mint exactly shares
+        uint256 requiredCollateral = core.previewMint(shares);
         // Add small buffer for price movement
         uint256 collateralWithBuffer = requiredCollateral * (10_000 + slippageBps) / 10_000;
 
         // Pass swap plan and required collateral to callback
-        FLASH.flashLoan(
+        flash.flashLoan(
             this,
-            address(DUSD),
+            address(dusd),
             flashAmount, // must be >= aggregator max input for exact-out + fee
-            abi.encode(swapExactOutCallData, collateralWithBuffer, S)
+            abi.encode(swapExactOutCallData, collateralWithBuffer, shares)
         );
     }
 
     // Flash loan callback
     function onFlashLoan(address, address token, uint256 amount, uint256 fee, bytes calldata data) external returns (bytes32) {
-        require(msg.sender == address(FLASH), "invalid lender");
-        require(token == address(DUSD), "invalid token");
-        (bytes memory swapExactOutCallData, uint256 collateralWithBuffer, uint256 S) = abi.decode(data, (bytes, uint256, uint256));
+        require(msg.sender == address(flash), "invalid lender");
+        require(token == address(dusd), "invalid token");
+        (bytes memory swapExactOutCallData, uint256 collateralWithBuffer, uint256 shares) = abi.decode(data, (bytes, uint256, uint256));
 
         // 1) Exact-out swap: acquire collateralWithBuffer of sfrxUSD using dUSD up to `amount`
-        DUSD.approve(SWAP_AGG, amount);
-        (bool ok,) = SWAP_AGG.call(swapExactOutCallData); // must encode exact-out buy of collateralWithBuffer
+        dusd.approve(swapAgg, amount);
+        (bool ok,) = swapAgg.call(swapExactOutCallData); // must encode exact-out buy of collateralWithBuffer
         require(ok, "swap failed");
-        uint256 sfrxBalance = SFRX.balanceOf(address(this));
+        uint256 sfrxBalance = sfrx.balanceOf(address(this));
         require(sfrxBalance >= collateralWithBuffer, "insufficient collateral");
 
-        // 2) Mint exactly S shares (equals exchangeThreshold); receive borrowed dUSD K
-        SFRX.approve(address(CORE), sfrxBalance);
-        uint256 minted = CORE.mint(S, address(this));
-        require(minted == S, "mint mismatch");
+        // 2) Mint exactly shares (equals exchangeThreshold); receive borrowed dUSD K
+        sfrx.approve(address(core), sfrxBalance);
+        uint256 minted = core.mint(shares, address(this));
+        require(minted == shares, "mint mismatch");
 
-        // 3) Call compoundRewards with S to claim dUSD
-        IERC20(address(CORE)).approve(address(CORE), S);
+        // 3) Call compoundRewards with shares to claim dUSD
+        IERC20(address(core)).approve(address(core), shares);
         address[] memory rewardTokens = new address[](1);
-        rewardTokens[0] = address(DUSD);
-        CORE.compoundRewards(S, rewardTokens, address(this));
+        rewardTokens[0] = address(dusd);
+        core.compoundRewards(shares, rewardTokens, address(this));
 
         // 4) Repay flash loan: amount + fee
         uint256 totalDebt = amount + fee;
-        require(DUSD.balanceOf(address(this)) >= totalDebt, "not enough to repay");
-        DUSD.approve(address(FLASH), totalDebt);
+        require(dusd.balanceOf(address(this)) >= totalDebt, "not enough to repay");
+        dusd.approve(address(flash), totalDebt);
 
         return keccak256("ERC3156FlashBorrower.onFlashLoan");
     }
@@ -166,16 +166,16 @@ contract DLendRewardsClaimerBot is IERC3156FlashBorrower {
 Notes for implementer:
 
 - The `swapExactOutCallData` is crafted off-chain (e.g., 1inch/0x) to buy exactly `collateralWithBuffer` of collateral for dUSD (exact-out). Ensure your flash amount ≥ aggregator max input + flash fee.
-- Use `CORE.previewMint(S)` to compute required collateral for S shares. Optionally cross-check with `CORE.previewDeposit(Y)`.
+- Use `core.previewMint(shares)` to compute required collateral for shares. Optionally cross-check with `core.previewDeposit(Y)`.
 - Record dUSD balance delta around mint to estimate `K` precisely if needed.
-- Ensure approvals for `CORE` (shares) and for `FLASH` to take repayment.
-- Query `treasuryFeeBps()` and `exchangeThreshold()` on-chain; always set `S = exchangeThreshold()`.
+- Ensure approvals for `core` (shares) and for `flash` to take repayment.
+- Query `treasuryFeeBps()` and `exchangeThreshold()` on-chain; always set `shares = exchangeThreshold()`.
 
 ---
 
 ## Final checklist to make safe profitable runs
 
-- Off-chain: compute estimated Y (sfrx out), `shares = CORE.previewDeposit(Y)`, estimated K using `DLoopCoreLogic` formulas or preview functions, estimated Z (hard to know; use historical reward rate or call the rewards controller query API), compute netZ after `treasuryFeeBps`.
+- Off-chain: compute estimated Y (sfrx out), `shares = core.previewDeposit(Y)`, estimated K using `DLoopCoreLogic` formulas or preview functions, estimated Z (hard to know; use historical reward rate or call the rewards controller query API), compute netZ after `treasuryFeeBps`.
 - Ensure K + netZ >= X + fee + swapCosts before sending the transaction.
 - Use small test flash amounts on testnet and monitor front-running and slippage.
 - Consider private RPC/mempool or MEV protection to avoid front-runners.
