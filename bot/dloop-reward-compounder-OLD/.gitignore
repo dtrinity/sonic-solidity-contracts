@@ -1,0 +1,30 @@
+node_modules
+.env
+
+# Yarn cache
+.yarn/*
+!.yarn/releases/
+
+# Hardhat files
+/cache
+/artifacts
+
+# TypeChain files
+/typechain
+/typechain-types
+
+# solidity-coverage files
+/coverage
+/coverage.json
+
+# Certora
+certora # python virtual environment
+.certora_internal
+
+.DS_Store
+
+# Bot data
+state
+
+# Docker dump
+.tmp
