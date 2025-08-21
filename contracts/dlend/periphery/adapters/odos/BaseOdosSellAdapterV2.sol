@@ -23,7 +23,7 @@ import {IOdosRouterV2} from "contracts/odos/interface/IOdosRouterV2.sol";
 import {BaseOdosSwapAdapter} from "./BaseOdosSwapAdapter.sol";
 import {IBaseOdosAdapterV2} from "./interfaces/IBaseOdosAdapterV2.sol";
 import {OdosSwapUtils} from "contracts/odos/OdosSwapUtils.sol";
-import {PTSwapUtils} from "./PTSwapUtils.sol";
+import {PendleSwapLogic} from "./PendleSwapLogic.sol";
 import {ISwapTypes} from "./interfaces/ISwapTypes.sol";
 import {SwapExecutorV2} from "./SwapExecutorV2.sol";
 
@@ -81,8 +81,8 @@ abstract contract BaseOdosSellAdapterV2 is
         address tokenIn = address(assetToSwapFrom);
         address tokenOut = address(assetToSwapTo);
 
-        // Check swap type using PTSwapUtils
-        ISwapTypes.SwapType swapType = PTSwapUtils.determineSwapType(
+        // Check swap type using PendleSwapLogic
+        ISwapTypes.SwapType swapType = PendleSwapLogic.determineSwapType(
             tokenIn,
             tokenOut
         );
@@ -171,7 +171,7 @@ abstract contract BaseOdosSellAdapterV2 is
         uint256 minOutputAmount,
         bytes memory swapData
     ) internal returns (uint256 actualOutputAmount) {
-        // Execute Odos swap using OdosSwapUtils
+        // Execute Odos swap using OdosSwapUtils (handles approvals internally)
         actualOutputAmount = OdosSwapUtils.executeSwapOperation(
             odosRouter,
             inputToken,

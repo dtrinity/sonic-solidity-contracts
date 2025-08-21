@@ -23,7 +23,7 @@ import {IOdosRouterV2} from "contracts/odos/interface/IOdosRouterV2.sol";
 import {BaseOdosSwapAdapter} from "./BaseOdosSwapAdapter.sol";
 import {IBaseOdosAdapterV2} from "./interfaces/IBaseOdosAdapterV2.sol";
 import {OdosSwapUtils} from "contracts/odos/OdosSwapUtils.sol";
-import {PTSwapUtils} from "./PTSwapUtils.sol";
+import {PendleSwapLogic} from "./PendleSwapLogic.sol";
 import {ISwapTypes} from "./interfaces/ISwapTypes.sol";
 import {SwapExecutorV2} from "./SwapExecutorV2.sol";
 
@@ -74,8 +74,8 @@ abstract contract BaseOdosBuyAdapterV2 is
         address tokenIn = address(assetToSwapFrom);
         address tokenOut = address(assetToSwapTo);
 
-        // Check swap type using PTSwapUtils
-        ISwapTypes.SwapType swapType = PTSwapUtils.determineSwapType(
+        // Check swap type using PendleSwapLogic
+        ISwapTypes.SwapType swapType = PendleSwapLogic.determineSwapType(
             tokenIn,
             tokenOut
         );
@@ -113,9 +113,14 @@ abstract contract BaseOdosBuyAdapterV2 is
         );
 
         // Calculate the actual amount sold based on balance difference
-        amountSold =
-            balanceBeforeAssetFrom -
-            assetToSwapFrom.balanceOf(address(this));
+        uint256 balanceAfterAssetFrom = assetToSwapFrom.balanceOf(address(this));
+        
+        // Protect against underflow: ensure balance before >= balance after
+        if (balanceBeforeAssetFrom < balanceAfterAssetFrom) {
+            revert InsufficientBalanceBeforeSwap(balanceBeforeAssetFrom, balanceAfterAssetFrom);
+        }
+        
+        amountSold = balanceBeforeAssetFrom - balanceAfterAssetFrom;
 
         emit Bought(tokenIn, tokenOut, amountSold, actualAmountOut);
         return amountSold;
@@ -169,7 +174,7 @@ abstract contract BaseOdosBuyAdapterV2 is
         uint256 exactOutputAmount,
         bytes memory swapData
     ) internal returns (uint256 actualOutputAmount) {
-        // Execute Odos swap using OdosSwapUtils
+        // Execute Odos swap using OdosSwapUtils (handles approvals internally)
         actualOutputAmount = OdosSwapUtils.executeSwapOperation(
             odosRouter,
             inputToken,

@@ -17,7 +17,7 @@
 
 pragma solidity ^0.8.20;
 
-import {PTSwapUtils} from "./PTSwapUtils.sol";
+import {PendleSwapLogic} from "./PendleSwapLogic.sol";
 import {OdosSwapUtils} from "contracts/odos/OdosSwapUtils.sol";
 import {IOdosRouterV2} from "contracts/odos/interface/IOdosRouterV2.sol";
 import {ISwapTypes} from "./interfaces/ISwapTypes.sol";
@@ -81,8 +81,8 @@ library SwapExecutorV2 {
     function executeSwapExactInput(
         ExactInputParams memory params
     ) internal returns (uint256 actualOutputAmount) {
-        // Determine swap type using PTSwapUtils
-        ISwapTypes.SwapType swapType = PTSwapUtils.determineSwapType(
+        // Determine swap type using PendleSwapLogic
+        ISwapTypes.SwapType swapType = PendleSwapLogic.determineSwapType(
             params.inputToken,
             params.outputToken
         );
@@ -100,20 +100,20 @@ library SwapExecutorV2 {
                 );
         }
 
-        // PT token involved - decode PTSwapDataV2 and use PTSwapUtils
-        PTSwapUtils.PTSwapDataV2 memory ptSwapData = abi.decode(
+        // PT token involved - decode PTSwapDataV2 and use PendleSwapLogic
+        PendleSwapLogic.PTSwapDataV2 memory ptSwapData = abi.decode(
             params.swapData,
-            (PTSwapUtils.PTSwapDataV2)
+            (PendleSwapLogic.PTSwapDataV2)
         );
 
-        if (!PTSwapUtils.validatePTSwapData(ptSwapData)) {
+        if (!PendleSwapLogic.validatePTSwapData(ptSwapData)) {
             revert InvalidSwapData();
         }
 
         if (swapType == ISwapTypes.SwapType.PT_TO_REGULAR) {
             // PT -> regular token
             return
-                PTSwapUtils.executePTToTargetSwap(
+                PendleSwapLogic.executePTToTargetSwap(
                     params.inputToken,
                     params.outputToken,
                     params.exactInputAmount,
@@ -125,7 +125,7 @@ library SwapExecutorV2 {
         } else if (swapType == ISwapTypes.SwapType.REGULAR_TO_PT) {
             // Regular token -> PT
             return
-                PTSwapUtils.executeSourceToPTSwap(
+                PendleSwapLogic.executeSourceToPTSwap(
                     params.inputToken,
                     params.outputToken,
                     params.exactInputAmount,
@@ -137,7 +137,7 @@ library SwapExecutorV2 {
         } else if (swapType == ISwapTypes.SwapType.PT_TO_PT) {
             // PT -> PT (hybrid Odos + Pendle swap)
             return
-                PTSwapUtils.executePTToPTSwap(
+                PendleSwapLogic.executePTToPTSwap(
                     params.inputToken,
                     params.outputToken,
                     params.exactInputAmount,
@@ -160,8 +160,8 @@ library SwapExecutorV2 {
     function executeSwapExactOutput(
         ExactOutputParams memory params
     ) internal returns (uint256 actualInputAmount) {
-        // Determine swap type using PTSwapUtils
-        ISwapTypes.SwapType swapType = PTSwapUtils.determineSwapType(
+        // Determine swap type using PendleSwapLogic
+        ISwapTypes.SwapType swapType = PendleSwapLogic.determineSwapType(
             params.inputToken,
             params.outputToken
         );
@@ -179,20 +179,20 @@ library SwapExecutorV2 {
                 );
         }
 
-        // PT token involved - decode PTSwapDataV2 and use PTSwapUtils
-        PTSwapUtils.PTSwapDataV2 memory ptSwapData = abi.decode(
+        // PT token involved - decode PTSwapDataV2 and use PendleSwapLogic
+        PendleSwapLogic.PTSwapDataV2 memory ptSwapData = abi.decode(
             params.swapData,
-            (PTSwapUtils.PTSwapDataV2)
+            (PendleSwapLogic.PTSwapDataV2)
         );
 
-        if (!PTSwapUtils.validatePTSwapData(ptSwapData)) {
+        if (!PendleSwapLogic.validatePTSwapData(ptSwapData)) {
             revert InvalidSwapData();
         }
 
         if (swapType == ISwapTypes.SwapType.PT_TO_REGULAR) {
             // PT -> regular token
             return
-                PTSwapUtils.executePTToTargetSwap(
+                PendleSwapLogic.executePTToTargetSwap(
                     params.inputToken,
                     params.outputToken,
                     params.maxInputAmount,
@@ -204,7 +204,7 @@ library SwapExecutorV2 {
         } else if (swapType == ISwapTypes.SwapType.REGULAR_TO_PT) {
             // Regular token -> PT
             return
-                PTSwapUtils.executeSourceToPTSwap(
+                PendleSwapLogic.executeSourceToPTSwap(
                     params.inputToken,
                     params.outputToken,
                     params.maxInputAmount,
@@ -216,7 +216,7 @@ library SwapExecutorV2 {
         } else if (swapType == ISwapTypes.SwapType.PT_TO_PT) {
             // PT -> PT (hybrid Odos + Pendle swap)
             return
-                PTSwapUtils.executePTToPTSwap(
+                PendleSwapLogic.executePTToPTSwap(
                     params.inputToken,
                     params.outputToken,
                     params.maxInputAmount,

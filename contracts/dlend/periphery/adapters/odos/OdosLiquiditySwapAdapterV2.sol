@@ -103,7 +103,9 @@ contract OdosLiquiditySwapAdapterV2 is
                 liquiditySwapParams.user
             );
 
-            liquiditySwapParams.collateralAmountToSwap = balance;
+            liquiditySwapParams.collateralAmountToSwap =
+                balance -
+                liquiditySwapParams.allBalanceOffset;
         }
 
         // true if flashloan is needed to swap liquidity

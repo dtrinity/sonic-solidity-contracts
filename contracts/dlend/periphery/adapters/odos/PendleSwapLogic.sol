@@ -26,11 +26,11 @@ import {ISwapTypes} from "./interfaces/ISwapTypes.sol";
 import {IBaseOdosAdapterV2} from "./interfaces/IBaseOdosAdapterV2.sol";
 
 /**
- * @title PTSwapUtils
+ * @title PendleSwapLogic
  * @notice Library for handling PT token operations and composed swaps
- * @dev Provides utilities for PT token detection and executing composed PT+Odos swaps
+ * @dev Provides high-level logic for PT token detection and orchestrating composed PT+Odos swaps
  */
-library PTSwapUtils {
+library PendleSwapLogic {
     using SafeERC20 for IERC20;
 
     /* Custom Errors */
@@ -55,24 +55,7 @@ library PTSwapUtils {
         uint256 finalOutputAmount
     );
 
-    /**
-     * @dev Lightweight helper to perform a low-level call and bubble up the
-     *      original revert reason from the callee when present. Keeps large
-     *      functions slimmer to avoid "stack too deep".
-     */
-    function _safeExternalCall(address target, bytes memory callData) private {
-        (bool success, bytes memory result) = target.call(callData);
-        if (!success) {
-            // Bubble up revert reason if provided by callee
-            if (result.length > 0) {
-                assembly {
-                    let resultLength := mload(result)
-                    revert(add(32, result), resultLength)
-                }
-            }
-            revert ComposedSwapFailed("external call failed");
-        }
-    }
+
 
     /**
      * @notice Data structure for PT swap parameters
@@ -132,9 +115,10 @@ library PTSwapUtils {
             address(this)
         );
 
-        // Execute Pendle swap via PendleSwapUtils library
-        PendleSwapUtils.executePendleSwap(
+        // Execute Pendle swap via PendleSwapUtils library (PT → underlying)
+        PendleSwapUtils.swapExactInput(
             ptToken,
+            underlyingAsset,
             ptAmount,
             pendleRouter,
             swapData
@@ -285,7 +269,6 @@ library PTSwapUtils {
         }
 
         // Stage 2: underlying -> PT via Pendle
-        uint256 ptBalanceBefore = IERC20(ptToken).balanceOf(address(this));
         uint256 underlyingBalanceBefore = IERC20(swapData.underlyingAsset)
             .balanceOf(address(this));
 
@@ -297,36 +280,14 @@ library PTSwapUtils {
             );
         }
 
-        // For underlying -> PT swaps, we need to execute the Pendle router call directly
-        // because PendleSwapUtils.executePendleSwap is designed for PT -> underlying
-
-        // Approve underlying token to Pendle router
-        IERC20(swapData.underlyingAsset).safeApprove(pendleRouter, 0);
-        IERC20(swapData.underlyingAsset).safeApprove(
+        // Stage 2: underlying → PT via PendleSwapUtils
+        actualPTOut = PendleSwapUtils.swapExactInput(
+            swapData.underlyingAsset,
+            ptToken,
+            underlyingAmount,
             pendleRouter,
-            underlyingAmount
-        );
-
-        // Execute Pendle swap directly
-        (bool success, bytes memory result) = pendleRouter.call(
             swapData.pendleCalldata
         );
-        if (!success) {
-            // Decode the revert reason if present
-            if (result.length > 0) {
-                assembly {
-                    let resultLength := mload(result)
-                    revert(add(32, result), resultLength)
-                }
-            }
-            revert IBaseOdosAdapterV2.PendleSwapFailed(
-                "Pendle swap execution failed"
-            );
-        }
-
-        // Calculate actual PT tokens received
-        uint256 ptBalanceAfter = IERC20(ptToken).balanceOf(address(this));
-        actualPTOut = ptBalanceAfter - ptBalanceBefore;
 
         if (actualPTOut < minPTOut) {
             revert InsufficientPTSwapOutput(minPTOut, actualPTOut);
@@ -422,26 +383,14 @@ library PTSwapUtils {
             actualUnderlyingReceived
         );
 
-        // Stage 2: underlying asset → PT output via Pendle
-        uint256 outputPTBalanceBefore = IERC20(outputPTToken).balanceOf(
-            address(this)
-        );
-
-        // Approve underlying token to Pendle router
-        IERC20(swapData.underlyingAsset).safeApprove(pendleRouter, 0);
-        IERC20(swapData.underlyingAsset).safeApprove(
+        // Stage 2: underlying asset → PT output via PendleSwapUtils
+        actualOutputAmount = PendleSwapUtils.swapExactInput(
+            swapData.underlyingAsset,
+            outputPTToken,
+            actualUnderlyingReceived,
             pendleRouter,
-            actualUnderlyingReceived
+            swapData.pendleCalldata
         );
-
-        // Execute Pendle swap: underlying → PT output
-        _safeExternalCall(pendleRouter, swapData.pendleCalldata);
-
-        // Calculate actual output PT tokens received
-        uint256 outputPTBalanceAfter = IERC20(outputPTToken).balanceOf(
-            address(this)
-        );
-        actualOutputAmount = outputPTBalanceAfter - outputPTBalanceBefore;
 
         if (actualOutputAmount < minOutputAmount) {
             revert InsufficientPTSwapOutput(
