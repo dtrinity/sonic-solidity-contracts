@@ -11,12 +11,12 @@ describe("SafeRateProvider Wrappers on Sonic Fork", () => {
   let accountant: any;
 
   before(async function () {
-    this.timeout(120000); // Increase timeout to 2 minutes
     
     if (!SONIC_RPC_URL) {
       this.skip();
       return;
     }
+    this.timeout(120000); // Increase timeout to 2 minutes
 
     console.log("Forking Sonic mainnet...");
     
