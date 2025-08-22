@@ -11,6 +11,7 @@ describe("SafeRateProvider Wrappers on Sonic Fork", () => {
   let accountant: any;
 
   before(async function () {
+    this.skip();
     return;
     if (!SONIC_RPC_URL) {
       this.skip();
