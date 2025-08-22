@@ -348,6 +348,32 @@ export async function getConfig(
             fixedPriceInBase2: 0n,
           },
         },
+        safeRateProviderAssets: {
+          chainlinkSafeRateProviderCompositeWrappers: {
+            [wstkscUSDAddress]: {
+              feedAsset: wstkscUSDAddress,
+              chainlinkFeed: "0xe5bd703E6C4C7679e10D429D87EF4550a9fA6fF4", // wstkscUSD/stkscUSD Chainlink feed
+              rateProvider: "0x13cCc810DfaA6B71957F2b87060aFE17e6EB8034", // AccountantWithFixedRate (stkscUSD -> scUSD)
+              rateProviderUnit: 10n ** 6n, // 6 decimals
+              lowerThresholdInBase1: 0n, // No thresholding on Chainlink leg
+              fixedPriceInBase1: 0n,
+              lowerThresholdInBase2: 0n, // No thresholding on rate provider leg  
+              fixedPriceInBase2: 0n,
+            },
+          },
+          erc4626SafeRateProviderWrappers: {
+            [wstkscUSDAddress]: {
+              feedAsset: wstkscUSDAddress,
+              erc4626Vault: wstkscUSDAddress, // wstkscUSD is the ERC4626 vault
+              rateProvider: "0x13cCc810DfaA6B71957F2b87060aFE17e6EB8034", // AccountantWithFixedRate
+              rateProviderUnit: 10n ** 6n, // 6 decimals
+              lowerThresholdInBase1: 0n,
+              fixedPriceInBase1: 0n,
+              lowerThresholdInBase2: 0n,
+              fixedPriceInBase2: 0n,
+            },
+          },
+        },
       },
       S: {
         hardDStablePeg: 10n ** BigInt(ORACLE_AGGREGATOR_PRICE_DECIMALS),
@@ -365,6 +391,7 @@ export async function getConfig(
           redstoneOracleWrappersWithThresholding: {},
           compositeRedstoneOracleWrappersWithThresholding: {},
         },
+
       },
     },
     dLend: {
