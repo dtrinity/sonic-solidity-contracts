@@ -20,6 +20,7 @@ pragma solidity ^0.8.20;
 import "../interface/chainlink/BaseChainlinkWrapper.sol";
 import "./ThresholdingUtils.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
+import "@openzeppelin/contracts/utils/math/Math.sol";
 import {IPriceFeed} from "../interface/chainlink/IPriceFeed.sol";
 import {IRateProvider} from "../interface/IRateProvider.sol";
 import {IRateProviderSafe} from "../interface/IRateProviderSafe.sol";
@@ -168,7 +169,7 @@ contract ChainlinkSafeRateProviderCompositeWrapperWithThresholding is
 
         // Rate provider leg (e.g., stkscUSD -> scUSD) with arbitrary decimals
         uint256 feed2 = IRateProviderSafe(feed.rateProvider).getRateSafe();
-        uint256 priceInBase2 = (feed2 * BASE_CURRENCY_UNIT) / feed.rateProviderUnit;
+        uint256 priceInBase2 = Math.mulDiv(feed2, BASE_CURRENCY_UNIT, feed.rateProviderUnit);
 
         // Apply optional thresholding (in BASE_CURRENCY_UNIT) per leg
         if (feed.primaryThreshold.lowerThresholdInBase > 0) {
@@ -179,7 +180,7 @@ contract ChainlinkSafeRateProviderCompositeWrapperWithThresholding is
         }
 
         // Compose, maintaining BASE_CURRENCY_UNIT
-        price = (priceInBase1 * priceInBase2) / BASE_CURRENCY_UNIT;
+        price = Math.mulDiv(priceInBase1, priceInBase2, BASE_CURRENCY_UNIT);
 
         // Liveness: Chainlink heartbeat + rate > 0
         isAlive = price > 0 &&

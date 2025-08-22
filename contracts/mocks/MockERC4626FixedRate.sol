@@ -31,9 +31,8 @@ contract MockERC4626FixedRate {
         return (shares * rate) / UNIT;
     }
 
-    // ERC20 metadata for shares token (minimal)
-    function decimals() external view returns (uint256) {
-        return UNIT;
+    function decimals() external view returns (uint8) {
+        return IERC20Metadata(_asset).decimals(); // Shares decimals match underlying
     }
 }
 

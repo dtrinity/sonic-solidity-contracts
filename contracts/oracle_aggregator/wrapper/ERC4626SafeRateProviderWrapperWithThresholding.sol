@@ -24,6 +24,7 @@ import {IRateProviderSafe} from "../interface/IRateProviderSafe.sol";
 import {IERC4626} from "contracts/vaults/atoken_wrapper/interfaces/IERC4626.sol";
 import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
+import "@openzeppelin/contracts/utils/math/Math.sol";
 
 /**
  * @title ERC4626RateProviderWrapperWithThresholding
@@ -181,11 +182,11 @@ contract ERC4626SafeRateProviderWrapperWithThresholding is IOracleWrapper, Acces
         // Normalize assets to BASE_CURRENCY_UNIT using underlying decimals
         address underlying = vault.asset();
         uint8 underlyingDecimals = IERC20Metadata(underlying).decimals();
-        uint256 priceInBase1 = (assetsPerOneShare * BASE_CURRENCY_UNIT) / (10 ** underlyingDecimals) ;
+        uint256 priceInBase1 = Math.mulDiv(assetsPerOneShare, BASE_CURRENCY_UNIT, 10 ** underlyingDecimals);
 
         // Rate provider leg with arbitrary unit
         uint256 rate = IRateProviderSafe(cfg.rateProvider).getRateSafe();
-        uint256 priceInBase2 = (rate * BASE_CURRENCY_UNIT) / cfg.rateProviderUnit;
+        uint256 priceInBase2 = Math.mulDiv(rate, BASE_CURRENCY_UNIT, cfg.rateProviderUnit);
 
         // Apply optional thresholding (in BASE_CURRENCY_UNIT) per leg
         if (cfg.primaryThreshold.lowerThresholdInBase > 0) {
@@ -196,7 +197,7 @@ contract ERC4626SafeRateProviderWrapperWithThresholding is IOracleWrapper, Acces
         }
 
         // Compose into BASE_CURRENCY_UNIT
-        price = (priceInBase1 * priceInBase2) / BASE_CURRENCY_UNIT;
+        price = Math.mulDiv(priceInBase1, priceInBase2, BASE_CURRENCY_UNIT);
 
         // Liveness: price > 0 and rate > 0 (no heartbeat for ERC4626 leg)
         isAlive = price > 0 && rate > 0;
