@@ -352,7 +352,7 @@ export async function getConfig(
           chainlinkSafeRateProviderCompositeWrappers: {
             [wstkscUSDAddress]: {
               feedAsset: wstkscUSDAddress,
-              chainlinkFeed: "0xe5bd703E6C4C7679e10D429D87EF4550a9fA6fF4", // wstkscUSD/stkscUSD Chainlink feed
+              chainlinkFeed: "0x39EEB8955948B980d9ad09F92F95cdD980751ce1", // wstkscUSD/stkscUSD Chainlink feed
               rateProvider: "0x13cCc810DfaA6B71957F2b87060aFE17e6EB8034", // stkscUSD/scUSD Trevee AccountantWithFixedRate
               lowerThresholdInBase1: 0n, // No thresholding on wstkscUSD/stkscUSD since rate goes up over time
               fixedPriceInBase1: 0n,

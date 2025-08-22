@@ -1,3 +1,4 @@
+import { Signer } from "ethers";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
 
@@ -6,8 +7,51 @@ import {
   USD_CHAINLINK_SAFE_RATE_PROVIDER_COMPOSITE_WRAPPER_ID,
   USD_ORACLE_AGGREGATOR_ID,
 } from "../../typescript/deploy-ids";
+import { ensureDefaultAdminExistsAndRevokeFrom } from "../../typescript/hardhat/access_control";
 import { GovernanceExecutor } from "../../typescript/hardhat/governance";
 import { SafeTransactionData } from "../../typescript/safe/types";
+
+/**
+ * Build a Safe transaction payload to grant a role on a target contract.
+ *
+ * @param contractAddress - Address of the contract to call
+ * @param role - Role hash to grant
+ * @param grantee - Address to receive the role
+ * @param contractInterface - Contract interface used to encode the call
+ */
+function createGrantRoleTransaction(
+  contractAddress: string,
+  role: string,
+  grantee: string,
+  contractInterface: any,
+): SafeTransactionData {
+  return {
+    to: contractAddress,
+    value: "0",
+    data: contractInterface.encodeFunctionData("grantRole", [role, grantee]),
+  };
+}
+
+/**
+ * Build a Safe transaction payload to revoke a role on a target contract.
+ *
+ * @param contractAddress - Address of the contract to call
+ * @param role - Role hash to revoke
+ * @param account - Address to revoke the role from
+ * @param contractInterface - Contract interface used to encode the call
+ */
+function createRevokeRoleTransaction(
+  contractAddress: string,
+  role: string,
+  account: string,
+  contractInterface: any,
+): SafeTransactionData {
+  return {
+    to: contractAddress,
+    value: "0",
+    data: contractInterface.encodeFunctionData("revokeRole", [role, account]),
+  };
+}
 
 /**
  * Build a Safe transaction payload to add a composite feed on the ChainlinkSafeRateProviderCompositeWrapper.
@@ -67,6 +111,186 @@ function createSetOracleTransaction(
     value: "0",
     data: aggregatorInterface.encodeFunctionData("setOracle", [asset, oracle]),
   };
+}
+
+const ZERO_BYTES_32 =
+  "0x0000000000000000000000000000000000000000000000000000000000000000";
+
+/**
+ * Wrapper for ensureDefaultAdminExistsAndRevokeFrom that returns boolean status
+ *
+ * @param hre - Hardhat runtime environment
+ * @param contractName - Name of the contract for logging
+ * @param contractAddress - Address of the contract
+ * @param governanceMultisig - Address of governance multisig
+ * @param deployerAddress - Address of the deployer
+ * @param deployerSigner - Signer for the deployer
+ * @param executor - Governance executor
+ */
+async function ensureDefaultAdminExistsAndRevokeFromWithSafe(
+  hre: HardhatRuntimeEnvironment,
+  contractName: string,
+  contractAddress: string,
+  governanceMultisig: string,
+  deployerAddress: string,
+  deployerSigner: Signer,
+  executor: GovernanceExecutor,
+): Promise<boolean> {
+  try {
+    // The original function uses manualActions array, we need to handle this differently
+    // For now, we'll catch any errors and handle with Safe
+    const manualActions: string[] = [];
+    await ensureDefaultAdminExistsAndRevokeFrom(
+      hre,
+      contractName,
+      contractAddress,
+      governanceMultisig,
+      deployerAddress,
+      deployerSigner,
+      manualActions,
+    );
+
+    // If there are manual actions, it means we need Safe transactions when Safe mode is on
+    if (manualActions.length > 0) {
+      if (executor.useSafe) {
+        // This would need proper Safe transaction creation; return pending
+        return false;
+      }
+      console.log(
+        `    ⏭️ Non-Safe mode: manual admin migration actions detected; continuing.`,
+      );
+    }
+
+    return true;
+  } catch (error) {
+    if (executor.useSafe) {
+      // Requires governance action; queue not implemented for this path
+      console.warn(
+        `    🔄 Admin role migration likely requires governance action:`,
+        error,
+      );
+      return false;
+    }
+    console.log(
+      `    ⏭️ Non-Safe mode: admin migration requires governance; continuing.`,
+    );
+    return true;
+  }
+}
+
+/**
+ * Migrate Oracle Wrapper roles to governance in a safe, idempotent sequence.
+ * Grants roles to governance first, then revokes them from the deployer.
+ * If direct execution fails, generates Safe transactions appended to
+ * `transactions` for offline signing.
+ *
+ * @param hre - Hardhat runtime environment
+ * @param wrapperName - Logical name/id of the wrapper deployment
+ * @param wrapperAddress - Address of the Oracle Wrapper contract
+ * @param deployerSigner - Deployer signer currently holding roles
+ * @param governanceMultisig - Governance multisig address to receive roles
+ * @param executor - Governance executor
+ * @returns true if all operations complete, false if pending governance
+ */
+async function migrateOracleWrapperRolesIdempotent(
+  hre: HardhatRuntimeEnvironment,
+  wrapperName: string,
+  wrapperAddress: string,
+  deployerSigner: Signer,
+  governanceMultisig: string,
+  executor: GovernanceExecutor,
+): Promise<boolean> {
+  const wrapper = await hre.ethers.getContractAt(
+    "ChainlinkSafeRateProviderCompositeWrapperWithThresholding",
+    wrapperAddress,
+    deployerSigner,
+  );
+
+  const DEFAULT_ADMIN_ROLE = ZERO_BYTES_32;
+  const ORACLE_MANAGER_ROLE = await wrapper.ORACLE_MANAGER_ROLE();
+
+  const roles = [
+ 
+    { name: "ORACLE_MANAGER_ROLE", hash: ORACLE_MANAGER_ROLE },
+  ];
+
+  console.log(`  📄 Migrating roles for ${wrapperName} at ${wrapperAddress}`);
+
+  let noPendingActions = true;
+
+  for (const role of roles) {
+    if (!(await wrapper.hasRole(role.hash, governanceMultisig))) {
+      const complete = await executor.tryOrQueue(
+        async () => {
+          await wrapper.grantRole(role.hash, governanceMultisig);
+          console.log(
+            `    ➕ Granted ${role.name} to governance ${governanceMultisig}`,
+          );
+        },
+        () =>
+          createGrantRoleTransaction(
+            wrapperAddress,
+            role.hash,
+            governanceMultisig,
+            wrapper.interface,
+          ),
+      );
+      if (!complete) noPendingActions = false;
+    } else {
+      console.log(`    ✓ ${role.name} already granted to governance`);
+    }
+  }
+
+  // Step 2: Revoke roles from deployer after granting to governance
+  const deployerAddress = await deployerSigner.getAddress();
+  console.log(`  🔄 Revoking roles from deployer ${deployerAddress}...`);
+
+  for (const role of roles) {
+    // Skip DEFAULT_ADMIN_ROLE as it's handled by ensureDefaultAdminExistsAndRevokeFrom
+    if (role.hash === DEFAULT_ADMIN_ROLE) continue;
+
+    const deployerHasRole = await wrapper.hasRole(role.hash, deployerAddress);
+    const governanceHasRole = await wrapper.hasRole(
+      role.hash,
+      governanceMultisig,
+    );
+
+    if (deployerHasRole && governanceHasRole) {
+      const roleName = role.name;
+      const complete = await executor.tryOrQueue(
+        async () => {
+          await wrapper.revokeRole(role.hash, deployerAddress);
+          console.log(`    ➖ Revoked ${roleName} from deployer`);
+        },
+        () =>
+          createRevokeRoleTransaction(
+            wrapperAddress,
+            role.hash,
+            deployerAddress,
+            wrapper.interface,
+          ),
+      );
+      if (!complete) noPendingActions = false;
+    }
+  }
+
+  // Safely migrate DEFAULT_ADMIN_ROLE away from deployer
+  const adminMigrationComplete =
+    await ensureDefaultAdminExistsAndRevokeFromWithSafe(
+      hre,
+      "ChainlinkSafeRateProviderCompositeWrapperWithThresholding",
+      wrapperAddress,
+      governanceMultisig,
+      deployerAddress,
+      deployerSigner,
+      executor,
+    );
+
+  if (!adminMigrationComplete) {
+    noPendingActions = false;
+  }
+
+  return noPendingActions;
 }
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
@@ -207,6 +431,21 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     console.log(
       `ℹ️  No ChainlinkSafeRateProviderComposite feeds configured in config`,
     );
+  }
+
+  // Migrate wrapper roles to governance
+  console.log(`\n🔐 Migrating ChainlinkSafeRateProviderComposite wrapper roles to governance...`);
+  const rolesMigrationComplete = await migrateOracleWrapperRolesIdempotent(
+    hre,
+    USD_CHAINLINK_SAFE_RATE_PROVIDER_COMPOSITE_WRAPPER_ID,
+    wrapperAddress,
+    deployerSigner,
+    governanceMultisig,
+    executor,
+  );
+
+  if (!rolesMigrationComplete) {
+    allOperationsComplete = false;
   }
 
   // Handle governance operations if needed
