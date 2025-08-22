@@ -245,3 +245,67 @@ func.dependencies = ["dStakeConfigure"];
 // Mark as executed once.
 func.id = "dstake_dlend_rewards";
 func.runAtTheEnd = true;
+
+// Hard skip when everything is already configured on-chain
+func.skip = async (hre: HardhatRuntimeEnvironment): Promise<boolean> => {
+  const { deployments, ethers, getNamedAccounts } = hre;
+  const { getOrNull } = deployments;
+
+  const config = await getConfig(hre);
+  if (!config.dStake) return true;
+
+  // Ensure dependencies exist
+  const emissionManagerDep = await getOrNull(EMISSION_MANAGER_ID);
+  const poolDataProviderDep = await getOrNull(POOL_DATA_PROVIDER_ID);
+  if (!emissionManagerDep || !poolDataProviderDep) return false;
+
+  const emissionManager = await ethers.getContractAt("EmissionManager", emissionManagerDep.address);
+  const rewardsControllerAddress = await emissionManager.getRewardsController();
+  if (rewardsControllerAddress === ethers.ZeroAddress) return false;
+  const rewardsController = await ethers.getContractAt(
+    "contracts/dlend/periphery/rewards/interfaces/IRewardsController.sol:IRewardsController",
+    rewardsControllerAddress,
+  );
+
+  for (const instanceKey in config.dStake) {
+    const instanceConfig = config.dStake[instanceKey] as DStakeInstanceConfig;
+    const rewardManagerConfig = instanceConfig.dLendRewardManager as DLendRewardManagerConfig | undefined;
+
+    // If config is missing for this instance, allow script to run to surface the error
+    if (!rewardManagerConfig) {
+      return false;
+    }
+
+    const targetStaticATokenWrapperAddress = rewardManagerConfig.managedVaultAsset;
+    if (!targetStaticATokenWrapperAddress || targetStaticATokenWrapperAddress === ethers.ZeroAddress) {
+      // Nothing actionable for this instance
+      continue;
+    }
+
+    // Resolve aToken; if not available, nothing to do for this instance
+    const poolDataProvider = await ethers.getContractAt("AaveProtocolDataProvider", poolDataProviderDep.address);
+    const reserveTokens = await poolDataProvider.getReserveTokensAddresses(instanceConfig.dStable);
+    const aTokenAddress = reserveTokens.aTokenAddress;
+    if (aTokenAddress === ethers.ZeroAddress) {
+      continue;
+    }
+
+    // Reward manager must exist
+    const rewardManagerDeploymentName = `DStakeRewardManagerDLend_${instanceKey}`;
+    const rewardManagerDep = await getOrNull(rewardManagerDeploymentName);
+    if (!rewardManagerDep) {
+      return false;
+    }
+
+    // Claimer must already be set to the reward manager for this wrapper
+    const currentClaimer = await rewardsController.getClaimer(targetStaticATokenWrapperAddress);
+    if (currentClaimer.toLowerCase() !== rewardManagerDep.address.toLowerCase()) {
+      return false;
+    }
+
+    // Roles may be governed by Safe; don't block skip on roles. Presence + claimer suffices.
+  }
+
+  // All instances are either fully configured or irrelevant → skip
+  return true;
+};

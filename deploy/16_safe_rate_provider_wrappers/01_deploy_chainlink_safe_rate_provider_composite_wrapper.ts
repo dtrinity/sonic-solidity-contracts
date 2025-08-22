@@ -282,6 +282,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     args: [baseCurrency, baseCurrencyUnit],
     log: true,
     autoMine: true,
+    skipIfAlreadyDeployed: true,
   });
 
   const wrapperAddress = wrapperDeployResult.address;
