@@ -41,7 +41,7 @@ import { Config } from "../types";
  * @returns The configuration for the network
  */
 export async function getConfig(
-  _hre: HardhatRuntimeEnvironment,
+  _hre: HardhatRuntimeEnvironment
 ): Promise<Config> {
   const dUSDDeployment = await _hre.deployments.getOrNull(DUSD_TOKEN_ID);
   const dSDeployment = await _hre.deployments.getOrNull(DS_TOKEN_ID);
@@ -74,7 +74,7 @@ export async function getConfig(
 
   // Fetch deployed dLend StaticATokenLM wrapper, aToken and RewardsController (may be undefined prior to deployment)
   const dLendATokenWrapperDUSDDeployment = await _hre.deployments.getOrNull(
-    "dLend_ATokenWrapper_dUSD",
+    "dLend_ATokenWrapper_dUSD"
   );
   const rewardsControllerDeployment =
     await _hre.deployments.getOrNull(INCENTIVES_PROXY_ID);
@@ -353,22 +353,11 @@ export async function getConfig(
             [wstkscUSDAddress]: {
               feedAsset: wstkscUSDAddress,
               chainlinkFeed: "0xe5bd703E6C4C7679e10D429D87EF4550a9fA6fF4", // wstkscUSD/stkscUSD Chainlink feed
-              rateProvider: "0x13cCc810DfaA6B71957F2b87060aFE17e6EB8034", // AccountantWithFixedRate (stkscUSD -> scUSD)
-              lowerThresholdInBase1: 0n, // No thresholding on Chainlink leg
+              rateProvider: "0x13cCc810DfaA6B71957F2b87060aFE17e6EB8034", // stkscUSD/scUSD Trevee AccountantWithFixedRate
+              lowerThresholdInBase1: 0n, // No thresholding on wstkscUSD/stkscUSD since rate goes up over time
               fixedPriceInBase1: 0n,
-              lowerThresholdInBase2: 0n, // No thresholding on rate provider leg
-              fixedPriceInBase2: 0n,
-            },
-          },
-          erc4626SafeRateProviderWrappers: {
-            [wstkscUSDAddress]: {
-              feedAsset: wstkscUSDAddress,
-              erc4626Vault: wstkscUSDAddress, // wstkscUSD is the ERC4626 vault
-              rateProvider: "0x13cCc810DfaA6B71957F2b87060aFE17e6EB8034", // AccountantWithFixedRate (stkscUSD -> scUSD)
-              lowerThresholdInBase1: 0n,
-              fixedPriceInBase1: 0n,
-              lowerThresholdInBase2: 0n,
-              fixedPriceInBase2: 0n,
+              lowerThresholdInBase2: ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT, // Threshold on stkscUSD/scUSD since rebasing token should never go above 1:1
+              fixedPriceInBase2: ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT,
             },
           },
         },
@@ -431,25 +420,25 @@ export async function getConfig(
         adapters: [
           {
             vaultAsset: emptyStringIfUndefined(
-              dLendATokenWrapperDUSDDeployment?.address,
+              dLendATokenWrapperDUSDDeployment?.address
             ),
             adapterContract: "WrappedDLendConversionAdapter",
           },
         ],
         defaultDepositVaultAsset: emptyStringIfUndefined(
-          dLendATokenWrapperDUSDDeployment?.address,
+          dLendATokenWrapperDUSDDeployment?.address
         ),
         collateralVault: "DStakeCollateralVault_sdUSD", // Keep in sync with deploy ID constants
         collateralExchangers: [governanceSafeMultisig],
         dLendRewardManager: {
           managedVaultAsset: emptyStringIfUndefined(
-            dLendATokenWrapperDUSDDeployment?.address,
+            dLendATokenWrapperDUSDDeployment?.address
           ), // StaticATokenLM wrapper
           dLendAssetToClaimFor: emptyStringIfUndefined(
-            aTokenDUSDDeployment?.address,
+            aTokenDUSDDeployment?.address
           ), // dLEND aToken for dUSD
           dLendRewardsController: emptyStringIfUndefined(
-            rewardsControllerDeployment?.address,
+            rewardsControllerDeployment?.address
           ), // RewardsController proxy
           treasury: governanceSafeMultisig,
           maxTreasuryFeeBps: 20 * ONE_PERCENT_BPS, // 20%
