@@ -31,7 +31,7 @@ function createAddCompositeFeedTransaction(
   fixedPriceInBase1: bigint,
   lowerThresholdInBase2: bigint,
   fixedPriceInBase2: bigint,
-  wrapperInterface: any
+  wrapperInterface: any,
 ): SafeTransactionData {
   return {
     to: wrapperAddress,
@@ -60,7 +60,7 @@ function createSetOracleTransaction(
   aggregatorAddress: string,
   asset: string,
   oracle: string,
-  aggregatorInterface: any
+  aggregatorInterface: any,
 ): SafeTransactionData {
   return {
     to: aggregatorAddress,
@@ -79,7 +79,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const executor = new GovernanceExecutor(
     hre,
     deployerSigner,
-    config.safeConfig
+    config.safeConfig,
   );
   await executor.initialize();
 
@@ -98,7 +98,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   // Deploy ChainlinkSafeRateProviderCompositeWrapperWithThresholding
   console.log(
-    `\n🚀 Deploying ChainlinkSafeRateProviderCompositeWrapperWithThresholding...`
+    `\n🚀 Deploying ChainlinkSafeRateProviderCompositeWrapperWithThresholding...`,
   );
   const wrapperDeployResult = await deployments.deploy(
     USD_CHAINLINK_SAFE_RATE_PROVIDER_COMPOSITE_WRAPPER_ID,
@@ -108,17 +108,17 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       args: [baseCurrency, baseCurrencyUnit],
       log: true,
       autoMine: true,
-    }
+    },
   );
 
   const wrapperAddress = wrapperDeployResult.address;
   const wrapper = await ethers.getContractAt(
     "ChainlinkSafeRateProviderCompositeWrapperWithThresholding",
-    wrapperAddress
+    wrapperAddress,
   );
 
   console.log(
-    `✅ ChainlinkSafeRateProviderCompositeWrapper deployed at: ${wrapperAddress}`
+    `✅ ChainlinkSafeRateProviderCompositeWrapper deployed at: ${wrapperAddress}`,
   );
 
   // Configure feeds from config
@@ -132,7 +132,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
     for (const [_assetAddress, feedConfig] of Object.entries(chainlinkFeeds)) {
       console.log(
-        `  📊 Adding composite feed for asset ${feedConfig.feedAsset}...`
+        `  📊 Adding composite feed for asset ${feedConfig.feedAsset}...`,
       );
 
       const complete = await executor.tryOrQueue(
@@ -144,10 +144,10 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
             feedConfig.lowerThresholdInBase1,
             feedConfig.fixedPriceInBase1,
             feedConfig.lowerThresholdInBase2,
-            feedConfig.fixedPriceInBase2
+            feedConfig.fixedPriceInBase2,
           );
           console.log(
-            `    ✅ Added ChainlinkSafeRateProviderComposite feed for ${feedConfig.feedAsset}`
+            `    ✅ Added ChainlinkSafeRateProviderComposite feed for ${feedConfig.feedAsset}`,
           );
         },
         () =>
@@ -160,8 +160,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
             feedConfig.fixedPriceInBase1,
             feedConfig.lowerThresholdInBase2,
             feedConfig.fixedPriceInBase2,
-            wrapper.interface
-          )
+            wrapper.interface,
+          ),
       );
 
       if (!complete) allOperationsComplete = false;
@@ -169,14 +169,14 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
     // Point oracle aggregator to this wrapper for configured assets
     console.log(
-      `\n🔗 Pointing USD Oracle Aggregator to ChainlinkSafeRateProviderComposite wrapper...`
+      `\n🔗 Pointing USD Oracle Aggregator to ChainlinkSafeRateProviderComposite wrapper...`,
     );
     const oracleAggregatorDeployment = await deployments.get(
-      USD_ORACLE_AGGREGATOR_ID
+      USD_ORACLE_AGGREGATOR_ID,
     );
     const oracleAggregator = await ethers.getContractAt(
       "OracleAggregator",
-      oracleAggregatorDeployment.address
+      oracleAggregatorDeployment.address,
     );
 
     for (const [_assetAddress, feedConfig] of Object.entries(chainlinkFeeds)) {
@@ -186,10 +186,10 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
         async () => {
           await oracleAggregator.setOracle(
             feedConfig.feedAsset,
-            wrapperAddress
+            wrapperAddress,
           );
           console.log(
-            `    ✅ Set oracle for ${feedConfig.feedAsset} to ChainlinkSafeRateProviderComposite wrapper`
+            `    ✅ Set oracle for ${feedConfig.feedAsset} to ChainlinkSafeRateProviderComposite wrapper`,
           );
         },
         () =>
@@ -197,22 +197,22 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
             oracleAggregatorDeployment.address,
             feedConfig.feedAsset,
             wrapperAddress,
-            oracleAggregator.interface
-          )
+            oracleAggregator.interface,
+          ),
       );
 
       if (!complete) allOperationsComplete = false;
     }
   } else {
     console.log(
-      `ℹ️  No ChainlinkSafeRateProviderComposite feeds configured in config`
+      `ℹ️  No ChainlinkSafeRateProviderComposite feeds configured in config`,
     );
   }
 
   // Handle governance operations if needed
   if (!allOperationsComplete) {
     const flushed = await executor.flush(
-      `Deploy ChainlinkSafeRateProviderComposite wrapper: governance operations`
+      `Deploy ChainlinkSafeRateProviderComposite wrapper: governance operations`,
     );
 
     if (executor.useSafe) {
@@ -220,18 +220,18 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
         console.log(`❌ Failed to prepare governance batch`);
       }
       console.log(
-        "\n⏳ Some operations require governance signatures to complete."
+        "\n⏳ Some operations require governance signatures to complete.",
       );
       console.log(
-        "   The deployment script will exit and can be re-run after governance executes the transactions."
+        "   The deployment script will exit and can be re-run after governance executes the transactions.",
       );
       console.log(
-        `\n≻ ${__filename.split("/").slice(-2).join("/")}: pending governance ⏳`
+        `\n≻ ${__filename.split("/").slice(-2).join("/")}: pending governance ⏳`,
       );
       return false; // Fail idempotently - script can be re-run
     } else {
       console.log(
-        "\n⏭️ Non-Safe mode: pending governance operations detected; continuing."
+        "\n⏭️ Non-Safe mode: pending governance operations detected; continuing.",
       );
     }
   }
