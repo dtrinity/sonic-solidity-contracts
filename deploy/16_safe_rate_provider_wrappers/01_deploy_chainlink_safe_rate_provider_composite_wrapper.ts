@@ -3,19 +3,19 @@ import { DeployFunction } from "hardhat-deploy/types";
 
 import { getConfig } from "../../config/config";
 import {
-  USD_ERC4626_SAFE_RATE_PROVIDER_WRAPPER_ID,
+  USD_CHAINLINK_SAFE_RATE_PROVIDER_COMPOSITE_WRAPPER_ID,
   USD_ORACLE_AGGREGATOR_ID,
 } from "../../typescript/deploy-ids";
 import { GovernanceExecutor } from "../../typescript/hardhat/governance";
 import { SafeTransactionData } from "../../typescript/safe/types";
 
 /**
- * Build a Safe transaction payload to set a feed on the ERC4626SafeRateProviderWrapper.
+ * Build a Safe transaction payload to add a composite feed on the ChainlinkSafeRateProviderCompositeWrapper.
  */
-function createSetFeedTransaction(
+function createAddCompositeFeedTransaction(
   wrapperAddress: string,
   asset: string,
-  erc4626Vault: string,
+  chainlinkFeed: string,
   rateProvider: string,
   lowerThresholdInBase1: bigint,
   fixedPriceInBase1: bigint,
@@ -26,9 +26,9 @@ function createSetFeedTransaction(
   return {
     to: wrapperAddress,
     value: "0",
-    data: wrapperInterface.encodeFunctionData("setFeed", [
+    data: wrapperInterface.encodeFunctionData("addCompositeFeed", [
       asset,
-      erc4626Vault,
+      chainlinkFeed,
       rateProvider,
       lowerThresholdInBase1,
       fixedPriceInBase1,
@@ -81,13 +81,13 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   console.log(`🔮 Base currency: ${baseCurrency}`);
   console.log(`🔮 Base currency unit: ${baseCurrencyUnit}`);
 
-  // Deploy ERC4626SafeRateProviderWrapperWithThresholding
-  console.log(`\n🚀 Deploying ERC4626SafeRateProviderWrapperWithThresholding...`);
+  // Deploy ChainlinkSafeRateProviderCompositeWrapperWithThresholding
+  console.log(`\n🚀 Deploying ChainlinkSafeRateProviderCompositeWrapperWithThresholding...`);
   const wrapperDeployResult = await deployments.deploy(
-    USD_ERC4626_SAFE_RATE_PROVIDER_WRAPPER_ID,
+    USD_CHAINLINK_SAFE_RATE_PROVIDER_COMPOSITE_WRAPPER_ID,
     {
       from: deployer,
-      contract: "ERC4626SafeRateProviderWrapperWithThresholding",
+      contract: "ChainlinkSafeRateProviderCompositeWrapperWithThresholding",
       args: [baseCurrency, baseCurrencyUnit],
       log: true,
       autoMine: true,
@@ -96,40 +96,40 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   const wrapperAddress = wrapperDeployResult.address;
   const wrapper = await ethers.getContractAt(
-    "ERC4626SafeRateProviderWrapperWithThresholding",
+    "ChainlinkSafeRateProviderCompositeWrapperWithThresholding",
     wrapperAddress,
   );
 
-  console.log(`✅ ERC4626SafeRateProviderWrapper deployed at: ${wrapperAddress}`);
+  console.log(`✅ ChainlinkSafeRateProviderCompositeWrapper deployed at: ${wrapperAddress}`);
 
   // Configure feeds from config
-  const erc4626Feeds = usdConfig.safeRateProviderAssets?.erc4626SafeRateProviderWrappers || {};
+  const chainlinkFeeds = usdConfig.safeRateProviderAssets?.chainlinkSafeRateProviderCompositeWrappers || {};
   let allOperationsComplete = true;
 
-  if (Object.keys(erc4626Feeds).length > 0) {
-    console.log(`\n🔧 Configuring ERC4626SafeRateProvider feeds...`);
+  if (Object.keys(chainlinkFeeds).length > 0) {
+    console.log(`\n🔧 Configuring ChainlinkSafeRateProviderComposite feeds...`);
 
-    for (const [assetAddress, feedConfig] of Object.entries(erc4626Feeds)) {
-      console.log(`  📊 Setting feed for asset ${assetAddress}...`);
+    for (const [assetAddress, feedConfig] of Object.entries(chainlinkFeeds)) {
+      console.log(`  📊 Adding composite feed for asset ${assetAddress}...`);
 
       const complete = await executor.tryOrQueue(
         async () => {
-          await wrapper.setFeed(
+          await wrapper.addCompositeFeed(
             feedConfig.feedAsset,
-            feedConfig.erc4626Vault,
+            feedConfig.chainlinkFeed,
             feedConfig.rateProvider,
             feedConfig.lowerThresholdInBase1,
             feedConfig.fixedPriceInBase1,
             feedConfig.lowerThresholdInBase2,
             feedConfig.fixedPriceInBase2,
           );
-          console.log(`    ✅ Set ERC4626SafeRateProvider feed for ${feedConfig.feedAsset}`);
+          console.log(`    ✅ Added ChainlinkSafeRateProviderComposite feed for ${feedConfig.feedAsset}`);
         },
         () =>
-          createSetFeedTransaction(
+          createAddCompositeFeedTransaction(
             wrapperAddress,
             feedConfig.feedAsset,
-            feedConfig.erc4626Vault,
+            feedConfig.chainlinkFeed,
             feedConfig.rateProvider,
             feedConfig.lowerThresholdInBase1,
             feedConfig.fixedPriceInBase1,
@@ -143,20 +143,20 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     }
 
     // Point oracle aggregator to this wrapper for configured assets
-    console.log(`\n🔗 Pointing USD Oracle Aggregator to ERC4626SafeRateProvider wrapper...`);
+    console.log(`\n🔗 Pointing USD Oracle Aggregator to ChainlinkSafeRateProviderComposite wrapper...`);
     const oracleAggregatorDeployment = await deployments.get(USD_ORACLE_AGGREGATOR_ID);
     const oracleAggregator = await ethers.getContractAt(
       "OracleAggregator",
       oracleAggregatorDeployment.address,
     );
 
-    for (const [assetAddress, feedConfig] of Object.entries(erc4626Feeds)) {
+    for (const [assetAddress, feedConfig] of Object.entries(chainlinkFeeds)) {
       console.log(`  🎯 Setting oracle for asset ${feedConfig.feedAsset}...`);
 
       const complete = await executor.tryOrQueue(
         async () => {
           await oracleAggregator.setOracle(feedConfig.feedAsset, wrapperAddress);
-          console.log(`    ✅ Set oracle for ${feedConfig.feedAsset} to ERC4626SafeRateProvider wrapper`);
+          console.log(`    ✅ Set oracle for ${feedConfig.feedAsset} to ChainlinkSafeRateProviderComposite wrapper`);
         },
         () =>
           createSetOracleTransaction(
@@ -170,13 +170,13 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       if (!complete) allOperationsComplete = false;
     }
   } else {
-    console.log(`ℹ️  No ERC4626SafeRateProvider feeds configured in config`);
+    console.log(`ℹ️  No ChainlinkSafeRateProviderComposite feeds configured in config`);
   }
 
   // Handle governance operations if needed
   if (!allOperationsComplete) {
     const flushed = await executor.flush(
-      `Deploy ERC4626SafeRateProvider wrapper: governance operations`,
+      `Deploy ChainlinkSafeRateProviderComposite wrapper: governance operations`,
     );
 
     if (executor.useSafe) {
@@ -205,8 +205,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   return true;
 };
 
-func.id = "deploy-erc4626-safe-rate-provider-wrapper";
-func.tags = ["usd-oracle", "oracle-wrapper", "erc4626-safe-rate-provider"];
+func.id = "deploy-chainlink-safe-rate-provider-composite-wrapper";
+func.tags = ["usd-oracle", "oracle-wrapper", "chainlink-safe-rate-provider"];
 func.dependencies = [USD_ORACLE_AGGREGATOR_ID];
 
 export default func;
