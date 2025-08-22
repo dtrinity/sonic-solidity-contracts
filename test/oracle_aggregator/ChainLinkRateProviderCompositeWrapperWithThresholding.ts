@@ -48,14 +48,15 @@ async function runTestsForCurrency(
       const rate = 980_150n;
       rateProvider = await ethers.deployContract("MockRateProvider", [UNIT, rate]);
 
-      // Asset key
-      assetKey = ethers.Wallet.createRandom().address;
+      // Deploy a mock ERC20 token to use as asset
+      const MockToken = await ethers.getContractFactory("MockERC20");
+      const mockToken = await MockToken.deploy("Mock Asset", "MOCK", 18);
+      assetKey = await mockToken.getAddress();
 
       await wrapper.addCompositeFeed(
         assetKey,
         await feed.getAddress(),
         await rateProvider.getAddress(),
-        UNIT,
         0,
         0,
         0,
@@ -79,8 +80,8 @@ async function runTestsForCurrency(
         const cl1 = answer1 > 0 ? (answer1 as unknown as bigint) : 0n;
         const priceInBase1 = (cl1 * BASE_UNIT) / 10n ** 8n;
         const rp: bigint = await rateProvider.getRate();
-        const UNIT: bigint = await rateProvider.UNIT();
-        const priceInBase2 = (rp * BASE_UNIT) / UNIT;
+        const assetUnit = 10n ** 18n; // Asset has 18 decimals
+        const priceInBase2 = (rp * BASE_UNIT) / assetUnit;
         const expected = (priceInBase1 * priceInBase2) / BASE_UNIT;
         const { price, isAlive } = await wrapper.getPriceInfo(assetKey);
         expect(isAlive).to.equal(true);
@@ -93,8 +94,8 @@ async function runTestsForCurrency(
         const cl1 = answer1 > 0 ? (answer1 as unknown as bigint) : 0n;
         const priceInBase1 = (cl1 * BASE_UNIT) / 10n ** 8n;
         const rp: bigint = await rateProvider.getRate();
-        const UNIT: bigint = await rateProvider.UNIT();
-        const priceInBase2 = (rp * BASE_UNIT) / UNIT;
+        const assetUnit = 10n ** 18n; // Asset has 18 decimals
+        const priceInBase2 = (rp * BASE_UNIT) / assetUnit;
         const expected = (priceInBase1 * priceInBase2) / BASE_UNIT;
         const { price } = await wrapper.getPriceInfo(assetKey);
         expect(price).to.equal(expected);
@@ -106,10 +107,10 @@ async function runTestsForCurrency(
         await feed.setMock(ethers.parseUnits("0.96", 8));
         const fixed1 = ethers.parseUnits("1.00", 18);
         const lower1 = ethers.parseUnits("0.95", 18);
-        await wrapper.updateCompositeFeed(assetKey, (await rateProvider.UNIT()) as bigint, lower1, fixed1, 0, 0);
+        await wrapper.updateCompositeFeed(assetKey, lower1, fixed1, 0, 0);
         const rp: bigint = await rateProvider.getRate();
-        const UNIT: bigint = await rateProvider.UNIT();
-        const priceInBase2 = (rp * BASE_UNIT) / UNIT;
+        const assetUnit = 10n ** 18n; // Asset has 18 decimals
+        const priceInBase2 = (rp * BASE_UNIT) / assetUnit;
         const expected = (fixed1 * priceInBase2) / BASE_UNIT;
         const { price } = await wrapper.getPriceInfo(assetKey);
         expect(price).to.equal(expected);
@@ -119,10 +120,10 @@ async function runTestsForCurrency(
         await feed.setMock(ethers.parseUnits("1.00", 8));
         const fixed2 = ethers.parseUnits("1.00", 18);
         const rp: bigint = await rateProvider.getRate();
-        const UNIT: bigint = await rateProvider.UNIT();
-        const priceInBase2 = (rp * BASE_UNIT) / UNIT;
+        const assetUnit = 10n ** 18n; // Asset has 18 decimals
+        const priceInBase2 = (rp * BASE_UNIT) / assetUnit;
         const lower2 = priceInBase2 - 1n;
-        await wrapper.updateCompositeFeed(assetKey, UNIT, 0, 0, lower2, fixed2);
+        await wrapper.updateCompositeFeed(assetKey, 0, 0, lower2, fixed2);
         const priceInBase1 = ethers.parseUnits("1.00", 18);
         const expected = priceInBase1;
         const { price } = await wrapper.getPriceInfo(assetKey);
@@ -133,13 +134,13 @@ async function runTestsForCurrency(
         await feed.setMock(ethers.parseUnits("0.98", 8));
         const fixed1 = ethers.parseUnits("1.00", 18);
         const lower1 = ethers.parseUnits("0.99", 18);
-        await wrapper.updateCompositeFeed(assetKey, (await rateProvider.UNIT()) as bigint, lower1, fixed1, 0, 0);
+        await wrapper.updateCompositeFeed(assetKey, lower1, fixed1, 0, 0);
         const [, answer1] = await feed.latestRoundData();
         const cl1 = answer1 > 0 ? (answer1 as unknown as bigint) : 0n;
         const priceInBase1 = (cl1 * BASE_UNIT) / 10n ** 8n;
         const rp: bigint = await rateProvider.getRate();
-        const UNIT: bigint = await rateProvider.UNIT();
-        const priceInBase2 = (rp * BASE_UNIT) / UNIT;
+        const assetUnit = 10n ** 18n; // Asset has 18 decimals
+        const priceInBase2 = (rp * BASE_UNIT) / assetUnit;
         const expected = (priceInBase1 * priceInBase2) / BASE_UNIT;
         const { price } = await wrapper.getPriceInfo(assetKey);
         expect(price).to.equal(expected);
@@ -153,9 +154,9 @@ async function runTestsForCurrency(
         const fixed1 = ethers.parseUnits("1.00", 18);
         const lower2 = ethers.parseUnits("0.98", 18);
         const fixed2 = ethers.parseUnits("1.00", 18);
-        await wrapper.updateCompositeFeed(assetKey, unit, lower1, fixed1, lower2, fixed2);
+        await wrapper.updateCompositeFeed(assetKey, lower1, fixed1, lower2, fixed2);
         const cfg = await wrapper.compositeFeeds(assetKey);
-        expect(cfg.rateProviderUnit).to.equal(unit);
+        expect(cfg.rateProviderUnit).to.equal(10n ** 18n); // Asset has 18 decimals
         expect(cfg.primaryThreshold.lowerThresholdInBase).to.equal(lower1);
         expect(cfg.primaryThreshold.fixedPriceInBase).to.equal(fixed1);
         expect(cfg.secondaryThreshold.lowerThresholdInBase).to.equal(lower2);
@@ -168,7 +169,7 @@ async function runTestsForCurrency(
         await expect(
           wrapper
             .connect(unauthorized)
-            .updateCompositeFeed(assetKey, (await rateProvider.UNIT()) as bigint, 0, 0, 0, 0),
+            .updateCompositeFeed(assetKey, 0, 0, 0, 0),
         )
           .to.be.revertedWithCustomError(wrapper, "AccessControlUnauthorizedAccount")
           .withArgs(await unauthorized.getAddress(), oracleManagerRole);

@@ -66,13 +66,14 @@ async function runTestsForCurrency(
       wrapper = await Factory.deploy(BASE_CURRENCY_EXPECTED, BASE_UNIT);
       await wrapper.waitForDeployment();
 
-      // Random asset key for mapping
-      assetKey = ethers.Wallet.createRandom().address;
+      // Deploy a mock ERC20 token to use as asset
+      const MockToken = await ethers.getContractFactory("MockERC20");
+      const mockToken = await MockToken.deploy("Mock Asset", "MOCK", 18);
+      assetKey = await mockToken.getAddress();
       await wrapper.setFeed(
         assetKey,
         await vault.getAddress(),
         await rateProvider.getAddress(),
-        UNIT,
         0,
         0,
         0,
@@ -100,9 +101,9 @@ async function runTestsForCurrency(
         )).decimals();
         const priceInBase1 = (assetsPerOneShare * BASE_UNIT) / (10n ** BigInt(uDec));
 
-        const UNIT: bigint = await rateProvider.UNIT();
+        const assetUnit = 10n ** 18n; // Asset has 18 decimals
         const rp: bigint = await rateProvider.getRate();
-        const priceInBase2 = (rp * BASE_UNIT) / UNIT;
+        const priceInBase2 = (rp * BASE_UNIT) / assetUnit;
 
         const expected = (priceInBase1 * priceInBase2) / BASE_UNIT;
         const { price, isAlive } = await wrapper.getPriceInfo(assetKey);
@@ -120,13 +121,13 @@ async function runTestsForCurrency(
         )).decimals();
         const priceInBase1 = (assetsPerOneShare * BASE_UNIT) / (10n ** BigInt(uDec));
 
-        const UNIT: bigint = await rateProvider.UNIT();
+        const assetUnit = 10n ** 18n; // Asset has 18 decimals
         const rp: bigint = await rateProvider.getRate();
-        const priceInBase2 = (rp * BASE_UNIT) / UNIT;
+        const priceInBase2 = (rp * BASE_UNIT) / assetUnit;
 
         const fixed1 = priceInBase1;
         const lower1 = priceInBase1 - 1n;
-        await wrapper.updateFeed(assetKey, UNIT, lower1, fixed1, 0, 0);
+        await wrapper.updateFeed(assetKey, lower1, fixed1, 0, 0);
 
         const expected = (fixed1 * priceInBase2) / BASE_UNIT;
         const { price } = await wrapper.getPriceInfo(assetKey);
@@ -143,13 +144,13 @@ async function runTestsForCurrency(
         )).decimals();
         const priceInBase1 = (assetsPerOneShare * BASE_UNIT) / (10n ** BigInt(uDec));
 
-        const UNIT: bigint = await rateProvider.UNIT();
+        const assetUnit = 10n ** 18n; // Asset has 18 decimals
         const rp: bigint = await rateProvider.getRate();
-        const priceInBase2 = (rp * BASE_UNIT) / UNIT;
+        const priceInBase2 = (rp * BASE_UNIT) / assetUnit;
 
         const fixed2 = priceInBase2;
         const lower2 = priceInBase2 - 1n;
-        await wrapper.updateFeed(assetKey, UNIT, 0, 0, lower2, fixed2);
+        await wrapper.updateFeed(assetKey, 0, 0, lower2, fixed2);
 
         const expected = (priceInBase1 * fixed2) / BASE_UNIT;
         const { price } = await wrapper.getPriceInfo(assetKey);
@@ -161,7 +162,10 @@ async function runTestsForCurrency(
       it("should allow adding and removing feeds", async function () {
         const UNIT = 10n ** 6n;
         const RATE = 980_150n;
-        const newAsset = ethers.Wallet.createRandom().address;
+        // Deploy a mock ERC20 token to use as new asset
+        const MockToken = await ethers.getContractFactory("MockERC20");
+        const newMockToken = await MockToken.deploy("New Mock Asset", "NMOCK", 18);
+        const newAsset = await newMockToken.getAddress();
 
         // Emit FeedSet
         await expect(
@@ -169,7 +173,6 @@ async function runTestsForCurrency(
             newAsset,
             await vault.getAddress(),
             await rateProvider.getAddress(),
-            UNIT,
             1n * BASE_UNIT,
             1n * BASE_UNIT,
             1n * BASE_UNIT,
@@ -181,7 +184,6 @@ async function runTestsForCurrency(
             newAsset,
             await vault.getAddress(),
             await rateProvider.getAddress(),
-            UNIT,
             1n * BASE_UNIT,
             1n * BASE_UNIT,
             1n * BASE_UNIT,
@@ -192,7 +194,7 @@ async function runTestsForCurrency(
         const feed = await wrapper.feeds(newAsset);
         expect(feed.erc4626Vault).to.equal(await vault.getAddress());
         expect(feed.rateProvider).to.equal(await rateProvider.getAddress());
-        expect(feed.rateProviderUnit).to.equal(UNIT);
+        expect(feed.rateProviderUnit).to.equal(10n ** 18n); // Asset has 18 decimals
         expect(feed.primaryThreshold.lowerThresholdInBase).to.equal(1n * BASE_UNIT);
         expect(feed.primaryThreshold.fixedPriceInBase).to.equal(1n * BASE_UNIT);
         expect(feed.secondaryThreshold.lowerThresholdInBase).to.equal(1n * BASE_UNIT);
@@ -215,12 +217,12 @@ async function runTestsForCurrency(
         const lower2 = 4n * (BASE_UNIT / 10n);
         const fixed2 = 1n * BASE_UNIT;
 
-        await expect(wrapper.updateFeed(assetKey, newUnit, lower1, fixed1, lower2, fixed2))
+        await expect(wrapper.updateFeed(assetKey, lower1, fixed1, lower2, fixed2))
           .to.emit(wrapper, "FeedUpdated")
-          .withArgs(assetKey, newUnit, lower1, fixed1, lower2, fixed2);
+          .withArgs(assetKey, lower1, fixed1, lower2, fixed2);
 
         const feed = await wrapper.feeds(assetKey);
-        expect(feed.rateProviderUnit).to.equal(newUnit);
+        expect(feed.rateProviderUnit).to.equal(10n ** 18n); // Asset has 18 decimals
         expect(feed.primaryThreshold.lowerThresholdInBase).to.equal(lower1);
         expect(feed.primaryThreshold.fixedPriceInBase).to.equal(fixed1);
         expect(feed.secondaryThreshold.lowerThresholdInBase).to.equal(lower2);
@@ -235,13 +237,13 @@ async function runTestsForCurrency(
         await expect(
           wrapper
             .connect(unauthorized)
-            .setFeed(newAsset, await vault.getAddress(), await rateProvider.getAddress(), 10n ** 6n, 0, 0, 0, 0),
+            .setFeed(newAsset, await vault.getAddress(), await rateProvider.getAddress(), 0, 0, 0, 0),
         )
           .to.be.revertedWithCustomError(wrapper, "AccessControlUnauthorizedAccount")
           .withArgs(await unauthorized.getAddress(), role);
 
         await expect(
-          wrapper.connect(unauthorized).updateFeed(assetKey, 10n ** 6n, 0, 0, 0, 0),
+          wrapper.connect(unauthorized).updateFeed(assetKey, 0, 0, 0, 0),
         )
           .to.be.revertedWithCustomError(wrapper, "AccessControlUnauthorizedAccount")
           .withArgs(await unauthorized.getAddress(), role);

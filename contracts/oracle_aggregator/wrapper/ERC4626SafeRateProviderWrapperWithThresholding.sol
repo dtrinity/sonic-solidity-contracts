@@ -49,7 +49,7 @@ contract ERC4626SafeRateProviderWrapperWithThresholding is IOracleWrapper, Acces
     struct FeedConfig {
         address erc4626Vault; // ERC4626 vault (shares token)
         address rateProvider; // IRateProvider
-        uint256 rateProviderUnit; // e.g., 1e6 if rate provider outputs 6-decimals
+        uint256 rateProviderUnit; // Calculated from asset decimals during setup
         ThresholdConfig primaryThreshold;   // Optional thresholding for ERC4626 leg (in BASE_CURRENCY_UNIT)
         ThresholdConfig secondaryThreshold; // Optional thresholding for rate provider leg (in BASE_CURRENCY_UNIT)
     }
@@ -60,7 +60,6 @@ contract ERC4626SafeRateProviderWrapperWithThresholding is IOracleWrapper, Acces
         address indexed asset,
         address erc4626Vault,
         address rateProvider,
-        uint256 rateProviderUnit,
         uint256 lowerThresholdInBase1,
         uint256 fixedPriceInBase1,
         uint256 lowerThresholdInBase2,
@@ -71,7 +70,6 @@ contract ERC4626SafeRateProviderWrapperWithThresholding is IOracleWrapper, Acces
 
     event FeedUpdated(
         address indexed asset,
-        uint256 rateProviderUnit,
         uint256 lowerThresholdInBase1,
         uint256 fixedPriceInBase1,
         uint256 lowerThresholdInBase2,
@@ -97,13 +95,15 @@ contract ERC4626SafeRateProviderWrapperWithThresholding is IOracleWrapper, Acces
         address asset,
         address erc4626Vault,
         address rateProvider,
-        uint256 rateProviderUnit,
         uint256 lowerThresholdInBase1,
         uint256 fixedPriceInBase1,
         uint256 lowerThresholdInBase2,
         uint256 fixedPriceInBase2
     ) external onlyRole(ORACLE_MANAGER_ROLE) {
-        if (rateProviderUnit == 0) revert InvalidUnit();
+        // Calculate rateProviderUnit from asset decimals and store for gas efficiency
+        uint256 assetDecimals = IERC20Metadata(asset).decimals();
+        uint256 rateProviderUnit = 10 ** assetDecimals;
+        
         feeds[asset] = FeedConfig({
             erc4626Vault: erc4626Vault,
             rateProvider: rateProvider,
@@ -121,7 +121,6 @@ contract ERC4626SafeRateProviderWrapperWithThresholding is IOracleWrapper, Acces
             asset,
             erc4626Vault,
             rateProvider,
-            rateProviderUnit,
             lowerThresholdInBase1,
             fixedPriceInBase1,
             lowerThresholdInBase2,
@@ -136,25 +135,25 @@ contract ERC4626SafeRateProviderWrapperWithThresholding is IOracleWrapper, Acces
 
     function updateFeed(
         address asset,
-        uint256 rateProviderUnit,
         uint256 lowerThresholdInBase1,
         uint256 fixedPriceInBase1,
         uint256 lowerThresholdInBase2,
         uint256 fixedPriceInBase2
     ) external onlyRole(ORACLE_MANAGER_ROLE) {
-        if (rateProviderUnit == 0) revert InvalidUnit();
         FeedConfig storage cfg = feeds[asset];
         if (cfg.erc4626Vault == address(0) || cfg.rateProvider == address(0)) {
             revert FeedNotSet(asset);
         }
-        cfg.rateProviderUnit = rateProviderUnit;
+        // Recalculate rateProviderUnit from asset decimals for consistency
+        uint256 assetDecimals = IERC20Metadata(asset).decimals();
+        cfg.rateProviderUnit = 10 ** assetDecimals;
+        
         cfg.primaryThreshold.lowerThresholdInBase = lowerThresholdInBase1;
         cfg.primaryThreshold.fixedPriceInBase = fixedPriceInBase1;
         cfg.secondaryThreshold.lowerThresholdInBase = lowerThresholdInBase2;
         cfg.secondaryThreshold.fixedPriceInBase = fixedPriceInBase2;
         emit FeedUpdated(
             asset,
-            rateProviderUnit,
             lowerThresholdInBase1,
             fixedPriceInBase1,
             lowerThresholdInBase2,
@@ -175,16 +174,16 @@ contract ERC4626SafeRateProviderWrapperWithThresholding is IOracleWrapper, Acces
 
         IERC4626 vault = IERC4626(cfg.erc4626Vault);
 
-        uint8 sharesDecimals = IERC20Metadata(cfg.erc4626Vault).decimals();
+        uint256 sharesDecimals = IERC20Metadata(cfg.erc4626Vault).decimals();
         uint256 sharesUnit = 10 ** sharesDecimals;
         uint256 assetsPerOneShare = vault.convertToAssets(sharesUnit);
 
         // Normalize assets to BASE_CURRENCY_UNIT using underlying decimals
         address underlying = vault.asset();
-        uint8 underlyingDecimals = IERC20Metadata(underlying).decimals();
+        uint256 underlyingDecimals = IERC20Metadata(underlying).decimals();
         uint256 priceInBase1 = Math.mulDiv(assetsPerOneShare, BASE_CURRENCY_UNIT, 10 ** underlyingDecimals);
 
-        // Rate provider leg with arbitrary unit
+        // Rate provider leg with stored rateProviderUnit
         uint256 rate = IRateProviderSafe(cfg.rateProvider).getRateSafe();
         uint256 priceInBase2 = Math.mulDiv(rate, BASE_CURRENCY_UNIT, cfg.rateProviderUnit);
 

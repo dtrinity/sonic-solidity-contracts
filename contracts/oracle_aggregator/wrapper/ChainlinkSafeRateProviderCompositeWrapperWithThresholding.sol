@@ -24,6 +24,7 @@ import "@openzeppelin/contracts/utils/math/Math.sol";
 import {IPriceFeed} from "../interface/chainlink/IPriceFeed.sol";
 import {IRateProvider} from "../interface/IRateProvider.sol";
 import {IRateProviderSafe} from "../interface/IRateProviderSafe.sol";
+import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
 // Rate provider interface moved to interface/IRateProvider.sol
 
@@ -44,7 +45,7 @@ contract ChainlinkSafeRateProviderCompositeWrapperWithThresholding is
     struct CompositeFeed {
         address feed1; // Chainlink AggregatorV3-like feed (IPriceFeed)
         address rateProvider; // IRateProvider
-        uint256 rateProviderUnit; // e.g., 1e18 if rate provider outputs 18-decimals
+        uint256 rateProviderUnit; // Calculated from asset decimals during setup
         ThresholdConfig primaryThreshold; // Optional thresholding for feed1 (in BASE_CURRENCY_UNIT)
         ThresholdConfig secondaryThreshold; // Optional thresholding for rate provider leg (in BASE_CURRENCY_UNIT)
     }
@@ -56,7 +57,6 @@ contract ChainlinkSafeRateProviderCompositeWrapperWithThresholding is
         address indexed asset,
         address feed1,
         address rateProvider,
-        uint256 rateProviderUnit,
         uint256 lowerThresholdInBase1,
         uint256 fixedPriceInBase1,
         uint256 lowerThresholdInBase2,
@@ -65,7 +65,6 @@ contract ChainlinkSafeRateProviderCompositeWrapperWithThresholding is
     event CompositeFeedRemoved(address indexed asset);
     event CompositeFeedUpdated(
         address indexed asset,
-        uint256 rateProviderUnit,
         uint256 lowerThresholdInBase1,
         uint256 fixedPriceInBase1,
         uint256 lowerThresholdInBase2,
@@ -86,13 +85,15 @@ contract ChainlinkSafeRateProviderCompositeWrapperWithThresholding is
         address asset,
         address feed1,
         address rateProvider,
-        uint256 rateProviderUnit,
         uint256 lowerThresholdInBase1,
         uint256 fixedPriceInBase1,
         uint256 lowerThresholdInBase2,
         uint256 fixedPriceInBase2
     ) external onlyRole(ORACLE_MANAGER_ROLE) {
-        if (rateProviderUnit == 0) revert InvalidUnit();
+        // Calculate rateProviderUnit from asset decimals and store for gas efficiency
+        uint256 assetDecimals = IERC20Metadata(asset).decimals();
+        uint256 rateProviderUnit = 10 ** assetDecimals;
+        
         compositeFeeds[asset] = CompositeFeed({
             feed1: feed1,
             rateProvider: rateProvider,
@@ -110,7 +111,6 @@ contract ChainlinkSafeRateProviderCompositeWrapperWithThresholding is
             asset,
             feed1,
             rateProvider,
-            rateProviderUnit,
             lowerThresholdInBase1,
             fixedPriceInBase1,
             lowerThresholdInBase2,
@@ -125,25 +125,25 @@ contract ChainlinkSafeRateProviderCompositeWrapperWithThresholding is
 
     function updateCompositeFeed(
         address asset,
-        uint256 rateProviderUnit,
         uint256 lowerThresholdInBase1,
         uint256 fixedPriceInBase1,
         uint256 lowerThresholdInBase2,
         uint256 fixedPriceInBase2
     ) external onlyRole(ORACLE_MANAGER_ROLE) {
-        if (rateProviderUnit == 0) revert InvalidUnit();
         CompositeFeed storage feed = compositeFeeds[asset];
         if (feed.feed1 == address(0) || feed.rateProvider == address(0)) {
             revert FeedNotSet(asset);
         }
-        feed.rateProviderUnit = rateProviderUnit;
+        // Recalculate rateProviderUnit from asset decimals for consistency
+        uint8 assetDecimals = IERC20Metadata(asset).decimals();
+        feed.rateProviderUnit = 10 ** assetDecimals;
+        
         feed.primaryThreshold.lowerThresholdInBase = lowerThresholdInBase1;
         feed.primaryThreshold.fixedPriceInBase = fixedPriceInBase1;
         feed.secondaryThreshold.lowerThresholdInBase = lowerThresholdInBase2;
         feed.secondaryThreshold.fixedPriceInBase = fixedPriceInBase2;
         emit CompositeFeedUpdated(
             asset,
-            rateProviderUnit,
             lowerThresholdInBase1,
             fixedPriceInBase1,
             lowerThresholdInBase2,
@@ -167,7 +167,7 @@ contract ChainlinkSafeRateProviderCompositeWrapperWithThresholding is
         uint256 chainlinkPrice1 = answer1 > 0 ? uint256(answer1) : 0;
         uint256 priceInBase1 = _convertToBaseCurrencyUnit(chainlinkPrice1);
 
-        // Rate provider leg (e.g., stkscUSD -> scUSD) with arbitrary decimals
+        // Rate provider leg (e.g., stkscUSD -> scUSD) with stored rateProviderUnit
         uint256 feed2 = IRateProviderSafe(feed.rateProvider).getRateSafe();
         uint256 priceInBase2 = Math.mulDiv(feed2, BASE_CURRENCY_UNIT, feed.rateProviderUnit);
 

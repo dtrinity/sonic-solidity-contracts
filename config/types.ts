@@ -175,7 +175,6 @@ export interface OracleAggregatorConfig {
         feedAsset: string;
         chainlinkFeed: string;
         rateProvider: string;
-        rateProviderUnit: bigint;
         lowerThresholdInBase1: bigint;
         fixedPriceInBase1: bigint;
         lowerThresholdInBase2: bigint;
@@ -187,7 +186,6 @@ export interface OracleAggregatorConfig {
         feedAsset: string;
         erc4626Vault: string;
         rateProvider: string;
-        rateProviderUnit: bigint;
         lowerThresholdInBase1: bigint;
         fixedPriceInBase1: bigint;
         lowerThresholdInBase2: bigint;
