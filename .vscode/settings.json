@@ -1,0 +1,34 @@
+{
+  "editor.formatOnSave": true,
+
+  // Use ESLint to format TS/JS
+  "editor.defaultFormatter": "dbaeumer.vscode-eslint",
+  "[typescript]": {
+    "editor.defaultFormatter": "dbaeumer.vscode-eslint"
+  },
+  "[typescriptreact]": {
+    "editor.defaultFormatter": "dbaeumer.vscode-eslint"
+  },
+  "[javascript]": {
+    "editor.defaultFormatter": "dbaeumer.vscode-eslint"
+  },
+  "[json]": {
+    "editor.defaultFormatter": "dbaeumer.vscode-eslint"
+  },
+
+  // Use Prettier for Solidity with solidity plugin
+  "[solidity]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+
+  // Ensure ESLint runs fixes on save for JS/TS
+  "eslint.codeActionsOnSave.rules": {
+    "source.fixAll.eslint": true
+  },
+  "eslint.validate": ["javascript", "typescript", "json"],
+
+  // Prettier picks up prettier.config.cjs at workspace root
+  "prettier.configPath": "prettier.config.cjs"
+}
+
+

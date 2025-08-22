@@ -19,7 +19,7 @@
 
 pragma solidity ^0.8.20;
 
-import {IERC3156FlashBorrower} from "./IERC3156FlashBorrower.sol";
+import { IERC3156FlashBorrower } from "./IERC3156FlashBorrower.sol";
 
 /**
  * @dev Interface of the ERC3156 FlashLender, as defined in
@@ -39,10 +39,7 @@ interface IERC3156FlashLender {
      * @param amount The amount of tokens lent.
      * @return The amount of `token` to be charged for the loan, on top of the returned principal.
      */
-    function flashFee(
-        address token,
-        uint256 amount
-    ) external view returns (uint256);
+    function flashFee(address token, uint256 amount) external view returns (uint256);
 
     /**
      * @dev Initiate a flash loan.
@@ -51,10 +48,5 @@ interface IERC3156FlashLender {
      * @param amount The amount of tokens lent.
      * @param data Arbitrary data structure, intended to contain user-defined parameters.
      */
-    function flashLoan(
-        IERC3156FlashBorrower receiver,
-        address token,
-        uint256 amount,
-        bytes calldata data
-    ) external returns (bool);
+    function flashLoan(IERC3156FlashBorrower receiver, address token, uint256 amount, bytes calldata data) external returns (bool);
 }

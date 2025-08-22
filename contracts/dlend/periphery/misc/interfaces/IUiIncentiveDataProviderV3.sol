@@ -17,7 +17,7 @@
 
 pragma solidity ^0.8.20;
 
-import {IPoolAddressesProvider} from "contracts/dlend/core/interfaces/IPoolAddressesProvider.sol";
+import { IPoolAddressesProvider } from "contracts/dlend/core/interfaces/IPoolAddressesProvider.sol";
 
 interface IUiIncentiveDataProviderV3 {
     struct AggregatedReserveIncentiveData {
@@ -71,9 +71,7 @@ interface IUiIncentiveDataProviderV3 {
         uint8 rewardTokenDecimals;
     }
 
-    function getReservesIncentivesData(
-        IPoolAddressesProvider provider
-    ) external view returns (AggregatedReserveIncentiveData[] memory);
+    function getReservesIncentivesData(IPoolAddressesProvider provider) external view returns (AggregatedReserveIncentiveData[] memory);
 
     function getUserReservesIncentivesData(
         IPoolAddressesProvider provider,
@@ -84,11 +82,5 @@ interface IUiIncentiveDataProviderV3 {
     function getFullReservesIncentiveData(
         IPoolAddressesProvider provider,
         address user
-    )
-        external
-        view
-        returns (
-            AggregatedReserveIncentiveData[] memory,
-            UserReserveIncentiveData[] memory
-        );
+    ) external view returns (AggregatedReserveIncentiveData[] memory, UserReserveIncentiveData[] memory);
 }

@@ -18,7 +18,7 @@
 pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/access/AccessControl.sol";
-import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
+import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
 
 import "contracts/common/IMintableERC20.sol";
 import "./CollateralVault.sol";
@@ -33,8 +33,7 @@ contract Redeemer is AccessControl, OracleAware {
 
     /* Roles */
 
-    bytes32 public constant REDEMPTION_MANAGER_ROLE =
-        keccak256("REDEMPTION_MANAGER_ROLE");
+    bytes32 public constant REDEMPTION_MANAGER_ROLE = keccak256("REDEMPTION_MANAGER_ROLE");
 
     /* Errors */
     error DStableTransferFailed();
@@ -47,11 +46,7 @@ contract Redeemer is AccessControl, OracleAware {
      * @param _oracle The address of the price oracle
      * @dev Sets up initial roles and configuration for redemption functionality
      */
-    constructor(
-        address _collateralVault,
-        address _dstable,
-        IPriceOracleGetter _oracle
-    ) OracleAware(_oracle, _oracle.BASE_CURRENCY_UNIT()) {
+    constructor(address _collateralVault, address _dstable, IPriceOracleGetter _oracle) OracleAware(_oracle, _oracle.BASE_CURRENCY_UNIT()) {
         collateralVault = CollateralVault(_collateralVault);
         dstable = IMintableERC20(_dstable);
         dstableDecimals = dstable.decimals();
@@ -68,11 +63,7 @@ contract Redeemer is AccessControl, OracleAware {
      * @param collateralAsset The address of the collateral asset
      * @param minCollateral The minimum amount of collateral to receive, used for slippage protection
      */
-    function redeem(
-        uint256 dstableAmount,
-        address collateralAsset,
-        uint256 minCollateral
-    ) external onlyRole(REDEMPTION_MANAGER_ROLE) {
+    function redeem(uint256 dstableAmount, address collateralAsset, uint256 minCollateral) external onlyRole(REDEMPTION_MANAGER_ROLE) {
         // Transfer dStable from withdrawer to this contract
         if (!dstable.transferFrom(msg.sender, address(this), dstableAmount)) {
             revert DStableTransferFailed();
@@ -83,20 +74,13 @@ contract Redeemer is AccessControl, OracleAware {
 
         // Calculate collateral amount
         uint256 dstableValue = dstableAmountToBaseValue(dstableAmount);
-        uint256 collateralAmount = collateralVault.assetAmountFromValue(
-            dstableValue,
-            collateralAsset
-        );
+        uint256 collateralAmount = collateralVault.assetAmountFromValue(dstableValue, collateralAsset);
         if (collateralAmount < minCollateral) {
             revert SlippageTooHigh(collateralAmount, minCollateral);
         }
 
         // Withdraw collateral from the vault
-        collateralVault.withdrawTo(
-            msg.sender,
-            collateralAmount,
-            collateralAsset
-        );
+        collateralVault.withdrawTo(msg.sender, collateralAmount, collateralAsset);
     }
 
     /**
@@ -104,11 +88,8 @@ contract Redeemer is AccessControl, OracleAware {
      * @param dstableAmount The amount of dStable tokens to convert.
      * @return The equivalent base value.
      */
-    function dstableAmountToBaseValue(
-        uint256 dstableAmount
-    ) public view returns (uint256) {
-        return
-            Math.mulDiv(dstableAmount, baseCurrencyUnit, 10 ** dstableDecimals);
+    function dstableAmountToBaseValue(uint256 dstableAmount) public view returns (uint256) {
+        return Math.mulDiv(dstableAmount, baseCurrencyUnit, 10 ** dstableDecimals);
     }
 
     /* Admin */
@@ -117,9 +98,7 @@ contract Redeemer is AccessControl, OracleAware {
      * @notice Sets the collateral vault address
      * @param _collateralVault The address of the new collateral vault
      */
-    function setCollateralVault(
-        address _collateralVault
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function setCollateralVault(address _collateralVault) external onlyRole(DEFAULT_ADMIN_ROLE) {
         collateralVault = CollateralVault(_collateralVault);
     }
 }

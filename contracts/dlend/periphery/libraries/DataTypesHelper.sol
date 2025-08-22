@@ -17,8 +17,8 @@
 
 pragma solidity ^0.8.20;
 
-import {IERC20} from "contracts/dlend/core/dependencies/openzeppelin/contracts/IERC20.sol";
-import {DataTypes} from "contracts/dlend/core/protocol/libraries/types/DataTypes.sol";
+import { IERC20 } from "contracts/dlend/core/dependencies/openzeppelin/contracts/IERC20.sol";
+import { DataTypes } from "contracts/dlend/core/protocol/libraries/types/DataTypes.sol";
 
 /**
  * @title DataTypesHelper
@@ -33,13 +33,7 @@ library DataTypesHelper {
      * @return The stable debt balance
      * @return The variable debt balance
      **/
-    function getUserCurrentDebt(
-        address user,
-        DataTypes.ReserveData memory reserve
-    ) internal view returns (uint256, uint256) {
-        return (
-            IERC20(reserve.stableDebtTokenAddress).balanceOf(user),
-            IERC20(reserve.variableDebtTokenAddress).balanceOf(user)
-        );
+    function getUserCurrentDebt(address user, DataTypes.ReserveData memory reserve) internal view returns (uint256, uint256) {
+        return (IERC20(reserve.stableDebtTokenAddress).balanceOf(user), IERC20(reserve.variableDebtTokenAddress).balanceOf(user));
     }
 }

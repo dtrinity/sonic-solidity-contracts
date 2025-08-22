@@ -17,10 +17,10 @@
 
 pragma solidity ^0.8.20;
 
-import {IAaveOracle} from "contracts/dlend/core/interfaces/IAaveOracle.sol";
-import {RewardsDataTypes} from "../libraries/RewardsDataTypes.sol";
-import {ITransferStrategyBase} from "./ITransferStrategyBase.sol";
-import {IRewardsController} from "./IRewardsController.sol";
+import { IAaveOracle } from "contracts/dlend/core/interfaces/IAaveOracle.sol";
+import { RewardsDataTypes } from "../libraries/RewardsDataTypes.sol";
+import { ITransferStrategyBase } from "./ITransferStrategyBase.sol";
+import { IRewardsController } from "./IRewardsController.sol";
 
 /**
  * @title IEmissionManager
@@ -34,11 +34,7 @@ interface IEmissionManager {
      * @param oldAdmin The address of the old emission admin
      * @param newAdmin The address of the new emission admin
      */
-    event EmissionAdminUpdated(
-        address indexed reward,
-        address indexed oldAdmin,
-        address indexed newAdmin
-    );
+    event EmissionAdminUpdated(address indexed reward, address indexed oldAdmin, address indexed newAdmin);
 
     /**
      * @dev Configure assets to incentivize with an emission of rewards per second until the end of distribution.
@@ -52,9 +48,7 @@ interface IEmissionManager {
      *   ITransferStrategy transferStrategy: The TransferStrategy address with the install hook and claim logic.
      *   IAaveOracle rewardOracle: The Price Oracle of a reward to visualize the incentives at the UI Frontend.
      */
-    function configureAssets(
-        RewardsDataTypes.RewardsConfigInput[] memory config
-    ) external;
+    function configureAssets(RewardsDataTypes.RewardsConfigInput[] memory config) external;
 
     /**
      * @dev Sets a TransferStrategy logic contract that determines the logic of the rewards transfer
@@ -62,10 +56,7 @@ interface IEmissionManager {
      * @param reward The address of the reward token
      * @param transferStrategy The address of the TransferStrategy logic contract
      */
-    function setTransferStrategy(
-        address reward,
-        ITransferStrategyBase transferStrategy
-    ) external;
+    function setTransferStrategy(address reward, ITransferStrategyBase transferStrategy) external;
 
     /**
      * @dev Sets an Aave Oracle contract to enforce rewards with a source of value.
@@ -86,11 +77,7 @@ interface IEmissionManager {
      * @param reward The reward token that incentives the asset
      * @param newDistributionEnd The end date of the incentivization, in unix time format
      **/
-    function setDistributionEnd(
-        address asset,
-        address reward,
-        uint32 newDistributionEnd
-    ) external;
+    function setDistributionEnd(address asset, address reward, uint32 newDistributionEnd) external;
 
     /**
      * @dev Sets the emission per second of a set of reward distributions
@@ -98,11 +85,7 @@ interface IEmissionManager {
      * @param rewards List of reward addresses are being distributed
      * @param newEmissionsPerSecond List of new reward emissions per second
      */
-    function setEmissionPerSecond(
-        address asset,
-        address[] calldata rewards,
-        uint88[] calldata newEmissionsPerSecond
-    ) external;
+    function setEmissionPerSecond(address asset, address[] calldata rewards, uint88[] calldata newEmissionsPerSecond) external;
 
     /**
      * @dev Whitelists an address to claim the rewards on behalf of another address

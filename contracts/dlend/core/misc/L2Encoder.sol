@@ -17,9 +17,9 @@
 
 pragma solidity ^0.8.20;
 
-import {SafeCast} from "../dependencies/openzeppelin/contracts/SafeCast.sol";
-import {IPool} from "../interfaces/IPool.sol";
-import {DataTypes} from "../protocol/libraries/types/DataTypes.sol";
+import { SafeCast } from "../dependencies/openzeppelin/contracts/SafeCast.sol";
+import { IPool } from "../interfaces/IPool.sol";
+import { DataTypes } from "../protocol/libraries/types/DataTypes.sol";
 
 /**
  * @title L2Encoder
@@ -48,11 +48,7 @@ contract L2Encoder {
      *   0 if the action is executed directly by the user, without any middle-man
      * @return compact representation of supply parameters
      */
-    function encodeSupplyParams(
-        address asset,
-        uint256 amount,
-        uint16 referralCode
-    ) external view returns (bytes32) {
+    function encodeSupplyParams(address asset, uint256 amount, uint16 referralCode) external view returns (bytes32) {
         DataTypes.ReserveData memory data = POOL.getReserveData(asset);
 
         uint16 assetId = data.id;
@@ -60,10 +56,7 @@ contract L2Encoder {
         bytes32 res;
 
         assembly {
-            res := add(
-                assetId,
-                add(shl(16, shortenedAmount), shl(144, referralCode))
-            )
+            res := add(assetId, add(shl(16, shortenedAmount), shl(144, referralCode)))
         }
         return res;
     }
@@ -102,13 +95,7 @@ contract L2Encoder {
         assembly {
             res := add(
                 assetId,
-                add(
-                    shl(16, shortenedAmount),
-                    add(
-                        shl(144, referralCode),
-                        add(shl(160, shortenedDeadline), shl(192, permitV))
-                    )
-                )
+                add(shl(16, shortenedAmount), add(shl(144, referralCode), add(shl(160, shortenedDeadline), shl(192, permitV))))
             )
         }
 
@@ -122,16 +109,11 @@ contract L2Encoder {
      * @param amount The underlying amount to be withdrawn
      * @return compact representation of withdraw parameters
      */
-    function encodeWithdrawParams(
-        address asset,
-        uint256 amount
-    ) external view returns (bytes32) {
+    function encodeWithdrawParams(address asset, uint256 amount) external view returns (bytes32) {
         DataTypes.ReserveData memory data = POOL.getReserveData(asset);
 
         uint16 assetId = data.id;
-        uint128 shortenedAmount = amount == type(uint256).max
-            ? type(uint128).max
-            : amount.toUint128();
+        uint128 shortenedAmount = amount == type(uint256).max ? type(uint128).max : amount.toUint128();
 
         bytes32 res;
         assembly {
@@ -163,16 +145,7 @@ contract L2Encoder {
         uint8 shortenedInterestRateMode = interestRateMode.toUint8();
         bytes32 res;
         assembly {
-            res := add(
-                assetId,
-                add(
-                    shl(16, shortenedAmount),
-                    add(
-                        shl(144, shortenedInterestRateMode),
-                        shl(152, referralCode)
-                    )
-                )
-            )
+            res := add(assetId, add(shl(16, shortenedAmount), add(shl(144, shortenedInterestRateMode), shl(152, referralCode))))
         }
         return res;
     }
@@ -186,28 +159,16 @@ contract L2Encoder {
      * @param interestRateMode The interest rate mode at of the debt the user wants to repay: 1 for Stable, 2 for Variable
      * @return compact representation of repay parameters
      */
-    function encodeRepayParams(
-        address asset,
-        uint256 amount,
-        uint256 interestRateMode
-    ) public view returns (bytes32) {
+    function encodeRepayParams(address asset, uint256 amount, uint256 interestRateMode) public view returns (bytes32) {
         DataTypes.ReserveData memory data = POOL.getReserveData(asset);
 
         uint16 assetId = data.id;
-        uint128 shortenedAmount = amount == type(uint256).max
-            ? type(uint128).max
-            : amount.toUint128();
+        uint128 shortenedAmount = amount == type(uint256).max ? type(uint128).max : amount.toUint128();
         uint8 shortenedInterestRateMode = interestRateMode.toUint8();
 
         bytes32 res;
         assembly {
-            res := add(
-                assetId,
-                add(
-                    shl(16, shortenedAmount),
-                    shl(144, shortenedInterestRateMode)
-                )
-            )
+            res := add(assetId, add(shl(16, shortenedAmount), shl(144, shortenedInterestRateMode)))
         }
         return res;
     }
@@ -239,9 +200,7 @@ contract L2Encoder {
         DataTypes.ReserveData memory data = POOL.getReserveData(asset);
 
         uint16 assetId = data.id;
-        uint128 shortenedAmount = amount == type(uint256).max
-            ? type(uint128).max
-            : amount.toUint128();
+        uint128 shortenedAmount = amount == type(uint256).max ? type(uint128).max : amount.toUint128();
         uint8 shortenedInterestRateMode = interestRateMode.toUint8();
         uint32 shortenedDeadline = deadline.toUint32();
 
@@ -249,13 +208,7 @@ contract L2Encoder {
         assembly {
             res := add(
                 assetId,
-                add(
-                    shl(16, shortenedAmount),
-                    add(
-                        shl(144, shortenedInterestRateMode),
-                        add(shl(152, shortenedDeadline), shl(184, permitV))
-                    )
-                )
+                add(shl(16, shortenedAmount), add(shl(144, shortenedInterestRateMode), add(shl(152, shortenedDeadline), shl(184, permitV))))
             )
         }
         return (res, permitR, permitS);
@@ -269,11 +222,7 @@ contract L2Encoder {
      * @param interestRateMode The interest rate mode at of the debt the user wants to repay: 1 for Stable, 2 for Variable
      * @return compact representation of repay with aToken parameters
      */
-    function encodeRepayWithATokensParams(
-        address asset,
-        uint256 amount,
-        uint256 interestRateMode
-    ) external view returns (bytes32) {
+    function encodeRepayWithATokensParams(address asset, uint256 amount, uint256 interestRateMode) external view returns (bytes32) {
         return encodeRepayParams(asset, amount, interestRateMode);
     }
 
@@ -283,10 +232,7 @@ contract L2Encoder {
      * @param interestRateMode The current interest rate mode of the position being swapped: 1 for Stable, 2 for Variable
      * @return compact representation of swap borrow rate mode parameters
      */
-    function encodeSwapBorrowRateMode(
-        address asset,
-        uint256 interestRateMode
-    ) external view returns (bytes32) {
+    function encodeSwapBorrowRateMode(address asset, uint256 interestRateMode) external view returns (bytes32) {
         DataTypes.ReserveData memory data = POOL.getReserveData(asset);
         uint16 assetId = data.id;
         uint8 shortenedInterestRateMode = interestRateMode.toUint8();
@@ -303,10 +249,7 @@ contract L2Encoder {
      * @param user The address of the user to be rebalanced
      * @return compact representation of rebalance stable borrow rate parameters
      */
-    function encodeRebalanceStableBorrowRate(
-        address asset,
-        address user
-    ) external view returns (bytes32) {
+    function encodeRebalanceStableBorrowRate(address asset, address user) external view returns (bytes32) {
         DataTypes.ReserveData memory data = POOL.getReserveData(asset);
         uint16 assetId = data.id;
 
@@ -323,10 +266,7 @@ contract L2Encoder {
      * @param useAsCollateral True if the user wants to use the supply as collateral, false otherwise
      * @return compact representation of set user use reserve as collateral parameters
      */
-    function encodeSetUserUseReserveAsCollateral(
-        address asset,
-        bool useAsCollateral
-    ) external view returns (bytes32) {
+    function encodeSetUserUseReserveAsCollateral(address asset, bool useAsCollateral) external view returns (bytes32) {
         DataTypes.ReserveData memory data = POOL.getReserveData(asset);
         uint16 assetId = data.id;
         bytes32 res;
@@ -354,26 +294,19 @@ contract L2Encoder {
         uint256 debtToCover,
         bool receiveAToken
     ) external view returns (bytes32, bytes32) {
-        DataTypes.ReserveData memory collateralData = POOL.getReserveData(
-            collateralAsset
-        );
+        DataTypes.ReserveData memory collateralData = POOL.getReserveData(collateralAsset);
         uint16 collateralAssetId = collateralData.id;
 
         DataTypes.ReserveData memory debtData = POOL.getReserveData(debtAsset);
         uint16 debtAssetId = debtData.id;
 
-        uint128 shortenedDebtToCover = debtToCover == type(uint256).max
-            ? type(uint128).max
-            : debtToCover.toUint128();
+        uint128 shortenedDebtToCover = debtToCover == type(uint256).max ? type(uint128).max : debtToCover.toUint128();
 
         bytes32 res1;
         bytes32 res2;
 
         assembly {
-            res1 := add(
-                add(collateralAssetId, shl(16, debtAssetId)),
-                shl(32, user)
-            )
+            res1 := add(add(collateralAssetId, shl(16, debtAssetId)), shl(32, user))
             res2 := add(shortenedDebtToCover, shl(128, receiveAToken))
         }
         return (res1, res2);

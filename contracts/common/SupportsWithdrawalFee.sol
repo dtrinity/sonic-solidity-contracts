@@ -2,7 +2,7 @@
 pragma solidity ^0.8.20;
 
 import "./BasisPointConstants.sol";
-import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
+import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
 
 error InitialFeeExceedsMaxFee(uint256 feeBps, uint256 maxFeeBps);
 error InvalidFeeBps(uint256 feeBps, uint256 maxFeeBps);
@@ -12,11 +12,7 @@ error InvalidFeeBps(uint256 feeBps, uint256 maxFeeBps);
 abstract contract SupportsWithdrawalFee {
     uint256 internal withdrawalFeeBps_;
 
-    event WithdrawalFee(
-        address indexed owner,
-        address indexed receiver,
-        uint256 feeAmount
-    );
+    event WithdrawalFee(address indexed owner, address indexed receiver, uint256 feeAmount);
     event WithdrawalFeeSet(uint256 newFeeBps);
 
     /**
@@ -57,15 +53,8 @@ abstract contract SupportsWithdrawalFee {
      * @param assetAmount The amount of assets being withdrawn.
      * @return The fee amount in asset terms.
      */
-    function _calculateWithdrawalFee(
-        uint256 assetAmount
-    ) internal view returns (uint256) {
-        return
-            Math.mulDiv(
-                assetAmount,
-                withdrawalFeeBps_,
-                BasisPointConstants.ONE_HUNDRED_PERCENT_BPS
-            );
+    function _calculateWithdrawalFee(uint256 assetAmount) internal view returns (uint256) {
+        return Math.mulDiv(assetAmount, withdrawalFeeBps_, BasisPointConstants.ONE_HUNDRED_PERCENT_BPS);
     }
 
     /**
@@ -74,9 +63,7 @@ abstract contract SupportsWithdrawalFee {
      * @param grossAmount The gross amount before fees.
      * @return The net amount after deducting fees.
      */
-    function _getNetAmountAfterFee(
-        uint256 grossAmount
-    ) internal view returns (uint256) {
+    function _getNetAmountAfterFee(uint256 grossAmount) internal view returns (uint256) {
         uint256 fee = _calculateWithdrawalFee(grossAmount);
         return grossAmount - fee;
     }
@@ -88,9 +75,7 @@ abstract contract SupportsWithdrawalFee {
      * @param netAmount The desired net amount after fees.
      * @return The gross amount required before fees.
      */
-    function _getGrossAmountRequiredForNet(
-        uint256 netAmount
-    ) internal view returns (uint256) {
+    function _getGrossAmountRequiredForNet(uint256 netAmount) internal view returns (uint256) {
         if (withdrawalFeeBps_ == 0) {
             return netAmount;
         }

@@ -18,12 +18,12 @@
 pragma solidity ^0.8.20;
 
 import "./ThresholdingUtils.sol";
-import {IOracleWrapper} from "../interface/IOracleWrapper.sol";
-import {IRateProvider} from "../interface/IRateProvider.sol";
-import {IRateProviderSafe} from "../interface/IRateProviderSafe.sol";
-import {IERC4626} from "contracts/vaults/atoken_wrapper/interfaces/IERC4626.sol";
-import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
-import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
+import { IOracleWrapper } from "../interface/IOracleWrapper.sol";
+import { IRateProvider } from "../interface/IRateProvider.sol";
+import { IRateProviderSafe } from "../interface/IRateProviderSafe.sol";
+import { IERC4626 } from "contracts/vaults/atoken_wrapper/interfaces/IERC4626.sol";
+import { IERC20Metadata } from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
+import { AccessControl } from "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 
 /**
@@ -39,18 +39,13 @@ import "@openzeppelin/contracts/utils/math/Math.sol";
  *  - rateProvider: AccountantWithFixedRate (stkscUSD -> scUSD) returning a rate with `rateProviderUnit` decimals
  *  - price(asset) = ERC4626(wstkscUSD/stkscUSD in base) * RP(stkscUSD/scUSD in base) / BASE_CURRENCY_UNIT
  */
-contract ERC4626SafeRateProviderWrapperWithThresholding is
-    IOracleWrapper,
-    AccessControl,
-    ThresholdingUtils
-{
+contract ERC4626SafeRateProviderWrapperWithThresholding is IOracleWrapper, AccessControl, ThresholdingUtils {
     // Base currency settings
     address private immutable _baseCurrency;
     uint256 public immutable BASE_CURRENCY_UNIT;
 
     // Roles
-    bytes32 public constant ORACLE_MANAGER_ROLE =
-        keccak256("ORACLE_MANAGER_ROLE");
+    bytes32 public constant ORACLE_MANAGER_ROLE = keccak256("ORACLE_MANAGER_ROLE");
     struct FeedConfig {
         address erc4626Vault; // ERC4626 vault (shares token)
         address rateProvider; // IRateProvider
@@ -113,24 +108,10 @@ contract ERC4626SafeRateProviderWrapperWithThresholding is
             erc4626Vault: erc4626Vault,
             rateProvider: rateProvider,
             rateProviderUnit: rateProviderUnit,
-            primaryThreshold: ThresholdConfig({
-                lowerThresholdInBase: lowerThresholdInBase1,
-                fixedPriceInBase: fixedPriceInBase1
-            }),
-            secondaryThreshold: ThresholdConfig({
-                lowerThresholdInBase: lowerThresholdInBase2,
-                fixedPriceInBase: fixedPriceInBase2
-            })
+            primaryThreshold: ThresholdConfig({ lowerThresholdInBase: lowerThresholdInBase1, fixedPriceInBase: fixedPriceInBase1 }),
+            secondaryThreshold: ThresholdConfig({ lowerThresholdInBase: lowerThresholdInBase2, fixedPriceInBase: fixedPriceInBase2 })
         });
-        emit FeedSet(
-            asset,
-            erc4626Vault,
-            rateProvider,
-            lowerThresholdInBase1,
-            fixedPriceInBase1,
-            lowerThresholdInBase2,
-            fixedPriceInBase2
-        );
+        emit FeedSet(asset, erc4626Vault, rateProvider, lowerThresholdInBase1, fixedPriceInBase1, lowerThresholdInBase2, fixedPriceInBase2);
     }
 
     function removeFeed(address asset) external onlyRole(ORACLE_MANAGER_ROLE) {
@@ -157,18 +138,10 @@ contract ERC4626SafeRateProviderWrapperWithThresholding is
         cfg.primaryThreshold.fixedPriceInBase = fixedPriceInBase1;
         cfg.secondaryThreshold.lowerThresholdInBase = lowerThresholdInBase2;
         cfg.secondaryThreshold.fixedPriceInBase = fixedPriceInBase2;
-        emit FeedUpdated(
-            asset,
-            lowerThresholdInBase1,
-            fixedPriceInBase1,
-            lowerThresholdInBase2,
-            fixedPriceInBase2
-        );
+        emit FeedUpdated(asset, lowerThresholdInBase1, fixedPriceInBase1, lowerThresholdInBase2, fixedPriceInBase2);
     }
 
-    function getPriceInfo(
-        address asset
-    ) public view override returns (uint256 price, bool isAlive) {
+    function getPriceInfo(address asset) public view override returns (uint256 price, bool isAlive) {
         FeedConfig memory cfg = feeds[asset];
         if (cfg.erc4626Vault == address(0) || cfg.rateProvider == address(0)) {
             revert FeedNotSet(asset);
@@ -183,29 +156,18 @@ contract ERC4626SafeRateProviderWrapperWithThresholding is
         // Normalize assets to BASE_CURRENCY_UNIT using underlying decimals
         address underlying = vault.asset();
         uint256 underlyingDecimals = IERC20Metadata(underlying).decimals();
-        uint256 priceInBase1 = Math.mulDiv(
-            assetsPerOneShare,
-            BASE_CURRENCY_UNIT,
-            10 ** underlyingDecimals
-        );
+        uint256 priceInBase1 = Math.mulDiv(assetsPerOneShare, BASE_CURRENCY_UNIT, 10 ** underlyingDecimals);
 
         // Rate provider leg with stored rateProviderUnit
         uint256 rate = IRateProviderSafe(cfg.rateProvider).getRateSafe();
-        uint256 priceInBase2 = Math.mulDiv(
-            rate,
-            BASE_CURRENCY_UNIT,
-            cfg.rateProviderUnit
-        );
+        uint256 priceInBase2 = Math.mulDiv(rate, BASE_CURRENCY_UNIT, cfg.rateProviderUnit);
 
         // Apply optional thresholding (in BASE_CURRENCY_UNIT) per leg
         if (cfg.primaryThreshold.lowerThresholdInBase > 0) {
             priceInBase1 = _applyThreshold(priceInBase1, cfg.primaryThreshold);
         }
         if (cfg.secondaryThreshold.lowerThresholdInBase > 0) {
-            priceInBase2 = _applyThreshold(
-                priceInBase2,
-                cfg.secondaryThreshold
-            );
+            priceInBase2 = _applyThreshold(priceInBase2, cfg.secondaryThreshold);
         }
 
         // Compose into BASE_CURRENCY_UNIT
@@ -215,9 +177,7 @@ contract ERC4626SafeRateProviderWrapperWithThresholding is
         isAlive = price > 0 && rate > 0;
     }
 
-    function getAssetPrice(
-        address asset
-    ) external view override returns (uint256) {
+    function getAssetPrice(address asset) external view override returns (uint256) {
         (uint256 p, bool alive) = getPriceInfo(asset);
         if (!alive) revert PriceIsStale();
         return p;

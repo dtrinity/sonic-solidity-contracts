@@ -17,17 +17,17 @@
 
 pragma solidity ^0.8.20;
 
-import {GPv2SafeERC20} from "../../../dependencies/gnosis/contracts/GPv2SafeERC20.sol";
-import {Address} from "../../../dependencies/openzeppelin/contracts/Address.sol";
-import {IERC20} from "../../../dependencies/openzeppelin/contracts/IERC20.sol";
-import {IAToken} from "../../../interfaces/IAToken.sol";
-import {ReserveConfiguration} from "../configuration/ReserveConfiguration.sol";
-import {Errors} from "../helpers/Errors.sol";
-import {WadRayMath} from "../math/WadRayMath.sol";
-import {DataTypes} from "../types/DataTypes.sol";
-import {ReserveLogic} from "./ReserveLogic.sol";
-import {ValidationLogic} from "./ValidationLogic.sol";
-import {GenericLogic} from "./GenericLogic.sol";
+import { GPv2SafeERC20 } from "../../../dependencies/gnosis/contracts/GPv2SafeERC20.sol";
+import { Address } from "../../../dependencies/openzeppelin/contracts/Address.sol";
+import { IERC20 } from "../../../dependencies/openzeppelin/contracts/IERC20.sol";
+import { IAToken } from "../../../interfaces/IAToken.sol";
+import { ReserveConfiguration } from "../configuration/ReserveConfiguration.sol";
+import { Errors } from "../helpers/Errors.sol";
+import { WadRayMath } from "../math/WadRayMath.sol";
+import { DataTypes } from "../types/DataTypes.sol";
+import { ReserveLogic } from "./ReserveLogic.sol";
+import { ValidationLogic } from "./ValidationLogic.sol";
+import { GenericLogic } from "./GenericLogic.sol";
 
 /**
  * @title PoolLogic library
@@ -42,10 +42,7 @@ library PoolLogic {
 
     // See `IPool` for descriptions
     event MintedToTreasury(address indexed reserve, uint256 amountMinted);
-    event IsolationModeTotalDebtUpdated(
-        address indexed asset,
-        uint256 totalDebt
-    );
+    event IsolationModeTotalDebtUpdated(address indexed asset, uint256 totalDebt);
 
     /**
      * @notice Initialize an asset reserve and add the reserve to the list of reserves
@@ -67,8 +64,7 @@ library PoolLogic {
             params.interestRateStrategyAddress
         );
 
-        bool reserveAlreadyAdded = reservesData[params.asset].id != 0 ||
-            reservesList[0] == params.asset;
+        bool reserveAlreadyAdded = reservesData[params.asset].id != 0 || reservesList[0] == params.asset;
         require(!reserveAlreadyAdded, Errors.RESERVE_ALREADY_ADDED);
 
         for (uint16 i = 0; i < params.reservesCount; i++) {
@@ -79,10 +75,7 @@ library PoolLogic {
             }
         }
 
-        require(
-            params.reservesCount < params.maxNumberReserves,
-            Errors.NO_MORE_RESERVES_ALLOWED
-        );
+        require(params.reservesCount < params.maxNumberReserves, Errors.NO_MORE_RESERVES_ALLOWED);
         reservesData[params.asset].id = params.reservesCount;
         reservesList[params.reservesCount] = params.asset;
         return true;
@@ -94,11 +87,7 @@ library PoolLogic {
      * @param to The address of the recipient
      * @param amount The amount of token to transfer
      */
-    function executeRescueTokens(
-        address token,
-        address to,
-        uint256 amount
-    ) external {
+    function executeRescueTokens(address token, address to, uint256 amount) external {
         IERC20(token).safeTransfer(to, amount);
     }
 
@@ -107,10 +96,7 @@ library PoolLogic {
      * @param reservesData The state of all the reserves
      * @param assets The list of reserves for which the minting needs to be executed
      */
-    function executeMintToTreasury(
-        mapping(address => DataTypes.ReserveData) storage reservesData,
-        address[] calldata assets
-    ) external {
+    function executeMintToTreasury(mapping(address => DataTypes.ReserveData) storage reservesData, address[] calldata assets) external {
         for (uint256 i = 0; i < assets.length; i++) {
             address assetAddress = assets[i];
 
@@ -126,13 +112,8 @@ library PoolLogic {
             if (accruedToTreasury != 0) {
                 reserve.accruedToTreasury = 0;
                 uint256 normalizedIncome = reserve.getNormalizedIncome();
-                uint256 amountToMint = accruedToTreasury.rayMul(
-                    normalizedIncome
-                );
-                IAToken(reserve.aTokenAddress).mintToTreasury(
-                    amountToMint,
-                    normalizedIncome
-                );
+                uint256 amountToMint = accruedToTreasury.rayMul(normalizedIncome);
+                IAToken(reserve.aTokenAddress).mintToTreasury(amountToMint, normalizedIncome);
 
                 emit MintedToTreasury(assetAddress, amountToMint);
             }
@@ -145,14 +126,8 @@ library PoolLogic {
      * @param reservesData The state of all the reserves
      * @param asset The address of the underlying asset to reset the isolationModeTotalDebt
      */
-    function executeResetIsolationModeTotalDebt(
-        mapping(address => DataTypes.ReserveData) storage reservesData,
-        address asset
-    ) external {
-        require(
-            reservesData[asset].configuration.getDebtCeiling() == 0,
-            Errors.DEBT_CEILING_NOT_ZERO
-        );
+    function executeResetIsolationModeTotalDebt(mapping(address => DataTypes.ReserveData) storage reservesData, address asset) external {
+        require(reservesData[asset].configuration.getDebtCeiling() == 0, Errors.DEBT_CEILING_NOT_ZERO);
         reservesData[asset].isolationModeTotalDebt = 0;
         emit IsolationModeTotalDebtUpdated(asset, 0);
     }
@@ -204,24 +179,13 @@ library PoolLogic {
             uint256 healthFactor
         )
     {
-        (
-            totalCollateralBase,
-            totalDebtBase,
-            ltv,
-            currentLiquidationThreshold,
-            healthFactor,
-
-        ) = GenericLogic.calculateUserAccountData(
+        (totalCollateralBase, totalDebtBase, ltv, currentLiquidationThreshold, healthFactor, ) = GenericLogic.calculateUserAccountData(
             reservesData,
             reservesList,
             eModeCategories,
             params
         );
 
-        availableBorrowsBase = GenericLogic.calculateAvailableBorrows(
-            totalCollateralBase,
-            totalDebtBase,
-            ltv
-        );
+        availableBorrowsBase = GenericLogic.calculateAvailableBorrows(totalCollateralBase, totalDebtBase, ltv);
     }
 }

@@ -17,15 +17,15 @@
 
 pragma solidity ^0.8.20;
 
-import {DataTypes} from "contracts/dlend/core/protocol/libraries/types/DataTypes.sol";
-import {IOdosRepayAdapter} from "./interfaces/IOdosRepayAdapter.sol";
-import {BaseOdosSellAdapter} from "./BaseOdosSellAdapter.sol";
-import {SafeERC20} from "contracts/dlend/core/dependencies/openzeppelin/contracts/SafeERC20.sol";
-import {IERC20WithPermit} from "contracts/dlend/core/interfaces/IERC20WithPermit.sol";
-import {IOdosRouterV2} from "contracts/odos/interface/IOdosRouterV2.sol";
-import {IERC20} from "contracts/dlend/core/dependencies/openzeppelin/contracts/IERC20.sol";
-import {IERC20Detailed} from "contracts/dlend/core/dependencies/openzeppelin/contracts/IERC20Detailed.sol";
-import {IPoolAddressesProvider} from "contracts/dlend/core/interfaces/IPoolAddressesProvider.sol";
+import { DataTypes } from "contracts/dlend/core/protocol/libraries/types/DataTypes.sol";
+import { IOdosRepayAdapter } from "./interfaces/IOdosRepayAdapter.sol";
+import { BaseOdosSellAdapter } from "./BaseOdosSellAdapter.sol";
+import { SafeERC20 } from "contracts/dlend/core/dependencies/openzeppelin/contracts/SafeERC20.sol";
+import { IERC20WithPermit } from "contracts/dlend/core/interfaces/IERC20WithPermit.sol";
+import { IOdosRouterV2 } from "contracts/odos/interface/IOdosRouterV2.sol";
+import { IERC20 } from "contracts/dlend/core/dependencies/openzeppelin/contracts/IERC20.sol";
+import { IERC20Detailed } from "contracts/dlend/core/dependencies/openzeppelin/contracts/IERC20Detailed.sol";
+import { IPoolAddressesProvider } from "contracts/dlend/core/interfaces/IPoolAddressesProvider.sol";
 
 /**
  * @title OdosRepayAdapter
@@ -50,20 +50,12 @@ contract OdosRepayAdapter is BaseOdosSellAdapter, IOdosRepayAdapter {
      * @param permitInput The parameters of the permit signature, to approve collateral aToken
      * @return the amount repaid
      */
-    function swapAndRepay(
-        RepayParams memory repayParams,
-        PermitInput memory permitInput
-    ) external returns (uint256) {
+    function swapAndRepay(RepayParams memory repayParams, PermitInput memory permitInput) external returns (uint256) {
         address collateralAsset = repayParams.collateralAsset;
         address debtAsset = repayParams.debtAsset;
 
         // The swapAndRepay will pull the tokens from the user aToken with approve() or permit()
-        uint256 collateralATokenAmount = _pullATokenAndWithdraw(
-            collateralAsset,
-            msg.sender,
-            repayParams.collateralAmount,
-            permitInput
-        );
+        uint256 collateralATokenAmount = _pullATokenAndWithdraw(collateralAsset, msg.sender, repayParams.collateralAmount, permitInput);
 
         // Swap collateral to get the debt asset
         uint256 amountOut = _sellOnOdos(
@@ -76,27 +68,17 @@ contract OdosRepayAdapter is BaseOdosSellAdapter, IOdosRepayAdapter {
 
         // Check if the swap provides the necessary repay amount
         if (amountOut < repayParams.repayAmount) {
-            revert InsufficientAmountToRepay(
-                amountOut,
-                repayParams.repayAmount
-            );
+            revert InsufficientAmountToRepay(amountOut, repayParams.repayAmount);
         }
 
         // Check and renew allowance if necessary
         _conditionalRenewAllowance(debtAsset, amountOut);
 
         // Repay the debt to the POOL
-        POOL.repay(
-            debtAsset,
-            repayParams.repayAmount,
-            repayParams.rateMode,
-            repayParams.user
-        );
+        POOL.repay(debtAsset, repayParams.repayAmount, repayParams.rateMode, repayParams.user);
 
         // Send remaining debt asset to the msg.sender
-        uint256 remainingBalance = IERC20Detailed(debtAsset).balanceOf(
-            address(this)
-        );
+        uint256 remainingBalance = IERC20Detailed(debtAsset).balanceOf(address(this));
         if (remainingBalance > 0) {
             IERC20(debtAsset).safeTransfer(msg.sender, remainingBalance);
         }
@@ -109,15 +91,9 @@ contract OdosRepayAdapter is BaseOdosSellAdapter, IOdosRepayAdapter {
      * @param asset The address of the asset
      * @return The address of the vToken, sToken and aToken
      */
-    function _getReserveData(
-        address asset
-    ) internal view override returns (address, address, address) {
+    function _getReserveData(address asset) internal view override returns (address, address, address) {
         DataTypes.ReserveData memory reserveData = POOL.getReserveData(asset);
-        return (
-            reserveData.variableDebtTokenAddress,
-            reserveData.stableDebtTokenAddress,
-            reserveData.aTokenAddress
-        );
+        return (reserveData.variableDebtTokenAddress, reserveData.stableDebtTokenAddress, reserveData.aTokenAddress);
     }
 
     /**
@@ -127,12 +103,7 @@ contract OdosRepayAdapter is BaseOdosSellAdapter, IOdosRepayAdapter {
      * @param to The address receiving the aTokens
      * @param referralCode The referral code to pass to Aave
      */
-    function _supply(
-        address asset,
-        uint256 amount,
-        address to,
-        uint16 referralCode
-    ) internal override {
+    function _supply(address asset, uint256 amount, address to, uint16 referralCode) internal override {
         POOL.supply(asset, amount, to, referralCode);
     }
 }

@@ -55,21 +55,9 @@ contract ERC20VestingNFT is ERC721, ERC721Enumerable, Ownable, ReentrancyGuard {
 
     // ============ Events ============
 
-    event Deposited(
-        address indexed user,
-        uint256 indexed tokenId,
-        uint256 amount
-    );
-    event RedeemedEarly(
-        address indexed user,
-        uint256 indexed tokenId,
-        uint256 amount
-    );
-    event WithdrawnMatured(
-        address indexed user,
-        uint256 indexed tokenId,
-        uint256 amount
-    );
+    event Deposited(address indexed user, uint256 indexed tokenId, uint256 amount);
+    event RedeemedEarly(address indexed user, uint256 indexed tokenId, uint256 amount);
+    event WithdrawnMatured(address indexed user, uint256 indexed tokenId, uint256 amount);
     event DepositsToggled(bool enabled);
     event MaxTotalSupplyUpdated(uint256 newMaxSupply);
     event MinDepositAmountUpdated(uint256 newMinDepositAmount);
@@ -134,14 +122,11 @@ contract ERC20VestingNFT is ERC721, ERC721Enumerable, Ownable, ReentrancyGuard {
      * @param amount Amount of dSTAKE tokens to deposit
      * @return tokenId The ID of the minted NFT
      */
-    function deposit(
-        uint256 amount
-    ) external nonReentrant returns (uint256 tokenId) {
+    function deposit(uint256 amount) external nonReentrant returns (uint256 tokenId) {
         if (amount == 0) revert ZeroAmount();
         if (!depositsEnabled) revert DepositsDisabled();
         if (amount < minDepositAmount) revert DepositBelowMinimum();
-        if (totalDeposited + amount > maxTotalSupply)
-            revert MaxSupplyExceeded();
+        if (totalDeposited + amount > maxTotalSupply) revert MaxSupplyExceeded();
 
         // Transfer dSTAKE tokens from user
         dstakeToken.safeTransferFrom(msg.sender, address(this), amount);
@@ -152,11 +137,7 @@ contract ERC20VestingNFT is ERC721, ERC721Enumerable, Ownable, ReentrancyGuard {
         _safeMint(msg.sender, tokenId);
 
         // Store vesting position
-        vestingPositions[tokenId] = VestingPosition({
-            amount: amount,
-            depositTime: block.timestamp,
-            matured: false
-        });
+        vestingPositions[tokenId] = VestingPosition({ amount: amount, depositTime: block.timestamp, matured: false });
 
         // Update total deposited
         totalDeposited += amount;
@@ -247,9 +228,7 @@ contract ERC20VestingNFT is ERC721, ERC721Enumerable, Ownable, ReentrancyGuard {
      * @notice Set minimum deposit amount threshold
      * @param newMinDepositAmount New minimum deposit amount
      */
-    function setMinDepositAmount(
-        uint256 newMinDepositAmount
-    ) external onlyOwner {
+    function setMinDepositAmount(uint256 newMinDepositAmount) external onlyOwner {
         minDepositAmount = newMinDepositAmount;
         emit MinDepositAmountUpdated(newMinDepositAmount);
     }
@@ -272,9 +251,7 @@ contract ERC20VestingNFT is ERC721, ERC721Enumerable, Ownable, ReentrancyGuard {
      * @param tokenId The NFT token ID
      * @return Remaining time in seconds (0 if vesting complete)
      */
-    function getRemainingVestingTime(
-        uint256 tokenId
-    ) external view returns (uint256) {
+    function getRemainingVestingTime(uint256 tokenId) external view returns (uint256) {
         if (!_tokenExists(tokenId)) revert TokenNotExists();
         VestingPosition memory position = vestingPositions[tokenId];
         uint256 vestingEndTime = position.depositTime + vestingPeriod;
@@ -292,32 +269,16 @@ contract ERC20VestingNFT is ERC721, ERC721Enumerable, Ownable, ReentrancyGuard {
      */
     function getVestingPosition(
         uint256 tokenId
-    )
-        external
-        view
-        returns (
-            uint256 amount,
-            uint256 depositTime,
-            bool matured,
-            bool vestingComplete
-        )
-    {
+    ) external view returns (uint256 amount, uint256 depositTime, bool matured, bool vestingComplete) {
         if (!_tokenExists(tokenId)) {
             return (0, 0, false, false);
         }
 
         VestingPosition memory position = vestingPositions[tokenId];
-        return (
-            position.amount,
-            position.depositTime,
-            position.matured,
-            block.timestamp >= position.depositTime + vestingPeriod
-        );
+        return (position.amount, position.depositTime, position.matured, block.timestamp >= position.depositTime + vestingPeriod);
     }
 
-    function tokenURI(
-        uint256 tokenId
-    ) public view override returns (string memory) {
+    function tokenURI(uint256 tokenId) public view override returns (string memory) {
         if (!_tokenExists(tokenId)) revert TokenNotExists();
 
         VestingPosition memory position = vestingPositions[tokenId];
@@ -332,17 +293,10 @@ contract ERC20VestingNFT is ERC721, ERC721Enumerable, Ownable, ReentrancyGuard {
         string memory symbol = IERC20Metadata(address(dstakeToken)).symbol();
         uint8 decimalsToken = IERC20Metadata(address(dstakeToken)).decimals();
 
-        uint256 displayAmount = position.amount /
-            (10 ** uint256(decimalsToken));
+        uint256 displayAmount = position.amount / (10 ** uint256(decimalsToken));
         string memory amountStr = Strings.toString(displayAmount);
 
-        string memory image = _buildSVG(
-            position,
-            remainingSeconds,
-            tokenId,
-            symbol,
-            amountStr
-        );
+        string memory image = _buildSVG(position, remainingSeconds, tokenId, symbol, amountStr);
 
         string memory json = Base64.encode(
             bytes(
@@ -418,11 +372,7 @@ contract ERC20VestingNFT is ERC721, ERC721Enumerable, Ownable, ReentrancyGuard {
             "</svg>"
         );
 
-        return
-            string.concat(
-                "data:image/svg+xml;base64,",
-                Base64.encode(bytes(svg))
-            );
+        return string.concat("data:image/svg+xml;base64,", Base64.encode(bytes(svg)));
     }
 
     // ============ Internal Functions ============
@@ -439,11 +389,7 @@ contract ERC20VestingNFT is ERC721, ERC721Enumerable, Ownable, ReentrancyGuard {
     /**
      * @notice Override to prevent transfers of matured (soul-bound) NFTs
      */
-    function _update(
-        address to,
-        uint256 tokenId,
-        address auth
-    ) internal override(ERC721, ERC721Enumerable) returns (address) {
+    function _update(address to, uint256 tokenId, address auth) internal override(ERC721, ERC721Enumerable) returns (address) {
         address from = _ownerOf(tokenId);
 
         // Allow minting and burning
@@ -460,19 +406,14 @@ contract ERC20VestingNFT is ERC721, ERC721Enumerable, Ownable, ReentrancyGuard {
     /**
      * @notice Override to handle balance updates
      */
-    function _increaseBalance(
-        address account,
-        uint128 value
-    ) internal override(ERC721, ERC721Enumerable) {
+    function _increaseBalance(address account, uint128 value) internal override(ERC721, ERC721Enumerable) {
         super._increaseBalance(account, value);
     }
 
     /**
      * @notice Override required by Solidity for multiple inheritance
      */
-    function supportsInterface(
-        bytes4 interfaceId
-    ) public view override(ERC721, ERC721Enumerable) returns (bool) {
+    function supportsInterface(bytes4 interfaceId) public view override(ERC721, ERC721Enumerable) returns (bool) {
         return super.supportsInterface(interfaceId);
     }
 }

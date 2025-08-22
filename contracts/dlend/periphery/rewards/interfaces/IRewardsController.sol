@@ -17,10 +17,10 @@
 
 pragma solidity ^0.8.20;
 
-import {IAaveOracle} from "contracts/dlend/core/interfaces/IAaveOracle.sol";
-import {IRewardsDistributor} from "./IRewardsDistributor.sol";
-import {ITransferStrategyBase} from "./ITransferStrategyBase.sol";
-import {RewardsDataTypes} from "../libraries/RewardsDataTypes.sol";
+import { IAaveOracle } from "contracts/dlend/core/interfaces/IAaveOracle.sol";
+import { IRewardsDistributor } from "./IRewardsDistributor.sol";
+import { ITransferStrategyBase } from "./ITransferStrategyBase.sol";
+import { RewardsDataTypes } from "../libraries/RewardsDataTypes.sol";
 
 /**
  * @title IRewardsController
@@ -43,33 +43,21 @@ interface IRewardsController is IRewardsDistributor {
      * @param claimer The address of the claimer
      * @param amount The amount of rewards claimed
      */
-    event RewardsClaimed(
-        address indexed user,
-        address indexed reward,
-        address indexed to,
-        address claimer,
-        uint256 amount
-    );
+    event RewardsClaimed(address indexed user, address indexed reward, address indexed to, address claimer, uint256 amount);
 
     /**
      * @dev Emitted when a transfer strategy is installed for the reward distribution
      * @param reward The address of the token reward
      * @param transferStrategy The address of TransferStrategy contract
      */
-    event TransferStrategyInstalled(
-        address indexed reward,
-        address indexed transferStrategy
-    );
+    event TransferStrategyInstalled(address indexed reward, address indexed transferStrategy);
 
     /**
      * @dev Emitted when the reward oracle is updated
      * @param reward The address of the token reward
      * @param rewardOracle The address of oracle
      */
-    event RewardOracleUpdated(
-        address indexed reward,
-        address indexed rewardOracle
-    );
+    event RewardOracleUpdated(address indexed reward, address indexed rewardOracle);
 
     /**
      * @dev Whitelists an address to claim the rewards on behalf of another address
@@ -83,10 +71,7 @@ interface IRewardsController is IRewardsDistributor {
      * @param reward The address of the reward token
      * @param transferStrategy The address of the TransferStrategy logic contract
      */
-    function setTransferStrategy(
-        address reward,
-        ITransferStrategyBase transferStrategy
-    ) external;
+    function setTransferStrategy(address reward, ITransferStrategyBase transferStrategy) external;
 
     /**
      * @dev Sets an Aave Oracle contract to enforce rewards with a source of value.
@@ -118,9 +103,7 @@ interface IRewardsController is IRewardsDistributor {
      * @param reward The address of the reward
      * @return The address of the TransferStrategy contract
      */
-    function getTransferStrategy(
-        address reward
-    ) external view returns (address);
+    function getTransferStrategy(address reward) external view returns (address);
 
     /**
      * @dev Configure assets to incentivize with an emission of rewards per second until the end of distribution.
@@ -133,9 +116,7 @@ interface IRewardsController is IRewardsDistributor {
      *   ITransferStrategy transferStrategy: The TransferStrategy address with the install hook and claim logic.
      *   IAaveOracle rewardOracle: The Price Oracle of a reward to visualize the incentives at the UI Frontend.
      */
-    function configureAssets(
-        RewardsDataTypes.RewardsConfigInput[] memory config
-    ) external;
+    function configureAssets(RewardsDataTypes.RewardsConfigInput[] memory config) external;
 
     /**
      * @dev Called by the corresponding asset on transfer hook in order to update the rewards distribution.
@@ -144,11 +125,7 @@ interface IRewardsController is IRewardsDistributor {
      * @param totalSupply The total supply of the asset prior to user balance change
      * @param userBalance The previous user balance prior to balance change
      **/
-    function handleAction(
-        address user,
-        uint256 totalSupply,
-        uint256 userBalance
-    ) external;
+    function handleAction(address user, uint256 totalSupply, uint256 userBalance) external;
 
     /**
      * @dev Claims reward for a user to the desired address, on all the assets of the pool, accumulating the pending rewards
@@ -158,12 +135,7 @@ interface IRewardsController is IRewardsDistributor {
      * @param reward The address of the reward token
      * @return The amount of rewards claimed
      **/
-    function claimRewards(
-        address[] calldata assets,
-        uint256 amount,
-        address to,
-        address reward
-    ) external returns (uint256);
+    function claimRewards(address[] calldata assets, uint256 amount, address to, address reward) external returns (uint256);
 
     /**
      * @dev Claims reward for a user on behalf, on all the assets of the pool, accumulating the pending rewards. The
@@ -190,11 +162,7 @@ interface IRewardsController is IRewardsDistributor {
      * @param reward The address of the reward token
      * @return The amount of rewards claimed
      **/
-    function claimRewardsToSelf(
-        address[] calldata assets,
-        uint256 amount,
-        address reward
-    ) external returns (uint256);
+    function claimRewardsToSelf(address[] calldata assets, uint256 amount, address reward) external returns (uint256);
 
     /**
      * @dev Claims all rewards for a user to the desired address, on all the assets of the pool, accumulating the pending rewards
@@ -206,9 +174,7 @@ interface IRewardsController is IRewardsDistributor {
     function claimAllRewards(
         address[] calldata assets,
         address to
-    )
-        external
-        returns (address[] memory rewardsList, uint256[] memory claimedAmounts);
+    ) external returns (address[] memory rewardsList, uint256[] memory claimedAmounts);
 
     /**
      * @dev Claims all rewards for a user on behalf, on all the assets of the pool, accumulating the pending rewards. The caller must
@@ -223,9 +189,7 @@ interface IRewardsController is IRewardsDistributor {
         address[] calldata assets,
         address user,
         address to
-    )
-        external
-        returns (address[] memory rewardsList, uint256[] memory claimedAmounts);
+    ) external returns (address[] memory rewardsList, uint256[] memory claimedAmounts);
 
     /**
      * @dev Claims all reward for msg.sender, on all the assets of the pool, accumulating the pending rewards
@@ -235,9 +199,7 @@ interface IRewardsController is IRewardsDistributor {
      **/
     function claimAllRewardsToSelf(
         address[] calldata assets
-    )
-        external
-        returns (address[] memory rewardsList, uint256[] memory claimedAmounts);
+    ) external returns (address[] memory rewardsList, uint256[] memory claimedAmounts);
 
     /**
      * @dev Recieve more fund from the user to existing reward
@@ -245,9 +207,5 @@ interface IRewardsController is IRewardsDistributor {
      * @param amount The token amount is being funded
      * @param from The address of the one who funds the rewards
      */
-    function depositRewardFrom(
-        address reward,
-        uint256 amount,
-        address from
-    ) external;
+    function depositRewardFrom(address reward, uint256 amount, address from) external;
 }

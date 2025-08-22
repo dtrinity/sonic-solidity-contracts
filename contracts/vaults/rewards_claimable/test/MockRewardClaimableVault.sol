@@ -40,11 +40,7 @@ contract MockRewardClaimableVault is RewardClaimable {
     // Mock fake reward pool address
     address public fakeRewardPool;
 
-    error InsufficientAllowanceFromFakeRewardPool(
-        address token,
-        uint256 allowance,
-        uint256 amount
-    );
+    error InsufficientAllowanceFromFakeRewardPool(address token, uint256 allowance, uint256 amount);
 
     /**
      * @dev Constructor for the MockRewardClaimableVault contract
@@ -64,15 +60,7 @@ contract MockRewardClaimableVault is RewardClaimable {
         uint256 _initialExchangeThreshold,
         address _targetPool,
         address _fakeRewardPool
-    )
-        RewardClaimable(
-            _exchangeAsset,
-            _treasury,
-            _maxTreasuryFeeBps,
-            _initialTreasuryFeeBps,
-            _initialExchangeThreshold
-        )
-    {
+    ) RewardClaimable(_exchangeAsset, _treasury, _maxTreasuryFeeBps, _initialTreasuryFeeBps, _initialExchangeThreshold) {
         targetPool = _targetPool;
         fakeRewardPool = _fakeRewardPool;
     }
@@ -82,10 +70,7 @@ contract MockRewardClaimableVault is RewardClaimable {
      * @param _rewardToken The address of the reward token to add
      * @param _emissionAmount The emission amount of the reward token each time the vault claims rewards
      */
-    function addRewardToken(
-        address _rewardToken,
-        uint256 _emissionAmount
-    ) external {
+    function addRewardToken(address _rewardToken, uint256 _emissionAmount) external {
         rewardTokens[_rewardToken] = true;
 
         require(_emissionAmount > 0, "Emission amount must be greater than 0");
@@ -95,10 +80,7 @@ contract MockRewardClaimableVault is RewardClaimable {
     /**
      * @dev Public function to expose the internal _claimRewards function for testing
      */
-    function claimRewards(
-        address[] calldata tokens,
-        address receiver
-    ) external {
+    function claimRewards(address[] calldata tokens, address receiver) external {
         _claimRewards(tokens, receiver);
     }
 
@@ -108,10 +90,7 @@ contract MockRewardClaimableVault is RewardClaimable {
      * @param receiver The address to receive the claimed rewards
      * @return rewardAmounts The amount of rewards claimed for each token (have the same length as the tokens array)
      */
-    function _claimRewards(
-        address[] calldata tokens,
-        address receiver
-    ) internal override returns (uint256[] memory rewardAmounts) {
+    function _claimRewards(address[] calldata tokens, address receiver) internal override returns (uint256[] memory rewardAmounts) {
         rewardAmounts = new uint256[](tokens.length);
         for (uint256 i = 0; i < tokens.length; i++) {
             if (!rewardTokens[tokens[i]]) {
@@ -123,24 +102,13 @@ contract MockRewardClaimableVault is RewardClaimable {
             uint256 amount = rewardTokenEmissionAmount[tokens[i]];
 
             // Make sure having enough allowance to transfer from the fake reward pool
-            uint256 allowance = IERC20(tokens[i]).allowance(
-                fakeRewardPool,
-                address(this)
-            );
+            uint256 allowance = IERC20(tokens[i]).allowance(fakeRewardPool, address(this));
             if (allowance < amount) {
-                revert InsufficientAllowanceFromFakeRewardPool(
-                    tokens[i],
-                    allowance,
-                    amount
-                );
+                revert InsufficientAllowanceFromFakeRewardPool(tokens[i], allowance, amount);
             }
 
             // Transfer the tokens to the receiver
-            IERC20(tokens[i]).safeTransferFrom(
-                fakeRewardPool,
-                receiver,
-                amount
-            );
+            IERC20(tokens[i]).safeTransferFrom(fakeRewardPool, receiver, amount);
 
             rewardAmounts[i] = amount;
         }
@@ -152,9 +120,7 @@ contract MockRewardClaimableVault is RewardClaimable {
      * @dev Mocks processing the exchange asset deposit from the caller
      * @param amount The amount of exchange asset to deposit
      */
-    function _processExchangeAssetDeposit(
-        uint256 amount
-    ) internal virtual override {
+    function _processExchangeAssetDeposit(uint256 amount) internal virtual override {
         deposits[exchangeAsset] += amount;
         // Transfer tokens from contract to the target pool (tokens are already in the contract)
         IERC20(exchangeAsset).safeTransfer(targetPool, amount);

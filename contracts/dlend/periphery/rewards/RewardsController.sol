@@ -17,28 +17,24 @@
 
 pragma solidity ^0.8.20;
 
-import {VersionedInitializable} from "contracts/dlend/core/protocol/libraries/aave-upgradeability/VersionedInitializable.sol";
-import {SafeCast} from "contracts/dlend/core/dependencies/openzeppelin/contracts/SafeCast.sol";
-import {IAaveOracle} from "contracts/dlend/core/interfaces/IAaveOracle.sol";
-import {IScaledBalanceToken} from "contracts/dlend/core/interfaces/IScaledBalanceToken.sol";
-import {RewardsDistributor} from "./RewardsDistributor.sol";
-import {IRewardsController} from "./interfaces/IRewardsController.sol";
-import {ITransferStrategyBase} from "./interfaces/ITransferStrategyBase.sol";
-import {IPullRewardsTransferStrategy} from "./interfaces/IPullRewardsTransferStrategy.sol";
-import {RewardsDataTypes} from "./libraries/RewardsDataTypes.sol";
-import {IERC20} from "contracts/dlend/core/dependencies/openzeppelin/contracts/IERC20.sol";
-import {SafeERC20} from "contracts/dlend/core/dependencies/openzeppelin/contracts/SafeERC20.sol";
+import { VersionedInitializable } from "contracts/dlend/core/protocol/libraries/aave-upgradeability/VersionedInitializable.sol";
+import { SafeCast } from "contracts/dlend/core/dependencies/openzeppelin/contracts/SafeCast.sol";
+import { IAaveOracle } from "contracts/dlend/core/interfaces/IAaveOracle.sol";
+import { IScaledBalanceToken } from "contracts/dlend/core/interfaces/IScaledBalanceToken.sol";
+import { RewardsDistributor } from "./RewardsDistributor.sol";
+import { IRewardsController } from "./interfaces/IRewardsController.sol";
+import { ITransferStrategyBase } from "./interfaces/ITransferStrategyBase.sol";
+import { IPullRewardsTransferStrategy } from "./interfaces/IPullRewardsTransferStrategy.sol";
+import { RewardsDataTypes } from "./libraries/RewardsDataTypes.sol";
+import { IERC20 } from "contracts/dlend/core/dependencies/openzeppelin/contracts/IERC20.sol";
+import { SafeERC20 } from "contracts/dlend/core/dependencies/openzeppelin/contracts/SafeERC20.sol";
 
 /**
  * @title RewardsController
  * @notice Abstract contract template to build Distributors contracts for ERC20 rewards to protocol participants
  * @author Aave
  **/
-contract RewardsController is
-    RewardsDistributor,
-    VersionedInitializable,
-    IRewardsController
-{
+contract RewardsController is RewardsDistributor, VersionedInitializable, IRewardsController {
     using SafeCast for uint256;
 
     // Increment this value when deploying a new implementation
@@ -88,33 +84,23 @@ contract RewardsController is
     }
 
     /// @inheritdoc IRewardsController
-    function getRewardOracle(
-        address reward
-    ) external view override returns (address) {
+    function getRewardOracle(address reward) external view override returns (address) {
         return address(_rewardOracle[reward]);
     }
 
     /// @inheritdoc IRewardsController
-    function getTransferStrategy(
-        address reward
-    ) external view override returns (address) {
+    function getTransferStrategy(address reward) external view override returns (address) {
         return address(_transferStrategy[reward]);
     }
 
     /// @inheritdoc IRewardsController
-    function configureAssets(
-        RewardsDataTypes.RewardsConfigInput[] memory config
-    ) external override onlyEmissionManager {
+    function configureAssets(RewardsDataTypes.RewardsConfigInput[] memory config) external override onlyEmissionManager {
         for (uint256 i = 0; i < config.length; i++) {
             // Get the current Scaled Total Supply of AToken or Debt token
-            config[i].totalSupply = IScaledBalanceToken(config[i].asset)
-                .scaledTotalSupply();
+            config[i].totalSupply = IScaledBalanceToken(config[i].asset).scaledTotalSupply();
 
             // Install TransferStrategy logic at IncentivesController
-            _installTransferStrategy(
-                config[i].reward,
-                config[i].transferStrategy
-            );
+            _installTransferStrategy(config[i].reward, config[i].transferStrategy);
 
             // Set reward oracle, enforces input oracle to have latestPrice function
             _setRewardOracle(config[i].reward, config[i].rewardOracle);
@@ -123,40 +109,24 @@ contract RewardsController is
     }
 
     /// @inheritdoc IRewardsController
-    function setTransferStrategy(
-        address reward,
-        ITransferStrategyBase transferStrategy
-    ) external onlyEmissionManager {
+    function setTransferStrategy(address reward, ITransferStrategyBase transferStrategy) external onlyEmissionManager {
         _installTransferStrategy(reward, transferStrategy);
     }
 
     /// @inheritdoc IRewardsController
-    function setRewardOracle(
-        address reward,
-        IAaveOracle rewardOracle
-    ) external onlyEmissionManager {
+    function setRewardOracle(address reward, IAaveOracle rewardOracle) external onlyEmissionManager {
         _setRewardOracle(reward, rewardOracle);
     }
 
     /// @inheritdoc IRewardsController
-    function handleAction(
-        address user,
-        uint256 totalSupply,
-        uint256 userBalance
-    ) external override {
+    function handleAction(address user, uint256 totalSupply, uint256 userBalance) external override {
         _updateData(msg.sender, user, userBalance, totalSupply);
     }
 
     /// @inheritdoc IRewardsController
-    function claimRewards(
-        address[] calldata assets,
-        uint256 amount,
-        address to,
-        address reward
-    ) external override returns (uint256) {
+    function claimRewards(address[] calldata assets, uint256 amount, address to, address reward) external override returns (uint256) {
         require(to != address(0), "INVALID_TO_ADDRESS");
-        return
-            _claimRewards(assets, amount, msg.sender, msg.sender, to, reward);
+        return _claimRewards(assets, amount, msg.sender, msg.sender, to, reward);
     }
 
     /// @inheritdoc IRewardsController
@@ -166,43 +136,22 @@ contract RewardsController is
         address user,
         address to,
         address reward
-    )
-        external
-        override
-        onlyAuthorizedClaimers(msg.sender, user)
-        returns (uint256)
-    {
+    ) external override onlyAuthorizedClaimers(msg.sender, user) returns (uint256) {
         require(user != address(0), "INVALID_USER_ADDRESS");
         require(to != address(0), "INVALID_TO_ADDRESS");
         return _claimRewards(assets, amount, msg.sender, user, to, reward);
     }
 
     /// @inheritdoc IRewardsController
-    function claimRewardsToSelf(
-        address[] calldata assets,
-        uint256 amount,
-        address reward
-    ) external override returns (uint256) {
-        return
-            _claimRewards(
-                assets,
-                amount,
-                msg.sender,
-                msg.sender,
-                msg.sender,
-                reward
-            );
+    function claimRewardsToSelf(address[] calldata assets, uint256 amount, address reward) external override returns (uint256) {
+        return _claimRewards(assets, amount, msg.sender, msg.sender, msg.sender, reward);
     }
 
     /// @inheritdoc IRewardsController
     function claimAllRewards(
         address[] calldata assets,
         address to
-    )
-        external
-        override
-        returns (address[] memory rewardsList, uint256[] memory claimedAmounts)
-    {
+    ) external override returns (address[] memory rewardsList, uint256[] memory claimedAmounts) {
         require(to != address(0), "INVALID_TO_ADDRESS");
         return _claimAllRewards(assets, msg.sender, msg.sender, to);
     }
@@ -212,12 +161,7 @@ contract RewardsController is
         address[] calldata assets,
         address user,
         address to
-    )
-        external
-        override
-        onlyAuthorizedClaimers(msg.sender, user)
-        returns (address[] memory rewardsList, uint256[] memory claimedAmounts)
-    {
+    ) external override onlyAuthorizedClaimers(msg.sender, user) returns (address[] memory rewardsList, uint256[] memory claimedAmounts) {
         require(user != address(0), "INVALID_USER_ADDRESS");
         require(to != address(0), "INVALID_TO_ADDRESS");
         return _claimAllRewards(assets, msg.sender, user, to);
@@ -226,50 +170,27 @@ contract RewardsController is
     /// @inheritdoc IRewardsController
     function claimAllRewardsToSelf(
         address[] calldata assets
-    )
-        external
-        override
-        returns (address[] memory rewardsList, uint256[] memory claimedAmounts)
-    {
+    ) external override returns (address[] memory rewardsList, uint256[] memory claimedAmounts) {
         return _claimAllRewards(assets, msg.sender, msg.sender, msg.sender);
     }
 
     /// @inheritdoc IRewardsController
-    function setClaimer(
-        address user,
-        address caller
-    ) external override onlyEmissionManager {
+    function setClaimer(address user, address caller) external override onlyEmissionManager {
         _authorizedClaimers[user] = caller;
         emit ClaimerSet(user, caller);
     }
 
     /// @inheritdoc IRewardsController
-    function depositRewardFrom(
-        address reward,
-        uint256 amount,
-        address from
-    ) external onlyEmissionManager {
-        require(
-            _isRewardEnabled[reward] == true,
-            "ONLY_ALLOW_DEPOSIT_TO_ENABLED_REWARD"
-        );
+    function depositRewardFrom(address reward, uint256 amount, address from) external onlyEmissionManager {
+        require(_isRewardEnabled[reward] == true, "ONLY_ALLOW_DEPOSIT_TO_ENABLED_REWARD");
         address transferStrategyAddress = address(_transferStrategy[reward]);
 
-        try
-            IPullRewardsTransferStrategy(transferStrategyAddress)
-                .getRewardsVault()
-        returns (address vault) {
+        try IPullRewardsTransferStrategy(transferStrategyAddress).getRewardsVault() returns (address vault) {
             uint256 beforeTotalRewardSupply = IERC20(reward).balanceOf(vault);
-            uint256 expectAfterTotalRewardSupply = beforeTotalRewardSupply +
-                amount;
+            uint256 expectAfterTotalRewardSupply = beforeTotalRewardSupply + amount;
             SafeERC20.safeTransferFrom(IERC20(reward), from, vault, amount);
-            uint256 afterTotalRewardSupplyAfterDeposit = IERC20(reward)
-                .balanceOf(vault);
-            require(
-                afterTotalRewardSupplyAfterDeposit ==
-                    expectAfterTotalRewardSupply,
-                "INVALID_REWARD_DEPOSIT_AMOUNT"
-            );
+            uint256 afterTotalRewardSupplyAfterDeposit = IERC20(reward).balanceOf(vault);
+            require(afterTotalRewardSupplyAfterDeposit == expectAfterTotalRewardSupply, "INVALID_REWARD_DEPOSIT_AMOUNT");
         } catch {
             revert("ONLY_ALLOW_DEPOSIT_TO_PULL_REWARDS_TRANSFER_STRATEGY");
         }
@@ -284,23 +205,12 @@ contract RewardsController is
     function _getUserAssetBalances(
         address[] calldata assets,
         address user
-    )
-        internal
-        view
-        override
-        returns (RewardsDataTypes.UserAssetBalance[] memory userAssetBalances)
-    {
-        userAssetBalances = new RewardsDataTypes.UserAssetBalance[](
-            assets.length
-        );
+    ) internal view override returns (RewardsDataTypes.UserAssetBalance[] memory userAssetBalances) {
+        userAssetBalances = new RewardsDataTypes.UserAssetBalance[](assets.length);
         for (uint256 i = 0; i < assets.length; i++) {
             userAssetBalances[i].asset = assets[i];
-            (
-                userAssetBalances[i].userBalance,
-                userAssetBalances[i].totalSupply
-            ) = IScaledBalanceToken(assets[i]).getScaledUserBalanceAndSupply(
-                user
-            );
+            (userAssetBalances[i].userBalance, userAssetBalances[i].totalSupply) = IScaledBalanceToken(assets[i])
+                .getScaledUserBalanceAndSupply(user);
         }
         return userAssetBalances;
     }
@@ -331,20 +241,14 @@ contract RewardsController is
         _updateDataMultiple(user, _getUserAssetBalances(assets, user));
         for (uint256 i = 0; i < assets.length; i++) {
             address asset = assets[i];
-            totalRewards += _assets[asset]
-                .rewards[reward]
-                .usersData[user]
-                .accrued;
+            totalRewards += _assets[asset].rewards[reward].usersData[user].accrued;
 
             if (totalRewards <= amount) {
                 _assets[asset].rewards[reward].usersData[user].accrued = 0;
             } else {
                 uint256 difference = totalRewards - amount;
                 totalRewards -= difference;
-                _assets[asset]
-                    .rewards[reward]
-                    .usersData[user]
-                    .accrued = difference.toUint128();
+                _assets[asset].rewards[reward].usersData[user].accrued = difference.toUint128();
                 break;
             }
         }
@@ -374,10 +278,7 @@ contract RewardsController is
         address claimer,
         address user,
         address to
-    )
-        internal
-        returns (address[] memory rewardsList, uint256[] memory claimedAmounts)
-    {
+    ) internal returns (address[] memory rewardsList, uint256[] memory claimedAmounts) {
         uint256 rewardsListLength = _rewardsList.length;
         rewardsList = new address[](rewardsListLength);
         claimedAmounts = new uint256[](rewardsListLength);
@@ -390,28 +291,16 @@ contract RewardsController is
                 if (rewardsList[j] == address(0)) {
                     rewardsList[j] = _rewardsList[j];
                 }
-                uint256 rewardAmount = _assets[asset]
-                    .rewards[rewardsList[j]]
-                    .usersData[user]
-                    .accrued;
+                uint256 rewardAmount = _assets[asset].rewards[rewardsList[j]].usersData[user].accrued;
                 if (rewardAmount != 0) {
                     claimedAmounts[j] += rewardAmount;
-                    _assets[asset]
-                        .rewards[rewardsList[j]]
-                        .usersData[user]
-                        .accrued = 0;
+                    _assets[asset].rewards[rewardsList[j]].usersData[user].accrued = 0;
                 }
             }
         }
         for (uint256 i = 0; i < rewardsListLength; i++) {
             _transferRewards(to, rewardsList[i], claimedAmounts[i]);
-            emit RewardsClaimed(
-                user,
-                rewardsList[i],
-                to,
-                claimer,
-                claimedAmounts[i]
-            );
+            emit RewardsClaimed(user, rewardsList[i], to, claimer, claimedAmounts[i]);
         }
         return (rewardsList, claimedAmounts);
     }
@@ -422,11 +311,7 @@ contract RewardsController is
      * @param reward Address of the reward token
      * @param amount Amount of rewards to transfer
      */
-    function _transferRewards(
-        address to,
-        address reward,
-        uint256 amount
-    ) internal {
+    function _transferRewards(address to, address reward, uint256 amount) internal {
         ITransferStrategyBase transferStrategy = _transferStrategy[reward];
 
         bool success = transferStrategy.performTransfer(to, reward, amount);
@@ -457,18 +342,9 @@ contract RewardsController is
      * @param reward The address of the reward token
      * @param transferStrategy The address of the reward TransferStrategy
      */
-    function _installTransferStrategy(
-        address reward,
-        ITransferStrategyBase transferStrategy
-    ) internal {
-        require(
-            address(transferStrategy) != address(0),
-            "STRATEGY_CAN_NOT_BE_ZERO"
-        );
-        require(
-            _isContract(address(transferStrategy)) == true,
-            "STRATEGY_MUST_BE_CONTRACT"
-        );
+    function _installTransferStrategy(address reward, ITransferStrategyBase transferStrategy) internal {
+        require(address(transferStrategy) != address(0), "STRATEGY_CAN_NOT_BE_ZERO");
+        require(_isContract(address(transferStrategy)) == true, "STRATEGY_MUST_BE_CONTRACT");
 
         _transferStrategy[reward] = transferStrategy;
 
@@ -482,14 +358,8 @@ contract RewardsController is
      * @param rewardOracle The address of the price oracle
      */
 
-    function _setRewardOracle(
-        address reward,
-        IAaveOracle rewardOracle
-    ) internal {
-        require(
-            rewardOracle.getAssetPrice(rewardOracle.BASE_CURRENCY()) > 0,
-            "ORACLE_MUST_RETURN_PRICE"
-        );
+    function _setRewardOracle(address reward, IAaveOracle rewardOracle) internal {
+        require(rewardOracle.getAssetPrice(rewardOracle.BASE_CURRENCY()) > 0, "ORACLE_MUST_RETURN_PRICE");
         _rewardOracle[reward] = rewardOracle;
         emit RewardOracleUpdated(reward, address(rewardOracle));
     }

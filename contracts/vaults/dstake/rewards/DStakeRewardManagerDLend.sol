@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import {RewardClaimable} from "../../rewards_claimable/RewardClaimable.sol";
-import {DStakeRouterDLend} from "../DStakeRouterDLend.sol";
-import {IDStakeCollateralVault} from "../interfaces/IDStakeCollateralVault.sol";
-import {IDStableConversionAdapter} from "../interfaces/IDStableConversionAdapter.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import { RewardClaimable } from "../../rewards_claimable/RewardClaimable.sol";
+import { DStakeRouterDLend } from "../DStakeRouterDLend.sol";
+import { IDStakeCollateralVault } from "../interfaces/IDStakeCollateralVault.sol";
+import { IDStableConversionAdapter } from "../interfaces/IDStableConversionAdapter.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 // Interface for the Aave/dLEND RewardsController
 interface IDLendRewardsController {
@@ -44,15 +44,8 @@ contract DStakeRewardManagerDLend is RewardClaimable {
     address public immutable dLendAssetToClaimFor; // The actual aToken in dLEND held by the wrapper
 
     // --- Events ---
-    event DLendRewardsControllerUpdated(
-        address oldController,
-        address newController
-    );
-    event ExchangeAssetProcessed(
-        address indexed vaultAsset,
-        uint256 vaultAssetAmount,
-        uint256 dStableCompoundedAmount
-    );
+    event DLendRewardsControllerUpdated(address oldController, address newController);
+    event ExchangeAssetProcessed(address indexed vaultAsset, uint256 vaultAssetAmount, uint256 dStableCompoundedAmount);
 
     // --- Errors ---
     error InvalidRouter();
@@ -98,9 +91,7 @@ contract DStakeRewardManagerDLend is RewardClaimable {
 
         dStakeCollateralVault = _dStakeCollateralVault;
         dStakeRouter = DStakeRouterDLend(_dStakeRouter);
-        dLendRewardsController = IDLendRewardsController(
-            _dLendRewardsController
-        );
+        dLendRewardsController = IDLendRewardsController(_dLendRewardsController);
         targetStaticATokenWrapper = _targetStaticATokenWrapper;
         dLendAssetToClaimFor = _dLendAssetToClaimFor;
 
@@ -160,9 +151,7 @@ contract DStakeRewardManagerDLend is RewardClaimable {
                 revert ZeroAddress(); // Cannot claim zero address token
             }
 
-            uint256 balanceBefore = IERC20(rewardToken).balanceOf(
-                _receiverForClaimedRawRewards
-            );
+            uint256 balanceBefore = IERC20(rewardToken).balanceOf(_receiverForClaimedRawRewards);
 
             // Claim all available amount of the specific reward token
             dLendRewardsController.claimRewardsOnBehalf(
@@ -173,9 +162,7 @@ contract DStakeRewardManagerDLend is RewardClaimable {
                 rewardToken // The reward token to claim
             );
 
-            uint256 balanceAfter = IERC20(rewardToken).balanceOf(
-                _receiverForClaimedRawRewards
-            );
+            uint256 balanceAfter = IERC20(rewardToken).balanceOf(_receiverForClaimedRawRewards);
             rewardAmounts[i] = balanceAfter - balanceBefore;
         }
         return rewardAmounts;
@@ -188,9 +175,7 @@ contract DStakeRewardManagerDLend is RewardClaimable {
      *      via the DStakeRouter and an appropriate adapter, and then deposited into the vault.
      *      The adapter is expected to transfer the compounded asset directly to dStakeCollateralVault.
      */
-    function _processExchangeAssetDeposit(
-        uint256 amountDStableToCompound
-    ) internal virtual override {
+    function _processExchangeAssetDeposit(uint256 amountDStableToCompound) internal virtual override {
         if (amountDStableToCompound == 0) {
             // RewardClaimable base function checks amount >= exchangeThreshold, implying amount > 0.
             return;
@@ -201,54 +186,33 @@ contract DStakeRewardManagerDLend is RewardClaimable {
             revert DefaultDepositAssetNotSet();
         }
 
-        address adapterAddress = dStakeRouter.vaultAssetToAdapter(
-            defaultVaultAsset
-        );
+        address adapterAddress = dStakeRouter.vaultAssetToAdapter(defaultVaultAsset);
         if (adapterAddress == address(0)) {
             revert AdapterNotSetForDefaultAsset();
         }
 
-        IDStableConversionAdapter adapter = IDStableConversionAdapter(
-            adapterAddress
-        );
+        IDStableConversionAdapter adapter = IDStableConversionAdapter(adapterAddress);
 
         // Approve the adapter to spend the dStable held by this contract
-        IERC20(exchangeAsset).forceApprove(
-            adapterAddress,
-            amountDStableToCompound
-        );
+        IERC20(exchangeAsset).forceApprove(adapterAddress, amountDStableToCompound);
 
         // The adapter's convertToVaultAsset function is expected to:
         // 1. Pull `amountDStableToCompound` from this contract (msg.sender).
         // 2. Convert it to `defaultVaultAsset`.
         // 3. Deposit/transfer the `defaultVaultAsset` directly to the `dStakeCollateralVault`.
-        (
-            address convertedVaultAsset,
-            uint256 convertedVaultAssetAmount
-        ) = adapter.convertToVaultAsset(amountDStableToCompound);
+        (address convertedVaultAsset, uint256 convertedVaultAssetAmount) = adapter.convertToVaultAsset(amountDStableToCompound);
 
         if (convertedVaultAsset != defaultVaultAsset) {
-            revert AdapterReturnedUnexpectedAsset(
-                defaultVaultAsset,
-                convertedVaultAsset
-            );
+            revert AdapterReturnedUnexpectedAsset(defaultVaultAsset, convertedVaultAsset);
         }
 
-        emit ExchangeAssetProcessed(
-            convertedVaultAsset,
-            convertedVaultAssetAmount,
-            amountDStableToCompound
-        );
+        emit ExchangeAssetProcessed(convertedVaultAsset, convertedVaultAssetAmount, amountDStableToCompound);
     }
 
     /**
      * @notice Override to deposit exchangeAsset for wrapper positions before claiming rewards and distribute rewards
      */
-    function compoundRewards(
-        uint256 amount,
-        address[] calldata rewardTokens,
-        address receiver
-    ) public override nonReentrant {
+    function compoundRewards(uint256 amount, address[] calldata rewardTokens, address receiver) public override nonReentrant {
         // Validate input
         if (amount < exchangeThreshold) {
             revert ExchangeAmountTooLow(amount, exchangeThreshold);
@@ -261,11 +225,7 @@ contract DStakeRewardManagerDLend is RewardClaimable {
         }
 
         // Transfer the exchange asset from the caller to this contract
-        IERC20(exchangeAsset).safeTransferFrom(
-            msg.sender,
-            address(this),
-            amount
-        );
+        IERC20(exchangeAsset).safeTransferFrom(msg.sender, address(this), amount);
 
         // Deposit exchange asset to collateral vault to establish wrapper positions
         _processExchangeAssetDeposit(amount);
@@ -274,16 +234,10 @@ contract DStakeRewardManagerDLend is RewardClaimable {
         emit RewardCompounded(exchangeAsset, amount, rewardTokens);
 
         // Claim rewards from dLEND
-        uint256[] memory rewardAmounts = _claimRewards(
-            rewardTokens,
-            address(this)
-        );
+        uint256[] memory rewardAmounts = _claimRewards(rewardTokens, address(this));
 
         if (rewardAmounts.length != rewardTokens.length) {
-            revert RewardAmountsLengthMismatch(
-                rewardAmounts.length,
-                rewardTokens.length
-            );
+            revert RewardAmountsLengthMismatch(rewardAmounts.length, rewardTokens.length);
         }
 
         // Distribute rewards: fee to treasury, net to receiver
@@ -291,16 +245,10 @@ contract DStakeRewardManagerDLend is RewardClaimable {
             uint256 rewardAmount = rewardAmounts[i];
             uint256 treasuryFee = getTreasuryFee(rewardAmount);
             if (treasuryFee > rewardAmount) {
-                revert TreasuryFeeExceedsRewardAmount(
-                    treasuryFee,
-                    rewardAmount
-                );
+                revert TreasuryFeeExceedsRewardAmount(treasuryFee, rewardAmount);
             }
             IERC20(rewardTokens[i]).safeTransfer(treasury, treasuryFee);
-            IERC20(rewardTokens[i]).safeTransfer(
-                receiver,
-                rewardAmount - treasuryFee
-            );
+            IERC20(rewardTokens[i]).safeTransfer(receiver, rewardAmount - treasuryFee);
         }
     }
 
@@ -311,19 +259,12 @@ contract DStakeRewardManagerDLend is RewardClaimable {
      * @dev Only callable by DEFAULT_ADMIN_ROLE.
      * @param _newDLendRewardsController The address of the new rewards controller.
      */
-    function setDLendRewardsController(
-        address _newDLendRewardsController
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function setDLendRewardsController(address _newDLendRewardsController) external onlyRole(DEFAULT_ADMIN_ROLE) {
         if (_newDLendRewardsController == address(0)) {
             revert ZeroAddress();
         }
         address oldController = address(dLendRewardsController);
-        dLendRewardsController = IDLendRewardsController(
-            _newDLendRewardsController
-        );
-        emit DLendRewardsControllerUpdated(
-            oldController,
-            _newDLendRewardsController
-        );
+        dLendRewardsController = IDLendRewardsController(_newDLendRewardsController);
+        emit DLendRewardsControllerUpdated(oldController, _newDLendRewardsController);
     }
 }

@@ -29,23 +29,15 @@ describe("DLoopCoreMock Reentrancy Attack Tests", function () {
       const targetUser = accounts[1];
 
       // Set initial prices
-      await dloopMock.setMockPrice(
-        await collateralToken.getAddress(),
-        ethers.parseEther("1.2"),
-      );
-      await dloopMock.setMockPrice(
-        await debtToken.getAddress(),
-        ethers.parseEther("0.8"),
-      );
+      await dloopMock.setMockPrice(await collateralToken.getAddress(), ethers.parseEther("1.2"));
+      await dloopMock.setMockPrice(await debtToken.getAddress(), ethers.parseEther("0.8"));
 
       // Verify that deposit function has reentrancy protection
       // This is evidenced by the nonReentrant modifier in the _deposit function
       // in DLoopCoreBase.sol line 620
       const depositAmount = ethers.parseEther("100");
 
-      await dloopMock
-        .connect(targetUser)
-        .deposit(depositAmount, targetUser.address);
+      await dloopMock.connect(targetUser).deposit(depositAmount, targetUser.address);
 
       // Verify deposit succeeded
       const userShares = await dloopMock.balanceOf(targetUser.address);
@@ -56,35 +48,19 @@ describe("DLoopCoreMock Reentrancy Attack Tests", function () {
       const targetUser = accounts[1];
 
       // Set initial prices
-      await dloopMock.setMockPrice(
-        await collateralToken.getAddress(),
-        ethers.parseEther("1.2"),
-      );
-      await dloopMock.setMockPrice(
-        await debtToken.getAddress(),
-        ethers.parseEther("0.8"),
-      );
+      await dloopMock.setMockPrice(await collateralToken.getAddress(), ethers.parseEther("1.2"));
+      await dloopMock.setMockPrice(await debtToken.getAddress(), ethers.parseEther("0.8"));
 
       // First deposit to establish position
-      await dloopMock
-        .connect(targetUser)
-        .deposit(ethers.parseEther("100"), targetUser.address);
+      await dloopMock.connect(targetUser).deposit(ethers.parseEther("100"), targetUser.address);
 
       // Change prices to make leverage below target
-      await dloopMock.setMockPrice(
-        await collateralToken.getAddress(),
-        ethers.parseEther("1.4"),
-      );
-      await dloopMock.setMockPrice(
-        await debtToken.getAddress(),
-        ethers.parseEther("0.7"),
-      );
+      await dloopMock.setMockPrice(await collateralToken.getAddress(), ethers.parseEther("1.4"));
+      await dloopMock.setMockPrice(await debtToken.getAddress(), ethers.parseEther("0.7"));
 
       // Verify increaseLeverage has reentrancy protection
       // This is evidenced by the nonReentrant modifier in the increaseLeverage function
-      await dloopMock
-        .connect(targetUser)
-        .increaseLeverage(ethers.parseEther("10"), 0);
+      await dloopMock.connect(targetUser).increaseLeverage(ethers.parseEther("10"), 0);
 
       // Verify leverage increase worked
       const leverageAfter = await dloopMock.getCurrentLeverageBps();
@@ -95,37 +71,21 @@ describe("DLoopCoreMock Reentrancy Attack Tests", function () {
       const targetUser = accounts[1];
 
       // Set initial prices
-      await dloopMock.setMockPrice(
-        await collateralToken.getAddress(),
-        ethers.parseEther("1.2"),
-      );
-      await dloopMock.setMockPrice(
-        await debtToken.getAddress(),
-        ethers.parseEther("0.8"),
-      );
+      await dloopMock.setMockPrice(await collateralToken.getAddress(), ethers.parseEther("1.2"));
+      await dloopMock.setMockPrice(await debtToken.getAddress(), ethers.parseEther("0.8"));
 
       // First deposit to establish position
-      await dloopMock
-        .connect(targetUser)
-        .deposit(ethers.parseEther("100"), targetUser.address);
+      await dloopMock.connect(targetUser).deposit(ethers.parseEther("100"), targetUser.address);
 
       // Change prices to make leverage above target
-      await dloopMock.setMockPrice(
-        await collateralToken.getAddress(),
-        ethers.parseEther("1.05"),
-      );
-      await dloopMock.setMockPrice(
-        await debtToken.getAddress(),
-        ethers.parseEther("0.85"),
-      );
+      await dloopMock.setMockPrice(await collateralToken.getAddress(), ethers.parseEther("1.05"));
+      await dloopMock.setMockPrice(await debtToken.getAddress(), ethers.parseEther("0.85"));
 
       // Verify decreaseLeverage has reentrancy protection
       // This is evidenced by the nonReentrant modifier in the decreaseLeverage function
       await debtToken.mint(targetUser.address, ethers.parseEther("1000"));
 
-      await dloopMock
-        .connect(targetUser)
-        .decreaseLeverage(ethers.parseEther("10"), 0);
+      await dloopMock.connect(targetUser).decreaseLeverage(ethers.parseEther("10"), 0);
 
       // Verify leverage decrease worked
       const leverageAfter = await dloopMock.getCurrentLeverageBps();
@@ -136,31 +96,17 @@ describe("DLoopCoreMock Reentrancy Attack Tests", function () {
       const targetUser = accounts[1];
 
       // Set initial prices
-      await dloopMock.setMockPrice(
-        await collateralToken.getAddress(),
-        ethers.parseEther("1.2"),
-      );
-      await dloopMock.setMockPrice(
-        await debtToken.getAddress(),
-        ethers.parseEther("0.8"),
-      );
+      await dloopMock.setMockPrice(await collateralToken.getAddress(), ethers.parseEther("1.2"));
+      await dloopMock.setMockPrice(await debtToken.getAddress(), ethers.parseEther("0.8"));
 
       // First deposit to establish position
-      await dloopMock
-        .connect(targetUser)
-        .deposit(ethers.parseEther("100"), targetUser.address);
+      await dloopMock.connect(targetUser).deposit(ethers.parseEther("100"), targetUser.address);
 
       // Verify withdraw has reentrancy protection
       // This is evidenced by the nonReentrant modifier in the _withdraw function
       await debtToken.mint(targetUser.address, ethers.parseEther("1000"));
 
-      await dloopMock
-        .connect(targetUser)
-        .withdraw(
-          ethers.parseEther("10"),
-          targetUser.address,
-          targetUser.address,
-        );
+      await dloopMock.connect(targetUser).withdraw(ethers.parseEther("10"), targetUser.address, targetUser.address);
 
       // Verify withdraw worked
       const userShares = await dloopMock.balanceOf(targetUser.address);
@@ -171,24 +117,14 @@ describe("DLoopCoreMock Reentrancy Attack Tests", function () {
       const targetUser = accounts[1];
 
       // Set initial prices
-      await dloopMock.setMockPrice(
-        await collateralToken.getAddress(),
-        ethers.parseEther("1.2"),
-      );
-      await dloopMock.setMockPrice(
-        await debtToken.getAddress(),
-        ethers.parseEther("0.8"),
-      );
+      await dloopMock.setMockPrice(await collateralToken.getAddress(), ethers.parseEther("1.2"));
+      await dloopMock.setMockPrice(await debtToken.getAddress(), ethers.parseEther("0.8"));
 
       // First deposit should succeed
-      await dloopMock
-        .connect(targetUser)
-        .deposit(ethers.parseEther("100"), targetUser.address);
+      await dloopMock.connect(targetUser).deposit(ethers.parseEther("100"), targetUser.address);
 
       // Second deposit in separate transaction should also succeed
-      await dloopMock
-        .connect(targetUser)
-        .deposit(ethers.parseEther("50"), targetUser.address);
+      await dloopMock.connect(targetUser).deposit(ethers.parseEther("50"), targetUser.address);
 
       // Verify both deposits worked
       const userShares = await dloopMock.balanceOf(targetUser.address);

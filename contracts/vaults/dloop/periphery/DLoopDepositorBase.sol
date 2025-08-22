@@ -17,18 +17,18 @@
 
 pragma solidity ^0.8.20;
 
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-import {ERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
-import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
+import { ERC20, SafeERC20 } from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
+import { ReentrancyGuard } from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
-import {IERC3156FlashBorrower} from "./interface/flashloan/IERC3156FlashBorrower.sol";
-import {IERC3156FlashLender} from "./interface/flashloan/IERC3156FlashLender.sol";
-import {DLoopCoreBase} from "../core/DLoopCoreBase.sol";
-import {SwappableVault} from "contracts/common/SwappableVault.sol";
-import {RescuableVault} from "contracts/common/RescuableVault.sol";
-import {BasisPointConstants} from "contracts/common/BasisPointConstants.sol";
-import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
-import {SharedLogic} from "./helper/SharedLogic.sol";
+import { IERC3156FlashBorrower } from "./interface/flashloan/IERC3156FlashBorrower.sol";
+import { IERC3156FlashLender } from "./interface/flashloan/IERC3156FlashLender.sol";
+import { DLoopCoreBase } from "../core/DLoopCoreBase.sol";
+import { SwappableVault } from "contracts/common/SwappableVault.sol";
+import { RescuableVault } from "contracts/common/RescuableVault.sol";
+import { BasisPointConstants } from "contracts/common/BasisPointConstants.sol";
+import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
+import { SharedLogic } from "./helper/SharedLogic.sol";
 
 /**
  * @title DLoopDepositorBase
@@ -40,19 +40,12 @@ import {SharedLogic} from "./helper/SharedLogic.sol";
  *      - In the final state, the user has 300 shares representing 300 WETH, and the core contract has 300 WETH as collateral, 200 dUSD as debt
  *      - NOTE: This contract only support deposit() to DLoopCore contracts, not mint()
  */
-abstract contract DLoopDepositorBase is
-    IERC3156FlashBorrower,
-    Ownable,
-    ReentrancyGuard,
-    SwappableVault,
-    RescuableVault
-{
+abstract contract DLoopDepositorBase is IERC3156FlashBorrower, Ownable, ReentrancyGuard, SwappableVault, RescuableVault {
     using SafeERC20 for ERC20;
 
     /* Constants */
 
-    bytes32 public constant FLASHLOAN_CALLBACK =
-        keccak256("ERC3156FlashBorrower.onFlashLoan");
+    bytes32 public constant FLASHLOAN_CALLBACK = keccak256("ERC3156FlashBorrower.onFlashLoan");
 
     /* Core state */
 
@@ -62,48 +55,20 @@ abstract contract DLoopDepositorBase is
 
     error UnknownLender(address msgSender, address flashLender);
     error UnknownInitiator(address initiator, address thisContract);
-    error IncompatibleDLoopCoreDebtToken(
-        address currentDebtToken,
-        address dLoopCoreDebtToken
-    );
-    error SharesNotIncreasedAfterFlashLoan(
-        uint256 sharesBeforeDeposit,
-        uint256 sharesAfterDeposit
-    );
-    error DebtTokenBalanceNotIncreasedAfterDeposit(
-        uint256 debtTokenBalanceBeforeDeposit,
-        uint256 debtTokenBalanceAfterDeposit
-    );
-    error ReceivedSharesNotMetMinReceiveAmount(
-        uint256 receivedShares,
-        uint256 minOutputShares
-    );
-    error DebtTokenReceivedNotMetUsedAmountWithFlashLoanFee(
-        uint256 debtTokenReceived,
-        uint256 debtTokenUsed,
-        uint256 flashLoanFee
-    );
-    error LeveragedCollateralAmountLessThanDepositCollateralAmount(
-        uint256 leveragedCollateralAmount,
-        uint256 depositCollateralAmount
-    );
-    error EstimatedSharesLessThanMinOutputShares(
-        uint256 currentEstimatedShares,
-        uint256 minOutputShares
-    );
-    error EstimatedOverallSlippageBpsCannotExceedOneHundredPercent(
-        uint256 estimatedOverallSlippageBps
-    );
+    error IncompatibleDLoopCoreDebtToken(address currentDebtToken, address dLoopCoreDebtToken);
+    error SharesNotIncreasedAfterFlashLoan(uint256 sharesBeforeDeposit, uint256 sharesAfterDeposit);
+    error DebtTokenBalanceNotIncreasedAfterDeposit(uint256 debtTokenBalanceBeforeDeposit, uint256 debtTokenBalanceAfterDeposit);
+    error ReceivedSharesNotMetMinReceiveAmount(uint256 receivedShares, uint256 minOutputShares);
+    error DebtTokenReceivedNotMetUsedAmountWithFlashLoanFee(uint256 debtTokenReceived, uint256 debtTokenUsed, uint256 flashLoanFee);
+    error LeveragedCollateralAmountLessThanDepositCollateralAmount(uint256 leveragedCollateralAmount, uint256 depositCollateralAmount);
+    error EstimatedSharesLessThanMinOutputShares(uint256 currentEstimatedShares, uint256 minOutputShares);
+    error EstimatedOverallSlippageBpsCannotExceedOneHundredPercent(uint256 estimatedOverallSlippageBps);
     error FlashLenderNotSameAsDebtToken(address flashLender, address debtToken);
     error SlippageBpsCannotExceedOneHundredPercent(uint256 slippageBps);
 
     /* Events */
 
-    event LeftoverDebtTokensTransferred(
-        address indexed debtToken,
-        uint256 amount,
-        address indexed receiver
-    );
+    event LeftoverDebtTokensTransferred(address indexed debtToken, uint256 amount, address indexed receiver);
 
     /* Structs */
 
@@ -129,13 +94,7 @@ abstract contract DLoopDepositorBase is
      * @dev Gets the restricted rescue tokens
      * @return restrictedTokens Restricted rescue tokens
      */
-    function getRestrictedRescueTokens()
-        public
-        view
-        virtual
-        override
-        returns (address[] memory restrictedTokens)
-    {
+    function getRestrictedRescueTokens() public view virtual override returns (address[] memory restrictedTokens) {
         // Return empty array as we no longer handle leftover debt tokens
         return new address[](0);
     }
@@ -149,21 +108,12 @@ abstract contract DLoopDepositorBase is
      * @param dLoopCore Address of the DLoopCore contract
      * @return minOutputShares Minimum output shares
      */
-    function calculateMinOutputShares(
-        uint256 depositAmount,
-        uint256 slippageBps,
-        DLoopCoreBase dLoopCore
-    ) public view returns (uint256) {
+    function calculateMinOutputShares(uint256 depositAmount, uint256 slippageBps, DLoopCoreBase dLoopCore) public view returns (uint256) {
         if (slippageBps > BasisPointConstants.ONE_HUNDRED_PERCENT_BPS) {
             revert SlippageBpsCannotExceedOneHundredPercent(slippageBps);
         }
-        uint256 expectedLeveragedAssets = getLeveragedAssets(
-            depositAmount,
-            dLoopCore
-        );
-        uint256 expectedShares = dLoopCore.convertToShares(
-            expectedLeveragedAssets
-        );
+        uint256 expectedLeveragedAssets = getLeveragedAssets(depositAmount, dLoopCore);
+        uint256 expectedShares = dLoopCore.convertToShares(expectedLeveragedAssets);
         return
             Math.mulDiv(
                 expectedShares,
@@ -178,10 +128,7 @@ abstract contract DLoopDepositorBase is
      * @param dLoopCore Address of the DLoopCore contract
      * @return leveragedAssets Amount of leveraged assets
      */
-    function getLeveragedAssets(
-        uint256 assets,
-        DLoopCoreBase dLoopCore
-    ) public view returns (uint256) {
+    function getLeveragedAssets(uint256 assets, DLoopCoreBase dLoopCore) public view returns (uint256) {
         return SharedLogic.getLeveragedAssets(assets, dLoopCore);
     }
 
@@ -236,17 +183,9 @@ abstract contract DLoopDepositorBase is
          * and the current estimated shares
          */
         if (currentEstimatedShares < minOutputShares) {
-            revert EstimatedSharesLessThanMinOutputShares(
-                currentEstimatedShares,
-                minOutputShares
-            );
+            revert EstimatedSharesLessThanMinOutputShares(currentEstimatedShares, minOutputShares);
         }
-        return
-            Math.mulDiv(
-                currentEstimatedShares - minOutputShares,
-                BasisPointConstants.ONE_HUNDRED_PERCENT_BPS,
-                currentEstimatedShares
-            );
+        return Math.mulDiv(currentEstimatedShares - minOutputShares, BasisPointConstants.ONE_HUNDRED_PERCENT_BPS, currentEstimatedShares);
     }
 
     /**
@@ -279,26 +218,20 @@ abstract contract DLoopDepositorBase is
 
         // Calculate the estimated overall slippage bps
         uint256 estimatedOverallSlippageBps = _calculateEstimatedOverallSlippageBps(
-                dLoopCore.convertToShares(currentLeveragedAssets),
-                minOutputShares
-            );
+            dLoopCore.convertToShares(currentLeveragedAssets),
+            minOutputShares
+        );
 
         // Make sure the estimated overall slippage bps does not exceed 100%
-        if (
-            estimatedOverallSlippageBps >
-            BasisPointConstants.ONE_HUNDRED_PERCENT_BPS
-        ) {
-            revert EstimatedOverallSlippageBpsCannotExceedOneHundredPercent(
-                estimatedOverallSlippageBps
-            );
+        if (estimatedOverallSlippageBps > BasisPointConstants.ONE_HUNDRED_PERCENT_BPS) {
+            revert EstimatedOverallSlippageBpsCannotExceedOneHundredPercent(estimatedOverallSlippageBps);
         }
 
         // Calculate the leveraged collateral amount to deposit with slippage included
         // Explained with formula in _calculateEstimatedOverallSlippageBps()
         uint256 leveragedCollateralAmount = Math.mulDiv(
             currentLeveragedAssets,
-            BasisPointConstants.ONE_HUNDRED_PERCENT_BPS -
-                estimatedOverallSlippageBps,
+            BasisPointConstants.ONE_HUNDRED_PERCENT_BPS - estimatedOverallSlippageBps,
             BasisPointConstants.ONE_HUNDRED_PERCENT_BPS
         );
 
@@ -311,9 +244,7 @@ abstract contract DLoopDepositorBase is
             dLoopCore
         );
         bytes memory data = _encodeParamsToData(params);
-        uint256 maxFlashLoanAmount = flashLender.maxFlashLoan(
-            address(debtToken)
-        );
+        uint256 maxFlashLoanAmount = flashLender.maxFlashLoan(address(debtToken));
 
         // This value is used to check if the shares increased after the flash loan
         uint256 sharesBeforeDeposit = dLoopCore.balanceOf(address(this));
@@ -321,47 +252,27 @@ abstract contract DLoopDepositorBase is
         // Approve the flash lender to spend the flash loan amount of debt token from this contract
         ERC20(debtToken).forceApprove(
             address(flashLender),
-            maxFlashLoanAmount +
-                flashLender.flashFee(address(debtToken), maxFlashLoanAmount)
+            maxFlashLoanAmount + flashLender.flashFee(address(debtToken), maxFlashLoanAmount)
         );
 
         // Make sure the flashLender is the same as the debt token
         if (address(flashLender) != address(debtToken)) {
-            revert FlashLenderNotSameAsDebtToken(
-                address(flashLender),
-                address(debtToken)
-            );
+            revert FlashLenderNotSameAsDebtToken(address(flashLender), address(debtToken));
         }
 
         // The main logic will be done in the onFlashLoan function
-        flashLender.flashLoan(
-            this,
-            address(debtToken),
-            maxFlashLoanAmount,
-            data
-        );
+        flashLender.flashLoan(this, address(debtToken), maxFlashLoanAmount, data);
 
         // The received debt token after deposit was used to repay the flash loan
 
         // Check if the shares increased after the flash loan
         uint256 sharesAfterDeposit = dLoopCore.balanceOf(address(this));
         if (sharesAfterDeposit <= sharesBeforeDeposit) {
-            revert SharesNotIncreasedAfterFlashLoan(
-                sharesBeforeDeposit,
-                sharesAfterDeposit
-            );
+            revert SharesNotIncreasedAfterFlashLoan(sharesBeforeDeposit, sharesAfterDeposit);
         }
 
         // Finalize deposit and transfer shares
-        return
-            _finalizeDepositAndTransfer(
-                dLoopCore,
-                debtToken,
-                receiver,
-                sharesBeforeDeposit,
-                sharesAfterDeposit,
-                minOutputShares
-            );
+        return _finalizeDepositAndTransfer(dLoopCore, debtToken, receiver, sharesBeforeDeposit, sharesAfterDeposit, minOutputShares);
     }
 
     /* Flash loan entrypoint */
@@ -386,10 +297,8 @@ abstract contract DLoopDepositorBase is
         // function, which is already protected by nonReentrant
         // Moreover, this function is only be able to be called by the address(this) (check the initiator condition)
         // thus even though the flash loan is public and not protected by nonReentrant, it is still safe
-        if (msg.sender != address(flashLender))
-            revert UnknownLender(msg.sender, address(flashLender));
-        if (initiator != address(this))
-            revert UnknownInitiator(initiator, address(this));
+        if (msg.sender != address(flashLender)) revert UnknownLender(msg.sender, address(flashLender));
+        if (initiator != address(this)) revert UnknownInitiator(initiator, address(this));
 
         // Decode the flash loan params data
         FlashLoanParams memory flashLoanParams = _decodeDataToParams(data);
@@ -398,13 +307,10 @@ abstract contract DLoopDepositorBase is
         ERC20 debtToken = dLoopCore.debtToken();
 
         // Make sure the input dLoopCore is compatible with this periphery contract
-        if (token != address(debtToken))
-            revert IncompatibleDLoopCoreDebtToken(token, address(debtToken));
+        if (token != address(debtToken)) revert IncompatibleDLoopCoreDebtToken(token, address(debtToken));
 
         // Calculate and validate the required additional collateral amount
-        uint256 requiredAdditionalCollateralAmount = _calculateRequiredAdditionalCollateral(
-                flashLoanParams
-            );
+        uint256 requiredAdditionalCollateralAmount = _calculateRequiredAdditionalCollateral(flashLoanParams);
 
         /**
          * Swap the flash loan debt token to the collateral token
@@ -424,13 +330,7 @@ abstract contract DLoopDepositorBase is
         );
 
         // Execute deposit and validate debt token received
-        _executeDepositAndValidate(
-            flashLoanParams,
-            collateralToken,
-            debtToken,
-            debtTokenAmountUsedInSwap,
-            flashLoanFee
-        );
+        _executeDepositAndValidate(flashLoanParams, collateralToken, debtToken, debtTokenAmountUsedInSwap, flashLoanFee);
 
         // Return the success bytes
         return FLASHLOAN_CALLBACK;
@@ -451,18 +351,13 @@ abstract contract DLoopDepositorBase is
         // Calculate the required additional collateral amount to reach the leveraged amount
         // and make sure the overall slippage is included, which is to make sure the output
         // shares can be at least the min output shares (proven with formula)
-        if (
-            flashLoanParams.leveragedCollateralAmount <
-            flashLoanParams.depositCollateralAmount
-        ) {
+        if (flashLoanParams.leveragedCollateralAmount < flashLoanParams.depositCollateralAmount) {
             revert LeveragedCollateralAmountLessThanDepositCollateralAmount(
                 flashLoanParams.leveragedCollateralAmount,
                 flashLoanParams.depositCollateralAmount
             );
         }
-        requiredAdditionalCollateralAmount = (flashLoanParams
-            .leveragedCollateralAmount -
-            flashLoanParams.depositCollateralAmount);
+        requiredAdditionalCollateralAmount = (flashLoanParams.leveragedCollateralAmount - flashLoanParams.depositCollateralAmount);
     }
 
     /**
@@ -481,9 +376,7 @@ abstract contract DLoopDepositorBase is
         uint256 flashLoanFee
     ) internal {
         // This value is used to check if the debt token balance increased after the deposit
-        uint256 debtTokenBalanceBeforeDeposit = debtToken.balanceOf(
-            address(this)
-        );
+        uint256 debtTokenBalanceBeforeDeposit = debtToken.balanceOf(address(this));
 
         /**
          * Deposit the collateral token to the core vault
@@ -493,38 +386,23 @@ abstract contract DLoopDepositorBase is
          *
          * The minted shares will be sent to the receiver later (outside of the flash loan callback)
          */
-        collateralToken.forceApprove(
-            address(flashLoanParams.dLoopCore),
-            flashLoanParams.leveragedCollateralAmount
-        );
-        flashLoanParams.dLoopCore.deposit(
-            flashLoanParams.leveragedCollateralAmount,
-            address(this)
-        );
+        collateralToken.forceApprove(address(flashLoanParams.dLoopCore), flashLoanParams.leveragedCollateralAmount);
+        flashLoanParams.dLoopCore.deposit(flashLoanParams.leveragedCollateralAmount, address(this));
 
         // Debt token balance after deposit, which is used to sanity check the debt token balance increased after the deposit
-        uint256 debtTokenBalanceAfterDeposit = debtToken.balanceOf(
-            address(this)
-        );
+        uint256 debtTokenBalanceAfterDeposit = debtToken.balanceOf(address(this));
 
         // Make sure to receive the debt token from the core vault to repay the flash loan
         if (debtTokenBalanceAfterDeposit <= debtTokenBalanceBeforeDeposit) {
-            revert DebtTokenBalanceNotIncreasedAfterDeposit(
-                debtTokenBalanceBeforeDeposit,
-                debtTokenBalanceAfterDeposit
-            );
+            revert DebtTokenBalanceNotIncreasedAfterDeposit(debtTokenBalanceBeforeDeposit, debtTokenBalanceAfterDeposit);
         }
 
         // Calculate the debt token received after the deposit
-        uint256 debtTokenReceivedAfterDeposit = debtTokenBalanceAfterDeposit -
-            debtTokenBalanceBeforeDeposit;
+        uint256 debtTokenReceivedAfterDeposit = debtTokenBalanceAfterDeposit - debtTokenBalanceBeforeDeposit;
 
         // Make sure the debt token received after the deposit is not less than the debt token used in the swap
         // to allow repaying the flash loan
-        if (
-            debtTokenReceivedAfterDeposit <
-            debtTokenAmountUsedInSwap + flashLoanFee
-        ) {
+        if (debtTokenReceivedAfterDeposit < debtTokenAmountUsedInSwap + flashLoanFee) {
             revert DebtTokenReceivedNotMetUsedAmountWithFlashLoanFee(
                 debtTokenReceivedAfterDeposit,
                 debtTokenAmountUsedInSwap,
@@ -560,10 +438,7 @@ abstract contract DLoopDepositorBase is
          */
         shares = sharesAfterDeposit - sharesBeforeDeposit;
         if (shares < minOutputShares) {
-            revert ReceivedSharesNotMetMinReceiveAmount(
-                shares,
-                minOutputShares
-            );
+            revert ReceivedSharesNotMetMinReceiveAmount(shares, minOutputShares);
         }
 
         // There is no leftover collateral token, as all swapped collateral token
@@ -573,11 +448,7 @@ abstract contract DLoopDepositorBase is
         uint256 leftoverAmount = debtToken.balanceOf(address(this));
         if (leftoverAmount > 0) {
             debtToken.safeTransfer(receiver, leftoverAmount);
-            emit LeftoverDebtTokensTransferred(
-                address(debtToken),
-                leftoverAmount,
-                receiver
-            );
+            emit LeftoverDebtTokensTransferred(address(debtToken), leftoverAmount, receiver);
         }
 
         // Transfer the minted shares to the receiver
@@ -591,9 +462,7 @@ abstract contract DLoopDepositorBase is
      * @param _flashLoanParams Flash loan parameters
      * @return data Encoded data
      */
-    function _encodeParamsToData(
-        FlashLoanParams memory _flashLoanParams
-    ) internal pure returns (bytes memory data) {
+    function _encodeParamsToData(FlashLoanParams memory _flashLoanParams) internal pure returns (bytes memory data) {
         data = abi.encode(
             _flashLoanParams.receiver,
             _flashLoanParams.depositCollateralAmount,
@@ -608,9 +477,7 @@ abstract contract DLoopDepositorBase is
      * @param data Encoded data
      * @return _flashLoanParams Decoded flash loan parameters
      */
-    function _decodeDataToParams(
-        bytes memory data
-    ) internal pure returns (FlashLoanParams memory _flashLoanParams) {
+    function _decodeDataToParams(bytes memory data) internal pure returns (FlashLoanParams memory _flashLoanParams) {
         (
             _flashLoanParams.receiver,
             _flashLoanParams.depositCollateralAmount,

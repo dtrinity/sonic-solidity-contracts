@@ -17,7 +17,7 @@
 
 pragma solidity ^0.8.20;
 
-import {IPoolAddressesProvider} from "./IPoolAddressesProvider.sol";
+import { IPoolAddressesProvider } from "./IPoolAddressesProvider.sol";
 
 /**
  * @title IPoolDataProvider
@@ -34,10 +34,7 @@ interface IPoolDataProvider {
      * @notice Returns the address for the PoolAddressesProvider contract.
      * @return The address for the PoolAddressesProvider contract
      */
-    function ADDRESSES_PROVIDER()
-        external
-        view
-        returns (IPoolAddressesProvider);
+    function ADDRESSES_PROVIDER() external view returns (IPoolAddressesProvider);
 
     /**
      * @notice Returns the list of the existing reserves in the pool.
@@ -90,9 +87,7 @@ interface IPoolDataProvider {
      * @param asset The address of the underlying asset of the reserve
      * @return The eMode id of the reserve
      */
-    function getReserveEModeCategory(
-        address asset
-    ) external view returns (uint256);
+    function getReserveEModeCategory(address asset) external view returns (uint256);
 
     /**
      * @notice Returns the caps parameters of the reserve
@@ -100,9 +95,7 @@ interface IPoolDataProvider {
      * @return borrowCap The borrow cap of the reserve
      * @return supplyCap The supply cap of the reserve
      */
-    function getReserveCaps(
-        address asset
-    ) external view returns (uint256 borrowCap, uint256 supplyCap);
+    function getReserveCaps(address asset) external view returns (uint256 borrowCap, uint256 supplyCap);
 
     /**
      * @notice Returns if the pool is paused
@@ -123,9 +116,7 @@ interface IPoolDataProvider {
      * @param asset The address of the underlying asset of the reserve
      * @return The protocol fee on liquidation
      */
-    function getLiquidationProtocolFee(
-        address asset
-    ) external view returns (uint256);
+    function getLiquidationProtocolFee(address asset) external view returns (uint256);
 
     /**
      * @notice Returns the unbacked mint cap of the reserve
@@ -188,9 +179,7 @@ interface IPoolDataProvider {
      * @param asset The address of the underlying asset of the reserve
      * @return The total supply of the aToken
      */
-    function getATokenTotalSupply(
-        address asset
-    ) external view returns (uint256);
+    function getATokenTotalSupply(address asset) external view returns (uint256);
 
     /**
      * @notice Returns the total debt for a given asset
@@ -241,23 +230,14 @@ interface IPoolDataProvider {
      */
     function getReserveTokensAddresses(
         address asset
-    )
-        external
-        view
-        returns (
-            address aTokenAddress,
-            address stableDebtTokenAddress,
-            address variableDebtTokenAddress
-        );
+    ) external view returns (address aTokenAddress, address stableDebtTokenAddress, address variableDebtTokenAddress);
 
     /**
      * @notice Returns the address of the Interest Rate strategy
      * @param asset The address of the underlying asset of the reserve
      * @return irStrategyAddress The address of the Interest Rate strategy
      */
-    function getInterestRateStrategyAddress(
-        address asset
-    ) external view returns (address irStrategyAddress);
+    function getInterestRateStrategyAddress(address asset) external view returns (address irStrategyAddress);
 
     /**
      * @notice Returns whether the reserve has FlashLoans enabled or disabled

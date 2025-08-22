@@ -17,7 +17,7 @@
 
 pragma solidity ^0.8.20;
 
-import {IBaseOdosAdapter} from "./IBaseOdosAdapter.sol";
+import { IBaseOdosAdapter } from "./IBaseOdosAdapter.sol";
 
 /**
  * @title IOdosRepayAdapter
@@ -29,10 +29,7 @@ interface IOdosRepayAdapter is IBaseOdosAdapter {
      * @param amountReceived The amount received from the swap
      * @param amountToRepay The amount needed to repay
      */
-    error InsufficientAmountToRepay(
-        uint256 amountReceived,
-        uint256 amountToRepay
-    );
+    error InsufficientAmountToRepay(uint256 amountReceived, uint256 amountToRepay);
 
     /**
      * @dev Struct for repay parameters
@@ -62,8 +59,5 @@ interface IOdosRepayAdapter is IBaseOdosAdapter {
      * @param permitInput The parameters of the permit signature, to approve collateral aToken
      * @return uint256 The amount repaid
      */
-    function swapAndRepay(
-        RepayParams memory repayParams,
-        PermitInput memory permitInput
-    ) external returns (uint256);
+    function swapAndRepay(RepayParams memory repayParams, PermitInput memory permitInput) external returns (uint256);
 }

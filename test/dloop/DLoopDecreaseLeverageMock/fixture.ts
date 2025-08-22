@@ -47,21 +47,11 @@ export async function deployDLoopDecreaseLeverageFixture(): Promise<DLoopDecreas
 
   // Deploy mock tokens
   const MockERC20 = await ethers.getContractFactory("TestMintableERC20");
-  const collateralToken = await MockERC20.deploy(
-    "Mock Collateral",
-    "mCOLL",
-    COLLATERAL_DECIMALS,
-  );
+  const collateralToken = await MockERC20.deploy("Mock Collateral", "mCOLL", COLLATERAL_DECIMALS);
 
   // Deploy flashmintable debt token (serves as both debt token and flash lender)
-  const FlashMintableToken = await ethers.getContractFactory(
-    "TestERC20FlashMintable",
-  );
-  const debtToken = await FlashMintableToken.deploy(
-    "Mock Debt",
-    "mDEBT",
-    DEBT_DECIMALS,
-  );
+  const FlashMintableToken = await ethers.getContractFactory("TestERC20FlashMintable");
+  const debtToken = await FlashMintableToken.deploy("Mock Debt", "mDEBT", DEBT_DECIMALS);
   const flashLender = debtToken; // Same contract serves both roles
 
   // Deploy SimpleDEXMock for swapping
@@ -73,8 +63,7 @@ export async function deployDLoopDecreaseLeverageFixture(): Promise<DLoopDecreas
   await debtToken.mint(mockPool, ethers.parseEther("1000000"));
 
   // Deploy and link DLoopCoreLogic library before deploying DLoopCoreMock
-  const DLoopCoreLogicFactory =
-    await ethers.getContractFactory("DLoopCoreLogic");
+  const DLoopCoreLogicFactory = await ethers.getContractFactory("DLoopCoreLogic");
   const dloopCoreLogicLib = await DLoopCoreLogicFactory.deploy();
   await dloopCoreLogicLib.waitForDeployment();
 
@@ -86,23 +75,15 @@ export async function deployDLoopDecreaseLeverageFixture(): Promise<DLoopDecreas
   });
 
   // Set up allowances to the predicted DLoopCoreMock address
-  await collateralToken
-    .connect(deployer)
-    .approve(dloopCoreAddress, ethers.MaxUint256);
-  await debtToken
-    .connect(deployer)
-    .approve(dloopCoreAddress, ethers.MaxUint256);
+  await collateralToken.connect(deployer).approve(dloopCoreAddress, ethers.MaxUint256);
+  await debtToken.connect(deployer).approve(dloopCoreAddress, ethers.MaxUint256);
 
   // Deploy DLoopCoreMock (linking the DLoopCoreLogic library)
-  const DLoopCoreMockFactory = await ethers.getContractFactory(
-    "DLoopCoreMock",
-    {
-      libraries: {
-        "contracts/vaults/dloop/core/DLoopCoreLogic.sol:DLoopCoreLogic":
-          await dloopCoreLogicLib.getAddress(),
-      },
+  const DLoopCoreMockFactory = await ethers.getContractFactory("DLoopCoreMock", {
+    libraries: {
+      "contracts/vaults/dloop/core/DLoopCoreLogic.sol:DLoopCoreLogic": await dloopCoreLogicLib.getAddress(),
     },
-  );
+  });
   const dloopCoreMock = await DLoopCoreMockFactory.deploy(
     "Mock dLoop Vault",
     "mdLOOP",
@@ -118,9 +99,7 @@ export async function deployDLoopDecreaseLeverageFixture(): Promise<DLoopDecreas
   );
 
   // Deploy DLoopDecreaseLeverageMock
-  const DLoopDecreaseLeverageMockFactory = await ethers.getContractFactory(
-    "DLoopDecreaseLeverageMock",
-  );
+  const DLoopDecreaseLeverageMockFactory = await ethers.getContractFactory("DLoopDecreaseLeverageMock");
   const decreaseLeverageMock = await DLoopDecreaseLeverageMockFactory.deploy(
     await flashLender.getAddress(),
     await simpleDEXMock.getAddress(),
@@ -147,26 +126,11 @@ export async function deployDLoopDecreaseLeverageFixture(): Promise<DLoopDecreas
  *
  * @param fixture Test fixture containing contracts, signers, and helpers
  */
-export async function testSetup(
-  fixture: DLoopDecreaseLeverageFixture,
-): Promise<void> {
-  const {
-    dloopCoreMock,
-    decreaseLeverageMock,
-    collateralToken,
-    debtToken,
-    simpleDEXMock,
-    user1,
-    user2,
-    user3,
-    mockPool,
-  } = fixture;
+export async function testSetup(fixture: DLoopDecreaseLeverageFixture): Promise<void> {
+  const { dloopCoreMock, decreaseLeverageMock, collateralToken, debtToken, simpleDEXMock, user1, user2, user3, mockPool } = fixture;
 
   // Set default prices in DLoopCoreMock
-  await dloopCoreMock.setMockPrice(
-    await collateralToken.getAddress(),
-    DEFAULT_PRICE,
-  );
+  await dloopCoreMock.setMockPrice(await collateralToken.getAddress(), DEFAULT_PRICE);
   await dloopCoreMock.setMockPrice(await debtToken.getAddress(), DEFAULT_PRICE);
 
   // Set exchange rates in SimpleDEXMock (1:1 for simplicity)
@@ -196,35 +160,19 @@ export async function testSetup(
   const simpleDEXAddress = await simpleDEXMock.getAddress();
 
   for (const user of [user1, user2, user3]) {
-    await collateralToken
-      .connect(user)
-      .approve(dloopCoreAddress, ethers.MaxUint256);
+    await collateralToken.connect(user).approve(dloopCoreAddress, ethers.MaxUint256);
     await debtToken.connect(user).approve(dloopCoreAddress, ethers.MaxUint256);
-    await collateralToken
-      .connect(user)
-      .approve(decreaseLeverageAddress, ethers.MaxUint256);
-    await debtToken
-      .connect(user)
-      .approve(decreaseLeverageAddress, ethers.MaxUint256);
-    await collateralToken
-      .connect(user)
-      .approve(simpleDEXAddress, ethers.MaxUint256);
+    await collateralToken.connect(user).approve(decreaseLeverageAddress, ethers.MaxUint256);
+    await debtToken.connect(user).approve(decreaseLeverageAddress, ethers.MaxUint256);
+    await collateralToken.connect(user).approve(simpleDEXAddress, ethers.MaxUint256);
     await debtToken.connect(user).approve(simpleDEXAddress, ethers.MaxUint256);
   }
 
   // Set allowances for mockPool to spend tokens from contracts
-  await collateralToken
-    .connect(mockPool)
-    .approve(dloopCoreAddress, ethers.MaxUint256);
-  await debtToken
-    .connect(mockPool)
-    .approve(dloopCoreAddress, ethers.MaxUint256);
-  await collateralToken
-    .connect(mockPool)
-    .approve(simpleDEXAddress, ethers.MaxUint256);
-  await debtToken
-    .connect(mockPool)
-    .approve(simpleDEXAddress, ethers.MaxUint256);
+  await collateralToken.connect(mockPool).approve(dloopCoreAddress, ethers.MaxUint256);
+  await debtToken.connect(mockPool).approve(dloopCoreAddress, ethers.MaxUint256);
+  await collateralToken.connect(mockPool).approve(simpleDEXAddress, ethers.MaxUint256);
+  await debtToken.connect(mockPool).approve(simpleDEXAddress, ethers.MaxUint256);
 
   // Mint tokens to SimpleDEXMock for swapping
   const dexBalance = ethers.parseEther("100000");
@@ -281,18 +229,11 @@ export async function createImbalancedLeveragePosition(
   const { dloopCoreMock, collateralToken, debtToken } = fixture;
 
   // 1. Set initial balanced prices (1:1)
-  await dloopCoreMock.setMockPrice(
-    await collateralToken.getAddress(),
-    DEFAULT_PRICE,
-  );
+  await dloopCoreMock.setMockPrice(await collateralToken.getAddress(), DEFAULT_PRICE);
   await dloopCoreMock.setMockPrice(await debtToken.getAddress(), DEFAULT_PRICE);
 
   // 2. Create initial leveraged position at target leverage
-  const { shares, borrowedDebt } = await createLeveragePosition(
-    fixture,
-    user,
-    depositAmount,
-  );
+  const { shares, borrowedDebt } = await createLeveragePosition(fixture, user, depositAmount);
 
   // 3. Verify initial leverage is at target
   const leverageBefore = await dloopCoreMock.getCurrentLeverageBps();
@@ -300,10 +241,7 @@ export async function createImbalancedLeveragePosition(
   // 4. Create imbalance by reducing collateral price (simulating market drop)
   // This increases leverage above target, requiring decrease leverage
   const newCollateralPrice = Math.floor(DEFAULT_PRICE * 0.85); // 15% price drop
-  await dloopCoreMock.setMockPrice(
-    await collateralToken.getAddress(),
-    newCollateralPrice,
-  );
+  await dloopCoreMock.setMockPrice(await collateralToken.getAddress(), newCollateralPrice);
 
   // 5. Verify leverage is now above target
   const leverageAfter = await dloopCoreMock.getCurrentLeverageBps();

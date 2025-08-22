@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import {IOdosRouterV2} from "contracts/odos/interface/IOdosRouterV2.sol";
-import {OdosSwapLogic} from "contracts/vaults/dloop/periphery/venue/odos/OdosSwapLogic.sol";
+import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import { IOdosRouterV2 } from "contracts/odos/interface/IOdosRouterV2.sol";
+import { OdosSwapLogic } from "contracts/vaults/dloop/periphery/venue/odos/OdosSwapLogic.sol";
 
 contract OdosSwapLogicHarness {
     function callSwapExactOutput(
@@ -15,15 +15,6 @@ contract OdosSwapLogicHarness {
         bytes calldata swapData,
         IOdosRouterV2 router
     ) external returns (uint256 amountSpent) {
-        amountSpent = OdosSwapLogic.swapExactOutput(
-            inputToken,
-            outputToken,
-            amountOut,
-            amountInMaximum,
-            receiver,
-            0,
-            swapData,
-            router
-        );
+        amountSpent = OdosSwapLogic.swapExactOutput(inputToken, outputToken, amountOut, amountInMaximum, receiver, 0, swapData, router);
     }
 }

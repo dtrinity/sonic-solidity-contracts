@@ -17,7 +17,7 @@
 
 pragma solidity ^0.8.20;
 
-import {IERC20} from "./IERC20.sol";
+import { IERC20 } from "./IERC20.sol";
 
 interface IERC20Detailed is IERC20 {
     function name() external view returns (string memory);

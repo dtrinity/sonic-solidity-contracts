@@ -17,11 +17,11 @@
 
 pragma solidity ^0.8.20;
 
-import {IERC20} from "contracts/dlend/core/dependencies/openzeppelin/contracts/IERC20.sol";
-import {IStreamable} from "./interfaces/IStreamable.sol";
-import {AdminControlledEcosystemReserve} from "./AdminControlledEcosystemReserve.sol";
-import {ReentrancyGuard} from "./libs/ReentrancyGuard.sol";
-import {SafeERC20} from "./libs/SafeERC20.sol";
+import { IERC20 } from "contracts/dlend/core/dependencies/openzeppelin/contracts/IERC20.sol";
+import { IStreamable } from "./interfaces/IStreamable.sol";
+import { AdminControlledEcosystemReserve } from "./AdminControlledEcosystemReserve.sol";
+import { ReentrancyGuard } from "./libs/ReentrancyGuard.sol";
+import { SafeERC20 } from "./libs/SafeERC20.sol";
 
 /**
  * @title AaveEcosystemReserve v2
@@ -35,11 +35,7 @@ import {SafeERC20} from "./libs/SafeERC20.sol";
  * - Same as with creation, on Sablier the `sender` and `recipient` can cancel a stream. Here, only fund admin and recipient
  * @author BGD Labs
  **/
-contract AaveEcosystemReserveV2 is
-    AdminControlledEcosystemReserve,
-    ReentrancyGuard,
-    IStreamable
-{
+contract AaveEcosystemReserveV2 is AdminControlledEcosystemReserve, ReentrancyGuard, IStreamable {
     using SafeERC20 for IERC20;
 
     /*** Storage Properties ***/
@@ -61,8 +57,7 @@ contract AaveEcosystemReserveV2 is
      */
     modifier onlyAdminOrRecipient(uint256 streamId) {
         require(
-            msg.sender == _fundsAdmin ||
-                msg.sender == _streams[streamId].recipient,
+            msg.sender == _fundsAdmin || msg.sender == _streams[streamId].recipient,
             "caller is not the funds admin or the recipient of the stream"
         );
         _;
@@ -134,13 +129,10 @@ contract AaveEcosystemReserveV2 is
      * @param streamId The id of the stream for which to query the delta.
      * @notice Returns the time delta in seconds.
      */
-    function deltaOf(
-        uint256 streamId
-    ) public view streamExists(streamId) returns (uint256 delta) {
+    function deltaOf(uint256 streamId) public view streamExists(streamId) returns (uint256 delta) {
         Stream memory stream = _streams[streamId];
         if (block.timestamp <= stream.startTime) return 0;
-        if (block.timestamp < stream.stopTime)
-            return block.timestamp - stream.startTime;
+        if (block.timestamp < stream.stopTime) return block.timestamp - stream.startTime;
         return stream.stopTime - stream.startTime;
     }
 
@@ -157,10 +149,7 @@ contract AaveEcosystemReserveV2 is
      * @param who The address for which to query the balance.
      * @notice Returns the total funds allocated to `who` as uint256.
      */
-    function balanceOf(
-        uint256 streamId,
-        address who
-    ) public view streamExists(streamId) returns (uint256 balance) {
+    function balanceOf(uint256 streamId, address who) public view streamExists(streamId) returns (uint256 balance) {
         Stream memory stream = _streams[streamId];
         BalanceOfLocalVars memory vars;
 
@@ -174,16 +163,12 @@ contract AaveEcosystemReserveV2 is
          */
         if (stream.deposit > stream.remainingBalance) {
             vars.withdrawalAmount = stream.deposit - stream.remainingBalance;
-            vars.recipientBalance =
-                vars.recipientBalance -
-                vars.withdrawalAmount;
+            vars.recipientBalance = vars.recipientBalance - vars.withdrawalAmount;
         }
 
         if (who == stream.recipient) return vars.recipientBalance;
         if (who == stream.sender) {
-            vars.senderBalance =
-                stream.remainingBalance -
-                vars.recipientBalance;
+            vars.senderBalance = stream.remainingBalance - vars.recipientBalance;
             return vars.senderBalance;
         }
         return 0;
@@ -227,10 +212,7 @@ contract AaveEcosystemReserveV2 is
         require(recipient != address(this), "stream to the contract itself");
         require(recipient != msg.sender, "stream to the caller");
         require(deposit > 0, "deposit is zero");
-        require(
-            startTime >= block.timestamp,
-            "start time before block.timestamp"
-        );
+        require(startTime >= block.timestamp, "start time before block.timestamp");
         require(stopTime > startTime, "stop time before the start time");
 
         CreateStreamLocalVars memory vars;
@@ -240,10 +222,7 @@ contract AaveEcosystemReserveV2 is
         require(deposit >= vars.duration, "deposit smaller than time delta");
 
         /* This condition avoids dealing with remainders */
-        require(
-            deposit % vars.duration == 0,
-            "deposit not multiple of time delta"
-        );
+        require(deposit % vars.duration == 0, "deposit not multiple of time delta");
 
         vars.ratePerSecond = deposit / vars.duration;
 
@@ -264,15 +243,7 @@ contract AaveEcosystemReserveV2 is
         /* Increment the next stream id. */
         _nextStreamId++;
 
-        emit CreateStream(
-            streamId,
-            address(this),
-            recipient,
-            deposit,
-            tokenAddress,
-            startTime,
-            stopTime
-        );
+        emit CreateStream(streamId, address(this), recipient, deposit, tokenAddress, startTime, stopTime);
         return streamId;
     }
 
@@ -288,13 +259,7 @@ contract AaveEcosystemReserveV2 is
     function withdrawFromStream(
         uint256 streamId,
         uint256 amount
-    )
-        external
-        nonReentrant
-        streamExists(streamId)
-        onlyAdminOrRecipient(streamId)
-        returns (bool)
-    {
+    ) external nonReentrant streamExists(streamId) onlyAdminOrRecipient(streamId) returns (bool) {
         require(amount > 0, "amount is zero");
         Stream memory stream = _streams[streamId];
 
@@ -318,15 +283,7 @@ contract AaveEcosystemReserveV2 is
      * @param streamId The id of the stream to cancel.
      * @notice Returns bool true=success, otherwise false.
      */
-    function cancelStream(
-        uint256 streamId
-    )
-        external
-        nonReentrant
-        streamExists(streamId)
-        onlyAdminOrRecipient(streamId)
-        returns (bool)
-    {
+    function cancelStream(uint256 streamId) external nonReentrant streamExists(streamId) onlyAdminOrRecipient(streamId) returns (bool) {
         Stream memory stream = _streams[streamId];
         uint256 senderBalance = balanceOf(streamId, stream.sender);
         uint256 recipientBalance = balanceOf(streamId, stream.recipient);
@@ -334,16 +291,9 @@ contract AaveEcosystemReserveV2 is
         delete _streams[streamId];
 
         IERC20 token = IERC20(stream.tokenAddress);
-        if (recipientBalance > 0)
-            token.safeTransfer(stream.recipient, recipientBalance);
+        if (recipientBalance > 0) token.safeTransfer(stream.recipient, recipientBalance);
 
-        emit CancelStream(
-            streamId,
-            stream.sender,
-            stream.recipient,
-            senderBalance,
-            recipientBalance
-        );
+        emit CancelStream(streamId, stream.sender, stream.recipient, senderBalance, recipientBalance);
         return true;
     }
 }

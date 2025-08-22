@@ -27,14 +27,9 @@ import "../interface/chainlink/IPriceFeed.sol";
 contract RedstoneChainlinkWrapper is BaseChainlinkWrapper {
     mapping(address => IPriceFeed) public assetToFeed;
 
-    constructor(
-        address baseCurrency,
-        uint256 _baseCurrencyUnit
-    ) BaseChainlinkWrapper(baseCurrency, _baseCurrencyUnit) {}
+    constructor(address baseCurrency, uint256 _baseCurrencyUnit) BaseChainlinkWrapper(baseCurrency, _baseCurrencyUnit) {}
 
-    function getPriceInfo(
-        address asset
-    ) public view virtual override returns (uint256 price, bool isAlive) {
+    function getPriceInfo(address asset) public view virtual override returns (uint256 price, bool isAlive) {
         IPriceFeed feed = assetToFeed[asset];
         if (address(feed) == address(0)) {
             revert FeedNotSet(asset);
@@ -48,9 +43,7 @@ contract RedstoneChainlinkWrapper is BaseChainlinkWrapper {
         }
 
         price = uint256(answer);
-        isAlive =
-            updatedAt + CHAINLINK_HEARTBEAT + heartbeatStaleTimeLimit >
-            block.timestamp;
+        isAlive = updatedAt + CHAINLINK_HEARTBEAT + heartbeatStaleTimeLimit > block.timestamp;
 
         price = _convertToBaseCurrencyUnit(price);
     }
@@ -60,10 +53,7 @@ contract RedstoneChainlinkWrapper is BaseChainlinkWrapper {
      * @param asset The address of the asset
      * @param feed The address of the Redstone Chainlink-compatible price feed
      */
-    function setFeed(
-        address asset,
-        address feed
-    ) external onlyRole(ORACLE_MANAGER_ROLE) {
+    function setFeed(address asset, address feed) external onlyRole(ORACLE_MANAGER_ROLE) {
         assetToFeed[asset] = IPriceFeed(feed);
     }
 }

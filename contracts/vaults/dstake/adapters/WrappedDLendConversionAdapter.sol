@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {IDStableConversionAdapter} from "../interfaces/IDStableConversionAdapter.sol";
-import {IStaticATokenLM} from "../../atoken_wrapper/interfaces/IStaticATokenLM.sol"; // Interface for StaticATokenLM
-import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import { IDStableConversionAdapter } from "../interfaces/IDStableConversionAdapter.sol";
+import { IStaticATokenLM } from "../../atoken_wrapper/interfaces/IStaticATokenLM.sol"; // Interface for StaticATokenLM
+import { IERC4626 } from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 
 /**
  * @title WrappedDLendConversionAdapter
@@ -33,16 +33,8 @@ contract WrappedDLendConversionAdapter is IDStableConversionAdapter {
      * @param _wrappedDLendToken The address of the wrapped dLEND token (StaticATokenLM, e.g., wddUSD)
      * @param _collateralVault The address of the DStakeCollateralVault
      */
-    constructor(
-        address _dStable,
-        address _wrappedDLendToken,
-        address _collateralVault
-    ) {
-        if (
-            _dStable == address(0) ||
-            _wrappedDLendToken == address(0) ||
-            _collateralVault == address(0)
-        ) {
+    constructor(address _dStable, address _wrappedDLendToken, address _collateralVault) {
+        if (_dStable == address(0) || _wrappedDLendToken == address(0) || _collateralVault == address(0)) {
             revert ZeroAddress();
         }
         dStable = _dStable;
@@ -63,32 +55,19 @@ contract WrappedDLendConversionAdapter is IDStableConversionAdapter {
      *      The StaticATokenLM contract MUST be pre-approved to spend dStable held by this adapter.
      *      The StaticATokenLM contract mints the wrappedDLendToken directly to the collateralVault.
      */
-    function convertToVaultAsset(
-        uint256 dStableAmount
-    )
-        external
-        override
-        returns (address _vaultAsset, uint256 vaultAssetAmount)
-    {
+    function convertToVaultAsset(uint256 dStableAmount) external override returns (address _vaultAsset, uint256 vaultAssetAmount) {
         if (dStableAmount == 0) {
             revert InvalidAmount();
         }
 
         // 1. Pull dStable from caller (Router)
-        IERC20(dStable).safeTransferFrom(
-            msg.sender,
-            address(this),
-            dStableAmount
-        );
+        IERC20(dStable).safeTransferFrom(msg.sender, address(this), dStableAmount);
 
         // 2. Approve the StaticATokenLM wrapper to pull the dStable
         IERC20(dStable).forceApprove(address(wrappedDLendToken), dStableAmount);
 
         // 3. Deposit dStable into the StaticATokenLM wrapper, minting wrappedDLendToken to collateralVault
-        vaultAssetAmount = IERC4626(address(wrappedDLendToken)).deposit(
-            dStableAmount,
-            collateralVault
-        );
+        vaultAssetAmount = IERC4626(address(wrappedDLendToken)).deposit(dStableAmount, collateralVault);
 
         return (address(wrappedDLendToken), vaultAssetAmount);
     }
@@ -98,26 +77,16 @@ contract WrappedDLendConversionAdapter is IDStableConversionAdapter {
      * @dev Converts wrappedDLendToken -> dStable by withdrawing from StaticATokenLM.
      *      The StaticATokenLM contract sends the dStable directly to msg.sender.
      */
-    function convertFromVaultAsset(
-        uint256 vaultAssetAmount
-    ) external override returns (uint256 dStableAmount) {
+    function convertFromVaultAsset(uint256 vaultAssetAmount) external override returns (uint256 dStableAmount) {
         if (vaultAssetAmount == 0) {
             revert InvalidAmount();
         }
 
         // 1. Pull wrappedDLendToken (shares) from caller (Router)
-        IERC20(address(wrappedDLendToken)).safeTransferFrom(
-            msg.sender,
-            address(this),
-            vaultAssetAmount
-        );
+        IERC20(address(wrappedDLendToken)).safeTransferFrom(msg.sender, address(this), vaultAssetAmount);
 
         // 2. Withdraw from StaticATokenLM, sending dStable to msg.sender
-        dStableAmount = IERC4626(address(wrappedDLendToken)).redeem(
-            vaultAssetAmount,
-            msg.sender,
-            address(this)
-        );
+        dStableAmount = IERC4626(address(wrappedDLendToken)).redeem(vaultAssetAmount, msg.sender, address(this));
 
         if (dStableAmount == 0) {
             revert InvalidAmount();
@@ -130,18 +99,12 @@ contract WrappedDLendConversionAdapter is IDStableConversionAdapter {
      * @inheritdoc IDStableConversionAdapter
      * @dev Uses StaticATokenLM's previewRedeem function to get the underlying value (dStable).
      */
-    function assetValueInDStable(
-        address _vaultAsset,
-        uint256 vaultAssetAmount
-    ) external view override returns (uint256 dStableValue) {
+    function assetValueInDStable(address _vaultAsset, uint256 vaultAssetAmount) external view override returns (uint256 dStableValue) {
         if (_vaultAsset != address(wrappedDLendToken)) {
             revert InconsistentState("Incorrect vault asset address");
         }
         // previewRedeem takes shares (vaultAssetAmount) and returns assets (dStableValue)
-        return
-            IERC4626(address(wrappedDLendToken)).previewRedeem(
-                vaultAssetAmount
-            );
+        return IERC4626(address(wrappedDLendToken)).previewRedeem(vaultAssetAmount);
     }
 
     /**
@@ -160,16 +123,9 @@ contract WrappedDLendConversionAdapter is IDStableConversionAdapter {
      */
     function previewConvertToVaultAsset(
         uint256 dStableAmount
-    )
-        public
-        view
-        override
-        returns (address _vaultAsset, uint256 vaultAssetAmount)
-    {
+    ) public view override returns (address _vaultAsset, uint256 vaultAssetAmount) {
         _vaultAsset = address(wrappedDLendToken);
-        vaultAssetAmount = IERC4626(address(wrappedDLendToken)).previewDeposit(
-            dStableAmount
-        );
+        vaultAssetAmount = IERC4626(address(wrappedDLendToken)).previewDeposit(dStableAmount);
     }
 
     /**
@@ -178,11 +134,7 @@ contract WrappedDLendConversionAdapter is IDStableConversionAdapter {
      * @param vaultAssetAmount Amount of vault asset to convert
      * @return dStableAmount Amount of dSTABLE that would be received
      */
-    function previewConvertFromVaultAsset(
-        uint256 vaultAssetAmount
-    ) public view override returns (uint256 dStableAmount) {
-        dStableAmount = IERC4626(address(wrappedDLendToken)).previewRedeem(
-            vaultAssetAmount
-        );
+    function previewConvertFromVaultAsset(uint256 vaultAssetAmount) public view override returns (uint256 dStableAmount) {
+        dStableAmount = IERC4626(address(wrappedDLendToken)).previewRedeem(vaultAssetAmount);
     }
 }

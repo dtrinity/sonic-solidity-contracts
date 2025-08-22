@@ -17,12 +17,12 @@
 
 pragma solidity ^0.8.20;
 
-import {SafeERC20} from "contracts/dlend/periphery/treasury/libs/SafeERC20.sol";
-import {PercentageMath} from "contracts/dlend/core/protocol/libraries/math/PercentageMath.sol";
-import {IPoolAddressesProvider} from "contracts/dlend/core/interfaces/IPoolAddressesProvider.sol";
-import {IERC20Detailed} from "contracts/dlend/core/dependencies/openzeppelin/contracts/IERC20Detailed.sol";
-import {ICurveRouterNgPoolsOnlyV1} from "contracts/dlend/periphery/adapters/curve/interfaces/ICurveRouterNgPoolsOnlyV1.sol";
-import {BaseCurveSwapAdapter} from "contracts/dlend/periphery/adapters/curve/BaseCurveSwapAdapter.sol";
+import { SafeERC20 } from "contracts/dlend/periphery/treasury/libs/SafeERC20.sol";
+import { PercentageMath } from "contracts/dlend/core/protocol/libraries/math/PercentageMath.sol";
+import { IPoolAddressesProvider } from "contracts/dlend/core/interfaces/IPoolAddressesProvider.sol";
+import { IERC20Detailed } from "contracts/dlend/core/dependencies/openzeppelin/contracts/IERC20Detailed.sol";
+import { ICurveRouterNgPoolsOnlyV1 } from "contracts/dlend/periphery/adapters/curve/interfaces/ICurveRouterNgPoolsOnlyV1.sol";
+import { BaseCurveSwapAdapter } from "contracts/dlend/periphery/adapters/curve/BaseCurveSwapAdapter.sol";
 
 /**
  * @title BaseCurveSellAdapter
@@ -67,14 +67,9 @@ abstract contract BaseCurveSellAdapter is BaseCurveSwapAdapter {
         address[11] memory route,
         uint256[4][5] memory swapParams
     ) internal returns (uint256 amountReceived) {
-        uint256 balanceBeforeAssetFrom = assetToSwapFrom.balanceOf(
-            address(this)
-        );
+        uint256 balanceBeforeAssetFrom = assetToSwapFrom.balanceOf(address(this));
         if (balanceBeforeAssetFrom < amountToSwap) {
-            revert InsufficientBalanceBeforeSwap(
-                balanceBeforeAssetFrom,
-                amountToSwap
-            );
+            revert InsufficientBalanceBeforeSwap(balanceBeforeAssetFrom, amountToSwap);
         }
 
         address tokenIn = address(assetToSwapFrom);
@@ -84,13 +79,7 @@ abstract contract BaseCurveSellAdapter is BaseCurveSwapAdapter {
         assetToSwapFrom.safeApprove(address(swapRouter), amountToSwap);
 
         // Execute the swap
-        amountReceived = swapRouter.exchange(
-            route,
-            swapParams,
-            amountToSwap,
-            minAmountToReceive,
-            address(this)
-        );
+        amountReceived = swapRouter.exchange(route, swapParams, amountToSwap, minAmountToReceive, address(this));
 
         // Ensure we received the minimum expected amount
         if (amountReceived < minAmountToReceive) {

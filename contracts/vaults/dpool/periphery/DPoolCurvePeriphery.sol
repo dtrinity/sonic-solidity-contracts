@@ -34,18 +34,13 @@ import "../../../common/BasisPointConstants.sol";
  * @notice Curve periphery contract that handles asset conversions to/from LP tokens
  * @dev Converts pool assets to LP tokens and deposits to vault, or withdraws from vault and converts LP to assets
  */
-contract DPoolCurvePeriphery is
-    AccessControl,
-    ReentrancyGuard,
-    IDPoolPeriphery
-{
+contract DPoolCurvePeriphery is AccessControl, ReentrancyGuard, IDPoolPeriphery {
     using SafeERC20 for IERC20;
 
     // --- Constants ---
 
     /// @notice Maximum allowed slippage (10%)
-    uint256 public constant MAX_SLIPPAGE_BPS =
-        10 * BasisPointConstants.ONE_PERCENT_BPS;
+    uint256 public constant MAX_SLIPPAGE_BPS = 10 * BasisPointConstants.ONE_PERCENT_BPS;
 
     // --- Immutables ---
 
@@ -173,10 +168,7 @@ contract DPoolCurvePeriphery is
         uint256 lpAmount = VAULT.previewRedeem(shares);
 
         // Calculate minimum asset amount considering slippage
-        uint256 expectedAsset = POOL.calc_withdraw_one_coin(
-            lpAmount,
-            int128(uint128(assetIndex))
-        );
+        uint256 expectedAsset = POOL.calc_withdraw_one_coin(lpAmount, int128(uint128(assetIndex)));
         uint256 minAssetFromSlippage = Math.mulDiv(
             expectedAsset,
             BasisPointConstants.ONE_HUNDRED_PERCENT_BPS - maxSlippage,
@@ -184,39 +176,24 @@ contract DPoolCurvePeriphery is
         );
 
         // Use the higher of user's minAmount or slippage-adjusted minimum
-        uint256 finalMinAmount = minAmount > minAssetFromSlippage
-            ? minAmount
-            : minAssetFromSlippage;
+        uint256 finalMinAmount = minAmount > minAssetFromSlippage ? minAmount : minAssetFromSlippage;
 
         // Withdraw from vault to get LP tokens
         uint256 actualLPAmount = VAULT.redeem(shares, address(this), owner);
 
         // Remove liquidity from Curve to get asset
-        assetAmount = POOL.remove_liquidity_one_coin(
-            actualLPAmount,
-            int128(uint128(assetIndex)),
-            finalMinAmount
-        );
+        assetAmount = POOL.remove_liquidity_one_coin(actualLPAmount, int128(uint128(assetIndex)), finalMinAmount);
 
         // Transfer asset to receiver
         IERC20(asset).safeTransfer(receiver, assetAmount);
 
-        emit AssetWithdrawn(
-            receiver,
-            asset,
-            shares,
-            actualLPAmount,
-            assetAmount
-        );
+        emit AssetWithdrawn(receiver, asset, shares, actualLPAmount, assetAmount);
     }
 
     // --- Preview functions ---
 
     /// @inheritdoc IDPoolPeriphery
-    function previewDepositAsset(
-        address asset,
-        uint256 amount
-    ) external view returns (uint256 shares) {
+    function previewDepositAsset(address asset, uint256 amount) external view returns (uint256 shares) {
         if (!whitelistedAssets[asset]) {
             revert AssetNotWhitelisted();
         }
@@ -236,10 +213,7 @@ contract DPoolCurvePeriphery is
     }
 
     /// @inheritdoc IDPoolPeriphery
-    function previewWithdrawToAsset(
-        uint256 shares,
-        address asset
-    ) external view returns (uint256 assetAmount) {
+    function previewWithdrawToAsset(uint256 shares, address asset) external view returns (uint256 assetAmount) {
         if (!whitelistedAssets[asset]) {
             revert AssetNotWhitelisted();
         }
@@ -251,8 +225,7 @@ contract DPoolCurvePeriphery is
         uint256 lpAmount = VAULT.previewRedeem(shares);
 
         // Calculate asset amount from LP
-        return
-            POOL.calc_withdraw_one_coin(lpAmount, int128(uint128(assetIndex)));
+        return POOL.calc_withdraw_one_coin(lpAmount, int128(uint128(assetIndex)));
     }
 
     // --- View functions ---
@@ -291,9 +264,7 @@ contract DPoolCurvePeriphery is
     // --- Admin functions ---
 
     /// @inheritdoc IDPoolPeriphery
-    function addWhitelistedAsset(
-        address asset
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function addWhitelistedAsset(address asset) external onlyRole(DEFAULT_ADMIN_ROLE) {
         if (whitelistedAssets[asset]) {
             return; // Already whitelisted
         }
@@ -308,9 +279,7 @@ contract DPoolCurvePeriphery is
     }
 
     /// @inheritdoc IDPoolPeriphery
-    function removeWhitelistedAsset(
-        address asset
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function removeWhitelistedAsset(address asset) external onlyRole(DEFAULT_ADMIN_ROLE) {
         if (!whitelistedAssets[asset]) {
             return; // Not whitelisted
         }
@@ -320,9 +289,7 @@ contract DPoolCurvePeriphery is
         // Remove from supportedAssets array
         for (uint256 i = 0; i < supportedAssets.length; i++) {
             if (supportedAssets[i] == asset) {
-                supportedAssets[i] = supportedAssets[
-                    supportedAssets.length - 1
-                ];
+                supportedAssets[i] = supportedAssets[supportedAssets.length - 1];
                 supportedAssets.pop();
                 break;
             }
@@ -332,9 +299,7 @@ contract DPoolCurvePeriphery is
     }
 
     /// @inheritdoc IDPoolPeriphery
-    function setMaxSlippage(
-        uint256 newMaxSlippage
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function setMaxSlippage(uint256 newMaxSlippage) external onlyRole(DEFAULT_ADMIN_ROLE) {
         if (newMaxSlippage > MAX_SLIPPAGE_BPS) {
             revert ExcessiveSlippage();
         }
@@ -365,9 +330,7 @@ contract DPoolCurvePeriphery is
     /**
      * @dev See {IERC165-supportsInterface}.
      */
-    function supportsInterface(
-        bytes4 interfaceId
-    ) public view virtual override(AccessControl) returns (bool) {
+    function supportsInterface(bytes4 interfaceId) public view virtual override(AccessControl) returns (bool) {
         return super.supportsInterface(interfaceId);
     }
 }

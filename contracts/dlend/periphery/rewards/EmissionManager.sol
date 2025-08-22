@@ -17,13 +17,13 @@
 
 pragma solidity ^0.8.20;
 
-import {IAaveOracle} from "contracts/dlend/core/interfaces/IAaveOracle.sol";
-import {Ownable} from "contracts/dlend/core/dependencies/openzeppelin/contracts/Ownable.sol";
-import {IEmissionManager} from "./interfaces/IEmissionManager.sol";
-import {ITransferStrategyBase} from "./interfaces/ITransferStrategyBase.sol";
-import {IRewardsController} from "./interfaces/IRewardsController.sol";
-import {RewardsDataTypes} from "./libraries/RewardsDataTypes.sol";
-import {IERC20} from "contracts/dlend/core/dependencies/openzeppelin/contracts/IERC20.sol";
+import { IAaveOracle } from "contracts/dlend/core/interfaces/IAaveOracle.sol";
+import { Ownable } from "contracts/dlend/core/dependencies/openzeppelin/contracts/Ownable.sol";
+import { IEmissionManager } from "./interfaces/IEmissionManager.sol";
+import { ITransferStrategyBase } from "./interfaces/ITransferStrategyBase.sol";
+import { IRewardsController } from "./interfaces/IRewardsController.sol";
+import { RewardsDataTypes } from "./libraries/RewardsDataTypes.sol";
+import { IERC20 } from "contracts/dlend/core/dependencies/openzeppelin/contracts/IERC20.sol";
 
 /**
  * @title EmissionManager
@@ -53,105 +53,60 @@ contract EmissionManager is Ownable, IEmissionManager {
     }
 
     /// @inheritdoc IEmissionManager
-    function configureAssets(
-        RewardsDataTypes.RewardsConfigInput[] memory config
-    ) external override {
+    function configureAssets(RewardsDataTypes.RewardsConfigInput[] memory config) external override {
         for (uint256 i = 0; i < config.length; i++) {
-            require(
-                _emissionAdmins[config[i].reward] == msg.sender,
-                "ONLY_EMISSION_ADMIN"
-            );
+            require(_emissionAdmins[config[i].reward] == msg.sender, "ONLY_EMISSION_ADMIN");
         }
         _rewardsController.configureAssets(config);
     }
 
     /// @inheritdoc IEmissionManager
-    function setTransferStrategy(
-        address reward,
-        ITransferStrategyBase transferStrategy
-    ) external override onlyEmissionAdmin(reward) {
+    function setTransferStrategy(address reward, ITransferStrategyBase transferStrategy) external override onlyEmissionAdmin(reward) {
         _rewardsController.setTransferStrategy(reward, transferStrategy);
     }
 
     /// @inheritdoc IEmissionManager
-    function setRewardOracle(
-        address reward,
-        IAaveOracle rewardOracle
-    ) external override onlyEmissionAdmin(reward) {
+    function setRewardOracle(address reward, IAaveOracle rewardOracle) external override onlyEmissionAdmin(reward) {
         _rewardsController.setRewardOracle(reward, rewardOracle);
     }
 
     /// @inheritdoc IEmissionManager
-    function setDistributionEnd(
-        address asset,
-        address reward,
-        uint32 newDistributionEnd
-    ) external override onlyEmissionAdmin(reward) {
-        _rewardsController.setDistributionEnd(
-            asset,
-            reward,
-            newDistributionEnd
-        );
+    function setDistributionEnd(address asset, address reward, uint32 newDistributionEnd) external override onlyEmissionAdmin(reward) {
+        _rewardsController.setDistributionEnd(asset, reward, newDistributionEnd);
     }
 
     /// @inheritdoc IEmissionManager
-    function setEmissionPerSecond(
-        address asset,
-        address[] calldata rewards,
-        uint88[] calldata newEmissionsPerSecond
-    ) external override {
+    function setEmissionPerSecond(address asset, address[] calldata rewards, uint88[] calldata newEmissionsPerSecond) external override {
         for (uint256 i = 0; i < rewards.length; i++) {
-            require(
-                _emissionAdmins[rewards[i]] == msg.sender,
-                "ONLY_EMISSION_ADMIN"
-            );
+            require(_emissionAdmins[rewards[i]] == msg.sender, "ONLY_EMISSION_ADMIN");
         }
-        _rewardsController.setEmissionPerSecond(
-            asset,
-            rewards,
-            newEmissionsPerSecond
-        );
+        _rewardsController.setEmissionPerSecond(asset, rewards, newEmissionsPerSecond);
     }
 
     /// @inheritdoc IEmissionManager
-    function setClaimer(
-        address user,
-        address claimer
-    ) external override onlyOwner {
+    function setClaimer(address user, address claimer) external override onlyOwner {
         _rewardsController.setClaimer(user, claimer);
     }
 
     /// @inheritdoc IEmissionManager
-    function setEmissionAdmin(
-        address reward,
-        address admin
-    ) external override onlyOwner {
+    function setEmissionAdmin(address reward, address admin) external override onlyOwner {
         address oldAdmin = _emissionAdmins[reward];
         _emissionAdmins[reward] = admin;
         emit EmissionAdminUpdated(reward, oldAdmin, admin);
     }
 
     /// @inheritdoc IEmissionManager
-    function setRewardsController(
-        address controller
-    ) external override onlyOwner {
+    function setRewardsController(address controller) external override onlyOwner {
         _rewardsController = IRewardsController(controller);
     }
 
     /// @inheritdoc IEmissionManager
-    function getRewardsController()
-        external
-        view
-        override
-        returns (IRewardsController)
-    {
+    function getRewardsController() external view override returns (IRewardsController) {
         return _rewardsController;
     }
 
     /// @inheritdoc IEmissionManager
-    function getEmissionAdmin(
-        address reward
-    ) external view override returns (address) {
+    function getEmissionAdmin(address reward) external view override returns (address) {
         return _emissionAdmins[reward];
     }
 

@@ -106,16 +106,10 @@ contract DPoolVaultCurveLP is DPoolVaultLP {
      * @param lpAmount Amount of LP tokens
      * @return Base asset value
      */
-    function previewLPValue(
-        uint256 lpAmount
-    ) external view override returns (uint256) {
+    function previewLPValue(uint256 lpAmount) external view override returns (uint256) {
         if (lpAmount == 0) {
             return 0;
         }
-        return
-            ICurveStableSwapNG(POOL).calc_withdraw_one_coin(
-                lpAmount,
-                BASE_ASSET_INDEX
-            );
+        return ICurveStableSwapNG(POOL).calc_withdraw_one_coin(lpAmount, BASE_ASSET_INDEX);
     }
 }

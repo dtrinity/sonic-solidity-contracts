@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {MockERC4626Simple} from "./MockERC4626Simple.sol";
-import {IDStableConversionAdapter} from "../vaults/dstake/interfaces/IDStableConversionAdapter.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { MockERC4626Simple } from "./MockERC4626Simple.sol";
+import { IDStableConversionAdapter } from "../vaults/dstake/interfaces/IDStableConversionAdapter.sol";
 
 /**
  * @title MockAdapterSmallDepositRevert
@@ -36,69 +36,40 @@ contract MockAdapterSmallDepositRevert is IDStableConversionAdapter {
 
     // ---------------- IDStableConversionAdapter ----------------
 
-    function convertToVaultAsset(
-        uint256 dStableAmount
-    )
-        external
-        override
-        returns (address _vaultAsset, uint256 vaultAssetAmount)
-    {
+    function convertToVaultAsset(uint256 dStableAmount) external override returns (address _vaultAsset, uint256 vaultAssetAmount) {
         if (dStableAmount < MIN_DEPOSIT) revert DepositTooSmall(dStableAmount);
 
         // Pull dStable from caller (Router)
         dStable.transferFrom(msg.sender, address(this), dStableAmount);
 
         // Deposit dStable into the ERC4626 mock, minting shares to the vault
-        IERC20(address(dStable)).approve(
-            address(vaultAssetToken),
-            dStableAmount
-        );
+        IERC20(address(dStable)).approve(address(vaultAssetToken), dStableAmount);
         vaultAssetToken.deposit(dStableAmount, collateralVault);
 
         _vaultAsset = address(vaultAssetToken);
         vaultAssetAmount = dStableAmount;
     }
 
-    function convertFromVaultAsset(
-        uint256 vaultAssetAmount
-    ) external override returns (uint256 dStableAmount) {
+    function convertFromVaultAsset(uint256 vaultAssetAmount) external override returns (uint256 dStableAmount) {
         // Pull shares from caller (Router)
-        IERC20(address(vaultAssetToken)).transferFrom(
-            msg.sender,
-            address(this),
-            vaultAssetAmount
-        );
+        IERC20(address(vaultAssetToken)).transferFrom(msg.sender, address(this), vaultAssetAmount);
 
         // Redeem shares for dStable, sending the dStable directly to the router (msg.sender)
-        dStableAmount = vaultAssetToken.redeem(
-            vaultAssetAmount,
-            msg.sender,
-            address(this)
-        );
+        dStableAmount = vaultAssetToken.redeem(vaultAssetAmount, msg.sender, address(this));
     }
 
     function previewConvertToVaultAsset(
         uint256 dStableAmount
-    )
-        external
-        view
-        override
-        returns (address _vaultAsset, uint256 vaultAssetAmount)
-    {
+    ) external view override returns (address _vaultAsset, uint256 vaultAssetAmount) {
         _vaultAsset = address(vaultAssetToken);
         vaultAssetAmount = dStableAmount;
     }
 
-    function previewConvertFromVaultAsset(
-        uint256 vaultAssetAmount
-    ) external pure override returns (uint256 dStableAmount) {
+    function previewConvertFromVaultAsset(uint256 vaultAssetAmount) external pure override returns (uint256 dStableAmount) {
         return (vaultAssetAmount * 11000) / 10000; // 1.1x like MockERC4626Simple
     }
 
-    function assetValueInDStable(
-        address _vaultAsset,
-        uint256 vaultAssetAmount
-    ) external pure override returns (uint256 dStableValue) {
+    function assetValueInDStable(address _vaultAsset, uint256 vaultAssetAmount) external pure override returns (uint256 dStableValue) {
         require(_vaultAsset == address(0) || _vaultAsset != address(0), "NOP"); // dummy check to silence linter
         return (vaultAssetAmount * 11000) / 10000;
     }

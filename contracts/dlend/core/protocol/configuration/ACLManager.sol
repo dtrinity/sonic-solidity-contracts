@@ -17,10 +17,10 @@
 
 pragma solidity ^0.8.20;
 
-import {AccessControl} from "../../dependencies/openzeppelin/contracts/AccessControl.sol";
-import {IPoolAddressesProvider} from "../../interfaces/IPoolAddressesProvider.sol";
-import {IACLManager} from "../../interfaces/IACLManager.sol";
-import {Errors} from "../libraries/helpers/Errors.sol";
+import { AccessControl } from "../../dependencies/openzeppelin/contracts/AccessControl.sol";
+import { IPoolAddressesProvider } from "../../interfaces/IPoolAddressesProvider.sol";
+import { IACLManager } from "../../interfaces/IACLManager.sol";
+import { Errors } from "../libraries/helpers/Errors.sol";
 
 /**
  * @title ACLManager
@@ -29,14 +29,11 @@ import {Errors} from "../libraries/helpers/Errors.sol";
  */
 contract ACLManager is AccessControl, IACLManager {
     bytes32 public constant override POOL_ADMIN_ROLE = keccak256("POOL_ADMIN");
-    bytes32 public constant override EMERGENCY_ADMIN_ROLE =
-        keccak256("EMERGENCY_ADMIN");
+    bytes32 public constant override EMERGENCY_ADMIN_ROLE = keccak256("EMERGENCY_ADMIN");
     bytes32 public constant override RISK_ADMIN_ROLE = keccak256("RISK_ADMIN");
-    bytes32 public constant override FLASH_BORROWER_ROLE =
-        keccak256("FLASH_BORROWER");
+    bytes32 public constant override FLASH_BORROWER_ROLE = keccak256("FLASH_BORROWER");
     bytes32 public constant override BRIDGE_ROLE = keccak256("BRIDGE");
-    bytes32 public constant override ASSET_LISTING_ADMIN_ROLE =
-        keccak256("ASSET_LISTING_ADMIN");
+    bytes32 public constant override ASSET_LISTING_ADMIN_ROLE = keccak256("ASSET_LISTING_ADMIN");
 
     IPoolAddressesProvider public immutable ADDRESSES_PROVIDER;
 
@@ -53,10 +50,7 @@ contract ACLManager is AccessControl, IACLManager {
     }
 
     /// @inheritdoc IACLManager
-    function setRoleAdmin(
-        bytes32 role,
-        bytes32 adminRole
-    ) external override onlyRole(DEFAULT_ADMIN_ROLE) {
+    function setRoleAdmin(bytes32 role, bytes32 adminRole) external override onlyRole(DEFAULT_ADMIN_ROLE) {
         _setRoleAdmin(role, adminRole);
     }
 
@@ -86,9 +80,7 @@ contract ACLManager is AccessControl, IACLManager {
     }
 
     /// @inheritdoc IACLManager
-    function isEmergencyAdmin(
-        address admin
-    ) external view override returns (bool) {
+    function isEmergencyAdmin(address admin) external view override returns (bool) {
         return hasRole(EMERGENCY_ADMIN_ROLE, admin);
     }
 
@@ -118,9 +110,7 @@ contract ACLManager is AccessControl, IACLManager {
     }
 
     /// @inheritdoc IACLManager
-    function isFlashBorrower(
-        address borrower
-    ) external view override returns (bool) {
+    function isFlashBorrower(address borrower) external view override returns (bool) {
         return hasRole(FLASH_BORROWER_ROLE, borrower);
     }
 
@@ -150,9 +140,7 @@ contract ACLManager is AccessControl, IACLManager {
     }
 
     /// @inheritdoc IACLManager
-    function isAssetListingAdmin(
-        address admin
-    ) external view override returns (bool) {
+    function isAssetListingAdmin(address admin) external view override returns (bool) {
         return hasRole(ASSET_LISTING_ADMIN_ROLE, admin);
     }
 }

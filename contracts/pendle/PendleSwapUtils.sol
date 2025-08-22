@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GNU AGPLv3
 pragma solidity ^0.8.20;
 
-import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 /**
  * @title PendleSwapUtils
@@ -37,10 +37,7 @@ library PendleSwapUtils {
         ERC20(ptToken).forceApprove(router, ptAmount);
 
         // Check if approval was successful
-        uint256 currentAllowance = ERC20(ptToken).allowance(
-            address(this),
-            router
-        );
+        uint256 currentAllowance = ERC20(ptToken).allowance(address(this), router);
         if (currentAllowance < ptAmount) {
             revert PTApprovalFailed();
         }

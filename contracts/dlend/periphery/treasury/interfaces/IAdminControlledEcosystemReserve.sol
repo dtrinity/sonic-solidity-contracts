@@ -17,7 +17,7 @@
 
 pragma solidity ^0.8.20;
 
-import {IERC20} from "contracts/dlend/core/dependencies/openzeppelin/contracts/IERC20.sol";
+import { IERC20 } from "contracts/dlend/core/dependencies/openzeppelin/contracts/IERC20.sol";
 
 interface IAdminControlledEcosystemReserve {
     /** @notice Emitted when the funds admin changes

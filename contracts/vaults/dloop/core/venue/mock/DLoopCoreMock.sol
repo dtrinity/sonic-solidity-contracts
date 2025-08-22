@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import {DLoopCoreBase} from "../../DLoopCoreBase.sol";
-import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import {BasisPointConstants} from "contracts/common/BasisPointConstants.sol";
-import {PercentageMath} from "contracts/dlend/core/protocol/libraries/math/PercentageMath.sol";
-import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
+import { DLoopCoreBase } from "../../DLoopCoreBase.sol";
+import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import { BasisPointConstants } from "contracts/common/BasisPointConstants.sol";
+import { PercentageMath } from "contracts/dlend/core/protocol/libraries/math/PercentageMath.sol";
+import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
 
 /**
  * @title DLoopCoreMock
@@ -13,12 +13,7 @@ import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
  */
 contract DLoopCoreMock is DLoopCoreBase {
     // Errors
-    error NotEnoughBalanceToSupply(
-        address user,
-        string tokenSymbol,
-        uint256 balance,
-        uint256 amount
-    );
+    error NotEnoughBalanceToSupply(address user, string tokenSymbol, uint256 balance, uint256 amount);
     error MockPriceNotSet(address asset);
 
     // Mock state for prices and balances
@@ -73,10 +68,7 @@ contract DLoopCoreMock is DLoopCoreBase {
 
     // Allow setting transfer portion bps for testing
     function setTransferPortionBps(uint256 _transferPortionBps) external {
-        require(
-            _transferPortionBps <= BasisPointConstants.ONE_HUNDRED_PERCENT_BPS,
-            "Mock: transferPortionBps must be at most 100%"
-        );
+        require(_transferPortionBps <= BasisPointConstants.ONE_HUNDRED_PERCENT_BPS, "Mock: transferPortionBps must be at most 100%");
         transferPortionBps = _transferPortionBps;
     }
 
@@ -86,19 +78,11 @@ contract DLoopCoreMock is DLoopCoreBase {
     }
 
     // Allow setting mock collateral and debt for a user
-    function setMockCollateral(
-        address user,
-        address token,
-        uint256 amount
-    ) external {
+    function setMockCollateral(address user, address token, uint256 amount) external {
         _setMockCollateral(user, token, amount);
     }
 
-    function _setMockCollateral(
-        address user,
-        address token,
-        uint256 amount
-    ) internal {
+    function _setMockCollateral(address user, address token, uint256 amount) internal {
         if (mockCollateral[user][token] == 0 && amount > 0) {
             mockCollateralTokens[user].push(token);
         }
@@ -109,9 +93,7 @@ contract DLoopCoreMock is DLoopCoreBase {
             for (uint256 i = 0; i < mockCollateralTokens[user].length; i++) {
                 if (mockCollateralTokens[user][i] == token) {
                     // Replace with last element and pop
-                    mockCollateralTokens[user][i] = mockCollateralTokens[user][
-                        mockCollateralTokens[user].length - 1
-                    ];
+                    mockCollateralTokens[user][i] = mockCollateralTokens[user][mockCollateralTokens[user].length - 1];
                     mockCollateralTokens[user].pop();
                     break;
                 }
@@ -123,11 +105,7 @@ contract DLoopCoreMock is DLoopCoreBase {
         _setMockDebt(user, token, amount);
     }
 
-    function _setMockDebt(
-        address user,
-        address token,
-        uint256 amount
-    ) internal {
+    function _setMockDebt(address user, address token, uint256 amount) internal {
         if (mockDebt[user][token] == 0 && amount > 0) {
             mockDebtTokens[user].push(token);
         }
@@ -138,9 +116,7 @@ contract DLoopCoreMock is DLoopCoreBase {
             for (uint256 i = 0; i < mockDebtTokens[user].length; i++) {
                 if (mockDebtTokens[user][i] == token) {
                     // Replace with last element and pop
-                    mockDebtTokens[user][i] = mockDebtTokens[user][
-                        mockDebtTokens[user].length - 1
-                    ];
+                    mockDebtTokens[user][i] = mockDebtTokens[user][mockDebtTokens[user].length - 1];
                     mockDebtTokens[user].pop();
                     break;
                 }
@@ -152,13 +128,11 @@ contract DLoopCoreMock is DLoopCoreBase {
     // so that the vault can spend tokens from mockPool
     function _checkRequiredAllowance() internal view {
         require(
-            ERC20(collateralToken).allowance(mockPool, address(this)) >=
-                type(uint256).max / 2,
+            ERC20(collateralToken).allowance(mockPool, address(this)) >= type(uint256).max / 2,
             "Mock: mockPool does not have allowance for this contract for collateralToken"
         );
         require(
-            ERC20(debtToken).allowance(mockPool, address(this)) >=
-                type(uint256).max / 2,
+            ERC20(debtToken).allowance(mockPool, address(this)) >= type(uint256).max / 2,
             "Mock: mockPool does not have allowance for this contract for debtToken"
         );
     }
@@ -169,60 +143,36 @@ contract DLoopCoreMock is DLoopCoreBase {
      * @inheritdoc DLoopCoreBase
      * @return address[] Additional rescue tokens
      */
-    function _getAdditionalRescueTokensImplementation()
-        internal
-        pure
-        override
-        returns (address[] memory)
-    {
+    function _getAdditionalRescueTokensImplementation() internal pure override returns (address[] memory) {
         return new address[](0);
     }
 
-    function _getAssetPriceFromOracleImplementation(
-        address asset
-    ) internal view override returns (uint256) {
+    function _getAssetPriceFromOracleImplementation(address asset) internal view override returns (uint256) {
         uint256 price = mockPrices[asset];
         if (price == 0) revert MockPriceNotSet(asset);
         return price;
     }
 
-    function _supplyToPoolImplementation(
-        address token,
-        uint256 amount,
-        address onBehalfOf
-    ) internal override {
+    function _supplyToPoolImplementation(address token, uint256 amount, address onBehalfOf) internal override {
         _checkRequiredAllowance();
 
         // Calculate the amount to supply based on transfer portion bps
-        amount =
-            (amount * transferPortionBps) /
-            BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
+        amount = (amount * transferPortionBps) / BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
 
         // Make sure target user has enough balance to supply
         if (ERC20(token).balanceOf(onBehalfOf) < amount) {
             string memory tokenSymbol = ERC20(token).symbol();
-            revert NotEnoughBalanceToSupply(
-                onBehalfOf,
-                tokenSymbol,
-                ERC20(token).balanceOf(onBehalfOf),
-                amount
-            );
+            revert NotEnoughBalanceToSupply(onBehalfOf, tokenSymbol, ERC20(token).balanceOf(onBehalfOf), amount);
         }
 
         if (amount > 0) {
             // Switch between transfer and transferFrom based on the onBehalfOf
             if (onBehalfOf == address(this)) {
                 // If the onBehalfOf is the vault itself, use transfer
-                require(
-                    ERC20(token).transfer(mockPool, amount),
-                    "Mock: supply transfer failed (onBehalfOf is the vault itself)"
-                );
+                require(ERC20(token).transfer(mockPool, amount), "Mock: supply transfer failed (onBehalfOf is the vault itself)");
             } else {
                 // Transfer from target user to mockPool
-                require(
-                    ERC20(token).transferFrom(onBehalfOf, mockPool, amount),
-                    "Mock: supply transfer failed"
-                );
+                require(ERC20(token).transferFrom(onBehalfOf, mockPool, amount), "Mock: supply transfer failed");
             }
         }
 
@@ -230,37 +180,21 @@ contract DLoopCoreMock is DLoopCoreBase {
         transferPortionBps = BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
 
         // Increase collateral after successful transfer
-        _setMockCollateral(
-            onBehalfOf,
-            token,
-            mockCollateral[onBehalfOf][token] + amount
-        );
+        _setMockCollateral(onBehalfOf, token, mockCollateral[onBehalfOf][token] + amount);
     }
 
-    function _borrowFromPoolImplementation(
-        address token,
-        uint256 amount,
-        address onBehalfOf
-    ) internal virtual override {
+    function _borrowFromPoolImplementation(address token, uint256 amount, address onBehalfOf) internal virtual override {
         _checkRequiredAllowance();
 
         // Calculate the amount to borrow based on transfer portion bps
-        amount =
-            (amount * transferPortionBps) /
-            BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
+        amount = (amount * transferPortionBps) / BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
 
         // Make sure having mockPool having enough balance to borrow
-        require(
-            ERC20(token).balanceOf(mockPool) >= amount,
-            "Mock: not enough tokens in pool to borrow"
-        );
+        require(ERC20(token).balanceOf(mockPool) >= amount, "Mock: not enough tokens in pool to borrow");
 
         if (amount > 0) {
             // Transfer from mockPool to target user
-            require(
-                ERC20(token).transferFrom(mockPool, onBehalfOf, amount),
-                "Mock: borrow transfer failed"
-            );
+            require(ERC20(token).transferFrom(mockPool, onBehalfOf, amount), "Mock: borrow transfer failed");
         }
 
         // Reset transfer portion bps to 100%
@@ -270,38 +204,23 @@ contract DLoopCoreMock is DLoopCoreBase {
         _setMockDebt(onBehalfOf, token, mockDebt[onBehalfOf][token] + amount);
     }
 
-    function _repayDebtToPoolImplementation(
-        address token,
-        uint256 amount,
-        address onBehalfOf
-    ) internal override {
+    function _repayDebtToPoolImplementation(address token, uint256 amount, address onBehalfOf) internal override {
         _checkRequiredAllowance();
 
         // Calculate the amount to repay based on transfer portion bps
-        amount =
-            (amount * transferPortionBps) /
-            BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
+        amount = (amount * transferPortionBps) / BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
 
         // Make sure target user has enough debt to repay
-        require(
-            ERC20(token).balanceOf(onBehalfOf) >= amount,
-            "Mock: not enough balance to repay"
-        );
+        require(ERC20(token).balanceOf(onBehalfOf) >= amount, "Mock: not enough balance to repay");
 
         if (amount > 0) {
             // Switch between transfer and transferFrom based on the onBehalfOf
             if (onBehalfOf == address(this)) {
                 // If the onBehalfOf is the vault itself, use transfer
-                require(
-                    ERC20(token).transfer(mockPool, amount),
-                    "Mock: repay transfer failed (onBehalfOf is the vault itself)"
-                );
+                require(ERC20(token).transfer(mockPool, amount), "Mock: repay transfer failed (onBehalfOf is the vault itself)");
             } else {
                 // Transfer from target user to mockPool
-                require(
-                    ERC20(token).transferFrom(onBehalfOf, mockPool, amount),
-                    "Mock: repay transfer failed"
-                );
+                require(ERC20(token).transferFrom(onBehalfOf, mockPool, amount), "Mock: repay transfer failed");
             }
         }
 
@@ -312,41 +231,25 @@ contract DLoopCoreMock is DLoopCoreBase {
         _setMockDebt(onBehalfOf, token, mockDebt[onBehalfOf][token] - amount);
     }
 
-    function _withdrawFromPoolImplementation(
-        address token,
-        uint256 amount,
-        address onBehalfOf
-    ) internal virtual override {
+    function _withdrawFromPoolImplementation(address token, uint256 amount, address onBehalfOf) internal virtual override {
         _checkRequiredAllowance();
 
         // Calculate the amount to withdraw based on transfer portion bps
-        amount =
-            (amount * transferPortionBps) /
-            BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
+        amount = (amount * transferPortionBps) / BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
 
         // Make sure mockPool has enough balance to withdraw
-        require(
-            ERC20(token).balanceOf(mockPool) >= amount,
-            "Mock: not enough tokens in pool to withdraw"
-        );
+        require(ERC20(token).balanceOf(mockPool) >= amount, "Mock: not enough tokens in pool to withdraw");
 
         if (amount > 0) {
             // Transfer from mockPool to target user
-            require(
-                ERC20(token).transferFrom(mockPool, onBehalfOf, amount),
-                "Mock: withdraw transfer failed"
-            );
+            require(ERC20(token).transferFrom(mockPool, onBehalfOf, amount), "Mock: withdraw transfer failed");
         }
 
         // Reset transfer portion bps to 100%
         transferPortionBps = BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
 
         // Decrease collateral after successful transfer
-        _setMockCollateral(
-            onBehalfOf,
-            token,
-            mockCollateral[onBehalfOf][token] - amount
-        );
+        _setMockCollateral(onBehalfOf, token, mockCollateral[onBehalfOf][token] - amount);
     }
 
     /**
@@ -355,10 +258,7 @@ contract DLoopCoreMock is DLoopCoreBase {
      * @param user The address of the user
      * @return collateralTokenAmount The collateral token amount
      */
-    function getCollateralValueInTokenAmount(
-        address token,
-        address user
-    ) public view override returns (uint256 collateralTokenAmount) {
+    function getCollateralValueInTokenAmount(address token, address user) public view override returns (uint256 collateralTokenAmount) {
         collateralTokenAmount = mockCollateral[user][token];
         return collateralTokenAmount;
     }
@@ -369,10 +269,7 @@ contract DLoopCoreMock is DLoopCoreBase {
      * @param user The address of the user
      * @return debtTokenAmount The total underlying debt token amount
      */
-    function getDebtValueInTokenAmount(
-        address token,
-        address user
-    ) public view override returns (uint256 debtTokenAmount) {
+    function getDebtValueInTokenAmount(address token, address user) public view override returns (uint256 debtTokenAmount) {
         debtTokenAmount = mockDebt[user][token];
         return debtTokenAmount;
     }
@@ -382,22 +279,14 @@ contract DLoopCoreMock is DLoopCoreBase {
      */
     function getTotalCollateralAndDebtOfUserInBase(
         address user
-    )
-        public
-        view
-        override
-        returns (uint256 totalCollateralBase, uint256 totalDebtBase)
-    {
+    ) public view override returns (uint256 totalCollateralBase, uint256 totalDebtBase) {
         // Sum collateral across all collateral tokens tracked for user
         address[] memory collateralTokens = mockCollateralTokens[user];
         for (uint256 i = 0; i < collateralTokens.length; i++) {
             address token = collateralTokens[i];
             uint256 amount = mockCollateral[user][token];
             if (amount > 0) {
-                totalCollateralBase += convertFromTokenAmountToBaseCurrency(
-                    amount,
-                    token
-                );
+                totalCollateralBase += convertFromTokenAmountToBaseCurrency(amount, token);
             }
         }
 
@@ -407,10 +296,7 @@ contract DLoopCoreMock is DLoopCoreBase {
             address token = debtTokens[j];
             uint256 amount = mockDebt[user][token];
             if (amount > 0) {
-                totalDebtBase += convertFromTokenAmountToBaseCurrency(
-                    amount,
-                    token
-                );
+                totalDebtBase += convertFromTokenAmountToBaseCurrency(amount, token);
             }
         }
 
@@ -418,35 +304,19 @@ contract DLoopCoreMock is DLoopCoreBase {
     }
 
     // --- Test-only public wrappers for internal pool logic ---
-    function testSupplyToPool(
-        address token,
-        uint256 amount,
-        address onBehalfOf
-    ) external {
+    function testSupplyToPool(address token, uint256 amount, address onBehalfOf) external {
         _supplyToPool(token, amount, onBehalfOf);
     }
 
-    function testBorrowFromPool(
-        address token,
-        uint256 amount,
-        address onBehalfOf
-    ) external {
+    function testBorrowFromPool(address token, uint256 amount, address onBehalfOf) external {
         _borrowFromPool(token, amount, onBehalfOf);
     }
 
-    function testRepayDebtToPool(
-        address token,
-        uint256 amount,
-        address onBehalfOf
-    ) external {
+    function testRepayDebtToPool(address token, uint256 amount, address onBehalfOf) external {
         _repayDebtToPool(token, amount, onBehalfOf);
     }
 
-    function testWithdrawFromPool(
-        address token,
-        uint256 amount,
-        address onBehalfOf
-    ) external {
+    function testWithdrawFromPool(address token, uint256 amount, address onBehalfOf) external {
         _withdrawFromPool(token, amount, onBehalfOf);
     }
 
@@ -455,55 +325,35 @@ contract DLoopCoreMock is DLoopCoreBase {
     /**
      * @dev Test wrapper for _getAdditionalRescueTokensImplementation
      */
-    function testGetAdditionalRescueTokensImplementation()
-        external
-        pure
-        returns (address[] memory)
-    {
+    function testGetAdditionalRescueTokensImplementation() external pure returns (address[] memory) {
         return _getAdditionalRescueTokensImplementation();
     }
 
     /**
      * @dev Test wrapper for _supplyToPoolImplementation
      */
-    function testSupplyToPoolImplementation(
-        address token,
-        uint256 amount,
-        address onBehalfOf
-    ) external {
+    function testSupplyToPoolImplementation(address token, uint256 amount, address onBehalfOf) external {
         _supplyToPoolImplementation(token, amount, onBehalfOf);
     }
 
     /**
      * @dev Test wrapper for _borrowFromPoolImplementation
      */
-    function testBorrowFromPoolImplementation(
-        address token,
-        uint256 amount,
-        address onBehalfOf
-    ) external {
+    function testBorrowFromPoolImplementation(address token, uint256 amount, address onBehalfOf) external {
         _borrowFromPoolImplementation(token, amount, onBehalfOf);
     }
 
     /**
      * @dev Test wrapper for _repayDebtToPoolImplementation
      */
-    function testRepayDebtToPoolImplementation(
-        address token,
-        uint256 amount,
-        address onBehalfOf
-    ) external {
+    function testRepayDebtToPoolImplementation(address token, uint256 amount, address onBehalfOf) external {
         _repayDebtToPoolImplementation(token, amount, onBehalfOf);
     }
 
     /**
      * @dev Test wrapper for _withdrawFromPoolImplementation
      */
-    function testWithdrawFromPoolImplementation(
-        address token,
-        uint256 amount,
-        address onBehalfOf
-    ) external {
+    function testWithdrawFromPoolImplementation(address token, uint256 amount, address onBehalfOf) external {
         _withdrawFromPoolImplementation(token, amount, onBehalfOf);
     }
 
@@ -512,38 +362,28 @@ contract DLoopCoreMock is DLoopCoreBase {
     /**
      * @dev Get mock collateral for a user and token
      */
-    function getMockCollateral(
-        address user,
-        address token
-    ) external view returns (uint256) {
+    function getMockCollateral(address user, address token) external view returns (uint256) {
         return mockCollateral[user][token];
     }
 
     /**
      * @dev Get mock debt for a user and token
      */
-    function getMockDebt(
-        address user,
-        address token
-    ) external view returns (uint256) {
+    function getMockDebt(address user, address token) external view returns (uint256) {
         return mockDebt[user][token];
     }
 
     /**
      * @dev Get all collateral tokens for a user
      */
-    function getMockCollateralTokens(
-        address user
-    ) external view returns (address[] memory) {
+    function getMockCollateralTokens(address user) external view returns (address[] memory) {
         return mockCollateralTokens[user];
     }
 
     /**
      * @dev Get all debt tokens for a user
      */
-    function getMockDebtTokens(
-        address user
-    ) external view returns (address[] memory) {
+    function getMockDebtTokens(address user) external view returns (address[] memory) {
         return mockDebtTokens[user];
     }
 

@@ -2,11 +2,7 @@ import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { ethers } from "hardhat";
 
-import {
-  createLeveragePosition,
-  deployDLoopDecreaseLeverageFixture,
-  testSetup,
-} from "./fixture";
+import { createLeveragePosition, deployDLoopDecreaseLeverageFixture, testSetup } from "./fixture";
 
 /**
  * This test verifies that the DLoopDecreaseLeverageBase contract
@@ -21,13 +17,7 @@ import {
 describe("DLoopDecreaseLeverageBase – double-counting collateral protection", function () {
   it("Should successfully decrease leverage with a flash loan when user supplies exactly the required debt", async function () {
     const fixture = await loadFixture(deployDLoopDecreaseLeverageFixture);
-    const {
-      dloopCoreMock,
-      decreaseLeverageMock,
-      collateralToken,
-      debtToken,
-      user1,
-    } = fixture;
+    const { dloopCoreMock, decreaseLeverageMock, collateralToken, debtToken, user1 } = fixture;
 
     // Setup test environment
     await testSetup(fixture);
@@ -37,14 +27,10 @@ describe("DLoopDecreaseLeverageBase – double-counting collateral protection", 
 
     // 2️⃣ Move leverage above the target by decreasing collateral price
     const decreasedPrice = ethers.parseUnits("0.8", 8); // 20% price decrease
-    await dloopCoreMock.setMockPrice(
-      await collateralToken.getAddress(),
-      decreasedPrice,
-    );
+    await dloopCoreMock.setMockPrice(await collateralToken.getAddress(), decreasedPrice);
 
     // 3️⃣ Query how much debt is actually needed to get back to target
-    const result =
-      await dloopCoreMock.quoteRebalanceAmountToReachTargetLeverage();
+    const result = await dloopCoreMock.quoteRebalanceAmountToReachTargetLeverage();
     const requiredDebtAmount = result[0];
     const direction = result[2];
     expect(direction).to.equal(-1); // We need to decrease leverage
@@ -56,16 +42,11 @@ describe("DLoopDecreaseLeverageBase – double-counting collateral protection", 
      *     take a flash-loan for the shortfall.
      */
     const partialDebtAmount = requiredDebtAmount / 2n; // Provide only half to trigger flash loan
-    await debtToken.mint(
-      await decreaseLeverageMock.getAddress(),
-      partialDebtAmount,
-    );
+    await debtToken.mint(await decreaseLeverageMock.getAddress(), partialDebtAmount);
 
     // 5️⃣ Capture state before the leverage adjustment
     const leverageBefore = await dloopCoreMock.getCurrentLeverageBps();
-    const userCollateralBalanceBefore = await collateralToken.balanceOf(
-      user1.address,
-    );
+    const userCollateralBalanceBefore = await collateralToken.balanceOf(user1.address);
 
     // 6️⃣ The call should now succeed (flash-loan branch is taken)
     await expect(
@@ -81,9 +62,7 @@ describe("DLoopDecreaseLeverageBase – double-counting collateral protection", 
     expect(leverageAfter).to.be.lt(leverageBefore);
 
     // 8️⃣ User should have received collateral tokens from the operation
-    const userCollateralBalanceAfter = await collateralToken.balanceOf(
-      user1.address,
-    );
+    const userCollateralBalanceAfter = await collateralToken.balanceOf(user1.address);
     expect(userCollateralBalanceAfter).to.be.gt(userCollateralBalanceBefore);
   });
 });

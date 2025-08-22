@@ -17,7 +17,7 @@
 
 pragma solidity ^0.8.20;
 
-import {DataTypes} from "../protocol/libraries/types/DataTypes.sol";
+import { DataTypes } from "../protocol/libraries/types/DataTypes.sol";
 
 /**
  * @title IReserveInterestRateStrategy
@@ -32,7 +32,5 @@ interface IReserveInterestRateStrategy {
      * @return stableBorrowRate The stable borrow rate expressed in rays
      * @return variableBorrowRate The variable borrow rate expressed in rays
      */
-    function calculateInterestRates(
-        DataTypes.CalculateInterestRatesParams memory params
-    ) external view returns (uint256, uint256, uint256);
+    function calculateInterestRates(DataTypes.CalculateInterestRatesParams memory params) external view returns (uint256, uint256, uint256);
 }

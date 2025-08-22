@@ -2,26 +2,21 @@
 pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-import {ERC4626Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC4626Upgradeable.sol";
-import {ERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
-import {AccessControlUpgradeable} from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {IDStakeCollateralVault} from "./interfaces/IDStakeCollateralVault.sol";
-import {IDStakeRouter} from "./interfaces/IDStakeRouter.sol";
-import {BasisPointConstants} from "../../common/BasisPointConstants.sol";
-import {SupportsWithdrawalFee} from "../../common/SupportsWithdrawalFee.sol";
-import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import { ERC4626Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC4626Upgradeable.sol";
+import { ERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
+import { AccessControlUpgradeable } from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { IDStakeCollateralVault } from "./interfaces/IDStakeCollateralVault.sol";
+import { IDStakeRouter } from "./interfaces/IDStakeRouter.sol";
+import { BasisPointConstants } from "../../common/BasisPointConstants.sol";
+import { SupportsWithdrawalFee } from "../../common/SupportsWithdrawalFee.sol";
+import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 /**
  * @title DStakeToken
  * @dev ERC4626-compliant token representing shares in the DStakeCollateralVault.
  */
-contract DStakeToken is
-    Initializable,
-    ERC4626Upgradeable,
-    AccessControlUpgradeable,
-    SupportsWithdrawalFee
-{
+contract DStakeToken is Initializable, ERC4626Upgradeable, AccessControlUpgradeable, SupportsWithdrawalFee {
     using SafeERC20 for IERC20;
 
     // --- Roles ---
@@ -37,8 +32,7 @@ contract DStakeToken is
     IDStakeCollateralVault public collateralVault;
     IDStakeRouter public router;
 
-    uint256 public constant MAX_WITHDRAWAL_FEE_BPS =
-        BasisPointConstants.ONE_PERCENT_BPS;
+    uint256 public constant MAX_WITHDRAWAL_FEE_BPS = BasisPointConstants.ONE_PERCENT_BPS;
 
     // --- Initializer ---
     /// @custom:oz-upgrades-unsafe-allow constructor
@@ -67,11 +61,7 @@ contract DStakeToken is
         __AccessControl_init();
         _initializeWithdrawalFee(0);
 
-        if (
-            address(_dStable) == address(0) ||
-            _initialAdmin == address(0) ||
-            _initialFeeManager == address(0)
-        ) {
+        if (address(_dStable) == address(0) || _initialAdmin == address(0) || _initialFeeManager == address(0)) {
             revert ZeroAddress();
         }
 
@@ -80,13 +70,7 @@ contract DStakeToken is
     }
 
     // --- SupportsWithdrawalFee Implementation ---
-    function _maxWithdrawalFeeBps()
-        internal
-        view
-        virtual
-        override
-        returns (uint256)
-    {
+    function _maxWithdrawalFeeBps() internal view virtual override returns (uint256) {
         return MAX_WITHDRAWAL_FEE_BPS;
     }
 
@@ -135,20 +119,12 @@ contract DStakeToken is
      * @dev Pulls dSTABLE asset from depositor, then delegates the core deposit logic
      *      (converting dSTABLE to vault assets) to the router.
      */
-    function _deposit(
-        address caller,
-        address receiver,
-        uint256 assets,
-        uint256 shares
-    ) internal virtual override {
+    function _deposit(address caller, address receiver, uint256 assets, uint256 shares) internal virtual override {
         // Revert early if the calculated share amount is zero to prevent depositing assets without receiving shares
         if (shares == 0) {
             revert ZeroShares();
         }
-        if (
-            address(router) == address(0) ||
-            address(collateralVault) == address(0)
-        ) {
+        if (address(router) == address(0) || address(collateralVault) == address(0)) {
             revert ZeroAddress(); // Router or Vault not set
         }
 
@@ -166,11 +142,7 @@ contract DStakeToken is
      * @dev Override to handle withdrawals with fees correctly.
      *      The `assets` parameter is the net amount of assets the user wants to receive.
      */
-    function withdraw(
-        uint256 assets,
-        address receiver,
-        address owner
-    ) public virtual override returns (uint256 shares) {
+    function withdraw(uint256 assets, address receiver, address owner) public virtual override returns (uint256 shares) {
         // Calculate how many shares correspond to the desired NET `assets` amount.
         shares = previewWithdraw(assets);
 
@@ -198,9 +170,7 @@ contract DStakeToken is
      *         fees.  We therefore convert the share balance to GROSS assets first and then
      *         subtract the fee.
      */
-    function maxWithdraw(
-        address owner
-    ) public view virtual override returns (uint256) {
+    function maxWithdraw(address owner) public view virtual override returns (uint256) {
         uint256 grossAssets = convertToAssets(balanceOf(owner));
         return _getNetAmountAfterFee(grossAssets);
     }
@@ -211,11 +181,7 @@ contract DStakeToken is
      *      internal _withdraw handles fee calculation. The returned value is the net assets
      *      actually received by the `receiver`, matching previewRedeem().
      */
-    function redeem(
-        uint256 shares,
-        address receiver,
-        address owner
-    ) public virtual override returns (uint256 assets) {
+    function redeem(uint256 shares, address receiver, address owner) public virtual override returns (uint256 assets) {
         uint256 grossAssets = convertToAssets(shares); // shares → gross assets before fee
 
         if (shares > maxRedeem(owner)) {
@@ -246,10 +212,7 @@ contract DStakeToken is
             _spendAllowance(owner, caller, shares);
         }
 
-        if (
-            address(router) == address(0) ||
-            address(collateralVault) == address(0)
-        ) {
+        if (address(router) == address(0) || address(collateralVault) == address(0)) {
             revert ZeroAddress(); // Router or Vault not set
         }
 
@@ -275,9 +238,7 @@ contract DStakeToken is
     /**
      * @dev Preview withdraw including withdrawal fee.
      */
-    function previewWithdraw(
-        uint256 assets
-    ) public view virtual override returns (uint256) {
+    function previewWithdraw(uint256 assets) public view virtual override returns (uint256) {
         uint256 grossAssetsRequired = _getGrossAmountRequiredForNet(assets);
         return super.previewWithdraw(grossAssetsRequired);
     }
@@ -285,9 +246,7 @@ contract DStakeToken is
     /**
      * @dev Preview redeem including withdrawal fee.
      */
-    function previewRedeem(
-        uint256 shares
-    ) public view virtual override returns (uint256) {
+    function previewRedeem(uint256 shares) public view virtual override returns (uint256) {
         uint256 grossAssets = super.previewRedeem(shares);
         return _getNetAmountAfterFee(grossAssets);
     }
@@ -312,9 +271,7 @@ contract DStakeToken is
      * @dev Only callable by DEFAULT_ADMIN_ROLE.
      * @param _collateralVault The address of the new collateral vault contract.
      */
-    function setCollateralVault(
-        address _collateralVault
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function setCollateralVault(address _collateralVault) external onlyRole(DEFAULT_ADMIN_ROLE) {
         if (_collateralVault == address(0)) {
             revert ZeroAddress();
         }
@@ -327,9 +284,7 @@ contract DStakeToken is
      * @dev Requires FEE_MANAGER_ROLE.
      * @param _feeBps The new withdrawal fee (e.g., 1000 = 0.1%).
      */
-    function setWithdrawalFee(
-        uint256 _feeBps
-    ) external onlyRole(FEE_MANAGER_ROLE) {
+    function setWithdrawalFee(uint256 _feeBps) external onlyRole(FEE_MANAGER_ROLE) {
         _setWithdrawalFee(_feeBps);
     }
 

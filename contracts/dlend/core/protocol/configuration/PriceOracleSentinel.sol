@@ -17,11 +17,11 @@
 
 pragma solidity ^0.8.20;
 
-import {Errors} from "../libraries/helpers/Errors.sol";
-import {IPoolAddressesProvider} from "../../interfaces/IPoolAddressesProvider.sol";
-import {IPriceOracleSentinel} from "../../interfaces/IPriceOracleSentinel.sol";
-import {ISequencerOracle} from "../../interfaces/ISequencerOracle.sol";
-import {IACLManager} from "../../interfaces/IACLManager.sol";
+import { Errors } from "../libraries/helpers/Errors.sol";
+import { IPoolAddressesProvider } from "../../interfaces/IPoolAddressesProvider.sol";
+import { IPriceOracleSentinel } from "../../interfaces/IPriceOracleSentinel.sol";
+import { ISequencerOracle } from "../../interfaces/ISequencerOracle.sol";
+import { IACLManager } from "../../interfaces/IACLManager.sol";
 
 /**
  * @title PriceOracleSentinel
@@ -35,13 +35,8 @@ contract PriceOracleSentinel is IPriceOracleSentinel {
      * @dev Only pool admin can call functions marked by this modifier.
      */
     modifier onlyPoolAdmin() {
-        IACLManager aclManager = IACLManager(
-            ADDRESSES_PROVIDER.getACLManager()
-        );
-        require(
-            aclManager.isPoolAdmin(msg.sender),
-            Errors.CALLER_NOT_POOL_ADMIN
-        );
+        IACLManager aclManager = IACLManager(ADDRESSES_PROVIDER.getACLManager());
+        require(aclManager.isPoolAdmin(msg.sender), Errors.CALLER_NOT_POOL_ADMIN);
         _;
     }
 
@@ -49,14 +44,8 @@ contract PriceOracleSentinel is IPriceOracleSentinel {
      * @dev Only risk or pool admin can call functions marked by this modifier.
      */
     modifier onlyRiskOrPoolAdmins() {
-        IACLManager aclManager = IACLManager(
-            ADDRESSES_PROVIDER.getACLManager()
-        );
-        require(
-            aclManager.isRiskAdmin(msg.sender) ||
-                aclManager.isPoolAdmin(msg.sender),
-            Errors.CALLER_NOT_RISK_OR_POOL_ADMIN
-        );
+        IACLManager aclManager = IACLManager(ADDRESSES_PROVIDER.getACLManager());
+        require(aclManager.isRiskAdmin(msg.sender) || aclManager.isPoolAdmin(msg.sender), Errors.CALLER_NOT_RISK_OR_POOL_ADMIN);
         _;
     }
 
@@ -72,11 +61,7 @@ contract PriceOracleSentinel is IPriceOracleSentinel {
      * @param oracle The address of the SequencerOracle
      * @param gracePeriod The duration of the grace period in seconds
      */
-    constructor(
-        IPoolAddressesProvider provider,
-        ISequencerOracle oracle,
-        uint256 gracePeriod
-    ) {
+    constructor(IPoolAddressesProvider provider, ISequencerOracle oracle, uint256 gracePeriod) {
         ADDRESSES_PROVIDER = provider;
         _sequencerOracle = oracle;
         _gracePeriod = gracePeriod;
@@ -97,24 +82,18 @@ contract PriceOracleSentinel is IPriceOracleSentinel {
      * @return True if the SequencerOracle is up and the grace period passed, false otherwise
      */
     function _isUpAndGracePeriodPassed() internal view returns (bool) {
-        (, int256 answer, , uint256 lastUpdateTimestamp, ) = _sequencerOracle
-            .latestRoundData();
-        return
-            answer == 0 && block.timestamp - lastUpdateTimestamp > _gracePeriod;
+        (, int256 answer, , uint256 lastUpdateTimestamp, ) = _sequencerOracle.latestRoundData();
+        return answer == 0 && block.timestamp - lastUpdateTimestamp > _gracePeriod;
     }
 
     /// @inheritdoc IPriceOracleSentinel
-    function setSequencerOracle(
-        address newSequencerOracle
-    ) public onlyPoolAdmin {
+    function setSequencerOracle(address newSequencerOracle) public onlyPoolAdmin {
         _sequencerOracle = ISequencerOracle(newSequencerOracle);
         emit SequencerOracleUpdated(newSequencerOracle);
     }
 
     /// @inheritdoc IPriceOracleSentinel
-    function setGracePeriod(
-        uint256 newGracePeriod
-    ) public onlyRiskOrPoolAdmins {
+    function setGracePeriod(uint256 newGracePeriod) public onlyRiskOrPoolAdmins {
         _gracePeriod = newGracePeriod;
         emit GracePeriodUpdated(newGracePeriod);
     }

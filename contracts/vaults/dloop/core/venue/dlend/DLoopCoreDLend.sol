@@ -17,16 +17,16 @@
 
 pragma solidity ^0.8.20;
 
-import {IPriceOracleGetter} from "./interface/IPriceOracleGetter.sol";
-import {IPool as ILendingPool, DataTypes} from "./interface/IPool.sol";
-import {IPoolAddressesProvider} from "./interface/IPoolAddressesProvider.sol";
-import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {DLoopCoreBase} from "../../DLoopCoreBase.sol";
-import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
-import {RewardClaimable} from "contracts/vaults/rewards_claimable/RewardClaimable.sol";
-import {IRewardsController} from "./interface/IRewardsController.sol";
-import {BasisPointConstants} from "contracts/common/BasisPointConstants.sol";
+import { IPriceOracleGetter } from "./interface/IPriceOracleGetter.sol";
+import { IPool as ILendingPool, DataTypes } from "./interface/IPool.sol";
+import { IPoolAddressesProvider } from "./interface/IPoolAddressesProvider.sol";
+import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import { DLoopCoreBase } from "../../DLoopCoreBase.sol";
+import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
+import { RewardClaimable } from "contracts/vaults/rewards_claimable/RewardClaimable.sol";
+import { IRewardsController } from "./interface/IRewardsController.sol";
+import { BasisPointConstants } from "contracts/common/BasisPointConstants.sol";
 
 /**
  * @title DLoopCoreDLend
@@ -58,10 +58,7 @@ contract DLoopCoreDLend is DLoopCoreBase, RewardClaimable {
     error FeeTooHigh(uint256 feeBps, uint256 maxFeeBps);
 
     /* Events */
-    event DLendRewardsControllerUpdated(
-        address indexed oldController,
-        address indexed newController
-    );
+    event DLendRewardsControllerUpdated(address indexed oldController, address indexed newController);
     event FeeBpsSet(uint256 oldFeeBps, uint256 newFeeBps);
 
     /**
@@ -134,10 +131,7 @@ contract DLoopCoreDLend is DLoopCoreBase, RewardClaimable {
             revert("Invalid price oracle base currency");
         }
 
-        if (
-            getLendingOracle().BASE_CURRENCY_UNIT() !=
-            10 ** AAVE_PRICE_ORACLE_DECIMALS
-        ) {
+        if (getLendingOracle().BASE_CURRENCY_UNIT() != 10 ** AAVE_PRICE_ORACLE_DECIMALS) {
             revert("Invalid price oracle unit");
         }
     }
@@ -147,9 +141,7 @@ contract DLoopCoreDLend is DLoopCoreBase, RewardClaimable {
      * @dev Only callable by the owner.
      * @param _newDLendRewardsController The address of the new rewards controller.
      */
-    function setDLendRewardsController(
-        address _newDLendRewardsController
-    ) external onlyOwner {
+    function setDLendRewardsController(address _newDLendRewardsController) external onlyOwner {
         if (_newDLendRewardsController == address(0)) {
             revert ZeroAddress();
         }
@@ -159,25 +151,15 @@ contract DLoopCoreDLend is DLoopCoreBase, RewardClaimable {
         }
         address oldController = address(dLendRewardsController);
         dLendRewardsController = IRewardsController(_newDLendRewardsController);
-        emit DLendRewardsControllerUpdated(
-            oldController,
-            _newDLendRewardsController
-        );
+        emit DLendRewardsControllerUpdated(oldController, _newDLendRewardsController);
     }
 
     /**
      * @inheritdoc DLoopCoreBase
      * @return address[] Additional rescue tokens
      */
-    function _getAdditionalRescueTokensImplementation()
-        internal
-        view
-        override
-        returns (address[] memory)
-    {
-        DataTypes.ReserveData memory reserveData = _getReserveData(
-            address(collateralToken)
-        );
+    function _getAdditionalRescueTokensImplementation() internal view override returns (address[] memory) {
+        DataTypes.ReserveData memory reserveData = _getReserveData(address(collateralToken));
         address[] memory additionalRescueTokens = new address[](3);
         additionalRescueTokens[0] = reserveData.aTokenAddress;
         additionalRescueTokens[1] = reserveData.variableDebtTokenAddress;
@@ -190,9 +172,7 @@ contract DLoopCoreDLend is DLoopCoreBase, RewardClaimable {
      * @param asset Address of the asset
      * @return uint256 Price of the asset
      */
-    function _getAssetPriceFromOracleImplementation(
-        address asset
-    ) internal view override returns (uint256) {
+    function _getAssetPriceFromOracleImplementation(address asset) internal view override returns (uint256) {
         return getLendingOracle().getAssetPrice(asset);
     }
 
@@ -202,11 +182,7 @@ contract DLoopCoreDLend is DLoopCoreBase, RewardClaimable {
      * @param amount Amount of tokens to supply
      * @param onBehalfOf Address to supply on behalf of
      */
-    function _supplyToPoolImplementation(
-        address token,
-        uint256 amount,
-        address onBehalfOf
-    ) internal override {
+    function _supplyToPoolImplementation(address token, uint256 amount, address onBehalfOf) internal override {
         ILendingPool lendingPool = getLendingPool();
 
         // Approve the lending pool to spend the token
@@ -222,18 +198,8 @@ contract DLoopCoreDLend is DLoopCoreBase, RewardClaimable {
      * @param amount Amount of tokens to borrow
      * @param onBehalfOf Address to borrow on behalf of
      */
-    function _borrowFromPoolImplementation(
-        address token,
-        uint256 amount,
-        address onBehalfOf
-    ) internal override {
-        getLendingPool().borrow(
-            token,
-            amount,
-            VARIABLE_LENDING_INTERST_RATE_MODE,
-            0,
-            onBehalfOf
-        );
+    function _borrowFromPoolImplementation(address token, uint256 amount, address onBehalfOf) internal override {
+        getLendingPool().borrow(token, amount, VARIABLE_LENDING_INTERST_RATE_MODE, 0, onBehalfOf);
     }
 
     /**
@@ -242,23 +208,14 @@ contract DLoopCoreDLend is DLoopCoreBase, RewardClaimable {
      * @param amount Amount of tokens to repay
      * @param onBehalfOf Address to repay on behalf of
      */
-    function _repayDebtToPoolImplementation(
-        address token,
-        uint256 amount,
-        address onBehalfOf
-    ) internal override {
+    function _repayDebtToPoolImplementation(address token, uint256 amount, address onBehalfOf) internal override {
         ILendingPool lendingPool = getLendingPool();
 
         // Approve the lending pool to spend the token
         ERC20(token).forceApprove(address(lendingPool), amount);
 
         // Repay the debt
-        lendingPool.repay(
-            token,
-            amount,
-            VARIABLE_LENDING_INTERST_RATE_MODE,
-            onBehalfOf
-        );
+        lendingPool.repay(token, amount, VARIABLE_LENDING_INTERST_RATE_MODE, onBehalfOf);
     }
 
     /**
@@ -267,11 +224,7 @@ contract DLoopCoreDLend is DLoopCoreBase, RewardClaimable {
      * @param amount Amount of tokens to withdraw
      * @param onBehalfOf Address to withdraw on behalf of
      */
-    function _withdrawFromPoolImplementation(
-        address token,
-        uint256 amount,
-        address onBehalfOf
-    ) internal override {
+    function _withdrawFromPoolImplementation(address token, uint256 amount, address onBehalfOf) internal override {
         getLendingPool().withdraw(token, amount, onBehalfOf);
     }
 
@@ -282,8 +235,7 @@ contract DLoopCoreDLend is DLoopCoreBase, RewardClaimable {
      * @return IPriceOracleGetter The lending oracle interface
      */
     function getLendingOracle() public view returns (IPriceOracleGetter) {
-        return
-            IPriceOracleGetter(lendingPoolAddressesProvider.getPriceOracle());
+        return IPriceOracleGetter(lendingPoolAddressesProvider.getPriceOracle());
     }
 
     /**
@@ -315,9 +267,7 @@ contract DLoopCoreDLend is DLoopCoreBase, RewardClaimable {
      * @param tokenAddress The address of the token
      * @return DataTypes.ReserveData The reserve data
      */
-    function _getReserveData(
-        address tokenAddress
-    ) internal view returns (DataTypes.ReserveData memory) {
+    function _getReserveData(address tokenAddress) internal view returns (DataTypes.ReserveData memory) {
         return getLendingPool().getReserveData(tokenAddress);
     }
 
@@ -327,12 +277,8 @@ contract DLoopCoreDLend is DLoopCoreBase, RewardClaimable {
      * @param user The address of the user
      * @return collateralTokenAmount The collateral token amount
      */
-    function getCollateralValueInTokenAmount(
-        address token,
-        address user
-    ) public view override returns (uint256 collateralTokenAmount) {
-        collateralTokenAmount = ERC20(_getReserveData(token).aTokenAddress)
-            .balanceOf(user);
+    function getCollateralValueInTokenAmount(address token, address user) public view override returns (uint256 collateralTokenAmount) {
+        collateralTokenAmount = ERC20(_getReserveData(token).aTokenAddress).balanceOf(user);
         return collateralTokenAmount;
     }
 
@@ -342,15 +288,10 @@ contract DLoopCoreDLend is DLoopCoreBase, RewardClaimable {
      * @param user The address of the user
      * @return debtTokenAmount The debt token amount
      */
-    function getDebtValueInTokenAmount(
-        address token,
-        address user
-    ) public view override returns (uint256 debtTokenAmount) {
+    function getDebtValueInTokenAmount(address token, address user) public view override returns (uint256 debtTokenAmount) {
         DataTypes.ReserveData memory reserveDebt = _getReserveData(token);
-        uint256 variableDebt = ERC20(reserveDebt.variableDebtTokenAddress)
-            .balanceOf(user);
-        uint256 stableDebt = ERC20(reserveDebt.stableDebtTokenAddress)
-            .balanceOf(user);
+        uint256 variableDebt = ERC20(reserveDebt.variableDebtTokenAddress).balanceOf(user);
+        uint256 stableDebt = ERC20(reserveDebt.stableDebtTokenAddress).balanceOf(user);
         debtTokenAmount = variableDebt + stableDebt;
         return debtTokenAmount;
     }
@@ -363,10 +304,7 @@ contract DLoopCoreDLend is DLoopCoreBase, RewardClaimable {
      * @param receiver The address to receive the claimed rewards
      * @return rewardAmounts The amount of rewards claimed for each token (have the same length as the tokens array)
      */
-    function _claimRewards(
-        address[] calldata rewardTokens,
-        address receiver
-    ) internal override returns (uint256[] memory rewardAmounts) {
+    function _claimRewards(address[] calldata rewardTokens, address receiver) internal override returns (uint256[] memory rewardAmounts) {
         if (rewardTokens.length == 0) {
             revert ZeroRewardTokens();
         }

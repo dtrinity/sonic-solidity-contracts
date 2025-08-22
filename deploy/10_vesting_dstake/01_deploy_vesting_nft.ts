@@ -3,10 +3,7 @@ import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
 
 import { getConfig } from "../../config/config";
-import {
-  DSTAKE_NFT_VESTING_DEPLOYMENT_TAG,
-  ERC20_VESTING_NFT_ID,
-} from "../../typescript/deploy-ids";
+import { DSTAKE_NFT_VESTING_DEPLOYMENT_TAG, ERC20_VESTING_NFT_ID } from "../../typescript/deploy-ids";
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployments, getNamedAccounts } = hre;
@@ -16,9 +13,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const config = await getConfig(hre);
 
   if (!config.vesting) {
-    console.log(
-      "No vesting configuration found for this network. Skipping vesting NFT deployment.",
-    );
+    console.log("No vesting configuration found for this network. Skipping vesting NFT deployment.");
     return;
   }
 
@@ -31,22 +26,12 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     throw new Error("Missing or invalid symbol in vesting configuration");
   }
 
-  if (
-    !config.vesting.dstakeToken ||
-    config.vesting.dstakeToken === ethers.ZeroAddress
-  ) {
-    throw new Error(
-      "Missing or invalid dstakeToken address in vesting configuration",
-    );
+  if (!config.vesting.dstakeToken || config.vesting.dstakeToken === ethers.ZeroAddress) {
+    throw new Error("Missing or invalid dstakeToken address in vesting configuration");
   }
 
-  if (
-    !config.vesting.initialOwner ||
-    config.vesting.initialOwner === ethers.ZeroAddress
-  ) {
-    throw new Error(
-      "Missing or invalid initialOwner address in vesting configuration",
-    );
+  if (!config.vesting.initialOwner || config.vesting.initialOwner === ethers.ZeroAddress) {
+    throw new Error("Missing or invalid initialOwner address in vesting configuration");
   }
 
   if (config.vesting.vestingPeriod <= 0) {

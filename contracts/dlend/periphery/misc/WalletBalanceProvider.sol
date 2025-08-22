@@ -17,14 +17,14 @@
 
 pragma solidity ^0.8.20;
 
-import {Address} from "contracts/dlend/core/dependencies/openzeppelin/contracts/Address.sol";
-import {IERC20} from "contracts/dlend/core/dependencies/openzeppelin/contracts/IERC20.sol";
+import { Address } from "contracts/dlend/core/dependencies/openzeppelin/contracts/Address.sol";
+import { IERC20 } from "contracts/dlend/core/dependencies/openzeppelin/contracts/IERC20.sol";
 
-import {IPoolAddressesProvider} from "contracts/dlend/core/interfaces/IPoolAddressesProvider.sol";
-import {IPool} from "contracts/dlend/core/interfaces/IPool.sol";
-import {GPv2SafeERC20} from "contracts/dlend/core/dependencies/gnosis/contracts/GPv2SafeERC20.sol";
-import {ReserveConfiguration} from "contracts/dlend/core/protocol/libraries/configuration/ReserveConfiguration.sol";
-import {DataTypes} from "contracts/dlend/core/protocol/libraries/types/DataTypes.sol";
+import { IPoolAddressesProvider } from "contracts/dlend/core/interfaces/IPoolAddressesProvider.sol";
+import { IPool } from "contracts/dlend/core/interfaces/IPool.sol";
+import { GPv2SafeERC20 } from "contracts/dlend/core/dependencies/gnosis/contracts/GPv2SafeERC20.sol";
+import { ReserveConfiguration } from "contracts/dlend/core/protocol/libraries/configuration/ReserveConfiguration.sol";
+import { DataTypes } from "contracts/dlend/core/protocol/libraries/types/DataTypes.sol";
 
 /**
  * @title WalletBalanceProvider contract
@@ -39,8 +39,7 @@ contract WalletBalanceProvider {
     using GPv2SafeERC20 for IERC20;
     using ReserveConfiguration for DataTypes.ReserveConfigurationMap;
 
-    address constant MOCK_ETH_ADDRESS =
-        0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
+    address constant MOCK_ETH_ADDRESS = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
     /**
     @dev Fallback function, don't accept any ETH
@@ -56,10 +55,7 @@ contract WalletBalanceProvider {
     Returns the balance of the token for user. Avoids possible errors:
       - return 0 on non-contract address
     **/
-    function balanceOf(
-        address user,
-        address token
-    ) public view returns (uint256) {
+    function balanceOf(address user, address token) public view returns (uint256) {
         if (token == MOCK_ETH_ADDRESS) {
             return user.balance; // ETH balance
             // check if token is actually a contract
@@ -75,18 +71,12 @@ contract WalletBalanceProvider {
      * @param tokens The list of tokens
      * @return And array with the concatenation of, for each user, his/her balances
      **/
-    function batchBalanceOf(
-        address[] calldata users,
-        address[] calldata tokens
-    ) external view returns (uint256[] memory) {
+    function batchBalanceOf(address[] calldata users, address[] calldata tokens) external view returns (uint256[] memory) {
         uint256[] memory balances = new uint256[](users.length * tokens.length);
 
         for (uint256 i = 0; i < users.length; i++) {
             for (uint256 j = 0; j < tokens.length; j++) {
-                balances[i * tokens.length + j] = balanceOf(
-                    users[i],
-                    tokens[j]
-                );
+                balances[i * tokens.length + j] = balanceOf(users[i], tokens[j]);
             }
         }
 
@@ -96,10 +86,7 @@ contract WalletBalanceProvider {
     /**
     @dev provides balances of user wallet for all reserves available on the pool
     */
-    function getUserWalletBalances(
-        address provider,
-        address user
-    ) external view returns (address[] memory, uint256[] memory) {
+    function getUserWalletBalances(address provider, address user) external view returns (address[] memory, uint256[] memory) {
         IPool pool = IPool(IPoolAddressesProvider(provider).getPool());
 
         address[] memory reserves = pool.getReservesList();
@@ -112,8 +99,7 @@ contract WalletBalanceProvider {
         uint256[] memory balances = new uint256[](reservesWithEth.length);
 
         for (uint256 j = 0; j < reserves.length; j++) {
-            DataTypes.ReserveConfigurationMap memory configuration = pool
-                .getConfiguration(reservesWithEth[j]);
+            DataTypes.ReserveConfigurationMap memory configuration = pool.getConfiguration(reservesWithEth[j]);
 
             (bool isActive, , , , ) = configuration.getFlags();
 

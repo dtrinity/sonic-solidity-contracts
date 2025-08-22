@@ -33,13 +33,7 @@ import "../../../common/SupportsWithdrawalFee.sol";
  * @notice Abstract base ERC4626 vault that accepts LP tokens as the primary asset
  * @dev Each vault represents a specific LP position on a specific DEX. The vault's asset() is the LP token itself.
  */
-abstract contract DPoolVaultLP is
-    ERC4626,
-    AccessControl,
-    ReentrancyGuard,
-    IDPoolVaultLP,
-    SupportsWithdrawalFee
-{
+abstract contract DPoolVaultLP is ERC4626, AccessControl, ReentrancyGuard, IDPoolVaultLP, SupportsWithdrawalFee {
     using SafeERC20 for IERC20;
 
     // --- Constants ---
@@ -48,8 +42,7 @@ abstract contract DPoolVaultLP is
     bytes32 public constant FEE_MANAGER_ROLE = keccak256("FEE_MANAGER_ROLE");
 
     /// @notice Maximum withdrawal fee (5%)
-    uint256 public constant MAX_WITHDRAWAL_FEE_BPS_CONFIG =
-        5 * BasisPointConstants.ONE_PERCENT_BPS;
+    uint256 public constant MAX_WITHDRAWAL_FEE_BPS_CONFIG = 5 * BasisPointConstants.ONE_PERCENT_BPS;
 
     // --- Immutables ---
 
@@ -75,12 +68,7 @@ abstract contract DPoolVaultLP is
      * @param symbol Vault token symbol
      * @param admin Address to grant admin role
      */
-    constructor(
-        address _lpToken,
-        string memory name,
-        string memory symbol,
-        address admin
-    ) ERC4626(IERC20(_lpToken)) ERC20(name, symbol) {
+    constructor(address _lpToken, string memory name, string memory symbol, address admin) ERC4626(IERC20(_lpToken)) ERC20(name, symbol) {
         if (_lpToken == address(0)) revert ZeroAddress();
         if (admin == address(0)) revert ZeroAddress();
 
@@ -92,13 +80,7 @@ abstract contract DPoolVaultLP is
     }
 
     // --- SupportsWithdrawalFee Implementation ---
-    function _maxWithdrawalFeeBps()
-        internal
-        view
-        virtual
-        override
-        returns (uint256)
-    {
+    function _maxWithdrawalFeeBps() internal view virtual override returns (uint256) {
         return MAX_WITHDRAWAL_FEE_BPS_CONFIG;
     }
 
@@ -137,14 +119,10 @@ abstract contract DPoolVaultLP is
      * @param lpAmount Amount of LP tokens
      * @return Base asset value
      */
-    function previewLPValue(
-        uint256 lpAmount
-    ) external view virtual override returns (uint256);
+    function previewLPValue(uint256 lpAmount) external view virtual override returns (uint256);
 
     /// @inheritdoc IDPoolVaultLP
-    function previewDepositLP(
-        uint256 lpAmount
-    ) external view override returns (uint256 shares) {
+    function previewDepositLP(uint256 lpAmount) external view override returns (uint256 shares) {
         return previewDeposit(lpAmount);
     }
 
@@ -155,9 +133,7 @@ abstract contract DPoolVaultLP is
      * @dev Preview withdraw including withdrawal fee.
      *      The `assets` parameter is the net amount of LP tokens the user wants to receive.
      */
-    function previewWithdraw(
-        uint256 assets
-    ) public view virtual override(ERC4626, IERC4626) returns (uint256 shares) {
+    function previewWithdraw(uint256 assets) public view virtual override(ERC4626, IERC4626) returns (uint256 shares) {
         uint256 grossAssetsRequired = _getGrossAmountRequiredForNet(assets);
         return super.previewWithdraw(grossAssetsRequired);
     }
@@ -167,9 +143,7 @@ abstract contract DPoolVaultLP is
      * @dev Preview redeem including withdrawal fee.
      *      Calculates gross assets from shares, then deducts fee to show net assets user receives.
      */
-    function previewRedeem(
-        uint256 shares
-    ) public view virtual override(ERC4626, IERC4626) returns (uint256 assets) {
+    function previewRedeem(uint256 shares) public view virtual override(ERC4626, IERC4626) returns (uint256 assets) {
         uint256 grossAssets = super.previewRedeem(shares);
         return _getNetAmountAfterFee(grossAssets);
     }
@@ -182,16 +156,7 @@ abstract contract DPoolVaultLP is
      * @param receiver Address to receive vault shares
      * @return shares_ Amount of shares minted
      */
-    function deposit(
-        uint256 lpAmount,
-        address receiver
-    )
-        public
-        virtual
-        override(ERC4626, IERC4626)
-        nonReentrant
-        returns (uint256 shares_)
-    {
+    function deposit(uint256 lpAmount, address receiver) public virtual override(ERC4626, IERC4626) nonReentrant returns (uint256 shares_) {
         uint256 maxAssets = maxDeposit(receiver);
         if (lpAmount > maxAssets) {
             revert ERC4626ExceedsMaxDeposit(lpAmount, maxAssets);
@@ -214,13 +179,7 @@ abstract contract DPoolVaultLP is
         uint256 lpAmount,
         address receiver,
         address owner
-    )
-        public
-        virtual
-        override(ERC4626, IERC4626)
-        nonReentrant
-        returns (uint256 shares_)
-    {
+    ) public virtual override(ERC4626, IERC4626) nonReentrant returns (uint256 shares_) {
         shares_ = previewWithdraw(lpAmount);
         uint256 grossLpAmount = convertToAssets(shares_);
 
@@ -241,12 +200,7 @@ abstract contract DPoolVaultLP is
      * @param lpAmount Amount of LP tokens being deposited
      * @param shares Amount of shares to mint
      */
-    function _deposit(
-        address caller,
-        address receiver,
-        uint256 lpAmount,
-        uint256 shares
-    ) internal virtual override {
+    function _deposit(address caller, address receiver, uint256 lpAmount, uint256 shares) internal virtual override {
         if (shares == 0) {
             revert ZeroShares();
         }
@@ -263,13 +217,7 @@ abstract contract DPoolVaultLP is
      * @param grossLpAmount Amount of LP tokens to withdraw (gross amount, before fees)
      * @param shares Amount of shares to burn
      */
-    function _withdraw(
-        address caller,
-        address receiver,
-        address owner,
-        uint256 grossLpAmount,
-        uint256 shares
-    ) internal virtual override {
+    function _withdraw(address caller, address receiver, address owner, uint256 grossLpAmount, uint256 shares) internal virtual override {
         if (caller != owner) {
             _spendAllowance(owner, caller, shares);
         }
@@ -301,9 +249,7 @@ abstract contract DPoolVaultLP is
      * @dev Only callable by FEE_MANAGER_ROLE
      * @param newFeeBps The new withdrawal fee in basis points
      */
-    function setWithdrawalFee(
-        uint256 newFeeBps
-    ) external override onlyRole(FEE_MANAGER_ROLE) {
+    function setWithdrawalFee(uint256 newFeeBps) external override onlyRole(FEE_MANAGER_ROLE) {
         _setWithdrawalFee(newFeeBps);
     }
 
@@ -312,9 +258,7 @@ abstract contract DPoolVaultLP is
     /**
      * @dev See {IERC165-supportsInterface}.
      */
-    function supportsInterface(
-        bytes4 interfaceId
-    ) public view virtual override(AccessControl) returns (bool) {
+    function supportsInterface(bytes4 interfaceId) public view virtual override(AccessControl) returns (bool) {
         return super.supportsInterface(interfaceId);
     }
 }

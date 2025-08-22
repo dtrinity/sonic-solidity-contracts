@@ -4,12 +4,7 @@ import { expect } from "chai";
 import { ethers } from "hardhat";
 
 import { DLoopCoreMock } from "../../../typechain-types";
-import {
-  deployDLoopMockFixture,
-  TARGET_LEVERAGE_BPS,
-  testSetup,
-  UPPER_BOUND_BPS,
-} from "./fixture";
+import { deployDLoopMockFixture, TARGET_LEVERAGE_BPS, testSetup, UPPER_BOUND_BPS } from "./fixture";
 
 /**
  * This test ensures that after the vault's leverage drifts above the configured
@@ -34,12 +29,8 @@ describe("DLoopCoreMock.maxRedeem: leverage guard", function () {
 
     // ---------------- Seed a healthy position (target leverage ~3x) ----------------
     const seedCollateral = ethers.parseEther("100");
-    await collateralToken
-      .connect(deployer)
-      .mint(deployer.address, seedCollateral);
-    await collateralToken
-      .connect(deployer)
-      .approve(await dloopMock.getAddress(), seedCollateral);
+    await collateralToken.connect(deployer).mint(deployer.address, seedCollateral);
+    await collateralToken.connect(deployer).approve(await dloopMock.getAddress(), seedCollateral);
     await dloopMock.connect(deployer).deposit(seedCollateral, deployer.address);
 
     // Confirm leverage is inside bounds and maxRedeem > 0 initially

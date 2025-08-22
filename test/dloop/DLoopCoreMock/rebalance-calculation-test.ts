@@ -4,16 +4,8 @@ import { expect } from "chai";
 import { ethers } from "hardhat";
 
 import { DLoopCoreMock, TestMintableERC20 } from "../../../typechain-types";
-import {
-  ONE_BPS_UNIT,
-  ONE_HUNDRED_PERCENT_BPS,
-  ONE_PERCENT_BPS,
-} from "../../../typescript/common/bps_constants";
-import {
-  deployDLoopMockFixture,
-  TARGET_LEVERAGE_BPS,
-  testSetup,
-} from "./fixture";
+import { ONE_BPS_UNIT, ONE_HUNDRED_PERCENT_BPS, ONE_PERCENT_BPS } from "../../../typescript/common/bps_constants";
+import { deployDLoopMockFixture, TARGET_LEVERAGE_BPS, testSetup } from "./fixture";
 
 // NOTE: Redundant with CoreLogic rebalance_quote tests; skipping to reduce duplication
 describe.skip("DLoopCoreMock Rebalance Calculation Tests", function () {
@@ -35,8 +27,7 @@ describe.skip("DLoopCoreMock Rebalance Calculation Tests", function () {
     _accounts = fixture.accounts;
 
     // Deploy an additional token for testing calculation functionality
-    const TestMintableERC20Factory =
-      await ethers.getContractFactory("TestMintableERC20");
+    const TestMintableERC20Factory = await ethers.getContractFactory("TestMintableERC20");
     _otherToken = await TestMintableERC20Factory.deploy(
       "Other Token",
       "OTHER",
@@ -351,50 +342,27 @@ describe.skip("DLoopCoreMock Rebalance Calculation Tests", function () {
             const collateralPrice = ethers.parseEther("1"); // $1 per token
             const debtPrice = ethers.parseEther("1"); // $1 per token
 
-            await dloopMock.setMockPrice(
-              await collateralToken.getAddress(),
-              collateralPrice,
-            );
-            await dloopMock.setMockPrice(
-              await debtToken.getAddress(),
-              debtPrice,
-            );
+            await dloopMock.setMockPrice(await collateralToken.getAddress(), collateralPrice);
+            await dloopMock.setMockPrice(await debtToken.getAddress(), debtPrice);
 
             // Set up mock collateral and debt
-            await dloopMock.setMockCollateral(
-              await dloopMock.getAddress(),
-              await collateralToken.getAddress(),
-              testCase.currentCollateral,
-            );
-            await dloopMock.setMockDebt(
-              await dloopMock.getAddress(),
-              await debtToken.getAddress(),
-              testCase.currentDebt,
-            );
+            await dloopMock.setMockCollateral(await dloopMock.getAddress(), await collateralToken.getAddress(), testCase.currentCollateral);
+            await dloopMock.setMockDebt(await dloopMock.getAddress(), await debtToken.getAddress(), testCase.currentDebt);
 
-            const testExpectedResult = useVaultTokenBalance
-              ? testCase.whenUseVaultTokenBalance
-              : testCase.whenNotUseVaultTokenBalance;
+            const testExpectedResult = useVaultTokenBalance ? testCase.whenUseVaultTokenBalance : testCase.whenNotUseVaultTokenBalance;
 
             // Set up vault balances if specified
             if (useVaultTokenBalance) {
               if (testExpectedResult.vaultCollateralBalance) {
-                await collateralToken.mint(
-                  await dloopMock.getAddress(),
-                  testExpectedResult.vaultCollateralBalance,
-                );
+                await collateralToken.mint(await dloopMock.getAddress(), testExpectedResult.vaultCollateralBalance);
               }
 
               if (testExpectedResult.vaultDebtBalance) {
-                await debtToken.mint(
-                  await dloopMock.getAddress(),
-                  testExpectedResult.vaultDebtBalance,
-                );
+                await debtToken.mint(await dloopMock.getAddress(), testExpectedResult.vaultDebtBalance);
               }
             }
 
-            const [tokenAmount, direction] =
-              await dloopMock.quoteRebalanceAmountToReachTargetLeverage();
+            const [tokenAmount, direction] = await dloopMock.quoteRebalanceAmountToReachTargetLeverage();
 
             expect(direction).to.equal(testCase.expectedDirection);
 
@@ -407,24 +375,17 @@ describe.skip("DLoopCoreMock Rebalance Calculation Tests", function () {
               const minAmount = expectedAmount - tolerance;
               const maxAmount = expectedAmount + tolerance;
 
-              expect(tokenAmount).to.be.gte(
-                minAmount,
-                `Amount ${tokenAmount} should be >= ${minAmount}`,
-              );
-              expect(tokenAmount).to.be.lte(
-                maxAmount,
-                `Amount ${tokenAmount} should be <= ${maxAmount}`,
-              );
+              expect(tokenAmount).to.be.gte(minAmount, `Amount ${tokenAmount} should be >= ${minAmount}`);
+              expect(tokenAmount).to.be.lte(maxAmount, `Amount ${tokenAmount} should be <= ${maxAmount}`);
             }
 
             // Get the current subsidy bps
             const subsidyBps = await dloopMock.getCurrentSubsidyBps();
 
             // Make sure the expected amount leads to the target leverage
-            const [totalCollateralInBase, totalDebtInBase] =
-              await dloopMock.getTotalCollateralAndDebtOfUserInBase(
-                await dloopMock.getAddress(),
-              );
+            const [totalCollateralInBase, totalDebtInBase] = await dloopMock.getTotalCollateralAndDebtOfUserInBase(
+              await dloopMock.getAddress(),
+            );
 
             // Leverage validation to make sure the new leverage is close to the target leverage
             await validateRebalanceLeverage(
@@ -741,30 +702,19 @@ describe.skip("DLoopCoreMock Rebalance Calculation Tests", function () {
             const collateralPrice = ethers.parseUnits("1", 8); // $1 per token
             const debtPrice = ethers.parseUnits("1", 8); // $1 per token
 
-            await dloopMock.setMockPrice(
-              await collateralToken.getAddress(),
-              collateralPrice,
-            );
-            await dloopMock.setMockPrice(
-              await debtToken.getAddress(),
-              debtPrice,
-            );
+            await dloopMock.setMockPrice(await collateralToken.getAddress(), collateralPrice);
+            await dloopMock.setMockPrice(await debtToken.getAddress(), debtPrice);
 
             if (useVaultTokenBalance) {
               if (testCase.whenUseVaultTokenBalance.vaultCollateralBalance) {
-                await collateralToken.mint(
-                  await dloopMock.getAddress(),
-                  testCase.whenUseVaultTokenBalance.vaultCollateralBalance,
-                );
+                await collateralToken.mint(await dloopMock.getAddress(), testCase.whenUseVaultTokenBalance.vaultCollateralBalance);
               }
             }
 
             const _testExpectedResult: {
               expectedRevertError?: string;
               expectedAmount: bigint;
-            } = useVaultTokenBalance
-              ? testCase.whenUseVaultTokenBalance
-              : testCase.whenNotUseVaultTokenBalance;
+            } = useVaultTokenBalance ? testCase.whenUseVaultTokenBalance : testCase.whenNotUseVaultTokenBalance;
 
             // if (testExpectedResult.expectedRevertError) {
             //   await expect(
@@ -1059,21 +1009,12 @@ describe.skip("DLoopCoreMock Rebalance Calculation Tests", function () {
             const collateralPrice = ethers.parseUnits("1", 8); // $1 per token
             const debtPrice = ethers.parseUnits("1", 8); // $1 per token
 
-            await dloopMock.setMockPrice(
-              await collateralToken.getAddress(),
-              collateralPrice,
-            );
-            await dloopMock.setMockPrice(
-              await debtToken.getAddress(),
-              debtPrice,
-            );
+            await dloopMock.setMockPrice(await collateralToken.getAddress(), collateralPrice);
+            await dloopMock.setMockPrice(await debtToken.getAddress(), debtPrice);
 
             if (useVaultTokenBalance) {
               if (testCase.whenUseVaultTokenBalance.vaultDebtBalance) {
-                await debtToken.mint(
-                  await dloopMock.getAddress(),
-                  testCase.whenUseVaultTokenBalance.vaultDebtBalance,
-                );
+                await debtToken.mint(await dloopMock.getAddress(), testCase.whenUseVaultTokenBalance.vaultDebtBalance);
               }
             }
 
@@ -1081,9 +1022,7 @@ describe.skip("DLoopCoreMock Rebalance Calculation Tests", function () {
               expectedRevertError?: string;
               expectedRevertPanic?: string;
               expectedAmount: bigint;
-            } = useVaultTokenBalance
-              ? testCase.whenUseVaultTokenBalance
-              : testCase.whenNotUseVaultTokenBalance;
+            } = useVaultTokenBalance ? testCase.whenUseVaultTokenBalance : testCase.whenNotUseVaultTokenBalance;
 
             // if (testExpectedResult.expectedRevertError) {
             //   await expect(
@@ -1192,55 +1131,39 @@ async function validateRebalanceLeverage(
 
   expect(direction).to.be.oneOf([-1n, 1n]);
 
-  const collateralToken = await ethers.getContractAt(
-    "TestMintableERC20",
-    await dloopMock.collateralToken(),
-  );
-  const debtToken = await ethers.getContractAt(
-    "TestMintableERC20",
-    await dloopMock.debtToken(),
-  );
+  const collateralToken = await ethers.getContractAt("TestMintableERC20", await dloopMock.collateralToken());
+  const debtToken = await ethers.getContractAt("TestMintableERC20", await dloopMock.debtToken());
 
-  let rebalanceAmountInBase =
-    await dloopMock.convertFromTokenAmountToBaseCurrency(
-      requiredCollateralTokenAmount,
-      await collateralToken.getAddress(),
-    );
+  let rebalanceAmountInBase = await dloopMock.convertFromTokenAmountToBaseCurrency(
+    requiredCollateralTokenAmount,
+    await collateralToken.getAddress(),
+  );
 
   // If useVaultTokenBalance is true, we need to add the vault token balance to the rebalance amount
   // because the vault token balance is already included in the formula
   // of quoteRebalanceAmountToReachTargetLeverage
   if (direction > 0) {
     if (vaultCollateralBalance > 0n) {
-      const valutCollateralBalanceInBase =
-        await dloopMock.convertFromTokenAmountToBaseCurrency(
-          vaultCollateralBalance,
-          await collateralToken.getAddress(),
-        );
+      const valutCollateralBalanceInBase = await dloopMock.convertFromTokenAmountToBaseCurrency(
+        vaultCollateralBalance,
+        await collateralToken.getAddress(),
+      );
       rebalanceAmountInBase += valutCollateralBalanceInBase;
     }
   } else if (direction < 0) {
     if (vaultDebtBalance > 0n) {
-      const valutDebtBalanceInBase =
-        await dloopMock.convertFromTokenAmountToBaseCurrency(
-          vaultDebtBalance,
-          await debtToken.getAddress(),
-        );
+      const valutDebtBalanceInBase = await dloopMock.convertFromTokenAmountToBaseCurrency(vaultDebtBalance, await debtToken.getAddress());
       rebalanceAmountInBase += valutDebtBalanceInBase;
     }
   }
 
   const oneHundredPercentBps = BigInt(ONE_HUNDRED_PERCENT_BPS);
   const newLeverage =
-    ((totalCollateralInBase + direction * rebalanceAmountInBase) *
-      oneHundredPercentBps) /
+    ((totalCollateralInBase + direction * rebalanceAmountInBase) * oneHundredPercentBps) /
     (totalCollateralInBase +
       direction * rebalanceAmountInBase -
       totalDebtInBase -
-      (direction *
-        rebalanceAmountInBase *
-        (oneHundredPercentBps + subsidyBps)) /
-        oneHundredPercentBps);
+      (direction * rebalanceAmountInBase * (oneHundredPercentBps + subsidyBps)) / oneHundredPercentBps);
   expect(newLeverage).to.be.closeTo(
     targetLeverage,
     ONE_BPS_UNIT, // very small tolerance

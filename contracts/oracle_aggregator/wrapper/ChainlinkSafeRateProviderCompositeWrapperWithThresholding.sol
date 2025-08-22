@@ -21,10 +21,10 @@ import "../interface/chainlink/BaseChainlinkWrapper.sol";
 import "./ThresholdingUtils.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
-import {IPriceFeed} from "../interface/chainlink/IPriceFeed.sol";
-import {IRateProvider} from "../interface/IRateProvider.sol";
-import {IRateProviderSafe} from "../interface/IRateProviderSafe.sol";
-import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
+import { IPriceFeed } from "../interface/chainlink/IPriceFeed.sol";
+import { IRateProvider } from "../interface/IRateProvider.sol";
+import { IRateProviderSafe } from "../interface/IRateProviderSafe.sol";
+import { IERC20Metadata } from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
 // Rate provider interface moved to interface/IRateProvider.sol
 
@@ -38,10 +38,7 @@ import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IER
  *  - rateProvider: AccountantWithFixedRate (stkscUSD -> scUSD) returning a rate with `rateProviderUnit` decimals
  *  - price(asset) = CL(wstkscUSD/stkscUSD in base) * RP(stkscUSD/scUSD in base) / BASE_CURRENCY_UNIT
  */
-contract ChainlinkSafeRateProviderCompositeWrapperWithThresholding is
-    BaseChainlinkWrapper,
-    ThresholdingUtils
-{
+contract ChainlinkSafeRateProviderCompositeWrapperWithThresholding is BaseChainlinkWrapper, ThresholdingUtils {
     struct CompositeFeed {
         address feed1; // Chainlink AggregatorV3-like feed (IPriceFeed)
         address rateProvider; // IRateProvider
@@ -74,10 +71,7 @@ contract ChainlinkSafeRateProviderCompositeWrapperWithThresholding is
     /* Errors */
     error InvalidUnit();
 
-    constructor(
-        address baseCurrency,
-        uint256 _baseCurrencyUnit
-    ) BaseChainlinkWrapper(baseCurrency, _baseCurrencyUnit) {
+    constructor(address baseCurrency, uint256 _baseCurrencyUnit) BaseChainlinkWrapper(baseCurrency, _baseCurrencyUnit) {
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _grantRole(ORACLE_MANAGER_ROLE, msg.sender);
     }
@@ -99,14 +93,8 @@ contract ChainlinkSafeRateProviderCompositeWrapperWithThresholding is
             feed1: feed1,
             rateProvider: rateProvider,
             rateProviderUnit: rateProviderUnit,
-            primaryThreshold: ThresholdConfig({
-                lowerThresholdInBase: lowerThresholdInBase1,
-                fixedPriceInBase: fixedPriceInBase1
-            }),
-            secondaryThreshold: ThresholdConfig({
-                lowerThresholdInBase: lowerThresholdInBase2,
-                fixedPriceInBase: fixedPriceInBase2
-            })
+            primaryThreshold: ThresholdConfig({ lowerThresholdInBase: lowerThresholdInBase1, fixedPriceInBase: fixedPriceInBase1 }),
+            secondaryThreshold: ThresholdConfig({ lowerThresholdInBase: lowerThresholdInBase2, fixedPriceInBase: fixedPriceInBase2 })
         });
         emit CompositeFeedAdded(
             asset,
@@ -119,9 +107,7 @@ contract ChainlinkSafeRateProviderCompositeWrapperWithThresholding is
         );
     }
 
-    function removeCompositeFeed(
-        address asset
-    ) external onlyRole(ORACLE_MANAGER_ROLE) {
+    function removeCompositeFeed(address asset) external onlyRole(ORACLE_MANAGER_ROLE) {
         delete compositeFeeds[asset];
         emit CompositeFeedRemoved(asset);
     }
@@ -145,62 +131,40 @@ contract ChainlinkSafeRateProviderCompositeWrapperWithThresholding is
         feed.primaryThreshold.fixedPriceInBase = fixedPriceInBase1;
         feed.secondaryThreshold.lowerThresholdInBase = lowerThresholdInBase2;
         feed.secondaryThreshold.fixedPriceInBase = fixedPriceInBase2;
-        emit CompositeFeedUpdated(
-            asset,
-            lowerThresholdInBase1,
-            fixedPriceInBase1,
-            lowerThresholdInBase2,
-            fixedPriceInBase2
-        );
+        emit CompositeFeedUpdated(asset, lowerThresholdInBase1, fixedPriceInBase1, lowerThresholdInBase2, fixedPriceInBase2);
     }
 
-    function getPriceInfo(
-        address asset
-    ) public view override returns (uint256 price, bool isAlive) {
+    function getPriceInfo(address asset) public view override returns (uint256 price, bool isAlive) {
         CompositeFeed memory feed = compositeFeeds[asset];
         if (feed.feed1 == address(0) || feed.rateProvider == address(0)) {
             revert FeedNotSet(asset);
         }
 
         // Chainlink leg (e.g., wstkscUSD -> stkscUSD)
-        (, int256 answer1, , uint256 updatedAt1, ) = IPriceFeed(feed.feed1)
-            .latestRoundData();
+        (, int256 answer1, , uint256 updatedAt1, ) = IPriceFeed(feed.feed1).latestRoundData();
         uint256 chainlinkPrice1 = answer1 > 0 ? uint256(answer1) : 0;
         uint256 priceInBase1 = _convertToBaseCurrencyUnit(chainlinkPrice1);
 
         // Rate provider leg (e.g., stkscUSD -> scUSD) with stored rateProviderUnit
         uint256 feed2 = IRateProviderSafe(feed.rateProvider).getRateSafe();
-        uint256 priceInBase2 = Math.mulDiv(
-            feed2,
-            BASE_CURRENCY_UNIT,
-            feed.rateProviderUnit
-        );
+        uint256 priceInBase2 = Math.mulDiv(feed2, BASE_CURRENCY_UNIT, feed.rateProviderUnit);
 
         // Apply optional thresholding (in BASE_CURRENCY_UNIT) per leg
         if (feed.primaryThreshold.lowerThresholdInBase > 0) {
             priceInBase1 = _applyThreshold(priceInBase1, feed.primaryThreshold);
         }
         if (feed.secondaryThreshold.lowerThresholdInBase > 0) {
-            priceInBase2 = _applyThreshold(
-                priceInBase2,
-                feed.secondaryThreshold
-            );
+            priceInBase2 = _applyThreshold(priceInBase2, feed.secondaryThreshold);
         }
 
         // Compose, maintaining BASE_CURRENCY_UNIT
         price = Math.mulDiv(priceInBase1, priceInBase2, BASE_CURRENCY_UNIT);
 
         // Liveness: Chainlink heartbeat + rate > 0
-        isAlive =
-            price > 0 &&
-            updatedAt1 + CHAINLINK_HEARTBEAT + heartbeatStaleTimeLimit >
-            block.timestamp &&
-            feed2 > 0;
+        isAlive = price > 0 && updatedAt1 + CHAINLINK_HEARTBEAT + heartbeatStaleTimeLimit > block.timestamp && feed2 > 0;
     }
 
-    function getAssetPrice(
-        address asset
-    ) external view override returns (uint256) {
+    function getAssetPrice(address asset) external view override returns (uint256) {
         (uint256 p, bool alive) = getPriceInfo(asset);
         if (!alive) revert PriceIsStale();
         return p;

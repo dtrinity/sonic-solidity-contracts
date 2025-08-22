@@ -17,7 +17,7 @@
 
 pragma solidity ^0.8.20;
 
-import {IOracleWrapper} from "../../oracle_aggregator/interface/IOracleWrapper.sol";
+import { IOracleWrapper } from "../../oracle_aggregator/interface/IOracleWrapper.sol";
 
 contract MockOracleAggregator is IOracleWrapper {
     address public immutable BASE_CURRENCY;
@@ -44,9 +44,7 @@ contract MockOracleAggregator is IOracleWrapper {
         isAlive[_asset] = _isAlive;
     }
 
-    function getAssetPrice(
-        address _asset
-    ) external view override returns (uint256) {
+    function getAssetPrice(address _asset) external view override returns (uint256) {
         if (_asset == BASE_CURRENCY) {
             return BASE_CURRENCY_UNIT;
         }
@@ -57,9 +55,7 @@ contract MockOracleAggregator is IOracleWrapper {
         return _price;
     }
 
-    function getPriceInfo(
-        address _asset
-    ) external view override returns (uint256 price, bool _isAlive) {
+    function getPriceInfo(address _asset) external view override returns (uint256 price, bool _isAlive) {
         if (_asset == BASE_CURRENCY) {
             return (BASE_CURRENCY_UNIT, true);
         }

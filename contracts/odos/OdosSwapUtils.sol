@@ -35,9 +35,7 @@ library OdosSwapUtils {
         uint256 exactOut,
         bytes memory swapData
     ) internal returns (uint256 actualAmountSpent) {
-        uint256 outputBalanceBefore = IERC20(outputToken).balanceOf(
-            address(this)
-        );
+        uint256 outputBalanceBefore = IERC20(outputToken).balanceOf(address(this));
 
         // Use forceApprove for external DEX router integration
         IERC20(inputToken).forceApprove(address(router), maxIn);
@@ -57,9 +55,7 @@ library OdosSwapUtils {
             actualAmountSpent := mload(add(result, 32))
         }
 
-        uint256 outputBalanceAfter = IERC20(outputToken).balanceOf(
-            address(this)
-        );
+        uint256 outputBalanceAfter = IERC20(outputToken).balanceOf(address(this));
         uint256 actualAmountReceived = outputBalanceAfter - outputBalanceBefore;
 
         if (actualAmountReceived < exactOut) {

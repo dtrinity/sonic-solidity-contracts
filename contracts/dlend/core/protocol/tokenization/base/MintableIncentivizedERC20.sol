@@ -17,9 +17,9 @@
 
 pragma solidity ^0.8.20;
 
-import {IAaveIncentivesController} from "../../../interfaces/IAaveIncentivesController.sol";
-import {IPool} from "../../../interfaces/IPool.sol";
-import {IncentivizedERC20} from "./IncentivizedERC20.sol";
+import { IAaveIncentivesController } from "../../../interfaces/IAaveIncentivesController.sol";
+import { IPool } from "../../../interfaces/IPool.sol";
+import { IncentivizedERC20 } from "./IncentivizedERC20.sol";
 
 /**
  * @title MintableIncentivizedERC20
@@ -34,12 +34,7 @@ abstract contract MintableIncentivizedERC20 is IncentivizedERC20 {
      * @param symbol The symbol of the token
      * @param decimals The number of decimals of the token
      */
-    constructor(
-        IPool pool,
-        string memory name,
-        string memory symbol,
-        uint8 decimals
-    ) IncentivizedERC20(pool, name, symbol, decimals) {
+    constructor(IPool pool, string memory name, string memory symbol, uint8 decimals) IncentivizedERC20(pool, name, symbol, decimals) {
         // Intentionally left blank
     }
 
@@ -57,11 +52,7 @@ abstract contract MintableIncentivizedERC20 is IncentivizedERC20 {
 
         IAaveIncentivesController incentivesControllerLocal = _incentivesController;
         if (address(incentivesControllerLocal) != address(0)) {
-            incentivesControllerLocal.handleAction(
-                account,
-                oldTotalSupply,
-                oldAccountBalance
-            );
+            incentivesControllerLocal.handleAction(account, oldTotalSupply, oldAccountBalance);
         }
     }
 
@@ -80,11 +71,7 @@ abstract contract MintableIncentivizedERC20 is IncentivizedERC20 {
         IAaveIncentivesController incentivesControllerLocal = _incentivesController;
 
         if (address(incentivesControllerLocal) != address(0)) {
-            incentivesControllerLocal.handleAction(
-                account,
-                oldTotalSupply,
-                oldAccountBalance
-            );
+            incentivesControllerLocal.handleAction(account, oldTotalSupply, oldAccountBalance);
         }
     }
 }

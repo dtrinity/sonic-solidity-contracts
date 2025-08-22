@@ -20,12 +20,7 @@ contract MockRewardsController is IRewardsController {
         emission[rewardToken] = amount;
     }
 
-    function claimRewards(
-        address[] calldata assets,
-        uint256 amount,
-        address to,
-        address reward
-    ) external override returns (uint256) {
+    function claimRewards(address[] calldata assets, uint256 amount, address to, address reward) external override returns (uint256) {
         assets;
         amount; // unused in mock
         uint256 e = emission[reward];
@@ -54,11 +49,7 @@ contract MockRewardsController is IRewardsController {
         return 0;
     }
 
-    function claimRewardsToSelf(
-        address[] calldata assets,
-        uint256 amount,
-        address reward
-    ) external override returns (uint256) {
+    function claimRewardsToSelf(address[] calldata assets, uint256 amount, address reward) external override returns (uint256) {
         assets;
         amount; // unused
         uint256 e = emission[reward];
@@ -72,11 +63,7 @@ contract MockRewardsController is IRewardsController {
     function claimAllRewards(
         address[] calldata assets,
         address to
-    )
-        external
-        override
-        returns (address[] memory rewardsList, uint256[] memory claimedAmounts)
-    {
+    ) external override returns (address[] memory rewardsList, uint256[] memory claimedAmounts) {
         assets;
         to; // not needed for this test mock
         rewardsList = new address[](0);
@@ -87,11 +74,7 @@ contract MockRewardsController is IRewardsController {
         address[] calldata assets,
         address user,
         address to
-    )
-        external
-        override
-        returns (address[] memory rewardsList, uint256[] memory claimedAmounts)
-    {
+    ) external override returns (address[] memory rewardsList, uint256[] memory claimedAmounts) {
         assets;
         user;
         to;
@@ -101,11 +84,7 @@ contract MockRewardsController is IRewardsController {
 
     function claimAllRewardsToSelf(
         address[] calldata assets
-    )
-        external
-        override
-        returns (address[] memory rewardsList, uint256[] memory claimedAmounts)
-    {
+    ) external override returns (address[] memory rewardsList, uint256[] memory claimedAmounts) {
         assets;
         rewardsList = new address[](0);
         claimedAmounts = new uint256[](0);

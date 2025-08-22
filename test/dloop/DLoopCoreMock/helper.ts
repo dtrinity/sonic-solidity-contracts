@@ -7,14 +7,8 @@ import { ONE_HUNDRED_PERCENT_BPS } from "../../../typescript/common/bps_constant
  * @param currentTotalDebtInBase - the current total debt in base currency
  * @returns the current leverage in basis points
  */
-export function getCurrentLeverageBps(
-  currentTotalCollateralInBase: bigint,
-  currentTotalDebtInBase: bigint,
-): bigint {
-  return (
-    (currentTotalCollateralInBase * BigInt(ONE_HUNDRED_PERCENT_BPS)) /
-    (currentTotalCollateralInBase - currentTotalDebtInBase)
-  );
+export function getCurrentLeverageBps(currentTotalCollateralInBase: bigint, currentTotalDebtInBase: bigint): bigint {
+  return (currentTotalCollateralInBase * BigInt(ONE_HUNDRED_PERCENT_BPS)) / (currentTotalCollateralInBase - currentTotalDebtInBase);
 }
 
 /**
@@ -33,12 +27,8 @@ export function getNewLeverageBps(
   debtTokenDeltaInBase: bigint,
 ): bigint {
   return (
-    ((currentTotalCollateralInBase + collateralTokenDeltaInBase) *
-      BigInt(ONE_HUNDRED_PERCENT_BPS)) /
-    (currentTotalCollateralInBase +
-      collateralTokenDeltaInBase -
-      currentTotalDebtInBase -
-      debtTokenDeltaInBase)
+    ((currentTotalCollateralInBase + collateralTokenDeltaInBase) * BigInt(ONE_HUNDRED_PERCENT_BPS)) /
+    (currentTotalCollateralInBase + collateralTokenDeltaInBase - currentTotalDebtInBase - debtTokenDeltaInBase)
   );
 }
 
@@ -49,10 +39,7 @@ export function getNewLeverageBps(
  * @param leverageBps - the leverage in basis points
  * @returns the corresponding total debt in base currency
  */
-export function getCorrespondingTotalDebtInBase(
-  totalCollateralInBase: bigint,
-  leverageBps: bigint,
-): bigint {
+export function getCorrespondingTotalDebtInBase(totalCollateralInBase: bigint, leverageBps: bigint): bigint {
   // C / (C-D) = T
   // => C = T * (C-D)
   // => C = T*C - T*D
@@ -62,9 +49,5 @@ export function getCorrespondingTotalDebtInBase(
   // We have T' = T * ONE_HUNDRED_PERCENT_BPS <=> T = T' / ONE_HUNDRED_PERCENT_BPS
   // => D = (T'*C / ONE_HUNDRED_PERCENT_BPS - C) / (T' / ONE_HUNDRED_PERCENT_BPS)
   // => D = (T'*C - C * ONE_HUNDRED_PERCENT_BPS) / T'
-  return (
-    (totalCollateralInBase * leverageBps -
-      totalCollateralInBase * BigInt(ONE_HUNDRED_PERCENT_BPS)) /
-    leverageBps
-  );
+  return (totalCollateralInBase * leverageBps - totalCollateralInBase * BigInt(ONE_HUNDRED_PERCENT_BPS)) / leverageBps;
 }

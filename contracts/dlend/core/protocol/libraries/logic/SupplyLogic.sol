@@ -17,17 +17,17 @@
 
 pragma solidity ^0.8.20;
 
-import {IERC20} from "../../../dependencies/openzeppelin/contracts/IERC20.sol";
-import {GPv2SafeERC20} from "../../../dependencies/gnosis/contracts/GPv2SafeERC20.sol";
-import {IAToken} from "../../../interfaces/IAToken.sol";
-import {Errors} from "../helpers/Errors.sol";
-import {UserConfiguration} from "../configuration/UserConfiguration.sol";
-import {DataTypes} from "../types/DataTypes.sol";
-import {WadRayMath} from "../math/WadRayMath.sol";
-import {PercentageMath} from "../math/PercentageMath.sol";
-import {ValidationLogic} from "./ValidationLogic.sol";
-import {ReserveLogic} from "./ReserveLogic.sol";
-import {ReserveConfiguration} from "../configuration/ReserveConfiguration.sol";
+import { IERC20 } from "../../../dependencies/openzeppelin/contracts/IERC20.sol";
+import { GPv2SafeERC20 } from "../../../dependencies/gnosis/contracts/GPv2SafeERC20.sol";
+import { IAToken } from "../../../interfaces/IAToken.sol";
+import { Errors } from "../helpers/Errors.sol";
+import { UserConfiguration } from "../configuration/UserConfiguration.sol";
+import { DataTypes } from "../types/DataTypes.sol";
+import { WadRayMath } from "../math/WadRayMath.sol";
+import { PercentageMath } from "../math/PercentageMath.sol";
+import { ValidationLogic } from "./ValidationLogic.sol";
+import { ReserveLogic } from "./ReserveLogic.sol";
+import { ReserveConfiguration } from "../configuration/ReserveConfiguration.sol";
 
 /**
  * @title SupplyLogic library
@@ -44,27 +44,10 @@ library SupplyLogic {
     using PercentageMath for uint256;
 
     // See `IPool` for descriptions
-    event ReserveUsedAsCollateralEnabled(
-        address indexed reserve,
-        address indexed user
-    );
-    event ReserveUsedAsCollateralDisabled(
-        address indexed reserve,
-        address indexed user
-    );
-    event Withdraw(
-        address indexed reserve,
-        address indexed user,
-        address indexed to,
-        uint256 amount
-    );
-    event Supply(
-        address indexed reserve,
-        address user,
-        address indexed onBehalfOf,
-        uint256 amount,
-        uint16 indexed referralCode
-    );
+    event ReserveUsedAsCollateralEnabled(address indexed reserve, address indexed user);
+    event ReserveUsedAsCollateralDisabled(address indexed reserve, address indexed user);
+    event Withdraw(address indexed reserve, address indexed user, address indexed to, uint256 amount);
+    event Supply(address indexed reserve, address user, address indexed onBehalfOf, uint256 amount, uint16 indexed referralCode);
 
     /**
      * @notice Implements the supply feature. Through `supply()`, users supply assets to the Aave protocol.
@@ -89,18 +72,9 @@ library SupplyLogic {
 
         ValidationLogic.validateSupply(reserveCache, reserve, params.amount);
 
-        reserve.updateInterestRates(
-            reserveCache,
-            params.asset,
-            params.amount,
-            0
-        );
+        reserve.updateInterestRates(reserveCache, params.asset, params.amount, 0);
 
-        IERC20(params.asset).safeTransferFrom(
-            msg.sender,
-            reserveCache.aTokenAddress,
-            params.amount
-        );
+        IERC20(params.asset).safeTransferFrom(msg.sender, reserveCache.aTokenAddress, params.amount);
 
         bool isFirstSupply = IAToken(reserveCache.aTokenAddress).mint(
             msg.sender,
@@ -120,20 +94,11 @@ library SupplyLogic {
                 )
             ) {
                 userConfig.setUsingAsCollateral(reserve.id, true);
-                emit ReserveUsedAsCollateralEnabled(
-                    params.asset,
-                    params.onBehalfOf
-                );
+                emit ReserveUsedAsCollateralEnabled(params.asset, params.onBehalfOf);
             }
         }
 
-        emit Supply(
-            params.asset,
-            msg.sender,
-            params.onBehalfOf,
-            params.amount,
-            params.referralCode
-        );
+        emit Supply(params.asset, msg.sender, params.onBehalfOf, params.amount, params.referralCode);
     }
 
     /**
@@ -160,9 +125,7 @@ library SupplyLogic {
 
         reserve.updateState(reserveCache);
 
-        uint256 userBalance = IAToken(reserveCache.aTokenAddress)
-            .scaledBalanceOf(msg.sender)
-            .rayMul(reserveCache.nextLiquidityIndex);
+        uint256 userBalance = IAToken(reserveCache.aTokenAddress).scaledBalanceOf(msg.sender).rayMul(reserveCache.nextLiquidityIndex);
 
         uint256 amountToWithdraw = params.amount;
 
@@ -170,18 +133,9 @@ library SupplyLogic {
             amountToWithdraw = userBalance;
         }
 
-        ValidationLogic.validateWithdraw(
-            reserveCache,
-            amountToWithdraw,
-            userBalance
-        );
+        ValidationLogic.validateWithdraw(reserveCache, amountToWithdraw, userBalance);
 
-        reserve.updateInterestRates(
-            reserveCache,
-            params.asset,
-            0,
-            amountToWithdraw
-        );
+        reserve.updateInterestRates(reserveCache, params.asset, 0, amountToWithdraw);
 
         bool isCollateral = userConfig.isUsingAsCollateral(reserve.id);
 
@@ -190,12 +144,7 @@ library SupplyLogic {
             emit ReserveUsedAsCollateralDisabled(params.asset, msg.sender);
         }
 
-        IAToken(reserveCache.aTokenAddress).burn(
-            msg.sender,
-            params.to,
-            amountToWithdraw,
-            reserveCache.nextLiquidityIndex
-        );
+        IAToken(reserveCache.aTokenAddress).burn(msg.sender, params.to, amountToWithdraw, reserveCache.nextLiquidityIndex);
 
         if (isCollateral && userConfig.isBorrowingAny()) {
             ValidationLogic.validateHFAndLtv(
@@ -242,9 +191,7 @@ library SupplyLogic {
         uint256 reserveId = reserve.id;
 
         if (params.from != params.to && params.amount != 0) {
-            DataTypes.UserConfigurationMap storage fromConfig = usersConfig[
-                params.from
-            ];
+            DataTypes.UserConfigurationMap storage fromConfig = usersConfig[params.from];
 
             if (fromConfig.isUsingAsCollateral(reserveId)) {
                 if (fromConfig.isBorrowingAny()) {
@@ -262,17 +209,12 @@ library SupplyLogic {
                 }
                 if (params.balanceFromBefore == params.amount) {
                     fromConfig.setUsingAsCollateral(reserveId, false);
-                    emit ReserveUsedAsCollateralDisabled(
-                        params.asset,
-                        params.from
-                    );
+                    emit ReserveUsedAsCollateralDisabled(params.asset, params.from);
                 }
             }
 
             if (params.balanceToBefore == 0) {
-                DataTypes.UserConfigurationMap storage toConfig = usersConfig[
-                    params.to
-                ];
+                DataTypes.UserConfigurationMap storage toConfig = usersConfig[params.to];
                 if (
                     ValidationLogic.validateAutomaticUseAsCollateral(
                         reservesData,
@@ -283,10 +225,7 @@ library SupplyLogic {
                     )
                 ) {
                     toConfig.setUsingAsCollateral(reserveId, true);
-                    emit ReserveUsedAsCollateralEnabled(
-                        params.asset,
-                        params.to
-                    );
+                    emit ReserveUsedAsCollateralEnabled(params.asset, params.to);
                 }
             }
         }
@@ -322,26 +261,15 @@ library SupplyLogic {
         DataTypes.ReserveData storage reserve = reservesData[asset];
         DataTypes.ReserveCache memory reserveCache = reserve.cache();
 
-        uint256 userBalance = IERC20(reserveCache.aTokenAddress).balanceOf(
-            msg.sender
-        );
+        uint256 userBalance = IERC20(reserveCache.aTokenAddress).balanceOf(msg.sender);
 
-        ValidationLogic.validateSetUseReserveAsCollateral(
-            reserveCache,
-            userBalance
-        );
+        ValidationLogic.validateSetUseReserveAsCollateral(reserveCache, userBalance);
 
-        if (useAsCollateral == userConfig.isUsingAsCollateral(reserve.id))
-            return;
+        if (useAsCollateral == userConfig.isUsingAsCollateral(reserve.id)) return;
 
         if (useAsCollateral) {
             require(
-                ValidationLogic.validateUseAsCollateral(
-                    reservesData,
-                    reservesList,
-                    userConfig,
-                    reserveCache.reserveConfiguration
-                ),
+                ValidationLogic.validateUseAsCollateral(reservesData, reservesList, userConfig, reserveCache.reserveConfiguration),
                 Errors.USER_IN_ISOLATION_MODE_OR_LTV_ZERO
             );
 

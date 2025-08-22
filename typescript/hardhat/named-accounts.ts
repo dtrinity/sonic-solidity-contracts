@@ -11,27 +11,17 @@ export function getEnvPrivateKeys(network: string): string[] {
 
   switch (network) {
     case "sonic_testnet":
-      pks = [
-        getPrivateKeyFromMnemonic(`testnet_deployer`),
-        getPrivateKeyFromEnv(`testnet_deployer`),
-      ];
+      pks = [getPrivateKeyFromMnemonic(`testnet_deployer`), getPrivateKeyFromEnv(`testnet_deployer`)];
       break;
     case "sonic_mainnet":
-      pks = [
-        getPrivateKeyFromMnemonic(`mainnet_deployer`),
-        getPrivateKeyFromEnv(`mainnet_deployer`),
-      ];
+      pks = [getPrivateKeyFromMnemonic(`mainnet_deployer`), getPrivateKeyFromEnv(`mainnet_deployer`)];
       break;
     default:
       throw new Error(`Unsupported network: ${network}`);
   }
 
   // Filter out Zero private keys
-  pks = pks.filter(
-    (pk) =>
-      pk !==
-      "0x0000000000000000000000000000000000000000000000000000000000000000",
-  );
+  pks = pks.filter((pk) => pk !== "0x0000000000000000000000000000000000000000000000000000000000000000");
 
   if (pks.length === 0) {
     console.log(`No private keys found for ${network} in the .env file`);

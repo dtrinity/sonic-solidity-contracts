@@ -17,7 +17,7 @@
 
 pragma solidity ^0.8.20;
 
-import {ConfiguratorInputTypes} from "../protocol/libraries/types/ConfiguratorInputTypes.sol";
+import { ConfiguratorInputTypes } from "../protocol/libraries/types/ConfiguratorInputTypes.sol";
 
 /**
  * @title IPoolConfigurator
@@ -62,12 +62,7 @@ interface IPoolConfigurator {
      * @param liquidationThreshold The threshold at which loans using this asset as collateral will be considered undercollateralized
      * @param liquidationBonus The bonus liquidators receive to liquidate this asset
      */
-    event CollateralConfigurationChanged(
-        address indexed asset,
-        uint256 ltv,
-        uint256 liquidationThreshold,
-        uint256 liquidationBonus
-    );
+    event CollateralConfigurationChanged(address indexed asset, uint256 ltv, uint256 liquidationThreshold, uint256 liquidationBonus);
 
     /**
      * @dev Emitted when stable rate borrowing is enabled or disabled on a reserve
@@ -109,11 +104,7 @@ interface IPoolConfigurator {
      * @param oldReserveFactor The old reserve factor, expressed in bps
      * @param newReserveFactor The new reserve factor, expressed in bps
      */
-    event ReserveFactorChanged(
-        address indexed asset,
-        uint256 oldReserveFactor,
-        uint256 newReserveFactor
-    );
+    event ReserveFactorChanged(address indexed asset, uint256 oldReserveFactor, uint256 newReserveFactor);
 
     /**
      * @dev Emitted when the borrow cap of a reserve is updated.
@@ -121,11 +112,7 @@ interface IPoolConfigurator {
      * @param oldBorrowCap The old borrow cap
      * @param newBorrowCap The new borrow cap
      */
-    event BorrowCapChanged(
-        address indexed asset,
-        uint256 oldBorrowCap,
-        uint256 newBorrowCap
-    );
+    event BorrowCapChanged(address indexed asset, uint256 oldBorrowCap, uint256 newBorrowCap);
 
     /**
      * @dev Emitted when the supply cap of a reserve is updated.
@@ -133,11 +120,7 @@ interface IPoolConfigurator {
      * @param oldSupplyCap The old supply cap
      * @param newSupplyCap The new supply cap
      */
-    event SupplyCapChanged(
-        address indexed asset,
-        uint256 oldSupplyCap,
-        uint256 newSupplyCap
-    );
+    event SupplyCapChanged(address indexed asset, uint256 oldSupplyCap, uint256 newSupplyCap);
 
     /**
      * @dev Emitted when the liquidation protocol fee of a reserve is updated.
@@ -145,11 +128,7 @@ interface IPoolConfigurator {
      * @param oldFee The old liquidation protocol fee, expressed in bps
      * @param newFee The new liquidation protocol fee, expressed in bps
      */
-    event LiquidationProtocolFeeChanged(
-        address indexed asset,
-        uint256 oldFee,
-        uint256 newFee
-    );
+    event LiquidationProtocolFeeChanged(address indexed asset, uint256 oldFee, uint256 newFee);
 
     /**
      * @dev Emitted when the unbacked mint cap of a reserve is updated.
@@ -157,11 +136,7 @@ interface IPoolConfigurator {
      * @param oldUnbackedMintCap The old unbacked mint cap
      * @param newUnbackedMintCap The new unbacked mint cap
      */
-    event UnbackedMintCapChanged(
-        address indexed asset,
-        uint256 oldUnbackedMintCap,
-        uint256 newUnbackedMintCap
-    );
+    event UnbackedMintCapChanged(address indexed asset, uint256 oldUnbackedMintCap, uint256 newUnbackedMintCap);
 
     /**
      * @dev Emitted when the category of an asset in eMode is changed.
@@ -169,11 +144,7 @@ interface IPoolConfigurator {
      * @param oldCategoryId The old eMode asset category
      * @param newCategoryId The new eMode asset category
      */
-    event EModeAssetCategoryChanged(
-        address indexed asset,
-        uint8 oldCategoryId,
-        uint8 newCategoryId
-    );
+    event EModeAssetCategoryChanged(address indexed asset, uint8 oldCategoryId, uint8 newCategoryId);
 
     /**
      * @dev Emitted when a new eMode category is added.
@@ -199,11 +170,7 @@ interface IPoolConfigurator {
      * @param oldStrategy The address of the old interest strategy contract
      * @param newStrategy The address of the new interest strategy contract
      */
-    event ReserveInterestRateStrategyChanged(
-        address indexed asset,
-        address oldStrategy,
-        address newStrategy
-    );
+    event ReserveInterestRateStrategyChanged(address indexed asset, address oldStrategy, address newStrategy);
 
     /**
      * @dev Emitted when an aToken implementation is upgraded.
@@ -211,11 +178,7 @@ interface IPoolConfigurator {
      * @param proxy The aToken proxy address
      * @param implementation The new aToken implementation
      */
-    event ATokenUpgraded(
-        address indexed asset,
-        address indexed proxy,
-        address indexed implementation
-    );
+    event ATokenUpgraded(address indexed asset, address indexed proxy, address indexed implementation);
 
     /**
      * @dev Emitted when the implementation of a stable debt token is upgraded.
@@ -223,11 +186,7 @@ interface IPoolConfigurator {
      * @param proxy The stable debt token proxy address
      * @param implementation The new aToken implementation
      */
-    event StableDebtTokenUpgraded(
-        address indexed asset,
-        address indexed proxy,
-        address indexed implementation
-    );
+    event StableDebtTokenUpgraded(address indexed asset, address indexed proxy, address indexed implementation);
 
     /**
      * @dev Emitted when the implementation of a variable debt token is upgraded.
@@ -235,11 +194,7 @@ interface IPoolConfigurator {
      * @param proxy The variable debt token proxy address
      * @param implementation The new aToken implementation
      */
-    event VariableDebtTokenUpgraded(
-        address indexed asset,
-        address indexed proxy,
-        address indexed implementation
-    );
+    event VariableDebtTokenUpgraded(address indexed asset, address indexed proxy, address indexed implementation);
 
     /**
      * @dev Emitted when the debt ceiling of an asset is set.
@@ -247,11 +202,7 @@ interface IPoolConfigurator {
      * @param oldDebtCeiling The old debt ceiling
      * @param newDebtCeiling The new debt ceiling
      */
-    event DebtCeilingChanged(
-        address indexed asset,
-        uint256 oldDebtCeiling,
-        uint256 newDebtCeiling
-    );
+    event DebtCeilingChanged(address indexed asset, uint256 oldDebtCeiling, uint256 newDebtCeiling);
 
     /**
      * @dev Emitted when the the siloed borrowing state for an asset is changed.
@@ -259,41 +210,28 @@ interface IPoolConfigurator {
      * @param oldState The old siloed borrowing state
      * @param newState The new siloed borrowing state
      */
-    event SiloedBorrowingChanged(
-        address indexed asset,
-        bool oldState,
-        bool newState
-    );
+    event SiloedBorrowingChanged(address indexed asset, bool oldState, bool newState);
 
     /**
      * @dev Emitted when the bridge protocol fee is updated.
      * @param oldBridgeProtocolFee The old protocol fee, expressed in bps
      * @param newBridgeProtocolFee The new protocol fee, expressed in bps
      */
-    event BridgeProtocolFeeUpdated(
-        uint256 oldBridgeProtocolFee,
-        uint256 newBridgeProtocolFee
-    );
+    event BridgeProtocolFeeUpdated(uint256 oldBridgeProtocolFee, uint256 newBridgeProtocolFee);
 
     /**
      * @dev Emitted when the total premium on flashloans is updated.
      * @param oldFlashloanPremiumTotal The old premium, expressed in bps
      * @param newFlashloanPremiumTotal The new premium, expressed in bps
      */
-    event FlashloanPremiumTotalUpdated(
-        uint128 oldFlashloanPremiumTotal,
-        uint128 newFlashloanPremiumTotal
-    );
+    event FlashloanPremiumTotalUpdated(uint128 oldFlashloanPremiumTotal, uint128 newFlashloanPremiumTotal);
 
     /**
      * @dev Emitted when the part of the premium that goes to protocol is updated.
      * @param oldFlashloanPremiumToProtocol The old premium, expressed in bps
      * @param newFlashloanPremiumToProtocol The new premium, expressed in bps
      */
-    event FlashloanPremiumToProtocolUpdated(
-        uint128 oldFlashloanPremiumToProtocol,
-        uint128 newFlashloanPremiumToProtocol
-    );
+    event FlashloanPremiumToProtocolUpdated(uint128 oldFlashloanPremiumToProtocol, uint128 newFlashloanPremiumToProtocol);
 
     /**
      * @dev Emitted when the reserve is set as borrowable/non borrowable in isolation mode.
@@ -306,33 +244,25 @@ interface IPoolConfigurator {
      * @notice Initializes multiple reserves.
      * @param input The array of initialization parameters
      */
-    function initReserves(
-        ConfiguratorInputTypes.InitReserveInput[] calldata input
-    ) external;
+    function initReserves(ConfiguratorInputTypes.InitReserveInput[] calldata input) external;
 
     /**
      * @dev Updates the aToken implementation for the reserve.
      * @param input The aToken update parameters
      */
-    function updateAToken(
-        ConfiguratorInputTypes.UpdateATokenInput calldata input
-    ) external;
+    function updateAToken(ConfiguratorInputTypes.UpdateATokenInput calldata input) external;
 
     /**
      * @notice Updates the stable debt token implementation for the reserve.
      * @param input The stableDebtToken update parameters
      */
-    function updateStableDebtToken(
-        ConfiguratorInputTypes.UpdateDebtTokenInput calldata input
-    ) external;
+    function updateStableDebtToken(ConfiguratorInputTypes.UpdateDebtTokenInput calldata input) external;
 
     /**
      * @notice Updates the variable debt token implementation for the asset.
      * @param input The variableDebtToken update parameters
      */
-    function updateVariableDebtToken(
-        ConfiguratorInputTypes.UpdateDebtTokenInput calldata input
-    ) external;
+    function updateVariableDebtToken(ConfiguratorInputTypes.UpdateDebtTokenInput calldata input) external;
 
     /**
      * @notice Configures borrowing on a reserve.
@@ -351,12 +281,7 @@ interface IPoolConfigurator {
      * @param liquidationThreshold The threshold at which loans using this asset as collateral will be considered undercollateralized
      * @param liquidationBonus The bonus liquidators receive to liquidate this asset
      */
-    function configureReserveAsCollateral(
-        address asset,
-        uint256 ltv,
-        uint256 liquidationThreshold,
-        uint256 liquidationBonus
-    ) external;
+    function configureReserveAsCollateral(address asset, uint256 ltv, uint256 liquidationThreshold, uint256 liquidationBonus) external;
 
     /**
      * @notice Enable or disable stable rate borrowing on a reserve.
@@ -364,10 +289,7 @@ interface IPoolConfigurator {
      * @param asset The address of the underlying asset of the reserve
      * @param enabled True if stable rate borrowing needs to be enabled, false otherwise
      */
-    function setReserveStableRateBorrowing(
-        address asset,
-        bool enabled
-    ) external;
+    function setReserveStableRateBorrowing(address asset, bool enabled) external;
 
     /**
      * @notice Enable or disable flashloans on a reserve
@@ -422,10 +344,7 @@ interface IPoolConfigurator {
      * @param asset The address of the underlying asset of the reserve
      * @param newRateStrategyAddress The address of the new interest strategy contract
      */
-    function setReserveInterestRateStrategyAddress(
-        address asset,
-        address newRateStrategyAddress
-    ) external;
+    function setReserveInterestRateStrategyAddress(address asset, address newRateStrategyAddress) external;
 
     /**
      * @notice Pauses or unpauses all the protocol reserves. In the paused state all the protocol interactions
@@ -460,10 +379,7 @@ interface IPoolConfigurator {
      * @param asset The address of the underlying asset of the reserve
      * @param newUnbackedMintCap The new unbacked mint cap of the reserve
      */
-    function setUnbackedMintCap(
-        address asset,
-        uint256 newUnbackedMintCap
-    ) external;
+    function setUnbackedMintCap(address asset, uint256 newUnbackedMintCap) external;
 
     /**
      * @notice Assign an efficiency mode (eMode) category to asset.
@@ -515,9 +431,7 @@ interface IPoolConfigurator {
      * @dev The premium is calculated on the total amount borrowed
      * @param newFlashloanPremiumTotal The total flashloan premium
      */
-    function updateFlashloanPremiumTotal(
-        uint128 newFlashloanPremiumTotal
-    ) external;
+    function updateFlashloanPremiumTotal(uint128 newFlashloanPremiumTotal) external;
 
     /**
      * @notice Updates the flash loan premium collected by protocol reserves
@@ -525,9 +439,7 @@ interface IPoolConfigurator {
      * @dev The premium to protocol is calculated on the total flashloan premium
      * @param newFlashloanPremiumToProtocol The part of the flashloan premium sent to the protocol treasury
      */
-    function updateFlashloanPremiumToProtocol(
-        uint128 newFlashloanPremiumToProtocol
-    ) external;
+    function updateFlashloanPremiumToProtocol(uint128 newFlashloanPremiumToProtocol) external;
 
     /**
      * @notice Sets the debt ceiling for an asset.

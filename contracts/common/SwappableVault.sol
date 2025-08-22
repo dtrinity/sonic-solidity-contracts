@@ -17,8 +17,8 @@
 
 pragma solidity ^0.8.20;
 
-import {ERC20} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
-import {Compare} from "contracts/common/Compare.sol";
+import { ERC20 } from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
+import { Compare } from "contracts/common/Compare.sol";
 
 /**
  * @title SwappableVault
@@ -27,22 +27,10 @@ import {Compare} from "contracts/common/Compare.sol";
  *      - The wrapper function _swapExactOutput has some sanity checks
  */
 abstract contract SwappableVault {
-    error SpentInputTokenAmountGreaterThanAmountInMaximum(
-        uint256 spentInputTokenAmount,
-        uint256 amountInMaximum
-    );
-    error ReceivedOutputTokenAmountNotEqualAmountOut(
-        uint256 receivedOutputTokenAmount,
-        uint256 amountOut
-    );
-    error OutputTokenBalanceNotIncreasedAfterSwap(
-        uint256 outputTokenBalanceBefore,
-        uint256 outputTokenBalanceAfter
-    );
-    error SpentInputTokenAmountNotEqualReturnedAmountIn(
-        uint256 spentInputTokenAmount,
-        uint256 returnedAmountIn
-    );
+    error SpentInputTokenAmountGreaterThanAmountInMaximum(uint256 spentInputTokenAmount, uint256 amountInMaximum);
+    error ReceivedOutputTokenAmountNotEqualAmountOut(uint256 receivedOutputTokenAmount, uint256 amountOut);
+    error OutputTokenBalanceNotIncreasedAfterSwap(uint256 outputTokenBalanceBefore, uint256 outputTokenBalanceAfter);
+    error SpentInputTokenAmountNotEqualReturnedAmountIn(uint256 spentInputTokenAmount, uint256 returnedAmountIn);
 
     uint256 public constant BALANCE_DIFF_TOLERANCE = 1;
 
@@ -110,28 +98,21 @@ abstract contract SwappableVault {
 
         // Input token: if decreased, ensure not over max and within tolerance of amountIn
         {
-            Compare.BalanceCheckResult memory inCheck = Compare
-                .checkBalanceDelta(
-                    inputTokenBalanceBefore,
-                    inputTokenBalanceAfter,
-                    amountIn,
-                    BALANCE_DIFF_TOLERANCE,
-                    Compare.BalanceDirection.Decrease
-                );
+            Compare.BalanceCheckResult memory inCheck = Compare.checkBalanceDelta(
+                inputTokenBalanceBefore,
+                inputTokenBalanceAfter,
+                amountIn,
+                BALANCE_DIFF_TOLERANCE,
+                Compare.BalanceDirection.Decrease
+            );
             if (inCheck.directionOk) {
                 // First check: ensure we don't spend more than the maximum allowed
                 if (inCheck.observedDelta > amountInMaximum) {
-                    revert SpentInputTokenAmountGreaterThanAmountInMaximum(
-                        inCheck.observedDelta,
-                        amountInMaximum
-                    );
+                    revert SpentInputTokenAmountGreaterThanAmountInMaximum(inCheck.observedDelta, amountInMaximum);
                 }
                 // Second check: ensure spent amount matches returned amount within tolerance
                 if (!inCheck.toleranceOk) {
-                    revert SpentInputTokenAmountNotEqualReturnedAmountIn(
-                        inCheck.observedDelta,
-                        amountIn
-                    );
+                    revert SpentInputTokenAmountNotEqualReturnedAmountIn(inCheck.observedDelta, amountIn);
                 }
             }
             // If not decreased, no checks needed (not a risk for the caller)
@@ -139,25 +120,18 @@ abstract contract SwappableVault {
 
         // Output token: must increase and be within tolerance of amountOut
         {
-            Compare.BalanceCheckResult memory outCheck = Compare
-                .checkBalanceDelta(
-                    outputTokenBalanceBefore,
-                    outputTokenBalanceAfter,
-                    amountOut,
-                    BALANCE_DIFF_TOLERANCE,
-                    Compare.BalanceDirection.Increase
-                );
+            Compare.BalanceCheckResult memory outCheck = Compare.checkBalanceDelta(
+                outputTokenBalanceBefore,
+                outputTokenBalanceAfter,
+                amountOut,
+                BALANCE_DIFF_TOLERANCE,
+                Compare.BalanceDirection.Increase
+            );
             if (!outCheck.directionOk) {
-                revert OutputTokenBalanceNotIncreasedAfterSwap(
-                    outputTokenBalanceBefore,
-                    outputTokenBalanceAfter
-                );
+                revert OutputTokenBalanceNotIncreasedAfterSwap(outputTokenBalanceBefore, outputTokenBalanceAfter);
             }
             if (!outCheck.toleranceOk) {
-                revert ReceivedOutputTokenAmountNotEqualAmountOut(
-                    outCheck.observedDelta,
-                    amountOut
-                );
+                revert ReceivedOutputTokenAmountNotEqualAmountOut(outCheck.observedDelta, amountOut);
             }
         }
 

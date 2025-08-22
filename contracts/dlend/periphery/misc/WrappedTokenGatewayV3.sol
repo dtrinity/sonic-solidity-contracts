@@ -17,17 +17,17 @@
 
 pragma solidity ^0.8.20;
 
-import {Ownable} from "contracts/dlend/core/dependencies/openzeppelin/contracts/Ownable.sol";
-import {IERC20} from "contracts/dlend/core/dependencies/openzeppelin/contracts/IERC20.sol";
-import {GPv2SafeERC20} from "contracts/dlend/core/dependencies/gnosis/contracts/GPv2SafeERC20.sol";
-import {IWETH} from "contracts/dlend/core/misc/interfaces/IWETH.sol";
-import {IPool} from "contracts/dlend/core/interfaces/IPool.sol";
-import {IAToken} from "contracts/dlend/core/interfaces/IAToken.sol";
-import {ReserveConfiguration} from "contracts/dlend/core/protocol/libraries/configuration/ReserveConfiguration.sol";
-import {UserConfiguration} from "contracts/dlend/core/protocol/libraries/configuration/UserConfiguration.sol";
-import {DataTypes} from "contracts/dlend/core/protocol/libraries/types/DataTypes.sol";
-import {IWrappedTokenGatewayV3} from "./interfaces/IWrappedTokenGatewayV3.sol";
-import {DataTypesHelper} from "../libraries/DataTypesHelper.sol";
+import { Ownable } from "contracts/dlend/core/dependencies/openzeppelin/contracts/Ownable.sol";
+import { IERC20 } from "contracts/dlend/core/dependencies/openzeppelin/contracts/IERC20.sol";
+import { GPv2SafeERC20 } from "contracts/dlend/core/dependencies/gnosis/contracts/GPv2SafeERC20.sol";
+import { IWETH } from "contracts/dlend/core/misc/interfaces/IWETH.sol";
+import { IPool } from "contracts/dlend/core/interfaces/IPool.sol";
+import { IAToken } from "contracts/dlend/core/interfaces/IAToken.sol";
+import { ReserveConfiguration } from "contracts/dlend/core/protocol/libraries/configuration/ReserveConfiguration.sol";
+import { UserConfiguration } from "contracts/dlend/core/protocol/libraries/configuration/UserConfiguration.sol";
+import { DataTypes } from "contracts/dlend/core/protocol/libraries/types/DataTypes.sol";
+import { IWrappedTokenGatewayV3 } from "./interfaces/IWrappedTokenGatewayV3.sol";
+import { DataTypesHelper } from "../libraries/DataTypesHelper.sol";
 
 /**
  * @dev This contract is an upgrade of the WrappedTokenGatewayV3 contract, with immutable pool address.
@@ -59,12 +59,8 @@ contract WrappedTokenGatewayV3 is IWrappedTokenGatewayV3, Ownable {
      * @param onBehalfOf address of the user who will receive the aTokens representing the deposit
      * @param referralCode integrators are assigned a referral code and can potentially receive rewards.
      **/
-    function depositETH(
-        address,
-        address onBehalfOf,
-        uint16 referralCode
-    ) external payable override {
-        WETH.deposit{value: msg.value}();
+    function depositETH(address, address onBehalfOf, uint16 referralCode) external payable override {
+        WETH.deposit{ value: msg.value }();
         POOL.deposit(address(WETH), msg.value, onBehalfOf, referralCode);
     }
 
@@ -73,14 +69,8 @@ contract WrappedTokenGatewayV3 is IWrappedTokenGatewayV3, Ownable {
      * @param amount amount of aWETH to withdraw and receive native ETH
      * @param to address of the user who will receive native ETH
      */
-    function withdrawETH(
-        address,
-        uint256 amount,
-        address to
-    ) external override {
-        IAToken aWETH = IAToken(
-            POOL.getReserveData(address(WETH)).aTokenAddress
-        );
+    function withdrawETH(address, uint256 amount, address to) external override {
+        IAToken aWETH = IAToken(POOL.getReserveData(address(WETH)).aTokenAddress);
         uint256 userBalance = aWETH.balanceOf(msg.sender);
         uint256 amountToWithdraw = amount;
 
@@ -100,33 +90,20 @@ contract WrappedTokenGatewayV3 is IWrappedTokenGatewayV3, Ownable {
      * @param rateMode the rate mode to repay
      * @param onBehalfOf the address for which msg.sender is repaying
      */
-    function repayETH(
-        address,
-        uint256 amount,
-        uint256 rateMode,
-        address onBehalfOf
-    ) external payable override {
-        (uint256 stableDebt, uint256 variableDebt) = DataTypesHelper
-            .getUserCurrentDebt(onBehalfOf, POOL.getReserveData(address(WETH)));
+    function repayETH(address, uint256 amount, uint256 rateMode, address onBehalfOf) external payable override {
+        (uint256 stableDebt, uint256 variableDebt) = DataTypesHelper.getUserCurrentDebt(onBehalfOf, POOL.getReserveData(address(WETH)));
 
-        uint256 paybackAmount = DataTypes.InterestRateMode(rateMode) ==
-            DataTypes.InterestRateMode.STABLE
-            ? stableDebt
-            : variableDebt;
+        uint256 paybackAmount = DataTypes.InterestRateMode(rateMode) == DataTypes.InterestRateMode.STABLE ? stableDebt : variableDebt;
 
         if (amount < paybackAmount) {
             paybackAmount = amount;
         }
-        require(
-            msg.value >= paybackAmount,
-            "msg.value is less than repayment amount"
-        );
-        WETH.deposit{value: paybackAmount}();
+        require(msg.value >= paybackAmount, "msg.value is less than repayment amount");
+        WETH.deposit{ value: paybackAmount }();
         POOL.repay(address(WETH), msg.value, rateMode, onBehalfOf);
 
         // refund remaining dust eth
-        if (msg.value > paybackAmount)
-            _safeTransferETH(msg.sender, msg.value - paybackAmount);
+        if (msg.value > paybackAmount) _safeTransferETH(msg.sender, msg.value - paybackAmount);
     }
 
     /**
@@ -135,19 +112,8 @@ contract WrappedTokenGatewayV3 is IWrappedTokenGatewayV3, Ownable {
      * @param interestRateMode the interest rate mode
      * @param referralCode integrators are assigned a referral code and can potentially receive rewards
      */
-    function borrowETH(
-        address,
-        uint256 amount,
-        uint256 interestRateMode,
-        uint16 referralCode
-    ) external override {
-        POOL.borrow(
-            address(WETH),
-            amount,
-            interestRateMode,
-            referralCode,
-            msg.sender
-        );
+    function borrowETH(address, uint256 amount, uint256 interestRateMode, uint16 referralCode) external override {
+        POOL.borrow(address(WETH), amount, interestRateMode, referralCode, msg.sender);
         WETH.withdraw(amount);
         _safeTransferETH(msg.sender, amount);
     }
@@ -170,9 +136,7 @@ contract WrappedTokenGatewayV3 is IWrappedTokenGatewayV3, Ownable {
         bytes32 permitR,
         bytes32 permitS
     ) external override {
-        IAToken aWETH = IAToken(
-            POOL.getReserveData(address(WETH)).aTokenAddress
-        );
+        IAToken aWETH = IAToken(POOL.getReserveData(address(WETH)).aTokenAddress);
         uint256 userBalance = aWETH.balanceOf(msg.sender);
         uint256 amountToWithdraw = amount;
 
@@ -181,15 +145,7 @@ contract WrappedTokenGatewayV3 is IWrappedTokenGatewayV3, Ownable {
             amountToWithdraw = userBalance;
         }
         // permit `amount` rather than `amountToWithdraw` to make it easier for front-ends and integrators
-        aWETH.permit(
-            msg.sender,
-            address(this),
-            amount,
-            deadline,
-            permitV,
-            permitR,
-            permitS
-        );
+        aWETH.permit(msg.sender, address(this), amount, deadline, permitV, permitR, permitS);
         aWETH.transferFrom(msg.sender, address(this), amountToWithdraw);
         POOL.withdraw(address(WETH), amountToWithdraw, address(this));
         WETH.withdraw(amountToWithdraw);
@@ -202,7 +158,7 @@ contract WrappedTokenGatewayV3 is IWrappedTokenGatewayV3, Ownable {
      * @param value the amount to send
      */
     function _safeTransferETH(address to, uint256 value) internal {
-        (bool success, ) = to.call{value: value}(new bytes(0));
+        (bool success, ) = to.call{ value: value }(new bytes(0));
         require(success, "ETH_TRANSFER_FAILED");
     }
 
@@ -213,11 +169,7 @@ contract WrappedTokenGatewayV3 is IWrappedTokenGatewayV3, Ownable {
      * @param to recipient of the transfer
      * @param amount amount to send
      */
-    function emergencyTokenTransfer(
-        address token,
-        address to,
-        uint256 amount
-    ) external onlyOwner {
+    function emergencyTokenTransfer(address token, address to, uint256 amount) external onlyOwner {
         IERC20(token).safeTransfer(to, amount);
     }
 
@@ -227,10 +179,7 @@ contract WrappedTokenGatewayV3 is IWrappedTokenGatewayV3, Ownable {
      * @param to recipient of the transfer
      * @param amount amount to send
      */
-    function emergencyEtherTransfer(
-        address to,
-        uint256 amount
-    ) external onlyOwner {
+    function emergencyEtherTransfer(address to, uint256 amount) external onlyOwner {
         _safeTransferETH(to, amount);
     }
 

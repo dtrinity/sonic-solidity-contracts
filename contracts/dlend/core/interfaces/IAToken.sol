@@ -17,9 +17,9 @@
 
 pragma solidity ^0.8.20;
 
-import {IERC20} from "../dependencies/openzeppelin/contracts/IERC20.sol";
-import {IScaledBalanceToken} from "./IScaledBalanceToken.sol";
-import {IInitializableAToken} from "./IInitializableAToken.sol";
+import { IERC20 } from "../dependencies/openzeppelin/contracts/IERC20.sol";
+import { IScaledBalanceToken } from "./IScaledBalanceToken.sol";
+import { IInitializableAToken } from "./IInitializableAToken.sol";
 
 /**
  * @title IAToken
@@ -34,12 +34,7 @@ interface IAToken is IERC20, IScaledBalanceToken, IInitializableAToken {
      * @param value The scaled amount being transferred
      * @param index The next liquidity index of the reserve
      */
-    event BalanceTransfer(
-        address indexed from,
-        address indexed to,
-        uint256 value,
-        uint256 index
-    );
+    event BalanceTransfer(address indexed from, address indexed to, uint256 value, uint256 index);
 
     /**
      * @notice Mints `amount` aTokens to `user`
@@ -49,12 +44,7 @@ interface IAToken is IERC20, IScaledBalanceToken, IInitializableAToken {
      * @param index The next liquidity index of the reserve
      * @return `true` if the the previous balance of the user was 0
      */
-    function mint(
-        address caller,
-        address onBehalfOf,
-        uint256 amount,
-        uint256 index
-    ) external returns (bool);
+    function mint(address caller, address onBehalfOf, uint256 amount, uint256 index) external returns (bool);
 
     /**
      * @notice Burns aTokens from `user` and sends the equivalent amount of underlying to `receiverOfUnderlying`
@@ -65,12 +55,7 @@ interface IAToken is IERC20, IScaledBalanceToken, IInitializableAToken {
      * @param amount The amount being burned
      * @param index The next liquidity index of the reserve
      */
-    function burn(
-        address from,
-        address receiverOfUnderlying,
-        uint256 amount,
-        uint256 index
-    ) external;
+    function burn(address from, address receiverOfUnderlying, uint256 amount, uint256 index) external;
 
     /**
      * @notice Mints aTokens to the reserve treasury
@@ -85,11 +70,7 @@ interface IAToken is IERC20, IScaledBalanceToken, IInitializableAToken {
      * @param to The recipient
      * @param value The amount of tokens getting transferred
      */
-    function transferOnLiquidation(
-        address from,
-        address to,
-        uint256 value
-    ) external;
+    function transferOnLiquidation(address from, address to, uint256 value) external;
 
     /**
      * @notice Transfers the underlying asset to `target`.
@@ -108,11 +89,7 @@ interface IAToken is IERC20, IScaledBalanceToken, IInitializableAToken {
      * @param onBehalfOf The address of the user who will get his debt reduced/removed
      * @param amount The amount getting repaid
      */
-    function handleRepayment(
-        address user,
-        address onBehalfOf,
-        uint256 amount
-    ) external;
+    function handleRepayment(address user, address onBehalfOf, uint256 amount) external;
 
     /**
      * @notice Allow passing a signed message to approve spending
@@ -126,15 +103,7 @@ interface IAToken is IERC20, IScaledBalanceToken, IInitializableAToken {
      * @param s Signature param
      * @param r Signature param
      */
-    function permit(
-        address owner,
-        address spender,
-        uint256 value,
-        uint256 deadline,
-        uint8 v,
-        bytes32 r,
-        bytes32 s
-    ) external;
+    function permit(address owner, address spender, uint256 value, uint256 deadline, uint8 v, bytes32 r, bytes32 s) external;
 
     /**
      * @notice Returns the address of the underlying asset of this aToken (E.g. WETH for aWETH)

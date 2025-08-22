@@ -67,11 +67,7 @@ interface IRewardsDistributor {
      * @param reward The reward token that incentives the asset
      * @param newDistributionEnd The end date of the incentivization, in unix time format
      **/
-    function setDistributionEnd(
-        address asset,
-        address reward,
-        uint32 newDistributionEnd
-    ) external;
+    function setDistributionEnd(address asset, address reward, uint32 newDistributionEnd) external;
 
     /**
      * @dev Sets the emission per second of a set of reward distributions
@@ -79,11 +75,7 @@ interface IRewardsDistributor {
      * @param rewards List of reward addresses are being distributed
      * @param newEmissionsPerSecond List of new reward emissions per second
      */
-    function setEmissionPerSecond(
-        address asset,
-        address[] calldata rewards,
-        uint88[] calldata newEmissionsPerSecond
-    ) external;
+    function setEmissionPerSecond(address asset, address[] calldata rewards, uint88[] calldata newEmissionsPerSecond) external;
 
     /**
      * @dev Gets the end date for the distribution
@@ -91,10 +83,7 @@ interface IRewardsDistributor {
      * @param reward The reward token of the incentivized asset
      * @return The timestamp with the end of the distribution, in unix time format
      **/
-    function getDistributionEnd(
-        address asset,
-        address reward
-    ) external view returns (uint256);
+    function getDistributionEnd(address asset, address reward) external view returns (uint256);
 
     /**
      * @dev Returns the index of a user on a reward distribution
@@ -103,11 +92,7 @@ interface IRewardsDistributor {
      * @param reward The reward token of the incentivized asset
      * @return The current user asset index, not including new distributions
      **/
-    function getUserAssetIndex(
-        address user,
-        address asset,
-        address reward
-    ) external view returns (uint256);
+    function getUserAssetIndex(address user, address asset, address reward) external view returns (uint256);
 
     /**
      * @dev Returns the configuration of the distribution reward for a certain asset
@@ -118,10 +103,7 @@ interface IRewardsDistributor {
      * @return The timestamp of the last update of the index
      * @return The timestamp of the distribution end
      **/
-    function getRewardsData(
-        address asset,
-        address reward
-    ) external view returns (uint256, uint256, uint256, uint256);
+    function getRewardsData(address asset, address reward) external view returns (uint256, uint256, uint256, uint256);
 
     /**
      * @dev Calculates the next value of an specific distribution index, with validations.
@@ -130,19 +112,14 @@ interface IRewardsDistributor {
      * @return The old index of the asset distribution
      * @return The new index of the asset distribution
      **/
-    function getAssetIndex(
-        address asset,
-        address reward
-    ) external view returns (uint256, uint256);
+    function getAssetIndex(address asset, address reward) external view returns (uint256, uint256);
 
     /**
      * @dev Returns the list of available reward token addresses of an incentivized asset
      * @param asset The incentivized asset
      * @return List of rewards addresses of the input asset
      **/
-    function getRewardsByAsset(
-        address asset
-    ) external view returns (address[] memory);
+    function getRewardsByAsset(address asset) external view returns (address[] memory);
 
     /**
      * @dev Returns the list of available reward addresses
@@ -156,10 +133,7 @@ interface IRewardsDistributor {
      * @param reward The address of the reward token
      * @return Unclaimed rewards, not including new distributions
      **/
-    function getUserAccruedRewards(
-        address user,
-        address reward
-    ) external view returns (uint256);
+    function getUserAccruedRewards(address user, address reward) external view returns (uint256);
 
     /**
      * @dev Returns a single rewards balance of a user, including virtually accrued and unrealized claimable rewards.
@@ -168,11 +142,7 @@ interface IRewardsDistributor {
      * @param reward The address of the reward token
      * @return The rewards amount
      **/
-    function getUserRewards(
-        address[] calldata assets,
-        address user,
-        address reward
-    ) external view returns (uint256);
+    function getUserRewards(address[] calldata assets, address user, address reward) external view returns (uint256);
 
     /**
      * @dev Returns a list all rewards of a user, including already accrued and unrealized claimable rewards
@@ -181,10 +151,7 @@ interface IRewardsDistributor {
      * @return The list of reward addresses
      * @return The list of unclaimed amount of rewards
      **/
-    function getAllUserRewards(
-        address[] calldata assets,
-        address user
-    ) external view returns (address[] memory, uint256[] memory);
+    function getAllUserRewards(address[] calldata assets, address user) external view returns (address[] memory, uint256[] memory);
 
     /**
      * @dev Returns the decimals of an asset to calculate the distribution delta
