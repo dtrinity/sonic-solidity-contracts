@@ -34,6 +34,10 @@ export const S_REDSTONE_WRAPPER_WITH_THRESHOLDING_ID =
   "S_RedstoneWrapperWithThresholding";
 export const S_REDSTONE_COMPOSITE_WRAPPER_WITH_THRESHOLDING_ID =
   "S_RedstoneCompositeWrapperWithThresholding";
+export const USD_CHAINLINK_SAFE_RATE_PROVIDER_COMPOSITE_WRAPPER_ID =
+  "USD_ChainlinkSafeRateProviderCompositeWrapperWithThresholding";
+export const USD_ERC4626_SAFE_RATE_PROVIDER_WRAPPER_ID =
+  "USD_ERC4626SafeRateProviderWrapperWithThresholding";
 
 // dUSD
 export const DUSD_TOKEN_ID = "dUSD";

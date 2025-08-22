@@ -169,6 +169,30 @@ export interface OracleAggregatorConfig {
   readonly chainlinkCompositeAggregator?: {
     [assetAddress: string]: ChainlinkCompositeAggregatorConfig;
   };
+  readonly safeRateProviderAssets?: {
+    chainlinkSafeRateProviderCompositeWrappers?: {
+      [assetAddress: string]: {
+        feedAsset: string;
+        chainlinkFeed: string;
+        rateProvider: string;
+        lowerThresholdInBase1: bigint;
+        fixedPriceInBase1: bigint;
+        lowerThresholdInBase2: bigint;
+        fixedPriceInBase2: bigint;
+      };
+    };
+    erc4626SafeRateProviderWrappers?: {
+      [assetAddress: string]: {
+        feedAsset: string;
+        erc4626Vault: string;
+        rateProvider: string;
+        lowerThresholdInBase1: bigint;
+        fixedPriceInBase1: bigint;
+        lowerThresholdInBase2: bigint;
+        fixedPriceInBase2: bigint;
+      };
+    };
+  };
 }
 
 export interface IInterestRateStrategyParams {

@@ -7,6 +7,7 @@ import {
   SafeTransactionBatch,
   SafeTransactionData,
 } from "../safe/types";
+import { isMainnet } from "./deploy";
 
 /**
  * GovernanceExecutor decides whether to execute operations directly
@@ -29,16 +30,15 @@ export class GovernanceExecutor {
   constructor(
     hre: HardhatRuntimeEnvironment,
     signer: Signer,
-    safeConfig?: SafeConfig,
+    safeConfig?: SafeConfig
   ) {
     this.hre = hre;
     this.signer = signer;
 
     const envForce = process.env.USE_SAFE?.toLowerCase() === "true";
-    const chainIdStr = String(hre.network.config.chainId ?? "");
-    const isSonicMainnet = chainIdStr === "146";
+    const networkIsMainnet = isMainnet(hre.network.name);
 
-    this.useSafe = Boolean(safeConfig) && (isSonicMainnet || envForce);
+    this.useSafe = Boolean(safeConfig) && (networkIsMainnet || envForce);
 
     if (this.useSafe && safeConfig) {
       this.safeManager = new SafeManager(hre, signer, { safeConfig });
@@ -67,7 +67,7 @@ export class GovernanceExecutor {
    */
   async tryOrQueue<T>(
     directCall: () => Promise<T>,
-    safeTxBuilder?: () => SafeTransactionData,
+    safeTxBuilder?: () => SafeTransactionData
   ): Promise<boolean> {
     try {
       await directCall();
@@ -83,7 +83,7 @@ export class GovernanceExecutor {
 
       console.warn(
         "Direct execution failed; marking requirement as pending:",
-        error,
+        error
       );
       return false;
     }

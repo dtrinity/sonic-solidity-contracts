@@ -348,6 +348,19 @@ export async function getConfig(
             fixedPriceInBase2: 0n,
           },
         },
+        safeRateProviderAssets: {
+          chainlinkSafeRateProviderCompositeWrappers: {
+            [wstkscUSDAddress]: {
+              feedAsset: wstkscUSDAddress,
+              chainlinkFeed: "0x39EEB8955948B980d9ad09F92F95cdD980751ce1", // wstkscUSD/stkscUSD Chainlink feed
+              rateProvider: "0x13cCc810DfaA6B71957F2b87060aFE17e6EB8034", // stkscUSD/scUSD Trevee AccountantWithFixedRate
+              lowerThresholdInBase1: 0n, // No thresholding on wstkscUSD/stkscUSD since rate goes up over time
+              fixedPriceInBase1: 0n,
+              lowerThresholdInBase2: ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT, // Threshold on stkscUSD/scUSD since rebasing token should never go above 1:1
+              fixedPriceInBase2: ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT,
+            },
+          },
+        },
       },
       S: {
         hardDStablePeg: 10n ** BigInt(ORACLE_AGGREGATOR_PRICE_DECIMALS),
