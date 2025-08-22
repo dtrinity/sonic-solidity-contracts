@@ -356,7 +356,7 @@ export async function getConfig(
               rateProvider: "0x13cCc810DfaA6B71957F2b87060aFE17e6EB8034", // AccountantWithFixedRate (stkscUSD -> scUSD)
               lowerThresholdInBase1: 0n, // No thresholding on Chainlink leg
               fixedPriceInBase1: 0n,
-              lowerThresholdInBase2: 0n, // No thresholding on rate provider leg  
+              lowerThresholdInBase2: 0n, // No thresholding on rate provider leg
               fixedPriceInBase2: 0n,
             },
           },
@@ -389,7 +389,6 @@ export async function getConfig(
           redstoneOracleWrappersWithThresholding: {},
           compositeRedstoneOracleWrappersWithThresholding: {},
         },
-
       },
     },
     dLend: {

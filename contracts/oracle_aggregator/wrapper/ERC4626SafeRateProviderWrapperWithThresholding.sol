@@ -30,7 +30,7 @@ import "@openzeppelin/contracts/utils/math/Math.sol";
  * @title ERC4626RateProviderWrapperWithThresholding
  * @notice Composes an ERC4626 vault share->assets conversion with a generic rate provider, with optional thresholding per leg.
  *         Resulting price is scaled to BASE_CURRENCY_UNIT.
- *  
+ *
  * First leg (share -> assets): uses convertToAssets, scaled into BASE_CURRENCY_UNIT using underlying token decimals (assumes underlying unit corresponds to base unit).
  * Second leg: arbitrary unit rate from a rate provider, scaled by provided rateProviderUnit into BASE_CURRENCY_UNIT.
  *
@@ -39,18 +39,23 @@ import "@openzeppelin/contracts/utils/math/Math.sol";
  *  - rateProvider: AccountantWithFixedRate (stkscUSD -> scUSD) returning a rate with `rateProviderUnit` decimals
  *  - price(asset) = ERC4626(wstkscUSD/stkscUSD in base) * RP(stkscUSD/scUSD in base) / BASE_CURRENCY_UNIT
  */
-contract ERC4626SafeRateProviderWrapperWithThresholding is IOracleWrapper, AccessControl, ThresholdingUtils {
+contract ERC4626SafeRateProviderWrapperWithThresholding is
+    IOracleWrapper,
+    AccessControl,
+    ThresholdingUtils
+{
     // Base currency settings
     address private immutable _baseCurrency;
     uint256 public immutable BASE_CURRENCY_UNIT;
 
     // Roles
-    bytes32 public constant ORACLE_MANAGER_ROLE = keccak256("ORACLE_MANAGER_ROLE");
+    bytes32 public constant ORACLE_MANAGER_ROLE =
+        keccak256("ORACLE_MANAGER_ROLE");
     struct FeedConfig {
         address erc4626Vault; // ERC4626 vault (shares token)
         address rateProvider; // IRateProvider
         uint256 rateProviderUnit; // Calculated from asset decimals during setup
-        ThresholdConfig primaryThreshold;   // Optional thresholding for ERC4626 leg (in BASE_CURRENCY_UNIT)
+        ThresholdConfig primaryThreshold; // Optional thresholding for ERC4626 leg (in BASE_CURRENCY_UNIT)
         ThresholdConfig secondaryThreshold; // Optional thresholding for rate provider leg (in BASE_CURRENCY_UNIT)
     }
 
@@ -103,7 +108,7 @@ contract ERC4626SafeRateProviderWrapperWithThresholding is IOracleWrapper, Acces
         // Calculate rateProviderUnit from asset decimals and store for gas efficiency
         uint256 assetDecimals = IERC20Metadata(asset).decimals();
         uint256 rateProviderUnit = 10 ** assetDecimals;
-        
+
         feeds[asset] = FeedConfig({
             erc4626Vault: erc4626Vault,
             rateProvider: rateProvider,
@@ -147,7 +152,7 @@ contract ERC4626SafeRateProviderWrapperWithThresholding is IOracleWrapper, Acces
         // Recalculate rateProviderUnit from asset decimals for consistency
         uint256 assetDecimals = IERC20Metadata(asset).decimals();
         cfg.rateProviderUnit = 10 ** assetDecimals;
-        
+
         cfg.primaryThreshold.lowerThresholdInBase = lowerThresholdInBase1;
         cfg.primaryThreshold.fixedPriceInBase = fixedPriceInBase1;
         cfg.secondaryThreshold.lowerThresholdInBase = lowerThresholdInBase2;
@@ -161,12 +166,9 @@ contract ERC4626SafeRateProviderWrapperWithThresholding is IOracleWrapper, Acces
         );
     }
 
-    function getPriceInfo(address asset)
-        public
-        view
-        override
-        returns (uint256 price, bool isAlive)
-    {
+    function getPriceInfo(
+        address asset
+    ) public view override returns (uint256 price, bool isAlive) {
         FeedConfig memory cfg = feeds[asset];
         if (cfg.erc4626Vault == address(0) || cfg.rateProvider == address(0)) {
             revert FeedNotSet(asset);
@@ -181,18 +183,29 @@ contract ERC4626SafeRateProviderWrapperWithThresholding is IOracleWrapper, Acces
         // Normalize assets to BASE_CURRENCY_UNIT using underlying decimals
         address underlying = vault.asset();
         uint256 underlyingDecimals = IERC20Metadata(underlying).decimals();
-        uint256 priceInBase1 = Math.mulDiv(assetsPerOneShare, BASE_CURRENCY_UNIT, 10 ** underlyingDecimals);
+        uint256 priceInBase1 = Math.mulDiv(
+            assetsPerOneShare,
+            BASE_CURRENCY_UNIT,
+            10 ** underlyingDecimals
+        );
 
         // Rate provider leg with stored rateProviderUnit
         uint256 rate = IRateProviderSafe(cfg.rateProvider).getRateSafe();
-        uint256 priceInBase2 = Math.mulDiv(rate, BASE_CURRENCY_UNIT, cfg.rateProviderUnit);
+        uint256 priceInBase2 = Math.mulDiv(
+            rate,
+            BASE_CURRENCY_UNIT,
+            cfg.rateProviderUnit
+        );
 
         // Apply optional thresholding (in BASE_CURRENCY_UNIT) per leg
         if (cfg.primaryThreshold.lowerThresholdInBase > 0) {
             priceInBase1 = _applyThreshold(priceInBase1, cfg.primaryThreshold);
         }
         if (cfg.secondaryThreshold.lowerThresholdInBase > 0) {
-            priceInBase2 = _applyThreshold(priceInBase2, cfg.secondaryThreshold);
+            priceInBase2 = _applyThreshold(
+                priceInBase2,
+                cfg.secondaryThreshold
+            );
         }
 
         // Compose into BASE_CURRENCY_UNIT
@@ -202,13 +215,11 @@ contract ERC4626SafeRateProviderWrapperWithThresholding is IOracleWrapper, Acces
         isAlive = price > 0 && rate > 0;
     }
 
-    function getAssetPrice(address asset) external view override returns (uint256) {
+    function getAssetPrice(
+        address asset
+    ) external view override returns (uint256) {
         (uint256 p, bool alive) = getPriceInfo(asset);
         if (!alive) revert PriceIsStale();
         return p;
     }
-
-
 }
-
-

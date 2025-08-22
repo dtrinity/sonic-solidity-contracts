@@ -35,5 +35,3 @@ contract MockERC4626FixedRate {
         return IERC20Metadata(_asset).decimals(); // Shares decimals match underlying
     }
 }
-
-

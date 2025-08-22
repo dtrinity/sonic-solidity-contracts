@@ -8,5 +8,3 @@ pragma solidity ^0.8.20;
 interface IRateProviderSafe {
     function getRateSafe() external view returns (uint256);
 }
-
-

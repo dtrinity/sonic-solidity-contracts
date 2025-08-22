@@ -26,5 +26,3 @@ contract MockRateProvider is IRateProvider, IRateProviderSafe {
         rate = _rate;
     }
 }
-
-
