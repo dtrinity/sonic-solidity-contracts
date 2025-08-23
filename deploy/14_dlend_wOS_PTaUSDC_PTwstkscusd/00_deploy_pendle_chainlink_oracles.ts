@@ -62,7 +62,8 @@ async function deployPendleOracleFactory(hre: HardhatRuntimeEnvironment, ptYtLpO
     await hre.deployments.deploy(PENDLE_CHAINLINK_ORACLE_FACTORY_ID, {
       from: deployer,
       args: [ptYtLpOracleAddress],
-      contract: "@pendle/core-v2/contracts/oracles/PtYtLpOracle/chainlink/PendleChainlinkOracleFactory.sol:PendleChainlinkOracleFactory",
+      contract:
+        "@pendle/core-v2/contracts/oracles/PtYtLpOracle/chainlink/PendleChainlinkOracleFactory.sol:PendleChainlinkOracleFactory",
       autoMine: true,
       log: false,
     });
@@ -88,7 +89,10 @@ async function checkPendleOracleReady(
   duration: number,
 ): Promise<{ ready: boolean; needsInit: boolean; needsWait: boolean }> {
   try {
-    const [increaseCardinalityRequired, , oldestObservationSatisfied] = await ptYtLpOracle.getOracleState(market, duration);
+    const [increaseCardinalityRequired, , oldestObservationSatisfied] = await ptYtLpOracle.getOracleState(
+      market,
+      duration,
+    );
 
     return {
       ready: !increaseCardinalityRequired && oldestObservationSatisfied,
@@ -159,7 +163,10 @@ async function deployPendleChainlinkOracles(
         const cardinality = calculateCardinalityRequired(config.twapDuration);
 
         try {
-          const market = await ethers.getContractAt("@pendle/core-v2/contracts/interfaces/IPMarket.sol:IPMarket", config.market);
+          const market = await ethers.getContractAt(
+            "@pendle/core-v2/contracts/interfaces/IPMarket.sol:IPMarket",
+            config.market,
+          );
           await market.increaseObservationsCardinalityNext(cardinality);
 
           console.log(`⏳ Oracle initialized. TWAP data will be available in ${config.twapDuration}s`);
@@ -171,13 +178,22 @@ async function deployPendleChainlinkOracles(
 
       // Create PendleChainlinkOracle using factory
       try {
-        const oracleTypeValue = config.oracleType === "PT_TO_ASSET" ? PENDLE_ORACLE_TYPE.PT_TO_ASSET : PENDLE_ORACLE_TYPE.PT_TO_SY;
+        const oracleTypeValue =
+          config.oracleType === "PT_TO_ASSET" ? PENDLE_ORACLE_TYPE.PT_TO_ASSET : PENDLE_ORACLE_TYPE.PT_TO_SY;
 
         // First get the oracle address that would be created (without executing)
-        ptOracleAddress = await pendleOracleFactory.createOracle.staticCall(config.market, config.twapDuration, oracleTypeValue);
+        ptOracleAddress = await pendleOracleFactory.createOracle.staticCall(
+          config.market,
+          config.twapDuration,
+          oracleTypeValue,
+        );
 
         // Now actually execute the transaction to create the oracle
-        const createOracleTx = await pendleOracleFactory.createOracle(config.market, config.twapDuration, oracleTypeValue);
+        const createOracleTx = await pendleOracleFactory.createOracle(
+          config.market,
+          config.twapDuration,
+          oracleTypeValue,
+        );
 
         // Wait for transaction to be mined
         await createOracleTx.wait();
@@ -230,7 +246,9 @@ async function deployPendleChainlinkOracles(
       const baseOracleType = await pendleChainlinkOracle.baseOracleType();
       const factory = await pendleChainlinkOracle.factory();
 
-      console.log(`📊 Oracle config - Market: ${market}, Duration: ${twapDuration}s, Type: ${baseOracleType}, Factory: ${factory}`);
+      console.log(
+        `📊 Oracle config - Market: ${market}, Duration: ${twapDuration}s, Type: ${baseOracleType}, Factory: ${factory}`,
+      );
 
       // Attempt to get latest price (only if oracle is ready)
       if (!oracleStatus.needsWait && !oracleStatus.needsInit) {
@@ -240,7 +258,9 @@ async function deployPendleChainlinkOracles(
           // Also get round data for more details
           const latestRoundData = await pendleChainlinkOracle.latestRoundData();
           const priceFormatted = Number(latestRoundData.answer) / 10 ** Number(decimals);
-          console.log(`💰 Current price from oracle: ${priceFormatted} (${latestRoundData.answer} with ${decimals} decimals)`);
+          console.log(
+            `💰 Current price from oracle: ${priceFormatted} (${latestRoundData.answer} with ${decimals} decimals)`,
+          );
           console.log(
             `📈 Round ${latestRoundData.roundId}: Answer=${latestRoundData.answer}, UpdatedAt=${new Date(Number(latestRoundData.updatedAt) * 1000).toISOString()}`,
           );
@@ -248,7 +268,9 @@ async function deployPendleChainlinkOracles(
           console.warn(`⚠️  Could not get price from oracle (expected if TWAP not ready): ${priceError}`);
         }
       } else {
-        console.log(`⏳ Oracle not ready for price queries yet (needs ${oracleStatus.needsInit ? "initialization" : "TWAP data"})`);
+        console.log(
+          `⏳ Oracle not ready for price queries yet (needs ${oracleStatus.needsInit ? "initialization" : "TWAP data"})`,
+        );
       }
     } catch (configError) {
       console.warn(`⚠️  Could not verify oracle configuration: ${configError}`);
@@ -299,7 +321,12 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment): Pr
   const factoryAddress = await deployPendleOracleFactory(hre, pendle.ptYtLpOracleAddress);
 
   // Deploy PendleChainlinkOracle contracts using our factory
-  const deployedOracles = await deployPendleChainlinkOracles(hre, pendle.ptTokens, factoryAddress, pendle.ptYtLpOracleAddress);
+  const deployedOracles = await deployPendleChainlinkOracles(
+    hre,
+    pendle.ptTokens,
+    factoryAddress,
+    pendle.ptYtLpOracleAddress,
+  );
 
   if (deployedOracles.some((o) => o.needsWait)) {
     console.log(`🕐 Note: Some PT oracles need time to accumulate TWAP data`);

@@ -87,7 +87,10 @@ describe("DLoopCoreShortfallMock – 1-wei rounding shortfall", function () {
 
     if (!reverted) {
       const userSharesAfter = await vault.balanceOf(user.address);
-      expect(userSharesAfter).to.be.gte(userSharesBefore, "When not reverting, deposit should mint shares or keep balance");
+      expect(userSharesAfter).to.be.gte(
+        userSharesBefore,
+        "When not reverting, deposit should mint shares or keep balance",
+      );
     }
   });
 

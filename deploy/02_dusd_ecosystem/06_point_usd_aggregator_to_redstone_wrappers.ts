@@ -21,11 +21,15 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const redstoneWrapperAddress = redstoneWrapperDeployment.address;
 
   // Get USD RedstoneChainlinkWrapperWithThresholding for feeds with thresholding
-  const redstoneWrapperWithThresholdingDeployment = await hre.deployments.get(USD_REDSTONE_WRAPPER_WITH_THRESHOLDING_ID);
+  const redstoneWrapperWithThresholdingDeployment = await hre.deployments.get(
+    USD_REDSTONE_WRAPPER_WITH_THRESHOLDING_ID,
+  );
   const redstoneWrapperWithThresholdingAddress = redstoneWrapperWithThresholdingDeployment.address;
 
   // Get USD RedstoneChainlinkCompositeWrapperWithThresholding for composite feeds
-  const redstoneCompositeWrapperDeployment = await hre.deployments.get(USD_REDSTONE_COMPOSITE_WRAPPER_WITH_THRESHOLDING_ID);
+  const redstoneCompositeWrapperDeployment = await hre.deployments.get(
+    USD_REDSTONE_COMPOSITE_WRAPPER_WITH_THRESHOLDING_ID,
+  );
   const redstoneCompositeWrapperAddress = redstoneCompositeWrapperDeployment.address;
 
   // Set plain Redstone oracle wrappers
@@ -33,9 +37,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   for (const [assetAddress, _feed] of Object.entries(plainFeeds)) {
     if (!assetAddress || !/^0x[0-9a-fA-F]{40}$/.test(assetAddress)) {
-      console.warn(
-        `[oracle-setup] Skipping setOracle for invalid/missing plain asset address: '${assetAddress}'`,
-      );
+      console.warn(`[oracle-setup] Skipping setOracle for invalid/missing plain asset address: '${assetAddress}'`);
       continue;
     }
     await oracleAggregator.setOracle(assetAddress, redstoneWrapperAddress);
@@ -43,19 +45,25 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   }
 
   // Set Redstone oracle wrappers with thresholding
-  const thresholdFeeds = config.oracleAggregators.USD.redstoneOracleAssets?.redstoneOracleWrappersWithThresholding || {};
+  const thresholdFeeds =
+    config.oracleAggregators.USD.redstoneOracleAssets?.redstoneOracleWrappersWithThresholding || {};
 
   for (const [assetAddress, _config] of Object.entries(thresholdFeeds)) {
     await oracleAggregator.setOracle(assetAddress, redstoneWrapperWithThresholdingAddress);
-    console.log(`Set Redstone wrapper with thresholding for asset ${assetAddress} to ${redstoneWrapperWithThresholdingAddress}`);
+    console.log(
+      `Set Redstone wrapper with thresholding for asset ${assetAddress} to ${redstoneWrapperWithThresholdingAddress}`,
+    );
   }
 
   // Set composite Redstone wrapper for assets
-  const compositeFeeds = config.oracleAggregators.USD.redstoneOracleAssets?.compositeRedstoneOracleWrappersWithThresholding || {};
+  const compositeFeeds =
+    config.oracleAggregators.USD.redstoneOracleAssets?.compositeRedstoneOracleWrappersWithThresholding || {};
 
   for (const [_assetAddress, feedConfig] of Object.entries(compositeFeeds)) {
     await oracleAggregator.setOracle(feedConfig.feedAsset, redstoneCompositeWrapperAddress);
-    console.log(`Set composite Redstone wrapper for asset ${feedConfig.feedAsset} to ${redstoneCompositeWrapperAddress}`);
+    console.log(
+      `Set composite Redstone wrapper for asset ${feedConfig.feedAsset} to ${redstoneCompositeWrapperAddress}`,
+    );
   }
 
   console.log(`🔮 ${__filename.split("/").slice(-2).join("/")}: ✅`);

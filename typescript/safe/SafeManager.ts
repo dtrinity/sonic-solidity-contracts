@@ -104,13 +104,17 @@ export class SafeManager {
     }
 
     // Verify all configured owners are actual owners
-    const missingOwners = this.config.owners.filter((owner) => !onChainOwners.map((o) => o.toLowerCase()).includes(owner.toLowerCase()));
+    const missingOwners = this.config.owners.filter(
+      (owner) => !onChainOwners.map((o) => o.toLowerCase()).includes(owner.toLowerCase()),
+    );
 
     if (missingOwners.length > 0) {
       console.warn(`⚠️ Config owners not found on-chain: ${missingOwners.join(", ")}`);
     }
 
-    const extraOwners = onChainOwners.filter((owner) => !this.config.owners.map((o) => o.toLowerCase()).includes(owner.toLowerCase()));
+    const extraOwners = onChainOwners.filter(
+      (owner) => !this.config.owners.map((o) => o.toLowerCase()).includes(owner.toLowerCase()),
+    );
 
     if (extraOwners.length > 0) {
       console.warn(`⚠️ Unexpected owners found on-chain: ${extraOwners.join(", ")}`);
@@ -207,7 +211,11 @@ export class SafeManager {
    * @param safeTxHash - The Safe transaction hash
    * @param description - Optional description for the transaction
    */
-  private async proposeTransactionToService(safeTransaction: any, safeTxHash: string, description?: string): Promise<void> {
+  private async proposeTransactionToService(
+    safeTransaction: any,
+    safeTxHash: string,
+    description?: string,
+  ): Promise<void> {
     if (!this.apiKit) {
       console.log(`ℹ️ API Kit not available, skipping transaction service proposal`);
       return;
@@ -281,7 +289,11 @@ export class SafeManager {
    * @param transactionData - The transaction data
    * @param description - Description of the transaction
    */
-  private async storePendingTransaction(safeTxHash: string, transactionData: SafeTransactionData, description: string): Promise<void> {
+  private async storePendingTransaction(
+    safeTxHash: string,
+    transactionData: SafeTransactionData,
+    description: string,
+  ): Promise<void> {
     if (!this.protocolKit) return;
 
     try {
@@ -314,7 +326,11 @@ export class SafeManager {
    * @param transactionHash - The actual blockchain transaction hash
    * @param description - Description of the transaction
    */
-  private async storeCompletedTransaction(safeTxHash: string, transactionHash: string, description: string): Promise<void> {
+  private async storeCompletedTransaction(
+    safeTxHash: string,
+    transactionHash: string,
+    description: string,
+  ): Promise<void> {
     try {
       const deploymentState = await this.getDeploymentState();
 
@@ -401,7 +417,11 @@ export class SafeManager {
    * @param description - Human-readable description for the batch
    * @param safeTxHash - Safe transaction hash to include in filename
    */
-  private async exportTransactionBuilderBatch(transactions: SafeTransactionData[], description: string, safeTxHash: string): Promise<void> {
+  private async exportTransactionBuilderBatch(
+    transactions: SafeTransactionData[],
+    description: string,
+    safeTxHash: string,
+  ): Promise<void> {
     try {
       const rootPath = this.hre.config.paths.root || process.cwd();
       const filePath = `${rootPath}/safe-builder-batch-${safeTxHash}.json`;

@@ -102,7 +102,9 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   console.log(`\n🏥 System Health Check:`);
   console.log(`  ✅ Total dPOOL configurations: ${Object.keys(config.dPool).length}`);
   console.log(`  ✅ Successfully deployed: ${totalDeployedCount}`);
-  console.log(`  ✅ Deployment success rate: ${Math.round((totalDeployedCount / Object.keys(config.dPool).length) * 100)}%`);
+  console.log(
+    `  ✅ Deployment success rate: ${Math.round((totalDeployedCount / Object.keys(config.dPool).length) * 100)}%`,
+  );
 
   if (deployedPools.length > 0) {
     console.log(`\n📋 Deployed Pools:`);

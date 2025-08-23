@@ -180,7 +180,11 @@ describe.skip("DLoopCoreMock Calculation Tests", function () {
           await dloopMock.setMockPrice(await collateralToken.getAddress(), collateralPrice);
           await dloopMock.setMockPrice(await debtToken.getAddress(), debtPrice);
 
-          await dloopMock.setMockCollateral(await dloopMock.getAddress(), await collateralToken.getAddress(), testCase.collateral);
+          await dloopMock.setMockCollateral(
+            await dloopMock.getAddress(),
+            await collateralToken.getAddress(),
+            testCase.collateral,
+          );
           await dloopMock.setMockDebt(await dloopMock.getAddress(), await debtToken.getAddress(), testCase.debt);
 
           const result = await dloopMock.getCurrentLeverageBps();
@@ -244,7 +248,11 @@ describe.skip("DLoopCoreMock Calculation Tests", function () {
             await dloopMock.setMockPrice(await debtToken.getAddress(), price);
           }
 
-          await dloopMock.setMockCollateral(await dloopMock.getAddress(), await collateralToken.getAddress(), c.collateral);
+          await dloopMock.setMockCollateral(
+            await dloopMock.getAddress(),
+            await collateralToken.getAddress(),
+            c.collateral,
+          );
           await dloopMock.setMockDebt(await dloopMock.getAddress(), await debtToken.getAddress(), c.debt);
 
           const result = await dloopMock.getCurrentLeveragedAssets(c.inputAssets);
@@ -320,7 +328,11 @@ describe.skip("DLoopCoreMock Calculation Tests", function () {
           await dloopMock.setMockPrice(await collateralToken.getAddress(), price);
           await dloopMock.setMockPrice(await debtToken.getAddress(), price);
 
-          await dloopMock.setMockCollateral(await dloopMock.getAddress(), await collateralToken.getAddress(), c.collateral);
+          await dloopMock.setMockCollateral(
+            await dloopMock.getAddress(),
+            await collateralToken.getAddress(),
+            c.collateral,
+          );
           await dloopMock.setMockDebt(await dloopMock.getAddress(), await debtToken.getAddress(), c.debt);
 
           const result = await dloopMock.getUnleveragedAssetsWithCurrentLeverage(c.leveragedInput);
@@ -419,7 +431,10 @@ describe.skip("DLoopCoreMock Calculation Tests", function () {
 
           await dloopMock.setMockPrice(await testToken.getAddress(), testCase.tokenPrice);
 
-          const result = await dloopMock.convertFromBaseCurrencyToToken(testCase.amountInBase, await testToken.getAddress());
+          const result = await dloopMock.convertFromBaseCurrencyToToken(
+            testCase.amountInBase,
+            await testToken.getAddress(),
+          );
 
           expect(result).to.equal(testCase.expectedAmount);
         });
@@ -514,7 +529,10 @@ describe.skip("DLoopCoreMock Calculation Tests", function () {
 
           await dloopMock.setMockPrice(await testToken.getAddress(), testCase.tokenPrice);
 
-          const result = await dloopMock.convertFromTokenAmountToBaseCurrency(testCase.amountInToken, await testToken.getAddress());
+          const result = await dloopMock.convertFromTokenAmountToBaseCurrency(
+            testCase.amountInToken,
+            await testToken.getAddress(),
+          );
 
           expect(result).to.equal(testCase.expectedAmount);
         });

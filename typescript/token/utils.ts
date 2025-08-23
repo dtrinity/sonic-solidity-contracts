@@ -120,7 +120,11 @@ export async function fetchTokenInfo(hre: HardhatRuntimeEnvironment, tokenAddres
  */
 async function fetchTokenInfoImplementation(hre: HardhatRuntimeEnvironment, tokenAddress: string): Promise<TokenInfo> {
   const tokenContract = await hre.ethers.getContractAt(
-    ["function symbol() view returns (string)", "function name() view returns (string)", "function decimals() view returns (uint8)"],
+    [
+      "function symbol() view returns (string)",
+      "function name() view returns (string)",
+      "function decimals() view returns (uint8)",
+    ],
     tokenAddress,
   );
 

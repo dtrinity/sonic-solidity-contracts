@@ -57,12 +57,16 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   // The Rewards Controller must be set at AddressesProvider with id keccak256("INCENTIVES_CONTROLLER")
   const incentivesControllerId = ethers.keccak256(ethers.toUtf8Bytes("INCENTIVES_CONTROLLER"));
 
-  const isRewardsProxyPending = (await addressesProviderInstance.getAddressFromID(incentivesControllerId)) === ZeroAddress;
+  const isRewardsProxyPending =
+    (await addressesProviderInstance.getAddressFromID(incentivesControllerId)) === ZeroAddress;
 
   if (isRewardsProxyPending) {
     const proxyArtifact = await getExtendedArtifact("InitializableImmutableAdminUpgradeabilityProxy");
 
-    const _setRewardsAsProxyTx = await addressesProviderInstance.setAddressAsProxy(incentivesControllerId, incentivesImpl.address);
+    const _setRewardsAsProxyTx = await addressesProviderInstance.setAddressAsProxy(
+      incentivesControllerId,
+      incentivesImpl.address,
+    );
 
     const proxyAddress = await addressesProviderInstance.getAddressFromID(incentivesControllerId);
 

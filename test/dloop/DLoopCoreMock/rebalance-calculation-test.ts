@@ -346,10 +346,20 @@ describe.skip("DLoopCoreMock Rebalance Calculation Tests", function () {
             await dloopMock.setMockPrice(await debtToken.getAddress(), debtPrice);
 
             // Set up mock collateral and debt
-            await dloopMock.setMockCollateral(await dloopMock.getAddress(), await collateralToken.getAddress(), testCase.currentCollateral);
-            await dloopMock.setMockDebt(await dloopMock.getAddress(), await debtToken.getAddress(), testCase.currentDebt);
+            await dloopMock.setMockCollateral(
+              await dloopMock.getAddress(),
+              await collateralToken.getAddress(),
+              testCase.currentCollateral,
+            );
+            await dloopMock.setMockDebt(
+              await dloopMock.getAddress(),
+              await debtToken.getAddress(),
+              testCase.currentDebt,
+            );
 
-            const testExpectedResult = useVaultTokenBalance ? testCase.whenUseVaultTokenBalance : testCase.whenNotUseVaultTokenBalance;
+            const testExpectedResult = useVaultTokenBalance
+              ? testCase.whenUseVaultTokenBalance
+              : testCase.whenNotUseVaultTokenBalance;
 
             // Set up vault balances if specified
             if (useVaultTokenBalance) {
@@ -707,7 +717,10 @@ describe.skip("DLoopCoreMock Rebalance Calculation Tests", function () {
 
             if (useVaultTokenBalance) {
               if (testCase.whenUseVaultTokenBalance.vaultCollateralBalance) {
-                await collateralToken.mint(await dloopMock.getAddress(), testCase.whenUseVaultTokenBalance.vaultCollateralBalance);
+                await collateralToken.mint(
+                  await dloopMock.getAddress(),
+                  testCase.whenUseVaultTokenBalance.vaultCollateralBalance,
+                );
               }
             }
 
@@ -1152,7 +1165,10 @@ async function validateRebalanceLeverage(
     }
   } else if (direction < 0) {
     if (vaultDebtBalance > 0n) {
-      const valutDebtBalanceInBase = await dloopMock.convertFromTokenAmountToBaseCurrency(vaultDebtBalance, await debtToken.getAddress());
+      const valutDebtBalanceInBase = await dloopMock.convertFromTokenAmountToBaseCurrency(
+        vaultDebtBalance,
+        await debtToken.getAddress(),
+      );
       rebalanceAmountInBase += valutDebtBalanceInBase;
     }
   }

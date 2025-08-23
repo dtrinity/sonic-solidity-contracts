@@ -127,7 +127,17 @@ export async function deployDLoopDecreaseLeverageFixture(): Promise<DLoopDecreas
  * @param fixture Test fixture containing contracts, signers, and helpers
  */
 export async function testSetup(fixture: DLoopDecreaseLeverageFixture): Promise<void> {
-  const { dloopCoreMock, decreaseLeverageMock, collateralToken, debtToken, simpleDEXMock, user1, user2, user3, mockPool } = fixture;
+  const {
+    dloopCoreMock,
+    decreaseLeverageMock,
+    collateralToken,
+    debtToken,
+    simpleDEXMock,
+    user1,
+    user2,
+    user3,
+    mockPool,
+  } = fixture;
 
   // Set default prices in DLoopCoreMock
   await dloopCoreMock.setMockPrice(await collateralToken.getAddress(), DEFAULT_PRICE);

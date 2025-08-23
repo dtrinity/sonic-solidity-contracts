@@ -75,7 +75,10 @@ export const getBlockTimestamp = async (hre: HardhatRuntimeEnvironment, blockNum
  */
 export async function getCloseFactorHFThreshold(hre: HardhatRuntimeEnvironment): Promise<number> {
   const liquidationLibraryDeployedResult = await hre.deployments.get("LiquidationLogic");
-  const liquidationLogicContract = await hre.ethers.getContractAt("LiquidationLogic", liquidationLibraryDeployedResult.address);
+  const liquidationLogicContract = await hre.ethers.getContractAt(
+    "LiquidationLogic",
+    liquidationLibraryDeployedResult.address,
+  );
   const closeFactorHFThresholdRaw = await liquidationLogicContract.CLOSE_FACTOR_HF_THRESHOLD();
   // The CLOSE_FACTOR_HF_THRESHOLD is a fixed-point number with 18 decimals
   // The division is to make the closeFactorHFThreshold a number with 4 decimals

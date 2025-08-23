@@ -44,7 +44,9 @@ async function deployChainlinkCompositeAggregators(
     try {
       // Check if wrapper is already deployed
       const existingDeployment = await hre.deployments.get(deploymentName);
-      console.log(`♻️  Using existing ChainlinkCompositeAggregator for asset ${assetAddress}: ${existingDeployment.address}`);
+      console.log(
+        `♻️  Using existing ChainlinkCompositeAggregator for asset ${assetAddress}: ${existingDeployment.address}`,
+      );
       results.push({
         assetAddress,
         address: existingDeployment.address,

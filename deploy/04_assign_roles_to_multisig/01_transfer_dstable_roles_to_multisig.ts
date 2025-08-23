@@ -88,7 +88,11 @@ async function transferTokenRoles(
     if (tokenDeployment) {
       console.log(`\n  📄 TOKEN ROLES: ${tokenId}`);
 
-      const tokenContract = await ethers.getContractAt("ERC20StablecoinUpgradeable", tokenDeployment.address, deployerSigner);
+      const tokenContract = await ethers.getContractAt(
+        "ERC20StablecoinUpgradeable",
+        tokenDeployment.address,
+        deployerSigner,
+      );
 
       // Get current admin role
       const DEFAULT_ADMIN_ROLE = ZERO_BYTES_32;

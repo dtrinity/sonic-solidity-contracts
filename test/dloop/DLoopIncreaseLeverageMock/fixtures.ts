@@ -40,7 +40,11 @@ export async function deployDLoopIncreaseLeverageMockFixture(): Promise<DLoopInc
   await simpleDEXMock.waitForDeployment();
 
   // 1-to-1 exchange rate so swaps are deterministic (not strictly needed for this test)
-  await simpleDEXMock.setExchangeRate(await debtToken.getAddress(), await collateralToken.getAddress(), ethers.parseEther("1.0"));
+  await simpleDEXMock.setExchangeRate(
+    await debtToken.getAddress(),
+    await collateralToken.getAddress(),
+    ethers.parseEther("1.0"),
+  );
 
   // Deploy the periphery increase-leverage helper, using the debt token as flash-lender
   const IncreaseMockFactory = await ethers.getContractFactory("DLoopIncreaseLeverageMock");

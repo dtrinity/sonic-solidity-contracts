@@ -117,7 +117,10 @@ describe("TestERC20FlashMintable", () => {
     it("should revert when burning more than balance", async function () {
       const burnAmount = hre.ethers.parseUnits("2000", 18); // More than minted
 
-      await expect(token.connect(user1).burn(burnAmount)).to.be.revertedWithCustomError(token, "ERC20InsufficientBalance");
+      await expect(token.connect(user1).burn(burnAmount)).to.be.revertedWithCustomError(
+        token,
+        "ERC20InsufficientBalance",
+      );
     });
   });
 
@@ -143,7 +146,10 @@ describe("TestERC20FlashMintable", () => {
     it("should revert flash fee for unsupported token", async function () {
       const flashAmount = hre.ethers.parseUnits("1000", 18);
 
-      await expect(token.flashFee(user1.address, flashAmount)).to.be.revertedWithCustomError(token, "ERC3156UnsupportedToken");
+      await expect(token.flashFee(user1.address, flashAmount)).to.be.revertedWithCustomError(
+        token,
+        "ERC3156UnsupportedToken",
+      );
     });
 
     it("should successfully execute flash loan", async function () {
@@ -178,10 +184,9 @@ describe("TestERC20FlashMintable", () => {
       // First mint some tokens to reduce max loan
       await token.mint(user1.address, hre.ethers.parseUnits("1", 18));
 
-      await expect(token.flashLoan(await flashBorrower.getAddress(), tokenAddress, maxAmount, "0x")).to.be.revertedWithCustomError(
-        token,
-        "ERC3156ExceededMaxLoan",
-      );
+      await expect(
+        token.flashLoan(await flashBorrower.getAddress(), tokenAddress, maxAmount, "0x"),
+      ).to.be.revertedWithCustomError(token, "ERC3156ExceededMaxLoan");
     });
   });
 

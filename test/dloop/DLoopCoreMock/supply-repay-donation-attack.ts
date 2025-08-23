@@ -30,7 +30,10 @@ describe("DLoopCoreMock - Supply/Repay Donation Edge Case Tests", function () {
       const victim = accounts[2]; // Will be the "vault user" trying to withdraw
 
       // Initial setup: ensure vault has no collateral or debt
-      const initialCollateral = await dloopMock.getMockCollateral(await dloopMock.getAddress(), await collateralToken.getAddress());
+      const initialCollateral = await dloopMock.getMockCollateral(
+        await dloopMock.getAddress(),
+        await collateralToken.getAddress(),
+      );
       const initialDebt = await dloopMock.getMockDebt(await dloopMock.getAddress(), await debtToken.getAddress());
 
       expect(initialCollateral).to.equal(0n);
@@ -42,14 +45,21 @@ describe("DLoopCoreMock - Supply/Repay Donation Edge Case Tests", function () {
 
       // Directly set the vault's collateral state to simulate the attack
       // This simulates what happens when someone calls lendingPool.supply(collateralToken, amount, vaultAddress, 0)
-      await dloopMock.setMockCollateral(await dloopMock.getAddress(), await collateralToken.getAddress(), donationAmount);
+      await dloopMock.setMockCollateral(
+        await dloopMock.getAddress(),
+        await collateralToken.getAddress(),
+        donationAmount,
+      );
 
       // Verify attack was successful: vault now has collateral but no debt
       const vaultCollateralAfterAttack = await dloopMock.getMockCollateral(
         await dloopMock.getAddress(),
         await collateralToken.getAddress(),
       );
-      const vaultDebtAfterAttack = await dloopMock.getMockDebt(await dloopMock.getAddress(), await debtToken.getAddress());
+      const vaultDebtAfterAttack = await dloopMock.getMockDebt(
+        await dloopMock.getAddress(),
+        await debtToken.getAddress(),
+      );
 
       expect(vaultCollateralAfterAttack).to.equal(donationAmount);
       expect(vaultDebtAfterAttack).to.equal(0n);
@@ -107,7 +117,10 @@ describe("DLoopCoreMock - Supply/Repay Donation Edge Case Tests", function () {
       await dloopMock.connect(victim).deposit(initialDepositAmount, victim.address);
 
       // Verify vault has both collateral and debt after normal deposit
-      const vaultCollateral = await dloopMock.getMockCollateral(await dloopMock.getAddress(), await collateralToken.getAddress());
+      const vaultCollateral = await dloopMock.getMockCollateral(
+        await dloopMock.getAddress(),
+        await collateralToken.getAddress(),
+      );
       const vaultDebt = await dloopMock.getMockDebt(await dloopMock.getAddress(), await debtToken.getAddress());
 
       expect(vaultCollateral).to.be.gt(0n);
@@ -129,7 +142,10 @@ describe("DLoopCoreMock - Supply/Repay Donation Edge Case Tests", function () {
         await dloopMock.getAddress(),
         await collateralToken.getAddress(),
       );
-      const vaultDebtAfterAttack = await dloopMock.getMockDebt(await dloopMock.getAddress(), await debtToken.getAddress());
+      const vaultDebtAfterAttack = await dloopMock.getMockDebt(
+        await dloopMock.getAddress(),
+        await debtToken.getAddress(),
+      );
 
       expect(vaultCollateralAfterAttack).to.equal(vaultCollateral);
       expect(vaultDebtAfterAttack).to.equal(0n);
@@ -160,10 +176,17 @@ describe("DLoopCoreMock - Supply/Repay Donation Edge Case Tests", function () {
       const donationAmount = ethers.parseEther("1000");
 
       // Directly set the vault's collateral state to simulate the attack
-      await dloopMock.setMockCollateral(await dloopMock.getAddress(), await collateralToken.getAddress(), donationAmount);
+      await dloopMock.setMockCollateral(
+        await dloopMock.getAddress(),
+        await collateralToken.getAddress(),
+        donationAmount,
+      );
 
       // Check current collateral and debt
-      const collateral = await dloopMock.getMockCollateral(await dloopMock.getAddress(), await collateralToken.getAddress());
+      const collateral = await dloopMock.getMockCollateral(
+        await dloopMock.getAddress(),
+        await collateralToken.getAddress(),
+      );
       const debt = await dloopMock.getMockDebt(await dloopMock.getAddress(), await debtToken.getAddress());
       expect(collateral).to.equal(donationAmount);
       expect(debt).to.equal(0n);
@@ -191,7 +214,11 @@ describe("DLoopCoreMock - Supply/Repay Donation Edge Case Tests", function () {
       const smallDonation = 1n; // 1 wei
 
       // Directly set the vault's collateral state to simulate the attack
-      await dloopMock.setMockCollateral(await dloopMock.getAddress(), await collateralToken.getAddress(), smallDonation);
+      await dloopMock.setMockCollateral(
+        await dloopMock.getAddress(),
+        await collateralToken.getAddress(),
+        smallDonation,
+      );
 
       // Even with minimal amounts, leverage is still 0
       const currentLeverage = await dloopMock.getCurrentLeverageBps();
@@ -219,7 +246,11 @@ describe("DLoopCoreMock - Supply/Repay Donation Edge Case Tests", function () {
       const donationAmount = ethers.parseEther("1000");
 
       // Directly set the vault's collateral state to simulate the attack
-      await dloopMock.setMockCollateral(await dloopMock.getAddress(), await collateralToken.getAddress(), donationAmount);
+      await dloopMock.setMockCollateral(
+        await dloopMock.getAddress(),
+        await collateralToken.getAddress(),
+        donationAmount,
+      );
 
       // Check current leverage
       const currentLeverage = await dloopMock.getCurrentLeverageBps();

@@ -121,7 +121,9 @@ describe("DLoopCoreLogic - Decrease Leverage", () => {
         const tc = { C: 1_000_000n, D: 333_333n, TT: 2_000_000n, k: 0n };
         const Lcur = await harness.getCurrentLeverageBpsPublic(tc.C, tc.D);
         expect(Lcur < tc.TT).to.equal(true);
-        await expect(harness.getDebtRepayAmountInBaseToReachTargetLeveragePublic(tc.TT, tc.C, tc.D, tc.k)).to.be.revertedWithPanic(0x11);
+        await expect(
+          harness.getDebtRepayAmountInBaseToReachTargetLeveragePublic(tc.TT, tc.C, tc.D, tc.k),
+        ).to.be.revertedWithPanic(0x11);
       }
     });
   });
@@ -249,7 +251,11 @@ describe("DLoopCoreLogic - Decrease Leverage", () => {
         const { harness } = await deployHarness();
         const yBase = await harness.convertFromTokenAmountToBaseCurrencyPublic(tc.y, Number(tc.dDec), tc.dPrice);
         const baseExpected = await harness.getCollateralWithdrawAmountInBaseToDecreaseLeveragePublic(yBase, tc.k);
-        const expectedTokenOut = await harness.convertFromBaseCurrencyToTokenPublic(baseExpected, Number(tc.cDec), tc.cPrice);
+        const expectedTokenOut = await harness.convertFromBaseCurrencyToTokenPublic(
+          baseExpected,
+          Number(tc.cDec),
+          tc.cPrice,
+        );
         const tokenOut = await harness.getCollateralWithdrawTokenAmountToDecreaseLeveragePublic(
           tc.y,
           tc.k,

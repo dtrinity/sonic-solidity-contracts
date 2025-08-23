@@ -27,7 +27,8 @@ describe("DLoopCoreMock Virtual Methods Tests", function () {
       it("Should supply tokens to pool using testSupplyToPoolImplementation", async function () {
         const amount = ethers.parseEther("100");
 
-        await expect(dloopMock.testSupplyToPoolImplementation(await collateralToken.getAddress(), amount, user1)).to.not.be.reverted;
+        await expect(dloopMock.testSupplyToPoolImplementation(await collateralToken.getAddress(), amount, user1)).to.not
+          .be.reverted;
 
         // Check that collateral was set correctly
         expect(await dloopMock.getMockCollateral(user1, await collateralToken.getAddress())).to.equal(amount);
@@ -38,7 +39,8 @@ describe("DLoopCoreMock Virtual Methods Tests", function () {
       it("Should borrow tokens from pool using testBorrowFromPoolImplementation", async function () {
         const amount = ethers.parseEther("100");
 
-        await expect(dloopMock.testBorrowFromPoolImplementation(await debtToken.getAddress(), amount, user1)).to.not.be.reverted;
+        await expect(dloopMock.testBorrowFromPoolImplementation(await debtToken.getAddress(), amount, user1)).to.not.be
+          .reverted;
 
         // Check that debt was set correctly
         expect(await dloopMock.getMockDebt(user1, await debtToken.getAddress())).to.equal(amount);
@@ -56,7 +58,8 @@ describe("DLoopCoreMock Virtual Methods Tests", function () {
         await dloopMock.testBorrowFromPoolImplementation(await debtToken.getAddress(), borrowAmount, user1);
 
         // Then repay part of it
-        await expect(dloopMock.testRepayDebtToPoolImplementation(await debtToken.getAddress(), repayAmount, user1)).to.not.be.reverted;
+        await expect(dloopMock.testRepayDebtToPoolImplementation(await debtToken.getAddress(), repayAmount, user1)).to
+          .not.be.reverted;
 
         // Check that debt was reduced correctly
         expect(await dloopMock.getMockDebt(user1, await debtToken.getAddress())).to.equal(borrowAmount - repayAmount);
@@ -66,9 +69,9 @@ describe("DLoopCoreMock Virtual Methods Tests", function () {
         // User only has 10000 tokens, try to repay more
         const largeAmount = ethers.parseEther("50000");
 
-        await expect(dloopMock.testRepayDebtToPoolImplementation(await debtToken.getAddress(), largeAmount, user1)).to.be.revertedWith(
-          "Mock: not enough balance to repay",
-        );
+        await expect(
+          dloopMock.testRepayDebtToPoolImplementation(await debtToken.getAddress(), largeAmount, user1),
+        ).to.be.revertedWith("Mock: not enough balance to repay");
       });
     });
 
@@ -81,11 +84,14 @@ describe("DLoopCoreMock Virtual Methods Tests", function () {
         await dloopMock.testSupplyToPoolImplementation(await collateralToken.getAddress(), supplyAmount, user1);
 
         // Then withdraw part of it
-        await expect(dloopMock.testWithdrawFromPoolImplementation(await collateralToken.getAddress(), withdrawAmount, user1)).to.not.be
-          .reverted;
+        await expect(
+          dloopMock.testWithdrawFromPoolImplementation(await collateralToken.getAddress(), withdrawAmount, user1),
+        ).to.not.be.reverted;
 
         // Check that collateral was reduced correctly
-        expect(await dloopMock.getMockCollateral(user1, await collateralToken.getAddress())).to.equal(supplyAmount - withdrawAmount);
+        expect(await dloopMock.getMockCollateral(user1, await collateralToken.getAddress())).to.equal(
+          supplyAmount - withdrawAmount,
+        );
       });
 
       it("Should fail when pool has insufficient balance to withdraw", async function () {
@@ -113,9 +119,9 @@ describe("DLoopCoreMock Virtual Methods Tests", function () {
       it("Should fail when pool has insufficient balance to borrow", async function () {
         const largeAmount = ethers.parseEther("2000000"); // More than pool has
 
-        await expect(dloopMock.testBorrowFromPoolImplementation(await debtToken.getAddress(), largeAmount, user1)).to.be.revertedWith(
-          "Mock: not enough tokens in pool to borrow",
-        );
+        await expect(
+          dloopMock.testBorrowFromPoolImplementation(await debtToken.getAddress(), largeAmount, user1),
+        ).to.be.revertedWith("Mock: not enough tokens in pool to borrow");
       });
 
       it("Should fail when user has insufficient balance to supply", async function () {
@@ -236,7 +242,9 @@ describe("DLoopCoreMock Virtual Methods Tests", function () {
       await dloopMock.testWithdrawFromPoolImplementation(await collateralToken.getAddress(), withdrawAmount, user1);
 
       // Check final state
-      expect(await dloopMock.getMockCollateral(user1, await collateralToken.getAddress())).to.equal(supplyAmount - withdrawAmount);
+      expect(await dloopMock.getMockCollateral(user1, await collateralToken.getAddress())).to.equal(
+        supplyAmount - withdrawAmount,
+      );
       expect(await dloopMock.getMockDebt(user1, await debtToken.getAddress())).to.equal(borrowAmount - repayAmount);
 
       // Check total calculations

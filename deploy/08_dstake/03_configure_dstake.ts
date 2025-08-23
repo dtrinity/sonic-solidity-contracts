@@ -97,13 +97,17 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     const currentVault = await dstakeToken.collateralVault();
 
     if (currentVault !== collateralVaultDeployment.address) {
-      console.log(`    ⚙️ Setting collateral vault for ${DStakeTokenDeploymentName} to ${collateralVaultDeployment.address}`);
+      console.log(
+        `    ⚙️ Setting collateral vault for ${DStakeTokenDeploymentName} to ${collateralVaultDeployment.address}`,
+      );
       await dstakeToken.connect(deployerSigner).setCollateralVault(collateralVaultDeployment.address);
     }
     const currentFee = await dstakeToken.withdrawalFeeBps();
 
     if (currentFee.toString() !== instanceConfig.initialWithdrawalFeeBps.toString()) {
-      console.log(`    ⚙️ Setting withdrawal fee for ${DStakeTokenDeploymentName} to ${instanceConfig.initialWithdrawalFeeBps}`);
+      console.log(
+        `    ⚙️ Setting withdrawal fee for ${DStakeTokenDeploymentName} to ${instanceConfig.initialWithdrawalFeeBps}`,
+      );
       await dstakeToken.connect(deployerSigner).setWithdrawalFee(instanceConfig.initialWithdrawalFeeBps);
     }
 
@@ -128,7 +132,9 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
       if (existingAdapter === ethers.ZeroAddress) {
         await routerContract.connect(deployerSigner).addAdapter(vaultAssetAddress, adapterDeployment.address);
-        console.log(`    ➕ Added adapter ${adapterDeploymentName} for asset ${vaultAssetAddress} to ${routerDeploymentName}`);
+        console.log(
+          `    ➕ Added adapter ${adapterDeploymentName} for asset ${vaultAssetAddress} to ${routerDeploymentName}`,
+        );
       } else if (existingAdapter !== adapterDeployment.address) {
         throw new Error(
           `⚠️ Adapter for asset ${vaultAssetAddress} in router is already set to ${existingAdapter} but config expects ${adapterDeployment.address}. Manual intervention may be required.`,
@@ -160,7 +166,9 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
       if (currentAdapter !== adapterDeployment.address) {
         await routerContract.addAdapter(vaultAssetAddress, adapterDeployment.address);
-        console.log(`    ➕ Added adapter ${adapterDeploymentName} for asset ${vaultAssetAddress} to ${routerDeploymentName}`);
+        console.log(
+          `    ➕ Added adapter ${adapterDeploymentName} for asset ${vaultAssetAddress} to ${routerDeploymentName}`,
+        );
       }
     }
 

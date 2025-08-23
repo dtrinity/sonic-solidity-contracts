@@ -41,11 +41,14 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   for (const [assetAddress, _config] of Object.entries(thresholdFeeds)) {
     await oracleAggregator.setOracle(assetAddress, api3WrapperWithThresholdingAddress);
-    console.log(`Set API3 wrapper with thresholding for asset ${assetAddress} to ${api3WrapperWithThresholdingAddress}`);
+    console.log(
+      `Set API3 wrapper with thresholding for asset ${assetAddress} to ${api3WrapperWithThresholdingAddress}`,
+    );
   }
 
   // Set composite API3 wrapper for assets
-  const compositeFeeds = config.oracleAggregators.USD.api3OracleAssets.compositeApi3OracleWrappersWithThresholding || {};
+  const compositeFeeds =
+    config.oracleAggregators.USD.api3OracleAssets.compositeApi3OracleWrappersWithThresholding || {};
 
   for (const [_assetAddress, feedConfig] of Object.entries(compositeFeeds)) {
     const typedFeedConfig = feedConfig as {

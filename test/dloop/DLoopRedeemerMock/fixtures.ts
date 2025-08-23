@@ -74,12 +74,18 @@ export async function deployDLoopRedeemerMockFixture(): Promise<{
 
   // Deploy DLoopDepositorMock
   const DLoopDepositorMockFactory = await ethers.getContractFactory("DLoopDepositorMock");
-  const dLoopDepositorMock = await DLoopDepositorMockFactory.deploy(await flashLender.getAddress(), await simpleDEXMock.getAddress());
+  const dLoopDepositorMock = await DLoopDepositorMockFactory.deploy(
+    await flashLender.getAddress(),
+    await simpleDEXMock.getAddress(),
+  );
   await dLoopDepositorMock.waitForDeployment();
 
   // Deploy DLoopRedeemerMock
   const DLoopRedeemerMockFactory = await ethers.getContractFactory("DLoopRedeemerMock");
-  const dLoopRedeemerMock = await DLoopRedeemerMockFactory.deploy(await flashLender.getAddress(), await simpleDEXMock.getAddress());
+  const dLoopRedeemerMock = await DLoopRedeemerMockFactory.deploy(
+    await flashLender.getAddress(),
+    await simpleDEXMock.getAddress(),
+  );
   await dLoopRedeemerMock.waitForDeployment();
 
   const dloopRedeemerMockFixture: DLoopRedeemerMockFixture = {
@@ -182,7 +188,10 @@ export async function deployDLoopMockLogic(): Promise<DLoopMockFixture> {
  * @param dloopCoreMockFixture - The dloop core mock fixture
  * @param dloopRedeemerMockFixture - The dloop redeemer mock fixture
  */
-export async function testSetup(dloopCoreMockFixture: DLoopMockFixture, dloopRedeemerMockFixture: DLoopRedeemerMockFixture): Promise<void> {
+export async function testSetup(
+  dloopCoreMockFixture: DLoopMockFixture,
+  dloopRedeemerMockFixture: DLoopRedeemerMockFixture,
+): Promise<void> {
   const { dloopMock, collateralToken, debtToken, mockPool } = dloopCoreMockFixture;
   const { flashLender, simpleDEXMock, dLoopDepositorMock, user1, user2, user3 } = dloopRedeemerMockFixture;
 

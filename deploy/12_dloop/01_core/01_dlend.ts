@@ -37,7 +37,10 @@ async function deployDLoopCoreDLend(
 
   // Get the pool data provider to fetch the aToken address
   const poolDataProviderDeployment = await hre.deployments.get(POOL_DATA_PROVIDER_ID);
-  const poolDataProviderContract = await ethers.getContractAt("AaveProtocolDataProvider", poolDataProviderDeployment.address);
+  const poolDataProviderContract = await ethers.getContractAt(
+    "AaveProtocolDataProvider",
+    poolDataProviderDeployment.address,
+  );
 
   // Get the aToken address for the underlying asset
   const reserveTokens = await poolDataProviderContract.getReserveTokensAddresses(vaultInfo.underlyingAsset);
@@ -68,13 +71,10 @@ async function deployDLoopCoreDLend(
   }
 
   // Resolve StaticAToken wrapper, fallback to deployment if not present in config
-  let targetStaticATokenWrapperResolved =
-    (extraParams.targetStaticATokenWrapper as string) || "";
+  let targetStaticATokenWrapperResolved = (extraParams.targetStaticATokenWrapper as string) || "";
 
   if (!targetStaticATokenWrapperResolved) {
-    const wrapperDeployment = await hre.deployments.getOrNull(
-      DUSD_A_TOKEN_WRAPPER_ID,
-    );
+    const wrapperDeployment = await hre.deployments.getOrNull(DUSD_A_TOKEN_WRAPPER_ID);
 
     if (wrapperDeployment?.address) {
       targetStaticATokenWrapperResolved = wrapperDeployment.address;
@@ -85,15 +85,11 @@ async function deployDLoopCoreDLend(
   if (!targetStaticATokenWrapperResolved && isLocalNetwork(hre.network.name)) {
     targetStaticATokenWrapperResolved = aTokenAddress;
   }
-  const targetStaticATokenWrapper = assertNotEmpty(
-    targetStaticATokenWrapperResolved,
-  );
+  const targetStaticATokenWrapper = assertNotEmpty(targetStaticATokenWrapperResolved);
   const treasury = assertNotEmpty(extraParams.treasury);
   const maxTreasuryFeeBps = extraParams.maxTreasuryFeeBps as number | bigint;
-  const initialTreasuryFeeBps =
-    (extraParams.initialTreasuryFeeBps as number | bigint) ?? 0;
-  const initialExchangeThreshold =
-    (extraParams.initialExchangeThreshold as number | bigint) ?? 0;
+  const initialTreasuryFeeBps = (extraParams.initialTreasuryFeeBps as number | bigint) ?? 0;
+  const initialExchangeThreshold = (extraParams.initialExchangeThreshold as number | bigint) ?? 0;
 
   await hre.deployments.deploy(deploymentName, {
     from: deployer,

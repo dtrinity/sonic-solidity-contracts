@@ -3,7 +3,10 @@ import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
 
 import { getConfig } from "../../config/config";
-import { USD_CHAINLINK_SAFE_RATE_PROVIDER_COMPOSITE_WRAPPER_ID, USD_ORACLE_AGGREGATOR_ID } from "../../typescript/deploy-ids";
+import {
+  USD_CHAINLINK_SAFE_RATE_PROVIDER_COMPOSITE_WRAPPER_ID,
+  USD_ORACLE_AGGREGATOR_ID,
+} from "../../typescript/deploy-ids";
 import { ensureDefaultAdminExistsAndRevokeFrom } from "../../typescript/hardhat/access_control";
 import { GovernanceExecutor } from "../../typescript/hardhat/governance";
 import { SafeTransactionData } from "../../typescript/safe/types";
@@ -16,7 +19,12 @@ import { SafeTransactionData } from "../../typescript/safe/types";
  * @param grantee - Address to receive the role
  * @param contractInterface - Contract interface used to encode the call
  */
-function createGrantRoleTransaction(contractAddress: string, role: string, grantee: string, contractInterface: any): SafeTransactionData {
+function createGrantRoleTransaction(
+  contractAddress: string,
+  role: string,
+  grantee: string,
+  contractInterface: any,
+): SafeTransactionData {
   return {
     to: contractAddress,
     value: "0",
@@ -32,7 +40,12 @@ function createGrantRoleTransaction(contractAddress: string, role: string, grant
  * @param account - Address to revoke the role from
  * @param contractInterface - Contract interface used to encode the call
  */
-function createRevokeRoleTransaction(contractAddress: string, role: string, account: string, contractInterface: any): SafeTransactionData {
+function createRevokeRoleTransaction(
+  contractAddress: string,
+  role: string,
+  account: string,
+  contractInterface: any,
+): SafeTransactionData {
   return {
     to: contractAddress,
     value: "0",
@@ -286,7 +299,10 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   });
 
   const wrapperAddress = wrapperDeployResult.address;
-  const wrapper = await ethers.getContractAt("ChainlinkSafeRateProviderCompositeWrapperWithThresholding", wrapperAddress);
+  const wrapper = await ethers.getContractAt(
+    "ChainlinkSafeRateProviderCompositeWrapperWithThresholding",
+    wrapperAddress,
+  );
 
   console.log(`✅ ChainlinkSafeRateProviderCompositeWrapper deployed at: ${wrapperAddress}`);
 
@@ -344,7 +360,12 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
           console.log(`    ✅ Set oracle for ${feedConfig.feedAsset} to ChainlinkSafeRateProviderComposite wrapper`);
         },
         () =>
-          createSetOracleTransaction(oracleAggregatorDeployment.address, feedConfig.feedAsset, wrapperAddress, oracleAggregator.interface),
+          createSetOracleTransaction(
+            oracleAggregatorDeployment.address,
+            feedConfig.feedAsset,
+            wrapperAddress,
+            oracleAggregator.interface,
+          ),
       );
 
       if (!complete) allOperationsComplete = false;

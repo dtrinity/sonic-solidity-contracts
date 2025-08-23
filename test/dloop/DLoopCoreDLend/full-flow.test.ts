@@ -130,84 +130,52 @@ describe("DLoopCoreDLend full-flow", () => {
       dataProviderAddr,
     )) as AaveProtocolDataProvider;
 
-    const addressesProviderAddr = (
-      await deployments.get("PoolAddressesProvider")
-    ).address;
+    const addressesProviderAddr = (await deployments.get("PoolAddressesProvider")).address;
     addressesProvider = (await ethers.getContractAt(
       "PoolAddressesProvider",
       addressesProviderAddr,
     )) as PoolAddressesProvider;
-    aaveOracle = (await ethers.getContractAt(
-      "IAaveOracle",
-      await addressesProvider.getPriceOracle(),
-    )) as IAaveOracle;
+    aaveOracle = (await ethers.getContractAt("IAaveOracle", await addressesProvider.getPriceOracle())) as IAaveOracle;
 
     // Tokens
     const dUSDAddr = await getDeploymentAddress(DUSD_TOKEN_ID);
-    dUSD = (await ethers.getContractAt(
-      "ERC20StablecoinUpgradeable",
-      dUSDAddr,
-    )) as ERC20StablecoinUpgradeable;
+    dUSD = (await ethers.getContractAt("ERC20StablecoinUpgradeable", dUSDAddr)) as ERC20StablecoinUpgradeable;
 
     const sfrxUSDAddr = (await deployments.get("sfrxUSD")).address;
-    sfrxUSD = (await ethers.getContractAt(
-      "TestERC20",
-      sfrxUSDAddr,
-    )) as TestERC20;
+    sfrxUSD = (await ethers.getContractAt("TestERC20", sfrxUSDAddr)) as TestERC20;
 
     // Deploy DEX
     const SimpleDEXFactory = await ethers.getContractFactory("SimpleDEXMock");
     simpleDEX = (await SimpleDEXFactory.deploy()) as SimpleDEXMock;
 
     // Deploy periphery mocks using dUSD as flash lender
-    const DepositorFactory =
-      await ethers.getContractFactory("DLoopDepositorMock");
-    depositorMock = (await DepositorFactory.deploy(
-      dUSDAddr,
-      await simpleDEX.getAddress(),
-    )) as DLoopDepositorMock;
+    const DepositorFactory = await ethers.getContractFactory("DLoopDepositorMock");
+    depositorMock = (await DepositorFactory.deploy(dUSDAddr, await simpleDEX.getAddress())) as DLoopDepositorMock;
 
-    const RedeemerFactory =
-      await ethers.getContractFactory("DLoopRedeemerMock");
-    redeemerMock = (await RedeemerFactory.deploy(
-      dUSDAddr,
-      await simpleDEX.getAddress(),
-    )) as DLoopRedeemerMock;
+    const RedeemerFactory = await ethers.getContractFactory("DLoopRedeemerMock");
+    redeemerMock = (await RedeemerFactory.deploy(dUSDAddr, await simpleDEX.getAddress())) as DLoopRedeemerMock;
 
-    const IncFactory = await ethers.getContractFactory(
-      "DLoopIncreaseLeverageMock",
-    );
+    const IncFactory = await ethers.getContractFactory("DLoopIncreaseLeverageMock");
     increaseLeverageMock = (await IncFactory.deploy(
       dUSDAddr,
       await simpleDEX.getAddress(),
     )) as DLoopIncreaseLeverageMock;
 
-    const DecFactory = await ethers.getContractFactory(
-      "DLoopDecreaseLeverageMock",
-    );
+    const DecFactory = await ethers.getContractFactory("DLoopDecreaseLeverageMock");
     decreaseLeverageMock = (await DecFactory.deploy(
       dUSDAddr,
       await simpleDEX.getAddress(),
     )) as DLoopDecreaseLeverageMock;
 
     // Get DLoop core vault instance (3X-sfrxUSD)
-    const dloopVaultAddr = (
-      await deployments.get(`${DLOOP_CORE_DLEND_ID}-3X-sfrxUSD`)
-    ).address;
-    vault = (await ethers.getContractAt(
-      "DLoopCoreDLend",
-      dloopVaultAddr,
-    )) as DLoopCoreDLend;
+    const dloopVaultAddr = (await deployments.get(`${DLOOP_CORE_DLEND_ID}-3X-sfrxUSD`)).address;
+    vault = (await ethers.getContractAt("DLoopCoreDLend", dloopVaultAddr)) as DLoopCoreDLend;
 
     // 3) Market liquidity for borrowing: mint dUSD via IssuerV2 and supply to pool
     const issuerAddr = (await deployments.get(DUSD_ISSUER_CONTRACT_ID)).address;
     const issuer = (await ethers.getContractAt("Issuer", issuerAddr)) as Issuer;
-    const usdAggAddr = (await deployments.get(USD_ORACLE_AGGREGATOR_ID))
-      .address;
-    const usdAgg = (await ethers.getContractAt(
-      "OracleAggregator",
-      usdAggAddr,
-    )) as OracleAggregator;
+    const usdAggAddr = (await deployments.get(USD_ORACLE_AGGREGATOR_ID)).address;
+    const usdAgg = (await ethers.getContractAt("OracleAggregator", usdAggAddr)) as OracleAggregator;
 
     // Compute mint amount based on oracle prices
     const collateralAmount = ethers.parseUnits("400000", 18);
@@ -231,28 +199,16 @@ describe("DLoopCoreDLend full-flow", () => {
     const dexFundSfrxAmount = ethers.parseUnits("300000", 18);
     await dUSD.transfer(await simpleDEX.getAddress(), dexFundDusdAmount);
     await sfrxUSD.transfer(await simpleDEX.getAddress(), dexFundSfrxAmount);
-    await simpleDEX.setExchangeRate(
-      dUSDAddr,
-      sfrxUSDAddr,
-      ethers.parseUnits("1", 18),
-    );
-    await simpleDEX.setExchangeRate(
-      sfrxUSDAddr,
-      dUSDAddr,
-      ethers.parseUnits("1", 18),
-    );
+    await simpleDEX.setExchangeRate(dUSDAddr, sfrxUSDAddr, ethers.parseUnits("1", 18));
+    await simpleDEX.setExchangeRate(sfrxUSDAddr, dUSDAddr, ethers.parseUnits("1", 18));
     await simpleDEX.setExecutionSlippage(10); // 10 bps
 
     // 5) Users: fund sfrxUSD and set approvals
     const userFund = ethers.parseUnits("100000", 18);
     await sfrxUSD.transfer(userA, userFund);
     await sfrxUSD.transfer(userB, userFund);
-    await sfrxUSD
-      .connect(await ethers.getSigner(userA))
-      .approve(await depositorMock.getAddress(), ethers.MaxUint256);
-    await sfrxUSD
-      .connect(await ethers.getSigner(userB))
-      .approve(await depositorMock.getAddress(), ethers.MaxUint256);
+    await sfrxUSD.connect(await ethers.getSigner(userA)).approve(await depositorMock.getAddress(), ethers.MaxUint256);
+    await sfrxUSD.connect(await ethers.getSigner(userB)).approve(await depositorMock.getAddress(), ethers.MaxUint256);
   });
 
   it("runs full flow", async () => {
@@ -264,35 +220,19 @@ describe("DLoopCoreDLend full-flow", () => {
 
     // 1) UserA deposit via DepositorMock
     const depositAmountA = ethers.parseUnits("100", 18);
-    const minSharesA = await depositorMock.calculateMinOutputShares(
-      depositAmountA,
-      100,
-      vault,
-    );
-    await depositorMock
-      .connect(await ethers.getSigner(userA))
-      .deposit(depositAmountA, userA, minSharesA, "0x", vault);
+    const minSharesA = await depositorMock.calculateMinOutputShares(depositAmountA, 100, vault);
+    await depositorMock.connect(await ethers.getSigner(userA)).deposit(depositAmountA, userA, minSharesA, "0x", vault);
     expect(await vault.balanceOf(userA)).to.be.gt(0n);
 
     // 2) UserB deposit via DepositorMock
     const depositAmountB = ethers.parseUnits("50", 18);
-    const minSharesB = await depositorMock.calculateMinOutputShares(
-      depositAmountB,
-      100,
-      vault,
-    );
-    await depositorMock
-      .connect(await ethers.getSigner(userB))
-      .deposit(depositAmountB, userB, minSharesB, "0x", vault);
+    const minSharesB = await depositorMock.calculateMinOutputShares(depositAmountB, 100, vault);
+    await depositorMock.connect(await ethers.getSigner(userB)).deposit(depositAmountB, userB, minSharesB, "0x", vault);
     expect(await vault.balanceOf(userB)).to.be.gt(0n);
 
     // Approve RedeemerMock for shares via vault (ERC20)
-    await vault
-      .connect(await ethers.getSigner(userA))
-      .approve(await redeemerMock.getAddress(), ethers.MaxUint256);
-    await vault
-      .connect(await ethers.getSigner(userB))
-      .approve(await redeemerMock.getAddress(), ethers.MaxUint256);
+    await vault.connect(await ethers.getSigner(userA)).approve(await redeemerMock.getAddress(), ethers.MaxUint256);
+    await vault.connect(await ethers.getSigner(userB)).approve(await redeemerMock.getAddress(), ethers.MaxUint256);
 
     // 3) Lower sfrxUSD price => leverage changes, determine direction dynamically
     await setUsdFeed("sfrxUSD_frxUSD", "0.9");
@@ -301,13 +241,9 @@ describe("DLoopCoreDLend full-flow", () => {
 
     // 4) UserC calls the correct rebalance (increase if 1, decrease if -1)
     if (dirAfterDown > 0) {
-      await increaseLeverageMock
-        .connect(await ethers.getSigner(userC))
-        .increaseLeverage("0x", vault);
+      await increaseLeverageMock.connect(await ethers.getSigner(userC)).increaseLeverage("0x", vault);
     } else {
-      await decreaseLeverageMock
-        .connect(await ethers.getSigner(userC))
-        .decreaseLeverage("0x", vault);
+      await decreaseLeverageMock.connect(await ethers.getSigner(userC)).decreaseLeverage("0x", vault);
     }
 
     // 5) Verify balanced
@@ -317,10 +253,7 @@ describe("DLoopCoreDLend full-flow", () => {
     }
     const levAfterFirst = await vault.getCurrentLeverageBps();
     // Allow wider tolerance due to discrete swap and subsidy steps
-    expect(levAfterFirst).to.be.within(
-      targetLeverage - 400000n,
-      targetLeverage + 400000n,
-    );
+    expect(levAfterFirst).to.be.within(targetLeverage - 400000n, targetLeverage + 400000n);
 
     // 6) Raise sfrxUSD price => leverage changes again, determine direction dynamically
     await setUsdFeed("sfrxUSD_frxUSD", "1.2");
@@ -329,13 +262,9 @@ describe("DLoopCoreDLend full-flow", () => {
 
     // 7) UserC calls the corresponding rebalance
     if (dirAfterUp > 0) {
-      await increaseLeverageMock
-        .connect(await ethers.getSigner(userC))
-        .increaseLeverage("0x", vault);
+      await increaseLeverageMock.connect(await ethers.getSigner(userC)).increaseLeverage("0x", vault);
     } else {
-      await decreaseLeverageMock
-        .connect(await ethers.getSigner(userC))
-        .decreaseLeverage("0x", vault);
+      await decreaseLeverageMock.connect(await ethers.getSigner(userC)).decreaseLeverage("0x", vault);
     }
 
     // 8) Verify balanced
@@ -343,40 +272,25 @@ describe("DLoopCoreDLend full-flow", () => {
       await setUsdFeed("sfrxUSD_frxUSD", "1.15");
     }
     const levAfterSecond = await vault.getCurrentLeverageBps();
-    expect(levAfterSecond).to.be.within(
-      targetLeverage - 400000n,
-      targetLeverage + 400000n,
-    );
+    expect(levAfterSecond).to.be.within(targetLeverage - 400000n, targetLeverage + 400000n);
 
     // 9) UserA redeems 50%
     const userAShares = await vault.balanceOf(userA);
     const redeemSharesA = userAShares / 2n;
-    const minCollA = await redeemerMock.calculateMinOutputCollateral(
-      redeemSharesA,
-      10000,
-      vault,
-    );
+    const minCollA = await redeemerMock.calculateMinOutputCollateral(redeemSharesA, 10000, vault);
 
     const balBeforeA = await sfrxUSD.balanceOf(userA);
-    await redeemerMock
-      .connect(await ethers.getSigner(userA))
-      .redeem(redeemSharesA, userA, 1, "0x", vault);
+    await redeemerMock.connect(await ethers.getSigner(userA)).redeem(redeemSharesA, userA, 1, "0x", vault);
     const balAfterA = await sfrxUSD.balanceOf(userA);
     expect(balAfterA).to.be.gt(balBeforeA);
     expect(await vault.balanceOf(userA)).to.equal(userAShares - redeemSharesA);
 
     // 10) UserB redeems 100%
     const userBShares = await vault.balanceOf(userB);
-    const minCollB = await redeemerMock.calculateMinOutputCollateral(
-      userBShares,
-      10000,
-      vault,
-    );
+    const minCollB = await redeemerMock.calculateMinOutputCollateral(userBShares, 10000, vault);
 
     const balBeforeB = await sfrxUSD.balanceOf(userB);
-    await redeemerMock
-      .connect(await ethers.getSigner(userB))
-      .redeem(userBShares, userB, 1, "0x", vault);
+    await redeemerMock.connect(await ethers.getSigner(userB)).redeem(userBShares, userB, 1, "0x", vault);
     const balAfterB = await sfrxUSD.balanceOf(userB);
     expect(balAfterB).to.be.gt(balBeforeB);
     expect(await vault.balanceOf(userB)).to.equal(0n);

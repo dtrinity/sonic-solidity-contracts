@@ -29,7 +29,14 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { governanceMultisig } = config.walletAddresses;
 
   // Transfer roles for USD oracle aggregator
-  await transferOracleAggregatorRoles(hre, USD_ORACLE_AGGREGATOR_ID, "USD", deployerSigner, governanceMultisig, deployer);
+  await transferOracleAggregatorRoles(
+    hre,
+    USD_ORACLE_AGGREGATOR_ID,
+    "USD",
+    deployerSigner,
+    governanceMultisig,
+    deployer,
+  );
 
   // Transfer roles for S oracle aggregator
   await transferOracleAggregatorRoles(hre, S_ORACLE_AGGREGATOR_ID, "S", deployerSigner, governanceMultisig, deployer);
@@ -66,7 +73,11 @@ async function transferOracleAggregatorRoles(
     if (oracleAggregatorDeployment) {
       console.log(`\n  📄 ORACLE AGGREGATOR ROLES: ${oracleType} Oracle Aggregator`);
 
-      const oracleAggregator = await ethers.getContractAt("OracleAggregator", oracleAggregatorDeployment.address, deployerSigner);
+      const oracleAggregator = await ethers.getContractAt(
+        "OracleAggregator",
+        oracleAggregatorDeployment.address,
+        deployerSigner,
+      );
 
       // Get roles
       const DEFAULT_ADMIN_ROLE = ZERO_BYTES_32;

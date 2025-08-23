@@ -5,7 +5,14 @@ import { ethers } from "hardhat";
 
 import { DLoopCoreMock, TestMintableERC20 } from "../../../typechain-types";
 import { ONE_BPS_UNIT, ONE_PERCENT_BPS } from "../../../typescript/common/bps_constants";
-import { deployDLoopMockFixture, LOWER_BOUND_BPS, MAX_SUBSIDY_BPS, TARGET_LEVERAGE_BPS, testSetup, UPPER_BOUND_BPS } from "./fixture";
+import {
+  deployDLoopMockFixture,
+  LOWER_BOUND_BPS,
+  MAX_SUBSIDY_BPS,
+  TARGET_LEVERAGE_BPS,
+  testSetup,
+  UPPER_BOUND_BPS,
+} from "./fixture";
 
 // NOTE: High-level rebalance scenarios are covered by CoreLogic tests; skip redundant mock integration suite
 describe.skip("DLoopCoreMock Rebalance Tests", function () {
@@ -513,15 +520,13 @@ describe.skip("DLoopCoreMock Rebalance Tests", function () {
 
         // Attempt operation with unreasonable slippage protection
         if (testCase.operation === "increase") {
-          await expect(dloopMock.connect(user).increaseLeverage(testCase.amount, testCase.minReceived)).to.be.revertedWithCustomError(
-            dloopMock,
-            testCase.expectedError,
-          );
+          await expect(
+            dloopMock.connect(user).increaseLeverage(testCase.amount, testCase.minReceived),
+          ).to.be.revertedWithCustomError(dloopMock, testCase.expectedError);
         } else {
-          await expect(dloopMock.connect(user).decreaseLeverage(testCase.amount, testCase.minReceived)).to.be.revertedWithCustomError(
-            dloopMock,
-            testCase.expectedError,
-          );
+          await expect(
+            dloopMock.connect(user).decreaseLeverage(testCase.amount, testCase.minReceived),
+          ).to.be.revertedWithCustomError(dloopMock, testCase.expectedError);
         }
       });
     }
@@ -809,10 +814,9 @@ describe.skip("DLoopCoreMock Rebalance Tests", function () {
           expect(await dloopMock.maxDeposit(user.address)).to.equal(0);
 
           // Attempt deposit should fail
-          await expect(dloopMock.connect(user).deposit(ethers.parseEther("10"), user.address)).to.be.revertedWithCustomError(
-            dloopMock,
-            "ERC4626ExceededMaxDeposit",
-          );
+          await expect(
+            dloopMock.connect(user).deposit(ethers.parseEther("10"), user.address),
+          ).to.be.revertedWithCustomError(dloopMock, "ERC4626ExceededMaxDeposit");
         });
       } else {
         it(testCase.name, async function () {

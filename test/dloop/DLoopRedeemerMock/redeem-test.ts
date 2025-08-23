@@ -112,7 +112,14 @@ describe("DLoopRedeemerMock Redeem Tests", function () {
         const user = testCase.userIndex === 1 ? user1 : testCase.userIndex === 2 ? user2 : user3;
 
         // First create a position
-        const { shares } = await createPosition(dloopMock, collateralToken, debtToken, dLoopDepositorMock, user, testCase.depositAmount);
+        const { shares } = await createPosition(
+          dloopMock,
+          collateralToken,
+          debtToken,
+          dLoopDepositorMock,
+          user,
+          testCase.depositAmount,
+        );
 
         // Check current leverage
 
@@ -129,7 +136,10 @@ describe("DLoopRedeemerMock Redeem Tests", function () {
         // Get initial balances
         const initialUserCollateralBalance = await collateralToken.balanceOf(user.address);
         const initialUserShareBalance = await dloopMock.balanceOf(user.address);
-        const initialCoreCollateral = await dloopMock.getMockCollateral(await dloopMock.getAddress(), await collateralToken.getAddress());
+        const initialCoreCollateral = await dloopMock.getMockCollateral(
+          await dloopMock.getAddress(),
+          await collateralToken.getAddress(),
+        );
 
         // Perform leveraged redeem
         await dLoopRedeemerMock.connect(user).redeem(
@@ -150,7 +160,10 @@ describe("DLoopRedeemerMock Redeem Tests", function () {
         expect(actualCollateralReceived).to.be.gte(minOutputCollateral);
 
         // Verify core vault's collateral position decreased
-        const finalCoreCollateral = await dloopMock.getMockCollateral(await dloopMock.getAddress(), await collateralToken.getAddress());
+        const finalCoreCollateral = await dloopMock.getMockCollateral(
+          await dloopMock.getAddress(),
+          await collateralToken.getAddress(),
+        );
         expect(finalCoreCollateral).to.be.lt(initialCoreCollateral);
 
         // For full redemption, verify leverage consistency
@@ -169,7 +182,10 @@ describe("DLoopRedeemerMock Redeem Tests", function () {
 
         // Verify reasonable collateral received relative to shares redeemed
         const expectedLeveragedCollateral = await dloopMock.previewRedeem(sharesToRedeem);
-        const expectedUnleveragedCollateral = await dLoopRedeemerMock.getUnleveragedAssets(expectedLeveragedCollateral, dloopMock);
+        const expectedUnleveragedCollateral = await dLoopRedeemerMock.getUnleveragedAssets(
+          expectedLeveragedCollateral,
+          dloopMock,
+        );
 
         expect(actualCollateralReceived).to.be.closeTo(
           expectedUnleveragedCollateral,
@@ -225,7 +241,14 @@ describe("DLoopRedeemerMock Redeem Tests", function () {
         const user = testCase.userIndex === 1 ? user1 : user2;
 
         // Create position first
-        const { shares } = await createPosition(dloopMock, collateralToken, debtToken, dLoopDepositorMock, user, testCase.depositAmount);
+        const { shares } = await createPosition(
+          dloopMock,
+          collateralToken,
+          debtToken,
+          dLoopDepositorMock,
+          user,
+          testCase.depositAmount,
+        );
 
         // Check flash lender has sufficient balance
         const flashLenderBalance = await flashLender.balanceOf(await flashLender.getAddress());
@@ -246,7 +269,9 @@ describe("DLoopRedeemerMock Redeem Tests", function () {
         );
 
         // Perform leveraged redeem
-        await dLoopRedeemerMock.connect(user).redeem(sharesToRedeem, user.address, minOutputCollateral, "0x", dloopMock);
+        await dLoopRedeemerMock
+          .connect(user)
+          .redeem(sharesToRedeem, user.address, minOutputCollateral, "0x", dloopMock);
 
         // Verify user received expected collateral
         const finalUserCollateralBalance = await collateralToken.balanceOf(user.address);
@@ -293,7 +318,14 @@ describe("DLoopRedeemerMock Redeem Tests", function () {
         expect(flashFee).to.equal(testCase.expectedFee);
 
         // Create position and redeem
-        const { shares } = await createPosition(dloopMock, collateralToken, debtToken, dLoopDepositorMock, user1, testCase.depositAmount);
+        const { shares } = await createPosition(
+          dloopMock,
+          collateralToken,
+          debtToken,
+          dLoopDepositorMock,
+          user1,
+          testCase.depositAmount,
+        );
 
         const sharesToRedeem = (shares * BigInt(testCase.redeemPercentage)) / 100n;
         const minOutputCollateral = await dLoopRedeemerMock.calculateMinOutputCollateral(
@@ -303,8 +335,9 @@ describe("DLoopRedeemerMock Redeem Tests", function () {
         );
 
         // Should succeed even with zero fees
-        await expect(dLoopRedeemerMock.connect(user1).redeem(sharesToRedeem, user1.address, minOutputCollateral, "0x", dloopMock)).to.not.be
-          .reverted;
+        await expect(
+          dLoopRedeemerMock.connect(user1).redeem(sharesToRedeem, user1.address, minOutputCollateral, "0x", dloopMock),
+        ).to.not.be.reverted;
       }
     });
   });
@@ -371,7 +404,11 @@ describe("DLoopRedeemerMock Redeem Tests", function () {
       it(testCase.name, async function () {
         // Set exchange rate if different from default
         if (testCase.exchangeRate !== ethers.parseEther("1.0")) {
-          await simpleDEXMock.setExchangeRate(await collateralToken.getAddress(), await debtToken.getAddress(), testCase.exchangeRate);
+          await simpleDEXMock.setExchangeRate(
+            await collateralToken.getAddress(),
+            await debtToken.getAddress(),
+            testCase.exchangeRate,
+          );
         }
 
         // Set execution slippage if specified
@@ -380,7 +417,14 @@ describe("DLoopRedeemerMock Redeem Tests", function () {
         }
 
         // Create position first
-        const { shares } = await createPosition(dloopMock, collateralToken, debtToken, dLoopDepositorMock, user1, testCase.depositAmount);
+        const { shares } = await createPosition(
+          dloopMock,
+          collateralToken,
+          debtToken,
+          dLoopDepositorMock,
+          user1,
+          testCase.depositAmount,
+        );
 
         // Get initial DEX balances
         const initialDexCollateralBalance = await collateralToken.balanceOf(await simpleDEXMock.getAddress());
@@ -397,7 +441,9 @@ describe("DLoopRedeemerMock Redeem Tests", function () {
         const userCollateralBalanceBeforeRedeem = await collateralToken.balanceOf(user1.address);
 
         // Perform leveraged redeem
-        await dLoopRedeemerMock.connect(user1).redeem(sharesToRedeem, user1.address, minOutputCollateral, "0x", dloopMock);
+        await dLoopRedeemerMock
+          .connect(user1)
+          .redeem(sharesToRedeem, user1.address, minOutputCollateral, "0x", dloopMock);
 
         const userCollateralBalanceAfterRedeem = await collateralToken.balanceOf(user1.address);
 
@@ -423,7 +469,11 @@ describe("DLoopRedeemerMock Redeem Tests", function () {
 
         // Reset to default values for next test
         if (testCase.exchangeRate !== ethers.parseEther("1.0")) {
-          await simpleDEXMock.setExchangeRate(await collateralToken.getAddress(), await debtToken.getAddress(), ethers.parseEther("1.0"));
+          await simpleDEXMock.setExchangeRate(
+            await collateralToken.getAddress(),
+            await debtToken.getAddress(),
+            ethers.parseEther("1.0"),
+          );
         }
 
         if (testCase.executionSlippage > 0) {
@@ -462,7 +512,14 @@ describe("DLoopRedeemerMock Redeem Tests", function () {
     for (const testCase of errorHandlingTests) {
       it(testCase.name, async function () {
         // Create position first
-        const { shares } = await createPosition(dloopMock, collateralToken, debtToken, dLoopDepositorMock, user1, testCase.depositAmount);
+        const { shares } = await createPosition(
+          dloopMock,
+          collateralToken,
+          debtToken,
+          dLoopDepositorMock,
+          user1,
+          testCase.depositAmount,
+        );
 
         let actualRedeemShares: bigint;
 
@@ -484,7 +541,8 @@ describe("DLoopRedeemerMock Redeem Tests", function () {
         const errorContract = testCase.errorSource === "dloopMock" ? dloopMock : dLoopRedeemerMock;
 
         if (testCase.expectedError === "reverted") {
-          await expect(dLoopRedeemerMock.connect(user1).redeem(actualRedeemShares, user1.address, 0, "0x", dloopMock)).to.be.reverted;
+          await expect(dLoopRedeemerMock.connect(user1).redeem(actualRedeemShares, user1.address, 0, "0x", dloopMock))
+            .to.be.reverted;
         } else {
           await expect(
             dLoopRedeemerMock.connect(user1).redeem(actualRedeemShares, user1.address, 0, "0x", dloopMock),
@@ -511,7 +569,14 @@ describe("DLoopRedeemerMock Redeem Tests", function () {
 
       for (const testCase of slippageTests) {
         // Create position first
-        const { shares } = await createPosition(dloopMock, collateralToken, debtToken, dLoopDepositorMock, user1, testCase.depositAmount);
+        const { shares } = await createPosition(
+          dloopMock,
+          collateralToken,
+          debtToken,
+          dLoopDepositorMock,
+          user1,
+          testCase.depositAmount,
+        );
 
         const sharesToRedeem = (shares * BigInt(testCase.redeemPercentage)) / 100n;
 
@@ -557,7 +622,14 @@ describe("DLoopRedeemerMock Redeem Tests", function () {
           const user = users[i];
           const depositAmount = testCase.depositAmounts ? testCase.depositAmounts[i] : testCase.depositAmount;
 
-          const position = await createPosition(dloopMock, collateralToken, debtToken, dLoopDepositorMock, user, depositAmount);
+          const position = await createPosition(
+            dloopMock,
+            collateralToken,
+            debtToken,
+            dLoopDepositorMock,
+            user,
+            depositAmount,
+          );
           userPositions.push(position);
         }
 
@@ -576,7 +648,9 @@ describe("DLoopRedeemerMock Redeem Tests", function () {
           const initialCollateralBalance = await collateralToken.balanceOf(user.address);
           const initialShareBalance = await dloopMock.balanceOf(user.address);
 
-          await dLoopRedeemerMock.connect(user).redeem(sharesToRedeem, user.address, minOutputCollateral, "0x", dloopMock);
+          await dLoopRedeemerMock
+            .connect(user)
+            .redeem(sharesToRedeem, user.address, minOutputCollateral, "0x", dloopMock);
 
           const finalCollateralBalance = await collateralToken.balanceOf(user.address);
           const finalShareBalance = await dloopMock.balanceOf(user.address);
@@ -634,7 +708,9 @@ describe("DLoopRedeemerMock Redeem Tests", function () {
           const initialCollateralBalance = await collateralToken.balanceOf(user1.address);
           const initialShareBalance = await dloopMock.balanceOf(user1.address);
 
-          await dLoopRedeemerMock.connect(user1).redeem(sharesToRedeem, user1.address, minOutputCollateral, "0x", dloopMock);
+          await dLoopRedeemerMock
+            .connect(user1)
+            .redeem(sharesToRedeem, user1.address, minOutputCollateral, "0x", dloopMock);
 
           const finalCollateralBalance = await collateralToken.balanceOf(user1.address);
           const finalShareBalance = await dloopMock.balanceOf(user1.address);
@@ -667,7 +743,14 @@ describe("DLoopRedeemerMock Redeem Tests", function () {
 
       for (const testCase of leverageMaintenanceTests) {
         // Create position
-        const { shares } = await createPosition(dloopMock, collateralToken, debtToken, dLoopDepositorMock, user1, testCase.depositAmount);
+        const { shares } = await createPosition(
+          dloopMock,
+          collateralToken,
+          debtToken,
+          dLoopDepositorMock,
+          user1,
+          testCase.depositAmount,
+        );
 
         // First partial redeem
         const firstRedeemShares = (shares * BigInt(testCase.firstRedeemPercentage)) / 100n;
@@ -677,7 +760,9 @@ describe("DLoopRedeemerMock Redeem Tests", function () {
           dloopMock,
         );
 
-        await dLoopRedeemerMock.connect(user1).redeem(firstRedeemShares, user1.address, firstMinOutput, "0x", dloopMock);
+        await dLoopRedeemerMock
+          .connect(user1)
+          .redeem(firstRedeemShares, user1.address, firstMinOutput, "0x", dloopMock);
 
         const leverageAfterFirst = await dloopMock.getCurrentLeverageBps();
         expect(leverageAfterFirst).to.be.closeTo(BigInt(testCase.expectedLeverageBps), BigInt(testCase.toleranceBps));
@@ -690,7 +775,9 @@ describe("DLoopRedeemerMock Redeem Tests", function () {
           dloopMock,
         );
 
-        await dLoopRedeemerMock.connect(user1).redeem(secondRedeemShares, user1.address, secondMinOutput, "0x", dloopMock);
+        await dLoopRedeemerMock
+          .connect(user1)
+          .redeem(secondRedeemShares, user1.address, secondMinOutput, "0x", dloopMock);
 
         const leverageAfterSecond = await dloopMock.getCurrentLeverageBps();
 
@@ -728,7 +815,14 @@ describe("DLoopRedeemerMock Redeem Tests", function () {
     for (const testCase of leftoverTokenTests) {
       it(testCase.name, async function () {
         // Create position first
-        const { shares } = await createPosition(dloopMock, collateralToken, debtToken, dLoopDepositorMock, user1, testCase.depositAmount);
+        const { shares } = await createPosition(
+          dloopMock,
+          collateralToken,
+          debtToken,
+          dLoopDepositorMock,
+          user1,
+          testCase.depositAmount,
+        );
 
         // Get initial user collateral balance
         const initialUserCollateralBalance = await collateralToken.balanceOf(user1.address);
@@ -740,7 +834,9 @@ describe("DLoopRedeemerMock Redeem Tests", function () {
           dloopMock,
         );
 
-        const tx = await dLoopRedeemerMock.connect(user1).redeem(sharesToRedeem, user1.address, minOutputCollateral, "0x", dloopMock);
+        const tx = await dLoopRedeemerMock
+          .connect(user1)
+          .redeem(sharesToRedeem, user1.address, minOutputCollateral, "0x", dloopMock);
         await tx.wait();
 
         // Verify user received expected collateral
@@ -765,7 +861,14 @@ describe("DLoopRedeemerMock Redeem Tests", function () {
 
       for (const testCase of eventTests) {
         // Create position first
-        const { shares } = await createPosition(dloopMock, collateralToken, debtToken, dLoopDepositorMock, user1, testCase.depositAmount);
+        const { shares } = await createPosition(
+          dloopMock,
+          collateralToken,
+          debtToken,
+          dLoopDepositorMock,
+          user1,
+          testCase.depositAmount,
+        );
 
         const sharesToRedeem = (shares * BigInt(testCase.redeemPercentage)) / 100n;
         const minOutputCollateral = await dLoopRedeemerMock.calculateMinOutputCollateral(
@@ -775,7 +878,9 @@ describe("DLoopRedeemerMock Redeem Tests", function () {
         );
 
         const before = await collateralToken.balanceOf(user1.address);
-        const tx = await dLoopRedeemerMock.connect(user1).redeem(sharesToRedeem, user1.address, minOutputCollateral, "0x", dloopMock);
+        const tx = await dLoopRedeemerMock
+          .connect(user1)
+          .redeem(sharesToRedeem, user1.address, minOutputCollateral, "0x", dloopMock);
         await tx.wait();
         const after = await collateralToken.balanceOf(user1.address);
 
@@ -793,7 +898,11 @@ describe("DLoopRedeemerMock Redeem Tests", function () {
       await dloopMock.setMockPrice(await collateralToken.getAddress(), ethers.parseEther("1"));
       await dloopMock.setMockPrice(await debtToken.getAddress(), ethers.parseEther("1"));
 
-      await dloopMock.setMockCollateral(await dloopMock.getAddress(), await collateralToken.getAddress(), mockCollateral);
+      await dloopMock.setMockCollateral(
+        await dloopMock.getAddress(),
+        await collateralToken.getAddress(),
+        mockCollateral,
+      );
       await dloopMock.setMockDebt(await dloopMock.getAddress(), await debtToken.getAddress(), mockDebt);
 
       const leverageBps = await dloopMock.getCurrentLeverageBps();

@@ -21,7 +21,10 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   const { address: hardPegAddress } = await hre.deployments.get(DUSD_HARD_PEG_ORACLE_WRAPPER_ID);
 
-  console.log(`Setting HardPegOracleWrapper for base currency (${config.oracleAggregators.USD.baseCurrency}) to`, hardPegAddress);
+  console.log(
+    `Setting HardPegOracleWrapper for base currency (${config.oracleAggregators.USD.baseCurrency}) to`,
+    hardPegAddress,
+  );
   await oracleAggregator.setOracle(config.oracleAggregators.USD.baseCurrency, hardPegAddress);
 
   console.log(`🔮 ${__filename.split("/").slice(-2).join("/")}: ✅`);

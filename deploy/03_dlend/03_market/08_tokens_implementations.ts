@@ -89,7 +89,10 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     log: true,
   });
 
-  const variableDebtTokenContract = await hre.ethers.getContractAt("VariableDebtToken", variableDebtTokenDeployment.address);
+  const variableDebtTokenContract = await hre.ethers.getContractAt(
+    "VariableDebtToken",
+    variableDebtTokenDeployment.address,
+  );
 
   try {
     const _initVariableDebtTokenResponse = await variableDebtTokenContract.initialize(

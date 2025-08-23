@@ -41,12 +41,16 @@ export async function ensureDefaultAdminExistsAndRevokeFrom(
         await contract.grantRole(DEFAULT_ADMIN_ROLE, adminToKeep);
         console.log(`    ➕ Granted DEFAULT_ADMIN_ROLE to ${adminToKeep} on ${contractName}`);
       } catch (e) {
-        console.log(`    ⚠️ Could not grant DEFAULT_ADMIN_ROLE to ${adminToKeep} on ${contractName}: ${(e as Error).message}`);
+        console.log(
+          `    ⚠️ Could not grant DEFAULT_ADMIN_ROLE to ${adminToKeep} on ${contractName}: ${(e as Error).message}`,
+        );
         manualActions?.push(`${contractRef}.grantRole(DEFAULT_ADMIN_ROLE, ${adminToKeep})`);
       }
     }
   } catch (e) {
-    console.log(`    ⚠️ Could not check/grant DEFAULT_ADMIN_ROLE for ${adminToKeep} on ${contractName}: ${(e as Error).message}`);
+    console.log(
+      `    ⚠️ Could not check/grant DEFAULT_ADMIN_ROLE for ${adminToKeep} on ${contractName}: ${(e as Error).message}`,
+    );
     manualActions?.push(`${contractRef}.grantRole(DEFAULT_ADMIN_ROLE, ${adminToKeep})`);
   }
 
@@ -56,12 +60,16 @@ export async function ensureDefaultAdminExistsAndRevokeFrom(
 
     if (!keepHasAdmin) {
       // Do not proceed with removal to avoid lockout
-      console.log(`    ⚠️ Skipping DEFAULT_ADMIN_ROLE revoke: ${adminToKeep} does not yet have admin on ${contractName}`);
+      console.log(
+        `    ⚠️ Skipping DEFAULT_ADMIN_ROLE revoke: ${adminToKeep} does not yet have admin on ${contractName}`,
+      );
       manualActions?.push(`${contractRef}.grantRole(DEFAULT_ADMIN_ROLE, ${adminToKeep})`);
       return;
     }
   } catch (e) {
-    console.log(`    ⚠️ Could not confirm ${adminToKeep} DEFAULT_ADMIN_ROLE on ${contractName}: ${(e as Error).message}`);
+    console.log(
+      `    ⚠️ Could not confirm ${adminToKeep} DEFAULT_ADMIN_ROLE on ${contractName}: ${(e as Error).message}`,
+    );
     manualActions?.push(`${contractRef}.grantRole(DEFAULT_ADMIN_ROLE, ${adminToKeep})`);
     return;
   }
@@ -74,7 +82,9 @@ export async function ensureDefaultAdminExistsAndRevokeFrom(
       return;
     }
   } catch (e) {
-    console.log(`    ⚠️ Could not check ${adminToRevoke} DEFAULT_ADMIN_ROLE on ${contractName}: ${(e as Error).message}`);
+    console.log(
+      `    ⚠️ Could not check ${adminToRevoke} DEFAULT_ADMIN_ROLE on ${contractName}: ${(e as Error).message}`,
+    );
     manualActions?.push(`${contractRef}.revokeRole(DEFAULT_ADMIN_ROLE, ${adminToRevoke})`);
     return;
   }
@@ -87,7 +97,9 @@ export async function ensureDefaultAdminExistsAndRevokeFrom(
       await contract.renounceRole(DEFAULT_ADMIN_ROLE, adminToRevoke);
       console.log(`    ➖ Renounced DEFAULT_ADMIN_ROLE for ${adminToRevoke} on ${contractName}`);
     } catch (e) {
-      console.log(`    ⚠️ Could not renounce DEFAULT_ADMIN_ROLE for ${adminToRevoke} on ${contractName}: ${(e as Error).message}`);
+      console.log(
+        `    ⚠️ Could not renounce DEFAULT_ADMIN_ROLE for ${adminToRevoke} on ${contractName}: ${(e as Error).message}`,
+      );
       manualActions?.push(`${contractRef}.revokeRole(DEFAULT_ADMIN_ROLE, ${adminToRevoke})`);
     }
     return;
@@ -97,7 +109,9 @@ export async function ensureDefaultAdminExistsAndRevokeFrom(
     await contract.revokeRole(DEFAULT_ADMIN_ROLE, adminToRevoke);
     console.log(`    ➖ Revoked DEFAULT_ADMIN_ROLE from ${adminToRevoke} on ${contractName}`);
   } catch (e) {
-    console.log(`    ⚠️ Could not revoke DEFAULT_ADMIN_ROLE from ${adminToRevoke} on ${contractName}: ${(e as Error).message}`);
+    console.log(
+      `    ⚠️ Could not revoke DEFAULT_ADMIN_ROLE from ${adminToRevoke} on ${contractName}: ${(e as Error).message}`,
+    );
     manualActions?.push(`${contractRef}.revokeRole(DEFAULT_ADMIN_ROLE, ${adminToRevoke})`);
   }
 }

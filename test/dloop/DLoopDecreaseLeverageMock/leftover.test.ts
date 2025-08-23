@@ -33,7 +33,9 @@ describe("DLoopDecreaseLeverageMock - Leftover Collateral Token Handling", funct
     expect(direction).to.equal(-1n);
     await debtToken.mint(await dloopCoreMock.getAddress(), requiredDebtAmount);
 
-    const tx = await decreaseLeverageMock.connect(user1).decreaseLeverage(requiredDebtAmount, "0x", await dloopCoreMock.getAddress());
+    const tx = await decreaseLeverageMock
+      .connect(user1)
+      .decreaseLeverage(requiredDebtAmount, "0x", await dloopCoreMock.getAddress());
 
     const receipt = await tx.wait();
 

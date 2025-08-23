@@ -34,10 +34,9 @@ describe.skip("DLoopCoreMock - Inflation Attack Tests", function () {
         const attackerDeposit = 1n; // 1 wei
 
         // Expect the deposit to revert with the exact custom error
-        await expect(dloopMock.connect(attacker).deposit(attackerDeposit, attacker.address)).to.be.revertedWithCustomError(
-          dloopMock,
-          "TokenBalanceNotIncreasedAfterBorrow",
-        );
+        await expect(
+          dloopMock.connect(attacker).deposit(attackerDeposit, attacker.address),
+        ).to.be.revertedWithCustomError(dloopMock, "TokenBalanceNotIncreasedAfterBorrow");
 
         // State assertions – vault metrics must remain unchanged after the revert
         const supplyAfter = await dloopMock.totalSupply();
@@ -98,10 +97,9 @@ describe.skip("DLoopCoreMock - Inflation Attack Tests", function () {
           // eslint-disable-next-line unused-imports/no-unused-vars -- error is not used
         } catch (err) {
           victimDepositReverted = true;
-          await expect(dloopMock.connect(victim).deposit(victimDepositAmount, victim.address)).to.be.revertedWithCustomError(
-            dloopMock,
-            "TooImbalanced",
-          );
+          await expect(
+            dloopMock.connect(victim).deposit(victimDepositAmount, victim.address),
+          ).to.be.revertedWithCustomError(dloopMock, "TooImbalanced");
         }
 
         if (!victimDepositReverted) {
@@ -221,7 +219,13 @@ describe.skip("DLoopCoreMock - Inflation Attack Tests", function () {
     });
 
     describe("First Depositor Protection", function () {
-      const firstDepositAmounts = [1n, 1000n, ethers.parseEther("0.001"), ethers.parseEther("1"), ethers.parseEther("1000")];
+      const firstDepositAmounts = [
+        1n,
+        1000n,
+        ethers.parseEther("0.001"),
+        ethers.parseEther("1"),
+        ethers.parseEther("1000"),
+      ];
 
       for (const firstDeposit of firstDepositAmounts) {
         it(`First depositor should always receive shares for deposit of ${firstDeposit.toString()} wei`, async function () {
@@ -229,10 +233,9 @@ describe.skip("DLoopCoreMock - Inflation Attack Tests", function () {
 
           if (firstDeposit < ethers.parseEther("0.001")) {
             // Expect revert for extremely tiny deposits
-            await expect(dloopMock.connect(attacker).deposit(firstDeposit, attacker.address)).to.be.revertedWithCustomError(
-              dloopMock,
-              "TokenBalanceNotIncreasedAfterBorrow",
-            );
+            await expect(
+              dloopMock.connect(attacker).deposit(firstDeposit, attacker.address),
+            ).to.be.revertedWithCustomError(dloopMock, "TokenBalanceNotIncreasedAfterBorrow");
           } else {
             await dloopMock.connect(attacker).deposit(firstDeposit, attacker.address);
 

@@ -130,9 +130,17 @@ describe("DLoopCoreLogic - Maintain Leverage", () => {
         }
 
         // Compute expected via base conversions to match on-chain rounding
-        const withdrawBase = await harness.convertFromTokenAmountToBaseCurrencyPublic(tc.targetWithdrawToken, Number(tc.cDec), tc.cPrice);
+        const withdrawBase = await harness.convertFromTokenAmountToBaseCurrencyPublic(
+          tc.targetWithdrawToken,
+          Number(tc.cDec),
+          tc.cPrice,
+        );
         const repayBase = (withdrawBase * (tc.L - SCALE)) / tc.L;
-        const expectedDebtToken = await harness.convertFromBaseCurrencyToTokenPublic(repayBase, Number(tc.dDec), tc.dPrice);
+        const expectedDebtToken = await harness.convertFromBaseCurrencyToTokenPublic(
+          repayBase,
+          Number(tc.dDec),
+          tc.dPrice,
+        );
         expect(res).to.equal(expectedDebtToken);
       });
     }
@@ -256,9 +264,17 @@ describe("DLoopCoreLogic - Maintain Leverage", () => {
         );
 
         const L = tc.L0 === 0n ? tc.T : tc.L0;
-        const suppliedBase = await harness.convertFromTokenAmountToBaseCurrencyPublic(tc.supplied, Number(tc.cDec), tc.cPrice);
+        const suppliedBase = await harness.convertFromTokenAmountToBaseCurrencyPublic(
+          tc.supplied,
+          Number(tc.cDec),
+          tc.cPrice,
+        );
         const borrowBase = (suppliedBase * (L - SCALE)) / L;
-        const expectedDebtToken = await harness.convertFromBaseCurrencyToTokenPublic(borrowBase, Number(tc.dDec), tc.dPrice);
+        const expectedDebtToken = await harness.convertFromBaseCurrencyToTokenPublic(
+          borrowBase,
+          Number(tc.dDec),
+          tc.dPrice,
+        );
         expect(res).to.equal(expectedDebtToken);
       });
     }
@@ -273,7 +289,15 @@ describe("DLoopCoreLogic - Maintain Leverage", () => {
       const dDec = 18n;
       const dPrice = 10n ** 18n;
 
-      const res = await harness.getBorrowAmountThatKeepCurrentLeveragePublic(supplied, L0, T, Number(cDec), cPrice, Number(dDec), dPrice);
+      const res = await harness.getBorrowAmountThatKeepCurrentLeveragePublic(
+        supplied,
+        L0,
+        T,
+        Number(cDec),
+        cPrice,
+        Number(dDec),
+        dPrice,
+      );
       const expected = (supplied * (T - 1_000_000n)) / T;
       expect(res).to.equal(expected);
     });

@@ -214,13 +214,19 @@ describe("DLoopCoreMock - Withdraw Fee", function () {
     expect(await dloop.previewRedeem(shares)).to.equal(expectedNet);
 
     // Above max should revert with custom error
-    await expect(dloop.setWithdrawalFeeBps(MAX_FEE_BPS + 1n)).to.be.revertedWithCustomError(dloop, "WithdrawalFeeIsGreaterThanMaxFee");
+    await expect(dloop.setWithdrawalFeeBps(MAX_FEE_BPS + 1n)).to.be.revertedWithCustomError(
+      dloop,
+      "WithdrawalFeeIsGreaterThanMaxFee",
+    );
   });
 
   it("setWithdrawalFeeBps is onlyOwner", async function () {
     const user = users[1]; // not the deployer/owner
     const nonOwner = dloop.connect(user);
-    await expect(nonOwner.setWithdrawalFeeBps(FEE_BPS)).to.be.revertedWithCustomError(dloop, "OwnableUnauthorizedAccount");
+    await expect(nonOwner.setWithdrawalFeeBps(FEE_BPS)).to.be.revertedWithCustomError(
+      dloop,
+      "OwnableUnauthorizedAccount",
+    );
   });
 
   it("large amounts maintain precision and match previews", async function () {

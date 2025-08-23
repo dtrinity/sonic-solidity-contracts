@@ -135,7 +135,11 @@ describe.skip("DLoopCoreMock Calculation Tests", function () {
 
           if (testCase.debtTokenDecimals) {
             const TestMintableERC20Factory = await ethers.getContractFactory("TestMintableERC20");
-            testDebtToken = await TestMintableERC20Factory.deploy("Test Debt Token", "DEBT", testCase.debtTokenDecimals);
+            testDebtToken = await TestMintableERC20Factory.deploy(
+              "Test Debt Token",
+              "DEBT",
+              testCase.debtTokenDecimals,
+            );
           }
 
           await dloopMock.setMockPrice(await collateralToken.getAddress(), testCase.collateralPrice);
