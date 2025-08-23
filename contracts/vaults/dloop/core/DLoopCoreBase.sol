@@ -103,8 +103,17 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard, RescuableV
 
     /* Errors */
 
-    error TooImbalanced(uint256 currentLeverageBps, uint256 lowerBoundTargetLeverageBps, uint256 upperBoundTargetLeverageBps);
-    error InsufficientAllowanceOfDebtAssetToRepay(address owner, address spender, address debtAsset, uint256 requiredAllowance);
+    error TooImbalanced(
+        uint256 currentLeverageBps,
+        uint256 lowerBoundTargetLeverageBps,
+        uint256 upperBoundTargetLeverageBps
+    );
+    error InsufficientAllowanceOfDebtAssetToRepay(
+        address owner,
+        address spender,
+        address debtAsset,
+        uint256 requiredAllowance
+    );
     error InsufficientAllowanceOfCollateralAssetToSupply(
         address owner,
         address spender,
@@ -127,14 +136,24 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard, RescuableV
         uint256 tokenBalanceAfter,
         uint256 expectedTokenBalance
     );
-    error UnexpectedRepayAmountToPool(address token, uint256 tokenBalanceBefore, uint256 tokenBalanceAfter, uint256 expectedTokenBalance);
+    error UnexpectedRepayAmountToPool(
+        address token,
+        uint256 tokenBalanceBefore,
+        uint256 tokenBalanceAfter,
+        uint256 expectedTokenBalance
+    );
     error TokenBalanceNotDecreasedAfterSupply(
         address token,
         uint256 tokenBalanceBefore,
         uint256 tokenBalanceAfter,
         uint256 expectedTokenBalance
     );
-    error UnexpectedSupplyAmountToPool(address token, uint256 tokenBalanceBefore, uint256 tokenBalanceAfter, uint256 expectedTokenBalance);
+    error UnexpectedSupplyAmountToPool(
+        address token,
+        uint256 tokenBalanceBefore,
+        uint256 tokenBalanceAfter,
+        uint256 expectedTokenBalance
+    );
     error TokenBalanceNotIncreasedAfterBorrow(
         address token,
         uint256 tokenBalanceBefore,
@@ -164,7 +183,10 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard, RescuableV
     error LeverageExceedsTarget(uint256 currentLeverageBps, uint256 targetLeverageBps);
     error LeverageBelowTarget(uint256 currentLeverageBps, uint256 targetLeverageBps);
     error IncreaseLeverageReceiveLessThanMinAmount(uint256 receivedDebtTokenAmount, uint256 minReceivedDebtTokenAmount);
-    error DecreaseLeverageReceiveLessThanMinAmount(uint256 receivedCollateralTokenAmount, uint256 minReceivedCollateralTokenAmount);
+    error DecreaseLeverageReceiveLessThanMinAmount(
+        uint256 receivedCollateralTokenAmount,
+        uint256 minReceivedCollateralTokenAmount
+    );
     error ZeroShares();
     error WithdrawalFeeIsGreaterThanMaxFee(uint256 withdrawalFeeBps, uint256 maxWithdrawalFeeBps);
     error InvalidTargetLeverage(uint256 targetLeverageBps);
@@ -204,7 +226,11 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard, RescuableV
         }
 
         if (_lowerBoundTargetLeverageBps >= _targetLeverageBps || _targetLeverageBps >= _upperBoundTargetLeverageBps) {
-            revert InvalidLeverageBounds(_lowerBoundTargetLeverageBps, _targetLeverageBps, _upperBoundTargetLeverageBps);
+            revert InvalidLeverageBounds(
+                _lowerBoundTargetLeverageBps,
+                _targetLeverageBps,
+                _upperBoundTargetLeverageBps
+            );
         }
 
         // Make sure collateral token is ERC-20
@@ -238,7 +264,10 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard, RescuableV
     ) public view virtual returns (uint256 totalCollateralBase, uint256 totalDebtBase) {
         // Collateral side: balance of the aToken corresponding to collateralToken
         uint256 collateralBalanceInTokenAmount = getCollateralValueInTokenAmount(address(collateralToken), user);
-        totalCollateralBase = convertFromTokenAmountToBaseCurrency(collateralBalanceInTokenAmount, address(collateralToken));
+        totalCollateralBase = convertFromTokenAmountToBaseCurrency(
+            collateralBalanceInTokenAmount,
+            address(collateralToken)
+        );
 
         // Debt side: sum of variable + stable debt token balances corresponding to debtToken
         uint256 debtBalanceInTokenAmount = getDebtValueInTokenAmount(address(debtToken), user);
@@ -252,7 +281,10 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard, RescuableV
      * @param user The address of the user
      * @return collateralTokenAmount The collateral token amount
      */
-    function getCollateralValueInTokenAmount(address token, address user) public view virtual returns (uint256 collateralTokenAmount);
+    function getCollateralValueInTokenAmount(
+        address token,
+        address user
+    ) public view virtual returns (uint256 collateralTokenAmount);
 
     /**
      * @dev Get the debt value in token amount in the underlying pool
@@ -260,7 +292,10 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard, RescuableV
      * @param user The address of the user
      * @return debtTokenAmount The debt token amount
      */
-    function getDebtValueInTokenAmount(address token, address user) public view virtual returns (uint256 debtTokenAmount);
+    function getDebtValueInTokenAmount(
+        address token,
+        address user
+    ) public view virtual returns (uint256 debtTokenAmount);
 
     /**
      * @dev Gets the additional rescue tokens
@@ -336,7 +371,12 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard, RescuableV
             Compare.BalanceDirection.Decrease
         );
         if (!check.directionOk) {
-            revert TokenBalanceNotDecreasedAfterSupply(token, tokenBalanceBeforeSupply, tokenBalanceAfterSupply, amount);
+            revert TokenBalanceNotDecreasedAfterSupply(
+                token,
+                tokenBalanceBeforeSupply,
+                tokenBalanceAfterSupply,
+                amount
+            );
         }
         if (!check.toleranceOk) {
             revert UnexpectedSupplyAmountToPool(token, tokenBalanceBeforeSupply, tokenBalanceAfterSupply, amount);
@@ -370,7 +410,12 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard, RescuableV
             Compare.BalanceDirection.Increase
         );
         if (!check.directionOk) {
-            revert TokenBalanceNotIncreasedAfterBorrow(token, tokenBalanceBeforeBorrow, tokenBalanceAfterBorrow, amount);
+            revert TokenBalanceNotIncreasedAfterBorrow(
+                token,
+                tokenBalanceBeforeBorrow,
+                tokenBalanceAfterBorrow,
+                amount
+            );
         }
         if (!check.toleranceOk) {
             revert UnexpectedBorrowAmountFromPool(token, tokenBalanceBeforeBorrow, tokenBalanceAfterBorrow, amount);
@@ -452,10 +497,20 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard, RescuableV
             Compare.BalanceDirection.Increase
         );
         if (!check.directionOk) {
-            revert TokenBalanceNotIncreasedAfterWithdraw(token, tokenBalanceBeforeWithdraw, tokenBalanceAfterWithdraw, amount);
+            revert TokenBalanceNotIncreasedAfterWithdraw(
+                token,
+                tokenBalanceBeforeWithdraw,
+                tokenBalanceAfterWithdraw,
+                amount
+            );
         }
         if (!check.toleranceOk) {
-            revert UnexpectedWithdrawAmountFromPool(token, tokenBalanceBeforeWithdraw, tokenBalanceAfterWithdraw, amount);
+            revert UnexpectedWithdrawAmountFromPool(
+                token,
+                tokenBalanceBeforeWithdraw,
+                tokenBalanceAfterWithdraw,
+                amount
+            );
         }
 
         // Return the observed value to avoid the case when the actual amount is 1 wei different from the expected amount
@@ -534,7 +589,12 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard, RescuableV
      * @return amountInToken Amount in the token
      */
     function convertFromBaseCurrencyToToken(uint256 amountInBase, address token) public view returns (uint256) {
-        return DLoopCoreLogic.convertFromBaseCurrencyToToken(amountInBase, ERC20(token).decimals(), getAssetPriceFromOracle(token));
+        return
+            DLoopCoreLogic.convertFromBaseCurrencyToToken(
+                amountInBase,
+                ERC20(token).decimals(),
+                getAssetPriceFromOracle(token)
+            );
     }
 
     /**
@@ -544,7 +604,12 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard, RescuableV
      * @return amountInBase Amount in base currency
      */
     function convertFromTokenAmountToBaseCurrency(uint256 amountInToken, address token) public view returns (uint256) {
-        return DLoopCoreLogic.convertFromTokenAmountToBaseCurrency(amountInToken, ERC20(token).decimals(), getAssetPriceFromOracle(token));
+        return
+            DLoopCoreLogic.convertFromTokenAmountToBaseCurrency(
+                amountInToken,
+                ERC20(token).decimals(),
+                getAssetPriceFromOracle(token)
+            );
     }
 
     /**
@@ -567,7 +632,12 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard, RescuableV
      * @return bool True if leverage is too imbalanced, false otherwise
      */
     function isTooImbalanced() public view returns (bool) {
-        return DLoopCoreLogic.isTooImbalanced(getCurrentLeverageBps(), lowerBoundTargetLeverageBps, upperBoundTargetLeverageBps);
+        return
+            DLoopCoreLogic.isTooImbalanced(
+                getCurrentLeverageBps(),
+                lowerBoundTargetLeverageBps,
+                upperBoundTargetLeverageBps
+            );
     }
 
     /* Deposit and Mint */
@@ -640,7 +710,12 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard, RescuableV
         // If do not have enough allowance, revert with the error message
         // This is to early-revert with instruction in the error message
         if (collateralToken.allowance(caller, address(this)) < supplyAssetAmount) {
-            revert InsufficientAllowanceOfCollateralAssetToSupply(caller, address(this), address(collateralToken), supplyAssetAmount);
+            revert InsufficientAllowanceOfCollateralAssetToSupply(
+                caller,
+                address(this),
+                address(collateralToken),
+                supplyAssetAmount
+            );
         }
 
         // Transfer the assets to the vault (need the allowance before calling this function)
@@ -701,7 +776,13 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard, RescuableV
      * @param assets Amount of assets to remove from the lending pool
      * @param shares Amount of shares to burn
      */
-    function _withdraw(address caller, address receiver, address owner, uint256 assets, uint256 shares) internal override nonReentrant {
+    function _withdraw(
+        address caller,
+        address receiver,
+        address owner,
+        uint256 assets,
+        uint256 shares
+    ) internal override nonReentrant {
         /**
          * Example of how this function works:
          *
@@ -789,7 +870,12 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard, RescuableV
         // If don't have enough allowance, revert with the error message
         // This is to early-revert with instruction in the error message
         if (debtToken.allowance(caller, address(this)) < estimatedRepaidDebtTokenAmount) {
-            revert InsufficientAllowanceOfDebtAssetToRepay(caller, address(this), address(debtToken), estimatedRepaidDebtTokenAmount);
+            revert InsufficientAllowanceOfDebtAssetToRepay(
+                caller,
+                address(this),
+                address(debtToken),
+                estimatedRepaidDebtTokenAmount
+            );
         }
 
         // Transfer the debt token to the vault to repay the debt
@@ -885,7 +971,10 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard, RescuableV
      * @param inputCollateralTokenAmount The amount of collateral token to deposit
      * @param minReceivedDebtTokenAmount The minimum amount of debt token to receive
      */
-    function increaseLeverage(uint256 inputCollateralTokenAmount, uint256 minReceivedDebtTokenAmount) public nonReentrant {
+    function increaseLeverage(
+        uint256 inputCollateralTokenAmount,
+        uint256 minReceivedDebtTokenAmount
+    ) public nonReentrant {
         /**
          * Example of how this function works:
          *
@@ -931,13 +1020,21 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard, RescuableV
         collateralToken.safeTransferFrom(msg.sender, address(this), inputCollateralTokenAmount);
 
         // Supply the collateral token to the lending pool
-        uint256 actualSuppliedCollateralTokenAmount = _supplyToPool(address(collateralToken), inputCollateralTokenAmount, address(this));
+        uint256 actualSuppliedCollateralTokenAmount = _supplyToPool(
+            address(collateralToken),
+            inputCollateralTokenAmount,
+            address(this)
+        );
 
         // At this step, the _borrowFromPool wrapper function will also assert that
         // the borrowed amount is exactly the amount requested, thus we can safely
         // have the slippage check before calling this function
         // Update the debt token amount borrowed to the actual amount
-        uint256 actualBorrowedDebtTokenAmount = _borrowFromPool(address(debtToken), borrowedDebtTokenAmount, address(this));
+        uint256 actualBorrowedDebtTokenAmount = _borrowFromPool(
+            address(debtToken),
+            borrowedDebtTokenAmount,
+            address(this)
+        );
 
         // Slippage protection, to make sure the user receives at least minReceivedDebtTokenAmount
         // At this step, we check against the actual amount borrowed from the pool
@@ -947,8 +1044,15 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard, RescuableV
 
         // Make sure new current leverage is increased and not above the target leverage
         uint256 newCurrentLeverageBps = getCurrentLeverageBps();
-        if (newCurrentLeverageBps > targetLeverageBps || newCurrentLeverageBps <= currentLeverageBpsBeforeIncreaseLeverage) {
-            revert IncreaseLeverageOutOfRange(newCurrentLeverageBps, targetLeverageBps, currentLeverageBpsBeforeIncreaseLeverage);
+        if (
+            newCurrentLeverageBps > targetLeverageBps ||
+            newCurrentLeverageBps <= currentLeverageBpsBeforeIncreaseLeverage
+        ) {
+            revert IncreaseLeverageOutOfRange(
+                newCurrentLeverageBps,
+                targetLeverageBps,
+                currentLeverageBpsBeforeIncreaseLeverage
+            );
         }
 
         if (actualBorrowedDebtTokenAmount > 0) {
@@ -972,7 +1076,10 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard, RescuableV
      * @param inputDebtTokenAmount The amount of debt token to repay
      * @param minReceivedCollateralTokenAmount The minimum amount of collateral asset to receive
      */
-    function decreaseLeverage(uint256 inputDebtTokenAmount, uint256 minReceivedCollateralTokenAmount) public nonReentrant {
+    function decreaseLeverage(
+        uint256 inputDebtTokenAmount,
+        uint256 minReceivedCollateralTokenAmount
+    ) public nonReentrant {
         /**
          * Example of how this function works:
          *
@@ -1032,7 +1139,10 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard, RescuableV
         // Slippage protection, to make sure the user receives at least minReceivedAmount
         // At this step, we check against the actual amount withdrawn from the pool
         if (actualWithdrawnCollateralTokenAmount < minReceivedCollateralTokenAmount) {
-            revert DecreaseLeverageReceiveLessThanMinAmount(actualWithdrawnCollateralTokenAmount, minReceivedCollateralTokenAmount);
+            revert DecreaseLeverageReceiveLessThanMinAmount(
+                actualWithdrawnCollateralTokenAmount,
+                minReceivedCollateralTokenAmount
+            );
         }
 
         // Make sure new current leverage is decreased and not below the target leverage
@@ -1074,7 +1184,13 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard, RescuableV
      * @return uint256 The current subsidy in basis points
      */
     function getCurrentSubsidyBps() public view returns (uint256) {
-        return DLoopCoreLogic.getCurrentSubsidyBps(getCurrentLeverageBps(), targetLeverageBps, maxSubsidyBps, minDeviationBps);
+        return
+            DLoopCoreLogic.getCurrentSubsidyBps(
+                getCurrentLeverageBps(),
+                targetLeverageBps,
+                maxSubsidyBps,
+                minDeviationBps
+            );
     }
 
     /**
@@ -1130,7 +1246,10 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard, RescuableV
      * @param _lowerBoundTargetLeverageBps New lower bound of target leverage in basis points
      * @param _upperBoundTargetLeverageBps New upper bound of target leverage in basis points
      */
-    function setLeverageBounds(uint32 _lowerBoundTargetLeverageBps, uint32 _upperBoundTargetLeverageBps) public onlyOwner nonReentrant {
+    function setLeverageBounds(
+        uint32 _lowerBoundTargetLeverageBps,
+        uint32 _upperBoundTargetLeverageBps
+    ) public onlyOwner nonReentrant {
         if (_lowerBoundTargetLeverageBps >= targetLeverageBps || targetLeverageBps >= _upperBoundTargetLeverageBps) {
             revert InvalidLeverageBounds(_lowerBoundTargetLeverageBps, targetLeverageBps, _upperBoundTargetLeverageBps);
         }

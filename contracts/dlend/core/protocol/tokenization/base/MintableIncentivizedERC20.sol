@@ -34,7 +34,12 @@ abstract contract MintableIncentivizedERC20 is IncentivizedERC20 {
      * @param symbol The symbol of the token
      * @param decimals The number of decimals of the token
      */
-    constructor(IPool pool, string memory name, string memory symbol, uint8 decimals) IncentivizedERC20(pool, name, symbol, decimals) {
+    constructor(
+        IPool pool,
+        string memory name,
+        string memory symbol,
+        uint8 decimals
+    ) IncentivizedERC20(pool, name, symbol, decimals) {
         // Intentionally left blank
     }
 

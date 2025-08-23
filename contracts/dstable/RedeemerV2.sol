@@ -128,7 +128,11 @@ contract RedeemerV2 is AccessControl, OracleAware, Pausable, ReentrancyGuard {
 
     /* Redeemer */
 
-    function redeem(uint256 dstableAmount, address collateralAsset, uint256 minNetCollateral) external whenNotPaused nonReentrant {
+    function redeem(
+        uint256 dstableAmount,
+        address collateralAsset,
+        uint256 minNetCollateral
+    ) external whenNotPaused nonReentrant {
         // Ensure the collateral asset is supported by the vault before any further processing
         if (!collateralVault.isCollateralSupported(collateralAsset)) {
             revert CollateralVault.UnsupportedCollateral(collateralAsset);
@@ -195,7 +199,12 @@ contract RedeemerV2 is AccessControl, OracleAware, Pausable, ReentrancyGuard {
         emit Redemption(msg.sender, collateralAsset, dstableAmount, totalCollateral, 0);
     }
 
-    function _redeem(address redeemerAddress, uint256 dstableAmount, address collateralAsset, uint256 collateralAmount) internal {
+    function _redeem(
+        address redeemerAddress,
+        uint256 dstableAmount,
+        address collateralAsset,
+        uint256 collateralAmount
+    ) internal {
         // Transfer dStable from redeemer to this contract
         if (!dstable.transferFrom(redeemerAddress, address(this), dstableAmount)) {
             revert DStableTransferFailed();
@@ -251,7 +260,10 @@ contract RedeemerV2 is AccessControl, OracleAware, Pausable, ReentrancyGuard {
         emit DefaultRedemptionFeeUpdated(oldFeeBps, _newFeeBps);
     }
 
-    function setCollateralRedemptionFee(address _collateralAsset, uint256 _newFeeBps) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function setCollateralRedemptionFee(
+        address _collateralAsset,
+        uint256 _newFeeBps
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         if (_collateralAsset == address(0)) {
             revert CannotBeZeroAddress();
         }

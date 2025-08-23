@@ -36,7 +36,9 @@ contract MockAdapterSmallDepositRevert is IDStableConversionAdapter {
 
     // ---------------- IDStableConversionAdapter ----------------
 
-    function convertToVaultAsset(uint256 dStableAmount) external override returns (address _vaultAsset, uint256 vaultAssetAmount) {
+    function convertToVaultAsset(
+        uint256 dStableAmount
+    ) external override returns (address _vaultAsset, uint256 vaultAssetAmount) {
         if (dStableAmount < MIN_DEPOSIT) revert DepositTooSmall(dStableAmount);
 
         // Pull dStable from caller (Router)
@@ -65,11 +67,16 @@ contract MockAdapterSmallDepositRevert is IDStableConversionAdapter {
         vaultAssetAmount = dStableAmount;
     }
 
-    function previewConvertFromVaultAsset(uint256 vaultAssetAmount) external pure override returns (uint256 dStableAmount) {
+    function previewConvertFromVaultAsset(
+        uint256 vaultAssetAmount
+    ) external pure override returns (uint256 dStableAmount) {
         return (vaultAssetAmount * 11000) / 10000; // 1.1x like MockERC4626Simple
     }
 
-    function assetValueInDStable(address _vaultAsset, uint256 vaultAssetAmount) external pure override returns (uint256 dStableValue) {
+    function assetValueInDStable(
+        address _vaultAsset,
+        uint256 vaultAssetAmount
+    ) external pure override returns (uint256 dStableValue) {
         require(_vaultAsset == address(0) || _vaultAsset != address(0), "NOP"); // dummy check to silence linter
         return (vaultAssetAmount * 11000) / 10000;
     }

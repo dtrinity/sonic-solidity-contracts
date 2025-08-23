@@ -65,9 +65,17 @@ contract CurveWithdrawSwapAdapter is BaseCurveSellAdapter, ReentrancyGuard, ICur
     }
 
     /// @inheritdoc ICurveWithdrawSwapAdapter
-    function withdrawAndSwap(WithdrawSwapParams memory withdrawSwapParams, PermitInput memory permitInput) external nonReentrant {
+    function withdrawAndSwap(
+        WithdrawSwapParams memory withdrawSwapParams,
+        PermitInput memory permitInput
+    ) external nonReentrant {
         // pulls liquidity asset from the user and withdraw
-        _pullATokenAndWithdraw(withdrawSwapParams.oldAsset, withdrawSwapParams.user, withdrawSwapParams.oldAssetAmount, permitInput);
+        _pullATokenAndWithdraw(
+            withdrawSwapParams.oldAsset,
+            withdrawSwapParams.user,
+            withdrawSwapParams.oldAssetAmount,
+            permitInput
+        );
 
         // sell(exact in) withdrawn asset from Aave Pool to new asset
         uint256 amountReceived = _sellOnCurve(

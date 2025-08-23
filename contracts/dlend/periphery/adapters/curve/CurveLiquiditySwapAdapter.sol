@@ -32,7 +32,12 @@ import { IERC20 } from "contracts/dlend/core/dependencies/openzeppelin/contracts
  * @title CurveLiquiditySwapAdapter
  * @notice Adapter to swap liquidity using Curve
  */
-contract CurveLiquiditySwapAdapter is BaseCurveSellAdapter, ReentrancyGuard, IAaveFlashLoanReceiver, ICurveLiquiditySwapAdapter {
+contract CurveLiquiditySwapAdapter is
+    BaseCurveSellAdapter,
+    ReentrancyGuard,
+    IAaveFlashLoanReceiver,
+    ICurveLiquiditySwapAdapter
+{
     using SafeERC20 for IERC20;
 
     // unique identifier to track usage via flashloan events
@@ -190,7 +195,10 @@ contract CurveLiquiditySwapAdapter is BaseCurveSellAdapter, ReentrancyGuard, IAa
      * @param liquiditySwapParams struct describing the liquidity swap
      * @param collateralATokenPermit optional permit for old collateral's aToken
      */
-    function _flash(LiquiditySwapParams memory liquiditySwapParams, PermitInput memory collateralATokenPermit) internal virtual {
+    function _flash(
+        LiquiditySwapParams memory liquiditySwapParams,
+        PermitInput memory collateralATokenPermit
+    ) internal virtual {
         bytes memory params = abi.encode(liquiditySwapParams, collateralATokenPermit);
         address[] memory assets = new address[](1);
         assets[0] = liquiditySwapParams.collateralAsset;

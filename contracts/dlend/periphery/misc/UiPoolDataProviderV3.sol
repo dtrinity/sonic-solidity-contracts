@@ -87,14 +87,17 @@ contract UiPoolDataProviderV3 is IUiPoolDataProviderV3 {
 
             reserveData.priceInMarketReferenceCurrency = oracle.getAssetPrice(reserveData.underlyingAsset);
             reserveData.priceOracle = oracle.getSourceOfAsset(reserveData.underlyingAsset);
-            reserveData.availableLiquidity = IERC20Detailed(reserveData.underlyingAsset).balanceOf(reserveData.aTokenAddress);
+            reserveData.availableLiquidity = IERC20Detailed(reserveData.underlyingAsset).balanceOf(
+                reserveData.aTokenAddress
+            );
             (
                 reserveData.totalPrincipalStableDebt,
                 ,
                 reserveData.averageStableRate,
                 reserveData.stableDebtLastUpdateTimestamp
             ) = IStableDebtToken(reserveData.stableDebtTokenAddress).getSupplyData();
-            reserveData.totalScaledVariableDebt = IVariableDebtToken(reserveData.variableDebtTokenAddress).scaledTotalSupply();
+            reserveData.totalScaledVariableDebt = IVariableDebtToken(reserveData.variableDebtTokenAddress)
+                .scaledTotalSupply();
 
             reserveData.symbol = IERC20Detailed(reserveData.underlyingAsset).symbol();
             reserveData.name = IERC20Detailed(reserveData.underlyingAsset).name();
@@ -121,29 +124,39 @@ contract UiPoolDataProviderV3 is IUiPoolDataProviderV3 {
             ) = reserveConfigurationMap.getFlags();
 
             // interest rates
-            try DefaultReserveInterestRateStrategy(reserveData.interestRateStrategyAddress).getVariableRateSlope1() returns (uint256 res) {
+            try
+                DefaultReserveInterestRateStrategy(reserveData.interestRateStrategyAddress).getVariableRateSlope1()
+            returns (uint256 res) {
                 reserveData.variableRateSlope1 = res;
             } catch {}
-            try DefaultReserveInterestRateStrategy(reserveData.interestRateStrategyAddress).getVariableRateSlope2() returns (uint256 res) {
+            try
+                DefaultReserveInterestRateStrategy(reserveData.interestRateStrategyAddress).getVariableRateSlope2()
+            returns (uint256 res) {
                 reserveData.variableRateSlope2 = res;
             } catch {}
-            try DefaultReserveInterestRateStrategy(reserveData.interestRateStrategyAddress).getStableRateSlope1() returns (uint256 res) {
+            try
+                DefaultReserveInterestRateStrategy(reserveData.interestRateStrategyAddress).getStableRateSlope1()
+            returns (uint256 res) {
                 reserveData.stableRateSlope1 = res;
             } catch {}
-            try DefaultReserveInterestRateStrategy(reserveData.interestRateStrategyAddress).getStableRateSlope2() returns (uint256 res) {
+            try
+                DefaultReserveInterestRateStrategy(reserveData.interestRateStrategyAddress).getStableRateSlope2()
+            returns (uint256 res) {
                 reserveData.stableRateSlope2 = res;
             } catch {}
-            try DefaultReserveInterestRateStrategy(reserveData.interestRateStrategyAddress).getBaseStableBorrowRate() returns (
-                uint256 res
-            ) {
+            try
+                DefaultReserveInterestRateStrategy(reserveData.interestRateStrategyAddress).getBaseStableBorrowRate()
+            returns (uint256 res) {
                 reserveData.baseStableBorrowRate = res;
             } catch {}
-            try DefaultReserveInterestRateStrategy(reserveData.interestRateStrategyAddress).getBaseVariableBorrowRate() returns (
-                uint256 res
-            ) {
+            try
+                DefaultReserveInterestRateStrategy(reserveData.interestRateStrategyAddress).getBaseVariableBorrowRate()
+            returns (uint256 res) {
                 reserveData.baseVariableBorrowRate = res;
             } catch {}
-            try DefaultReserveInterestRateStrategy(reserveData.interestRateStrategyAddress).OPTIMAL_USAGE_RATIO() returns (uint256 res) {
+            try
+                DefaultReserveInterestRateStrategy(reserveData.interestRateStrategyAddress).OPTIMAL_USAGE_RATIO()
+            returns (uint256 res) {
                 reserveData.optimalUsageRatio = res;
             } catch {}
 
@@ -217,12 +230,16 @@ contract UiPoolDataProviderV3 is IUiPoolDataProviderV3 {
             userReservesData[i].usageAsCollateralEnabledOnUser = userConfig.isUsingAsCollateral(i);
 
             if (userConfig.isBorrowing(i)) {
-                userReservesData[i].scaledVariableDebt = IVariableDebtToken(baseData.variableDebtTokenAddress).scaledBalanceOf(user);
-                userReservesData[i].principalStableDebt = IStableDebtToken(baseData.stableDebtTokenAddress).principalBalanceOf(user);
+                userReservesData[i].scaledVariableDebt = IVariableDebtToken(baseData.variableDebtTokenAddress)
+                    .scaledBalanceOf(user);
+                userReservesData[i].principalStableDebt = IStableDebtToken(baseData.stableDebtTokenAddress)
+                    .principalBalanceOf(user);
                 if (userReservesData[i].principalStableDebt != 0) {
-                    userReservesData[i].stableBorrowRate = IStableDebtToken(baseData.stableDebtTokenAddress).getUserStableRate(user);
-                    userReservesData[i].stableBorrowLastUpdateTimestamp = IStableDebtToken(baseData.stableDebtTokenAddress)
-                        .getUserLastUpdated(user);
+                    userReservesData[i].stableBorrowRate = IStableDebtToken(baseData.stableDebtTokenAddress)
+                        .getUserStableRate(user);
+                    userReservesData[i].stableBorrowLastUpdateTimestamp = IStableDebtToken(
+                        baseData.stableDebtTokenAddress
+                    ).getUserLastUpdated(user);
                 }
             }
         }

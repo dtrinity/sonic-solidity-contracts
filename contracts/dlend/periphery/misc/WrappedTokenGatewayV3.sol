@@ -91,9 +91,14 @@ contract WrappedTokenGatewayV3 is IWrappedTokenGatewayV3, Ownable {
      * @param onBehalfOf the address for which msg.sender is repaying
      */
     function repayETH(address, uint256 amount, uint256 rateMode, address onBehalfOf) external payable override {
-        (uint256 stableDebt, uint256 variableDebt) = DataTypesHelper.getUserCurrentDebt(onBehalfOf, POOL.getReserveData(address(WETH)));
+        (uint256 stableDebt, uint256 variableDebt) = DataTypesHelper.getUserCurrentDebt(
+            onBehalfOf,
+            POOL.getReserveData(address(WETH))
+        );
 
-        uint256 paybackAmount = DataTypes.InterestRateMode(rateMode) == DataTypes.InterestRateMode.STABLE ? stableDebt : variableDebt;
+        uint256 paybackAmount = DataTypes.InterestRateMode(rateMode) == DataTypes.InterestRateMode.STABLE
+            ? stableDebt
+            : variableDebt;
 
         if (amount < paybackAmount) {
             paybackAmount = amount;

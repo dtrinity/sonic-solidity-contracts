@@ -20,7 +20,9 @@ contract MockAdapterPositiveSlippage is IDStableConversionAdapter {
         vaultToken = new MockERC4626Simple(IERC20(_dStable));
     }
 
-    function convertToVaultAsset(uint256 dStableAmount) external override returns (address _vaultAsset, uint256 vaultAssetAmount) {
+    function convertToVaultAsset(
+        uint256 dStableAmount
+    ) external override returns (address _vaultAsset, uint256 vaultAssetAmount) {
         IERC20(dStable).transferFrom(msg.sender, address(this), dStableAmount);
         IERC20(dStable).forceApprove(address(vaultToken), dStableAmount);
         vaultAssetAmount = vaultToken.deposit(dStableAmount, collateralVault);
@@ -40,11 +42,16 @@ contract MockAdapterPositiveSlippage is IDStableConversionAdapter {
         return (address(vaultToken), dStableAmount);
     }
 
-    function previewConvertFromVaultAsset(uint256 vaultAssetAmount) external view override returns (uint256 dStableAmount) {
+    function previewConvertFromVaultAsset(
+        uint256 vaultAssetAmount
+    ) external view override returns (uint256 dStableAmount) {
         return vaultToken.previewRedeem(vaultAssetAmount);
     }
 
-    function assetValueInDStable(address _vaultAsset, uint256 vaultAssetAmount) external view override returns (uint256 dStableValue) {
+    function assetValueInDStable(
+        address _vaultAsset,
+        uint256 vaultAssetAmount
+    ) external view override returns (uint256 dStableValue) {
         require(_vaultAsset == address(vaultToken), "Wrong asset");
         return vaultToken.previewRedeem(vaultAssetAmount);
     }

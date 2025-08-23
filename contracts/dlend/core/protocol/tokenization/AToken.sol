@@ -97,12 +97,22 @@ contract AToken is VersionedInitializable, ScaledBalanceTokenBase, EIP712Base, I
     }
 
     /// @inheritdoc IAToken
-    function mint(address caller, address onBehalfOf, uint256 amount, uint256 index) external virtual override onlyPool returns (bool) {
+    function mint(
+        address caller,
+        address onBehalfOf,
+        uint256 amount,
+        uint256 index
+    ) external virtual override onlyPool returns (bool) {
         return _mintScaled(caller, onBehalfOf, amount, index);
     }
 
     /// @inheritdoc IAToken
-    function burn(address from, address receiverOfUnderlying, uint256 amount, uint256 index) external virtual override onlyPool {
+    function burn(
+        address from,
+        address receiverOfUnderlying,
+        uint256 amount,
+        uint256 index
+    ) external virtual override onlyPool {
         _burnScaled(from, receiverOfUnderlying, amount, index);
         if (receiverOfUnderlying != address(this)) {
             IERC20(_underlyingAsset).safeTransfer(receiverOfUnderlying, amount);
@@ -161,7 +171,15 @@ contract AToken is VersionedInitializable, ScaledBalanceTokenBase, EIP712Base, I
     }
 
     /// @inheritdoc IAToken
-    function permit(address owner, address spender, uint256 value, uint256 deadline, uint8 v, bytes32 r, bytes32 s) external override {
+    function permit(
+        address owner,
+        address spender,
+        uint256 value,
+        uint256 deadline,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external override {
         require(owner != address(0), Errors.ZERO_ADDRESS_NOT_VALID);
         //solium-disable-next-line
         require(block.timestamp <= deadline, Errors.INVALID_EXPIRATION);

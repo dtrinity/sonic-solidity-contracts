@@ -154,11 +154,12 @@ library LiquidationLogic {
             })
         );
 
-        (vars.collateralAToken, vars.collateralPriceSource, vars.debtPriceSource, vars.liquidationBonus) = _getConfigurationData(
-            eModeCategories,
-            collateralReserve,
-            params
-        );
+        (
+            vars.collateralAToken,
+            vars.collateralPriceSource,
+            vars.debtPriceSource,
+            vars.liquidationBonus
+        ) = _getConfigurationData(eModeCategories, collateralReserve, params);
 
         vars.userCollateralBalance = vars.collateralAToken.balanceOf(params.user);
 
@@ -223,9 +224,17 @@ library LiquidationLogic {
         }
 
         // Transfers the debt asset being repaid to the aToken, where the liquidity is kept
-        IERC20(params.debtAsset).safeTransferFrom(msg.sender, vars.debtReserveCache.aTokenAddress, vars.actualDebtToLiquidate);
+        IERC20(params.debtAsset).safeTransferFrom(
+            msg.sender,
+            vars.debtReserveCache.aTokenAddress,
+            vars.actualDebtToLiquidate
+        );
 
-        IAToken(vars.debtReserveCache.aTokenAddress).handleRepayment(msg.sender, params.user, vars.actualDebtToLiquidate);
+        IAToken(vars.debtReserveCache.aTokenAddress).handleRepayment(
+            msg.sender,
+            params.user,
+            vars.actualDebtToLiquidate
+        );
 
         emit LiquidationCall(
             params.collateralAsset,
@@ -252,10 +261,20 @@ library LiquidationLogic {
     ) internal {
         DataTypes.ReserveCache memory collateralReserveCache = collateralReserve.cache();
         collateralReserve.updateState(collateralReserveCache);
-        collateralReserve.updateInterestRates(collateralReserveCache, params.collateralAsset, 0, vars.actualCollateralToLiquidate);
+        collateralReserve.updateInterestRates(
+            collateralReserveCache,
+            params.collateralAsset,
+            0,
+            vars.actualCollateralToLiquidate
+        );
 
         // Burn the equivalent amount of aToken, sending the underlying to the liquidator
-        vars.collateralAToken.burn(params.user, msg.sender, vars.actualCollateralToLiquidate, collateralReserveCache.nextLiquidityIndex);
+        vars.collateralAToken.burn(
+            params.user,
+            msg.sender,
+            vars.actualCollateralToLiquidate,
+            collateralReserveCache.nextLiquidityIndex
+        );
     }
 
     /**
@@ -303,25 +322,28 @@ library LiquidationLogic {
      * @param params The additional parameters needed to execute the liquidation function
      * @param vars the executeLiquidationCall() function local vars
      */
-    function _burnDebtTokens(DataTypes.ExecuteLiquidationCallParams memory params, LiquidationCallLocalVars memory vars) internal {
+    function _burnDebtTokens(
+        DataTypes.ExecuteLiquidationCallParams memory params,
+        LiquidationCallLocalVars memory vars
+    ) internal {
         if (vars.userVariableDebt >= vars.actualDebtToLiquidate) {
-            vars.debtReserveCache.nextScaledVariableDebt = IVariableDebtToken(vars.debtReserveCache.variableDebtTokenAddress).burn(
-                params.user,
-                vars.actualDebtToLiquidate,
-                vars.debtReserveCache.nextVariableBorrowIndex
-            );
+            vars.debtReserveCache.nextScaledVariableDebt = IVariableDebtToken(
+                vars.debtReserveCache.variableDebtTokenAddress
+            ).burn(params.user, vars.actualDebtToLiquidate, vars.debtReserveCache.nextVariableBorrowIndex);
         } else {
             // If the user doesn't have variable debt, no need to try to burn variable debt tokens
             if (vars.userVariableDebt != 0) {
-                vars.debtReserveCache.nextScaledVariableDebt = IVariableDebtToken(vars.debtReserveCache.variableDebtTokenAddress).burn(
-                    params.user,
-                    vars.userVariableDebt,
-                    vars.debtReserveCache.nextVariableBorrowIndex
-                );
+                vars.debtReserveCache.nextScaledVariableDebt = IVariableDebtToken(
+                    vars.debtReserveCache.variableDebtTokenAddress
+                ).burn(params.user, vars.userVariableDebt, vars.debtReserveCache.nextVariableBorrowIndex);
             }
-            (vars.debtReserveCache.nextTotalStableDebt, vars.debtReserveCache.nextAvgStableBorrowRate) = IStableDebtToken(
-                vars.debtReserveCache.stableDebtTokenAddress
-            ).burn(params.user, vars.actualDebtToLiquidate - vars.userVariableDebt);
+            (
+                vars.debtReserveCache.nextTotalStableDebt,
+                vars.debtReserveCache.nextAvgStableBorrowRate
+            ) = IStableDebtToken(vars.debtReserveCache.stableDebtTokenAddress).burn(
+                params.user,
+                vars.actualDebtToLiquidate - vars.userVariableDebt
+            );
         }
     }
 
@@ -345,11 +367,15 @@ library LiquidationLogic {
 
         uint256 userTotalDebt = userStableDebt + userVariableDebt;
 
-        uint256 closeFactor = healthFactor > CLOSE_FACTOR_HF_THRESHOLD ? DEFAULT_LIQUIDATION_CLOSE_FACTOR : MAX_LIQUIDATION_CLOSE_FACTOR;
+        uint256 closeFactor = healthFactor > CLOSE_FACTOR_HF_THRESHOLD
+            ? DEFAULT_LIQUIDATION_CLOSE_FACTOR
+            : MAX_LIQUIDATION_CLOSE_FACTOR;
 
         uint256 maxLiquidatableDebt = userTotalDebt.percentMul(closeFactor);
 
-        uint256 actualDebtToLiquidate = params.debtToCover > maxLiquidatableDebt ? maxLiquidatableDebt : params.debtToCover;
+        uint256 actualDebtToLiquidate = params.debtToCover > maxLiquidatableDebt
+            ? maxLiquidatableDebt
+            : params.debtToCover;
 
         return (userVariableDebt, userTotalDebt, actualDebtToLiquidate);
     }
@@ -378,7 +404,12 @@ library LiquidationLogic {
         if (params.userEModeCategory != 0) {
             address eModePriceSource = eModeCategories[params.userEModeCategory].priceSource;
 
-            if (EModeLogic.isInEModeCategory(params.userEModeCategory, collateralReserve.configuration.getEModeCategory())) {
+            if (
+                EModeLogic.isInEModeCategory(
+                    params.userEModeCategory,
+                    collateralReserve.configuration.getEModeCategory()
+                )
+            ) {
                 liquidationBonus = eModeCategories[params.userEModeCategory].liquidationBonus;
 
                 if (eModePriceSource != address(0)) {
@@ -473,7 +504,11 @@ library LiquidationLogic {
 
             vars.liquidationProtocolFee = vars.bonusCollateral.percentMul(vars.liquidationProtocolFeePercentage);
 
-            return (vars.collateralAmount - vars.liquidationProtocolFee, vars.debtAmountNeeded, vars.liquidationProtocolFee);
+            return (
+                vars.collateralAmount - vars.liquidationProtocolFee,
+                vars.debtAmountNeeded,
+                vars.liquidationProtocolFee
+            );
         } else {
             return (vars.collateralAmount, vars.debtAmountNeeded, 0);
         }

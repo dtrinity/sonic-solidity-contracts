@@ -80,7 +80,10 @@ library CalldataLogic {
      * @return The address of the underlying reserve
      * @return The amount to withdraw
      */
-    function decodeWithdrawParams(mapping(uint256 => address) storage reservesList, bytes32 args) internal view returns (address, uint256) {
+    function decodeWithdrawParams(
+        mapping(uint256 => address) storage reservesList,
+        bytes32 args
+    ) internal view returns (address, uint256) {
         uint16 assetId;
         uint256 amount;
         assembly {

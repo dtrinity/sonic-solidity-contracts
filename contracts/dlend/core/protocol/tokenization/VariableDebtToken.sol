@@ -47,7 +47,9 @@ contract VariableDebtToken is DebtTokenBase, ScaledBalanceTokenBase, IVariableDe
      * @dev Constructor.
      * @param pool The address of the Pool contract
      */
-    constructor(IPool pool) DebtTokenBase() ScaledBalanceTokenBase(pool, "VARIABLE_DEBT_TOKEN_IMPL", "VARIABLE_DEBT_TOKEN_IMPL", 0) {
+    constructor(
+        IPool pool
+    ) DebtTokenBase() ScaledBalanceTokenBase(pool, "VARIABLE_DEBT_TOKEN_IMPL", "VARIABLE_DEBT_TOKEN_IMPL", 0) {
         // Intentionally left blank
     }
 

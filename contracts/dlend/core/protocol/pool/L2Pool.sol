@@ -46,10 +46,8 @@ contract L2Pool is Pool, IL2Pool {
 
     /// @inheritdoc IL2Pool
     function supplyWithPermit(bytes32 args, bytes32 r, bytes32 s) external override {
-        (address asset, uint256 amount, uint16 referralCode, uint256 deadline, uint8 v) = CalldataLogic.decodeSupplyWithPermitParams(
-            _reservesList,
-            args
-        );
+        (address asset, uint256 amount, uint16 referralCode, uint256 deadline, uint8 v) = CalldataLogic
+            .decodeSupplyWithPermitParams(_reservesList, args);
 
         supplyWithPermit(asset, amount, msg.sender, referralCode, deadline, v, r, s);
     }
@@ -63,34 +61,36 @@ contract L2Pool is Pool, IL2Pool {
 
     /// @inheritdoc IL2Pool
     function borrow(bytes32 args) external override {
-        (address asset, uint256 amount, uint256 interestRateMode, uint16 referralCode) = CalldataLogic.decodeBorrowParams(
-            _reservesList,
-            args
-        );
+        (address asset, uint256 amount, uint256 interestRateMode, uint16 referralCode) = CalldataLogic
+            .decodeBorrowParams(_reservesList, args);
 
         borrow(asset, amount, interestRateMode, referralCode, msg.sender);
     }
 
     /// @inheritdoc IL2Pool
     function repay(bytes32 args) external override returns (uint256) {
-        (address asset, uint256 amount, uint256 interestRateMode) = CalldataLogic.decodeRepayParams(_reservesList, args);
+        (address asset, uint256 amount, uint256 interestRateMode) = CalldataLogic.decodeRepayParams(
+            _reservesList,
+            args
+        );
 
         return repay(asset, amount, interestRateMode, msg.sender);
     }
 
     /// @inheritdoc IL2Pool
     function repayWithPermit(bytes32 args, bytes32 r, bytes32 s) external override returns (uint256) {
-        (address asset, uint256 amount, uint256 interestRateMode, uint256 deadline, uint8 v) = CalldataLogic.decodeRepayWithPermitParams(
-            _reservesList,
-            args
-        );
+        (address asset, uint256 amount, uint256 interestRateMode, uint256 deadline, uint8 v) = CalldataLogic
+            .decodeRepayWithPermitParams(_reservesList, args);
 
         return repayWithPermit(asset, amount, interestRateMode, msg.sender, deadline, v, r, s);
     }
 
     /// @inheritdoc IL2Pool
     function repayWithATokens(bytes32 args) external override returns (uint256) {
-        (address asset, uint256 amount, uint256 interestRateMode) = CalldataLogic.decodeRepayParams(_reservesList, args);
+        (address asset, uint256 amount, uint256 interestRateMode) = CalldataLogic.decodeRepayParams(
+            _reservesList,
+            args
+        );
 
         return repayWithATokens(asset, amount, interestRateMode);
     }
@@ -109,14 +109,22 @@ contract L2Pool is Pool, IL2Pool {
 
     /// @inheritdoc IL2Pool
     function setUserUseReserveAsCollateral(bytes32 args) external override {
-        (address asset, bool useAsCollateral) = CalldataLogic.decodeSetUserUseReserveAsCollateralParams(_reservesList, args);
+        (address asset, bool useAsCollateral) = CalldataLogic.decodeSetUserUseReserveAsCollateralParams(
+            _reservesList,
+            args
+        );
         setUserUseReserveAsCollateral(asset, useAsCollateral);
     }
 
     /// @inheritdoc IL2Pool
     function liquidationCall(bytes32 args1, bytes32 args2) external override {
-        (address collateralAsset, address debtAsset, address user, uint256 debtToCover, bool receiveAToken) = CalldataLogic
-            .decodeLiquidationCallParams(_reservesList, args1, args2);
+        (
+            address collateralAsset,
+            address debtAsset,
+            address user,
+            uint256 debtToCover,
+            bool receiveAToken
+        ) = CalldataLogic.decodeLiquidationCallParams(_reservesList, args1, args2);
         liquidationCall(collateralAsset, debtAsset, user, debtToCover, receiveAToken);
     }
 }

@@ -187,7 +187,11 @@ contract DStakeCollateralVault is IDStakeCollateralVault, AccessControl, Reentra
      * @param receiver Address to receive the rescued tokens
      * @param amount Amount of tokens to rescue
      */
-    function rescueToken(address token, address receiver, uint256 amount) external onlyRole(DEFAULT_ADMIN_ROLE) nonReentrant {
+    function rescueToken(
+        address token,
+        address receiver,
+        uint256 amount
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) nonReentrant {
         if (receiver == address(0)) revert ZeroAddress();
 
         // Check if token is a supported asset

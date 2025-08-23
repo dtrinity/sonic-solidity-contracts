@@ -142,7 +142,11 @@ contract DStakeToken is Initializable, ERC4626Upgradeable, AccessControlUpgradea
      * @dev Override to handle withdrawals with fees correctly.
      *      The `assets` parameter is the net amount of assets the user wants to receive.
      */
-    function withdraw(uint256 assets, address receiver, address owner) public virtual override returns (uint256 shares) {
+    function withdraw(
+        uint256 assets,
+        address receiver,
+        address owner
+    ) public virtual override returns (uint256 shares) {
         // Calculate how many shares correspond to the desired NET `assets` amount.
         shares = previewWithdraw(assets);
 

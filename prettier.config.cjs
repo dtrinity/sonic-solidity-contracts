@@ -1,6 +1,6 @@
 module.exports = {
   // Keep consistent with ESLint max-len (140)
-  printWidth: 140,
+  printWidth: 120,
   // TS/JS style
   tabWidth: 2,
   useTabs: false,
@@ -16,7 +16,7 @@ module.exports = {
       options: {
         // Solidity code in this repo uses 4-space indentation
         tabWidth: 4,
-        printWidth: 140,
+        printWidth: 120,
       },
     },
   ],

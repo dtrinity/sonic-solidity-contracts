@@ -37,7 +37,13 @@ import { BasisPointConstants } from "contracts/common/BasisPointConstants.sol";
  *        swap the received collateral tokens to debt tokens, and use the debt tokens to repay the flashloan
  *      - Example: Flash loan 50,000 dUSD -> call decreaseLeverage with 50,000 dUSD -> receive 25+ WETH -> swap to 50,000+ dUSD -> repay flash loan
  */
-abstract contract DLoopDecreaseLeverageBase is IERC3156FlashBorrower, Ownable, ReentrancyGuard, SwappableVault, RescuableVault {
+abstract contract DLoopDecreaseLeverageBase is
+    IERC3156FlashBorrower,
+    Ownable,
+    ReentrancyGuard,
+    SwappableVault,
+    RescuableVault
+{
     using SafeERC20 for ERC20;
 
     /* Constants */
@@ -63,7 +69,11 @@ abstract contract DLoopDecreaseLeverageBase is IERC3156FlashBorrower, Ownable, R
 
     /* Events */
 
-    event LeftoverCollateralTokensTransferred(address indexed collateralToken, uint256 amount, address indexed receiver);
+    event LeftoverCollateralTokensTransferred(
+        address indexed collateralToken,
+        uint256 amount,
+        address indexed receiver
+    );
 
     /* Structs */
 
@@ -247,7 +257,10 @@ abstract contract DLoopDecreaseLeverageBase is IERC3156FlashBorrower, Ownable, R
         bytes memory data = _encodeParamsToData(params);
 
         // Approve flash lender to spend debt tokens for repayment
-        debtToken.forceApprove(address(flashLender), requiredDebtAmount + flashLender.flashFee(address(debtToken), requiredDebtAmount));
+        debtToken.forceApprove(
+            address(flashLender),
+            requiredDebtAmount + flashLender.flashFee(address(debtToken), requiredDebtAmount)
+        );
 
         // Execute flash loan - main logic in onFlashLoan
         flashLender.flashLoan(this, address(debtToken), requiredDebtAmount, data);
@@ -292,7 +305,11 @@ abstract contract DLoopDecreaseLeverageBase is IERC3156FlashBorrower, Ownable, R
      * @return data Encoded data
      */
     function _encodeParamsToData(FlashLoanParams memory _flashLoanParams) internal pure returns (bytes memory data) {
-        data = abi.encode(_flashLoanParams.requiredDebtAmount, _flashLoanParams.collateralToDebtTokenSwapData, _flashLoanParams.dLoopCore);
+        data = abi.encode(
+            _flashLoanParams.requiredDebtAmount,
+            _flashLoanParams.collateralToDebtTokenSwapData,
+            _flashLoanParams.dLoopCore
+        );
     }
 
     /**
@@ -301,9 +318,10 @@ abstract contract DLoopDecreaseLeverageBase is IERC3156FlashBorrower, Ownable, R
      * @return _flashLoanParams Decoded flash loan parameters
      */
     function _decodeDataToParams(bytes memory data) internal pure returns (FlashLoanParams memory _flashLoanParams) {
-        (_flashLoanParams.requiredDebtAmount, _flashLoanParams.collateralToDebtTokenSwapData, _flashLoanParams.dLoopCore) = abi.decode(
-            data,
-            (uint256, bytes, DLoopCoreBase)
-        );
+        (
+            _flashLoanParams.requiredDebtAmount,
+            _flashLoanParams.collateralToDebtTokenSwapData,
+            _flashLoanParams.dLoopCore
+        ) = abi.decode(data, (uint256, bytes, DLoopCoreBase));
     }
 }

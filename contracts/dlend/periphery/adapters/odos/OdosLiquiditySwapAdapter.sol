@@ -32,7 +32,12 @@ import { IERC20 } from "contracts/dlend/core/dependencies/openzeppelin/contracts
  * @title OdosLiquiditySwapAdapter
  * @notice Adapter to swap liquidity using Odos
  */
-contract OdosLiquiditySwapAdapter is BaseOdosSellAdapter, ReentrancyGuard, IAaveFlashLoanReceiver, IOdosLiquiditySwapAdapter {
+contract OdosLiquiditySwapAdapter is
+    BaseOdosSellAdapter,
+    ReentrancyGuard,
+    IAaveFlashLoanReceiver,
+    IOdosLiquiditySwapAdapter
+{
     using SafeERC20 for IERC20;
 
     // unique identifier to track usage via flashloan events
@@ -188,7 +193,10 @@ contract OdosLiquiditySwapAdapter is BaseOdosSellAdapter, ReentrancyGuard, IAave
      * @param liquiditySwapParams struct describing the liquidity swap
      * @param collateralATokenPermit optional permit for old collateral's aToken
      */
-    function _flash(LiquiditySwapParams memory liquiditySwapParams, PermitInput memory collateralATokenPermit) internal virtual {
+    function _flash(
+        LiquiditySwapParams memory liquiditySwapParams,
+        PermitInput memory collateralATokenPermit
+    ) internal virtual {
         bytes memory params = abi.encode(liquiditySwapParams, collateralATokenPermit);
         address[] memory assets = new address[](1);
         assets[0] = liquiditySwapParams.collateralAsset;

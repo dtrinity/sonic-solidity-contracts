@@ -6,7 +6,12 @@ import "contracts/vaults/dloop/core/venue/dlend/interface/types/DataTypes.sol";
 contract MockPool {
     mapping(address => DataTypes.ReserveData) private _reserves;
 
-    function setReserveData(address asset, address aToken, address stableDebtToken, address variableDebtToken) external {
+    function setReserveData(
+        address asset,
+        address aToken,
+        address stableDebtToken,
+        address variableDebtToken
+    ) external {
         DataTypes.ReserveData memory d;
         d.aTokenAddress = aToken;
         d.stableDebtTokenAddress = stableDebtToken;

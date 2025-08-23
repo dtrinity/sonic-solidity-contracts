@@ -283,7 +283,9 @@ contract AaveEcosystemReserveV2 is AdminControlledEcosystemReserve, ReentrancyGu
      * @param streamId The id of the stream to cancel.
      * @notice Returns bool true=success, otherwise false.
      */
-    function cancelStream(uint256 streamId) external nonReentrant streamExists(streamId) onlyAdminOrRecipient(streamId) returns (bool) {
+    function cancelStream(
+        uint256 streamId
+    ) external nonReentrant streamExists(streamId) onlyAdminOrRecipient(streamId) returns (bool) {
         Stream memory stream = _streams[streamId];
         uint256 senderBalance = balanceOf(streamId, stream.sender);
         uint256 recipientBalance = balanceOf(streamId, stream.recipient);

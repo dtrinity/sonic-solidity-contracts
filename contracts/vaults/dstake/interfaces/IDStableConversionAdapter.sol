@@ -35,7 +35,9 @@ interface IDStableConversionAdapter {
      * @return vaultAsset The address of the specific `vault asset` token managed by this adapter.
      * @return vaultAssetAmount The amount of `vaultAsset` that would be received.
      */
-    function previewConvertToVaultAsset(uint256 dStableAmount) external view returns (address vaultAsset, uint256 vaultAssetAmount);
+    function previewConvertToVaultAsset(
+        uint256 dStableAmount
+    ) external view returns (address vaultAsset, uint256 vaultAssetAmount);
 
     /**
      * @notice Preview the result of converting a given vaultAsset amount to dStable (without state change).
@@ -51,7 +53,10 @@ interface IDStableConversionAdapter {
      * @param vaultAssetAmount The amount of the `vaultAsset` to value.
      * @return dStableValue The equivalent value in the dStable asset.
      */
-    function assetValueInDStable(address vaultAsset, uint256 vaultAssetAmount) external view returns (uint256 dStableValue);
+    function assetValueInDStable(
+        address vaultAsset,
+        uint256 vaultAssetAmount
+    ) external view returns (uint256 dStableValue);
 
     /**
      * @notice Returns the address of the specific `vault asset` token managed by this adapter.

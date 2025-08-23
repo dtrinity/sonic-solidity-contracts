@@ -46,7 +46,10 @@ contract API3WrapperWithThresholding is API3Wrapper, ThresholdingUtils {
         uint256 lowerThresholdInBase,
         uint256 fixedPriceInBase
     ) external onlyRole(ORACLE_MANAGER_ROLE) {
-        assetThresholds[asset] = ThresholdConfig({ lowerThresholdInBase: lowerThresholdInBase, fixedPriceInBase: fixedPriceInBase });
+        assetThresholds[asset] = ThresholdConfig({
+            lowerThresholdInBase: lowerThresholdInBase,
+            fixedPriceInBase: fixedPriceInBase
+        });
         emit ThresholdConfigSet(asset, lowerThresholdInBase, fixedPriceInBase);
     }
 

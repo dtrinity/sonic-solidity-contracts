@@ -79,7 +79,12 @@ interface IStableDebtToken is IInitializableDebtToken {
      * @return The total stable debt
      * @return The average stable borrow rate
      */
-    function mint(address user, address onBehalfOf, uint256 amount, uint256 rate) external returns (bool, uint256, uint256);
+    function mint(
+        address user,
+        address onBehalfOf,
+        uint256 amount,
+        uint256 rate
+    ) external returns (bool, uint256, uint256);
 
     /**
      * @notice Burns debt of `user`

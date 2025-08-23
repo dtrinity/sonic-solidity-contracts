@@ -8,23 +8,46 @@ interface ICurveStableSwapNG {
 
     function exchange_received(int128 i, int128 j, uint256 dx, uint256 min_dy) external returns (uint256);
 
-    function exchange_received(int128 i, int128 j, uint256 dx, uint256 min_dy, address receiver) external returns (uint256);
+    function exchange_received(
+        int128 i,
+        int128 j,
+        uint256 dx,
+        uint256 min_dy,
+        address receiver
+    ) external returns (uint256);
 
     function add_liquidity(uint256[] calldata amounts, uint256 min_mint_amount) external returns (uint256);
 
-    function add_liquidity(uint256[] calldata amounts, uint256 min_mint_amount, address receiver) external returns (uint256);
+    function add_liquidity(
+        uint256[] calldata amounts,
+        uint256 min_mint_amount,
+        address receiver
+    ) external returns (uint256);
 
     function remove_liquidity_one_coin(uint256 burn_amount, int128 i, uint256 min_received) external returns (uint256);
 
-    function remove_liquidity_one_coin(uint256 burn_amount, int128 i, uint256 min_received, address receiver) external returns (uint256);
+    function remove_liquidity_one_coin(
+        uint256 burn_amount,
+        int128 i,
+        uint256 min_received,
+        address receiver
+    ) external returns (uint256);
 
     function remove_liquidity_imbalance(uint256[] calldata amounts, uint256 max_burn_amount) external returns (uint256);
 
-    function remove_liquidity_imbalance(uint256[] calldata amounts, uint256 max_burn_amount, address receiver) external returns (uint256);
+    function remove_liquidity_imbalance(
+        uint256[] calldata amounts,
+        uint256 max_burn_amount,
+        address receiver
+    ) external returns (uint256);
 
     function remove_liquidity(uint256 burn_amount, uint256[] calldata min_amounts) external returns (uint256[] memory);
 
-    function remove_liquidity(uint256 burn_amount, uint256[] calldata min_amounts, address receiver) external returns (uint256[] memory);
+    function remove_liquidity(
+        uint256 burn_amount,
+        uint256[] calldata min_amounts,
+        address receiver
+    ) external returns (uint256[] memory);
 
     function remove_liquidity(
         uint256 burn_amount,

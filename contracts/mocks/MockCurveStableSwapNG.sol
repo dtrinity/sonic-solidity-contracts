@@ -26,7 +26,12 @@ contract MockCurveStableSwapNG is ICurveStableSwapNG, ERC20 {
     uint256 public immutable admin_fee; // Admin fee share of total fees
 
     // --- Constructor ---
-    constructor(string memory _name, string memory _symbol, address[2] memory _coins, uint256 _fee) ERC20(_name, _symbol) {
+    constructor(
+        string memory _name,
+        string memory _symbol,
+        address[2] memory _coins,
+        uint256 _fee
+    ) ERC20(_name, _symbol) {
         coins = _coins;
         fee = _fee; // e.g., 4000000 for 0.04%
         admin_fee = 5000000000; // 50% of fees to admin
@@ -38,7 +43,13 @@ contract MockCurveStableSwapNG is ICurveStableSwapNG, ERC20 {
         return _exchange(i, j, dx, min_dy, msg.sender);
     }
 
-    function exchange(int128 i, int128 j, uint256 dx, uint256 min_dy, address receiver) external override returns (uint256) {
+    function exchange(
+        int128 i,
+        int128 j,
+        uint256 dx,
+        uint256 min_dy,
+        address receiver
+    ) external override returns (uint256) {
         return _exchange(i, j, dx, min_dy, receiver);
     }
 
@@ -46,7 +57,13 @@ contract MockCurveStableSwapNG is ICurveStableSwapNG, ERC20 {
         return _exchange(i, j, dx, min_dy, msg.sender);
     }
 
-    function exchange_received(int128 i, int128 j, uint256 dx, uint256 min_dy, address receiver) external override returns (uint256) {
+    function exchange_received(
+        int128 i,
+        int128 j,
+        uint256 dx,
+        uint256 min_dy,
+        address receiver
+    ) external override returns (uint256) {
         return _exchange(i, j, dx, min_dy, receiver);
     }
 
@@ -54,11 +71,19 @@ contract MockCurveStableSwapNG is ICurveStableSwapNG, ERC20 {
         return _add_liquidity(amounts, min_mint_amount, msg.sender);
     }
 
-    function add_liquidity(uint256[] calldata amounts, uint256 min_mint_amount, address receiver) external override returns (uint256) {
+    function add_liquidity(
+        uint256[] calldata amounts,
+        uint256 min_mint_amount,
+        address receiver
+    ) external override returns (uint256) {
         return _add_liquidity(amounts, min_mint_amount, receiver);
     }
 
-    function remove_liquidity_one_coin(uint256 burn_amount, int128 i, uint256 min_received) external override returns (uint256) {
+    function remove_liquidity_one_coin(
+        uint256 burn_amount,
+        int128 i,
+        uint256 min_received
+    ) external override returns (uint256) {
         return _remove_liquidity_one_coin(burn_amount, i, min_received, msg.sender);
     }
 
@@ -71,7 +96,10 @@ contract MockCurveStableSwapNG is ICurveStableSwapNG, ERC20 {
         return _remove_liquidity_one_coin(burn_amount, i, min_received, receiver);
     }
 
-    function remove_liquidity_imbalance(uint256[] calldata amounts, uint256 max_burn_amount) external override returns (uint256) {
+    function remove_liquidity_imbalance(
+        uint256[] calldata amounts,
+        uint256 max_burn_amount
+    ) external override returns (uint256) {
         revert("Not implemented");
     }
 
@@ -83,7 +111,10 @@ contract MockCurveStableSwapNG is ICurveStableSwapNG, ERC20 {
         revert("Not implemented");
     }
 
-    function remove_liquidity(uint256 burn_amount, uint256[] calldata min_amounts) external override returns (uint256[] memory) {
+    function remove_liquidity(
+        uint256 burn_amount,
+        uint256[] calldata min_amounts
+    ) external override returns (uint256[] memory) {
         return _remove_liquidity(burn_amount, min_amounts, msg.sender, false);
     }
 
@@ -172,7 +203,10 @@ contract MockCurveStableSwapNG is ICurveStableSwapNG, ERC20 {
         return ERC20.balanceOf(account);
     }
 
-    function allowance(address owner, address spender) public view override(ICurveStableSwapNG, ERC20) returns (uint256) {
+    function allowance(
+        address owner,
+        address spender
+    ) public view override(ICurveStableSwapNG, ERC20) returns (uint256) {
         return ERC20.allowance(owner, spender);
     }
 
@@ -198,7 +232,11 @@ contract MockCurveStableSwapNG is ICurveStableSwapNG, ERC20 {
         return dy;
     }
 
-    function _add_liquidity(uint256[] calldata amounts, uint256 min_mint_amount, address receiver) internal returns (uint256) {
+    function _add_liquidity(
+        uint256[] calldata amounts,
+        uint256 min_mint_amount,
+        address receiver
+    ) internal returns (uint256) {
         require(amounts.length == 2, "Invalid amounts length");
 
         uint256 mint_amount = 0;
@@ -217,7 +255,12 @@ contract MockCurveStableSwapNG is ICurveStableSwapNG, ERC20 {
         return mint_amount;
     }
 
-    function _remove_liquidity_one_coin(uint256 burn_amount, int128 i, uint256 min_received, address receiver) internal returns (uint256) {
+    function _remove_liquidity_one_coin(
+        uint256 burn_amount,
+        int128 i,
+        uint256 min_received,
+        address receiver
+    ) internal returns (uint256) {
         require(i >= 0 && i < 2, "Invalid coin index");
         require(balanceOf(msg.sender) >= burn_amount, "Insufficient LP tokens");
 

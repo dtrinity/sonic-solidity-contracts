@@ -95,7 +95,10 @@ contract L2Encoder {
         assembly {
             res := add(
                 assetId,
-                add(shl(16, shortenedAmount), add(shl(144, referralCode), add(shl(160, shortenedDeadline), shl(192, permitV))))
+                add(
+                    shl(16, shortenedAmount),
+                    add(shl(144, referralCode), add(shl(160, shortenedDeadline), shl(192, permitV)))
+                )
             )
         }
 
@@ -145,7 +148,10 @@ contract L2Encoder {
         uint8 shortenedInterestRateMode = interestRateMode.toUint8();
         bytes32 res;
         assembly {
-            res := add(assetId, add(shl(16, shortenedAmount), add(shl(144, shortenedInterestRateMode), shl(152, referralCode))))
+            res := add(
+                assetId,
+                add(shl(16, shortenedAmount), add(shl(144, shortenedInterestRateMode), shl(152, referralCode)))
+            )
         }
         return res;
     }
@@ -208,7 +214,10 @@ contract L2Encoder {
         assembly {
             res := add(
                 assetId,
-                add(shl(16, shortenedAmount), add(shl(144, shortenedInterestRateMode), add(shl(152, shortenedDeadline), shl(184, permitV))))
+                add(
+                    shl(16, shortenedAmount),
+                    add(shl(144, shortenedInterestRateMode), add(shl(152, shortenedDeadline), shl(184, permitV)))
+                )
             )
         }
         return (res, permitR, permitS);
@@ -222,7 +231,11 @@ contract L2Encoder {
      * @param interestRateMode The interest rate mode at of the debt the user wants to repay: 1 for Stable, 2 for Variable
      * @return compact representation of repay with aToken parameters
      */
-    function encodeRepayWithATokensParams(address asset, uint256 amount, uint256 interestRateMode) external view returns (bytes32) {
+    function encodeRepayWithATokensParams(
+        address asset,
+        uint256 amount,
+        uint256 interestRateMode
+    ) external view returns (bytes32) {
         return encodeRepayParams(asset, amount, interestRateMode);
     }
 

@@ -61,7 +61,10 @@ contract EmissionManager is Ownable, IEmissionManager {
     }
 
     /// @inheritdoc IEmissionManager
-    function setTransferStrategy(address reward, ITransferStrategyBase transferStrategy) external override onlyEmissionAdmin(reward) {
+    function setTransferStrategy(
+        address reward,
+        ITransferStrategyBase transferStrategy
+    ) external override onlyEmissionAdmin(reward) {
         _rewardsController.setTransferStrategy(reward, transferStrategy);
     }
 
@@ -71,12 +74,20 @@ contract EmissionManager is Ownable, IEmissionManager {
     }
 
     /// @inheritdoc IEmissionManager
-    function setDistributionEnd(address asset, address reward, uint32 newDistributionEnd) external override onlyEmissionAdmin(reward) {
+    function setDistributionEnd(
+        address asset,
+        address reward,
+        uint32 newDistributionEnd
+    ) external override onlyEmissionAdmin(reward) {
         _rewardsController.setDistributionEnd(asset, reward, newDistributionEnd);
     }
 
     /// @inheritdoc IEmissionManager
-    function setEmissionPerSecond(address asset, address[] calldata rewards, uint88[] calldata newEmissionsPerSecond) external override {
+    function setEmissionPerSecond(
+        address asset,
+        address[] calldata rewards,
+        uint88[] calldata newEmissionsPerSecond
+    ) external override {
         for (uint256 i = 0; i < rewards.length; i++) {
             require(_emissionAdmins[rewards[i]] == msg.sender, "ONLY_EMISSION_ADMIN");
         }

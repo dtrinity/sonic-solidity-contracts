@@ -68,7 +68,13 @@ abstract contract EIP712Base {
     function _calculateDomainSeparator() internal view returns (bytes32) {
         return
             keccak256(
-                abi.encode(EIP712_DOMAIN, keccak256(bytes(_EIP712BaseId())), keccak256(EIP712_REVISION), block.chainid, address(this))
+                abi.encode(
+                    EIP712_DOMAIN,
+                    keccak256(bytes(_EIP712BaseId())),
+                    keccak256(EIP712_REVISION),
+                    block.chainid,
+                    address(this)
+                )
             );
     }
 

@@ -75,7 +75,11 @@ interface IRewardsDistributor {
      * @param rewards List of reward addresses are being distributed
      * @param newEmissionsPerSecond List of new reward emissions per second
      */
-    function setEmissionPerSecond(address asset, address[] calldata rewards, uint88[] calldata newEmissionsPerSecond) external;
+    function setEmissionPerSecond(
+        address asset,
+        address[] calldata rewards,
+        uint88[] calldata newEmissionsPerSecond
+    ) external;
 
     /**
      * @dev Gets the end date for the distribution
@@ -151,7 +155,10 @@ interface IRewardsDistributor {
      * @return The list of reward addresses
      * @return The list of unclaimed amount of rewards
      **/
-    function getAllUserRewards(address[] calldata assets, address user) external view returns (address[] memory, uint256[] memory);
+    function getAllUserRewards(
+        address[] calldata assets,
+        address user
+    ) external view returns (address[] memory, uint256[] memory);
 
     /**
      * @dev Returns the decimals of an asset to calculate the distribution delta

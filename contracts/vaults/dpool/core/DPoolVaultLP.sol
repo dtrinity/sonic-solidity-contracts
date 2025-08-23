@@ -68,7 +68,12 @@ abstract contract DPoolVaultLP is ERC4626, AccessControl, ReentrancyGuard, IDPoo
      * @param symbol Vault token symbol
      * @param admin Address to grant admin role
      */
-    constructor(address _lpToken, string memory name, string memory symbol, address admin) ERC4626(IERC20(_lpToken)) ERC20(name, symbol) {
+    constructor(
+        address _lpToken,
+        string memory name,
+        string memory symbol,
+        address admin
+    ) ERC4626(IERC20(_lpToken)) ERC20(name, symbol) {
         if (_lpToken == address(0)) revert ZeroAddress();
         if (admin == address(0)) revert ZeroAddress();
 
@@ -156,7 +161,10 @@ abstract contract DPoolVaultLP is ERC4626, AccessControl, ReentrancyGuard, IDPoo
      * @param receiver Address to receive vault shares
      * @return shares_ Amount of shares minted
      */
-    function deposit(uint256 lpAmount, address receiver) public virtual override(ERC4626, IERC4626) nonReentrant returns (uint256 shares_) {
+    function deposit(
+        uint256 lpAmount,
+        address receiver
+    ) public virtual override(ERC4626, IERC4626) nonReentrant returns (uint256 shares_) {
         uint256 maxAssets = maxDeposit(receiver);
         if (lpAmount > maxAssets) {
             revert ERC4626ExceedsMaxDeposit(lpAmount, maxAssets);
@@ -217,7 +225,13 @@ abstract contract DPoolVaultLP is ERC4626, AccessControl, ReentrancyGuard, IDPoo
      * @param grossLpAmount Amount of LP tokens to withdraw (gross amount, before fees)
      * @param shares Amount of shares to burn
      */
-    function _withdraw(address caller, address receiver, address owner, uint256 grossLpAmount, uint256 shares) internal virtual override {
+    function _withdraw(
+        address caller,
+        address receiver,
+        address owner,
+        uint256 grossLpAmount,
+        uint256 shares
+    ) internal virtual override {
         if (caller != owner) {
             _spendAllowance(owner, caller, shares);
         }

@@ -115,7 +115,9 @@ library GenericLogic {
 
             DataTypes.ReserveData storage currentReserve = reservesData[vars.currentReserveAddress];
 
-            (vars.ltv, vars.liquidationThreshold, , vars.decimals, , vars.eModeAssetCategory) = currentReserve.configuration.getParams();
+            (vars.ltv, vars.liquidationThreshold, , vars.decimals, , vars.eModeAssetCategory) = currentReserve
+                .configuration
+                .getParams();
 
             unchecked {
                 vars.assetUnit = 10 ** vars.decimals;
@@ -135,7 +137,10 @@ library GenericLogic {
 
                 vars.totalCollateralInBaseCurrency += vars.userBalanceInBaseCurrency;
 
-                vars.isInEModeCategory = EModeLogic.isInEModeCategory(params.userEModeCategory, vars.eModeAssetCategory);
+                vars.isInEModeCategory = EModeLogic.isInEModeCategory(
+                    params.userEModeCategory,
+                    vars.eModeAssetCategory
+                );
 
                 if (vars.ltv != 0) {
                     vars.avgLtv += vars.userBalanceInBaseCurrency * (vars.isInEModeCategory ? vars.eModeLtv : vars.ltv);
@@ -149,7 +154,12 @@ library GenericLogic {
             }
 
             if (params.userConfig.isBorrowing(vars.i)) {
-                vars.totalDebtInBaseCurrency += _getUserDebtInBaseCurrency(params.user, currentReserve, vars.assetPrice, vars.assetUnit);
+                vars.totalDebtInBaseCurrency += _getUserDebtInBaseCurrency(
+                    params.user,
+                    currentReserve,
+                    vars.assetPrice,
+                    vars.assetUnit
+                );
             }
 
             unchecked {
@@ -158,7 +168,9 @@ library GenericLogic {
         }
 
         unchecked {
-            vars.avgLtv = vars.totalCollateralInBaseCurrency != 0 ? vars.avgLtv / vars.totalCollateralInBaseCurrency : 0;
+            vars.avgLtv = vars.totalCollateralInBaseCurrency != 0
+                ? vars.avgLtv / vars.totalCollateralInBaseCurrency
+                : 0;
             vars.avgLiquidationThreshold = vars.totalCollateralInBaseCurrency != 0
                 ? vars.avgLiquidationThreshold / vars.totalCollateralInBaseCurrency
                 : 0;
@@ -166,7 +178,9 @@ library GenericLogic {
 
         vars.healthFactor = (vars.totalDebtInBaseCurrency == 0)
             ? type(uint256).max
-            : (vars.totalCollateralInBaseCurrency.percentMul(vars.avgLiquidationThreshold)).wadDiv(vars.totalDebtInBaseCurrency);
+            : (vars.totalCollateralInBaseCurrency.percentMul(vars.avgLiquidationThreshold)).wadDiv(
+                vars.totalDebtInBaseCurrency
+            );
         return (
             vars.totalCollateralInBaseCurrency,
             vars.totalDebtInBaseCurrency,
@@ -249,7 +263,8 @@ library GenericLogic {
         uint256 assetUnit
     ) private view returns (uint256) {
         uint256 normalizedIncome = reserve.getNormalizedIncome();
-        uint256 balance = (IScaledBalanceToken(reserve.aTokenAddress).scaledBalanceOf(user).rayMul(normalizedIncome)) * assetPrice;
+        uint256 balance = (IScaledBalanceToken(reserve.aTokenAddress).scaledBalanceOf(user).rayMul(normalizedIncome)) *
+            assetPrice;
 
         unchecked {
             return balance / assetUnit;

@@ -36,7 +36,13 @@ interface IDPoolPeriphery is IAccessControl {
      * @param lpAmount Amount of LP tokens minted from asset
      * @param shares Amount of vault shares received
      */
-    event AssetDeposited(address indexed user, address indexed asset, uint256 assetAmount, uint256 lpAmount, uint256 shares);
+    event AssetDeposited(
+        address indexed user,
+        address indexed asset,
+        uint256 assetAmount,
+        uint256 lpAmount,
+        uint256 shares
+    );
 
     /**
      * @notice Emitted when vault shares are withdrawn and converted to asset
@@ -46,7 +52,13 @@ interface IDPoolPeriphery is IAccessControl {
      * @param lpAmount Amount of LP tokens withdrawn from vault
      * @param assetAmount Amount of asset received
      */
-    event AssetWithdrawn(address indexed user, address indexed asset, uint256 shares, uint256 lpAmount, uint256 assetAmount);
+    event AssetWithdrawn(
+        address indexed user,
+        address indexed asset,
+        uint256 shares,
+        uint256 lpAmount,
+        uint256 assetAmount
+    );
 
     /**
      * @notice Emitted when maximum slippage is updated

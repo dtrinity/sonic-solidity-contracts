@@ -49,7 +49,8 @@ library DLoopCoreLogic {
             return type(uint256).max; // infinite leverage
         }
         // The leverage will be 1 if totalDebtBase is 0 (no more debt)
-        uint256 leverageBps = ((totalCollateralBase * BasisPointConstants.ONE_HUNDRED_PERCENT_BPS) / (totalCollateralBase - totalDebtBase));
+        uint256 leverageBps = ((totalCollateralBase * BasisPointConstants.ONE_HUNDRED_PERCENT_BPS) /
+            (totalCollateralBase - totalDebtBase));
         if (leverageBps < BasisPointConstants.ONE_HUNDRED_PERCENT_BPS) {
             revert InvalidLeverage(leverageBps);
         }
@@ -146,7 +147,10 @@ library DLoopCoreLogic {
      * @param leverageBps The leverage in basis points
      * @return unleveragedAssets Amount of unleveraged assets
      */
-    function getUnleveragedAssetsWithLeverage(uint256 leveragedAssets, uint256 leverageBps) internal pure returns (uint256) {
+    function getUnleveragedAssetsWithLeverage(
+        uint256 leveragedAssets,
+        uint256 leverageBps
+    ) internal pure returns (uint256) {
         return Math.mulDiv(leveragedAssets, BasisPointConstants.ONE_HUNDRED_PERCENT_BPS, leverageBps);
     }
 
@@ -490,10 +494,17 @@ library DLoopCoreLogic {
 
         // The amount of debt token to borrow is equal to the amount of collateral token deposited
         // plus the subsidy (bonus for the caller)
-        uint256 borrowedDebtTokenInBase = getDebtBorrowAmountInBaseToIncreaseLeverage(inputCollateralDepositAmountInBase, subsidyBps);
+        uint256 borrowedDebtTokenInBase = getDebtBorrowAmountInBaseToIncreaseLeverage(
+            inputCollateralDepositAmountInBase,
+            subsidyBps
+        );
 
         // Convert the amount of debt token in base currency to token unit
-        outputDebtBorrowTokenAmount = convertFromBaseCurrencyToToken(borrowedDebtTokenInBase, debtTokenDecimals, debtTokenPriceInBase);
+        outputDebtBorrowTokenAmount = convertFromBaseCurrencyToToken(
+            borrowedDebtTokenInBase,
+            debtTokenDecimals,
+            debtTokenPriceInBase
+        );
 
         return outputDebtBorrowTokenAmount;
     }
@@ -676,7 +687,10 @@ library DLoopCoreLogic {
 
         // The amount of collateral asset to withdraw is equal to the amount of debt token repaid
         // plus the subsidy (bonus for the caller)
-        uint256 withdrawCollateralTokenInBase = getCollateralWithdrawAmountInBaseToDecreaseLeverage(inputDebtRepayAmountInBase, subsidyBps);
+        uint256 withdrawCollateralTokenInBase = getCollateralWithdrawAmountInBaseToDecreaseLeverage(
+            inputDebtRepayAmountInBase,
+            subsidyBps
+        );
 
         // Convert the amount of collateral token in base currency to token unit
         outputCollateralWithdrawTokenAmount = convertFromBaseCurrencyToToken(
@@ -734,8 +748,15 @@ library DLoopCoreLogic {
                 collateralTokenDecimals,
                 collateralTokenPriceInBase
             );
-            uint256 estimatedDebtAmountInBase = getDebtBorrowAmountInBaseToIncreaseLeverage(inputCollateralAmountInBase, subsidyBps);
-            estimatedOutputTokenAmount = convertFromBaseCurrencyToToken(estimatedDebtAmountInBase, debtTokenDecimals, debtTokenPriceInBase);
+            uint256 estimatedDebtAmountInBase = getDebtBorrowAmountInBaseToIncreaseLeverage(
+                inputCollateralAmountInBase,
+                subsidyBps
+            );
+            estimatedOutputTokenAmount = convertFromBaseCurrencyToToken(
+                estimatedDebtAmountInBase,
+                debtTokenDecimals,
+                debtTokenPriceInBase
+            );
             direction = 1;
             return (inputTokenAmount, estimatedOutputTokenAmount, direction);
         }
@@ -749,7 +770,11 @@ library DLoopCoreLogic {
                 totalDebtBase,
                 subsidyBps
             );
-            inputTokenAmount = convertFromBaseCurrencyToToken(inputDebtAmountInBase, debtTokenDecimals, debtTokenPriceInBase);
+            inputTokenAmount = convertFromBaseCurrencyToToken(
+                inputDebtAmountInBase,
+                debtTokenDecimals,
+                debtTokenPriceInBase
+            );
             uint256 estimatedCollateralAmountInBase = getCollateralWithdrawAmountInBaseToDecreaseLeverage(
                 inputDebtAmountInBase,
                 subsidyBps
@@ -773,7 +798,10 @@ library DLoopCoreLogic {
      * @param withdrawalFeeBps The withdrawal fee in basis points
      * @return grossAmount The gross amount
      */
-    function getGrossAmountRequiredForNet(uint256 netAmount, uint256 withdrawalFeeBps) internal pure returns (uint256 grossAmount) {
+    function getGrossAmountRequiredForNet(
+        uint256 netAmount,
+        uint256 withdrawalFeeBps
+    ) internal pure returns (uint256 grossAmount) {
         return
             Math.mulDiv(
                 netAmount,
@@ -788,7 +816,10 @@ library DLoopCoreLogic {
      * @param withdrawalFeeBps The withdrawal fee in basis points
      * @return netAmount The net amount
      */
-    function getNetAmountAfterFee(uint256 grossAmount, uint256 withdrawalFeeBps) internal pure returns (uint256 netAmount) {
+    function getNetAmountAfterFee(
+        uint256 grossAmount,
+        uint256 withdrawalFeeBps
+    ) internal pure returns (uint256 netAmount) {
         return
             Math.mulDiv(
                 grossAmount,

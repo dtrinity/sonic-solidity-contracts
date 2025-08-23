@@ -93,8 +93,14 @@ contract ChainlinkSafeRateProviderCompositeWrapperWithThresholding is BaseChainl
             feed1: feed1,
             rateProvider: rateProvider,
             rateProviderUnit: rateProviderUnit,
-            primaryThreshold: ThresholdConfig({ lowerThresholdInBase: lowerThresholdInBase1, fixedPriceInBase: fixedPriceInBase1 }),
-            secondaryThreshold: ThresholdConfig({ lowerThresholdInBase: lowerThresholdInBase2, fixedPriceInBase: fixedPriceInBase2 })
+            primaryThreshold: ThresholdConfig({
+                lowerThresholdInBase: lowerThresholdInBase1,
+                fixedPriceInBase: fixedPriceInBase1
+            }),
+            secondaryThreshold: ThresholdConfig({
+                lowerThresholdInBase: lowerThresholdInBase2,
+                fixedPriceInBase: fixedPriceInBase2
+            })
         });
         emit CompositeFeedAdded(
             asset,
@@ -131,7 +137,13 @@ contract ChainlinkSafeRateProviderCompositeWrapperWithThresholding is BaseChainl
         feed.primaryThreshold.fixedPriceInBase = fixedPriceInBase1;
         feed.secondaryThreshold.lowerThresholdInBase = lowerThresholdInBase2;
         feed.secondaryThreshold.fixedPriceInBase = fixedPriceInBase2;
-        emit CompositeFeedUpdated(asset, lowerThresholdInBase1, fixedPriceInBase1, lowerThresholdInBase2, fixedPriceInBase2);
+        emit CompositeFeedUpdated(
+            asset,
+            lowerThresholdInBase1,
+            fixedPriceInBase1,
+            lowerThresholdInBase2,
+            fixedPriceInBase2
+        );
     }
 
     function getPriceInfo(address asset) public view override returns (uint256 price, bool isAlive) {
@@ -161,7 +173,10 @@ contract ChainlinkSafeRateProviderCompositeWrapperWithThresholding is BaseChainl
         price = Math.mulDiv(priceInBase1, priceInBase2, BASE_CURRENCY_UNIT);
 
         // Liveness: Chainlink heartbeat + rate > 0
-        isAlive = price > 0 && updatedAt1 + CHAINLINK_HEARTBEAT + heartbeatStaleTimeLimit > block.timestamp && feed2 > 0;
+        isAlive =
+            price > 0 &&
+            updatedAt1 + CHAINLINK_HEARTBEAT + heartbeatStaleTimeLimit > block.timestamp &&
+            feed2 > 0;
     }
 
     function getAssetPrice(address asset) external view override returns (uint256) {

@@ -184,7 +184,12 @@ contract RedeemerWithFees is AccessControl, OracleAware {
      * @param collateralAsset The address of the collateral asset.
      * @param collateralAmount The amount of collateral to withdraw to redeemer.
      */
-    function _redeem(address redeemerAddress, uint256 dstableAmount, address collateralAsset, uint256 collateralAmount) internal {
+    function _redeem(
+        address redeemerAddress,
+        uint256 dstableAmount,
+        address collateralAsset,
+        uint256 collateralAmount
+    ) internal {
         if (!dstable.transferFrom(redeemerAddress, address(this), dstableAmount)) {
             revert DStableTransferFailed();
         }
@@ -247,7 +252,10 @@ contract RedeemerWithFees is AccessControl, OracleAware {
      * @param _collateralAsset The address of the collateral asset.
      * @param _newFeeBps The new redemption fee for the specified asset (e.g., 10000 for 1%).
      */
-    function setCollateralRedemptionFee(address _collateralAsset, uint256 _newFeeBps) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function setCollateralRedemptionFee(
+        address _collateralAsset,
+        uint256 _newFeeBps
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         if (_collateralAsset == address(0)) {
             revert CannotBeZeroAddress();
         }

@@ -102,7 +102,11 @@ abstract contract CollateralVault is AccessControl, OracleAware {
      * @param collateralAmount The amount of collateral to withdraw
      * @param collateralAsset The address of the collateral asset
      */
-    function withdrawTo(address recipient, uint256 collateralAmount, address collateralAsset) public onlyRole(COLLATERAL_WITHDRAWER_ROLE) {
+    function withdrawTo(
+        address recipient,
+        uint256 collateralAmount,
+        address collateralAsset
+    ) public onlyRole(COLLATERAL_WITHDRAWER_ROLE) {
         return _withdraw(recipient, collateralAmount, collateralAsset);
     }
 

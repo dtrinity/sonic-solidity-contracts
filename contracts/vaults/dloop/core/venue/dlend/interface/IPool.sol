@@ -34,7 +34,13 @@ interface IPool {
      * @param amount The amount of supplied assets
      * @param referralCode The referral code used
      */
-    event MintUnbacked(address indexed reserve, address user, address indexed onBehalfOf, uint256 amount, uint16 indexed referralCode);
+    event MintUnbacked(
+        address indexed reserve,
+        address user,
+        address indexed onBehalfOf,
+        uint256 amount,
+        uint16 indexed referralCode
+    );
 
     /**
      * @dev Emitted on backUnbacked()
@@ -53,7 +59,13 @@ interface IPool {
      * @param amount The amount supplied
      * @param referralCode The referral code used
      */
-    event Supply(address indexed reserve, address user, address indexed onBehalfOf, uint256 amount, uint16 indexed referralCode);
+    event Supply(
+        address indexed reserve,
+        address user,
+        address indexed onBehalfOf,
+        uint256 amount,
+        uint16 indexed referralCode
+    );
 
     /**
      * @dev Emitted on withdraw()
@@ -93,7 +105,13 @@ interface IPool {
      * @param amount The amount repaid
      * @param useATokens True if the repayment is done using aTokens, `false` if done with underlying asset directly
      */
-    event Repay(address indexed reserve, address indexed user, address indexed repayer, uint256 amount, bool useATokens);
+    event Repay(
+        address indexed reserve,
+        address indexed user,
+        address indexed repayer,
+        uint256 amount,
+        bool useATokens
+    );
 
     /**
      * @dev Emitted on swapBorrowRateMode()
@@ -101,7 +119,11 @@ interface IPool {
      * @param user The address of the user swapping his rate mode
      * @param interestRateMode The current interest rate mode of the position being swapped: 1 for Stable, 2 for Variable
      */
-    event SwapBorrowRateMode(address indexed reserve, address indexed user, DataTypes.InterestRateMode interestRateMode);
+    event SwapBorrowRateMode(
+        address indexed reserve,
+        address indexed user,
+        DataTypes.InterestRateMode interestRateMode
+    );
 
     /**
      * @dev Emitted on borrow(), repay() and liquidationCall() when using isolated assets
@@ -290,7 +312,13 @@ interface IPool {
      * calling the function if he wants to borrow against his own collateral, or the address of the credit delegator
      * if he has been given credit delegation allowance
      */
-    function borrow(address asset, uint256 amount, uint256 interestRateMode, uint16 referralCode, address onBehalfOf) external;
+    function borrow(
+        address asset,
+        uint256 amount,
+        uint256 interestRateMode,
+        uint16 referralCode,
+        address onBehalfOf
+    ) external;
 
     /**
      * @notice Repays a borrowed `amount` on a specific reserve, burning the equivalent debt tokens owned
@@ -304,7 +332,12 @@ interface IPool {
      * other borrower whose debt should be removed
      * @return The final amount repaid
      */
-    function repay(address asset, uint256 amount, uint256 interestRateMode, address onBehalfOf) external returns (uint256);
+    function repay(
+        address asset,
+        uint256 amount,
+        uint256 interestRateMode,
+        address onBehalfOf
+    ) external returns (uint256);
 
     /**
      * @notice Repay with transfer approval of asset to be repaid done via permit function
@@ -383,7 +416,13 @@ interface IPool {
      * @param receiveAToken True if the liquidators wants to receive the collateral aTokens, `false` if he wants
      * to receive the underlying collateral asset directly
      */
-    function liquidationCall(address collateralAsset, address debtAsset, address user, uint256 debtToCover, bool receiveAToken) external;
+    function liquidationCall(
+        address collateralAsset,
+        address debtAsset,
+        address user,
+        uint256 debtToCover,
+        bool receiveAToken
+    ) external;
 
     /**
      * @notice Allows smartcontracts to access the liquidity of the pool within one transaction,
@@ -424,7 +463,13 @@ interface IPool {
      * @param referralCode The code used to register the integrator originating the operation, for potential rewards.
      *   0 if the action is executed directly by the user, without any middle-man
      */
-    function flashLoanSimple(address receiverAddress, address asset, uint256 amount, bytes calldata params, uint16 referralCode) external;
+    function flashLoanSimple(
+        address receiverAddress,
+        address asset,
+        uint256 amount,
+        bytes calldata params,
+        uint16 referralCode
+    ) external;
 
     /**
      * @notice Returns the user account data across all the reserves

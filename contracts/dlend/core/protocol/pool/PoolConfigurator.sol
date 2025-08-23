@@ -95,7 +95,9 @@ contract PoolConfigurator is VersionedInitializable, IPoolConfigurator {
     }
 
     /// @inheritdoc IPoolConfigurator
-    function initReserves(ConfiguratorInputTypes.InitReserveInput[] calldata input) external override onlyAssetListingOrPoolAdmins {
+    function initReserves(
+        ConfiguratorInputTypes.InitReserveInput[] calldata input
+    ) external override onlyAssetListingOrPoolAdmins {
         IPool cachedPool = _pool;
         for (uint256 i = 0; i < input.length; i++) {
             ConfiguratorLogic.executeInitReserve(cachedPool, input[i]);
@@ -114,12 +116,16 @@ contract PoolConfigurator is VersionedInitializable, IPoolConfigurator {
     }
 
     /// @inheritdoc IPoolConfigurator
-    function updateStableDebtToken(ConfiguratorInputTypes.UpdateDebtTokenInput calldata input) external override onlyPoolAdmin {
+    function updateStableDebtToken(
+        ConfiguratorInputTypes.UpdateDebtTokenInput calldata input
+    ) external override onlyPoolAdmin {
         ConfiguratorLogic.executeUpdateStableDebtToken(_pool, input);
     }
 
     /// @inheritdoc IPoolConfigurator
-    function updateVariableDebtToken(ConfiguratorInputTypes.UpdateDebtTokenInput calldata input) external override onlyPoolAdmin {
+    function updateVariableDebtToken(
+        ConfiguratorInputTypes.UpdateDebtTokenInput calldata input
+    ) external override onlyPoolAdmin {
         ConfiguratorLogic.executeUpdateVariableDebtToken(_pool, input);
     }
 
@@ -155,7 +161,10 @@ contract PoolConfigurator is VersionedInitializable, IPoolConfigurator {
 
             //if threshold * bonus is less than PERCENTAGE_FACTOR, it's guaranteed that at the moment
             //a loan is taken there is enough collateral available to cover the liquidation bonus
-            require(liquidationThreshold.percentMul(liquidationBonus) <= PercentageMath.PERCENTAGE_FACTOR, Errors.INVALID_RESERVE_PARAMS);
+            require(
+                liquidationThreshold.percentMul(liquidationBonus) <= PercentageMath.PERCENTAGE_FACTOR,
+                Errors.INVALID_RESERVE_PARAMS
+            );
         } else {
             require(liquidationBonus == 0, Errors.INVALID_RESERVE_PARAMS);
             //if the liquidation threshold is being set to 0,
@@ -328,7 +337,10 @@ contract PoolConfigurator is VersionedInitializable, IPoolConfigurator {
             DataTypes.ReserveConfigurationMap memory currentConfig = _pool.getConfiguration(reserves[i]);
             if (categoryId == currentConfig.getEModeCategory()) {
                 require(ltv > currentConfig.getLtv(), Errors.INVALID_EMODE_CATEGORY_PARAMS);
-                require(liquidationThreshold > currentConfig.getLiquidationThreshold(), Errors.INVALID_EMODE_CATEGORY_PARAMS);
+                require(
+                    liquidationThreshold > currentConfig.getLiquidationThreshold(),
+                    Errors.INVALID_EMODE_CATEGORY_PARAMS
+                );
             }
         }
 
@@ -351,7 +363,10 @@ contract PoolConfigurator is VersionedInitializable, IPoolConfigurator {
 
         if (newCategoryId != 0) {
             DataTypes.EModeCategory memory categoryData = _pool.getEModeCategoryData(newCategoryId);
-            require(categoryData.liquidationThreshold > currentConfig.getLiquidationThreshold(), Errors.INVALID_EMODE_CATEGORY_ASSIGNMENT);
+            require(
+                categoryData.liquidationThreshold > currentConfig.getLiquidationThreshold(),
+                Errors.INVALID_EMODE_CATEGORY_ASSIGNMENT
+            );
         }
         uint256 oldCategoryId = currentConfig.getEModeCategory();
         currentConfig.setEModeCategory(newCategoryId);
@@ -369,7 +384,10 @@ contract PoolConfigurator is VersionedInitializable, IPoolConfigurator {
     }
 
     /// @inheritdoc IPoolConfigurator
-    function setReserveInterestRateStrategyAddress(address asset, address newRateStrategyAddress) external override onlyRiskOrPoolAdmins {
+    function setReserveInterestRateStrategyAddress(
+        address asset,
+        address newRateStrategyAddress
+    ) external override onlyRiskOrPoolAdmins {
         DataTypes.ReserveData memory reserve = _pool.getReserveData(asset);
         address oldRateStrategyAddress = reserve.interestRateStrategyAddress;
         _pool.setReserveInterestRateStrategyAddress(asset, newRateStrategyAddress);
@@ -412,8 +430,9 @@ contract PoolConfigurator is VersionedInitializable, IPoolConfigurator {
     }
 
     function _checkNoSuppliers(address asset) internal view {
-        (, uint256 accruedToTreasury, uint256 totalATokens, , , , , , , , , ) = IPoolDataProvider(_addressesProvider.getPoolDataProvider())
-            .getReserveData(asset);
+        (, uint256 accruedToTreasury, uint256 totalATokens, , , , , , , , , ) = IPoolDataProvider(
+            _addressesProvider.getPoolDataProvider()
+        ).getReserveData(asset);
 
         require(totalATokens == 0 && accruedToTreasury == 0, Errors.RESERVE_LIQUIDITY_NOT_ZERO);
     }
@@ -435,7 +454,10 @@ contract PoolConfigurator is VersionedInitializable, IPoolConfigurator {
 
     function _onlyPoolOrEmergencyAdmin() internal view {
         IACLManager aclManager = IACLManager(_addressesProvider.getACLManager());
-        require(aclManager.isPoolAdmin(msg.sender) || aclManager.isEmergencyAdmin(msg.sender), Errors.CALLER_NOT_POOL_OR_EMERGENCY_ADMIN);
+        require(
+            aclManager.isPoolAdmin(msg.sender) || aclManager.isEmergencyAdmin(msg.sender),
+            Errors.CALLER_NOT_POOL_OR_EMERGENCY_ADMIN
+        );
     }
 
     function _onlyAssetListingOrPoolAdmins() internal view {
@@ -448,6 +470,9 @@ contract PoolConfigurator is VersionedInitializable, IPoolConfigurator {
 
     function _onlyRiskOrPoolAdmins() internal view {
         IACLManager aclManager = IACLManager(_addressesProvider.getACLManager());
-        require(aclManager.isRiskAdmin(msg.sender) || aclManager.isPoolAdmin(msg.sender), Errors.CALLER_NOT_RISK_OR_POOL_ADMIN);
+        require(
+            aclManager.isRiskAdmin(msg.sender) || aclManager.isPoolAdmin(msg.sender),
+            Errors.CALLER_NOT_RISK_OR_POOL_ADMIN
+        );
     }
 }

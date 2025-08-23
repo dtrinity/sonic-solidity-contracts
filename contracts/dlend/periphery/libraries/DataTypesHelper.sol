@@ -33,7 +33,13 @@ library DataTypesHelper {
      * @return The stable debt balance
      * @return The variable debt balance
      **/
-    function getUserCurrentDebt(address user, DataTypes.ReserveData memory reserve) internal view returns (uint256, uint256) {
-        return (IERC20(reserve.stableDebtTokenAddress).balanceOf(user), IERC20(reserve.variableDebtTokenAddress).balanceOf(user));
+    function getUserCurrentDebt(
+        address user,
+        DataTypes.ReserveData memory reserve
+    ) internal view returns (uint256, uint256) {
+        return (
+            IERC20(reserve.stableDebtTokenAddress).balanceOf(user),
+            IERC20(reserve.variableDebtTokenAddress).balanceOf(user)
+        );
     }
 }

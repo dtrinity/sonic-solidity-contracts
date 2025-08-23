@@ -94,7 +94,9 @@ contract RewardsController is RewardsDistributor, VersionedInitializable, IRewar
     }
 
     /// @inheritdoc IRewardsController
-    function configureAssets(RewardsDataTypes.RewardsConfigInput[] memory config) external override onlyEmissionManager {
+    function configureAssets(
+        RewardsDataTypes.RewardsConfigInput[] memory config
+    ) external override onlyEmissionManager {
         for (uint256 i = 0; i < config.length; i++) {
             // Get the current Scaled Total Supply of AToken or Debt token
             config[i].totalSupply = IScaledBalanceToken(config[i].asset).scaledTotalSupply();
@@ -124,7 +126,12 @@ contract RewardsController is RewardsDistributor, VersionedInitializable, IRewar
     }
 
     /// @inheritdoc IRewardsController
-    function claimRewards(address[] calldata assets, uint256 amount, address to, address reward) external override returns (uint256) {
+    function claimRewards(
+        address[] calldata assets,
+        uint256 amount,
+        address to,
+        address reward
+    ) external override returns (uint256) {
         require(to != address(0), "INVALID_TO_ADDRESS");
         return _claimRewards(assets, amount, msg.sender, msg.sender, to, reward);
     }
@@ -143,7 +150,11 @@ contract RewardsController is RewardsDistributor, VersionedInitializable, IRewar
     }
 
     /// @inheritdoc IRewardsController
-    function claimRewardsToSelf(address[] calldata assets, uint256 amount, address reward) external override returns (uint256) {
+    function claimRewardsToSelf(
+        address[] calldata assets,
+        uint256 amount,
+        address reward
+    ) external override returns (uint256) {
         return _claimRewards(assets, amount, msg.sender, msg.sender, msg.sender, reward);
     }
 
@@ -161,7 +172,12 @@ contract RewardsController is RewardsDistributor, VersionedInitializable, IRewar
         address[] calldata assets,
         address user,
         address to
-    ) external override onlyAuthorizedClaimers(msg.sender, user) returns (address[] memory rewardsList, uint256[] memory claimedAmounts) {
+    )
+        external
+        override
+        onlyAuthorizedClaimers(msg.sender, user)
+        returns (address[] memory rewardsList, uint256[] memory claimedAmounts)
+    {
         require(user != address(0), "INVALID_USER_ADDRESS");
         require(to != address(0), "INVALID_TO_ADDRESS");
         return _claimAllRewards(assets, msg.sender, user, to);
@@ -190,7 +206,10 @@ contract RewardsController is RewardsDistributor, VersionedInitializable, IRewar
             uint256 expectAfterTotalRewardSupply = beforeTotalRewardSupply + amount;
             SafeERC20.safeTransferFrom(IERC20(reward), from, vault, amount);
             uint256 afterTotalRewardSupplyAfterDeposit = IERC20(reward).balanceOf(vault);
-            require(afterTotalRewardSupplyAfterDeposit == expectAfterTotalRewardSupply, "INVALID_REWARD_DEPOSIT_AMOUNT");
+            require(
+                afterTotalRewardSupplyAfterDeposit == expectAfterTotalRewardSupply,
+                "INVALID_REWARD_DEPOSIT_AMOUNT"
+            );
         } catch {
             revert("ONLY_ALLOW_DEPOSIT_TO_PULL_REWARDS_TRANSFER_STRATEGY");
         }

@@ -160,7 +160,11 @@ abstract contract RewardClaimable is AccessControl, ReentrancyGuard {
      * @param rewardTokens The reward tokens to claim
      * @param receiver The address to receive the compounded rewards
      */
-    function compoundRewards(uint256 amount, address[] calldata rewardTokens, address receiver) public virtual nonReentrant {
+    function compoundRewards(
+        uint256 amount,
+        address[] calldata rewardTokens,
+        address receiver
+    ) public virtual nonReentrant {
         if (amount < exchangeThreshold) {
             revert ExchangeAmountTooLow(amount, exchangeThreshold);
         }
@@ -210,7 +214,10 @@ abstract contract RewardClaimable is AccessControl, ReentrancyGuard {
      * @param receiver The address to receive the claimed rewards
      * @return rewardAmounts The amount of rewards claimed for each token (have the same length as the tokens array)
      */
-    function _claimRewards(address[] calldata rewardTokens, address receiver) internal virtual returns (uint256[] memory rewardAmounts);
+    function _claimRewards(
+        address[] calldata rewardTokens,
+        address receiver
+    ) internal virtual returns (uint256[] memory rewardAmounts);
 
     /**
      * @dev Processes the exchange asset deposit from the caller

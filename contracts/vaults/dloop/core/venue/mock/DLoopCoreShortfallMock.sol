@@ -50,7 +50,11 @@ contract DLoopCoreShortfallMock is DLoopCoreMock {
      * @inheritdoc DLoopCoreMock
      * @dev Transfers `amount - 1` wei from the pool when borrowing.
      */
-    function _borrowFromPoolImplementation(address token, uint256 amount, address onBehalfOf) internal virtual override {
+    function _borrowFromPoolImplementation(
+        address token,
+        uint256 amount,
+        address onBehalfOf
+    ) internal virtual override {
         _checkRequiredAllowance();
         if (amount <= 1) revert MockBorrowAmountTooSmall(amount);
         uint256 sendAmount = amount - 1;
@@ -65,7 +69,11 @@ contract DLoopCoreShortfallMock is DLoopCoreMock {
      * @inheritdoc DLoopCoreMock
      * @dev Transfers `amount - 1` wei from the pool when withdrawing collateral.
      */
-    function _withdrawFromPoolImplementation(address token, uint256 amount, address onBehalfOf) internal virtual override {
+    function _withdrawFromPoolImplementation(
+        address token,
+        uint256 amount,
+        address onBehalfOf
+    ) internal virtual override {
         _checkRequiredAllowance();
         if (amount <= 1) revert MockWithdrawAmountTooSmall(amount);
         uint256 sendAmount = amount - 1;

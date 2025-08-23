@@ -15,7 +15,12 @@ contract TestBuyAdapter is BaseOdosBuyAdapter {
         return (address(0), address(0), address(0));
     }
 
-    function _supply(address /*asset*/, uint256 /*amount*/, address /*to*/, uint16 /*referralCode*/) internal pure override {}
+    function _supply(
+        address /*asset*/,
+        uint256 /*amount*/,
+        address /*to*/,
+        uint16 /*referralCode*/
+    ) internal pure override {}
 
     // ----------------- Test helper -------------------
     function buy(

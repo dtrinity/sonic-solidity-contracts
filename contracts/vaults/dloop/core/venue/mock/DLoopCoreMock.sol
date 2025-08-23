@@ -68,7 +68,10 @@ contract DLoopCoreMock is DLoopCoreBase {
 
     // Allow setting transfer portion bps for testing
     function setTransferPortionBps(uint256 _transferPortionBps) external {
-        require(_transferPortionBps <= BasisPointConstants.ONE_HUNDRED_PERCENT_BPS, "Mock: transferPortionBps must be at most 100%");
+        require(
+            _transferPortionBps <= BasisPointConstants.ONE_HUNDRED_PERCENT_BPS,
+            "Mock: transferPortionBps must be at most 100%"
+        );
         transferPortionBps = _transferPortionBps;
     }
 
@@ -169,7 +172,10 @@ contract DLoopCoreMock is DLoopCoreBase {
             // Switch between transfer and transferFrom based on the onBehalfOf
             if (onBehalfOf == address(this)) {
                 // If the onBehalfOf is the vault itself, use transfer
-                require(ERC20(token).transfer(mockPool, amount), "Mock: supply transfer failed (onBehalfOf is the vault itself)");
+                require(
+                    ERC20(token).transfer(mockPool, amount),
+                    "Mock: supply transfer failed (onBehalfOf is the vault itself)"
+                );
             } else {
                 // Transfer from target user to mockPool
                 require(ERC20(token).transferFrom(onBehalfOf, mockPool, amount), "Mock: supply transfer failed");
@@ -183,7 +189,11 @@ contract DLoopCoreMock is DLoopCoreBase {
         _setMockCollateral(onBehalfOf, token, mockCollateral[onBehalfOf][token] + amount);
     }
 
-    function _borrowFromPoolImplementation(address token, uint256 amount, address onBehalfOf) internal virtual override {
+    function _borrowFromPoolImplementation(
+        address token,
+        uint256 amount,
+        address onBehalfOf
+    ) internal virtual override {
         _checkRequiredAllowance();
 
         // Calculate the amount to borrow based on transfer portion bps
@@ -217,7 +227,10 @@ contract DLoopCoreMock is DLoopCoreBase {
             // Switch between transfer and transferFrom based on the onBehalfOf
             if (onBehalfOf == address(this)) {
                 // If the onBehalfOf is the vault itself, use transfer
-                require(ERC20(token).transfer(mockPool, amount), "Mock: repay transfer failed (onBehalfOf is the vault itself)");
+                require(
+                    ERC20(token).transfer(mockPool, amount),
+                    "Mock: repay transfer failed (onBehalfOf is the vault itself)"
+                );
             } else {
                 // Transfer from target user to mockPool
                 require(ERC20(token).transferFrom(onBehalfOf, mockPool, amount), "Mock: repay transfer failed");
@@ -231,7 +244,11 @@ contract DLoopCoreMock is DLoopCoreBase {
         _setMockDebt(onBehalfOf, token, mockDebt[onBehalfOf][token] - amount);
     }
 
-    function _withdrawFromPoolImplementation(address token, uint256 amount, address onBehalfOf) internal virtual override {
+    function _withdrawFromPoolImplementation(
+        address token,
+        uint256 amount,
+        address onBehalfOf
+    ) internal virtual override {
         _checkRequiredAllowance();
 
         // Calculate the amount to withdraw based on transfer portion bps
@@ -258,7 +275,10 @@ contract DLoopCoreMock is DLoopCoreBase {
      * @param user The address of the user
      * @return collateralTokenAmount The collateral token amount
      */
-    function getCollateralValueInTokenAmount(address token, address user) public view override returns (uint256 collateralTokenAmount) {
+    function getCollateralValueInTokenAmount(
+        address token,
+        address user
+    ) public view override returns (uint256 collateralTokenAmount) {
         collateralTokenAmount = mockCollateral[user][token];
         return collateralTokenAmount;
     }
@@ -269,7 +289,10 @@ contract DLoopCoreMock is DLoopCoreBase {
      * @param user The address of the user
      * @return debtTokenAmount The total underlying debt token amount
      */
-    function getDebtValueInTokenAmount(address token, address user) public view override returns (uint256 debtTokenAmount) {
+    function getDebtValueInTokenAmount(
+        address token,
+        address user
+    ) public view override returns (uint256 debtTokenAmount) {
         debtTokenAmount = mockDebt[user][token];
         return debtTokenAmount;
     }

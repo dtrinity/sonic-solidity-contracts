@@ -83,9 +83,8 @@ contract DStakeRouterDLend is IDStakeRouter, AccessControl {
             revert AdapterNotFound(defaultDepositVaultAsset);
         }
 
-        (address vaultAssetExpected, uint256 expectedShares) = IDStableConversionAdapter(adapterAddress).previewConvertToVaultAsset(
-            dStableAmount
-        );
+        (address vaultAssetExpected, uint256 expectedShares) = IDStableConversionAdapter(adapterAddress)
+            .previewConvertToVaultAsset(dStableAmount);
 
         uint256 mintedShares = _executeDeposit(adapterAddress, vaultAssetExpected, dStableAmount);
 
@@ -118,7 +117,8 @@ contract DStakeRouterDLend is IDStakeRouter, AccessControl {
         IERC20(dStable).forceApprove(adapterAddress, dStableAmount);
 
         // Convert dStable to vault asset (minted directly to collateral vault)
-        (address vaultAssetActual, uint256 reportedShares) = IDStableConversionAdapter(adapterAddress).convertToVaultAsset(dStableAmount);
+        (address vaultAssetActual, uint256 reportedShares) = IDStableConversionAdapter(adapterAddress)
+            .convertToVaultAsset(dStableAmount);
 
         if (vaultAssetActual != vaultAssetExpected) {
             revert AdapterAssetMismatch(adapterAddress, vaultAssetExpected, vaultAssetActual);
@@ -134,7 +134,11 @@ contract DStakeRouterDLend is IDStakeRouter, AccessControl {
     /**
      * @inheritdoc IDStakeRouter
      */
-    function withdraw(uint256 dStableAmount, address receiver, address owner) external override onlyRole(DSTAKE_TOKEN_ROLE) {
+    function withdraw(
+        uint256 dStableAmount,
+        address receiver,
+        address owner
+    ) external override onlyRole(DSTAKE_TOKEN_ROLE) {
         address adapterAddress = vaultAssetToAdapter[defaultDepositVaultAsset];
         if (adapterAddress == address(0)) {
             revert AdapterNotFound(defaultDepositVaultAsset);
@@ -226,7 +230,9 @@ contract DStakeRouterDLend is IDStakeRouter, AccessControl {
 
         // 4. Approve toAdapter & Convert dStable -> toVaultAsset (sent to collateralVault)
         IERC20(dStable).forceApprove(toAdapterAddress, receivedDStable);
-        (address actualToVaultAsset, uint256 resultingToVaultAssetAmount) = toAdapter.convertToVaultAsset(receivedDStable);
+        (address actualToVaultAsset, uint256 resultingToVaultAssetAmount) = toAdapter.convertToVaultAsset(
+            receivedDStable
+        );
         if (actualToVaultAsset != toVaultAsset) {
             revert AdapterAssetMismatch(toAdapterAddress, toVaultAsset, actualToVaultAsset);
         }
@@ -298,7 +304,9 @@ contract DStakeRouterDLend is IDStakeRouter, AccessControl {
         }
 
         // Calculate expected output vault asset amount
-        (address expectedToAsset, uint256 tmpToAmount) = locals.toAdapter.previewConvertToVaultAsset(locals.dStableValueIn);
+        (address expectedToAsset, uint256 tmpToAmount) = locals.toAdapter.previewConvertToVaultAsset(
+            locals.dStableValueIn
+        );
 
         if (expectedToAsset != toVaultAsset) {
             revert AdapterAssetMismatch(locals.toAdapterAddress, toVaultAsset, expectedToAsset);
@@ -398,7 +406,13 @@ contract DStakeRouterDLend is IDStakeRouter, AccessControl {
         uint256 vaultAssetAmount,
         uint256 dStableAmount
     );
-    event Withdrawn(address indexed vaultAsset, uint256 vaultAssetAmount, uint256 dStableAmount, address owner, address receiver);
+    event Withdrawn(
+        address indexed vaultAsset,
+        uint256 vaultAssetAmount,
+        uint256 dStableAmount,
+        address owner,
+        address receiver
+    );
     event Exchanged(
         address indexed fromAsset,
         address indexed toAsset,

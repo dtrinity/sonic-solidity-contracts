@@ -60,7 +60,15 @@ contract MockRewardClaimableVault is RewardClaimable {
         uint256 _initialExchangeThreshold,
         address _targetPool,
         address _fakeRewardPool
-    ) RewardClaimable(_exchangeAsset, _treasury, _maxTreasuryFeeBps, _initialTreasuryFeeBps, _initialExchangeThreshold) {
+    )
+        RewardClaimable(
+            _exchangeAsset,
+            _treasury,
+            _maxTreasuryFeeBps,
+            _initialTreasuryFeeBps,
+            _initialExchangeThreshold
+        )
+    {
         targetPool = _targetPool;
         fakeRewardPool = _fakeRewardPool;
     }
@@ -90,7 +98,10 @@ contract MockRewardClaimableVault is RewardClaimable {
      * @param receiver The address to receive the claimed rewards
      * @return rewardAmounts The amount of rewards claimed for each token (have the same length as the tokens array)
      */
-    function _claimRewards(address[] calldata tokens, address receiver) internal override returns (uint256[] memory rewardAmounts) {
+    function _claimRewards(
+        address[] calldata tokens,
+        address receiver
+    ) internal override returns (uint256[] memory rewardAmounts) {
         rewardAmounts = new uint256[](tokens.length);
         for (uint256 i = 0; i < tokens.length; i++) {
             if (!rewardTokens[tokens[i]]) {

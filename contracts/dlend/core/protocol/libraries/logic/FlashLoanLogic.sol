@@ -107,14 +107,24 @@ library FlashLoanLogic {
 
         for (vars.i = 0; vars.i < params.assets.length; vars.i++) {
             vars.currentAmount = params.amounts[vars.i];
-            vars.totalPremiums[vars.i] = DataTypes.InterestRateMode(params.interestRateModes[vars.i]) == DataTypes.InterestRateMode.NONE
+            vars.totalPremiums[vars.i] = DataTypes.InterestRateMode(params.interestRateModes[vars.i]) ==
+                DataTypes.InterestRateMode.NONE
                 ? vars.currentAmount.percentMul(vars.flashloanPremiumTotal)
                 : 0;
-            IAToken(reservesData[params.assets[vars.i]].aTokenAddress).transferUnderlyingTo(params.receiverAddress, vars.currentAmount);
+            IAToken(reservesData[params.assets[vars.i]].aTokenAddress).transferUnderlyingTo(
+                params.receiverAddress,
+                vars.currentAmount
+            );
         }
 
         require(
-            vars.receiver.executeOperation(params.assets, params.amounts, vars.totalPremiums, msg.sender, params.params),
+            vars.receiver.executeOperation(
+                params.assets,
+                params.amounts,
+                vars.totalPremiums,
+                msg.sender,
+                params.params
+            ),
             Errors.INVALID_FLASHLOAN_EXECUTOR_RETURN
         );
 
@@ -181,7 +191,10 @@ library FlashLoanLogic {
      * @param reserve The state of the flashloaned reserve
      * @param params The additional parameters needed to execute the simple flashloan function
      */
-    function executeFlashLoanSimple(DataTypes.ReserveData storage reserve, DataTypes.FlashloanSimpleParams memory params) external {
+    function executeFlashLoanSimple(
+        DataTypes.ReserveData storage reserve,
+        DataTypes.FlashloanSimpleParams memory params
+    ) external {
         // The usual action flow (cache -> updateState -> validation -> changeState -> updateRates)
         // is altered to (validation -> user payload -> cache -> updateState -> changeState -> updateRates) for flashloans.
         // This is done to protect against reentrance and rate manipulation within the user specified payload.
@@ -216,7 +229,10 @@ library FlashLoanLogic {
      * @param reserve The state of the flashloaned reserve
      * @param params The additional parameters needed to execute the repayment function
      */
-    function _handleFlashLoanRepayment(DataTypes.ReserveData storage reserve, DataTypes.FlashLoanRepaymentParams memory params) internal {
+    function _handleFlashLoanRepayment(
+        DataTypes.ReserveData storage reserve,
+        DataTypes.FlashLoanRepaymentParams memory params
+    ) internal {
         uint256 premiumToProtocol = params.totalPremium.percentMul(params.flashLoanPremiumToProtocol);
         uint256 premiumToLP = params.totalPremium - premiumToProtocol;
         uint256 amountPlusPremium = params.amount + params.totalPremium;
@@ -224,7 +240,8 @@ library FlashLoanLogic {
         DataTypes.ReserveCache memory reserveCache = reserve.cache();
         reserve.updateState(reserveCache);
         reserveCache.nextLiquidityIndex = reserve.cumulateToLiquidityIndex(
-            IERC20(reserveCache.aTokenAddress).totalSupply() + uint256(reserve.accruedToTreasury).rayMul(reserveCache.nextLiquidityIndex),
+            IERC20(reserveCache.aTokenAddress).totalSupply() +
+                uint256(reserve.accruedToTreasury).rayMul(reserveCache.nextLiquidityIndex),
             premiumToLP
         );
 
@@ -234,7 +251,11 @@ library FlashLoanLogic {
 
         IERC20(params.asset).safeTransferFrom(params.receiverAddress, reserveCache.aTokenAddress, amountPlusPremium);
 
-        IAToken(reserveCache.aTokenAddress).handleRepayment(params.receiverAddress, params.receiverAddress, amountPlusPremium);
+        IAToken(reserveCache.aTokenAddress).handleRepayment(
+            params.receiverAddress,
+            params.receiverAddress,
+            amountPlusPremium
+        );
 
         emit FlashLoan(
             params.receiverAddress,

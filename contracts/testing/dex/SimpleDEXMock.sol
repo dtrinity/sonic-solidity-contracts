@@ -133,7 +133,12 @@ contract SimpleDEXMock {
         }
 
         // Calculate output amount before slippage
-        uint256 outputBeforeSlippage = _calculateOutputAmount(amountIn, rate, inputToken.decimals(), outputToken.decimals());
+        uint256 outputBeforeSlippage = _calculateOutputAmount(
+            amountIn,
+            rate,
+            inputToken.decimals(),
+            outputToken.decimals()
+        );
 
         // Apply execution slippage
         amountOut = _applyExecutionSlippage(outputBeforeSlippage);
@@ -249,7 +254,12 @@ contract SimpleDEXMock {
             return 0;
         }
 
-        uint256 outputBeforeSlippage = _calculateOutputAmount(amountIn, rate, inputToken.decimals(), outputToken.decimals());
+        uint256 outputBeforeSlippage = _calculateOutputAmount(
+            amountIn,
+            rate,
+            inputToken.decimals(),
+            outputToken.decimals()
+        );
 
         return _applyExecutionSlippage(outputBeforeSlippage);
     }

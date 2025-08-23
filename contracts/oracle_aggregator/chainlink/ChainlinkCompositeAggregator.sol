@@ -112,7 +112,8 @@ contract ChainlinkCompositeAggregator is AggregatorV3Interface, ThresholdingUtil
         returns (uint80 roundId, int256 answer, uint256 startedAt, uint256 updatedAt, uint80 answeredInRound)
     {
         // Get latest data from both feeds
-        (uint80 roundId1, int256 answer1, uint256 startedAt1, uint256 updatedAt1, uint80 answeredInRound1) = sourceFeed1.latestRoundData();
+        (uint80 roundId1, int256 answer1, uint256 startedAt1, uint256 updatedAt1, uint80 answeredInRound1) = sourceFeed1
+            .latestRoundData();
 
         (
             ,
@@ -161,7 +162,12 @@ contract ChainlinkCompositeAggregator is AggregatorV3Interface, ThresholdingUtil
      */
     function getRoundData(
         uint80 /* _roundId */
-    ) external view override returns (uint80 roundId, int256 answer, uint256 startedAt, uint256 updatedAt, uint80 answeredInRound) {
+    )
+        external
+        view
+        override
+        returns (uint80 roundId, int256 answer, uint256 startedAt, uint256 updatedAt, uint80 answeredInRound)
+    {
         // Delegate to latestRoundData to avoid round ID divergence issues
         return this.latestRoundData();
     }

@@ -40,7 +40,13 @@ import { SharedLogic } from "./helper/SharedLogic.sol";
  *      - In the final state, the user has 300 shares representing 300 WETH, and the core contract has 300 WETH as collateral, 200 dUSD as debt
  *      - NOTE: This contract only support deposit() to DLoopCore contracts, not mint()
  */
-abstract contract DLoopDepositorBase is IERC3156FlashBorrower, Ownable, ReentrancyGuard, SwappableVault, RescuableVault {
+abstract contract DLoopDepositorBase is
+    IERC3156FlashBorrower,
+    Ownable,
+    ReentrancyGuard,
+    SwappableVault,
+    RescuableVault
+{
     using SafeERC20 for ERC20;
 
     /* Constants */
@@ -57,10 +63,20 @@ abstract contract DLoopDepositorBase is IERC3156FlashBorrower, Ownable, Reentran
     error UnknownInitiator(address initiator, address thisContract);
     error IncompatibleDLoopCoreDebtToken(address currentDebtToken, address dLoopCoreDebtToken);
     error SharesNotIncreasedAfterFlashLoan(uint256 sharesBeforeDeposit, uint256 sharesAfterDeposit);
-    error DebtTokenBalanceNotIncreasedAfterDeposit(uint256 debtTokenBalanceBeforeDeposit, uint256 debtTokenBalanceAfterDeposit);
+    error DebtTokenBalanceNotIncreasedAfterDeposit(
+        uint256 debtTokenBalanceBeforeDeposit,
+        uint256 debtTokenBalanceAfterDeposit
+    );
     error ReceivedSharesNotMetMinReceiveAmount(uint256 receivedShares, uint256 minOutputShares);
-    error DebtTokenReceivedNotMetUsedAmountWithFlashLoanFee(uint256 debtTokenReceived, uint256 debtTokenUsed, uint256 flashLoanFee);
-    error LeveragedCollateralAmountLessThanDepositCollateralAmount(uint256 leveragedCollateralAmount, uint256 depositCollateralAmount);
+    error DebtTokenReceivedNotMetUsedAmountWithFlashLoanFee(
+        uint256 debtTokenReceived,
+        uint256 debtTokenUsed,
+        uint256 flashLoanFee
+    );
+    error LeveragedCollateralAmountLessThanDepositCollateralAmount(
+        uint256 leveragedCollateralAmount,
+        uint256 depositCollateralAmount
+    );
     error EstimatedSharesLessThanMinOutputShares(uint256 currentEstimatedShares, uint256 minOutputShares);
     error EstimatedOverallSlippageBpsCannotExceedOneHundredPercent(uint256 estimatedOverallSlippageBps);
     error FlashLenderNotSameAsDebtToken(address flashLender, address debtToken);
@@ -108,7 +124,11 @@ abstract contract DLoopDepositorBase is IERC3156FlashBorrower, Ownable, Reentran
      * @param dLoopCore Address of the DLoopCore contract
      * @return minOutputShares Minimum output shares
      */
-    function calculateMinOutputShares(uint256 depositAmount, uint256 slippageBps, DLoopCoreBase dLoopCore) public view returns (uint256) {
+    function calculateMinOutputShares(
+        uint256 depositAmount,
+        uint256 slippageBps,
+        DLoopCoreBase dLoopCore
+    ) public view returns (uint256) {
         if (slippageBps > BasisPointConstants.ONE_HUNDRED_PERCENT_BPS) {
             revert SlippageBpsCannotExceedOneHundredPercent(slippageBps);
         }
@@ -185,7 +205,12 @@ abstract contract DLoopDepositorBase is IERC3156FlashBorrower, Ownable, Reentran
         if (currentEstimatedShares < minOutputShares) {
             revert EstimatedSharesLessThanMinOutputShares(currentEstimatedShares, minOutputShares);
         }
-        return Math.mulDiv(currentEstimatedShares - minOutputShares, BasisPointConstants.ONE_HUNDRED_PERCENT_BPS, currentEstimatedShares);
+        return
+            Math.mulDiv(
+                currentEstimatedShares - minOutputShares,
+                BasisPointConstants.ONE_HUNDRED_PERCENT_BPS,
+                currentEstimatedShares
+            );
     }
 
     /**
@@ -272,7 +297,15 @@ abstract contract DLoopDepositorBase is IERC3156FlashBorrower, Ownable, Reentran
         }
 
         // Finalize deposit and transfer shares
-        return _finalizeDepositAndTransfer(dLoopCore, debtToken, receiver, sharesBeforeDeposit, sharesAfterDeposit, minOutputShares);
+        return
+            _finalizeDepositAndTransfer(
+                dLoopCore,
+                debtToken,
+                receiver,
+                sharesBeforeDeposit,
+                sharesAfterDeposit,
+                minOutputShares
+            );
     }
 
     /* Flash loan entrypoint */
@@ -330,7 +363,13 @@ abstract contract DLoopDepositorBase is IERC3156FlashBorrower, Ownable, Reentran
         );
 
         // Execute deposit and validate debt token received
-        _executeDepositAndValidate(flashLoanParams, collateralToken, debtToken, debtTokenAmountUsedInSwap, flashLoanFee);
+        _executeDepositAndValidate(
+            flashLoanParams,
+            collateralToken,
+            debtToken,
+            debtTokenAmountUsedInSwap,
+            flashLoanFee
+        );
 
         // Return the success bytes
         return FLASHLOAN_CALLBACK;
@@ -357,7 +396,8 @@ abstract contract DLoopDepositorBase is IERC3156FlashBorrower, Ownable, Reentran
                 flashLoanParams.depositCollateralAmount
             );
         }
-        requiredAdditionalCollateralAmount = (flashLoanParams.leveragedCollateralAmount - flashLoanParams.depositCollateralAmount);
+        requiredAdditionalCollateralAmount = (flashLoanParams.leveragedCollateralAmount -
+            flashLoanParams.depositCollateralAmount);
     }
 
     /**
@@ -394,7 +434,10 @@ abstract contract DLoopDepositorBase is IERC3156FlashBorrower, Ownable, Reentran
 
         // Make sure to receive the debt token from the core vault to repay the flash loan
         if (debtTokenBalanceAfterDeposit <= debtTokenBalanceBeforeDeposit) {
-            revert DebtTokenBalanceNotIncreasedAfterDeposit(debtTokenBalanceBeforeDeposit, debtTokenBalanceAfterDeposit);
+            revert DebtTokenBalanceNotIncreasedAfterDeposit(
+                debtTokenBalanceBeforeDeposit,
+                debtTokenBalanceAfterDeposit
+            );
         }
 
         // Calculate the debt token received after the deposit

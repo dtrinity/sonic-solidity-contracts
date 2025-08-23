@@ -29,7 +29,10 @@ contract RedstoneChainlinkWrapperWithThresholding is RedstoneChainlinkWrapper, T
     event ThresholdConfigSet(address indexed asset, uint256 lowerThresholdInBase, uint256 fixedPriceInBase);
     event ThresholdConfigRemoved(address indexed asset);
 
-    constructor(address baseCurrency, uint256 _baseCurrencyUnit) RedstoneChainlinkWrapper(baseCurrency, _baseCurrencyUnit) {}
+    constructor(
+        address baseCurrency,
+        uint256 _baseCurrencyUnit
+    ) RedstoneChainlinkWrapper(baseCurrency, _baseCurrencyUnit) {}
 
     function getPriceInfo(address asset) public view override returns (uint256 price, bool isAlive) {
         (price, isAlive) = super.getPriceInfo(asset);
@@ -46,7 +49,10 @@ contract RedstoneChainlinkWrapperWithThresholding is RedstoneChainlinkWrapper, T
         uint256 lowerThresholdInBase,
         uint256 fixedPriceInBase
     ) external onlyRole(ORACLE_MANAGER_ROLE) {
-        assetThresholds[asset] = ThresholdConfig({ lowerThresholdInBase: lowerThresholdInBase, fixedPriceInBase: fixedPriceInBase });
+        assetThresholds[asset] = ThresholdConfig({
+            lowerThresholdInBase: lowerThresholdInBase,
+            fixedPriceInBase: fixedPriceInBase
+        });
         emit ThresholdConfigSet(asset, lowerThresholdInBase, fixedPriceInBase);
     }
 

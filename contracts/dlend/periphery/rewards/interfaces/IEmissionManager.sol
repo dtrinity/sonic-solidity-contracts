@@ -85,7 +85,11 @@ interface IEmissionManager {
      * @param rewards List of reward addresses are being distributed
      * @param newEmissionsPerSecond List of new reward emissions per second
      */
-    function setEmissionPerSecond(address asset, address[] calldata rewards, uint88[] calldata newEmissionsPerSecond) external;
+    function setEmissionPerSecond(
+        address asset,
+        address[] calldata rewards,
+        uint88[] calldata newEmissionsPerSecond
+    ) external;
 
     /**
      * @dev Whitelists an address to claim the rewards on behalf of another address

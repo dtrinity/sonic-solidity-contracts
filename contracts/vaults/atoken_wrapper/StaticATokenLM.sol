@@ -111,12 +111,25 @@ contract StaticATokenLM is ERC20, IStaticATokenLM, IERC4626 {
                     "\x19\x01",
                     DOMAIN_SEPARATOR(),
                     keccak256(
-                        abi.encode(METADEPOSIT_TYPEHASH, depositor, receiver, assets, referralCode, depositToAave, nonce, deadline, permit)
+                        abi.encode(
+                            METADEPOSIT_TYPEHASH,
+                            depositor,
+                            receiver,
+                            assets,
+                            referralCode,
+                            depositToAave,
+                            nonce,
+                            deadline,
+                            permit
+                        )
                     )
                 )
             );
             nonces[depositor] = nonce + 1;
-            require(depositor == ECDSA.recover(digest, sigParams.v, sigParams.r, sigParams.s), StaticATokenErrors.INVALID_SIGNATURE);
+            require(
+                depositor == ECDSA.recover(digest, sigParams.v, sigParams.r, sigParams.s),
+                StaticATokenErrors.INVALID_SIGNATURE
+            );
         }
         // assume if deadline 0 no permit was supplied
         if (permit.deadline != 0) {
@@ -157,11 +170,25 @@ contract StaticATokenLM is ERC20, IStaticATokenLM, IERC4626 {
                 abi.encodePacked(
                     "\x19\x01",
                     DOMAIN_SEPARATOR(),
-                    keccak256(abi.encode(METAWITHDRAWAL_TYPEHASH, owner, receiver, shares, assets, withdrawFromAave, nonce, deadline))
+                    keccak256(
+                        abi.encode(
+                            METAWITHDRAWAL_TYPEHASH,
+                            owner,
+                            receiver,
+                            shares,
+                            assets,
+                            withdrawFromAave,
+                            nonce,
+                            deadline
+                        )
+                    )
                 )
             );
             nonces[owner] = nonce + 1;
-            require(owner == ECDSA.recover(digest, sigParams.v, sigParams.r, sigParams.s), StaticATokenErrors.INVALID_SIGNATURE);
+            require(
+                owner == ECDSA.recover(digest, sigParams.v, sigParams.r, sigParams.s),
+                StaticATokenErrors.INVALID_SIGNATURE
+            );
         }
         return _withdraw(owner, receiver, shares, assets, withdrawFromAave);
     }
@@ -205,7 +232,10 @@ contract StaticATokenLM is ERC20, IStaticATokenLM, IERC4626 {
 
     ///@inheritdoc IStaticATokenLM
     function claimRewardsOnBehalf(address onBehalfOf, address receiver, address[] memory rewards) external {
-        require(msg.sender == onBehalfOf || msg.sender == REWARDS_CONTROLLER.getClaimer(onBehalfOf), StaticATokenErrors.INVALID_CLAIMER);
+        require(
+            msg.sender == onBehalfOf || msg.sender == REWARDS_CONTROLLER.getClaimer(onBehalfOf),
+            StaticATokenErrors.INVALID_CLAIMER
+        );
         _claimRewardsOnBehalf(onBehalfOf, receiver, rewards);
     }
 
@@ -299,7 +329,10 @@ contract StaticATokenLM is ERC20, IStaticATokenLM, IERC4626 {
         DataTypes.ReserveData memory reserveData = POOL.getReserveData(cachedATokenUnderlying);
 
         // if paused or inactive users cannot withdraw underlying
-        if (!ReserveConfiguration.getActive(reserveData.configuration) || ReserveConfiguration.getPaused(reserveData.configuration)) {
+        if (
+            !ReserveConfiguration.getActive(reserveData.configuration) ||
+            ReserveConfiguration.getPaused(reserveData.configuration)
+        ) {
             return 0;
         }
 
@@ -330,9 +363,8 @@ contract StaticATokenLM is ERC20, IStaticATokenLM, IERC4626 {
         // if no supply cap deposit is unlimited
         if (supplyCap == 0) return type(uint256).max;
         // return remaining supply cap margin
-        uint256 currentSupply = (IAToken(reserveData.aTokenAddress).scaledTotalSupply() + reserveData.accruedToTreasury).rayMulRoundUp(
-            _getNormalizedIncome(reserveData)
-        );
+        uint256 currentSupply = (IAToken(reserveData.aTokenAddress).scaledTotalSupply() + reserveData.accruedToTreasury)
+            .rayMulRoundUp(_getNormalizedIncome(reserveData));
         return currentSupply > supplyCap ? 0 : supplyCap - currentSupply;
     }
 
@@ -514,8 +546,12 @@ contract StaticATokenLM is ERC20, IStaticATokenLM, IERC4626 {
     function _updateUser(address user, uint256 currentRewardsIndex, address rewardToken) internal {
         uint256 balance = balanceOf[user];
         if (balance > 0) {
-            _userRewardsData[user][rewardToken].unclaimedRewards = _getClaimableRewards(user, rewardToken, balance, currentRewardsIndex)
-                .toUint128();
+            _userRewardsData[user][rewardToken].unclaimedRewards = _getClaimableRewards(
+                user,
+                rewardToken,
+                balance,
+                currentRewardsIndex
+            ).toUint128();
         }
         _userRewardsData[user][rewardToken].rewardsIndexOnLastInteraction = currentRewardsIndex.toUint128();
     }
@@ -597,7 +633,8 @@ contract StaticATokenLM is ERC20, IStaticATokenLM, IERC4626 {
             }
             if (userReward > 0) {
                 _userRewardsData[onBehalfOf][rewards[i]].unclaimedRewards = unclaimedReward.toUint128();
-                _userRewardsData[onBehalfOf][rewards[i]].rewardsIndexOnLastInteraction = currentRewardsIndex.toUint128();
+                _userRewardsData[onBehalfOf][rewards[i]].rewardsIndexOnLastInteraction = currentRewardsIndex
+                    .toUint128();
                 IERC20(rewards[i]).safeTransfer(receiver, userReward);
             }
         }
@@ -642,7 +679,10 @@ contract StaticATokenLM is ERC20, IStaticATokenLM, IERC4626 {
             //if the index was updated in the same block, no need to perform any calculation
             return reserve.liquidityIndex;
         } else {
-            return MathUtils.calculateLinearInterest(reserve.currentLiquidityRate, timestamp).rayMul(reserve.liquidityIndex);
+            return
+                MathUtils.calculateLinearInterest(reserve.currentLiquidityRate, timestamp).rayMul(
+                    reserve.liquidityIndex
+                );
         }
     }
 }

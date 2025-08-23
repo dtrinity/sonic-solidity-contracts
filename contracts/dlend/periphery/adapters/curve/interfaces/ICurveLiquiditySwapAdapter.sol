@@ -41,5 +41,8 @@ interface ICurveLiquiditySwapAdapter is IBaseCurveAdapter {
      * @param liquiditySwapParams struct describing the liquidity swap
      * @param collateralATokenPermit optional permit for collateral aToken
      */
-    function swapLiquidity(LiquiditySwapParams memory liquiditySwapParams, PermitInput memory collateralATokenPermit) external;
+    function swapLiquidity(
+        LiquiditySwapParams memory liquiditySwapParams,
+        PermitInput memory collateralATokenPermit
+    ) external;
 }

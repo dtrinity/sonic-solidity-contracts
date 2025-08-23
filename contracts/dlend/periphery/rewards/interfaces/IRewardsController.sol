@@ -43,7 +43,13 @@ interface IRewardsController is IRewardsDistributor {
      * @param claimer The address of the claimer
      * @param amount The amount of rewards claimed
      */
-    event RewardsClaimed(address indexed user, address indexed reward, address indexed to, address claimer, uint256 amount);
+    event RewardsClaimed(
+        address indexed user,
+        address indexed reward,
+        address indexed to,
+        address claimer,
+        uint256 amount
+    );
 
     /**
      * @dev Emitted when a transfer strategy is installed for the reward distribution
@@ -135,7 +141,12 @@ interface IRewardsController is IRewardsDistributor {
      * @param reward The address of the reward token
      * @return The amount of rewards claimed
      **/
-    function claimRewards(address[] calldata assets, uint256 amount, address to, address reward) external returns (uint256);
+    function claimRewards(
+        address[] calldata assets,
+        uint256 amount,
+        address to,
+        address reward
+    ) external returns (uint256);
 
     /**
      * @dev Claims reward for a user on behalf, on all the assets of the pool, accumulating the pending rewards. The

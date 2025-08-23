@@ -20,7 +20,12 @@ contract MockRewardsController is IRewardsController {
         emission[rewardToken] = amount;
     }
 
-    function claimRewards(address[] calldata assets, uint256 amount, address to, address reward) external override returns (uint256) {
+    function claimRewards(
+        address[] calldata assets,
+        uint256 amount,
+        address to,
+        address reward
+    ) external override returns (uint256) {
         assets;
         amount; // unused in mock
         uint256 e = emission[reward];
@@ -49,7 +54,11 @@ contract MockRewardsController is IRewardsController {
         return 0;
     }
 
-    function claimRewardsToSelf(address[] calldata assets, uint256 amount, address reward) external override returns (uint256) {
+    function claimRewardsToSelf(
+        address[] calldata assets,
+        uint256 amount,
+        address reward
+    ) external override returns (uint256) {
         assets;
         amount; // unused
         uint256 e = emission[reward];

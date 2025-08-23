@@ -43,10 +43,14 @@ contract UiIncentiveDataProviderV3 is IUiIncentiveDataProviderV3 {
         return _getReservesIncentivesData(provider);
     }
 
-    function _getReservesIncentivesData(IPoolAddressesProvider provider) private view returns (AggregatedReserveIncentiveData[] memory) {
+    function _getReservesIncentivesData(
+        IPoolAddressesProvider provider
+    ) private view returns (AggregatedReserveIncentiveData[] memory) {
         IPool pool = IPool(provider.getPool());
         address[] memory reserves = pool.getReservesList();
-        AggregatedReserveIncentiveData[] memory reservesIncentiveData = new AggregatedReserveIncentiveData[](reserves.length);
+        AggregatedReserveIncentiveData[] memory reservesIncentiveData = new AggregatedReserveIncentiveData[](
+            reserves.length
+        );
         // Iterate through the reserves to get all the information from the (a/s/v) Tokens
         for (uint256 i = 0; i < reserves.length; i++) {
             AggregatedReserveIncentiveData memory reserveIncentiveData = reservesIncentiveData[i];
@@ -60,7 +64,9 @@ contract UiIncentiveDataProviderV3 is IUiIncentiveDataProviderV3 {
             );
             RewardInfo[] memory aRewardsInformation;
             if (address(aTokenIncentiveController) != address(0)) {
-                address[] memory aTokenRewardAddresses = aTokenIncentiveController.getRewardsByAsset(baseData.aTokenAddress);
+                address[] memory aTokenRewardAddresses = aTokenIncentiveController.getRewardsByAsset(
+                    baseData.aTokenAddress
+                );
 
                 aRewardsInformation = new RewardInfo[](aTokenRewardAddresses.length);
                 for (uint256 j = 0; j < aTokenRewardAddresses.length; ++j) {
@@ -72,18 +78,26 @@ contract UiIncentiveDataProviderV3 is IUiIncentiveDataProviderV3 {
                         rewardInformation.emissionPerSecond,
                         rewardInformation.incentivesLastUpdateTimestamp,
                         rewardInformation.emissionEndTimestamp
-                    ) = aTokenIncentiveController.getRewardsData(baseData.aTokenAddress, rewardInformation.rewardTokenAddress);
+                    ) = aTokenIncentiveController.getRewardsData(
+                        baseData.aTokenAddress,
+                        rewardInformation.rewardTokenAddress
+                    );
 
                     rewardInformation.precision = aTokenIncentiveController.getAssetDecimals(baseData.aTokenAddress);
-                    rewardInformation.rewardTokenDecimals = IERC20Detailed(rewardInformation.rewardTokenAddress).decimals();
+                    rewardInformation.rewardTokenDecimals = IERC20Detailed(rewardInformation.rewardTokenAddress)
+                        .decimals();
                     rewardInformation.rewardTokenSymbol = IERC20Detailed(rewardInformation.rewardTokenAddress).symbol();
 
                     // Get price of reward token from Chainlink Proxy Oracle
-                    rewardInformation.rewardOracleAddress = aTokenIncentiveController.getRewardOracle(rewardInformation.rewardTokenAddress);
+                    rewardInformation.rewardOracleAddress = aTokenIncentiveController.getRewardOracle(
+                        rewardInformation.rewardTokenAddress
+                    );
                     address baseCurrency = IAaveOracle(rewardInformation.rewardOracleAddress).BASE_CURRENCY();
                     rewardInformation.priceFeedDecimals = _extractDecimalsValueFromBaseCurrencyUnitPrice(baseCurrency);
                     rewardInformation.rewardPriceFeed = int256(
-                        IAaveOracle(rewardInformation.rewardOracleAddress).getAssetPrice(rewardInformation.rewardTokenAddress)
+                        IAaveOracle(rewardInformation.rewardOracleAddress).getAssetPrice(
+                            rewardInformation.rewardTokenAddress
+                        )
                     );
 
                     aRewardsInformation[j] = rewardInformation;
@@ -102,7 +116,9 @@ contract UiIncentiveDataProviderV3 is IUiIncentiveDataProviderV3 {
             );
             RewardInfo[] memory vRewardsInformation;
             if (address(vTokenIncentiveController) != address(0)) {
-                address[] memory vTokenRewardAddresses = vTokenIncentiveController.getRewardsByAsset(baseData.variableDebtTokenAddress);
+                address[] memory vTokenRewardAddresses = vTokenIncentiveController.getRewardsByAsset(
+                    baseData.variableDebtTokenAddress
+                );
                 vRewardsInformation = new RewardInfo[](vTokenRewardAddresses.length);
                 for (uint256 j = 0; j < vTokenRewardAddresses.length; ++j) {
                     RewardInfo memory rewardInformation;
@@ -113,18 +129,28 @@ contract UiIncentiveDataProviderV3 is IUiIncentiveDataProviderV3 {
                         rewardInformation.emissionPerSecond,
                         rewardInformation.incentivesLastUpdateTimestamp,
                         rewardInformation.emissionEndTimestamp
-                    ) = vTokenIncentiveController.getRewardsData(baseData.variableDebtTokenAddress, rewardInformation.rewardTokenAddress);
+                    ) = vTokenIncentiveController.getRewardsData(
+                        baseData.variableDebtTokenAddress,
+                        rewardInformation.rewardTokenAddress
+                    );
 
-                    rewardInformation.precision = vTokenIncentiveController.getAssetDecimals(baseData.variableDebtTokenAddress);
-                    rewardInformation.rewardTokenDecimals = IERC20Detailed(rewardInformation.rewardTokenAddress).decimals();
+                    rewardInformation.precision = vTokenIncentiveController.getAssetDecimals(
+                        baseData.variableDebtTokenAddress
+                    );
+                    rewardInformation.rewardTokenDecimals = IERC20Detailed(rewardInformation.rewardTokenAddress)
+                        .decimals();
                     rewardInformation.rewardTokenSymbol = IERC20Detailed(rewardInformation.rewardTokenAddress).symbol();
 
                     // Get price of reward token from Chainlink Proxy Oracle
-                    rewardInformation.rewardOracleAddress = vTokenIncentiveController.getRewardOracle(rewardInformation.rewardTokenAddress);
+                    rewardInformation.rewardOracleAddress = vTokenIncentiveController.getRewardOracle(
+                        rewardInformation.rewardTokenAddress
+                    );
                     address baseCurrency = IAaveOracle(rewardInformation.rewardOracleAddress).BASE_CURRENCY();
                     rewardInformation.priceFeedDecimals = _extractDecimalsValueFromBaseCurrencyUnitPrice(baseCurrency);
                     rewardInformation.rewardPriceFeed = int256(
-                        IAaveOracle(rewardInformation.rewardOracleAddress).getAssetPrice(rewardInformation.rewardTokenAddress)
+                        IAaveOracle(rewardInformation.rewardOracleAddress).getAssetPrice(
+                            rewardInformation.rewardTokenAddress
+                        )
                     );
 
                     vRewardsInformation[j] = rewardInformation;
@@ -143,7 +169,9 @@ contract UiIncentiveDataProviderV3 is IUiIncentiveDataProviderV3 {
             );
             RewardInfo[] memory sRewardsInformation;
             if (address(sTokenIncentiveController) != address(0)) {
-                address[] memory sTokenRewardAddresses = sTokenIncentiveController.getRewardsByAsset(baseData.stableDebtTokenAddress);
+                address[] memory sTokenRewardAddresses = sTokenIncentiveController.getRewardsByAsset(
+                    baseData.stableDebtTokenAddress
+                );
                 sRewardsInformation = new RewardInfo[](sTokenRewardAddresses.length);
                 for (uint256 j = 0; j < sTokenRewardAddresses.length; ++j) {
                     RewardInfo memory rewardInformation;
@@ -154,18 +182,28 @@ contract UiIncentiveDataProviderV3 is IUiIncentiveDataProviderV3 {
                         rewardInformation.emissionPerSecond,
                         rewardInformation.incentivesLastUpdateTimestamp,
                         rewardInformation.emissionEndTimestamp
-                    ) = sTokenIncentiveController.getRewardsData(baseData.stableDebtTokenAddress, rewardInformation.rewardTokenAddress);
+                    ) = sTokenIncentiveController.getRewardsData(
+                        baseData.stableDebtTokenAddress,
+                        rewardInformation.rewardTokenAddress
+                    );
 
-                    rewardInformation.precision = sTokenIncentiveController.getAssetDecimals(baseData.stableDebtTokenAddress);
-                    rewardInformation.rewardTokenDecimals = IERC20Detailed(rewardInformation.rewardTokenAddress).decimals();
+                    rewardInformation.precision = sTokenIncentiveController.getAssetDecimals(
+                        baseData.stableDebtTokenAddress
+                    );
+                    rewardInformation.rewardTokenDecimals = IERC20Detailed(rewardInformation.rewardTokenAddress)
+                        .decimals();
                     rewardInformation.rewardTokenSymbol = IERC20Detailed(rewardInformation.rewardTokenAddress).symbol();
 
                     // Get price of reward token from Chainlink Proxy Oracle
-                    rewardInformation.rewardOracleAddress = sTokenIncentiveController.getRewardOracle(rewardInformation.rewardTokenAddress);
+                    rewardInformation.rewardOracleAddress = sTokenIncentiveController.getRewardOracle(
+                        rewardInformation.rewardTokenAddress
+                    );
                     address baseCurrency = IAaveOracle(rewardInformation.rewardOracleAddress).BASE_CURRENCY();
                     rewardInformation.priceFeedDecimals = _extractDecimalsValueFromBaseCurrencyUnitPrice(baseCurrency);
                     rewardInformation.rewardPriceFeed = int256(
-                        IAaveOracle(rewardInformation.rewardOracleAddress).getAssetPrice(rewardInformation.rewardTokenAddress)
+                        IAaveOracle(rewardInformation.rewardOracleAddress).getAssetPrice(
+                            rewardInformation.rewardTokenAddress
+                        )
                     );
 
                     sRewardsInformation[j] = rewardInformation;
@@ -218,7 +256,9 @@ contract UiIncentiveDataProviderV3 is IUiIncentiveDataProviderV3 {
             );
             if (address(aTokenIncentiveController) != address(0)) {
                 // get all rewards information from the asset
-                address[] memory aTokenRewardAddresses = aTokenIncentiveController.getRewardsByAsset(baseData.aTokenAddress);
+                address[] memory aTokenRewardAddresses = aTokenIncentiveController.getRewardsByAsset(
+                    baseData.aTokenAddress
+                );
                 UserRewardInfo[] memory aUserRewardsInformation = new UserRewardInfo[](aTokenRewardAddresses.length);
                 for (uint256 j = 0; j < aTokenRewardAddresses.length; ++j) {
                     UserRewardInfo memory userRewardInformation;
@@ -234,17 +274,23 @@ contract UiIncentiveDataProviderV3 is IUiIncentiveDataProviderV3 {
                         user,
                         userRewardInformation.rewardTokenAddress
                     );
-                    userRewardInformation.rewardTokenDecimals = IERC20Detailed(userRewardInformation.rewardTokenAddress).decimals();
-                    userRewardInformation.rewardTokenSymbol = IERC20Detailed(userRewardInformation.rewardTokenAddress).symbol();
+                    userRewardInformation.rewardTokenDecimals = IERC20Detailed(userRewardInformation.rewardTokenAddress)
+                        .decimals();
+                    userRewardInformation.rewardTokenSymbol = IERC20Detailed(userRewardInformation.rewardTokenAddress)
+                        .symbol();
 
                     // Get price of reward token from Chainlink Proxy Oracle
                     userRewardInformation.rewardOracleAddress = aTokenIncentiveController.getRewardOracle(
                         userRewardInformation.rewardTokenAddress
                     );
                     address baseCurrency = IAaveOracle(userRewardInformation.rewardOracleAddress).BASE_CURRENCY();
-                    userRewardInformation.priceFeedDecimals = _extractDecimalsValueFromBaseCurrencyUnitPrice(baseCurrency);
+                    userRewardInformation.priceFeedDecimals = _extractDecimalsValueFromBaseCurrencyUnitPrice(
+                        baseCurrency
+                    );
                     userRewardInformation.rewardPriceFeed = int256(
-                        IAaveOracle(userRewardInformation.rewardOracleAddress).getAssetPrice(userRewardInformation.rewardTokenAddress)
+                        IAaveOracle(userRewardInformation.rewardOracleAddress).getAssetPrice(
+                            userRewardInformation.rewardTokenAddress
+                        )
                     );
 
                     aUserRewardsInformation[j] = userRewardInformation;
@@ -263,7 +309,9 @@ contract UiIncentiveDataProviderV3 is IUiIncentiveDataProviderV3 {
             );
             if (address(vTokenIncentiveController) != address(0)) {
                 // get all rewards information from the asset
-                address[] memory vTokenRewardAddresses = vTokenIncentiveController.getRewardsByAsset(baseData.variableDebtTokenAddress);
+                address[] memory vTokenRewardAddresses = vTokenIncentiveController.getRewardsByAsset(
+                    baseData.variableDebtTokenAddress
+                );
                 UserRewardInfo[] memory vUserRewardsInformation = new UserRewardInfo[](vTokenRewardAddresses.length);
                 for (uint256 j = 0; j < vTokenRewardAddresses.length; ++j) {
                     UserRewardInfo memory userRewardInformation;
@@ -279,17 +327,23 @@ contract UiIncentiveDataProviderV3 is IUiIncentiveDataProviderV3 {
                         user,
                         userRewardInformation.rewardTokenAddress
                     );
-                    userRewardInformation.rewardTokenDecimals = IERC20Detailed(userRewardInformation.rewardTokenAddress).decimals();
-                    userRewardInformation.rewardTokenSymbol = IERC20Detailed(userRewardInformation.rewardTokenAddress).symbol();
+                    userRewardInformation.rewardTokenDecimals = IERC20Detailed(userRewardInformation.rewardTokenAddress)
+                        .decimals();
+                    userRewardInformation.rewardTokenSymbol = IERC20Detailed(userRewardInformation.rewardTokenAddress)
+                        .symbol();
 
                     // Get price of reward token from Chainlink Proxy Oracle
                     userRewardInformation.rewardOracleAddress = vTokenIncentiveController.getRewardOracle(
                         userRewardInformation.rewardTokenAddress
                     );
                     address baseCurrency = IAaveOracle(userRewardInformation.rewardOracleAddress).BASE_CURRENCY();
-                    userRewardInformation.priceFeedDecimals = _extractDecimalsValueFromBaseCurrencyUnitPrice(baseCurrency);
+                    userRewardInformation.priceFeedDecimals = _extractDecimalsValueFromBaseCurrencyUnitPrice(
+                        baseCurrency
+                    );
                     userRewardInformation.rewardPriceFeed = int256(
-                        IAaveOracle(userRewardInformation.rewardOracleAddress).getAssetPrice(userRewardInformation.rewardTokenAddress)
+                        IAaveOracle(userRewardInformation.rewardOracleAddress).getAssetPrice(
+                            userRewardInformation.rewardTokenAddress
+                        )
                     );
 
                     vUserRewardsInformation[j] = userRewardInformation;
@@ -308,7 +362,9 @@ contract UiIncentiveDataProviderV3 is IUiIncentiveDataProviderV3 {
             );
             if (address(sTokenIncentiveController) != address(0)) {
                 // get all rewards information from the asset
-                address[] memory sTokenRewardAddresses = sTokenIncentiveController.getRewardsByAsset(baseData.stableDebtTokenAddress);
+                address[] memory sTokenRewardAddresses = sTokenIncentiveController.getRewardsByAsset(
+                    baseData.stableDebtTokenAddress
+                );
                 UserRewardInfo[] memory sUserRewardsInformation = new UserRewardInfo[](sTokenRewardAddresses.length);
                 for (uint256 j = 0; j < sTokenRewardAddresses.length; ++j) {
                     UserRewardInfo memory userRewardInformation;
@@ -324,17 +380,23 @@ contract UiIncentiveDataProviderV3 is IUiIncentiveDataProviderV3 {
                         user,
                         userRewardInformation.rewardTokenAddress
                     );
-                    userRewardInformation.rewardTokenDecimals = IERC20Detailed(userRewardInformation.rewardTokenAddress).decimals();
-                    userRewardInformation.rewardTokenSymbol = IERC20Detailed(userRewardInformation.rewardTokenAddress).symbol();
+                    userRewardInformation.rewardTokenDecimals = IERC20Detailed(userRewardInformation.rewardTokenAddress)
+                        .decimals();
+                    userRewardInformation.rewardTokenSymbol = IERC20Detailed(userRewardInformation.rewardTokenAddress)
+                        .symbol();
 
                     // Get price of reward token from Chainlink Proxy Oracle
                     userRewardInformation.rewardOracleAddress = sTokenIncentiveController.getRewardOracle(
                         userRewardInformation.rewardTokenAddress
                     );
                     address baseCurrency = IAaveOracle(userRewardInformation.rewardOracleAddress).BASE_CURRENCY();
-                    userRewardInformation.priceFeedDecimals = _extractDecimalsValueFromBaseCurrencyUnitPrice(baseCurrency);
+                    userRewardInformation.priceFeedDecimals = _extractDecimalsValueFromBaseCurrencyUnitPrice(
+                        baseCurrency
+                    );
                     userRewardInformation.rewardPriceFeed = int256(
-                        IAaveOracle(userRewardInformation.rewardOracleAddress).getAssetPrice(userRewardInformation.rewardTokenAddress)
+                        IAaveOracle(userRewardInformation.rewardOracleAddress).getAssetPrice(
+                            userRewardInformation.rewardTokenAddress
+                        )
                     );
 
                     sUserRewardsInformation[j] = userRewardInformation;

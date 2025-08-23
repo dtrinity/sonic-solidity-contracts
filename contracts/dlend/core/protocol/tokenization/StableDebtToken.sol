@@ -56,7 +56,9 @@ contract StableDebtToken is DebtTokenBase, IncentivizedERC20, IStableDebtToken {
      * @dev Constructor.
      * @param pool The address of the Pool contract
      */
-    constructor(IPool pool) DebtTokenBase() IncentivizedERC20(pool, "STABLE_DEBT_TOKEN_IMPL", "STABLE_DEBT_TOKEN_IMPL", 0) {
+    constructor(
+        IPool pool
+    ) DebtTokenBase() IncentivizedERC20(pool, "STABLE_DEBT_TOKEN_IMPL", "STABLE_DEBT_TOKEN_IMPL", 0) {
         // Intentionally left blank
     }
 
@@ -153,9 +155,8 @@ contract StableDebtToken is DebtTokenBase, IncentivizedERC20, IStableDebtToken {
         vars.amountInRay = amount.wadToRay();
 
         vars.currentStableRate = _userState[onBehalfOf].additionalData;
-        vars.nextStableRate = (vars.currentStableRate.rayMul(currentBalance.wadToRay()) + vars.amountInRay.rayMul(rate)).rayDiv(
-            (currentBalance + amount).wadToRay()
-        );
+        vars.nextStableRate = (vars.currentStableRate.rayMul(currentBalance.wadToRay()) + vars.amountInRay.rayMul(rate))
+            .rayDiv((currentBalance + amount).wadToRay());
 
         _userState[onBehalfOf].additionalData = vars.nextStableRate.toUint128();
 
@@ -214,7 +215,8 @@ contract StableDebtToken is DebtTokenBase, IncentivizedERC20, IStableDebtToken {
             if (secondTerm >= firstTerm) {
                 nextAvgStableRate = _totalSupply = _avgStableRate = 0;
             } else {
-                nextAvgStableRate = _avgStableRate = ((firstTerm - secondTerm).rayDiv(nextSupply.wadToRay())).toUint128();
+                nextAvgStableRate = _avgStableRate = ((firstTerm - secondTerm).rayDiv(nextSupply.wadToRay()))
+                    .toUint128();
             }
         }
 
@@ -232,7 +234,16 @@ contract StableDebtToken is DebtTokenBase, IncentivizedERC20, IStableDebtToken {
             uint256 amountToMint = balanceIncrease - amount;
             _mint(from, amountToMint, previousSupply);
             emit Transfer(address(0), from, amountToMint);
-            emit Mint(from, from, amountToMint, currentBalance, balanceIncrease, userStableRate, nextAvgStableRate, nextSupply);
+            emit Mint(
+                from,
+                from,
+                amountToMint,
+                currentBalance,
+                balanceIncrease,
+                userStableRate,
+                nextAvgStableRate,
+                nextSupply
+            );
         } else {
             uint256 amountToBurn = amount - balanceIncrease;
             _burn(from, amountToBurn, previousSupply);

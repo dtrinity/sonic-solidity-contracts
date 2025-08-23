@@ -30,7 +30,12 @@ interface ICreditDelegationToken {
      * @param asset The address of the delegated asset
      * @param amount The amount being delegated
      */
-    event BorrowAllowanceDelegated(address indexed fromUser, address indexed toUser, address indexed asset, uint256 amount);
+    event BorrowAllowanceDelegated(
+        address indexed fromUser,
+        address indexed toUser,
+        address indexed asset,
+        uint256 amount
+    );
 
     /**
      * @notice Delegates borrowing power to a user on the specific debt token.

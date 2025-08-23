@@ -107,7 +107,11 @@ library ValidationLogic {
      * @param amount The amount to be withdrawn
      * @param userBalance The balance of the user
      */
-    function validateWithdraw(DataTypes.ReserveCache memory reserveCache, uint256 amount, uint256 userBalance) internal pure {
+    function validateWithdraw(
+        DataTypes.ReserveCache memory reserveCache,
+        uint256 amount,
+        uint256 userBalance
+    ) internal pure {
         require(amount != 0, Errors.INVALID_AMOUNT);
         require(amount <= userBalance, Errors.NOT_ENOUGH_AVAILABLE_USER_BALANCE);
 
@@ -167,13 +171,15 @@ library ValidationLogic {
         require(vars.borrowingEnabled, Errors.BORROWING_NOT_ENABLED);
 
         require(
-            params.priceOracleSentinel == address(0) || IPriceOracleSentinel(params.priceOracleSentinel).isBorrowAllowed(),
+            params.priceOracleSentinel == address(0) ||
+                IPriceOracleSentinel(params.priceOracleSentinel).isBorrowAllowed(),
             Errors.PRICE_ORACLE_SENTINEL_CHECK_FAILED
         );
 
         //validate interest rate mode
         require(
-            params.interestRateMode == DataTypes.InterestRateMode.VARIABLE || params.interestRateMode == DataTypes.InterestRateMode.STABLE,
+            params.interestRateMode == DataTypes.InterestRateMode.VARIABLE ||
+                params.interestRateMode == DataTypes.InterestRateMode.STABLE,
             Errors.INVALID_INTEREST_RATE_MODE_SELECTED
         );
 
@@ -184,7 +190,9 @@ library ValidationLogic {
         }
 
         if (vars.borrowCap != 0) {
-            vars.totalSupplyVariableDebt = params.reserveCache.currScaledVariableDebt.rayMul(params.reserveCache.nextVariableBorrowIndex);
+            vars.totalSupplyVariableDebt = params.reserveCache.currScaledVariableDebt.rayMul(
+                params.reserveCache.nextVariableBorrowIndex
+            );
 
             vars.totalDebt = params.reserveCache.currTotalStableDebt + vars.totalSupplyVariableDebt + params.amount;
 
@@ -196,11 +204,15 @@ library ValidationLogic {
         if (params.isolationModeActive) {
             // check that the asset being borrowed is borrowable in isolation mode AND
             // the total exposure is no bigger than the collateral debt ceiling
-            require(params.reserveCache.reserveConfiguration.getBorrowableInIsolation(), Errors.ASSET_NOT_BORROWABLE_IN_ISOLATION);
+            require(
+                params.reserveCache.reserveConfiguration.getBorrowableInIsolation(),
+                Errors.ASSET_NOT_BORROWABLE_IN_ISOLATION
+            );
 
             require(
                 reservesData[params.isolationModeCollateralAddress].isolationModeTotalDebt +
-                    (params.amount / 10 ** (vars.reserveDecimals - ReserveConfiguration.DEBT_CEILING_DECIMALS)).toUint128() <=
+                    (params.amount / 10 ** (vars.reserveDecimals - ReserveConfiguration.DEBT_CEILING_DECIMALS))
+                        .toUint128() <=
                     params.isolationModeDebtCeiling,
                 Errors.DEBT_CEILING_EXCEEDED
             );
@@ -214,36 +226,52 @@ library ValidationLogic {
             vars.eModePriceSource = eModeCategories[params.userEModeCategory].priceSource;
         }
 
-        (vars.userCollateralInBaseCurrency, vars.userDebtInBaseCurrency, vars.currentLtv, , vars.healthFactor, ) = GenericLogic
-            .calculateUserAccountData(
-                reservesData,
-                reservesList,
-                eModeCategories,
-                DataTypes.CalculateUserAccountDataParams({
-                    userConfig: params.userConfig,
-                    reservesCount: params.reservesCount,
-                    user: params.userAddress,
-                    oracle: params.oracle,
-                    userEModeCategory: params.userEModeCategory
-                })
-            );
+        (
+            vars.userCollateralInBaseCurrency,
+            vars.userDebtInBaseCurrency,
+            vars.currentLtv,
+            ,
+            vars.healthFactor,
+
+        ) = GenericLogic.calculateUserAccountData(
+            reservesData,
+            reservesList,
+            eModeCategories,
+            DataTypes.CalculateUserAccountDataParams({
+                userConfig: params.userConfig,
+                reservesCount: params.reservesCount,
+                user: params.userAddress,
+                oracle: params.oracle,
+                userEModeCategory: params.userEModeCategory
+            })
+        );
 
         require(vars.userCollateralInBaseCurrency != 0, Errors.COLLATERAL_BALANCE_IS_ZERO);
         require(vars.currentLtv != 0, Errors.LTV_VALIDATION_FAILED);
 
-        require(vars.healthFactor > HEALTH_FACTOR_LIQUIDATION_THRESHOLD, Errors.HEALTH_FACTOR_LOWER_THAN_LIQUIDATION_THRESHOLD);
+        require(
+            vars.healthFactor > HEALTH_FACTOR_LIQUIDATION_THRESHOLD,
+            Errors.HEALTH_FACTOR_LOWER_THAN_LIQUIDATION_THRESHOLD
+        );
 
         vars.amountInBaseCurrency =
-            IPriceOracleGetter(params.oracle).getAssetPrice(vars.eModePriceSource != address(0) ? vars.eModePriceSource : params.asset) *
+            IPriceOracleGetter(params.oracle).getAssetPrice(
+                vars.eModePriceSource != address(0) ? vars.eModePriceSource : params.asset
+            ) *
             params.amount;
         unchecked {
             vars.amountInBaseCurrency /= vars.assetUnit;
         }
 
         //add the current already borrowed amount to the amount requested to calculate the total collateral needed.
-        vars.collateralNeededInBaseCurrency = (vars.userDebtInBaseCurrency + vars.amountInBaseCurrency).percentDiv(vars.currentLtv); //LTV is calculated in percentage
+        vars.collateralNeededInBaseCurrency = (vars.userDebtInBaseCurrency + vars.amountInBaseCurrency).percentDiv(
+            vars.currentLtv
+        ); //LTV is calculated in percentage
 
-        require(vars.collateralNeededInBaseCurrency <= vars.userCollateralInBaseCurrency, Errors.COLLATERAL_CANNOT_COVER_NEW_BORROW);
+        require(
+            vars.collateralNeededInBaseCurrency <= vars.userCollateralInBaseCurrency,
+            Errors.COLLATERAL_CANNOT_COVER_NEW_BORROW
+        );
 
         /**
          * Following conditions need to be met if the user is borrowing at a stable rate:
@@ -283,7 +311,10 @@ library ValidationLogic {
             if (vars.siloedBorrowingEnabled) {
                 require(vars.siloedBorrowingAddress == params.asset, Errors.SILOED_BORROWING_VIOLATION);
             } else {
-                require(!params.reserveCache.reserveConfiguration.getSiloedBorrowing(), Errors.SILOED_BORROWING_VIOLATION);
+                require(
+                    !params.reserveCache.reserveConfiguration.getSiloedBorrowing(),
+                    Errors.SILOED_BORROWING_VIOLATION
+                );
             }
         }
     }
@@ -306,7 +337,10 @@ library ValidationLogic {
         uint256 variableDebt
     ) internal view {
         require(amountSent != 0, Errors.INVALID_AMOUNT);
-        require(amountSent != type(uint256).max || msg.sender == onBehalfOf, Errors.NO_EXPLICIT_AMOUNT_TO_REPAY_ON_BEHALF);
+        require(
+            amountSent != type(uint256).max || msg.sender == onBehalfOf,
+            Errors.NO_EXPLICIT_AMOUNT_TO_REPAY_ON_BEHALF
+        );
 
         (bool isActive, , , , bool isPaused) = reserveCache.reserveConfiguration.getFlags();
         require(isActive, Errors.RESERVE_INACTIVE);
@@ -336,7 +370,9 @@ library ValidationLogic {
         uint256 variableDebt,
         DataTypes.InterestRateMode currentRateMode
     ) internal view {
-        (bool isActive, bool isFrozen, , bool stableRateEnabled, bool isPaused) = reserveCache.reserveConfiguration.getFlags();
+        (bool isActive, bool isFrozen, , bool stableRateEnabled, bool isPaused) = reserveCache
+            .reserveConfiguration
+            .getFlags();
         require(isActive, Errors.RESERVE_INACTIVE);
         require(!isPaused, Errors.RESERVE_PAUSED);
         require(!isFrozen, Errors.RESERVE_FROZEN);
@@ -401,7 +437,8 @@ library ValidationLogic {
             );
 
         require(
-            reserveCache.currLiquidityRate <= liquidityRateVariableDebtOnly.percentMul(REBALANCE_UP_LIQUIDITY_RATE_THRESHOLD),
+            reserveCache.currLiquidityRate <=
+                liquidityRateVariableDebtOnly.percentMul(REBALANCE_UP_LIQUIDITY_RATE_THRESHOLD),
             Errors.INTEREST_RATE_REBALANCE_CONDITIONS_NOT_MET
         );
     }
@@ -411,7 +448,10 @@ library ValidationLogic {
      * @param reserveCache The cached data of the reserve
      * @param userBalance The balance of the user
      */
-    function validateSetUseReserveAsCollateral(DataTypes.ReserveCache memory reserveCache, uint256 userBalance) internal pure {
+    function validateSetUseReserveAsCollateral(
+        DataTypes.ReserveCache memory reserveCache,
+        uint256 userBalance
+    ) internal pure {
         require(userBalance != 0, Errors.UNDERLYING_BALANCE_ZERO);
 
         (bool isActive, , , , bool isPaused) = reserveCache.reserveConfiguration.getFlags();
@@ -470,7 +510,10 @@ library ValidationLogic {
 
         (vars.collateralReserveActive, , , , vars.collateralReservePaused) = collateralReserve.configuration.getFlags();
 
-        (vars.principalReserveActive, , , , vars.principalReservePaused) = params.debtReserveCache.reserveConfiguration.getFlags();
+        (vars.principalReserveActive, , , , vars.principalReservePaused) = params
+            .debtReserveCache
+            .reserveConfiguration
+            .getFlags();
 
         require(vars.collateralReserveActive && vars.principalReserveActive, Errors.RESERVE_INACTIVE);
         require(!vars.collateralReservePaused && !vars.principalReservePaused, Errors.RESERVE_PAUSED);
@@ -527,7 +570,10 @@ library ValidationLogic {
             })
         );
 
-        require(healthFactor >= HEALTH_FACTOR_LIQUIDATION_THRESHOLD, Errors.HEALTH_FACTOR_LOWER_THAN_LIQUIDATION_THRESHOLD);
+        require(
+            healthFactor >= HEALTH_FACTOR_LIQUIDATION_THRESHOLD,
+            Errors.HEALTH_FACTOR_LOWER_THAN_LIQUIDATION_THRESHOLD
+        );
 
         return (healthFactor, hasZeroLtvCollateral);
     }
@@ -618,7 +664,10 @@ library ValidationLogic {
         uint8 categoryId
     ) internal view {
         // category is invalid if the liq threshold is not set
-        require(categoryId == 0 || eModeCategories[categoryId].liquidationThreshold != 0, Errors.INCONSISTENT_EMODE_CATEGORY);
+        require(
+            categoryId == 0 || eModeCategories[categoryId].liquidationThreshold != 0,
+            Errors.INCONSISTENT_EMODE_CATEGORY
+        );
 
         // eMode can always be enabled if the user hasn't supplied anything
         if (userConfig.isEmpty()) {
@@ -631,7 +680,8 @@ library ValidationLogic {
             unchecked {
                 for (uint256 i = 0; i < reservesCount; i++) {
                     if (userConfig.isBorrowing(i)) {
-                        DataTypes.ReserveConfigurationMap memory configuration = reservesData[reservesList[i]].configuration;
+                        DataTypes.ReserveConfigurationMap memory configuration = reservesData[reservesList[i]]
+                            .configuration;
                         require(configuration.getEModeCategory() == categoryId, Errors.INCONSISTENT_EMODE_CATEGORY);
                     }
                 }
@@ -685,7 +735,12 @@ library ValidationLogic {
         if (reserveConfig.getDebtCeiling() != 0) {
             // ensures only the ISOLATED_COLLATERAL_SUPPLIER_ROLE can enable collateral as side-effect of an action
             IPoolAddressesProvider addressesProvider = IncentivizedERC20(aTokenAddress).POOL().ADDRESSES_PROVIDER();
-            if (!IAccessControl(addressesProvider.getACLManager()).hasRole(ISOLATED_COLLATERAL_SUPPLIER_ROLE, msg.sender)) return false;
+            if (
+                !IAccessControl(addressesProvider.getACLManager()).hasRole(
+                    ISOLATED_COLLATERAL_SUPPLIER_ROLE,
+                    msg.sender
+                )
+            ) return false;
         }
         return validateUseAsCollateral(reservesData, reservesList, userConfig, reserveConfig);
     }

@@ -55,7 +55,12 @@ contract OdosRepayAdapter is BaseOdosSellAdapter, IOdosRepayAdapter {
         address debtAsset = repayParams.debtAsset;
 
         // The swapAndRepay will pull the tokens from the user aToken with approve() or permit()
-        uint256 collateralATokenAmount = _pullATokenAndWithdraw(collateralAsset, msg.sender, repayParams.collateralAmount, permitInput);
+        uint256 collateralATokenAmount = _pullATokenAndWithdraw(
+            collateralAsset,
+            msg.sender,
+            repayParams.collateralAmount,
+            permitInput
+        );
 
         // Swap collateral to get the debt asset
         uint256 amountOut = _sellOnOdos(

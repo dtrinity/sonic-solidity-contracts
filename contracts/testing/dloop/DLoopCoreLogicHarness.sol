@@ -5,7 +5,10 @@ import { DLoopCoreLogic } from "contracts/vaults/dloop/core/DLoopCoreLogic.sol";
 
 contract DLoopCoreLogicHarness {
     // State logic
-    function getCurrentLeverageBpsPublic(uint256 totalCollateralBase, uint256 totalDebtBase) external pure returns (uint256) {
+    function getCurrentLeverageBpsPublic(
+        uint256 totalCollateralBase,
+        uint256 totalDebtBase
+    ) external pure returns (uint256) {
         return DLoopCoreLogic.getCurrentLeverageBps(totalCollateralBase, totalDebtBase);
     }
 
@@ -15,7 +18,8 @@ contract DLoopCoreLogicHarness {
         uint256 maxSubsidyBps,
         uint256 minDeviationBps
     ) external pure returns (uint256) {
-        return DLoopCoreLogic.getCurrentSubsidyBps(currentLeverageBps, targetLeverageBps, maxSubsidyBps, minDeviationBps);
+        return
+            DLoopCoreLogic.getCurrentSubsidyBps(currentLeverageBps, targetLeverageBps, maxSubsidyBps, minDeviationBps);
     }
 
     function isTooImbalancedPublic(
@@ -23,7 +27,12 @@ contract DLoopCoreLogicHarness {
         uint256 lowerBoundTargetLeverageBps,
         uint256 upperBoundTargetLeverageBps
     ) external pure returns (bool) {
-        return DLoopCoreLogic.isTooImbalanced(currentLeverageBps, lowerBoundTargetLeverageBps, upperBoundTargetLeverageBps);
+        return
+            DLoopCoreLogic.isTooImbalanced(
+                currentLeverageBps,
+                lowerBoundTargetLeverageBps,
+                upperBoundTargetLeverageBps
+            );
     }
 
     // Conversion logic
@@ -44,7 +53,10 @@ contract DLoopCoreLogicHarness {
     }
 
     // Leverage scaling
-    function getUnleveragedAssetsWithLeveragePublic(uint256 leveragedAssets, uint256 leverageBps) external pure returns (uint256) {
+    function getUnleveragedAssetsWithLeveragePublic(
+        uint256 leveragedAssets,
+        uint256 leverageBps
+    ) external pure returns (uint256) {
         return DLoopCoreLogic.getUnleveragedAssetsWithLeverage(leveragedAssets, leverageBps);
     }
 
@@ -113,7 +125,8 @@ contract DLoopCoreLogicHarness {
         uint256 inputCollateralDepositAmountInBase,
         uint256 subsidyBps
     ) external pure returns (uint256) {
-        return DLoopCoreLogic.getDebtBorrowAmountInBaseToIncreaseLeverage(inputCollateralDepositAmountInBase, subsidyBps);
+        return
+            DLoopCoreLogic.getDebtBorrowAmountInBaseToIncreaseLeverage(inputCollateralDepositAmountInBase, subsidyBps);
     }
 
     function getDebtBorrowTokenAmountToIncreaseLeveragePublic(
@@ -155,7 +168,8 @@ contract DLoopCoreLogicHarness {
         uint256 inputDebtRepayAmountInBase,
         uint256 subsidyBps
     ) external pure returns (uint256) {
-        return DLoopCoreLogic.getCollateralWithdrawAmountInBaseToDecreaseLeverage(inputDebtRepayAmountInBase, subsidyBps);
+        return
+            DLoopCoreLogic.getCollateralWithdrawAmountInBaseToDecreaseLeverage(inputDebtRepayAmountInBase, subsidyBps);
     }
 
     function getCollateralWithdrawTokenAmountToDecreaseLeveragePublic(
@@ -228,10 +242,8 @@ contract DLoopCoreLogicHarness {
                 debtTokenDecimals,
                 debtTokenPriceInBase
             );
-            uint256 estimatedCollateralAmountInBase = DLoopCoreLogic.getCollateralWithdrawAmountInBaseToDecreaseLeverage(
-                inputDebtAmountInBase,
-                subsidyBps
-            );
+            uint256 estimatedCollateralAmountInBase = DLoopCoreLogic
+                .getCollateralWithdrawAmountInBaseToDecreaseLeverage(inputDebtAmountInBase, subsidyBps);
             estimatedOutputTokenAmount = DLoopCoreLogic.convertFromBaseCurrencyToToken(
                 estimatedCollateralAmountInBase,
                 collateralTokenDecimals,
@@ -245,7 +257,10 @@ contract DLoopCoreLogicHarness {
     }
 
     // Fees
-    function getGrossAmountRequiredForNetPublic(uint256 netAmount, uint256 withdrawalFeeBps) external pure returns (uint256) {
+    function getGrossAmountRequiredForNetPublic(
+        uint256 netAmount,
+        uint256 withdrawalFeeBps
+    ) external pure returns (uint256) {
         return DLoopCoreLogic.getGrossAmountRequiredForNet(netAmount, withdrawalFeeBps);
     }
 

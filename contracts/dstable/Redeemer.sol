@@ -46,7 +46,11 @@ contract Redeemer is AccessControl, OracleAware {
      * @param _oracle The address of the price oracle
      * @dev Sets up initial roles and configuration for redemption functionality
      */
-    constructor(address _collateralVault, address _dstable, IPriceOracleGetter _oracle) OracleAware(_oracle, _oracle.BASE_CURRENCY_UNIT()) {
+    constructor(
+        address _collateralVault,
+        address _dstable,
+        IPriceOracleGetter _oracle
+    ) OracleAware(_oracle, _oracle.BASE_CURRENCY_UNIT()) {
         collateralVault = CollateralVault(_collateralVault);
         dstable = IMintableERC20(_dstable);
         dstableDecimals = dstable.decimals();
@@ -63,7 +67,11 @@ contract Redeemer is AccessControl, OracleAware {
      * @param collateralAsset The address of the collateral asset
      * @param minCollateral The minimum amount of collateral to receive, used for slippage protection
      */
-    function redeem(uint256 dstableAmount, address collateralAsset, uint256 minCollateral) external onlyRole(REDEMPTION_MANAGER_ROLE) {
+    function redeem(
+        uint256 dstableAmount,
+        address collateralAsset,
+        uint256 minCollateral
+    ) external onlyRole(REDEMPTION_MANAGER_ROLE) {
         // Transfer dStable from withdrawer to this contract
         if (!dstable.transferFrom(msg.sender, address(this), dstableAmount)) {
             revert DStableTransferFailed();

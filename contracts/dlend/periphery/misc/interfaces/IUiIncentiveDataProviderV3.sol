@@ -71,7 +71,9 @@ interface IUiIncentiveDataProviderV3 {
         uint8 rewardTokenDecimals;
     }
 
-    function getReservesIncentivesData(IPoolAddressesProvider provider) external view returns (AggregatedReserveIncentiveData[] memory);
+    function getReservesIncentivesData(
+        IPoolAddressesProvider provider
+    ) external view returns (AggregatedReserveIncentiveData[] memory);
 
     function getUserReservesIncentivesData(
         IPoolAddressesProvider provider,

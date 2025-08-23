@@ -250,7 +250,9 @@ library ReserveConfiguration {
      * @param siloed True if the asset is siloed
      */
     function setSiloedBorrowing(DataTypes.ReserveConfigurationMap memory self, bool siloed) internal pure {
-        self.data = (self.data & SILOED_BORROWING_MASK) | (uint256(siloed ? 1 : 0) << SILOED_BORROWING_START_BIT_POSITION);
+        self.data =
+            (self.data & SILOED_BORROWING_MASK) |
+            (uint256(siloed ? 1 : 0) << SILOED_BORROWING_START_BIT_POSITION);
     }
 
     /**
@@ -287,7 +289,9 @@ library ReserveConfiguration {
      * @param enabled True if the stable rate borrowing needs to be enabled, false otherwise
      */
     function setStableRateBorrowingEnabled(DataTypes.ReserveConfigurationMap memory self, bool enabled) internal pure {
-        self.data = (self.data & STABLE_BORROWING_MASK) | (uint256(enabled ? 1 : 0) << STABLE_BORROWING_ENABLED_START_BIT_POSITION);
+        self.data =
+            (self.data & STABLE_BORROWING_MASK) |
+            (uint256(enabled ? 1 : 0) << STABLE_BORROWING_ENABLED_START_BIT_POSITION);
     }
 
     /**
@@ -384,10 +388,15 @@ library ReserveConfiguration {
      * @param self The reserve configuration
      * @param liquidationProtocolFee The liquidation protocol fee
      */
-    function setLiquidationProtocolFee(DataTypes.ReserveConfigurationMap memory self, uint256 liquidationProtocolFee) internal pure {
+    function setLiquidationProtocolFee(
+        DataTypes.ReserveConfigurationMap memory self,
+        uint256 liquidationProtocolFee
+    ) internal pure {
         require(liquidationProtocolFee <= MAX_VALID_LIQUIDATION_PROTOCOL_FEE, Errors.INVALID_LIQUIDATION_PROTOCOL_FEE);
 
-        self.data = (self.data & LIQUIDATION_PROTOCOL_FEE_MASK) | (liquidationProtocolFee << LIQUIDATION_PROTOCOL_FEE_START_BIT_POSITION);
+        self.data =
+            (self.data & LIQUIDATION_PROTOCOL_FEE_MASK) |
+            (liquidationProtocolFee << LIQUIDATION_PROTOCOL_FEE_START_BIT_POSITION);
     }
 
     /**
@@ -445,7 +454,9 @@ library ReserveConfiguration {
      * @param flashLoanEnabled True if the asset is flashloanable, false otherwise
      */
     function setFlashLoanEnabled(DataTypes.ReserveConfigurationMap memory self, bool flashLoanEnabled) internal pure {
-        self.data = (self.data & FLASHLOAN_ENABLED_MASK) | (uint256(flashLoanEnabled ? 1 : 0) << FLASHLOAN_ENABLED_START_BIT_POSITION);
+        self.data =
+            (self.data & FLASHLOAN_ENABLED_MASK) |
+            (uint256(flashLoanEnabled ? 1 : 0) << FLASHLOAN_ENABLED_START_BIT_POSITION);
     }
 
     /**
@@ -466,7 +477,9 @@ library ReserveConfiguration {
      * @return The state flag representing stableRateBorrowing enabled
      * @return The state flag representing paused
      */
-    function getFlags(DataTypes.ReserveConfigurationMap memory self) internal pure returns (bool, bool, bool, bool, bool) {
+    function getFlags(
+        DataTypes.ReserveConfigurationMap memory self
+    ) internal pure returns (bool, bool, bool, bool, bool) {
         uint256 dataLocal = self.data;
 
         return (

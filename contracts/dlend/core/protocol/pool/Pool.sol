@@ -119,12 +119,29 @@ contract Pool is VersionedInitializable, PoolStorage, IPool {
     }
 
     /// @inheritdoc IPool
-    function mintUnbacked(address asset, uint256 amount, address onBehalfOf, uint16 referralCode) external virtual override onlyBridge {
-        BridgeLogic.executeMintUnbacked(_reserves, _reservesList, _usersConfig[onBehalfOf], asset, amount, onBehalfOf, referralCode);
+    function mintUnbacked(
+        address asset,
+        uint256 amount,
+        address onBehalfOf,
+        uint16 referralCode
+    ) external virtual override onlyBridge {
+        BridgeLogic.executeMintUnbacked(
+            _reserves,
+            _reservesList,
+            _usersConfig[onBehalfOf],
+            asset,
+            amount,
+            onBehalfOf,
+            referralCode
+        );
     }
 
     /// @inheritdoc IPool
-    function backUnbacked(address asset, uint256 amount, uint256 fee) external virtual override onlyBridge returns (uint256) {
+    function backUnbacked(
+        address asset,
+        uint256 amount,
+        uint256 fee
+    ) external virtual override onlyBridge returns (uint256) {
         return BridgeLogic.executeBackUnbacked(_reserves[asset], asset, amount, fee, _bridgeProtocolFee);
     }
 
@@ -134,7 +151,12 @@ contract Pool is VersionedInitializable, PoolStorage, IPool {
             _reserves,
             _reservesList,
             _usersConfig[onBehalfOf],
-            DataTypes.ExecuteSupplyParams({ asset: asset, amount: amount, onBehalfOf: onBehalfOf, referralCode: referralCode })
+            DataTypes.ExecuteSupplyParams({
+                asset: asset,
+                amount: amount,
+                onBehalfOf: onBehalfOf,
+                referralCode: referralCode
+            })
         );
     }
 
@@ -154,7 +176,12 @@ contract Pool is VersionedInitializable, PoolStorage, IPool {
             _reserves,
             _reservesList,
             _usersConfig[onBehalfOf],
-            DataTypes.ExecuteSupplyParams({ asset: asset, amount: amount, onBehalfOf: onBehalfOf, referralCode: referralCode })
+            DataTypes.ExecuteSupplyParams({
+                asset: asset,
+                amount: amount,
+                onBehalfOf: onBehalfOf,
+                referralCode: referralCode
+            })
         );
     }
 
@@ -208,7 +235,12 @@ contract Pool is VersionedInitializable, PoolStorage, IPool {
     }
 
     /// @inheritdoc IPool
-    function repay(address asset, uint256 amount, uint256 interestRateMode, address onBehalfOf) public virtual override returns (uint256) {
+    function repay(
+        address asset,
+        uint256 amount,
+        uint256 interestRateMode,
+        address onBehalfOf
+    ) public virtual override returns (uint256) {
         return
             BorrowLogic.executeRepay(
                 _reserves,
@@ -251,7 +283,11 @@ contract Pool is VersionedInitializable, PoolStorage, IPool {
     }
 
     /// @inheritdoc IPool
-    function repayWithATokens(address asset, uint256 amount, uint256 interestRateMode) public virtual override returns (uint256) {
+    function repayWithATokens(
+        address asset,
+        uint256 amount,
+        uint256 interestRateMode
+    ) public virtual override returns (uint256) {
         return
             BorrowLogic.executeRepay(
                 _reserves,
@@ -351,7 +387,13 @@ contract Pool is VersionedInitializable, PoolStorage, IPool {
             isAuthorizedFlashBorrower: IACLManager(ADDRESSES_PROVIDER.getACLManager()).isFlashBorrower(msg.sender)
         });
 
-        FlashLoanLogic.executeFlashLoan(_reserves, _reservesList, _eModeCategories, _usersConfig[onBehalfOf], flashParams);
+        FlashLoanLogic.executeFlashLoan(
+            _reserves,
+            _reservesList,
+            _eModeCategories,
+            _usersConfig[onBehalfOf],
+            flashParams
+        );
     }
 
     /// @inheritdoc IPool
@@ -417,12 +459,16 @@ contract Pool is VersionedInitializable, PoolStorage, IPool {
     }
 
     /// @inheritdoc IPool
-    function getConfiguration(address asset) external view virtual override returns (DataTypes.ReserveConfigurationMap memory) {
+    function getConfiguration(
+        address asset
+    ) external view virtual override returns (DataTypes.ReserveConfigurationMap memory) {
         return _reserves[asset].configuration;
     }
 
     /// @inheritdoc IPool
-    function getUserConfiguration(address user) external view virtual override returns (DataTypes.UserConfigurationMap memory) {
+    function getUserConfiguration(
+        address user
+    ) external view virtual override returns (DataTypes.UserConfigurationMap memory) {
         return _usersConfig[user];
     }
 
@@ -583,7 +629,10 @@ contract Pool is VersionedInitializable, PoolStorage, IPool {
     }
 
     /// @inheritdoc IPool
-    function configureEModeCategory(uint8 id, DataTypes.EModeCategory memory category) external virtual override onlyPoolConfigurator {
+    function configureEModeCategory(
+        uint8 id,
+        DataTypes.EModeCategory memory category
+    ) external virtual override onlyPoolConfigurator {
         // category 0 is reserved for volatile heterogeneous assets and it's always disabled
         require(id != 0, Errors.EMODE_CATEGORY_RESERVED);
         _eModeCategories[id] = category;
@@ -632,7 +681,12 @@ contract Pool is VersionedInitializable, PoolStorage, IPool {
             _reserves,
             _reservesList,
             _usersConfig[onBehalfOf],
-            DataTypes.ExecuteSupplyParams({ asset: asset, amount: amount, onBehalfOf: onBehalfOf, referralCode: referralCode })
+            DataTypes.ExecuteSupplyParams({
+                asset: asset,
+                amount: amount,
+                onBehalfOf: onBehalfOf,
+                referralCode: referralCode
+            })
         );
     }
 }

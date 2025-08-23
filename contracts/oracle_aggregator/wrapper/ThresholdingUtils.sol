@@ -34,7 +34,10 @@ abstract contract ThresholdingUtils {
      * @param thresholdConfig The threshold configuration
      * @return The original price or fixed price based on threshold
      */
-    function _applyThreshold(uint256 priceInBase, ThresholdConfig memory thresholdConfig) internal pure returns (uint256) {
+    function _applyThreshold(
+        uint256 priceInBase,
+        ThresholdConfig memory thresholdConfig
+    ) internal pure returns (uint256) {
         if (priceInBase > thresholdConfig.lowerThresholdInBase) {
             return thresholdConfig.fixedPriceInBase;
         }

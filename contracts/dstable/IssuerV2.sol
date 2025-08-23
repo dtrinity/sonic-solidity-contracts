@@ -100,7 +100,11 @@ contract IssuerV2 is AccessControl, OracleAware, ReentrancyGuard, Pausable {
      * @param collateralAsset The address of the collateral asset
      * @param minDStable The minimum amount of dStable to receive, used for slippage protection
      */
-    function issue(uint256 collateralAmount, address collateralAsset, uint256 minDStable) external nonReentrant whenNotPaused {
+    function issue(
+        uint256 collateralAmount,
+        address collateralAsset,
+        uint256 minDStable
+    ) external nonReentrant whenNotPaused {
         // Ensure the collateral asset is supported by the vault before any further processing
         if (!collateralVault.isCollateralSupported(collateralAsset)) {
             revert CollateralVault.UnsupportedCollateral(collateralAsset);
@@ -112,7 +116,11 @@ contract IssuerV2 is AccessControl, OracleAware, ReentrancyGuard, Pausable {
         }
 
         uint8 collateralDecimals = IERC20Metadata(collateralAsset).decimals();
-        uint256 baseValue = Math.mulDiv(oracle.getAssetPrice(collateralAsset), collateralAmount, 10 ** collateralDecimals);
+        uint256 baseValue = Math.mulDiv(
+            oracle.getAssetPrice(collateralAsset),
+            collateralAmount,
+            10 ** collateralDecimals
+        );
         uint256 dstableAmount = baseValueToDstableAmount(baseValue);
         if (dstableAmount < minDStable) {
             revert SlippageTooHigh(minDStable, dstableAmount);
@@ -129,7 +137,10 @@ contract IssuerV2 is AccessControl, OracleAware, ReentrancyGuard, Pausable {
      * @param receiver The address to receive the minted dStable tokens
      * @param dstableAmount The amount of dStable to mint
      */
-    function issueUsingExcessCollateral(address receiver, uint256 dstableAmount) external onlyRole(INCENTIVES_MANAGER_ROLE) whenNotPaused {
+    function issueUsingExcessCollateral(
+        address receiver,
+        uint256 dstableAmount
+    ) external onlyRole(INCENTIVES_MANAGER_ROLE) whenNotPaused {
         dstable.mint(receiver, dstableAmount);
 
         // We don't use the buffer value here because we only mint up to the excess collateral

@@ -79,10 +79,24 @@ contract API3CompositeWrapperWithThresholding is BaseAPI3Wrapper, ThresholdingUt
         compositeFeeds[asset] = CompositeFeed({
             proxy1: proxy1,
             proxy2: proxy2,
-            primaryThreshold: ThresholdConfig({ lowerThresholdInBase: lowerThresholdInBase1, fixedPriceInBase: fixedPriceInBase1 }),
-            secondaryThreshold: ThresholdConfig({ lowerThresholdInBase: lowerThresholdInBase2, fixedPriceInBase: fixedPriceInBase2 })
+            primaryThreshold: ThresholdConfig({
+                lowerThresholdInBase: lowerThresholdInBase1,
+                fixedPriceInBase: fixedPriceInBase1
+            }),
+            secondaryThreshold: ThresholdConfig({
+                lowerThresholdInBase: lowerThresholdInBase2,
+                fixedPriceInBase: fixedPriceInBase2
+            })
         });
-        emit CompositeFeedAdded(asset, proxy1, proxy2, lowerThresholdInBase1, fixedPriceInBase1, lowerThresholdInBase2, fixedPriceInBase2);
+        emit CompositeFeedAdded(
+            asset,
+            proxy1,
+            proxy2,
+            lowerThresholdInBase1,
+            fixedPriceInBase1,
+            lowerThresholdInBase2,
+            fixedPriceInBase2
+        );
     }
 
     function removeCompositeFeed(address asset) external onlyRole(ORACLE_MANAGER_ROLE) {
@@ -105,7 +119,13 @@ contract API3CompositeWrapperWithThresholding is BaseAPI3Wrapper, ThresholdingUt
         feed.primaryThreshold.fixedPriceInBase = fixedPriceInBase1;
         feed.secondaryThreshold.lowerThresholdInBase = lowerThresholdInBase2;
         feed.secondaryThreshold.fixedPriceInBase = fixedPriceInBase2;
-        emit CompositeFeedUpdated(asset, lowerThresholdInBase1, fixedPriceInBase1, lowerThresholdInBase2, fixedPriceInBase2);
+        emit CompositeFeedUpdated(
+            asset,
+            lowerThresholdInBase1,
+            fixedPriceInBase1,
+            lowerThresholdInBase2,
+            fixedPriceInBase2
+        );
     }
 
     function getPriceInfo(address asset) public view override returns (uint256 price, bool isAlive) {

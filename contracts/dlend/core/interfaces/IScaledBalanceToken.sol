@@ -31,7 +31,13 @@ interface IScaledBalanceToken {
      * @param balanceIncrease The increase in scaled-up balance since the last action of 'onBehalfOf'
      * @param index The next liquidity index of the reserve
      */
-    event Mint(address indexed caller, address indexed onBehalfOf, uint256 value, uint256 balanceIncrease, uint256 index);
+    event Mint(
+        address indexed caller,
+        address indexed onBehalfOf,
+        uint256 value,
+        uint256 balanceIncrease,
+        uint256 index
+    );
 
     /**
      * @dev Emitted after the burn action

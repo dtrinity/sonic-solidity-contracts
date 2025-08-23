@@ -26,7 +26,10 @@ import { BaseImmutableAdminUpgradeabilityProxy } from "./BaseImmutableAdminUpgra
  * @author Aave
  * @dev Extends BaseAdminUpgradeabilityProxy with an initializer function
  */
-contract InitializableImmutableAdminUpgradeabilityProxy is BaseImmutableAdminUpgradeabilityProxy, InitializableUpgradeabilityProxy {
+contract InitializableImmutableAdminUpgradeabilityProxy is
+    BaseImmutableAdminUpgradeabilityProxy,
+    InitializableUpgradeabilityProxy
+{
     /**
      * @dev Constructor.
      * @param admin The address of the admin

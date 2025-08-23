@@ -156,7 +156,10 @@ library ConfiguratorLogic {
      * @param cachedPool The Pool containing the reserve with the stable debt token
      * @param input The parameters needed for the initialize call
      */
-    function executeUpdateStableDebtToken(IPool cachedPool, ConfiguratorInputTypes.UpdateDebtTokenInput calldata input) public {
+    function executeUpdateStableDebtToken(
+        IPool cachedPool,
+        ConfiguratorInputTypes.UpdateDebtTokenInput calldata input
+    ) public {
         DataTypes.ReserveData memory reserveData = cachedPool.getReserveData(input.asset);
 
         (, , , uint256 decimals, , ) = cachedPool.getConfiguration(input.asset).getParams();
@@ -183,7 +186,10 @@ library ConfiguratorLogic {
      * @param cachedPool The Pool containing the reserve with the variable debt token
      * @param input The parameters needed for the initialize call
      */
-    function executeUpdateVariableDebtToken(IPool cachedPool, ConfiguratorInputTypes.UpdateDebtTokenInput calldata input) public {
+    function executeUpdateVariableDebtToken(
+        IPool cachedPool,
+        ConfiguratorInputTypes.UpdateDebtTokenInput calldata input
+    ) public {
         DataTypes.ReserveData memory reserveData = cachedPool.getReserveData(input.asset);
 
         (, , , uint256 decimals, , ) = cachedPool.getConfiguration(input.asset).getParams();
@@ -211,7 +217,9 @@ library ConfiguratorLogic {
      * @return The address of initialized proxy
      */
     function _initTokenWithProxy(address implementation, bytes memory initParams) internal returns (address) {
-        InitializableImmutableAdminUpgradeabilityProxy proxy = new InitializableImmutableAdminUpgradeabilityProxy(address(this));
+        InitializableImmutableAdminUpgradeabilityProxy proxy = new InitializableImmutableAdminUpgradeabilityProxy(
+            address(this)
+        );
 
         proxy.initialize(implementation, initParams);
 
@@ -225,8 +233,14 @@ library ConfiguratorLogic {
      * @param implementation The address of the new implementation
      * @param  initParams The parameters to the call after the upgrade
      */
-    function _upgradeTokenImplementation(address proxyAddress, address implementation, bytes memory initParams) internal {
-        InitializableImmutableAdminUpgradeabilityProxy proxy = InitializableImmutableAdminUpgradeabilityProxy(payable(proxyAddress));
+    function _upgradeTokenImplementation(
+        address proxyAddress,
+        address implementation,
+        bytes memory initParams
+    ) internal {
+        InitializableImmutableAdminUpgradeabilityProxy proxy = InitializableImmutableAdminUpgradeabilityProxy(
+            payable(proxyAddress)
+        );
 
         proxy.upgradeToAndCall(implementation, initParams);
     }

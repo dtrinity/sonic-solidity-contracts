@@ -108,10 +108,24 @@ contract ERC4626SafeRateProviderWrapperWithThresholding is IOracleWrapper, Acces
             erc4626Vault: erc4626Vault,
             rateProvider: rateProvider,
             rateProviderUnit: rateProviderUnit,
-            primaryThreshold: ThresholdConfig({ lowerThresholdInBase: lowerThresholdInBase1, fixedPriceInBase: fixedPriceInBase1 }),
-            secondaryThreshold: ThresholdConfig({ lowerThresholdInBase: lowerThresholdInBase2, fixedPriceInBase: fixedPriceInBase2 })
+            primaryThreshold: ThresholdConfig({
+                lowerThresholdInBase: lowerThresholdInBase1,
+                fixedPriceInBase: fixedPriceInBase1
+            }),
+            secondaryThreshold: ThresholdConfig({
+                lowerThresholdInBase: lowerThresholdInBase2,
+                fixedPriceInBase: fixedPriceInBase2
+            })
         });
-        emit FeedSet(asset, erc4626Vault, rateProvider, lowerThresholdInBase1, fixedPriceInBase1, lowerThresholdInBase2, fixedPriceInBase2);
+        emit FeedSet(
+            asset,
+            erc4626Vault,
+            rateProvider,
+            lowerThresholdInBase1,
+            fixedPriceInBase1,
+            lowerThresholdInBase2,
+            fixedPriceInBase2
+        );
     }
 
     function removeFeed(address asset) external onlyRole(ORACLE_MANAGER_ROLE) {

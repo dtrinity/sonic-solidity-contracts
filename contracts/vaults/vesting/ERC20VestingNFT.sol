@@ -275,7 +275,12 @@ contract ERC20VestingNFT is ERC721, ERC721Enumerable, Ownable, ReentrancyGuard {
         }
 
         VestingPosition memory position = vestingPositions[tokenId];
-        return (position.amount, position.depositTime, position.matured, block.timestamp >= position.depositTime + vestingPeriod);
+        return (
+            position.amount,
+            position.depositTime,
+            position.matured,
+            block.timestamp >= position.depositTime + vestingPeriod
+        );
     }
 
     function tokenURI(uint256 tokenId) public view override returns (string memory) {
@@ -389,7 +394,11 @@ contract ERC20VestingNFT is ERC721, ERC721Enumerable, Ownable, ReentrancyGuard {
     /**
      * @notice Override to prevent transfers of matured (soul-bound) NFTs
      */
-    function _update(address to, uint256 tokenId, address auth) internal override(ERC721, ERC721Enumerable) returns (address) {
+    function _update(
+        address to,
+        uint256 tokenId,
+        address auth
+    ) internal override(ERC721, ERC721Enumerable) returns (address) {
         address from = _ownerOf(tokenId);
 
         // Allow minting and burning

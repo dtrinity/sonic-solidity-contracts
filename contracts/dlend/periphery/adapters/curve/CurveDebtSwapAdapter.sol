@@ -228,7 +228,11 @@ contract CurveDebtSwapAdapter is BaseCurveBuyAdapter, ReentrancyGuard, IAaveFlas
      * @param newDebtAsset Address of token to be swapped
      * @param newDebtAmount Amount of the reserve to be swapped(flash loan amount)
      */
-    function _swapAndRepay(FlashParams memory swapParams, IERC20Detailed newDebtAsset, uint256 newDebtAmount) internal returns (uint256) {
+    function _swapAndRepay(
+        FlashParams memory swapParams,
+        IERC20Detailed newDebtAsset,
+        uint256 newDebtAmount
+    ) internal returns (uint256) {
         uint256 amountSold = _buyOnCurve(
             newDebtAsset,
             IERC20Detailed(swapParams.debtAsset),

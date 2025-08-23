@@ -214,7 +214,10 @@ contract OdosDebtSwapAdapter is BaseOdosBuyAdapter, ReentrancyGuard, IAaveFlashL
             _nestedFlash(flashParams.nestedFlashloanDebtAsset, flashParams.nestedFlashloanDebtAmount, innerFlashParams);
 
             // revert if returned amount is not enough to repay the flashloan
-            require(IERC20WithPermit(asset).balanceOf(address(this)) >= amountToReturn, "Insufficient amount to repay flashloan");
+            require(
+                IERC20WithPermit(asset).balanceOf(address(this)) >= amountToReturn,
+                "Insufficient amount to repay flashloan"
+            );
 
             IERC20WithPermit(asset).safeApprove(address(POOL), amountToReturn);
             return true;
@@ -245,7 +248,10 @@ contract OdosDebtSwapAdapter is BaseOdosBuyAdapter, ReentrancyGuard, IAaveFlashL
             );
 
             // revert if returned amount is not enough to repay the flashloan
-            require(IERC20WithPermit(asset).balanceOf(address(this)) >= amountToReturn, "Insufficient amount to repay flashloan");
+            require(
+                IERC20WithPermit(asset).balanceOf(address(this)) >= amountToReturn,
+                "Insufficient amount to repay flashloan"
+            );
 
             IERC20WithPermit(asset).safeApprove(address(POOL), amountToReturn);
             return true;

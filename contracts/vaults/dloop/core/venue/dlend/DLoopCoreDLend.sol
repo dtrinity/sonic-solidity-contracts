@@ -277,7 +277,10 @@ contract DLoopCoreDLend is DLoopCoreBase, RewardClaimable {
      * @param user The address of the user
      * @return collateralTokenAmount The collateral token amount
      */
-    function getCollateralValueInTokenAmount(address token, address user) public view override returns (uint256 collateralTokenAmount) {
+    function getCollateralValueInTokenAmount(
+        address token,
+        address user
+    ) public view override returns (uint256 collateralTokenAmount) {
         collateralTokenAmount = ERC20(_getReserveData(token).aTokenAddress).balanceOf(user);
         return collateralTokenAmount;
     }
@@ -288,7 +291,10 @@ contract DLoopCoreDLend is DLoopCoreBase, RewardClaimable {
      * @param user The address of the user
      * @return debtTokenAmount The debt token amount
      */
-    function getDebtValueInTokenAmount(address token, address user) public view override returns (uint256 debtTokenAmount) {
+    function getDebtValueInTokenAmount(
+        address token,
+        address user
+    ) public view override returns (uint256 debtTokenAmount) {
         DataTypes.ReserveData memory reserveDebt = _getReserveData(token);
         uint256 variableDebt = ERC20(reserveDebt.variableDebtTokenAddress).balanceOf(user);
         uint256 stableDebt = ERC20(reserveDebt.stableDebtTokenAddress).balanceOf(user);
@@ -304,7 +310,10 @@ contract DLoopCoreDLend is DLoopCoreBase, RewardClaimable {
      * @param receiver The address to receive the claimed rewards
      * @return rewardAmounts The amount of rewards claimed for each token (have the same length as the tokens array)
      */
-    function _claimRewards(address[] calldata rewardTokens, address receiver) internal override returns (uint256[] memory rewardAmounts) {
+    function _claimRewards(
+        address[] calldata rewardTokens,
+        address receiver
+    ) internal override returns (uint256[] memory rewardAmounts) {
         if (rewardTokens.length == 0) {
             revert ZeroRewardTokens();
         }

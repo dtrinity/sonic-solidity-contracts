@@ -200,7 +200,9 @@ contract DStakeRewardManagerDLend is RewardClaimable {
         // 1. Pull `amountDStableToCompound` from this contract (msg.sender).
         // 2. Convert it to `defaultVaultAsset`.
         // 3. Deposit/transfer the `defaultVaultAsset` directly to the `dStakeCollateralVault`.
-        (address convertedVaultAsset, uint256 convertedVaultAssetAmount) = adapter.convertToVaultAsset(amountDStableToCompound);
+        (address convertedVaultAsset, uint256 convertedVaultAssetAmount) = adapter.convertToVaultAsset(
+            amountDStableToCompound
+        );
 
         if (convertedVaultAsset != defaultVaultAsset) {
             revert AdapterReturnedUnexpectedAsset(defaultVaultAsset, convertedVaultAsset);
@@ -212,7 +214,11 @@ contract DStakeRewardManagerDLend is RewardClaimable {
     /**
      * @notice Override to deposit exchangeAsset for wrapper positions before claiming rewards and distribute rewards
      */
-    function compoundRewards(uint256 amount, address[] calldata rewardTokens, address receiver) public override nonReentrant {
+    function compoundRewards(
+        uint256 amount,
+        address[] calldata rewardTokens,
+        address receiver
+    ) public override nonReentrant {
         // Validate input
         if (amount < exchangeThreshold) {
             revert ExchangeAmountTooLow(amount, exchangeThreshold);

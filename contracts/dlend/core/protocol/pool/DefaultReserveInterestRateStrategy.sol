@@ -181,7 +181,10 @@ contract DefaultReserveInterestRateStrategy is IDefaultInterestRateStrategy {
 
         if (vars.totalDebt != 0) {
             vars.stableToTotalDebtRatio = params.totalStableDebt.rayDiv(vars.totalDebt);
-            vars.availableLiquidity = IERC20(params.reserve).balanceOf(params.aToken) + params.liquidityAdded - params.liquidityTaken;
+            vars.availableLiquidity =
+                IERC20(params.reserve).balanceOf(params.aToken) +
+                params.liquidityAdded -
+                params.liquidityTaken;
 
             vars.availableLiquidityPlusDebt = vars.availableLiquidity + vars.totalDebt;
             vars.borrowUsageRatio = vars.totalDebt.rayDiv(vars.availableLiquidityPlusDebt);
@@ -189,7 +192,9 @@ contract DefaultReserveInterestRateStrategy is IDefaultInterestRateStrategy {
         }
 
         if (vars.borrowUsageRatio > OPTIMAL_USAGE_RATIO) {
-            uint256 excessBorrowUsageRatio = (vars.borrowUsageRatio - OPTIMAL_USAGE_RATIO).rayDiv(MAX_EXCESS_USAGE_RATIO);
+            uint256 excessBorrowUsageRatio = (vars.borrowUsageRatio - OPTIMAL_USAGE_RATIO).rayDiv(
+                MAX_EXCESS_USAGE_RATIO
+            );
 
             vars.currentStableBorrowRate += _stableRateSlope1 + _stableRateSlope2.rayMul(excessBorrowUsageRatio);
 
@@ -197,7 +202,9 @@ contract DefaultReserveInterestRateStrategy is IDefaultInterestRateStrategy {
         } else {
             vars.currentStableBorrowRate += _stableRateSlope1.rayMul(vars.borrowUsageRatio).rayDiv(OPTIMAL_USAGE_RATIO);
 
-            vars.currentVariableBorrowRate += _variableRateSlope1.rayMul(vars.borrowUsageRatio).rayDiv(OPTIMAL_USAGE_RATIO);
+            vars.currentVariableBorrowRate += _variableRateSlope1.rayMul(vars.borrowUsageRatio).rayDiv(
+                OPTIMAL_USAGE_RATIO
+            );
         }
 
         if (vars.stableToTotalDebtRatio > OPTIMAL_STABLE_TO_TOTAL_DEBT_RATIO) {

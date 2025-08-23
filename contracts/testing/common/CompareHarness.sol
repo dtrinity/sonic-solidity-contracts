@@ -4,7 +4,11 @@ pragma solidity ^0.8.20;
 import "contracts/common/Compare.sol";
 
 contract CompareHarness {
-    function isWithinTolerancePublic(uint256 observed, uint256 expected, uint256 tolerance) external pure returns (bool) {
+    function isWithinTolerancePublic(
+        uint256 observed,
+        uint256 expected,
+        uint256 tolerance
+    ) external pure returns (bool) {
         return Compare.isWithinTolerance(observed, expected, tolerance);
     }
 

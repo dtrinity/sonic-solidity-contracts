@@ -68,7 +68,10 @@ library ReserveLogic {
             //if the index was updated in the same block, no need to perform any calculation
             return reserve.liquidityIndex;
         } else {
-            return MathUtils.calculateLinearInterest(reserve.currentLiquidityRate, timestamp).rayMul(reserve.liquidityIndex);
+            return
+                MathUtils.calculateLinearInterest(reserve.currentLiquidityRate, timestamp).rayMul(
+                    reserve.liquidityIndex
+                );
         }
     }
 
@@ -87,7 +90,10 @@ library ReserveLogic {
             //if the index was updated in the same block, no need to perform any calculation
             return reserve.variableBorrowIndex;
         } else {
-            return MathUtils.calculateCompoundedInterest(reserve.currentVariableBorrowRate, timestamp).rayMul(reserve.variableBorrowIndex);
+            return
+                MathUtils.calculateCompoundedInterest(reserve.currentVariableBorrowRate, timestamp).rayMul(
+                    reserve.variableBorrowIndex
+                );
         }
     }
 
@@ -125,7 +131,9 @@ library ReserveLogic {
     ) internal returns (uint256) {
         //next liquidity index is calculated this way: `((amount / totalLiquidity) + 1) * liquidityIndex`
         //division `amount / totalLiquidity` done in ray for precision
-        uint256 result = (amount.wadToRay().rayDiv(totalLiquidity.wadToRay()) + WadRayMath.RAY).rayMul(reserve.liquidityIndex);
+        uint256 result = (amount.wadToRay().rayDiv(totalLiquidity.wadToRay()) + WadRayMath.RAY).rayMul(
+            reserve.liquidityIndex
+        );
         reserve.liquidityIndex = result.toUint128();
         return result;
     }
@@ -226,7 +234,10 @@ library ReserveLogic {
      * @param reserve The reserve to be updated
      * @param reserveCache The caching layer for the reserve data
      */
-    function _accrueToTreasury(DataTypes.ReserveData storage reserve, DataTypes.ReserveCache memory reserveCache) internal {
+    function _accrueToTreasury(
+        DataTypes.ReserveData storage reserve,
+        DataTypes.ReserveCache memory reserveCache
+    ) internal {
         AccrueToTreasuryLocalVars memory vars;
 
         if (reserveCache.reserveFactor == 0) {
@@ -267,7 +278,10 @@ library ReserveLogic {
      * @param reserve The reserve reserve to be updated
      * @param reserveCache The cache layer holding the cached protocol data
      */
-    function _updateIndexes(DataTypes.ReserveData storage reserve, DataTypes.ReserveCache memory reserveCache) internal {
+    function _updateIndexes(
+        DataTypes.ReserveData storage reserve,
+        DataTypes.ReserveCache memory reserveCache
+    ) internal {
         // Only cumulating on the supply side if there is any income being produced
         // The case of Reserve Factor 100% is not a problem (currentLiquidityRate == 0),
         // as liquidity index should not be updated
@@ -289,7 +303,9 @@ library ReserveLogic {
                 reserveCache.currVariableBorrowRate,
                 reserveCache.reserveLastUpdateTimestamp
             );
-            reserveCache.nextVariableBorrowIndex = cumulatedVariableBorrowInterest.rayMul(reserveCache.currVariableBorrowIndex);
+            reserveCache.nextVariableBorrowIndex = cumulatedVariableBorrowInterest.rayMul(
+                reserveCache.currVariableBorrowIndex
+            );
             reserve.variableBorrowIndex = reserveCache.nextVariableBorrowIndex.toUint128();
         }
     }

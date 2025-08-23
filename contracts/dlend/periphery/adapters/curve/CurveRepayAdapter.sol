@@ -76,7 +76,10 @@ contract CurveRepayAdapter is BaseCurveBuyAdapter, ReentrancyGuard, IAaveFlashLo
     }
 
     /// @inheritdoc ICurveRepayAdapter
-    function repayWithCollateral(RepayParams memory repayParams, PermitInput memory collateralATokenPermit) external nonReentrant {
+    function repayWithCollateral(
+        RepayParams memory repayParams,
+        PermitInput memory collateralATokenPermit
+    ) external nonReentrant {
         // Refresh the debt amount to repay
         repayParams.debtRepayAmount = _getDebtRepayAmount(
             IERC20(repayParams.debtRepayAsset),
@@ -133,7 +136,10 @@ contract CurveRepayAdapter is BaseCurveBuyAdapter, ReentrancyGuard, IAaveFlashLo
             revert InitiatorMustBeThis(initiator, address(this));
         }
 
-        (RepayParams memory repayParams, PermitInput memory collateralATokenPermit) = abi.decode(params, (RepayParams, PermitInput));
+        (RepayParams memory repayParams, PermitInput memory collateralATokenPermit) = abi.decode(
+            params,
+            (RepayParams, PermitInput)
+        );
 
         address flashLoanAsset = assets[0];
         uint256 flashLoanAmount = amounts[0];
@@ -151,7 +157,12 @@ contract CurveRepayAdapter is BaseCurveBuyAdapter, ReentrancyGuard, IAaveFlashLo
 
         // repays debt
         _conditionalRenewAllowance(repayParams.debtRepayAsset, repayParams.debtRepayAmount);
-        POOL.repay(repayParams.debtRepayAsset, repayParams.debtRepayAmount, repayParams.debtRepayMode, repayParams.user);
+        POOL.repay(
+            repayParams.debtRepayAsset,
+            repayParams.debtRepayAmount,
+            repayParams.debtRepayMode,
+            repayParams.user
+        );
 
         // pulls only the amount needed from the user for the flashloan repayment
         // flashLoanAmount - amountSold = excess in the contract from swap
@@ -177,7 +188,10 @@ contract CurveRepayAdapter is BaseCurveBuyAdapter, ReentrancyGuard, IAaveFlashLo
      * @param collateralATokenPermit Permit for withdrawing collateral token from the pool
      * @return The amount of withdrawn collateral sold in the swap
      */
-    function _swapAndRepay(RepayParams memory repayParams, PermitInput memory collateralATokenPermit) internal returns (uint256) {
+    function _swapAndRepay(
+        RepayParams memory repayParams,
+        PermitInput memory collateralATokenPermit
+    ) internal returns (uint256) {
         uint256 collateralAmountReceived = _pullATokenAndWithdraw(
             repayParams.collateralAsset,
             repayParams.user,
@@ -197,7 +211,12 @@ contract CurveRepayAdapter is BaseCurveBuyAdapter, ReentrancyGuard, IAaveFlashLo
 
         // repay the debt with the bought asset (debtRepayAsset) from the swap
         _conditionalRenewAllowance(repayParams.debtRepayAsset, repayParams.debtRepayAmount);
-        POOL.repay(repayParams.debtRepayAsset, repayParams.debtRepayAmount, repayParams.debtRepayMode, repayParams.user);
+        POOL.repay(
+            repayParams.debtRepayAsset,
+            repayParams.debtRepayAmount,
+            repayParams.debtRepayMode,
+            repayParams.user
+        );
 
         return amountSold;
     }
@@ -235,7 +254,9 @@ contract CurveRepayAdapter is BaseCurveBuyAdapter, ReentrancyGuard, IAaveFlashLo
     ) internal view returns (uint256) {
         (address vDebtToken, address sDebtToken, ) = _getReserveData(address(debtAsset));
 
-        address debtToken = DataTypes.InterestRateMode(rateMode) == DataTypes.InterestRateMode.STABLE ? sDebtToken : vDebtToken;
+        address debtToken = DataTypes.InterestRateMode(rateMode) == DataTypes.InterestRateMode.STABLE
+            ? sDebtToken
+            : vDebtToken;
         uint256 currentDebt = IERC20(debtToken).balanceOf(user);
 
         // Sanity check to ensure the passed value `debtRepayAmount` is less than the current debt

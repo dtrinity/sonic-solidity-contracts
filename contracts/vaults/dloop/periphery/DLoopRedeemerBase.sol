@@ -58,8 +58,14 @@ abstract contract DLoopRedeemerBase is IERC3156FlashBorrower, Ownable, Reentranc
     error SharesNotDecreasedAfterFlashLoan(uint256 sharesBeforeWithdraw, uint256 sharesAfterWithdraw);
     error InsufficientOutput(uint256 received, uint256 expected);
     error UnexpectedIncreaseInDebtToken(uint256 debtTokenBalanceBefore, uint256 debtTokenBalanceAfter);
-    error UnexpectedDecreaseInCollateralToken(uint256 collateralTokenBalanceBefore, uint256 collateralTokenBalanceAfter);
-    error UnexpectedDecreaseInCollateralTokenAfterFlashLoan(uint256 collateralTokenBalanceBefore, uint256 collateralTokenBalanceAfter);
+    error UnexpectedDecreaseInCollateralToken(
+        uint256 collateralTokenBalanceBefore,
+        uint256 collateralTokenBalanceAfter
+    );
+    error UnexpectedDecreaseInCollateralTokenAfterFlashLoan(
+        uint256 collateralTokenBalanceBefore,
+        uint256 collateralTokenBalanceAfter
+    );
     error IncorrectSharesBurned(uint256 expected, uint256 actual);
     error WithdrawnCollateralTokenAmountNotMetMinReceiveAmount(
         uint256 withdrawnCollateralTokenAmount,
@@ -74,7 +80,11 @@ abstract contract DLoopRedeemerBase is IERC3156FlashBorrower, Ownable, Reentranc
 
     /* Events */
 
-    event LeftoverCollateralTokensTransferred(address indexed collateralToken, uint256 amount, address indexed receiver);
+    event LeftoverCollateralTokensTransferred(
+        address indexed collateralToken,
+        uint256 amount,
+        address indexed receiver
+    );
 
     /* Structs */
 
@@ -112,7 +122,11 @@ abstract contract DLoopRedeemerBase is IERC3156FlashBorrower, Ownable, Reentranc
      * @param dLoopCore Address of the DLoopCore contract
      * @return minOutputCollateralAmount Minimum output collateral amount
      */
-    function calculateMinOutputCollateral(uint256 shares, uint256 slippageBps, DLoopCoreBase dLoopCore) public view returns (uint256) {
+    function calculateMinOutputCollateral(
+        uint256 shares,
+        uint256 slippageBps,
+        DLoopCoreBase dLoopCore
+    ) public view returns (uint256) {
         if (slippageBps > BasisPointConstants.ONE_HUNDRED_PERCENT_BPS) {
             revert SlippageBpsCannotExceedOneHundredPercent(slippageBps);
         }
@@ -207,7 +221,10 @@ abstract contract DLoopRedeemerBase is IERC3156FlashBorrower, Ownable, Reentranc
         uint256 collateralTokenBalanceBefore = collateralToken.balanceOf(address(this));
 
         // Approve the flash lender to spend the flash loan amount of debt token from this contract
-        debtToken.forceApprove(address(flashLender), maxFlashLoanAmount + flashLender.flashFee(address(debtToken), maxFlashLoanAmount));
+        debtToken.forceApprove(
+            address(flashLender),
+            maxFlashLoanAmount + flashLender.flashFee(address(debtToken), maxFlashLoanAmount)
+        );
 
         // Make sure the flashLender is the same as the debt token
         if (address(flashLender) != address(debtToken)) {
@@ -221,7 +238,13 @@ abstract contract DLoopRedeemerBase is IERC3156FlashBorrower, Ownable, Reentranc
         _validateSharesBurned(dLoopCore, address(this), shares, sharesBeforeRedeem);
 
         // Finalize redeem and transfer assets to receiver
-        return _finalizeRedeemAndTransfer(collateralToken, receiver, collateralTokenBalanceBefore, minOutputCollateralAmount);
+        return
+            _finalizeRedeemAndTransfer(
+                collateralToken,
+                receiver,
+                collateralTokenBalanceBefore,
+                minOutputCollateralAmount
+            );
     }
 
     /* Flash loan entrypoint */
@@ -326,7 +349,12 @@ abstract contract DLoopRedeemerBase is IERC3156FlashBorrower, Ownable, Reentranc
      * @param shares Expected shares to be burned
      * @param sharesBeforeRedeem Shares balance before redeem
      */
-    function _validateSharesBurned(DLoopCoreBase dLoopCore, address owner, uint256 shares, uint256 sharesBeforeRedeem) internal view {
+    function _validateSharesBurned(
+        DLoopCoreBase dLoopCore,
+        address owner,
+        uint256 shares,
+        uint256 sharesBeforeRedeem
+    ) internal view {
         // Check if the shares decreased after the flash loan
         uint256 sharesAfterRedeem = dLoopCore.balanceOf(owner);
         if (sharesAfterRedeem >= sharesBeforeRedeem) {
@@ -359,14 +387,20 @@ abstract contract DLoopRedeemerBase is IERC3156FlashBorrower, Ownable, Reentranc
 
         // Calculate the received collateral token amount after the flash loan
         if (collateralTokenBalanceAfter <= collateralTokenBalanceBefore) {
-            revert UnexpectedDecreaseInCollateralTokenAfterFlashLoan(collateralTokenBalanceBefore, collateralTokenBalanceAfter);
+            revert UnexpectedDecreaseInCollateralTokenAfterFlashLoan(
+                collateralTokenBalanceBefore,
+                collateralTokenBalanceAfter
+            );
         }
 
         // Make sure the received collateral token amount is not less than the minimum output collateral amount
         // for slippage protection
         receivedCollateralTokenAmount = collateralTokenBalanceAfter - collateralTokenBalanceBefore;
         if (receivedCollateralTokenAmount < minOutputCollateralAmount) {
-            revert WithdrawnCollateralTokenAmountNotMetMinReceiveAmount(receivedCollateralTokenAmount, minOutputCollateralAmount);
+            revert WithdrawnCollateralTokenAmountNotMetMinReceiveAmount(
+                receivedCollateralTokenAmount,
+                minOutputCollateralAmount
+            );
         }
 
         // There is no leftover debt token, as all flash loaned debt token is used to repay the debt
@@ -391,7 +425,11 @@ abstract contract DLoopRedeemerBase is IERC3156FlashBorrower, Ownable, Reentranc
      * @return data Encoded data
      */
     function _encodeParamsToData(FlashLoanParams memory _flashLoanParams) internal pure returns (bytes memory data) {
-        data = abi.encode(_flashLoanParams.shares, _flashLoanParams.collateralToDebtTokenSwapData, _flashLoanParams.dLoopCore);
+        data = abi.encode(
+            _flashLoanParams.shares,
+            _flashLoanParams.collateralToDebtTokenSwapData,
+            _flashLoanParams.dLoopCore
+        );
     }
 
     /**
@@ -400,9 +438,7 @@ abstract contract DLoopRedeemerBase is IERC3156FlashBorrower, Ownable, Reentranc
      * @return _flashLoanParams Decoded flash loan parameters
      */
     function _decodeDataToParams(bytes memory data) internal pure returns (FlashLoanParams memory _flashLoanParams) {
-        (_flashLoanParams.shares, _flashLoanParams.collateralToDebtTokenSwapData, _flashLoanParams.dLoopCore) = abi.decode(
-            data,
-            (uint256, bytes, DLoopCoreBase)
-        );
+        (_flashLoanParams.shares, _flashLoanParams.collateralToDebtTokenSwapData, _flashLoanParams.dLoopCore) = abi
+            .decode(data, (uint256, bytes, DLoopCoreBase));
     }
 }

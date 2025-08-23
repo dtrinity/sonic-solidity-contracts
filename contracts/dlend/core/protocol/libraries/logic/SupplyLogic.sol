@@ -47,7 +47,13 @@ library SupplyLogic {
     event ReserveUsedAsCollateralEnabled(address indexed reserve, address indexed user);
     event ReserveUsedAsCollateralDisabled(address indexed reserve, address indexed user);
     event Withdraw(address indexed reserve, address indexed user, address indexed to, uint256 amount);
-    event Supply(address indexed reserve, address user, address indexed onBehalfOf, uint256 amount, uint16 indexed referralCode);
+    event Supply(
+        address indexed reserve,
+        address user,
+        address indexed onBehalfOf,
+        uint256 amount,
+        uint16 indexed referralCode
+    );
 
     /**
      * @notice Implements the supply feature. Through `supply()`, users supply assets to the Aave protocol.
@@ -125,7 +131,9 @@ library SupplyLogic {
 
         reserve.updateState(reserveCache);
 
-        uint256 userBalance = IAToken(reserveCache.aTokenAddress).scaledBalanceOf(msg.sender).rayMul(reserveCache.nextLiquidityIndex);
+        uint256 userBalance = IAToken(reserveCache.aTokenAddress).scaledBalanceOf(msg.sender).rayMul(
+            reserveCache.nextLiquidityIndex
+        );
 
         uint256 amountToWithdraw = params.amount;
 
@@ -144,7 +152,12 @@ library SupplyLogic {
             emit ReserveUsedAsCollateralDisabled(params.asset, msg.sender);
         }
 
-        IAToken(reserveCache.aTokenAddress).burn(msg.sender, params.to, amountToWithdraw, reserveCache.nextLiquidityIndex);
+        IAToken(reserveCache.aTokenAddress).burn(
+            msg.sender,
+            params.to,
+            amountToWithdraw,
+            reserveCache.nextLiquidityIndex
+        );
 
         if (isCollateral && userConfig.isBorrowingAny()) {
             ValidationLogic.validateHFAndLtv(
@@ -269,7 +282,12 @@ library SupplyLogic {
 
         if (useAsCollateral) {
             require(
-                ValidationLogic.validateUseAsCollateral(reservesData, reservesList, userConfig, reserveCache.reserveConfiguration),
+                ValidationLogic.validateUseAsCollateral(
+                    reservesData,
+                    reservesList,
+                    userConfig,
+                    reserveCache.reserveConfiguration
+                ),
                 Errors.USER_IN_ISOLATION_MODE_OR_LTV_ZERO
             );
 

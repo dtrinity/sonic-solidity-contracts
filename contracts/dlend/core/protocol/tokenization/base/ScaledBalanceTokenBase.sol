@@ -82,7 +82,8 @@ abstract contract ScaledBalanceTokenBase is MintableIncentivizedERC20, IScaledBa
         require(amountScaled != 0, Errors.INVALID_MINT_AMOUNT);
 
         uint256 scaledBalance = super.balanceOf(onBehalfOf);
-        uint256 balanceIncrease = scaledBalance.rayMul(index) - scaledBalance.rayMul(_userState[onBehalfOf].additionalData);
+        uint256 balanceIncrease = scaledBalance.rayMul(index) -
+            scaledBalance.rayMul(_userState[onBehalfOf].additionalData);
 
         _userState[onBehalfOf].additionalData = index.toUint128();
 
@@ -136,7 +137,8 @@ abstract contract ScaledBalanceTokenBase is MintableIncentivizedERC20, IScaledBa
      */
     function _transfer(address sender, address recipient, uint256 amount, uint256 index) internal {
         uint256 senderScaledBalance = super.balanceOf(sender);
-        uint256 senderBalanceIncrease = senderScaledBalance.rayMul(index) - senderScaledBalance.rayMul(_userState[sender].additionalData);
+        uint256 senderBalanceIncrease = senderScaledBalance.rayMul(index) -
+            senderScaledBalance.rayMul(_userState[sender].additionalData);
 
         uint256 recipientScaledBalance = super.balanceOf(recipient);
         uint256 recipientBalanceIncrease = recipientScaledBalance.rayMul(index) -

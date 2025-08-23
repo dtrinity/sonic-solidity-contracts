@@ -62,7 +62,12 @@ interface IPoolConfigurator {
      * @param liquidationThreshold The threshold at which loans using this asset as collateral will be considered undercollateralized
      * @param liquidationBonus The bonus liquidators receive to liquidate this asset
      */
-    event CollateralConfigurationChanged(address indexed asset, uint256 ltv, uint256 liquidationThreshold, uint256 liquidationBonus);
+    event CollateralConfigurationChanged(
+        address indexed asset,
+        uint256 ltv,
+        uint256 liquidationThreshold,
+        uint256 liquidationBonus
+    );
 
     /**
      * @dev Emitted when stable rate borrowing is enabled or disabled on a reserve
@@ -231,7 +236,10 @@ interface IPoolConfigurator {
      * @param oldFlashloanPremiumToProtocol The old premium, expressed in bps
      * @param newFlashloanPremiumToProtocol The new premium, expressed in bps
      */
-    event FlashloanPremiumToProtocolUpdated(uint128 oldFlashloanPremiumToProtocol, uint128 newFlashloanPremiumToProtocol);
+    event FlashloanPremiumToProtocolUpdated(
+        uint128 oldFlashloanPremiumToProtocol,
+        uint128 newFlashloanPremiumToProtocol
+    );
 
     /**
      * @dev Emitted when the reserve is set as borrowable/non borrowable in isolation mode.
@@ -281,7 +289,12 @@ interface IPoolConfigurator {
      * @param liquidationThreshold The threshold at which loans using this asset as collateral will be considered undercollateralized
      * @param liquidationBonus The bonus liquidators receive to liquidate this asset
      */
-    function configureReserveAsCollateral(address asset, uint256 ltv, uint256 liquidationThreshold, uint256 liquidationBonus) external;
+    function configureReserveAsCollateral(
+        address asset,
+        uint256 ltv,
+        uint256 liquidationThreshold,
+        uint256 liquidationBonus
+    ) external;
 
     /**
      * @notice Enable or disable stable rate borrowing on a reserve.

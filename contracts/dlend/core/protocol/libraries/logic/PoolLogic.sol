@@ -96,7 +96,10 @@ library PoolLogic {
      * @param reservesData The state of all the reserves
      * @param assets The list of reserves for which the minting needs to be executed
      */
-    function executeMintToTreasury(mapping(address => DataTypes.ReserveData) storage reservesData, address[] calldata assets) external {
+    function executeMintToTreasury(
+        mapping(address => DataTypes.ReserveData) storage reservesData,
+        address[] calldata assets
+    ) external {
         for (uint256 i = 0; i < assets.length; i++) {
             address assetAddress = assets[i];
 
@@ -126,7 +129,10 @@ library PoolLogic {
      * @param reservesData The state of all the reserves
      * @param asset The address of the underlying asset to reset the isolationModeTotalDebt
      */
-    function executeResetIsolationModeTotalDebt(mapping(address => DataTypes.ReserveData) storage reservesData, address asset) external {
+    function executeResetIsolationModeTotalDebt(
+        mapping(address => DataTypes.ReserveData) storage reservesData,
+        address asset
+    ) external {
         require(reservesData[asset].configuration.getDebtCeiling() == 0, Errors.DEBT_CEILING_NOT_ZERO);
         reservesData[asset].isolationModeTotalDebt = 0;
         emit IsolationModeTotalDebtUpdated(asset, 0);
@@ -179,12 +185,8 @@ library PoolLogic {
             uint256 healthFactor
         )
     {
-        (totalCollateralBase, totalDebtBase, ltv, currentLiquidationThreshold, healthFactor, ) = GenericLogic.calculateUserAccountData(
-            reservesData,
-            reservesList,
-            eModeCategories,
-            params
-        );
+        (totalCollateralBase, totalDebtBase, ltv, currentLiquidationThreshold, healthFactor, ) = GenericLogic
+            .calculateUserAccountData(reservesData, reservesList, eModeCategories, params);
 
         availableBorrowsBase = GenericLogic.calculateAvailableBorrows(totalCollateralBase, totalDebtBase, ltv);
     }

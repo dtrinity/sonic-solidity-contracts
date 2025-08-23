@@ -58,7 +58,10 @@ contract MockUnderDeliveringAdapter is IDStableConversionAdapter {
         return vaultAssetAmount; // 1:1
     }
 
-    function assetValueInDStable(address /*vaultAsset*/, uint256 vaultAssetAmount) external pure override returns (uint256) {
+    function assetValueInDStable(
+        address /*vaultAsset*/,
+        uint256 vaultAssetAmount
+    ) external pure override returns (uint256) {
         return vaultAssetAmount;
     }
 

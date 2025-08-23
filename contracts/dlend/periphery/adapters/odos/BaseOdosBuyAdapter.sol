@@ -74,7 +74,14 @@ abstract contract BaseOdosBuyAdapter is BaseOdosSwapAdapter {
         address tokenIn = address(assetToSwapFrom);
         address tokenOut = address(assetToSwapTo);
 
-        amountSold = OdosSwapUtils.executeSwapOperation(swapRouter, tokenIn, tokenOut, maxAmountToSwap, amountToReceive, swapData);
+        amountSold = OdosSwapUtils.executeSwapOperation(
+            swapRouter,
+            tokenIn,
+            tokenOut,
+            maxAmountToSwap,
+            amountToReceive,
+            swapData
+        );
 
         emit Bought(tokenIn, tokenOut, amountSold, amountToReceive);
     }

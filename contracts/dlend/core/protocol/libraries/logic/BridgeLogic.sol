@@ -42,7 +42,13 @@ library BridgeLogic {
 
     // See `IPool` for descriptions
     event ReserveUsedAsCollateralEnabled(address indexed reserve, address indexed user);
-    event MintUnbacked(address indexed reserve, address user, address indexed onBehalfOf, uint256 amount, uint16 indexed referralCode);
+    event MintUnbacked(
+        address indexed reserve,
+        address user,
+        address indexed onBehalfOf,
+        uint256 amount,
+        uint16 indexed referralCode
+    );
     event BackUnbacked(address indexed reserve, address indexed backer, uint256 amount, uint256 fee);
 
     /**
@@ -84,7 +90,12 @@ library BridgeLogic {
 
         reserve.updateInterestRates(reserveCache, asset, 0, 0);
 
-        bool isFirstSupply = IAToken(reserveCache.aTokenAddress).mint(msg.sender, onBehalfOf, amount, reserveCache.nextLiquidityIndex);
+        bool isFirstSupply = IAToken(reserveCache.aTokenAddress).mint(
+            msg.sender,
+            onBehalfOf,
+            amount,
+            reserveCache.nextLiquidityIndex
+        );
 
         if (isFirstSupply) {
             if (
@@ -133,7 +144,8 @@ library BridgeLogic {
         uint256 added = backingAmount + fee;
 
         reserveCache.nextLiquidityIndex = reserve.cumulateToLiquidityIndex(
-            IERC20(reserveCache.aTokenAddress).totalSupply() + uint256(reserve.accruedToTreasury).rayMul(reserveCache.nextLiquidityIndex),
+            IERC20(reserveCache.aTokenAddress).totalSupply() +
+                uint256(reserve.accruedToTreasury).rayMul(reserveCache.nextLiquidityIndex),
             feeToLP
         );
 

@@ -77,7 +77,11 @@ contract ERC20StablecoinUpgradeable is
         _mint(to, amount);
     }
 
-    function _update(address from, address to, uint256 value) internal override(ERC20Upgradeable, ERC20PausableUpgradeable) whenNotPaused {
+    function _update(
+        address from,
+        address to,
+        uint256 value
+    ) internal override(ERC20Upgradeable, ERC20PausableUpgradeable) whenNotPaused {
         super._update(from, to, value);
     }
 

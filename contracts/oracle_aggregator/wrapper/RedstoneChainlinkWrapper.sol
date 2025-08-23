@@ -27,7 +27,10 @@ import "../interface/chainlink/IPriceFeed.sol";
 contract RedstoneChainlinkWrapper is BaseChainlinkWrapper {
     mapping(address => IPriceFeed) public assetToFeed;
 
-    constructor(address baseCurrency, uint256 _baseCurrencyUnit) BaseChainlinkWrapper(baseCurrency, _baseCurrencyUnit) {}
+    constructor(
+        address baseCurrency,
+        uint256 _baseCurrencyUnit
+    ) BaseChainlinkWrapper(baseCurrency, _baseCurrencyUnit) {}
 
     function getPriceInfo(address asset) public view virtual override returns (uint256 price, bool isAlive) {
         IPriceFeed feed = assetToFeed[asset];

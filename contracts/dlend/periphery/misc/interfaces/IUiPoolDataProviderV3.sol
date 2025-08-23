@@ -115,5 +115,8 @@ interface IUiPoolDataProviderV3 {
         IPoolAddressesProvider provider
     ) external view returns (AggregatedReserveData[] memory, BaseCurrencyInfo memory);
 
-    function getUserReservesData(IPoolAddressesProvider provider, address user) external view returns (UserReserveData[] memory, uint8);
+    function getUserReservesData(
+        IPoolAddressesProvider provider,
+        address user
+    ) external view returns (UserReserveData[] memory, uint8);
 }

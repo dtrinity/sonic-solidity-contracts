@@ -101,7 +101,11 @@ contract CollateralHolderVault is CollateralVault {
         uint8 fromCollateralDecimals = IERC20Metadata(fromCollateral).decimals();
         uint8 toCollateralDecimals = IERC20Metadata(toCollateral).decimals();
 
-        uint256 fromCollateralBaseValue = Math.mulDiv(fromCollateralPrice, fromCollateralAmount, 10 ** fromCollateralDecimals);
+        uint256 fromCollateralBaseValue = Math.mulDiv(
+            fromCollateralPrice,
+            fromCollateralAmount,
+            10 ** fromCollateralDecimals
+        );
 
         toCollateralAmount = Math.mulDiv(fromCollateralBaseValue, 10 ** toCollateralDecimals, toCollateralPrice);
 

@@ -55,7 +55,9 @@ contract WrappedDLendConversionAdapter is IDStableConversionAdapter {
      *      The StaticATokenLM contract MUST be pre-approved to spend dStable held by this adapter.
      *      The StaticATokenLM contract mints the wrappedDLendToken directly to the collateralVault.
      */
-    function convertToVaultAsset(uint256 dStableAmount) external override returns (address _vaultAsset, uint256 vaultAssetAmount) {
+    function convertToVaultAsset(
+        uint256 dStableAmount
+    ) external override returns (address _vaultAsset, uint256 vaultAssetAmount) {
         if (dStableAmount == 0) {
             revert InvalidAmount();
         }
@@ -99,7 +101,10 @@ contract WrappedDLendConversionAdapter is IDStableConversionAdapter {
      * @inheritdoc IDStableConversionAdapter
      * @dev Uses StaticATokenLM's previewRedeem function to get the underlying value (dStable).
      */
-    function assetValueInDStable(address _vaultAsset, uint256 vaultAssetAmount) external view override returns (uint256 dStableValue) {
+    function assetValueInDStable(
+        address _vaultAsset,
+        uint256 vaultAssetAmount
+    ) external view override returns (uint256 dStableValue) {
         if (_vaultAsset != address(wrappedDLendToken)) {
             revert InconsistentState("Incorrect vault asset address");
         }
@@ -134,7 +139,9 @@ contract WrappedDLendConversionAdapter is IDStableConversionAdapter {
      * @param vaultAssetAmount Amount of vault asset to convert
      * @return dStableAmount Amount of dSTABLE that would be received
      */
-    function previewConvertFromVaultAsset(uint256 vaultAssetAmount) public view override returns (uint256 dStableAmount) {
+    function previewConvertFromVaultAsset(
+        uint256 vaultAssetAmount
+    ) public view override returns (uint256 dStableAmount) {
         dStableAmount = IERC4626(address(wrappedDLendToken)).previewRedeem(vaultAssetAmount);
     }
 }

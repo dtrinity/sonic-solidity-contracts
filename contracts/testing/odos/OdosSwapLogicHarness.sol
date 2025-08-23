@@ -15,6 +15,15 @@ contract OdosSwapLogicHarness {
         bytes calldata swapData,
         IOdosRouterV2 router
     ) external returns (uint256 amountSpent) {
-        amountSpent = OdosSwapLogic.swapExactOutput(inputToken, outputToken, amountOut, amountInMaximum, receiver, 0, swapData, router);
+        amountSpent = OdosSwapLogic.swapExactOutput(
+            inputToken,
+            outputToken,
+            amountOut,
+            amountInMaximum,
+            receiver,
+            0,
+            swapData,
+            router
+        );
     }
 }

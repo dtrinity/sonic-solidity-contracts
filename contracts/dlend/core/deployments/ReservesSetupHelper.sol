@@ -46,7 +46,10 @@ contract ReservesSetupHelper is Ownable {
      * @param configurator The address of PoolConfigurator contract
      * @param inputParams An array of ConfigureReserveInput struct that contains the assets and their risk parameters
      */
-    function configureReserves(PoolConfigurator configurator, ConfigureReserveInput[] calldata inputParams) external onlyOwner {
+    function configureReserves(
+        PoolConfigurator configurator,
+        ConfigureReserveInput[] calldata inputParams
+    ) external onlyOwner {
         for (uint256 i = 0; i < inputParams.length; i++) {
             configurator.configureReserveAsCollateral(
                 inputParams[i].asset,
