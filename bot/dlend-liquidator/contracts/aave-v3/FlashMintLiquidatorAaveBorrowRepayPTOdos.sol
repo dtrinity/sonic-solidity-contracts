@@ -177,21 +177,20 @@ contract FlashMintLiquidatorAaveBorrowRepayPTOdos is
         bytes memory swapData
     ) internal returns (uint256 actualUnderlyingOut) {
         // Record underlying token balance before swap
-        uint256 underlyingBalanceBefore = ERC20(underlyingAsset).balanceOf(address(this));
+        uint256 underlyingBalanceBefore = ERC20(underlyingAsset).balanceOf(
+            address(this)
+        );
 
         // Execute Pendle swap via library
         // This returns amountSpent (PT tokens consumed), but we need underlying received
-        PendleSwapUtils.executePendleSwap(
-            ptToken,
-            ptAmount,
-            target,
-            swapData
-        );
+        PendleSwapUtils.executePendleSwap(ptToken, ptAmount, target, swapData);
 
         // Calculate actual underlying tokens received
-        uint256 underlyingBalanceAfter = ERC20(underlyingAsset).balanceOf(address(this));
+        uint256 underlyingBalanceAfter = ERC20(underlyingAsset).balanceOf(
+            address(this)
+        );
         actualUnderlyingOut = underlyingBalanceAfter - underlyingBalanceBefore;
-        
+
         return actualUnderlyingOut;
     }
 
