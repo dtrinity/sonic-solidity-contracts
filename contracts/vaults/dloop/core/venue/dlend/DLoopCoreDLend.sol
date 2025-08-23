@@ -58,7 +58,10 @@ contract DLoopCoreDLend is DLoopCoreBase, RewardClaimable {
     error FeeTooHigh(uint256 feeBps, uint256 maxFeeBps);
 
     /* Events */
-    event DLendRewardsControllerUpdated(address indexed oldController, address indexed newController);
+    event DLendRewardsControllerUpdated(
+        address indexed oldController,
+        address indexed newController
+    );
     event FeeBpsSet(uint256 oldFeeBps, uint256 newFeeBps);
 
     /**
@@ -158,7 +161,12 @@ contract DLoopCoreDLend is DLoopCoreBase, RewardClaimable {
      * @inheritdoc DLoopCoreBase
      * @return address[] Additional rescue tokens
      */
-    function _getAdditionalRescueTokensImplementation() internal view override returns (address[] memory) {
+    function _getAdditionalRescueTokensImplementation()
+        internal
+        view
+        override
+        returns (address[] memory)
+    {
         DataTypes.ReserveData memory reserveData = _getReserveData(address(collateralToken));
         address[] memory additionalRescueTokens = new address[](3);
         additionalRescueTokens[0] = reserveData.aTokenAddress;
@@ -172,7 +180,9 @@ contract DLoopCoreDLend is DLoopCoreBase, RewardClaimable {
      * @param asset Address of the asset
      * @return uint256 Price of the asset
      */
-    function _getAssetPriceFromOracleImplementation(address asset) internal view override returns (uint256) {
+    function _getAssetPriceFromOracleImplementation(
+        address asset
+    ) internal view override returns (uint256) {
         return getLendingOracle().getAssetPrice(asset);
     }
 
@@ -182,7 +192,11 @@ contract DLoopCoreDLend is DLoopCoreBase, RewardClaimable {
      * @param amount Amount of tokens to supply
      * @param onBehalfOf Address to supply on behalf of
      */
-    function _supplyToPoolImplementation(address token, uint256 amount, address onBehalfOf) internal override {
+    function _supplyToPoolImplementation(
+        address token,
+        uint256 amount,
+        address onBehalfOf
+    ) internal override {
         ILendingPool lendingPool = getLendingPool();
 
         // Approve the lending pool to spend the token
@@ -198,7 +212,11 @@ contract DLoopCoreDLend is DLoopCoreBase, RewardClaimable {
      * @param amount Amount of tokens to borrow
      * @param onBehalfOf Address to borrow on behalf of
      */
-    function _borrowFromPoolImplementation(address token, uint256 amount, address onBehalfOf) internal override {
+    function _borrowFromPoolImplementation(
+        address token,
+        uint256 amount,
+        address onBehalfOf
+    ) internal override {
         getLendingPool().borrow(token, amount, VARIABLE_LENDING_INTERST_RATE_MODE, 0, onBehalfOf);
     }
 
@@ -208,7 +226,11 @@ contract DLoopCoreDLend is DLoopCoreBase, RewardClaimable {
      * @param amount Amount of tokens to repay
      * @param onBehalfOf Address to repay on behalf of
      */
-    function _repayDebtToPoolImplementation(address token, uint256 amount, address onBehalfOf) internal override {
+    function _repayDebtToPoolImplementation(
+        address token,
+        uint256 amount,
+        address onBehalfOf
+    ) internal override {
         ILendingPool lendingPool = getLendingPool();
 
         // Approve the lending pool to spend the token
@@ -224,7 +246,11 @@ contract DLoopCoreDLend is DLoopCoreBase, RewardClaimable {
      * @param amount Amount of tokens to withdraw
      * @param onBehalfOf Address to withdraw on behalf of
      */
-    function _withdrawFromPoolImplementation(address token, uint256 amount, address onBehalfOf) internal override {
+    function _withdrawFromPoolImplementation(
+        address token,
+        uint256 amount,
+        address onBehalfOf
+    ) internal override {
         getLendingPool().withdraw(token, amount, onBehalfOf);
     }
 
@@ -267,7 +293,9 @@ contract DLoopCoreDLend is DLoopCoreBase, RewardClaimable {
      * @param tokenAddress The address of the token
      * @return DataTypes.ReserveData The reserve data
      */
-    function _getReserveData(address tokenAddress) internal view returns (DataTypes.ReserveData memory) {
+    function _getReserveData(
+        address tokenAddress
+    ) internal view returns (DataTypes.ReserveData memory) {
         return getLendingPool().getReserveData(tokenAddress);
     }
 

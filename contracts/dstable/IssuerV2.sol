@@ -59,8 +59,14 @@ contract IssuerV2 is AccessControl, OracleAware, ReentrancyGuard, Pausable {
     /* Errors */
 
     error SlippageTooHigh(uint256 minDStable, uint256 dstableAmount);
-    error IssuanceSurpassesExcessCollateral(uint256 collateralInDstable, uint256 circulatingDstable);
-    error MintingToAmoShouldNotIncreaseSupply(uint256 circulatingDstableBefore, uint256 circulatingDstableAfter);
+    error IssuanceSurpassesExcessCollateral(
+        uint256 collateralInDstable,
+        uint256 circulatingDstable
+    );
+    error MintingToAmoShouldNotIncreaseSupply(
+        uint256 circulatingDstableBefore,
+        uint256 circulatingDstableAfter
+    );
     error AssetMintingPaused(address asset);
 
     /* Overrides */
@@ -127,7 +133,11 @@ contract IssuerV2 is AccessControl, OracleAware, ReentrancyGuard, Pausable {
         }
 
         // Transfer collateral directly to vault
-        IERC20Metadata(collateralAsset).safeTransferFrom(msg.sender, address(collateralVault), collateralAmount);
+        IERC20Metadata(collateralAsset).safeTransferFrom(
+            msg.sender,
+            address(collateralVault),
+            collateralAmount
+        );
 
         dstable.mint(msg.sender, dstableAmount);
     }
@@ -155,7 +165,9 @@ contract IssuerV2 is AccessControl, OracleAware, ReentrancyGuard, Pausable {
      * @notice Increases the AMO supply by minting new dStable tokens
      * @param dstableAmount The amount of dStable to mint and send to the AMO Manager
      */
-    function increaseAmoSupply(uint256 dstableAmount) external onlyRole(AMO_MANAGER_ROLE) whenNotPaused {
+    function increaseAmoSupply(
+        uint256 dstableAmount
+    ) external onlyRole(AMO_MANAGER_ROLE) whenNotPaused {
         uint256 _circulatingDstableBefore = circulatingDstable();
 
         dstable.mint(address(amoManager), dstableAmount);
@@ -164,7 +176,10 @@ contract IssuerV2 is AccessControl, OracleAware, ReentrancyGuard, Pausable {
 
         // Sanity check that we are sending to the active AMO Manager
         if (_circulatingDstableAfter != _circulatingDstableBefore) {
-            revert MintingToAmoShouldNotIncreaseSupply(_circulatingDstableBefore, _circulatingDstableAfter);
+            revert MintingToAmoShouldNotIncreaseSupply(
+                _circulatingDstableBefore,
+                _circulatingDstableAfter
+            );
         }
     }
 

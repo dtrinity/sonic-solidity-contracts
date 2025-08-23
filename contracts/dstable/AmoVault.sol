@@ -121,7 +121,11 @@ abstract contract AmoVault is CollateralVault, IRecoverable, ReentrancyGuard {
      * @param to The address to send the tokens to
      * @param amount The amount of tokens to recover
      */
-    function recoverERC20(address token, address to, uint256 amount) external onlyRole(RECOVERER_ROLE) nonReentrant {
+    function recoverERC20(
+        address token,
+        address to,
+        uint256 amount
+    ) external onlyRole(RECOVERER_ROLE) nonReentrant {
         if (token == address(dstable) || isCollateralSupported(token)) {
             revert CannotRecoverVaultToken(token);
         }

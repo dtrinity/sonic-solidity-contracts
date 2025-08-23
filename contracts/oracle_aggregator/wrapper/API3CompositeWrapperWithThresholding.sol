@@ -62,7 +62,10 @@ contract API3CompositeWrapperWithThresholding is BaseAPI3Wrapper, ThresholdingUt
 
     error FeedNotSet(address asset);
 
-    constructor(address baseCurrency, uint256 _baseCurrencyUnit) BaseAPI3Wrapper(baseCurrency, _baseCurrencyUnit) {
+    constructor(
+        address baseCurrency,
+        uint256 _baseCurrencyUnit
+    ) BaseAPI3Wrapper(baseCurrency, _baseCurrencyUnit) {
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _grantRole(ORACLE_MANAGER_ROLE, msg.sender);
     }
@@ -128,7 +131,9 @@ contract API3CompositeWrapperWithThresholding is BaseAPI3Wrapper, ThresholdingUt
         );
     }
 
-    function getPriceInfo(address asset) public view override returns (uint256 price, bool isAlive) {
+    function getPriceInfo(
+        address asset
+    ) public view override returns (uint256 price, bool isAlive) {
         CompositeFeed memory feed = compositeFeeds[asset];
         if (feed.proxy1 == address(0) || feed.proxy2 == address(0)) {
             revert FeedNotSet(asset);

@@ -16,7 +16,12 @@ import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.s
  * @title DStakeToken
  * @dev ERC4626-compliant token representing shares in the DStakeCollateralVault.
  */
-contract DStakeToken is Initializable, ERC4626Upgradeable, AccessControlUpgradeable, SupportsWithdrawalFee {
+contract DStakeToken is
+    Initializable,
+    ERC4626Upgradeable,
+    AccessControlUpgradeable,
+    SupportsWithdrawalFee
+{
     using SafeERC20 for IERC20;
 
     // --- Roles ---
@@ -61,7 +66,11 @@ contract DStakeToken is Initializable, ERC4626Upgradeable, AccessControlUpgradea
         __AccessControl_init();
         _initializeWithdrawalFee(0);
 
-        if (address(_dStable) == address(0) || _initialAdmin == address(0) || _initialFeeManager == address(0)) {
+        if (
+            address(_dStable) == address(0) ||
+            _initialAdmin == address(0) ||
+            _initialFeeManager == address(0)
+        ) {
             revert ZeroAddress();
         }
 
@@ -119,7 +128,12 @@ contract DStakeToken is Initializable, ERC4626Upgradeable, AccessControlUpgradea
      * @dev Pulls dSTABLE asset from depositor, then delegates the core deposit logic
      *      (converting dSTABLE to vault assets) to the router.
      */
-    function _deposit(address caller, address receiver, uint256 assets, uint256 shares) internal virtual override {
+    function _deposit(
+        address caller,
+        address receiver,
+        uint256 assets,
+        uint256 shares
+    ) internal virtual override {
         // Revert early if the calculated share amount is zero to prevent depositing assets without receiving shares
         if (shares == 0) {
             revert ZeroShares();
@@ -185,7 +199,11 @@ contract DStakeToken is Initializable, ERC4626Upgradeable, AccessControlUpgradea
      *      internal _withdraw handles fee calculation. The returned value is the net assets
      *      actually received by the `receiver`, matching previewRedeem().
      */
-    function redeem(uint256 shares, address receiver, address owner) public virtual override returns (uint256 assets) {
+    function redeem(
+        uint256 shares,
+        address receiver,
+        address owner
+    ) public virtual override returns (uint256 assets) {
         uint256 grossAssets = convertToAssets(shares); // shares → gross assets before fee
 
         if (shares > maxRedeem(owner)) {

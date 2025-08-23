@@ -28,7 +28,10 @@ library DLoopCoreLogic {
     error CollateralLessThanDebt(uint256 totalCollateralBase, uint256 totalDebtBase);
     error InvalidLeverage(uint256 leverageBps);
     error TotalCollateralBaseIsZero();
-    error TotalCollateralBaseIsLessThanTotalDebtBase(uint256 totalCollateralBase, uint256 totalDebtBase);
+    error TotalCollateralBaseIsLessThanTotalDebtBase(
+        uint256 totalCollateralBase,
+        uint256 totalDebtBase
+    );
     error InputCollateralTokenAmountIsZero();
     error InputDebtTokenAmountIsZero();
 
@@ -38,7 +41,10 @@ library DLoopCoreLogic {
      * @param totalDebtBase The total debt in base currency
      * @return uint256 The current leverage in basis points
      */
-    function getCurrentLeverageBps(uint256 totalCollateralBase, uint256 totalDebtBase) internal pure returns (uint256) {
+    function getCurrentLeverageBps(
+        uint256 totalCollateralBase,
+        uint256 totalDebtBase
+    ) internal pure returns (uint256) {
         if (totalCollateralBase < totalDebtBase) {
             revert CollateralLessThanDebt(totalCollateralBase, totalDebtBase);
         }
@@ -77,13 +83,21 @@ library DLoopCoreLogic {
             if (deviationBps < minDeviationBps) {
                 return 0;
             }
-            subsidyBps = Math.mulDiv(deviationBps, BasisPointConstants.ONE_HUNDRED_PERCENT_BPS, targetLeverageBps);
+            subsidyBps = Math.mulDiv(
+                deviationBps,
+                BasisPointConstants.ONE_HUNDRED_PERCENT_BPS,
+                targetLeverageBps
+            );
         } else {
             uint256 deviationBps = targetLeverageBps - currentLeverageBps;
             if (deviationBps < minDeviationBps) {
                 return 0;
             }
-            subsidyBps = Math.mulDiv(deviationBps, BasisPointConstants.ONE_HUNDRED_PERCENT_BPS, targetLeverageBps);
+            subsidyBps = Math.mulDiv(
+                deviationBps,
+                BasisPointConstants.ONE_HUNDRED_PERCENT_BPS,
+                targetLeverageBps
+            );
         }
         if (subsidyBps > maxSubsidyBps) {
             return maxSubsidyBps;
@@ -138,7 +152,8 @@ library DLoopCoreLogic {
         // If there is no deposit yet, we don't need to rebalance, thus it is not too imbalanced
         return
             currentLeverageBps != 0 &&
-            (currentLeverageBps < lowerBoundTargetLeverageBps || currentLeverageBps > upperBoundTargetLeverageBps);
+            (currentLeverageBps < lowerBoundTargetLeverageBps ||
+                currentLeverageBps > upperBoundTargetLeverageBps);
     }
 
     /**
@@ -151,7 +166,8 @@ library DLoopCoreLogic {
         uint256 leveragedAssets,
         uint256 leverageBps
     ) internal pure returns (uint256) {
-        return Math.mulDiv(leveragedAssets, BasisPointConstants.ONE_HUNDRED_PERCENT_BPS, leverageBps);
+        return
+            Math.mulDiv(leveragedAssets, BasisPointConstants.ONE_HUNDRED_PERCENT_BPS, leverageBps);
     }
 
     /**
@@ -160,7 +176,10 @@ library DLoopCoreLogic {
      * @param leverageBps The leverage in basis points
      * @return leveragedAssets Amount of leveraged assets
      */
-    function getLeveragedAssetsWithLeverage(uint256 assets, uint256 leverageBps) internal pure returns (uint256) {
+    function getLeveragedAssetsWithLeverage(
+        uint256 assets,
+        uint256 leverageBps
+    ) internal pure returns (uint256) {
         return Math.mulDiv(assets, leverageBps, BasisPointConstants.ONE_HUNDRED_PERCENT_BPS);
     }
 
@@ -238,7 +257,12 @@ library DLoopCoreLogic {
             leverageBpsBeforeRepayDebt
         );
 
-        return convertFromBaseCurrencyToToken(repayAmountInBase, debtTokenDecimals, debtTokenPriceInBase);
+        return
+            convertFromBaseCurrencyToToken(
+                repayAmountInBase,
+                debtTokenDecimals,
+                debtTokenPriceInBase
+            );
     }
 
     /**
@@ -315,7 +339,12 @@ library DLoopCoreLogic {
             leverageBpsBeforeSupply
         );
 
-        return convertFromBaseCurrencyToToken(borrowAmountInBase, debtTokenDecimals, debtTokenPriceInBase);
+        return
+            convertFromBaseCurrencyToToken(
+                borrowAmountInBase,
+                debtTokenDecimals,
+                debtTokenPriceInBase
+            );
     }
 
     /**
@@ -399,7 +428,11 @@ library DLoopCoreLogic {
         }
 
         uint256 denominator = BasisPointConstants.ONE_HUNDRED_PERCENT_BPS +
-            Math.mulDiv(expectedTargetLeverageBps, subsidyBps, BasisPointConstants.ONE_HUNDRED_PERCENT_BPS);
+            Math.mulDiv(
+                expectedTargetLeverageBps,
+                subsidyBps,
+                BasisPointConstants.ONE_HUNDRED_PERCENT_BPS
+            );
 
         // Use ceilDiv as we want to round up required collateral deposit amount in base currency
         // to avoid getting the new leverage above the target leverage, which will revert the
@@ -593,7 +626,11 @@ library DLoopCoreLogic {
 
         uint256 denominator = BasisPointConstants.ONE_HUNDRED_PERCENT_BPS +
             subsidyBps -
-            Math.mulDiv(expectedTargetLeverageBps, subsidyBps, BasisPointConstants.ONE_HUNDRED_PERCENT_BPS);
+            Math.mulDiv(
+                expectedTargetLeverageBps,
+                subsidyBps,
+                BasisPointConstants.ONE_HUNDRED_PERCENT_BPS
+            );
 
         // Do not use ceilDiv as we want to round down required debt repay amount in base currency
         // to avoid getting the new leverage below the target leverage, which will revert the
@@ -727,7 +764,11 @@ library DLoopCoreLogic {
         uint256 collateralTokenPriceInBase,
         uint256 debtTokenDecimals,
         uint256 debtTokenPriceInBase
-    ) public pure returns (uint256 inputTokenAmount, uint256 estimatedOutputTokenAmount, int8 direction) {
+    )
+        public
+        pure
+        returns (uint256 inputTokenAmount, uint256 estimatedOutputTokenAmount, int8 direction)
+    {
         if (totalCollateralBase == 0) {
             // No collateral means no debt and no leverage, so no rebalance is needed
             return (0, 0, 0);
@@ -738,11 +779,11 @@ library DLoopCoreLogic {
             // In this case, the input amount is the collateral amount to be deposit
             // and the output amount is the debt amount to be borrow
             uint256 inputCollateralAmountInBase = getCollateralTokenDepositAmountToReachTargetLeverage(
-                targetLeverageBps,
-                totalCollateralBase,
-                totalDebtBase,
-                subsidyBps
-            );
+                    targetLeverageBps,
+                    totalCollateralBase,
+                    totalDebtBase,
+                    subsidyBps
+                );
             inputTokenAmount = convertFromBaseCurrencyToToken(
                 inputCollateralAmountInBase,
                 collateralTokenDecimals,
@@ -776,9 +817,9 @@ library DLoopCoreLogic {
                 debtTokenPriceInBase
             );
             uint256 estimatedCollateralAmountInBase = getCollateralWithdrawAmountInBaseToDecreaseLeverage(
-                inputDebtAmountInBase,
-                subsidyBps
-            );
+                    inputDebtAmountInBase,
+                    subsidyBps
+                );
             estimatedOutputTokenAmount = convertFromBaseCurrencyToToken(
                 estimatedCollateralAmountInBase,
                 collateralTokenDecimals,

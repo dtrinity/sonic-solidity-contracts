@@ -25,7 +25,9 @@ pragma solidity ^0.8.20;
 abstract contract EIP712Base {
     bytes public constant EIP712_REVISION = bytes("1");
     bytes32 internal constant EIP712_DOMAIN =
-        keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)");
+        keccak256(
+            "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"
+        );
 
     // Map of address nonces (address => nonce)
     mapping(address => uint256) internal _nonces;

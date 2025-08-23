@@ -82,7 +82,10 @@ contract Redeemer is AccessControl, OracleAware {
 
         // Calculate collateral amount
         uint256 dstableValue = dstableAmountToBaseValue(dstableAmount);
-        uint256 collateralAmount = collateralVault.assetAmountFromValue(dstableValue, collateralAsset);
+        uint256 collateralAmount = collateralVault.assetAmountFromValue(
+            dstableValue,
+            collateralAsset
+        );
         if (collateralAmount < minCollateral) {
             revert SlippageTooHigh(collateralAmount, minCollateral);
         }

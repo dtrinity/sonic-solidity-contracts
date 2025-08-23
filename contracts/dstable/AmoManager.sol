@@ -105,7 +105,10 @@ contract AmoManager is AccessControl, OracleAware, ReentrancyGuard {
      * @param amoVault The address of the AMO vault.
      * @param dstableAmount The amount of dStable to allocate.
      */
-    function allocateAmo(address amoVault, uint256 dstableAmount) public onlyRole(AMO_ALLOCATOR_ROLE) nonReentrant {
+    function allocateAmo(
+        address amoVault,
+        uint256 dstableAmount
+    ) public onlyRole(AMO_ALLOCATOR_ROLE) nonReentrant {
         uint256 startingAmoSupply = totalAmoSupply();
 
         // Make sure the vault is active
@@ -135,7 +138,10 @@ contract AmoManager is AccessControl, OracleAware, ReentrancyGuard {
      * @param amoVault The address of the AMO vault.
      * @param dstableAmount The amount of dStable to deallocate.
      */
-    function deallocateAmo(address amoVault, uint256 dstableAmount) public onlyRole(AMO_ALLOCATOR_ROLE) nonReentrant {
+    function deallocateAmo(
+        address amoVault,
+        uint256 dstableAmount
+    ) public onlyRole(AMO_ALLOCATOR_ROLE) nonReentrant {
         uint256 startingAmoSupply = totalAmoSupply();
 
         // We don't require that the vault is active or has allocation, since we want to allow withdrawing from inactive vaults

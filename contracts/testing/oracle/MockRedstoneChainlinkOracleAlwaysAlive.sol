@@ -40,7 +40,13 @@ contract MockRedstoneChainlinkOracleAlwaysAlive is IPriceFeed {
         external
         view
         override
-        returns (uint80 roundId, int256 answer, uint256 startedAt, uint256 updatedAt, uint80 answeredInRound)
+        returns (
+            uint80 roundId,
+            int256 answer,
+            uint256 startedAt,
+            uint256 updatedAt,
+            uint80 answeredInRound
+        )
     {
         return (mockRoundId, mockPrice, block.timestamp, block.timestamp, mockRoundId);
     }

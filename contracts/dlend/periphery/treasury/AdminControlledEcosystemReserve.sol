@@ -31,7 +31,10 @@ import { Address } from "./libs/Address.sol";
  * @dev Done abstract to add an `initialize()` function on the child, with `initializer` modifier
  * @author BGD Labs
  **/
-abstract contract AdminControlledEcosystemReserve is VersionedInitializable, IAdminControlledEcosystemReserve {
+abstract contract AdminControlledEcosystemReserve is
+    VersionedInitializable,
+    IAdminControlledEcosystemReserve
+{
     using SafeERC20 for IERC20;
     using Address for address payable;
 

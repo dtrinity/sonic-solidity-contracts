@@ -106,7 +106,11 @@ interface IStaticATokenLM {
      * @param receiver The address to receive the rewards
      * @param rewards The rewards to claim
      */
-    function claimRewardsOnBehalf(address onBehalfOf, address receiver, address[] memory rewards) external;
+    function claimRewardsOnBehalf(
+        address onBehalfOf,
+        address receiver,
+        address[] memory rewards
+    ) external;
 
     /**
      * @notice Claim rewards and send them to a receiver
@@ -189,5 +193,9 @@ interface IStaticATokenLM {
      * @param owner The address whose static aTokens will be burned
      * @return uint256 The amount of aTokens returned
      */
-    function redeemATokens(uint256 shares, address receiver, address owner) external returns (uint256);
+    function redeemATokens(
+        uint256 shares,
+        address receiver,
+        address owner
+    ) external returns (uint256);
 }

@@ -42,8 +42,15 @@ contract StaticATokenFactory is IStaticATokenFactory {
                     POOL,
                     IRewardsController(address(0)), // TODO: pass correct incentives controller if needed
                     reserveData.aTokenAddress,
-                    string(abi.encodePacked("Wrapped ", IERC20Metadata(reserveData.aTokenAddress).name())),
-                    string(abi.encodePacked("w", IERC20Metadata(reserveData.aTokenAddress).symbol()))
+                    string(
+                        abi.encodePacked(
+                            "Wrapped ",
+                            IERC20Metadata(reserveData.aTokenAddress).name()
+                        )
+                    ),
+                    string(
+                        abi.encodePacked("w", IERC20Metadata(reserveData.aTokenAddress).symbol())
+                    )
                 );
                 address staticATokenAddr = address(staticAToken);
                 _underlyingToStaticAToken[underlyings[i]] = staticATokenAddr;

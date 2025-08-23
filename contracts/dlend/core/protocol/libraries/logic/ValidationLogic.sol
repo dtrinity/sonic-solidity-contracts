@@ -71,7 +71,8 @@ library ValidationLogic {
     /**
      * @dev Role identifier for the role allowed to supply isolated reserves as collateral
      */
-    bytes32 public constant ISOLATED_COLLATERAL_SUPPLIER_ROLE = keccak256("ISOLATED_COLLATERAL_SUPPLIER");
+    bytes32 public constant ISOLATED_COLLATERAL_SUPPLIER_ROLE =
+        keccak256("ISOLATED_COLLATERAL_SUPPLIER");
 
     /**
      * @notice Validates a supply action.
@@ -85,7 +86,9 @@ library ValidationLogic {
     ) internal view {
         require(amount != 0, Errors.INVALID_AMOUNT);
 
-        (bool isActive, bool isFrozen, , , bool isPaused) = reserveCache.reserveConfiguration.getFlags();
+        (bool isActive, bool isFrozen, , , bool isPaused) = reserveCache
+            .reserveConfiguration
+            .getFlags();
         require(isActive, Errors.RESERVE_INACTIVE);
         require(!isPaused, Errors.RESERVE_PAUSED);
         require(!isFrozen, Errors.RESERVE_FROZEN);
@@ -93,9 +96,9 @@ library ValidationLogic {
         uint256 supplyCap = reserveCache.reserveConfiguration.getSupplyCap();
         require(
             supplyCap == 0 ||
-                ((IAToken(reserveCache.aTokenAddress).scaledTotalSupply() + uint256(reserve.accruedToTreasury)).rayMul(
-                    reserveCache.nextLiquidityIndex
-                ) + amount) <=
+                ((IAToken(reserveCache.aTokenAddress).scaledTotalSupply() +
+                    uint256(reserve.accruedToTreasury)).rayMul(reserveCache.nextLiquidityIndex) +
+                    amount) <=
                 supplyCap * (10 ** reserveCache.reserveConfiguration.getDecimals()),
             Errors.SUPPLY_CAP_EXCEEDED
         );
@@ -160,10 +163,13 @@ library ValidationLogic {
 
         ValidateBorrowLocalVars memory vars;
 
-        (vars.isActive, vars.isFrozen, vars.borrowingEnabled, vars.stableRateBorrowingEnabled, vars.isPaused) = params
-            .reserveCache
-            .reserveConfiguration
-            .getFlags();
+        (
+            vars.isActive,
+            vars.isFrozen,
+            vars.borrowingEnabled,
+            vars.stableRateBorrowingEnabled,
+            vars.isPaused
+        ) = params.reserveCache.reserveConfiguration.getFlags();
 
         require(vars.isActive, Errors.RESERVE_INACTIVE);
         require(!vars.isPaused, Errors.RESERVE_PAUSED);
@@ -194,10 +200,16 @@ library ValidationLogic {
                 params.reserveCache.nextVariableBorrowIndex
             );
 
-            vars.totalDebt = params.reserveCache.currTotalStableDebt + vars.totalSupplyVariableDebt + params.amount;
+            vars.totalDebt =
+                params.reserveCache.currTotalStableDebt +
+                vars.totalSupplyVariableDebt +
+                params.amount;
 
             unchecked {
-                require(vars.totalDebt <= vars.borrowCap * vars.assetUnit, Errors.BORROW_CAP_EXCEEDED);
+                require(
+                    vars.totalDebt <= vars.borrowCap * vars.assetUnit,
+                    Errors.BORROW_CAP_EXCEEDED
+                );
             }
         }
 
@@ -211,7 +223,8 @@ library ValidationLogic {
 
             require(
                 reservesData[params.isolationModeCollateralAddress].isolationModeTotalDebt +
-                    (params.amount / 10 ** (vars.reserveDecimals - ReserveConfiguration.DEBT_CEILING_DECIMALS))
+                    (params.amount /
+                        10 ** (vars.reserveDecimals - ReserveConfiguration.DEBT_CEILING_DECIMALS))
                         .toUint128() <=
                     params.isolationModeDebtCeiling,
                 Errors.DEBT_CEILING_EXCEEDED
@@ -220,7 +233,8 @@ library ValidationLogic {
 
         if (params.userEModeCategory != 0) {
             require(
-                params.reserveCache.reserveConfiguration.getEModeCategory() == params.userEModeCategory,
+                params.reserveCache.reserveConfiguration.getEModeCategory() ==
+                    params.userEModeCategory,
                 Errors.INCONSISTENT_EMODE_CATEGORY
             );
             vars.eModePriceSource = eModeCategories[params.userEModeCategory].priceSource;
@@ -264,9 +278,8 @@ library ValidationLogic {
         }
 
         //add the current already borrowed amount to the amount requested to calculate the total collateral needed.
-        vars.collateralNeededInBaseCurrency = (vars.userDebtInBaseCurrency + vars.amountInBaseCurrency).percentDiv(
-            vars.currentLtv
-        ); //LTV is calculated in percentage
+        vars.collateralNeededInBaseCurrency = (vars.userDebtInBaseCurrency +
+            vars.amountInBaseCurrency).percentDiv(vars.currentLtv); //LTV is calculated in percentage
 
         require(
             vars.collateralNeededInBaseCurrency <= vars.userCollateralInBaseCurrency,
@@ -289,27 +302,37 @@ library ValidationLogic {
             require(
                 !params.userConfig.isUsingAsCollateral(reservesData[params.asset].id) ||
                     params.reserveCache.reserveConfiguration.getLtv() == 0 ||
-                    params.amount > IERC20(params.reserveCache.aTokenAddress).balanceOf(params.userAddress),
+                    params.amount >
+                    IERC20(params.reserveCache.aTokenAddress).balanceOf(params.userAddress),
                 Errors.COLLATERAL_SAME_AS_BORROWING_CURRENCY
             );
 
-            vars.availableLiquidity = IERC20(params.asset).balanceOf(params.reserveCache.aTokenAddress);
+            vars.availableLiquidity = IERC20(params.asset).balanceOf(
+                params.reserveCache.aTokenAddress
+            );
 
             //calculate the max available loan size in stable rate mode as a percentage of the
             //available liquidity
-            uint256 maxLoanSizeStable = vars.availableLiquidity.percentMul(params.maxStableLoanPercent);
+            uint256 maxLoanSizeStable = vars.availableLiquidity.percentMul(
+                params.maxStableLoanPercent
+            );
 
-            require(params.amount <= maxLoanSizeStable, Errors.AMOUNT_BIGGER_THAN_MAX_LOAN_SIZE_STABLE);
+            require(
+                params.amount <= maxLoanSizeStable,
+                Errors.AMOUNT_BIGGER_THAN_MAX_LOAN_SIZE_STABLE
+            );
         }
 
         if (params.userConfig.isBorrowingAny()) {
-            (vars.siloedBorrowingEnabled, vars.siloedBorrowingAddress) = params.userConfig.getSiloedBorrowingState(
-                reservesData,
-                reservesList
-            );
+            (vars.siloedBorrowingEnabled, vars.siloedBorrowingAddress) = params
+                .userConfig
+                .getSiloedBorrowingState(reservesData, reservesList);
 
             if (vars.siloedBorrowingEnabled) {
-                require(vars.siloedBorrowingAddress == params.asset, Errors.SILOED_BORROWING_VIOLATION);
+                require(
+                    vars.siloedBorrowingAddress == params.asset,
+                    Errors.SILOED_BORROWING_VIOLATION
+                );
             } else {
                 require(
                     !params.reserveCache.reserveConfiguration.getSiloedBorrowing(),
@@ -393,7 +416,8 @@ library ValidationLogic {
             require(
                 !userConfig.isUsingAsCollateral(reserve.id) ||
                     reserveCache.reserveConfiguration.getLtv() == 0 ||
-                    stableDebt + variableDebt > IERC20(reserveCache.aTokenAddress).balanceOf(msg.sender),
+                    stableDebt + variableDebt >
+                    IERC20(reserveCache.aTokenAddress).balanceOf(msg.sender),
                 Errors.COLLATERAL_SAME_AS_BORROWING_CURRENCY
             );
         } else {
@@ -421,8 +445,9 @@ library ValidationLogic {
         uint256 totalDebt = IERC20(reserveCache.stableDebtTokenAddress).totalSupply() +
             IERC20(reserveCache.variableDebtTokenAddress).totalSupply();
 
-        (uint256 liquidityRateVariableDebtOnly, , ) = IReserveInterestRateStrategy(reserve.interestRateStrategyAddress)
-            .calculateInterestRates(
+        (uint256 liquidityRateVariableDebtOnly, , ) = IReserveInterestRateStrategy(
+            reserve.interestRateStrategyAddress
+        ).calculateInterestRates(
                 DataTypes.CalculateInterestRatesParams({
                     unbacked: reserve.unbacked,
                     liquidityAdded: 0,
@@ -508,15 +533,23 @@ library ValidationLogic {
     ) internal view {
         ValidateLiquidationCallLocalVars memory vars;
 
-        (vars.collateralReserveActive, , , , vars.collateralReservePaused) = collateralReserve.configuration.getFlags();
+        (vars.collateralReserveActive, , , , vars.collateralReservePaused) = collateralReserve
+            .configuration
+            .getFlags();
 
         (vars.principalReserveActive, , , , vars.principalReservePaused) = params
             .debtReserveCache
             .reserveConfiguration
             .getFlags();
 
-        require(vars.collateralReserveActive && vars.principalReserveActive, Errors.RESERVE_INACTIVE);
-        require(!vars.collateralReservePaused && !vars.principalReservePaused, Errors.RESERVE_PAUSED);
+        require(
+            vars.collateralReserveActive && vars.principalReserveActive,
+            Errors.RESERVE_INACTIVE
+        );
+        require(
+            !vars.collateralReservePaused && !vars.principalReservePaused,
+            Errors.RESERVE_PAUSED
+        );
 
         require(
             params.priceOracleSentinel == address(0) ||
@@ -525,7 +558,10 @@ library ValidationLogic {
             Errors.PRICE_ORACLE_SENTINEL_CHECK_FAILED
         );
 
-        require(params.healthFactor < HEALTH_FACTOR_LIQUIDATION_THRESHOLD, Errors.HEALTH_FACTOR_NOT_BELOW_THRESHOLD);
+        require(
+            params.healthFactor < HEALTH_FACTOR_LIQUIDATION_THRESHOLD,
+            Errors.HEALTH_FACTOR_NOT_BELOW_THRESHOLD
+        );
 
         vars.isCollateralEnabled =
             collateralReserve.configuration.getLiquidationThreshold() != 0 &&
@@ -557,18 +593,19 @@ library ValidationLogic {
         uint256 reservesCount,
         address oracle
     ) internal view returns (uint256, bool) {
-        (, , , , uint256 healthFactor, bool hasZeroLtvCollateral) = GenericLogic.calculateUserAccountData(
-            reservesData,
-            reservesList,
-            eModeCategories,
-            DataTypes.CalculateUserAccountDataParams({
-                userConfig: userConfig,
-                reservesCount: reservesCount,
-                user: user,
-                oracle: oracle,
-                userEModeCategory: userEModeCategory
-            })
-        );
+        (, , , , uint256 healthFactor, bool hasZeroLtvCollateral) = GenericLogic
+            .calculateUserAccountData(
+                reservesData,
+                reservesList,
+                eModeCategories,
+                DataTypes.CalculateUserAccountDataParams({
+                    userConfig: userConfig,
+                    reservesCount: reservesCount,
+                    user: user,
+                    oracle: oracle,
+                    userEModeCategory: userEModeCategory
+                })
+            );
 
         require(
             healthFactor >= HEALTH_FACTOR_LIQUIDATION_THRESHOLD,
@@ -614,7 +651,10 @@ library ValidationLogic {
             oracle
         );
 
-        require(!hasZeroLtvCollateral || reserve.configuration.getLtv() == 0, Errors.LTV_VALIDATION_FAILED);
+        require(
+            !hasZeroLtvCollateral || reserve.configuration.getLtv() == 0,
+            Errors.LTV_VALIDATION_FAILED
+        );
     }
 
     /**
@@ -638,8 +678,14 @@ library ValidationLogic {
     ) internal view {
         require(asset != address(0), Errors.ZERO_ADDRESS_NOT_VALID);
         require(reserve.id != 0 || reservesList[0] == asset, Errors.ASSET_NOT_LISTED);
-        require(IERC20(reserve.stableDebtTokenAddress).totalSupply() == 0, Errors.STABLE_DEBT_NOT_ZERO);
-        require(IERC20(reserve.variableDebtTokenAddress).totalSupply() == 0, Errors.VARIABLE_DEBT_SUPPLY_NOT_ZERO);
+        require(
+            IERC20(reserve.stableDebtTokenAddress).totalSupply() == 0,
+            Errors.STABLE_DEBT_NOT_ZERO
+        );
+        require(
+            IERC20(reserve.variableDebtTokenAddress).totalSupply() == 0,
+            Errors.VARIABLE_DEBT_SUPPLY_NOT_ZERO
+        );
         require(
             IERC20(reserve.aTokenAddress).totalSupply() == 0 && reserve.accruedToTreasury == 0,
             Errors.UNDERLYING_CLAIMABLE_RIGHTS_NOT_ZERO
@@ -680,9 +726,13 @@ library ValidationLogic {
             unchecked {
                 for (uint256 i = 0; i < reservesCount; i++) {
                     if (userConfig.isBorrowing(i)) {
-                        DataTypes.ReserveConfigurationMap memory configuration = reservesData[reservesList[i]]
-                            .configuration;
-                        require(configuration.getEModeCategory() == categoryId, Errors.INCONSISTENT_EMODE_CATEGORY);
+                        DataTypes.ReserveConfigurationMap memory configuration = reservesData[
+                            reservesList[i]
+                        ].configuration;
+                        require(
+                            configuration.getEModeCategory() == categoryId,
+                            Errors.INCONSISTENT_EMODE_CATEGORY
+                        );
                     }
                 }
             }
@@ -710,7 +760,10 @@ library ValidationLogic {
         if (!userConfig.isUsingAsCollateralAny()) {
             return true;
         }
-        (bool isolationModeActive, , ) = userConfig.getIsolationModeState(reservesData, reservesList);
+        (bool isolationModeActive, , ) = userConfig.getIsolationModeState(
+            reservesData,
+            reservesList
+        );
 
         return (!isolationModeActive && reserveConfig.getDebtCeiling() == 0);
     }
@@ -734,7 +787,9 @@ library ValidationLogic {
     ) internal view returns (bool) {
         if (reserveConfig.getDebtCeiling() != 0) {
             // ensures only the ISOLATED_COLLATERAL_SUPPLIER_ROLE can enable collateral as side-effect of an action
-            IPoolAddressesProvider addressesProvider = IncentivizedERC20(aTokenAddress).POOL().ADDRESSES_PROVIDER();
+            IPoolAddressesProvider addressesProvider = IncentivizedERC20(aTokenAddress)
+                .POOL()
+                .ADDRESSES_PROVIDER();
             if (
                 !IAccessControl(addressesProvider.getACLManager()).hasRole(
                     ISOLATED_COLLATERAL_SUPPLIER_ROLE,

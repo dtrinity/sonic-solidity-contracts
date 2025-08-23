@@ -165,7 +165,10 @@ library SafeCast {
      * _Available since v3.1._
      */
     function toInt128(int256 value) internal pure returns (int128) {
-        require(value >= type(int128).min && value <= type(int128).max, "SafeCast: value doesn't fit in 128 bits");
+        require(
+            value >= type(int128).min && value <= type(int128).max,
+            "SafeCast: value doesn't fit in 128 bits"
+        );
         return int128(value);
     }
 
@@ -183,7 +186,10 @@ library SafeCast {
      * _Available since v3.1._
      */
     function toInt64(int256 value) internal pure returns (int64) {
-        require(value >= type(int64).min && value <= type(int64).max, "SafeCast: value doesn't fit in 64 bits");
+        require(
+            value >= type(int64).min && value <= type(int64).max,
+            "SafeCast: value doesn't fit in 64 bits"
+        );
         return int64(value);
     }
 
@@ -201,7 +207,10 @@ library SafeCast {
      * _Available since v3.1._
      */
     function toInt32(int256 value) internal pure returns (int32) {
-        require(value >= type(int32).min && value <= type(int32).max, "SafeCast: value doesn't fit in 32 bits");
+        require(
+            value >= type(int32).min && value <= type(int32).max,
+            "SafeCast: value doesn't fit in 32 bits"
+        );
         return int32(value);
     }
 
@@ -219,7 +228,10 @@ library SafeCast {
      * _Available since v3.1._
      */
     function toInt16(int256 value) internal pure returns (int16) {
-        require(value >= type(int16).min && value <= type(int16).max, "SafeCast: value doesn't fit in 16 bits");
+        require(
+            value >= type(int16).min && value <= type(int16).max,
+            "SafeCast: value doesn't fit in 16 bits"
+        );
         return int16(value);
     }
 
@@ -237,7 +249,10 @@ library SafeCast {
      * _Available since v3.1._
      */
     function toInt8(int256 value) internal pure returns (int8) {
-        require(value >= type(int8).min && value <= type(int8).max, "SafeCast: value doesn't fit in 8 bits");
+        require(
+            value >= type(int8).min && value <= type(int8).max,
+            "SafeCast: value doesn't fit in 8 bits"
+        );
         return int8(value);
     }
 

@@ -137,7 +137,11 @@ contract ERC20VestingNFT is ERC721, ERC721Enumerable, Ownable, ReentrancyGuard {
         _safeMint(msg.sender, tokenId);
 
         // Store vesting position
-        vestingPositions[tokenId] = VestingPosition({ amount: amount, depositTime: block.timestamp, matured: false });
+        vestingPositions[tokenId] = VestingPosition({
+            amount: amount,
+            depositTime: block.timestamp,
+            matured: false
+        });
 
         // Update total deposited
         totalDeposited += amount;
@@ -269,7 +273,11 @@ contract ERC20VestingNFT is ERC721, ERC721Enumerable, Ownable, ReentrancyGuard {
      */
     function getVestingPosition(
         uint256 tokenId
-    ) external view returns (uint256 amount, uint256 depositTime, bool matured, bool vestingComplete) {
+    )
+        external
+        view
+        returns (uint256 amount, uint256 depositTime, bool matured, bool vestingComplete)
+    {
         if (!_tokenExists(tokenId)) {
             return (0, 0, false, false);
         }
@@ -415,14 +423,19 @@ contract ERC20VestingNFT is ERC721, ERC721Enumerable, Ownable, ReentrancyGuard {
     /**
      * @notice Override to handle balance updates
      */
-    function _increaseBalance(address account, uint128 value) internal override(ERC721, ERC721Enumerable) {
+    function _increaseBalance(
+        address account,
+        uint128 value
+    ) internal override(ERC721, ERC721Enumerable) {
         super._increaseBalance(account, value);
     }
 
     /**
      * @notice Override required by Solidity for multiple inheritance
      */
-    function supportsInterface(bytes4 interfaceId) public view override(ERC721, ERC721Enumerable) returns (bool) {
+    function supportsInterface(
+        bytes4 interfaceId
+    ) public view override(ERC721, ERC721Enumerable) returns (bool) {
         return super.supportsInterface(interfaceId);
     }
 }

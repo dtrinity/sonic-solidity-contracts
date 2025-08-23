@@ -45,7 +45,11 @@ abstract contract RescuableVault is Ownable, ReentrancyGuard {
      * @param receiver Address to receive the rescued tokens
      * @param amount Amount of tokens to rescue
      */
-    function rescueToken(address token, address receiver, uint256 amount) public onlyOwner nonReentrant {
+    function rescueToken(
+        address token,
+        address receiver,
+        uint256 amount
+    ) public onlyOwner nonReentrant {
         // The vault does not hold any debt token and collateral token, so it is not necessary to restrict the rescue of debt token and collateral token
         // We can just rescue any ERC-20 token
 

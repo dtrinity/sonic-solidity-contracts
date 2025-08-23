@@ -53,7 +53,9 @@ contract EmissionManager is Ownable, IEmissionManager {
     }
 
     /// @inheritdoc IEmissionManager
-    function configureAssets(RewardsDataTypes.RewardsConfigInput[] memory config) external override {
+    function configureAssets(
+        RewardsDataTypes.RewardsConfigInput[] memory config
+    ) external override {
         for (uint256 i = 0; i < config.length; i++) {
             require(_emissionAdmins[config[i].reward] == msg.sender, "ONLY_EMISSION_ADMIN");
         }
@@ -69,7 +71,10 @@ contract EmissionManager is Ownable, IEmissionManager {
     }
 
     /// @inheritdoc IEmissionManager
-    function setRewardOracle(address reward, IAaveOracle rewardOracle) external override onlyEmissionAdmin(reward) {
+    function setRewardOracle(
+        address reward,
+        IAaveOracle rewardOracle
+    ) external override onlyEmissionAdmin(reward) {
         _rewardsController.setRewardOracle(reward, rewardOracle);
     }
 

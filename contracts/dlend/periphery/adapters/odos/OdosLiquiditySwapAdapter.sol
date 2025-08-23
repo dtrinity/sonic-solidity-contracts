@@ -62,9 +62,15 @@ contract OdosLiquiditySwapAdapter is
      * @param asset The address of the asset
      * @return The address of the vToken, sToken and aToken
      */
-    function _getReserveData(address asset) internal view override returns (address, address, address) {
+    function _getReserveData(
+        address asset
+    ) internal view override returns (address, address, address) {
         DataTypes.ReserveData memory reserveData = POOL.getReserveData(asset);
-        return (reserveData.variableDebtTokenAddress, reserveData.stableDebtTokenAddress, reserveData.aTokenAddress);
+        return (
+            reserveData.variableDebtTokenAddress,
+            reserveData.stableDebtTokenAddress,
+            reserveData.aTokenAddress
+        );
     }
 
     /**
@@ -74,7 +80,12 @@ contract OdosLiquiditySwapAdapter is
      * @param to The address receiving the aTokens
      * @param referralCode The referral code to pass to Aave
      */
-    function _supply(address asset, uint256 amount, address to, uint16 referralCode) internal override {
+    function _supply(
+        address asset,
+        uint256 amount,
+        address to,
+        uint16 referralCode
+    ) internal override {
         POOL.supply(asset, amount, to, referralCode);
     }
 
@@ -120,10 +131,10 @@ contract OdosLiquiditySwapAdapter is
             revert InitiatorMustBeThis(initiator, address(this));
         }
 
-        (LiquiditySwapParams memory liquiditySwapParams, PermitInput memory collateralATokenPermit) = abi.decode(
-            params,
-            (LiquiditySwapParams, PermitInput)
-        );
+        (
+            LiquiditySwapParams memory liquiditySwapParams,
+            PermitInput memory collateralATokenPermit
+        ) = abi.decode(params, (LiquiditySwapParams, PermitInput));
 
         address flashLoanAsset = assets[0];
         uint256 flashLoanAmount = amounts[0];
@@ -141,10 +152,20 @@ contract OdosLiquiditySwapAdapter is
 
         // supplies the received asset(newCollateralAsset) from swap to Aave Pool
         _conditionalRenewAllowance(liquiditySwapParams.newCollateralAsset, amountReceived);
-        _supply(liquiditySwapParams.newCollateralAsset, amountReceived, liquiditySwapParams.user, REFERRER);
+        _supply(
+            liquiditySwapParams.newCollateralAsset,
+            amountReceived,
+            liquiditySwapParams.user,
+            REFERRER
+        );
 
         // pulls flashLoanAmount amount of flash-borrowed asset from the user
-        _pullATokenAndWithdraw(flashLoanAsset, liquiditySwapParams.user, flashLoanAmount, collateralATokenPermit);
+        _pullATokenAndWithdraw(
+            flashLoanAsset,
+            liquiditySwapParams.user,
+            flashLoanAmount,
+            collateralATokenPermit
+        );
 
         // flashloan repayment
         _conditionalRenewAllowance(flashLoanAsset, flashLoanAmount + flashLoanPremium);
@@ -183,7 +204,12 @@ contract OdosLiquiditySwapAdapter is
 
         // supply the received asset(newCollateralAsset) from swap to the Aave Pool
         _conditionalRenewAllowance(liquiditySwapParams.newCollateralAsset, amountReceived);
-        _supply(liquiditySwapParams.newCollateralAsset, amountReceived, liquiditySwapParams.user, REFERRER);
+        _supply(
+            liquiditySwapParams.newCollateralAsset,
+            amountReceived,
+            liquiditySwapParams.user,
+            REFERRER
+        );
 
         return amountReceived;
     }
@@ -205,6 +231,14 @@ contract OdosLiquiditySwapAdapter is
         uint256[] memory interestRateModes = new uint256[](1);
         interestRateModes[0] = 0;
 
-        POOL.flashLoan(address(this), assets, amounts, interestRateModes, address(this), params, REFERRER);
+        POOL.flashLoan(
+            address(this),
+            assets,
+            amounts,
+            interestRateModes,
+            address(this),
+            params,
+            REFERRER
+        );
     }
 }

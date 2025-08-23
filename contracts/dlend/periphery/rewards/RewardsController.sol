@@ -111,17 +111,27 @@ contract RewardsController is RewardsDistributor, VersionedInitializable, IRewar
     }
 
     /// @inheritdoc IRewardsController
-    function setTransferStrategy(address reward, ITransferStrategyBase transferStrategy) external onlyEmissionManager {
+    function setTransferStrategy(
+        address reward,
+        ITransferStrategyBase transferStrategy
+    ) external onlyEmissionManager {
         _installTransferStrategy(reward, transferStrategy);
     }
 
     /// @inheritdoc IRewardsController
-    function setRewardOracle(address reward, IAaveOracle rewardOracle) external onlyEmissionManager {
+    function setRewardOracle(
+        address reward,
+        IAaveOracle rewardOracle
+    ) external onlyEmissionManager {
         _setRewardOracle(reward, rewardOracle);
     }
 
     /// @inheritdoc IRewardsController
-    function handleAction(address user, uint256 totalSupply, uint256 userBalance) external override {
+    function handleAction(
+        address user,
+        uint256 totalSupply,
+        uint256 userBalance
+    ) external override {
         _updateData(msg.sender, user, userBalance, totalSupply);
     }
 
@@ -197,11 +207,17 @@ contract RewardsController is RewardsDistributor, VersionedInitializable, IRewar
     }
 
     /// @inheritdoc IRewardsController
-    function depositRewardFrom(address reward, uint256 amount, address from) external onlyEmissionManager {
+    function depositRewardFrom(
+        address reward,
+        uint256 amount,
+        address from
+    ) external onlyEmissionManager {
         require(_isRewardEnabled[reward] == true, "ONLY_ALLOW_DEPOSIT_TO_ENABLED_REWARD");
         address transferStrategyAddress = address(_transferStrategy[reward]);
 
-        try IPullRewardsTransferStrategy(transferStrategyAddress).getRewardsVault() returns (address vault) {
+        try IPullRewardsTransferStrategy(transferStrategyAddress).getRewardsVault() returns (
+            address vault
+        ) {
             uint256 beforeTotalRewardSupply = IERC20(reward).balanceOf(vault);
             uint256 expectAfterTotalRewardSupply = beforeTotalRewardSupply + amount;
             SafeERC20.safeTransferFrom(IERC20(reward), from, vault, amount);
@@ -224,12 +240,19 @@ contract RewardsController is RewardsDistributor, VersionedInitializable, IRewar
     function _getUserAssetBalances(
         address[] calldata assets,
         address user
-    ) internal view override returns (RewardsDataTypes.UserAssetBalance[] memory userAssetBalances) {
+    )
+        internal
+        view
+        override
+        returns (RewardsDataTypes.UserAssetBalance[] memory userAssetBalances)
+    {
         userAssetBalances = new RewardsDataTypes.UserAssetBalance[](assets.length);
         for (uint256 i = 0; i < assets.length; i++) {
             userAssetBalances[i].asset = assets[i];
-            (userAssetBalances[i].userBalance, userAssetBalances[i].totalSupply) = IScaledBalanceToken(assets[i])
-                .getScaledUserBalanceAndSupply(user);
+            (
+                userAssetBalances[i].userBalance,
+                userAssetBalances[i].totalSupply
+            ) = IScaledBalanceToken(assets[i]).getScaledUserBalanceAndSupply(user);
         }
         return userAssetBalances;
     }
@@ -310,7 +333,10 @@ contract RewardsController is RewardsDistributor, VersionedInitializable, IRewar
                 if (rewardsList[j] == address(0)) {
                     rewardsList[j] = _rewardsList[j];
                 }
-                uint256 rewardAmount = _assets[asset].rewards[rewardsList[j]].usersData[user].accrued;
+                uint256 rewardAmount = _assets[asset]
+                    .rewards[rewardsList[j]]
+                    .usersData[user]
+                    .accrued;
                 if (rewardAmount != 0) {
                     claimedAmounts[j] += rewardAmount;
                     _assets[asset].rewards[rewardsList[j]].usersData[user].accrued = 0;
@@ -361,7 +387,10 @@ contract RewardsController is RewardsDistributor, VersionedInitializable, IRewar
      * @param reward The address of the reward token
      * @param transferStrategy The address of the reward TransferStrategy
      */
-    function _installTransferStrategy(address reward, ITransferStrategyBase transferStrategy) internal {
+    function _installTransferStrategy(
+        address reward,
+        ITransferStrategyBase transferStrategy
+    ) internal {
         require(address(transferStrategy) != address(0), "STRATEGY_CAN_NOT_BE_ZERO");
         require(_isContract(address(transferStrategy)) == true, "STRATEGY_MUST_BE_CONTRACT");
 
@@ -378,7 +407,10 @@ contract RewardsController is RewardsDistributor, VersionedInitializable, IRewar
      */
 
     function _setRewardOracle(address reward, IAaveOracle rewardOracle) internal {
-        require(rewardOracle.getAssetPrice(rewardOracle.BASE_CURRENCY()) > 0, "ORACLE_MUST_RETURN_PRICE");
+        require(
+            rewardOracle.getAssetPrice(rewardOracle.BASE_CURRENCY()) > 0,
+            "ORACLE_MUST_RETURN_PRICE"
+        );
         _rewardOracle[reward] = rewardOracle;
         emit RewardOracleUpdated(reward, address(rewardOracle));
     }

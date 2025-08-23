@@ -54,7 +54,12 @@ abstract contract SupportsWithdrawalFee {
      * @return The fee amount in asset terms.
      */
     function _calculateWithdrawalFee(uint256 assetAmount) internal view returns (uint256) {
-        return Math.mulDiv(assetAmount, withdrawalFeeBps_, BasisPointConstants.ONE_HUNDRED_PERCENT_BPS);
+        return
+            Math.mulDiv(
+                assetAmount,
+                withdrawalFeeBps_,
+                BasisPointConstants.ONE_HUNDRED_PERCENT_BPS
+            );
     }
 
     /**

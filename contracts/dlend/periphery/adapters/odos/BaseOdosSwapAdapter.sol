@@ -57,7 +57,9 @@ abstract contract BaseOdosSwapAdapter is Ownable, IBaseOdosAdapter {
      * @return address The address of the StableDebtToken, sToken
      * @return address The address of the aToken
      */
-    function _getReserveData(address asset) internal view virtual returns (address, address, address);
+    function _getReserveData(
+        address asset
+    ) internal view virtual returns (address, address, address);
 
     /**
      * @dev Supply an amount of asset to the Aave Pool
@@ -66,7 +68,12 @@ abstract contract BaseOdosSwapAdapter is Ownable, IBaseOdosAdapter {
      * @param to The address receiving the aTokens
      * @param referralCode The referral code to pass to Aave
      */
-    function _supply(address asset, uint256 amount, address to, uint16 referralCode) internal virtual;
+    function _supply(
+        address asset,
+        uint256 amount,
+        address to,
+        uint16 referralCode
+    ) internal virtual;
 
     /**
      * @dev Pull the ATokens from the user and withdraws the underlying asset from the Aave Pool

@@ -44,7 +44,12 @@ interface IAToken is IERC20, IScaledBalanceToken, IInitializableAToken {
      * @param index The next liquidity index of the reserve
      * @return `true` if the the previous balance of the user was 0
      */
-    function mint(address caller, address onBehalfOf, uint256 amount, uint256 index) external returns (bool);
+    function mint(
+        address caller,
+        address onBehalfOf,
+        uint256 amount,
+        uint256 index
+    ) external returns (bool);
 
     /**
      * @notice Burns aTokens from `user` and sends the equivalent amount of underlying to `receiverOfUnderlying`
@@ -55,7 +60,12 @@ interface IAToken is IERC20, IScaledBalanceToken, IInitializableAToken {
      * @param amount The amount being burned
      * @param index The next liquidity index of the reserve
      */
-    function burn(address from, address receiverOfUnderlying, uint256 amount, uint256 index) external;
+    function burn(
+        address from,
+        address receiverOfUnderlying,
+        uint256 amount,
+        uint256 index
+    ) external;
 
     /**
      * @notice Mints aTokens to the reserve treasury

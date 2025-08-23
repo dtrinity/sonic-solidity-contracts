@@ -39,7 +39,12 @@ contract MockCurveStableSwapNG is ICurveStableSwapNG, ERC20 {
 
     // --- ICurveStableSwapNG Implementation ---
 
-    function exchange(int128 i, int128 j, uint256 dx, uint256 min_dy) external override returns (uint256) {
+    function exchange(
+        int128 i,
+        int128 j,
+        uint256 dx,
+        uint256 min_dy
+    ) external override returns (uint256) {
         return _exchange(i, j, dx, min_dy, msg.sender);
     }
 
@@ -53,7 +58,12 @@ contract MockCurveStableSwapNG is ICurveStableSwapNG, ERC20 {
         return _exchange(i, j, dx, min_dy, receiver);
     }
 
-    function exchange_received(int128 i, int128 j, uint256 dx, uint256 min_dy) external override returns (uint256) {
+    function exchange_received(
+        int128 i,
+        int128 j,
+        uint256 dx,
+        uint256 min_dy
+    ) external override returns (uint256) {
         return _exchange(i, j, dx, min_dy, msg.sender);
     }
 
@@ -67,7 +77,10 @@ contract MockCurveStableSwapNG is ICurveStableSwapNG, ERC20 {
         return _exchange(i, j, dx, min_dy, receiver);
     }
 
-    function add_liquidity(uint256[] calldata amounts, uint256 min_mint_amount) external override returns (uint256) {
+    function add_liquidity(
+        uint256[] calldata amounts,
+        uint256 min_mint_amount
+    ) external override returns (uint256) {
         return _add_liquidity(amounts, min_mint_amount, msg.sender);
     }
 
@@ -146,14 +159,20 @@ contract MockCurveStableSwapNG is ICurveStableSwapNG, ERC20 {
         return dy;
     }
 
-    function calc_withdraw_one_coin(uint256 burn_amount, int128 i) external view override returns (uint256) {
+    function calc_withdraw_one_coin(
+        uint256 burn_amount,
+        int128 i
+    ) external view override returns (uint256) {
         if (totalSupply() == 0) return 0;
 
         // Simplified: proportional withdrawal
         return (burn_amount * balances[uint256(uint128(i))]) / totalSupply();
     }
 
-    function calc_token_amount(uint256[] calldata amounts, bool is_deposit) external view override returns (uint256) {
+    function calc_token_amount(
+        uint256[] calldata amounts,
+        bool is_deposit
+    ) external view override returns (uint256) {
         if (is_deposit) {
             // Simplified: sum of amounts as LP tokens (assuming balanced deposit)
             return amounts[0] + amounts[1];
@@ -199,7 +218,9 @@ contract MockCurveStableSwapNG is ICurveStableSwapNG, ERC20 {
     }
 
     // Override conflicting methods from both ICurveStableSwapNG and ERC20
-    function balanceOf(address account) public view override(ICurveStableSwapNG, ERC20) returns (uint256) {
+    function balanceOf(
+        address account
+    ) public view override(ICurveStableSwapNG, ERC20) returns (uint256) {
         return ERC20.balanceOf(account);
     }
 
@@ -212,7 +233,13 @@ contract MockCurveStableSwapNG is ICurveStableSwapNG, ERC20 {
 
     // --- Internal Functions ---
 
-    function _exchange(int128 i, int128 j, uint256 dx, uint256 min_dy, address receiver) internal returns (uint256) {
+    function _exchange(
+        int128 i,
+        int128 j,
+        uint256 dx,
+        uint256 min_dy,
+        address receiver
+    ) internal returns (uint256) {
         require(i != j && i >= 0 && j >= 0 && i < 2 && j < 2, "Invalid coin indices");
 
         // Pull input token

@@ -68,14 +68,21 @@ abstract contract DLoopIncreaseLeverageBase is
         uint256 debtTokenUsed,
         uint256 flashLoanFee
     );
-    error FlashLoanAmountExceedsMaxAvailable(uint256 requiredFlashLoanAmount, uint256 maxFlashLoanAmount);
+    error FlashLoanAmountExceedsMaxAvailable(
+        uint256 requiredFlashLoanAmount,
+        uint256 maxFlashLoanAmount
+    );
     error LeverageNotIncreased(uint256 leverageBeforeIncrease, uint256 leverageAfterIncrease);
     error RequiredFlashLoanCollateralAmountIsZero();
     error LeverageAlreadyAtOrAboveTarget(uint256 currentLeverage, uint256 targetLeverage);
 
     /* Events */
 
-    event LeftoverDebtTokensTransferred(address indexed debtToken, uint256 amount, address indexed receiver);
+    event LeftoverDebtTokensTransferred(
+        address indexed debtToken,
+        uint256 amount,
+        address indexed receiver
+    );
 
     /* Structs */
 
@@ -100,7 +107,13 @@ abstract contract DLoopIncreaseLeverageBase is
      * @dev Gets the restricted rescue tokens
      * @return restrictedTokens Restricted rescue tokens
      */
-    function getRestrictedRescueTokens() public view virtual override returns (address[] memory restrictedTokens) {
+    function getRestrictedRescueTokens()
+        public
+        view
+        virtual
+        override
+        returns (address[] memory restrictedTokens)
+    {
         // Return empty array as we no longer handle leftover debt tokens
         return new address[](0);
     }
@@ -133,7 +146,11 @@ abstract contract DLoopIncreaseLeverageBase is
         uint256 currentCollateralTokenBalance = collateralToken.balanceOf(address(this));
         if (rebalanceCollateralAmount > currentCollateralTokenBalance) {
             // The caller is expected to receive some debt token as subsidy
-            _increaseLeverageWithFlashLoan(rebalanceCollateralAmount, debtTokenToCollateralSwapData, dLoopCore);
+            _increaseLeverageWithFlashLoan(
+                rebalanceCollateralAmount,
+                debtTokenToCollateralSwapData,
+                dLoopCore
+            );
         } else {
             // This case is free money, no need to have flash loan
             // The caller will receive all the borrowed debt tokens
@@ -157,7 +174,11 @@ abstract contract DLoopIncreaseLeverageBase is
         receivedDebtTokenAmount = debtToken.balanceOf(address(this));
         if (receivedDebtTokenAmount > 0) {
             debtToken.safeTransfer(msg.sender, receivedDebtTokenAmount);
-            emit LeftoverDebtTokensTransferred(address(debtToken), receivedDebtTokenAmount, msg.sender);
+            emit LeftoverDebtTokensTransferred(
+                address(debtToken),
+                receivedDebtTokenAmount,
+                msg.sender
+            );
         }
 
         return receivedDebtTokenAmount;
@@ -184,7 +205,8 @@ abstract contract DLoopIncreaseLeverageBase is
         // function, which is already protected by nonReentrant
         // Moreover, this function is only be able to be called by the address(this) (check the initiator condition)
         // thus even though the flash loan is public and not protected by nonReentrant, it is still safe
-        if (msg.sender != address(flashLender)) revert UnknownLender(msg.sender, address(flashLender));
+        if (msg.sender != address(flashLender))
+            revert UnknownLender(msg.sender, address(flashLender));
         if (initiator != address(this)) revert UnknownInitiator(initiator, address(this));
 
         // Decode flash loan params
@@ -194,7 +216,8 @@ abstract contract DLoopIncreaseLeverageBase is
         ERC20 debtToken = dLoopCore.debtToken();
 
         // Verify token compatibility
-        if (token != address(debtToken)) revert IncompatibleDLoopCoreDebtToken(token, address(debtToken));
+        if (token != address(debtToken))
+            revert IncompatibleDLoopCoreDebtToken(token, address(debtToken));
 
         if (flashLoanParams.requiredCollateralAmount == 0) {
             revert RequiredFlashLoanCollateralAmountIsZero();
@@ -239,7 +262,11 @@ abstract contract DLoopIncreaseLeverageBase is
         // Ensure we can repay flash loan
         // This is an early revert to avoid unclear revert message
         if (debtTokenReceived < debtTokenUsedInSwap + fee) {
-            revert DebtTokenReceivedNotMetUsedAmountWithFlashLoanFee(debtTokenReceived, debtTokenUsedInSwap, fee);
+            revert DebtTokenReceivedNotMetUsedAmountWithFlashLoanFee(
+                debtTokenReceived,
+                debtTokenUsedInSwap,
+                fee
+            );
         }
 
         return FLASHLOAN_CALLBACK;
@@ -290,7 +317,8 @@ abstract contract DLoopIncreaseLeverageBase is
         // to repay the flash loan
         debtToken.forceApprove(
             address(flashLender),
-            requiredFlashLoanAmount + flashLender.flashFee(address(debtToken), requiredFlashLoanAmount)
+            requiredFlashLoanAmount +
+                flashLender.flashFee(address(debtToken), requiredFlashLoanAmount)
         );
 
         // Execute flash loan - main logic in onFlashLoan
@@ -339,7 +367,9 @@ abstract contract DLoopIncreaseLeverageBase is
      * @param _flashLoanParams Flash loan parameters
      * @return data Encoded data
      */
-    function _encodeParamsToData(FlashLoanParams memory _flashLoanParams) internal pure returns (bytes memory data) {
+    function _encodeParamsToData(
+        FlashLoanParams memory _flashLoanParams
+    ) internal pure returns (bytes memory data) {
         data = abi.encode(
             _flashLoanParams.user,
             _flashLoanParams.requiredCollateralAmount,
@@ -353,7 +383,9 @@ abstract contract DLoopIncreaseLeverageBase is
      * @param data Encoded data
      * @return _flashLoanParams Decoded flash loan parameters
      */
-    function _decodeDataToParams(bytes memory data) internal pure returns (FlashLoanParams memory _flashLoanParams) {
+    function _decodeDataToParams(
+        bytes memory data
+    ) internal pure returns (FlashLoanParams memory _flashLoanParams) {
         (
             _flashLoanParams.user,
             _flashLoanParams.requiredCollateralAmount,

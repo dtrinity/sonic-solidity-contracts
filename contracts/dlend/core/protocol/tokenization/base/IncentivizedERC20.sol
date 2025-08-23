@@ -85,7 +85,12 @@ abstract contract IncentivizedERC20 is Context, IERC20Detailed {
      * @param tokenSymbol The symbol of the token
      * @param tokenDecimals The number of decimals of the token
      */
-    constructor(IPool pool, string memory tokenName, string memory tokenSymbol, uint8 tokenDecimals) {
+    constructor(
+        IPool pool,
+        string memory tokenName,
+        string memory tokenSymbol,
+        uint8 tokenDecimals
+    ) {
         _addressesProvider = pool.ADDRESSES_PROVIDER();
         _name = tokenName;
         _symbol = tokenSymbol;
@@ -142,7 +147,10 @@ abstract contract IncentivizedERC20 is Context, IERC20Detailed {
     }
 
     /// @inheritdoc IERC20
-    function allowance(address owner, address spender) external view virtual override returns (uint256) {
+    function allowance(
+        address owner,
+        address spender
+    ) external view virtual override returns (uint256) {
         return _allowances[owner][spender];
     }
 
@@ -153,7 +161,11 @@ abstract contract IncentivizedERC20 is Context, IERC20Detailed {
     }
 
     /// @inheritdoc IERC20
-    function transferFrom(address sender, address recipient, uint256 amount) external virtual override returns (bool) {
+    function transferFrom(
+        address sender,
+        address recipient,
+        uint256 amount
+    ) external virtual override returns (bool) {
         uint128 castAmount = amount.toUint128();
         _approve(sender, _msgSender(), _allowances[sender][_msgSender()] - castAmount);
         _transfer(sender, recipient, castAmount);
@@ -166,7 +178,10 @@ abstract contract IncentivizedERC20 is Context, IERC20Detailed {
      * @param addedValue The amount being added to the allowance
      * @return `true`
      */
-    function increaseAllowance(address spender, uint256 addedValue) external virtual returns (bool) {
+    function increaseAllowance(
+        address spender,
+        uint256 addedValue
+    ) external virtual returns (bool) {
         _approve(_msgSender(), spender, _allowances[_msgSender()][spender] + addedValue);
         return true;
     }
@@ -177,7 +192,10 @@ abstract contract IncentivizedERC20 is Context, IERC20Detailed {
      * @param subtractedValue The amount being subtracted to the allowance
      * @return `true`
      */
-    function decreaseAllowance(address spender, uint256 subtractedValue) external virtual returns (bool) {
+    function decreaseAllowance(
+        address spender,
+        uint256 subtractedValue
+    ) external virtual returns (bool) {
         _approve(_msgSender(), spender, _allowances[_msgSender()][spender] - subtractedValue);
         return true;
     }
@@ -199,7 +217,11 @@ abstract contract IncentivizedERC20 is Context, IERC20Detailed {
             uint256 currentTotalSupply = _totalSupply;
             incentivesControllerLocal.handleAction(sender, currentTotalSupply, oldSenderBalance);
             if (sender != recipient) {
-                incentivesControllerLocal.handleAction(recipient, currentTotalSupply, oldRecipientBalance);
+                incentivesControllerLocal.handleAction(
+                    recipient,
+                    currentTotalSupply,
+                    oldRecipientBalance
+                );
             }
         }
     }

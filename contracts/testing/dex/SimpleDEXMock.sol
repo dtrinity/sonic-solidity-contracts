@@ -158,7 +158,14 @@ contract SimpleDEXMock {
         IERC20(inputToken).safeTransferFrom(msg.sender, address(this), amountIn);
         IERC20(outputToken).safeTransfer(receiver, amountOut);
 
-        emit SwapExecuted(address(inputToken), address(outputToken), amountIn, amountOut, receiver, "ExactInput");
+        emit SwapExecuted(
+            address(inputToken),
+            address(outputToken),
+            amountIn,
+            amountOut,
+            receiver,
+            "ExactInput"
+        );
 
         return amountOut;
     }
@@ -205,7 +212,12 @@ contract SimpleDEXMock {
         // We need to calculate how much input is needed to get amountOut after slippage
         uint256 amountOutBeforeSlippage = _reverseExecutionSlippage(amountOut);
 
-        amountIn = _calculateInputAmount(amountOutBeforeSlippage, rate, inputToken.decimals(), outputToken.decimals());
+        amountIn = _calculateInputAmount(
+            amountOutBeforeSlippage,
+            rate,
+            inputToken.decimals(),
+            outputToken.decimals()
+        );
 
         // Check maximum input
         if (amountIn > amountInMaximum) {
@@ -222,7 +234,14 @@ contract SimpleDEXMock {
         IERC20(inputToken).safeTransferFrom(msg.sender, address(this), amountIn);
         IERC20(outputToken).safeTransfer(receiver, amountOut);
 
-        emit SwapExecuted(address(inputToken), address(outputToken), amountIn, amountOut, receiver, "ExactOutput");
+        emit SwapExecuted(
+            address(inputToken),
+            address(outputToken),
+            amountIn,
+            amountOut,
+            receiver,
+            "ExactOutput"
+        );
 
         return amountIn;
     }
@@ -233,7 +252,10 @@ contract SimpleDEXMock {
      * @param outputToken The output token address
      * @return rate The exchange rate (18 decimals)
      */
-    function getExchangeRate(address inputToken, address outputToken) external view returns (uint256 rate) {
+    function getExchangeRate(
+        address inputToken,
+        address outputToken
+    ) external view returns (uint256 rate) {
         return exchangeRates[inputToken][outputToken];
     }
 
@@ -283,7 +305,13 @@ contract SimpleDEXMock {
 
         uint256 amountOutBeforeSlippage = _reverseExecutionSlippage(amountOut);
 
-        return _calculateInputAmount(amountOutBeforeSlippage, rate, inputToken.decimals(), outputToken.decimals());
+        return
+            _calculateInputAmount(
+                amountOutBeforeSlippage,
+                rate,
+                inputToken.decimals(),
+                outputToken.decimals()
+            );
     }
 
     /**
@@ -385,7 +413,9 @@ contract SimpleDEXMock {
      * @param targetAmount The target amount after slippage
      * @return originalAmount The amount needed before slippage
      */
-    function _reverseExecutionSlippage(uint256 targetAmount) internal view returns (uint256 originalAmount) {
+    function _reverseExecutionSlippage(
+        uint256 targetAmount
+    ) internal view returns (uint256 originalAmount) {
         if (executionSlippageBps == 0) {
             return targetAmount;
         }

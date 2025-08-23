@@ -85,7 +85,10 @@ contract ERC20StablecoinUpgradeable is
         super._update(from, to, value);
     }
 
-    function setNameAndSymbol(string memory newName, string memory newSymbol) public onlyRole(DEFAULT_ADMIN_ROLE) {
+    function setNameAndSymbol(
+        string memory newName,
+        string memory newSymbol
+    ) public onlyRole(DEFAULT_ADMIN_ROLE) {
         _tokenName = newName;
         _tokenSymbol = newSymbol;
     }

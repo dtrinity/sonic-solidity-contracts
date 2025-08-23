@@ -33,7 +33,11 @@ contract MockERC4626Simple is ERC4626 {
         return (assets * BASIS_POINTS + BONUS_BPS - 1) / BONUS_BPS;
     }
 
-    function redeem(uint256 shares, address receiver, address owner) public override returns (uint256 assets) {
+    function redeem(
+        uint256 shares,
+        address receiver,
+        address owner
+    ) public override returns (uint256 assets) {
         // Transfer shares from owner (handles allowance)
         if (owner != _msgSender()) {
             _spendAllowance(owner, _msgSender(), shares);
@@ -49,7 +53,11 @@ contract MockERC4626Simple is ERC4626 {
         emit Withdraw(_msgSender(), receiver, owner, assets, shares);
     }
 
-    function withdraw(uint256 assets, address receiver, address owner) public override returns (uint256 shares) {
+    function withdraw(
+        uint256 assets,
+        address receiver,
+        address owner
+    ) public override returns (uint256 shares) {
         shares = previewWithdraw(assets);
         redeem(shares, receiver, owner); // redeem already handles transfer & events
     }

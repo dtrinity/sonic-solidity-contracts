@@ -57,7 +57,11 @@ contract CollateralHolderVault is CollateralVault {
             revert CannotWithdrawMoreValueThanDeposited(toCollateralAmount, maxAmount);
         }
 
-        IERC20Metadata(fromCollateral).safeTransferFrom(msg.sender, address(this), fromCollateralAmount);
+        IERC20Metadata(fromCollateral).safeTransferFrom(
+            msg.sender,
+            address(this),
+            fromCollateralAmount
+        );
         IERC20Metadata(toCollateral).safeTransfer(msg.sender, toCollateralAmount);
     }
 
@@ -75,7 +79,11 @@ contract CollateralHolderVault is CollateralVault {
         address toCollateral,
         uint256 toMinCollateral
     ) public onlyRole(COLLATERAL_STRATEGY_ROLE) {
-        uint256 toCollateralAmount = maxExchangeAmount(fromCollateralAmount, fromCollateral, toCollateral);
+        uint256 toCollateralAmount = maxExchangeAmount(
+            fromCollateralAmount,
+            fromCollateral,
+            toCollateral
+        );
         if (toCollateralAmount < toMinCollateral) {
             revert ToCollateralAmountBelowMin(toCollateralAmount, toMinCollateral);
         }
@@ -107,7 +115,11 @@ contract CollateralHolderVault is CollateralVault {
             10 ** fromCollateralDecimals
         );
 
-        toCollateralAmount = Math.mulDiv(fromCollateralBaseValue, 10 ** toCollateralDecimals, toCollateralPrice);
+        toCollateralAmount = Math.mulDiv(
+            fromCollateralBaseValue,
+            10 ** toCollateralDecimals,
+            toCollateralPrice
+        );
 
         return toCollateralAmount;
     }

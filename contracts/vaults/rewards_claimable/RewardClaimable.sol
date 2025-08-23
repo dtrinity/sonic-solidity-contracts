@@ -135,7 +135,9 @@ abstract contract RewardClaimable is AccessControl, ReentrancyGuard {
      * @dev Sets the minimum threshold for exchange operations
      * @param newExchangeThreshold New minimum threshold amount
      */
-    function setExchangeThreshold(uint256 newExchangeThreshold) external onlyRole(REWARDS_MANAGER_ROLE) {
+    function setExchangeThreshold(
+        uint256 newExchangeThreshold
+    ) external onlyRole(REWARDS_MANAGER_ROLE) {
         if (newExchangeThreshold == 0) {
             revert ZeroExchangeThreshold();
         }

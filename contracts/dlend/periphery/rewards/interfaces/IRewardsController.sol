@@ -173,7 +173,11 @@ interface IRewardsController is IRewardsDistributor {
      * @param reward The address of the reward token
      * @return The amount of rewards claimed
      **/
-    function claimRewardsToSelf(address[] calldata assets, uint256 amount, address reward) external returns (uint256);
+    function claimRewardsToSelf(
+        address[] calldata assets,
+        uint256 amount,
+        address reward
+    ) external returns (uint256);
 
     /**
      * @dev Claims all rewards for a user to the desired address, on all the assets of the pool, accumulating the pending rewards

@@ -64,7 +64,11 @@ interface IAaveEcosystemReserveController {
      * @param funds Amount to withdraw
      * @return bool If the withdrawal finished properly
      **/
-    function withdrawFromStream(address collector, uint256 streamId, uint256 funds) external returns (bool);
+    function withdrawFromStream(
+        address collector,
+        uint256 streamId,
+        uint256 funds
+    ) external returns (bool);
 
     /**
      * @notice Proxy function to cancel a stream of token on a specific collector contract

@@ -59,7 +59,11 @@ contract WrappedTokenGatewayV3 is IWrappedTokenGatewayV3, Ownable {
      * @param onBehalfOf address of the user who will receive the aTokens representing the deposit
      * @param referralCode integrators are assigned a referral code and can potentially receive rewards.
      **/
-    function depositETH(address, address onBehalfOf, uint16 referralCode) external payable override {
+    function depositETH(
+        address,
+        address onBehalfOf,
+        uint16 referralCode
+    ) external payable override {
         WETH.deposit{ value: msg.value }();
         POOL.deposit(address(WETH), msg.value, onBehalfOf, referralCode);
     }
@@ -90,13 +94,19 @@ contract WrappedTokenGatewayV3 is IWrappedTokenGatewayV3, Ownable {
      * @param rateMode the rate mode to repay
      * @param onBehalfOf the address for which msg.sender is repaying
      */
-    function repayETH(address, uint256 amount, uint256 rateMode, address onBehalfOf) external payable override {
+    function repayETH(
+        address,
+        uint256 amount,
+        uint256 rateMode,
+        address onBehalfOf
+    ) external payable override {
         (uint256 stableDebt, uint256 variableDebt) = DataTypesHelper.getUserCurrentDebt(
             onBehalfOf,
             POOL.getReserveData(address(WETH))
         );
 
-        uint256 paybackAmount = DataTypes.InterestRateMode(rateMode) == DataTypes.InterestRateMode.STABLE
+        uint256 paybackAmount = DataTypes.InterestRateMode(rateMode) ==
+            DataTypes.InterestRateMode.STABLE
             ? stableDebt
             : variableDebt;
 
@@ -117,7 +127,12 @@ contract WrappedTokenGatewayV3 is IWrappedTokenGatewayV3, Ownable {
      * @param interestRateMode the interest rate mode
      * @param referralCode integrators are assigned a referral code and can potentially receive rewards
      */
-    function borrowETH(address, uint256 amount, uint256 interestRateMode, uint16 referralCode) external override {
+    function borrowETH(
+        address,
+        uint256 amount,
+        uint256 interestRateMode,
+        uint16 referralCode
+    ) external override {
         POOL.borrow(address(WETH), amount, interestRateMode, referralCode, msg.sender);
         WETH.withdraw(amount);
         _safeTransferETH(msg.sender, amount);

@@ -38,7 +38,10 @@ import { IERC20Metadata } from "@openzeppelin/contracts/token/ERC20/extensions/I
  *  - rateProvider: AccountantWithFixedRate (stkscUSD -> scUSD) returning a rate with `rateProviderUnit` decimals
  *  - price(asset) = CL(wstkscUSD/stkscUSD in base) * RP(stkscUSD/scUSD in base) / BASE_CURRENCY_UNIT
  */
-contract ChainlinkSafeRateProviderCompositeWrapperWithThresholding is BaseChainlinkWrapper, ThresholdingUtils {
+contract ChainlinkSafeRateProviderCompositeWrapperWithThresholding is
+    BaseChainlinkWrapper,
+    ThresholdingUtils
+{
     struct CompositeFeed {
         address feed1; // Chainlink AggregatorV3-like feed (IPriceFeed)
         address rateProvider; // IRateProvider
@@ -71,7 +74,10 @@ contract ChainlinkSafeRateProviderCompositeWrapperWithThresholding is BaseChainl
     /* Errors */
     error InvalidUnit();
 
-    constructor(address baseCurrency, uint256 _baseCurrencyUnit) BaseChainlinkWrapper(baseCurrency, _baseCurrencyUnit) {
+    constructor(
+        address baseCurrency,
+        uint256 _baseCurrencyUnit
+    ) BaseChainlinkWrapper(baseCurrency, _baseCurrencyUnit) {
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _grantRole(ORACLE_MANAGER_ROLE, msg.sender);
     }
@@ -146,7 +152,9 @@ contract ChainlinkSafeRateProviderCompositeWrapperWithThresholding is BaseChainl
         );
     }
 
-    function getPriceInfo(address asset) public view override returns (uint256 price, bool isAlive) {
+    function getPriceInfo(
+        address asset
+    ) public view override returns (uint256 price, bool isAlive) {
         CompositeFeed memory feed = compositeFeeds[asset];
         if (feed.feed1 == address(0) || feed.rateProvider == address(0)) {
             revert FeedNotSet(asset);

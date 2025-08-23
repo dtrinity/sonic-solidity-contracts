@@ -55,7 +55,9 @@ abstract contract ScaledBalanceTokenBase is MintableIncentivizedERC20, IScaledBa
     }
 
     /// @inheritdoc IScaledBalanceToken
-    function getScaledUserBalanceAndSupply(address user) external view override returns (uint256, uint256) {
+    function getScaledUserBalanceAndSupply(
+        address user
+    ) external view override returns (uint256, uint256) {
         return (super.balanceOf(user), super.totalSupply());
     }
 
@@ -77,7 +79,12 @@ abstract contract ScaledBalanceTokenBase is MintableIncentivizedERC20, IScaledBa
      * @param index The next liquidity index of the reserve
      * @return `true` if the the previous balance of the user was 0
      */
-    function _mintScaled(address caller, address onBehalfOf, uint256 amount, uint256 index) internal returns (bool) {
+    function _mintScaled(
+        address caller,
+        address onBehalfOf,
+        uint256 amount,
+        uint256 index
+    ) internal returns (bool) {
         uint256 amountScaled = amount.rayDiv(index);
         require(amountScaled != 0, Errors.INVALID_MINT_AMOUNT);
 
@@ -110,7 +117,8 @@ abstract contract ScaledBalanceTokenBase is MintableIncentivizedERC20, IScaledBa
         require(amountScaled != 0, Errors.INVALID_BURN_AMOUNT);
 
         uint256 scaledBalance = super.balanceOf(user);
-        uint256 balanceIncrease = scaledBalance.rayMul(index) - scaledBalance.rayMul(_userState[user].additionalData);
+        uint256 balanceIncrease = scaledBalance.rayMul(index) -
+            scaledBalance.rayMul(_userState[user].additionalData);
 
         _userState[user].additionalData = index.toUint128();
 
@@ -156,7 +164,13 @@ abstract contract ScaledBalanceTokenBase is MintableIncentivizedERC20, IScaledBa
 
         if (sender != recipient && recipientBalanceIncrease > 0) {
             emit Transfer(address(0), recipient, recipientBalanceIncrease);
-            emit Mint(_msgSender(), recipient, recipientBalanceIncrease, recipientBalanceIncrease, index);
+            emit Mint(
+                _msgSender(),
+                recipient,
+                recipientBalanceIncrease,
+                recipientBalanceIncrease,
+                index
+            );
         }
 
         emit Transfer(sender, recipient, amount);

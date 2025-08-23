@@ -47,7 +47,12 @@ contract OracleAggregator is AccessControl, IOracleWrapper {
     bytes32 public constant ORACLE_MANAGER_ROLE = keccak256("ORACLE_MANAGER_ROLE");
 
     /* Errors */
-    error UnexpectedBaseUnit(address asset, address oracle, uint256 expectedBaseUnit, uint256 oracleBaseUnit);
+    error UnexpectedBaseUnit(
+        address asset,
+        address oracle,
+        uint256 expectedBaseUnit,
+        uint256 oracleBaseUnit
+    );
     error OracleNotSet(address asset);
     error PriceNotAlive(address asset);
 

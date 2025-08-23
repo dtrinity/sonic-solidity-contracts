@@ -36,7 +36,10 @@ contract DLoopDepositorMock is DLoopDepositorBase {
      * @param _flashLender Address of the flash loan provider
      * @param _simpleDEXMock Address of the SimpleDEXMock contract
      */
-    constructor(IERC3156FlashLender _flashLender, SimpleDEXMock _simpleDEXMock) DLoopDepositorBase(_flashLender) {
+    constructor(
+        IERC3156FlashLender _flashLender,
+        SimpleDEXMock _simpleDEXMock
+    ) DLoopDepositorBase(_flashLender) {
         simpleDEXMock = _simpleDEXMock;
     }
 

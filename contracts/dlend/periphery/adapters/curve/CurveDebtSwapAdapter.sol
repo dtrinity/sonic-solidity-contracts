@@ -33,7 +33,12 @@ import { DataTypes } from "contracts/dlend/core/protocol/libraries/types/DataTyp
  * @title CurveDebtSwapAdapter
  * @notice Curve Adapter to perform a swap of debt to another debt.
  **/
-contract CurveDebtSwapAdapter is BaseCurveBuyAdapter, ReentrancyGuard, IAaveFlashLoanReceiver, ICurveDebtSwapAdapter {
+contract CurveDebtSwapAdapter is
+    BaseCurveBuyAdapter,
+    ReentrancyGuard,
+    IAaveFlashLoanReceiver,
+    ICurveDebtSwapAdapter
+{
     using SafeERC20 for IERC20WithPermit;
 
     // unique identifier to track usage via flashloan events
@@ -58,9 +63,15 @@ contract CurveDebtSwapAdapter is BaseCurveBuyAdapter, ReentrancyGuard, IAaveFlas
      * @param asset The address of the asset
      * @return The address of the vToken, sToken and aToken
      */
-    function _getReserveData(address asset) internal view override returns (address, address, address) {
+    function _getReserveData(
+        address asset
+    ) internal view override returns (address, address, address) {
         DataTypes.ReserveData memory reserveData = POOL.getReserveData(asset);
-        return (reserveData.variableDebtTokenAddress, reserveData.stableDebtTokenAddress, reserveData.aTokenAddress);
+        return (
+            reserveData.variableDebtTokenAddress,
+            reserveData.stableDebtTokenAddress,
+            reserveData.aTokenAddress
+        );
     }
 
     /**
@@ -70,7 +81,12 @@ contract CurveDebtSwapAdapter is BaseCurveBuyAdapter, ReentrancyGuard, IAaveFlas
      * @param to The address receiving the aTokens
      * @param referralCode The referral code to pass to Aave
      */
-    function _supply(address asset, uint256 amount, address to, uint16 referralCode) internal override {
+    function _supply(
+        address asset,
+        uint256 amount,
+        address to,
+        uint16 referralCode
+    ) internal override {
         POOL.supply(asset, amount, to, referralCode);
     }
 
@@ -139,7 +155,11 @@ contract CurveDebtSwapAdapter is BaseCurveBuyAdapter, ReentrancyGuard, IAaveFlas
             flashParams.nestedFlashloanDebtAsset = debtSwapParams.newDebtAsset;
             flashParams.nestedFlashloanDebtAmount = debtSwapParams.maxNewDebtAmount;
             // Execute the flashloan with the extra collateral asset.
-            _flash(flashParams, debtSwapParams.extraCollateralAsset, debtSwapParams.extraCollateralAmount);
+            _flash(
+                flashParams,
+                debtSwapParams.extraCollateralAsset,
+                debtSwapParams.extraCollateralAmount
+            );
         } else {
             // Execute the flashloan with the debt asset.
             _flash(flashParams, debtSwapParams.newDebtAsset, debtSwapParams.maxNewDebtAmount);
@@ -156,7 +176,11 @@ contract CurveDebtSwapAdapter is BaseCurveBuyAdapter, ReentrancyGuard, IAaveFlas
         }
     }
 
-    function _flash(FlashParams memory flashParams, address asset, uint256 amount) internal virtual {
+    function _flash(
+        FlashParams memory flashParams,
+        address asset,
+        uint256 amount
+    ) internal virtual {
         bytes memory params = abi.encode(flashParams);
 
         address[] memory assets = new address[](1);
@@ -167,7 +191,15 @@ contract CurveDebtSwapAdapter is BaseCurveBuyAdapter, ReentrancyGuard, IAaveFlas
         // This is only true if there is no need for extra collateral.
         interestRateModes[0] = flashParams.nestedFlashloanDebtAsset == address(0) ? 2 : 0;
 
-        POOL.flashLoan(address(this), assets, amounts, interestRateModes, flashParams.user, params, REFERRER);
+        POOL.flashLoan(
+            address(this),
+            assets,
+            amounts,
+            interestRateModes,
+            flashParams.user,
+            params,
+            REFERRER
+        );
     }
 
     /**
@@ -212,7 +244,11 @@ contract CurveDebtSwapAdapter is BaseCurveBuyAdapter, ReentrancyGuard, IAaveFlas
 
             // Fetch and transfer back in the aToken to allow the pool to pull it.
             (, , address aToken) = _getReserveData(collateralAsset);
-            IERC20WithPermit(aToken).safeTransferFrom(flashParams.user, address(this), collateralAmount); // Could be rounding error but it's insignificant
+            IERC20WithPermit(aToken).safeTransferFrom(
+                flashParams.user,
+                address(this),
+                collateralAmount
+            ); // Could be rounding error but it's insignificant
             POOL.withdraw(collateralAsset, collateralAmount, address(this));
             _conditionalRenewAllowance(collateralAsset, collateralAmount);
         } else {
@@ -244,7 +280,12 @@ contract CurveDebtSwapAdapter is BaseCurveBuyAdapter, ReentrancyGuard, IAaveFlas
 
         _conditionalRenewAllowance(swapParams.debtAsset, swapParams.debtRepayAmount);
 
-        POOL.repay(address(swapParams.debtAsset), swapParams.debtRepayAmount, swapParams.debtRateMode, swapParams.user);
+        POOL.repay(
+            address(swapParams.debtAsset),
+            swapParams.debtRepayAmount,
+            swapParams.debtRateMode,
+            swapParams.user
+        );
         return amountSold;
     }
 }

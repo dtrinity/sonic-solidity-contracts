@@ -85,7 +85,10 @@ contract DStakeCollateralVault is IDStakeCollateralVault, AccessControl, Reentra
 
             uint256 balance = IERC20(vaultAsset).balanceOf(address(this));
             if (balance > 0) {
-                totalValue += IDStableConversionAdapter(adapterAddress).assetValueInDStable(vaultAsset, balance);
+                totalValue += IDStableConversionAdapter(adapterAddress).assetValueInDStable(
+                    vaultAsset,
+                    balance
+                );
             }
         }
         return totalValue;
@@ -100,7 +103,11 @@ contract DStakeCollateralVault is IDStakeCollateralVault, AccessControl, Reentra
      * @param amount Amount of tokens to transfer
      * @param recipient Address to receive the tokens
      */
-    function sendAsset(address vaultAsset, uint256 amount, address recipient) external onlyRole(ROUTER_ROLE) {
+    function sendAsset(
+        address vaultAsset,
+        uint256 amount,
+        address recipient
+    ) external onlyRole(ROUTER_ROLE) {
         if (!_isSupported(vaultAsset)) revert AssetNotSupported(vaultAsset);
         IERC20(vaultAsset).safeTransfer(recipient, amount);
     }
@@ -214,7 +221,10 @@ contract DStakeCollateralVault is IDStakeCollateralVault, AccessControl, Reentra
      * @param receiver Address to receive the rescued ETH
      * @param amount Amount of ETH to rescue
      */
-    function rescueETH(address receiver, uint256 amount) external onlyRole(DEFAULT_ADMIN_ROLE) nonReentrant {
+    function rescueETH(
+        address receiver,
+        uint256 amount
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) nonReentrant {
         if (receiver == address(0)) revert ZeroAddress();
 
         (bool success, ) = receiver.call{ value: amount }("");

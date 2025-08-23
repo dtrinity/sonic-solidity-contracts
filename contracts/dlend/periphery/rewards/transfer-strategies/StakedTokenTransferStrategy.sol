@@ -52,7 +52,12 @@ contract StakedTokenTransferStrategy is TransferStrategyBase, IStakedTokenTransf
         address to,
         address reward,
         uint256 amount
-    ) external override(TransferStrategyBase, ITransferStrategyBase) onlyIncentivesController returns (bool) {
+    )
+        external
+        override(TransferStrategyBase, ITransferStrategyBase)
+        onlyIncentivesController
+        returns (bool)
+    {
         require(reward == address(STAKE_CONTRACT), "REWARD_TOKEN_NOT_STAKE_CONTRACT");
 
         STAKE_CONTRACT.stake(to, amount);

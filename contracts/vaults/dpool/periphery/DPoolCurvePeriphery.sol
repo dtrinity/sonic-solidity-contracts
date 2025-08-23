@@ -176,13 +176,19 @@ contract DPoolCurvePeriphery is AccessControl, ReentrancyGuard, IDPoolPeriphery 
         );
 
         // Use the higher of user's minAmount or slippage-adjusted minimum
-        uint256 finalMinAmount = minAmount > minAssetFromSlippage ? minAmount : minAssetFromSlippage;
+        uint256 finalMinAmount = minAmount > minAssetFromSlippage
+            ? minAmount
+            : minAssetFromSlippage;
 
         // Withdraw from vault to get LP tokens
         uint256 actualLPAmount = VAULT.redeem(shares, address(this), owner);
 
         // Remove liquidity from Curve to get asset
-        assetAmount = POOL.remove_liquidity_one_coin(actualLPAmount, int128(uint128(assetIndex)), finalMinAmount);
+        assetAmount = POOL.remove_liquidity_one_coin(
+            actualLPAmount,
+            int128(uint128(assetIndex)),
+            finalMinAmount
+        );
 
         // Transfer asset to receiver
         IERC20(asset).safeTransfer(receiver, assetAmount);
@@ -193,7 +199,10 @@ contract DPoolCurvePeriphery is AccessControl, ReentrancyGuard, IDPoolPeriphery 
     // --- Preview functions ---
 
     /// @inheritdoc IDPoolPeriphery
-    function previewDepositAsset(address asset, uint256 amount) external view returns (uint256 shares) {
+    function previewDepositAsset(
+        address asset,
+        uint256 amount
+    ) external view returns (uint256 shares) {
         if (!whitelistedAssets[asset]) {
             revert AssetNotWhitelisted();
         }
@@ -213,7 +222,10 @@ contract DPoolCurvePeriphery is AccessControl, ReentrancyGuard, IDPoolPeriphery 
     }
 
     /// @inheritdoc IDPoolPeriphery
-    function previewWithdrawToAsset(uint256 shares, address asset) external view returns (uint256 assetAmount) {
+    function previewWithdrawToAsset(
+        uint256 shares,
+        address asset
+    ) external view returns (uint256 assetAmount) {
         if (!whitelistedAssets[asset]) {
             revert AssetNotWhitelisted();
         }
@@ -330,7 +342,9 @@ contract DPoolCurvePeriphery is AccessControl, ReentrancyGuard, IDPoolPeriphery 
     /**
      * @dev See {IERC165-supportsInterface}.
      */
-    function supportsInterface(bytes4 interfaceId) public view virtual override(AccessControl) returns (bool) {
+    function supportsInterface(
+        bytes4 interfaceId
+    ) public view virtual override(AccessControl) returns (bool) {
         return super.supportsInterface(interfaceId);
     }
 }

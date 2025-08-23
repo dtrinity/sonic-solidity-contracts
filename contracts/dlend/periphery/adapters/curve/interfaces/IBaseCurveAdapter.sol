@@ -44,7 +44,12 @@ interface IBaseCurveAdapter {
      * @param fromAmount The amount of asset sold
      * @param receivedAmount The amount received from the sell
      */
-    event Swapped(address indexed fromAsset, address indexed toAsset, uint256 fromAmount, uint256 receivedAmount);
+    event Swapped(
+        address indexed fromAsset,
+        address indexed toAsset,
+        uint256 fromAmount,
+        uint256 receivedAmount
+    );
 
     /**
      * @dev Emitted after a buy of an asset is made
@@ -53,7 +58,12 @@ interface IBaseCurveAdapter {
      * @param amountSold The amount of asset provided for the buy
      * @param receivedAmount The amount of asset bought
      */
-    event Bought(address indexed fromAsset, address indexed toAsset, uint256 amountSold, uint256 receivedAmount);
+    event Bought(
+        address indexed fromAsset,
+        address indexed toAsset,
+        uint256 amountSold,
+        uint256 receivedAmount
+    );
 
     /* Custom Errors */
     error InsufficientBalanceBeforeSwap(uint256 balance, uint256 required);

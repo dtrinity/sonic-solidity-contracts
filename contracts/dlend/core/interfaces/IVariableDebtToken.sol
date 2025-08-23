@@ -36,7 +36,12 @@ interface IVariableDebtToken is IScaledBalanceToken, IInitializableDebtToken {
      * @return True if the previous balance of the user is 0, false otherwise
      * @return The scaled total debt of the reserve
      */
-    function mint(address user, address onBehalfOf, uint256 amount, uint256 index) external returns (bool, uint256);
+    function mint(
+        address user,
+        address onBehalfOf,
+        uint256 amount,
+        uint256 index
+    ) external returns (bool, uint256);
 
     /**
      * @notice Burns user variable debt

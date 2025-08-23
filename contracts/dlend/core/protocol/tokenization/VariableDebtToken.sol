@@ -49,7 +49,10 @@ contract VariableDebtToken is DebtTokenBase, ScaledBalanceTokenBase, IVariableDe
      */
     constructor(
         IPool pool
-    ) DebtTokenBase() ScaledBalanceTokenBase(pool, "VARIABLE_DEBT_TOKEN_IMPL", "VARIABLE_DEBT_TOKEN_IMPL", 0) {
+    )
+        DebtTokenBase()
+        ScaledBalanceTokenBase(pool, "VARIABLE_DEBT_TOKEN_IMPL", "VARIABLE_DEBT_TOKEN_IMPL", 0)
+    {
         // Intentionally left blank
     }
 
@@ -114,7 +117,11 @@ contract VariableDebtToken is DebtTokenBase, ScaledBalanceTokenBase, IVariableDe
     }
 
     /// @inheritdoc IVariableDebtToken
-    function burn(address from, uint256 amount, uint256 index) external virtual override onlyPool returns (uint256) {
+    function burn(
+        address from,
+        uint256 amount,
+        uint256 index
+    ) external virtual override onlyPool returns (uint256) {
         _burnScaled(from, address(0), amount, index);
         return scaledTotalSupply();
     }

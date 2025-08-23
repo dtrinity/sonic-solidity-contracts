@@ -86,7 +86,15 @@ contract ChainlinkCompositeAggregator is AggregatorV3Interface, ThresholdingUtil
      * @return Description string
      */
     function description() external view override returns (string memory) {
-        return string(abi.encodePacked(sourceFeed1.description(), " x ", sourceFeed2.description(), " (Composite)"));
+        return
+            string(
+                abi.encodePacked(
+                    sourceFeed1.description(),
+                    " x ",
+                    sourceFeed2.description(),
+                    " (Composite)"
+                )
+            );
     }
 
     /**
@@ -109,11 +117,22 @@ contract ChainlinkCompositeAggregator is AggregatorV3Interface, ThresholdingUtil
         external
         view
         override
-        returns (uint80 roundId, int256 answer, uint256 startedAt, uint256 updatedAt, uint80 answeredInRound)
+        returns (
+            uint80 roundId,
+            int256 answer,
+            uint256 startedAt,
+            uint256 updatedAt,
+            uint80 answeredInRound
+        )
     {
         // Get latest data from both feeds
-        (uint80 roundId1, int256 answer1, uint256 startedAt1, uint256 updatedAt1, uint80 answeredInRound1) = sourceFeed1
-            .latestRoundData();
+        (
+            uint80 roundId1,
+            int256 answer1,
+            uint256 startedAt1,
+            uint256 updatedAt1,
+            uint80 answeredInRound1
+        ) = sourceFeed1.latestRoundData();
 
         (
             ,
@@ -166,7 +185,13 @@ contract ChainlinkCompositeAggregator is AggregatorV3Interface, ThresholdingUtil
         external
         view
         override
-        returns (uint80 roundId, int256 answer, uint256 startedAt, uint256 updatedAt, uint80 answeredInRound)
+        returns (
+            uint80 roundId,
+            int256 answer,
+            uint256 startedAt,
+            uint256 updatedAt,
+            uint80 answeredInRound
+        )
     {
         // Delegate to latestRoundData to avoid round ID divergence issues
         return this.latestRoundData();
@@ -178,7 +203,10 @@ contract ChainlinkCompositeAggregator is AggregatorV3Interface, ThresholdingUtil
      * @param answer2 Price from second feed
      * @return Composite price in target decimals
      */
-    function _calculateCompositePrice(int256 answer1, int256 answer2) internal view returns (uint256) {
+    function _calculateCompositePrice(
+        int256 answer1,
+        int256 answer2
+    ) internal view returns (uint256) {
         // Convert negative answers to 0 (same as Redstone wrapper)
         uint256 chainlinkPrice1 = answer1 > 0 ? uint256(answer1) : 0;
         uint256 chainlinkPrice2 = answer2 > 0 ? uint256(answer2) : 0;
@@ -205,7 +233,10 @@ contract ChainlinkCompositeAggregator is AggregatorV3Interface, ThresholdingUtil
      * @param sourceDecimals Decimal precision of the source price
      * @return Price in base currency unit
      */
-    function _convertToBaseCurrencyUnit(uint256 price, uint8 sourceDecimals) internal pure returns (uint256) {
+    function _convertToBaseCurrencyUnit(
+        uint256 price,
+        uint8 sourceDecimals
+    ) internal pure returns (uint256) {
         if (sourceDecimals > decimals) {
             // Scale down to target decimals
             return price / (10 ** (sourceDecimals - decimals));

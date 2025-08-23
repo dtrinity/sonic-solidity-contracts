@@ -79,7 +79,13 @@ abstract contract BaseCurveSellAdapter is BaseCurveSwapAdapter {
         assetToSwapFrom.safeApprove(address(swapRouter), amountToSwap);
 
         // Execute the swap
-        amountReceived = swapRouter.exchange(route, swapParams, amountToSwap, minAmountToReceive, address(this));
+        amountReceived = swapRouter.exchange(
+            route,
+            swapParams,
+            amountToSwap,
+            minAmountToReceive,
+            address(this)
+        );
 
         // Ensure we received the minimum expected amount
         if (amountReceived < minAmountToReceive) {

@@ -109,7 +109,11 @@ interface IPoolConfigurator {
      * @param oldReserveFactor The old reserve factor, expressed in bps
      * @param newReserveFactor The new reserve factor, expressed in bps
      */
-    event ReserveFactorChanged(address indexed asset, uint256 oldReserveFactor, uint256 newReserveFactor);
+    event ReserveFactorChanged(
+        address indexed asset,
+        uint256 oldReserveFactor,
+        uint256 newReserveFactor
+    );
 
     /**
      * @dev Emitted when the borrow cap of a reserve is updated.
@@ -141,7 +145,11 @@ interface IPoolConfigurator {
      * @param oldUnbackedMintCap The old unbacked mint cap
      * @param newUnbackedMintCap The new unbacked mint cap
      */
-    event UnbackedMintCapChanged(address indexed asset, uint256 oldUnbackedMintCap, uint256 newUnbackedMintCap);
+    event UnbackedMintCapChanged(
+        address indexed asset,
+        uint256 oldUnbackedMintCap,
+        uint256 newUnbackedMintCap
+    );
 
     /**
      * @dev Emitted when the category of an asset in eMode is changed.
@@ -149,7 +157,11 @@ interface IPoolConfigurator {
      * @param oldCategoryId The old eMode asset category
      * @param newCategoryId The new eMode asset category
      */
-    event EModeAssetCategoryChanged(address indexed asset, uint8 oldCategoryId, uint8 newCategoryId);
+    event EModeAssetCategoryChanged(
+        address indexed asset,
+        uint8 oldCategoryId,
+        uint8 newCategoryId
+    );
 
     /**
      * @dev Emitted when a new eMode category is added.
@@ -175,7 +187,11 @@ interface IPoolConfigurator {
      * @param oldStrategy The address of the old interest strategy contract
      * @param newStrategy The address of the new interest strategy contract
      */
-    event ReserveInterestRateStrategyChanged(address indexed asset, address oldStrategy, address newStrategy);
+    event ReserveInterestRateStrategyChanged(
+        address indexed asset,
+        address oldStrategy,
+        address newStrategy
+    );
 
     /**
      * @dev Emitted when an aToken implementation is upgraded.
@@ -183,7 +199,11 @@ interface IPoolConfigurator {
      * @param proxy The aToken proxy address
      * @param implementation The new aToken implementation
      */
-    event ATokenUpgraded(address indexed asset, address indexed proxy, address indexed implementation);
+    event ATokenUpgraded(
+        address indexed asset,
+        address indexed proxy,
+        address indexed implementation
+    );
 
     /**
      * @dev Emitted when the implementation of a stable debt token is upgraded.
@@ -191,7 +211,11 @@ interface IPoolConfigurator {
      * @param proxy The stable debt token proxy address
      * @param implementation The new aToken implementation
      */
-    event StableDebtTokenUpgraded(address indexed asset, address indexed proxy, address indexed implementation);
+    event StableDebtTokenUpgraded(
+        address indexed asset,
+        address indexed proxy,
+        address indexed implementation
+    );
 
     /**
      * @dev Emitted when the implementation of a variable debt token is upgraded.
@@ -199,7 +223,11 @@ interface IPoolConfigurator {
      * @param proxy The variable debt token proxy address
      * @param implementation The new aToken implementation
      */
-    event VariableDebtTokenUpgraded(address indexed asset, address indexed proxy, address indexed implementation);
+    event VariableDebtTokenUpgraded(
+        address indexed asset,
+        address indexed proxy,
+        address indexed implementation
+    );
 
     /**
      * @dev Emitted when the debt ceiling of an asset is set.
@@ -229,7 +257,10 @@ interface IPoolConfigurator {
      * @param oldFlashloanPremiumTotal The old premium, expressed in bps
      * @param newFlashloanPremiumTotal The new premium, expressed in bps
      */
-    event FlashloanPremiumTotalUpdated(uint128 oldFlashloanPremiumTotal, uint128 newFlashloanPremiumTotal);
+    event FlashloanPremiumTotalUpdated(
+        uint128 oldFlashloanPremiumTotal,
+        uint128 newFlashloanPremiumTotal
+    );
 
     /**
      * @dev Emitted when the part of the premium that goes to protocol is updated.
@@ -264,13 +295,17 @@ interface IPoolConfigurator {
      * @notice Updates the stable debt token implementation for the reserve.
      * @param input The stableDebtToken update parameters
      */
-    function updateStableDebtToken(ConfiguratorInputTypes.UpdateDebtTokenInput calldata input) external;
+    function updateStableDebtToken(
+        ConfiguratorInputTypes.UpdateDebtTokenInput calldata input
+    ) external;
 
     /**
      * @notice Updates the variable debt token implementation for the asset.
      * @param input The variableDebtToken update parameters
      */
-    function updateVariableDebtToken(ConfiguratorInputTypes.UpdateDebtTokenInput calldata input) external;
+    function updateVariableDebtToken(
+        ConfiguratorInputTypes.UpdateDebtTokenInput calldata input
+    ) external;
 
     /**
      * @notice Configures borrowing on a reserve.
@@ -357,7 +392,10 @@ interface IPoolConfigurator {
      * @param asset The address of the underlying asset of the reserve
      * @param newRateStrategyAddress The address of the new interest strategy contract
      */
-    function setReserveInterestRateStrategyAddress(address asset, address newRateStrategyAddress) external;
+    function setReserveInterestRateStrategyAddress(
+        address asset,
+        address newRateStrategyAddress
+    ) external;
 
     /**
      * @notice Pauses or unpauses all the protocol reserves. In the paused state all the protocol interactions

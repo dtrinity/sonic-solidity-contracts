@@ -39,7 +39,11 @@ import "@openzeppelin/contracts/utils/math/Math.sol";
  *  - rateProvider: AccountantWithFixedRate (stkscUSD -> scUSD) returning a rate with `rateProviderUnit` decimals
  *  - price(asset) = ERC4626(wstkscUSD/stkscUSD in base) * RP(stkscUSD/scUSD in base) / BASE_CURRENCY_UNIT
  */
-contract ERC4626SafeRateProviderWrapperWithThresholding is IOracleWrapper, AccessControl, ThresholdingUtils {
+contract ERC4626SafeRateProviderWrapperWithThresholding is
+    IOracleWrapper,
+    AccessControl,
+    ThresholdingUtils
+{
     // Base currency settings
     address private immutable _baseCurrency;
     uint256 public immutable BASE_CURRENCY_UNIT;
@@ -152,10 +156,18 @@ contract ERC4626SafeRateProviderWrapperWithThresholding is IOracleWrapper, Acces
         cfg.primaryThreshold.fixedPriceInBase = fixedPriceInBase1;
         cfg.secondaryThreshold.lowerThresholdInBase = lowerThresholdInBase2;
         cfg.secondaryThreshold.fixedPriceInBase = fixedPriceInBase2;
-        emit FeedUpdated(asset, lowerThresholdInBase1, fixedPriceInBase1, lowerThresholdInBase2, fixedPriceInBase2);
+        emit FeedUpdated(
+            asset,
+            lowerThresholdInBase1,
+            fixedPriceInBase1,
+            lowerThresholdInBase2,
+            fixedPriceInBase2
+        );
     }
 
-    function getPriceInfo(address asset) public view override returns (uint256 price, bool isAlive) {
+    function getPriceInfo(
+        address asset
+    ) public view override returns (uint256 price, bool isAlive) {
         FeedConfig memory cfg = feeds[asset];
         if (cfg.erc4626Vault == address(0) || cfg.rateProvider == address(0)) {
             revert FeedNotSet(asset);
@@ -170,7 +182,11 @@ contract ERC4626SafeRateProviderWrapperWithThresholding is IOracleWrapper, Acces
         // Normalize assets to BASE_CURRENCY_UNIT using underlying decimals
         address underlying = vault.asset();
         uint256 underlyingDecimals = IERC20Metadata(underlying).decimals();
-        uint256 priceInBase1 = Math.mulDiv(assetsPerOneShare, BASE_CURRENCY_UNIT, 10 ** underlyingDecimals);
+        uint256 priceInBase1 = Math.mulDiv(
+            assetsPerOneShare,
+            BASE_CURRENCY_UNIT,
+            10 ** underlyingDecimals
+        );
 
         // Rate provider leg with stored rateProviderUnit
         uint256 rate = IRateProviderSafe(cfg.rateProvider).getRateSafe();
