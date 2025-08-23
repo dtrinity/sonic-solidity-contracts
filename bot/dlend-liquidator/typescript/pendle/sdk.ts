@@ -52,6 +52,8 @@ export type RollOverPtData = { amountPtOut: string; priceImpact: number };
 export interface PTMarketInfo {
   marketAddress: string; // Market contract address
   underlyingAsset: string; // Underlying asset address
+  isMatured: boolean; // Whether the PT token is matured (from inactive market)
+  ytAddress?: string; // YT address (needed for redemption if matured)
 }
 
 /**
@@ -230,19 +232,29 @@ export async function getPTMarketInfo(
     const underlyingAsset = extractAddressFromChainId(market.underlyingAsset);
 
     // Determine if market is active or inactive
-    const isActiveMarket = activeMarkets.some((m: PendleMarket) => m.address === market.address);
+    const isActiveMarket = activeMarkets.some(
+      (m: PendleMarket) => m.address === market.address,
+    );
     const marketStatus = isActiveMarket ? "active" : "inactive";
+    const isMatured = !isActiveMarket; // Inactive markets are matured
+
+    // Extract YT address (needed for redemption if matured)
+    const ytAddress = extractAddressFromChainId(market.yt);
 
     console.log(`Found PT market info via API:`, {
       ptToken: ptTokenAddress,
       marketAddress,
       underlyingAsset,
       status: marketStatus,
+      isMatured,
+      ytAddress,
     });
 
     return {
       marketAddress,
       underlyingAsset,
+      isMatured,
+      ytAddress,
     };
   } catch (error) {
     console.error("Failed to get PT market info from API:", error);
@@ -283,4 +295,33 @@ export async function isPT(
     );
     return false;
   }
+}
+
+/**
+ * Calculates redeem for matured PT tokens
+ *
+ * @param chainId The chain ID
+ * @param receiver The address to receive the redeemed tokens
+ * @param slippage The slippage tolerance for the redeem
+ * @param ytAddress The YT (Yield Token) address
+ * @param amountIn The amount of PT tokens to redeem
+ * @param tokenOut The token address to receive after redemption
+ * @returns The SDK response containing transaction data and result data
+ */
+export async function estimateRedeemMaturedPT(
+  chainId: number,
+  receiver: string,
+  slippage: number,
+  ytAddress: string,
+  amountIn: string,
+  tokenOut: string,
+): Promise<AxiosResponse<MethodReturnType<RedeemPyData>>> {
+  return await callSDK<RedeemPyData>(`v2/sdk/${chainId}/redeem`, {
+    receiver: receiver,
+    slippage: slippage,
+    enableAggregator: true,
+    yt: ytAddress,
+    amountIn: amountIn,
+    tokenOut: tokenOut,
+  });
 }

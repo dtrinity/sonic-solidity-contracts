@@ -25,11 +25,7 @@ library Compare {
      * @param expected The expected value
      * @param tolerance The allowed absolute difference between observed and expected
      */
-    function isWithinTolerance(
-        uint256 observed,
-        uint256 expected,
-        uint256 tolerance
-    ) internal pure returns (bool) {
+    function isWithinTolerance(uint256 observed, uint256 expected, uint256 tolerance) internal pure returns (bool) {
         if (observed > expected) {
             return observed - expected <= tolerance;
         }
@@ -85,11 +81,7 @@ library Compare {
             return result;
         }
 
-        result.toleranceOk = isWithinTolerance(
-            result.observedDelta,
-            expectedDelta,
-            tolerance
-        );
+        result.toleranceOk = isWithinTolerance(result.observedDelta, expectedDelta, tolerance);
         return result;
     }
 }

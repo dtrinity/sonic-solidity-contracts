@@ -5,11 +5,7 @@ import { ethers } from "hardhat";
 
 import { DLoopCoreMock, TestMintableERC20 } from "../../../typechain-types";
 import { ONE_PERCENT_BPS } from "../../../typescript/common/bps_constants";
-import {
-  deployDLoopMockFixture,
-  TARGET_LEVERAGE_BPS,
-  testSetup,
-} from "./fixture";
+import { deployDLoopMockFixture, TARGET_LEVERAGE_BPS, testSetup } from "./fixture";
 
 // NOTE: Redeem flow invariants are validated by CoreLogic maintain and decrease tests; skip redundant mock tests
 describe.skip("DLoopCoreMock Redeem Tests", function () {
@@ -68,36 +64,22 @@ describe.skip("DLoopCoreMock Redeem Tests", function () {
         const userAddress = user.address;
 
         // Set initial prices
-        await dloopMock.setMockPrice(
-          await collateralToken.getAddress(),
-          ethers.parseUnits("1.2", 8),
-        );
-        await dloopMock.setMockPrice(
-          await debtToken.getAddress(),
-          ethers.parseUnits("0.8", 8),
-        );
+        await dloopMock.setMockPrice(await collateralToken.getAddress(), ethers.parseUnits("1.2", 8));
+        await dloopMock.setMockPrice(await debtToken.getAddress(), ethers.parseUnits("0.8", 8));
 
         // Initial deposit to establish position
-        await collateralToken
-          .connect(user)
-          .approve(await dloopMock.getAddress(), testCase.initialDeposit);
+        await collateralToken.connect(user).approve(await dloopMock.getAddress(), testCase.initialDeposit);
 
-        const depositTx = await dloopMock
-          .connect(user)
-          .deposit(testCase.initialDeposit, userAddress);
+        const depositTx = await dloopMock.connect(user).deposit(testCase.initialDeposit, userAddress);
         await depositTx.wait();
 
         // Verify initial state after deposit
         const initialShares = await dloopMock.balanceOf(userAddress);
         expect(initialShares).to.equal(testCase.initialDeposit); // 1:1 ratio for first deposit
-        expect(await dloopMock.getCurrentLeverageBps()).to.equal(
-          TARGET_LEVERAGE_BPS,
-        );
+        expect(await dloopMock.getCurrentLeverageBps()).to.equal(TARGET_LEVERAGE_BPS);
 
         // Calculate expected values for redeem
-        const _expectedAssets = await dloopMock.previewRedeem(
-          testCase.sharesToRedeem,
-        );
+        const _expectedAssets = await dloopMock.previewRedeem(testCase.sharesToRedeem);
         // const requiredDebtRepayment =
         //   await dloopMock.getRepayAmountThatKeepCurrentLeverage(
         //     await collateralToken.getAddress(),
@@ -237,35 +219,19 @@ describe.skip("DLoopCoreMock Redeem Tests", function () {
         const redeemShares = ethers.parseEther("30");
 
         // Set initial prices
-        await dloopMock.setMockPrice(
-          await collateralToken.getAddress(),
-          testCase.initialPrices.collateral,
-        );
-        await dloopMock.setMockPrice(
-          await debtToken.getAddress(),
-          testCase.initialPrices.debt,
-        );
+        await dloopMock.setMockPrice(await collateralToken.getAddress(), testCase.initialPrices.collateral);
+        await dloopMock.setMockPrice(await debtToken.getAddress(), testCase.initialPrices.debt);
 
         // Initial deposit
-        await collateralToken
-          .connect(user)
-          .approve(await dloopMock.getAddress(), depositAmount);
+        await collateralToken.connect(user).approve(await dloopMock.getAddress(), depositAmount);
         await dloopMock.connect(user).deposit(depositAmount, userAddress);
 
         // Verify initial leverage
-        expect(await dloopMock.getCurrentLeverageBps()).to.equal(
-          TARGET_LEVERAGE_BPS,
-        );
+        expect(await dloopMock.getCurrentLeverageBps()).to.equal(TARGET_LEVERAGE_BPS);
 
         // Change prices
-        await dloopMock.setMockPrice(
-          await collateralToken.getAddress(),
-          testCase.newPrices.collateral,
-        );
-        await dloopMock.setMockPrice(
-          await debtToken.getAddress(),
-          testCase.newPrices.debt,
-        );
+        await dloopMock.setMockPrice(await collateralToken.getAddress(), testCase.newPrices.collateral);
+        await dloopMock.setMockPrice(await debtToken.getAddress(), testCase.newPrices.debt);
 
         // Check leverage after price change but before redeem
         const _leverageBeforeRedeem = await dloopMock.getCurrentLeverageBps();
@@ -292,9 +258,7 @@ describe.skip("DLoopCoreMock Redeem Tests", function () {
         //   .approve(await dloopMock.getAddress(), requiredDebtRepayment);
 
         // Perform redeem
-        await dloopMock
-          .connect(user)
-          .redeem(redeemShares, userAddress, userAddress);
+        await dloopMock.connect(user).redeem(redeemShares, userAddress, userAddress);
 
         // Get leverage after redeem
         const leverageAfterRedeem = await dloopMock.getCurrentLeverageBps();
@@ -315,39 +279,23 @@ describe.skip("DLoopCoreMock Redeem Tests", function () {
       const user3 = accounts[3];
 
       // Set prices
-      await dloopMock.setMockPrice(
-        await collateralToken.getAddress(),
-        ethers.parseUnits("1.2", 8),
-      );
-      await dloopMock.setMockPrice(
-        await debtToken.getAddress(),
-        ethers.parseUnits("0.8", 8),
-      );
+      await dloopMock.setMockPrice(await collateralToken.getAddress(), ethers.parseUnits("1.2", 8));
+      await dloopMock.setMockPrice(await debtToken.getAddress(), ethers.parseUnits("0.8", 8));
 
       // Multiple users deposit
-      const depositAmounts = [
-        ethers.parseEther("100"),
-        ethers.parseEther("80"),
-        ethers.parseEther("60"),
-      ];
+      const depositAmounts = [ethers.parseEther("100"), ethers.parseEther("80"), ethers.parseEther("60")];
       const users = [user1, user2, user3];
 
       for (let i = 0; i < users.length; i++) {
-        await collateralToken
-          .connect(users[i])
-          .approve(await dloopMock.getAddress(), depositAmounts[i]);
-        await dloopMock
-          .connect(users[i])
-          .deposit(depositAmounts[i], users[i].address);
+        await collateralToken.connect(users[i]).approve(await dloopMock.getAddress(), depositAmounts[i]);
+        await dloopMock.connect(users[i]).deposit(depositAmounts[i], users[i].address);
       }
 
       // Verify total assets and leverage
       const totalAssets = await dloopMock.totalAssets();
       const totalDeposited = depositAmounts.reduce((a, b) => a + b, 0n);
       expect(totalAssets).to.equal(totalDeposited);
-      expect(await dloopMock.getCurrentLeverageBps()).to.equal(
-        TARGET_LEVERAGE_BPS,
-      );
+      expect(await dloopMock.getCurrentLeverageBps()).to.equal(TARGET_LEVERAGE_BPS);
 
       // Users redeem different amounts
       const redeemAmounts = [
@@ -377,9 +325,7 @@ describe.skip("DLoopCoreMock Redeem Tests", function () {
         // await debtToken
         //   .connect(user)
         //   .approve(await dloopMock.getAddress(), requiredDebtRepayment);
-        await dloopMock
-          .connect(user)
-          .redeem(redeemShares, user.address, user.address);
+        await dloopMock.connect(user).redeem(redeemShares, user.address, user.address);
 
         // Get leverage after redeem
         const leverageAfterRedeem = await dloopMock.getCurrentLeverageBps();
@@ -404,23 +350,15 @@ describe.skip("DLoopCoreMock Redeem Tests", function () {
       const user3 = accounts[3];
 
       // Set initial prices
-      await dloopMock.setMockPrice(
-        await collateralToken.getAddress(),
-        ethers.parseUnits("1.2", 8),
-      );
-      await dloopMock.setMockPrice(
-        await debtToken.getAddress(),
-        ethers.parseUnits("0.8", 8),
-      );
+      await dloopMock.setMockPrice(await collateralToken.getAddress(), ethers.parseUnits("1.2", 8));
+      await dloopMock.setMockPrice(await debtToken.getAddress(), ethers.parseUnits("0.8", 8));
 
       // Users deposit
       const depositAmount = ethers.parseEther("100");
       const users = [user1, user2, user3];
 
       for (const user of users) {
-        await collateralToken
-          .connect(user)
-          .approve(await dloopMock.getAddress(), depositAmount);
+        await collateralToken.connect(user).approve(await dloopMock.getAddress(), depositAmount);
         await dloopMock.connect(user).deposit(depositAmount, user.address);
       }
 
@@ -454,22 +392,14 @@ describe.skip("DLoopCoreMock Redeem Tests", function () {
 
       for (const scenario of scenarios) {
         // Change prices
-        await dloopMock.setMockPrice(
-          await collateralToken.getAddress(),
-          scenario.priceChange.collateral,
-        );
-        await dloopMock.setMockPrice(
-          await debtToken.getAddress(),
-          scenario.priceChange.debt,
-        );
+        await dloopMock.setMockPrice(await collateralToken.getAddress(), scenario.priceChange.collateral);
+        await dloopMock.setMockPrice(await debtToken.getAddress(), scenario.priceChange.debt);
 
         // Get leverage before redeem (after price change)
         const _leverageBeforeRedeem = await dloopMock.getCurrentLeverageBps();
 
         // Calculate required debt repayment
-        const _expectedAssets = await dloopMock.previewRedeem(
-          scenario.redeemShares,
-        );
+        const _expectedAssets = await dloopMock.previewRedeem(scenario.redeemShares);
         // const requiredDebtRepayment =
         //   await dloopMock.getRepayAmountThatKeepCurrentLeverage(
         //     await collateralToken.getAddress(),
@@ -482,13 +412,7 @@ describe.skip("DLoopCoreMock Redeem Tests", function () {
         // await debtToken
         //   .connect(scenario.user)
         //   .approve(await dloopMock.getAddress(), requiredDebtRepayment);
-        await dloopMock
-          .connect(scenario.user)
-          .redeem(
-            scenario.redeemShares,
-            scenario.user.address,
-            scenario.user.address,
-          );
+        await dloopMock.connect(scenario.user).redeem(scenario.redeemShares, scenario.user.address, scenario.user.address);
 
         // Get leverage after redeem
         const leverageAfterRedeem = await dloopMock.getCurrentLeverageBps();
@@ -550,37 +474,19 @@ describe.skip("DLoopCoreMock Redeem Tests", function () {
         const userAddress = user.address;
 
         // Set initial prices and make deposit
-        await dloopMock.setMockPrice(
-          await collateralToken.getAddress(),
-          ethers.parseUnits("1.2", 8),
-        );
-        await dloopMock.setMockPrice(
-          await debtToken.getAddress(),
-          ethers.parseUnits("0.8", 8),
-        );
+        await dloopMock.setMockPrice(await collateralToken.getAddress(), ethers.parseUnits("1.2", 8));
+        await dloopMock.setMockPrice(await debtToken.getAddress(), ethers.parseUnits("0.8", 8));
 
-        await collateralToken
-          .connect(user)
-          .approve(await dloopMock.getAddress(), testCase.initialDeposit);
-        await dloopMock
-          .connect(user)
-          .deposit(testCase.initialDeposit, userAddress);
+        await collateralToken.connect(user).approve(await dloopMock.getAddress(), testCase.initialDeposit);
+        await dloopMock.connect(user).deposit(testCase.initialDeposit, userAddress);
 
         // Verify vault is balanced initially
         expect(await dloopMock.isTooImbalanced()).to.be.false;
-        expect(await dloopMock.getCurrentLeverageBps()).to.equal(
-          TARGET_LEVERAGE_BPS,
-        );
+        expect(await dloopMock.getCurrentLeverageBps()).to.equal(TARGET_LEVERAGE_BPS);
 
         // Change prices to create imbalance
-        await dloopMock.setMockPrice(
-          await collateralToken.getAddress(),
-          testCase.priceChangeToImbalance.collateral,
-        );
-        await dloopMock.setMockPrice(
-          await debtToken.getAddress(),
-          testCase.priceChangeToImbalance.debt,
-        );
+        await dloopMock.setMockPrice(await collateralToken.getAddress(), testCase.priceChangeToImbalance.collateral);
+        await dloopMock.setMockPrice(await debtToken.getAddress(), testCase.priceChangeToImbalance.debt);
 
         // Verify vault is now imbalanced
         expect(await dloopMock.isTooImbalanced()).to.be.true;
@@ -588,14 +494,8 @@ describe.skip("DLoopCoreMock Redeem Tests", function () {
 
         // If there's a rebalancing price change, apply it
         if (testCase.priceChangeToRebalance) {
-          await dloopMock.setMockPrice(
-            await collateralToken.getAddress(),
-            testCase.priceChangeToRebalance.collateral,
-          );
-          await dloopMock.setMockPrice(
-            await debtToken.getAddress(),
-            testCase.priceChangeToRebalance.debt,
-          );
+          await dloopMock.setMockPrice(await collateralToken.getAddress(), testCase.priceChangeToRebalance.collateral);
+          await dloopMock.setMockPrice(await debtToken.getAddress(), testCase.priceChangeToRebalance.debt);
 
           // Verify vault is balanced again
           expect(await dloopMock.isTooImbalanced()).to.be.false;
@@ -604,11 +504,7 @@ describe.skip("DLoopCoreMock Redeem Tests", function () {
 
         // Attempt redeem
         if (testCase.shouldFail) {
-          await expect(
-            dloopMock
-              .connect(user)
-              .redeem(testCase.redeemShares, userAddress, userAddress),
-          ).to.be.revertedWithCustomError(
+          await expect(dloopMock.connect(user).redeem(testCase.redeemShares, userAddress, userAddress)).to.be.revertedWithCustomError(
             dloopMock,
             "ERC4626ExceededMaxRedeem",
           );
@@ -617,9 +513,7 @@ describe.skip("DLoopCoreMock Redeem Tests", function () {
           const _leverageBeforeRedeem = await dloopMock.getCurrentLeverageBps();
 
           // Calculate required debt repayment
-          const _expectedAssets = await dloopMock.previewRedeem(
-            testCase.redeemShares,
-          );
+          const _expectedAssets = await dloopMock.previewRedeem(testCase.redeemShares);
           // const requiredDebtRepayment =
           //   await dloopMock.getRepayAmountThatKeepCurrentLeverage(
           //     await collateralToken.getAddress(),
@@ -632,9 +526,7 @@ describe.skip("DLoopCoreMock Redeem Tests", function () {
           //   .connect(user)
           //   .approve(await dloopMock.getAddress(), requiredDebtRepayment);
 
-          const redeemTx = await dloopMock
-            .connect(user)
-            .redeem(testCase.redeemShares, userAddress, userAddress);
+          const redeemTx = await dloopMock.connect(user).redeem(testCase.redeemShares, userAddress, userAddress);
           await redeemTx.wait();
 
           // Get leverage after redeem
@@ -657,19 +549,11 @@ describe.skip("DLoopCoreMock Redeem Tests", function () {
       const userAddress = user.address;
 
       // Set initial prices and make deposit
-      await dloopMock.setMockPrice(
-        await collateralToken.getAddress(),
-        ethers.parseUnits("1.0", 8),
-      );
-      await dloopMock.setMockPrice(
-        await debtToken.getAddress(),
-        ethers.parseUnits("1.0", 8),
-      );
+      await dloopMock.setMockPrice(await collateralToken.getAddress(), ethers.parseUnits("1.0", 8));
+      await dloopMock.setMockPrice(await debtToken.getAddress(), ethers.parseUnits("1.0", 8));
 
       const depositAmount = ethers.parseEther("100");
-      await collateralToken
-        .connect(user)
-        .approve(await dloopMock.getAddress(), depositAmount);
+      await collateralToken.connect(user).approve(await dloopMock.getAddress(), depositAmount);
       await dloopMock.connect(user).deposit(depositAmount, userAddress);
 
       // Extreme price change that creates severe imbalance
@@ -687,11 +571,10 @@ describe.skip("DLoopCoreMock Redeem Tests", function () {
       expect(await dloopMock.maxRedeem(userAddress)).to.equal(0);
 
       // Any redeem attempt should fail
-      await expect(
-        dloopMock
-          .connect(user)
-          .redeem(ethers.parseEther("10"), userAddress, userAddress),
-      ).to.be.revertedWithCustomError(dloopMock, "ERC4626ExceededMaxRedeem");
+      await expect(dloopMock.connect(user).redeem(ethers.parseEther("10"), userAddress, userAddress)).to.be.revertedWithCustomError(
+        dloopMock,
+        "ERC4626ExceededMaxRedeem",
+      );
     });
 
     it("Should handle multiple users when vault becomes imbalanced", async function () {
@@ -699,22 +582,14 @@ describe.skip("DLoopCoreMock Redeem Tests", function () {
       const user2 = accounts[2];
 
       // Set initial prices
-      await dloopMock.setMockPrice(
-        await collateralToken.getAddress(),
-        ethers.parseUnits("1.0", 8),
-      );
-      await dloopMock.setMockPrice(
-        await debtToken.getAddress(),
-        ethers.parseUnits("1.0", 8),
-      );
+      await dloopMock.setMockPrice(await collateralToken.getAddress(), ethers.parseUnits("1.0", 8));
+      await dloopMock.setMockPrice(await debtToken.getAddress(), ethers.parseUnits("1.0", 8));
 
       // Both users deposit
       const depositAmount = ethers.parseEther("100");
 
       for (const user of [user1, user2]) {
-        await collateralToken
-          .connect(user)
-          .approve(await dloopMock.getAddress(), depositAmount);
+        await collateralToken.connect(user).approve(await dloopMock.getAddress(), depositAmount);
         await dloopMock.connect(user).deposit(depositAmount, user.address);
       }
 
@@ -735,17 +610,15 @@ describe.skip("DLoopCoreMock Redeem Tests", function () {
 
       // Both users should be unable to redeem
       const redeemAmount = ethers.parseEther("20");
-      await expect(
-        dloopMock
-          .connect(user1)
-          .redeem(redeemAmount, user1.address, user1.address),
-      ).to.be.revertedWithCustomError(dloopMock, "ERC4626ExceededMaxRedeem");
+      await expect(dloopMock.connect(user1).redeem(redeemAmount, user1.address, user1.address)).to.be.revertedWithCustomError(
+        dloopMock,
+        "ERC4626ExceededMaxRedeem",
+      );
 
-      await expect(
-        dloopMock
-          .connect(user2)
-          .redeem(redeemAmount, user2.address, user2.address),
-      ).to.be.revertedWithCustomError(dloopMock, "ERC4626ExceededMaxRedeem");
+      await expect(dloopMock.connect(user2).redeem(redeemAmount, user2.address, user2.address)).to.be.revertedWithCustomError(
+        dloopMock,
+        "ERC4626ExceededMaxRedeem",
+      );
     });
   });
 
@@ -786,32 +659,22 @@ describe.skip("DLoopCoreMock Redeem Tests", function () {
         const _relayerAddress = relayer.address;
 
         // Set initial prices
-        await dloopMock.setMockPrice(
-          await collateralToken.getAddress(),
-          ethers.parseUnits("1.2", 8),
-        );
-        await dloopMock.setMockPrice(
-          await debtToken.getAddress(),
-          ethers.parseUnits("0.8", 8),
-        );
+        await dloopMock.setMockPrice(await collateralToken.getAddress(), ethers.parseUnits("1.2", 8));
+        await dloopMock.setMockPrice(await debtToken.getAddress(), ethers.parseUnits("0.8", 8));
 
         // Ensure relayer has no debt tokens and no allowance initially
         // Reset relayer's debt token balance to 0 for clean test
         const relayerDebtBalance = await debtToken.balanceOf(_relayerAddress);
 
         if (relayerDebtBalance > 0) {
-          await debtToken
-            .connect(relayer)
-            .transfer(accounts[0].address, relayerDebtBalance);
+          await debtToken.connect(relayer).transfer(accounts[0].address, relayerDebtBalance);
         }
 
         // Reset relayer balance for test (since all users get tokens in setup)
         const relayerBalance = await debtToken.balanceOf(_relayerAddress);
 
         if (relayerBalance > 0) {
-          await debtToken
-            .connect(relayer)
-            .transfer(accounts[0].address, relayerBalance);
+          await debtToken.connect(relayer).transfer(accounts[0].address, relayerBalance);
         }
         expect(await debtToken.balanceOf(_relayerAddress)).to.equal(0);
 
@@ -827,39 +690,25 @@ describe.skip("DLoopCoreMock Redeem Tests", function () {
         ).to.equal(0);
 
         // Owner makes initial deposit
-        await collateralToken
-          .connect(owner)
-          .approve(await dloopMock.getAddress(), testCase.initialDeposit);
+        await collateralToken.connect(owner).approve(await dloopMock.getAddress(), testCase.initialDeposit);
 
-        const depositTx = await dloopMock
-          .connect(owner)
-          .deposit(testCase.initialDeposit, ownerAddress);
+        const depositTx = await dloopMock.connect(owner).deposit(testCase.initialDeposit, ownerAddress);
         await depositTx.wait();
 
         // Verify initial state after deposit
         const initialShares = await dloopMock.balanceOf(ownerAddress);
         expect(initialShares).to.equal(testCase.initialDeposit);
-        expect(await dloopMock.getCurrentLeverageBps()).to.equal(
-          TARGET_LEVERAGE_BPS,
-        );
+        expect(await dloopMock.getCurrentLeverageBps()).to.equal(TARGET_LEVERAGE_BPS);
 
         // Apply price changes if specified
         if (testCase.priceChange) {
-          await dloopMock.setMockPrice(
-            await collateralToken.getAddress(),
-            testCase.priceChange.collateral,
-          );
-          await dloopMock.setMockPrice(
-            await debtToken.getAddress(),
-            testCase.priceChange.debt,
-          );
+          await dloopMock.setMockPrice(await collateralToken.getAddress(), testCase.priceChange.collateral);
+          await dloopMock.setMockPrice(await debtToken.getAddress(), testCase.priceChange.debt);
         }
 
         // Calculate expected values for redeem
         const _leverageBeforeRedeem = await dloopMock.getCurrentLeverageBps();
-        const _expectedAssets = await dloopMock.previewRedeem(
-          testCase.sharesToRedeem,
-        );
+        const _expectedAssets = await dloopMock.previewRedeem(testCase.sharesToRedeem);
         // const requiredDebtRepayment =
         //   await dloopMock.getRepayAmountThatKeepCurrentLeverage(
         //     await collateralToken.getAddress(),
@@ -897,8 +746,7 @@ describe.skip("DLoopCoreMock Redeem Tests", function () {
         ).to.equal(0);
 
         // Track balances before delegated redeem
-        const collateralBalanceBefore =
-          await collateralToken.balanceOf(ownerAddress);
+        const collateralBalanceBefore = await collateralToken.balanceOf(ownerAddress);
         const debtBalanceBefore = await debtToken.balanceOf(ownerAddress);
         const sharesBefore = await dloopMock.balanceOf(ownerAddress);
         const relayerCollateralBefore =
@@ -907,22 +755,14 @@ describe.skip("DLoopCoreMock Redeem Tests", function () {
         // Step 3: Relayer performs delegated redeem on behalf of owner
         // AUDIT ISSUE: This should fail because the contract tries to pull debt tokens
         // from caller (relayer) instead of owner, even though owner has approved the vault
-        await expect(
-          dloopMock
-            .connect(relayer)
-            .redeem(testCase.sharesToRedeem, ownerAddress, ownerAddress),
-        ).to.be.revertedWithCustomError(
+        await expect(dloopMock.connect(relayer).redeem(testCase.sharesToRedeem, ownerAddress, ownerAddress)).to.be.revertedWithCustomError(
           dloopMock,
           "InsufficientAllowanceOfDebtAssetToRepay",
         );
 
         // Verify balances remain unchanged after failed delegated redeem
-        expect(await collateralToken.balanceOf(ownerAddress)).to.equal(
-          collateralBalanceBefore,
-        );
-        expect(await debtToken.balanceOf(ownerAddress)).to.equal(
-          debtBalanceBefore,
-        );
+        expect(await collateralToken.balanceOf(ownerAddress)).to.equal(collateralBalanceBefore);
+        expect(await debtToken.balanceOf(ownerAddress)).to.equal(debtBalanceBefore);
         expect(await dloopMock.balanceOf(ownerAddress)).to.equal(sharesBefore);
         expect(await collateralToken.balanceOf(_relayerAddress)).to.equal(
           relayerCollateralBefore,
@@ -939,19 +779,11 @@ describe.skip("DLoopCoreMock Redeem Tests", function () {
       const sharesToRedeem = ethers.parseEther("40");
 
       // Set prices
-      await dloopMock.setMockPrice(
-        await collateralToken.getAddress(),
-        ethers.parseUnits("1.2", 8),
-      );
-      await dloopMock.setMockPrice(
-        await debtToken.getAddress(),
-        ethers.parseUnits("0.8", 8),
-      );
+      await dloopMock.setMockPrice(await collateralToken.getAddress(), ethers.parseUnits("1.2", 8));
+      await dloopMock.setMockPrice(await debtToken.getAddress(), ethers.parseUnits("0.8", 8));
 
       // Owner makes deposit
-      await collateralToken
-        .connect(owner)
-        .approve(await dloopMock.getAddress(), depositAmount);
+      await collateralToken.connect(owner).approve(await dloopMock.getAddress(), depositAmount);
       await dloopMock.connect(owner).deposit(depositAmount, ownerAddress);
 
       // Calculate required debt repayment
@@ -1031,18 +863,10 @@ describe.skip("DLoopCoreMock Redeem Tests", function () {
       const sharesToRedeem = ethers.parseEther("30");
 
       // Set prices and make deposit
-      await dloopMock.setMockPrice(
-        await collateralToken.getAddress(),
-        ethers.parseUnits("1.2", 8),
-      );
-      await dloopMock.setMockPrice(
-        await debtToken.getAddress(),
-        ethers.parseUnits("0.8", 8),
-      );
+      await dloopMock.setMockPrice(await collateralToken.getAddress(), ethers.parseUnits("1.2", 8));
+      await dloopMock.setMockPrice(await debtToken.getAddress(), ethers.parseUnits("0.8", 8));
 
-      await collateralToken
-        .connect(owner)
-        .approve(await dloopMock.getAddress(), depositAmount);
+      await collateralToken.connect(owner).approve(await dloopMock.getAddress(), depositAmount);
       await dloopMock.connect(owner).deposit(depositAmount, ownerAddress);
 
       // Owner approves shares to relayer
@@ -1079,11 +903,7 @@ describe.skip("DLoopCoreMock Redeem Tests", function () {
       ).to.equal(0);
 
       // Delegated redeem should fail due to insufficient allowance
-      await expect(
-        dloopMock
-          .connect(relayer)
-          .redeem(sharesToRedeem, ownerAddress, ownerAddress),
-      ).to.be.revertedWithCustomError(
+      await expect(dloopMock.connect(relayer).redeem(sharesToRedeem, ownerAddress, ownerAddress)).to.be.revertedWithCustomError(
         dloopMock,
         "InsufficientAllowanceOfDebtAssetToRepay",
       );
@@ -1098,18 +918,10 @@ describe.skip("DLoopCoreMock Redeem Tests", function () {
       const sharesToRedeem = ethers.parseEther("30");
 
       // Set prices and make deposit
-      await dloopMock.setMockPrice(
-        await collateralToken.getAddress(),
-        ethers.parseUnits("1.2", 8),
-      );
-      await dloopMock.setMockPrice(
-        await debtToken.getAddress(),
-        ethers.parseUnits("0.8", 8),
-      );
+      await dloopMock.setMockPrice(await collateralToken.getAddress(), ethers.parseUnits("1.2", 8));
+      await dloopMock.setMockPrice(await debtToken.getAddress(), ethers.parseUnits("0.8", 8));
 
-      await collateralToken
-        .connect(owner)
-        .approve(await dloopMock.getAddress(), depositAmount);
+      await collateralToken.connect(owner).approve(await dloopMock.getAddress(), depositAmount);
       await dloopMock.connect(owner).deposit(depositAmount, ownerAddress);
 
       // Owner approves shares to relayer
@@ -1146,11 +958,10 @@ describe.skip("DLoopCoreMock Redeem Tests", function () {
       // ).to.be.gte(requiredDebtRepayment);
 
       // Delegated redeem should fail due to insufficient balance
-      await expect(
-        dloopMock
-          .connect(relayer)
-          .redeem(sharesToRedeem, ownerAddress, ownerAddress),
-      ).to.be.revertedWithCustomError(debtToken, "ERC20InsufficientBalance");
+      await expect(dloopMock.connect(relayer).redeem(sharesToRedeem, ownerAddress, ownerAddress)).to.be.revertedWithCustomError(
+        debtToken,
+        "ERC20InsufficientBalance",
+      );
     });
 
     it("Should fail delegated redeem when relayer has insufficient share allowance", async function () {
@@ -1162,18 +973,10 @@ describe.skip("DLoopCoreMock Redeem Tests", function () {
       const sharesToRedeem = ethers.parseEther("30");
 
       // Set prices and make deposit
-      await dloopMock.setMockPrice(
-        await collateralToken.getAddress(),
-        ethers.parseUnits("1.2", 8),
-      );
-      await dloopMock.setMockPrice(
-        await debtToken.getAddress(),
-        ethers.parseUnits("0.8", 8),
-      );
+      await dloopMock.setMockPrice(await collateralToken.getAddress(), ethers.parseUnits("1.2", 8));
+      await dloopMock.setMockPrice(await debtToken.getAddress(), ethers.parseUnits("0.8", 8));
 
-      await collateralToken
-        .connect(owner)
-        .approve(await dloopMock.getAddress(), depositAmount);
+      await collateralToken.connect(owner).approve(await dloopMock.getAddress(), depositAmount);
       await dloopMock.connect(owner).deposit(depositAmount, ownerAddress);
 
       // Calculate required debt repayment
@@ -1203,11 +1006,10 @@ describe.skip("DLoopCoreMock Redeem Tests", function () {
       );
 
       // Delegated redeem should fail due to insufficient share allowance
-      await expect(
-        dloopMock
-          .connect(relayer)
-          .redeem(sharesToRedeem, ownerAddress, ownerAddress),
-      ).to.be.revertedWithCustomError(dloopMock, "ERC20InsufficientAllowance");
+      await expect(dloopMock.connect(relayer).redeem(sharesToRedeem, ownerAddress, ownerAddress)).to.be.revertedWithCustomError(
+        dloopMock,
+        "ERC20InsufficientAllowance",
+      );
     });
   });
 
@@ -1217,28 +1019,19 @@ describe.skip("DLoopCoreMock Redeem Tests", function () {
       const userAddress = user.address;
 
       // Set prices and make small deposit
-      await dloopMock.setMockPrice(
-        await collateralToken.getAddress(),
-        ethers.parseUnits("1.2", 8),
-      );
-      await dloopMock.setMockPrice(
-        await debtToken.getAddress(),
-        ethers.parseUnits("0.8", 8),
-      );
+      await dloopMock.setMockPrice(await collateralToken.getAddress(), ethers.parseUnits("1.2", 8));
+      await dloopMock.setMockPrice(await debtToken.getAddress(), ethers.parseUnits("0.8", 8));
 
       const depositAmount = ethers.parseEther("50");
-      await collateralToken
-        .connect(user)
-        .approve(await dloopMock.getAddress(), depositAmount);
+      await collateralToken.connect(user).approve(await dloopMock.getAddress(), depositAmount);
       await dloopMock.connect(user).deposit(depositAmount, userAddress);
 
       // Try to redeem more than owned
       const excessiveRedeemAmount = ethers.parseEther("100");
-      await expect(
-        dloopMock
-          .connect(user)
-          .redeem(excessiveRedeemAmount, userAddress, userAddress),
-      ).to.be.revertedWithCustomError(dloopMock, "ERC4626ExceededMaxRedeem");
+      await expect(dloopMock.connect(user).redeem(excessiveRedeemAmount, userAddress, userAddress)).to.be.revertedWithCustomError(
+        dloopMock,
+        "ERC4626ExceededMaxRedeem",
+      );
     });
 
     it("Should revert when insufficient debt token allowance for repayment", async function () {
@@ -1246,19 +1039,11 @@ describe.skip("DLoopCoreMock Redeem Tests", function () {
       const userAddress = user.address;
 
       // Set prices and make deposit
-      await dloopMock.setMockPrice(
-        await collateralToken.getAddress(),
-        ethers.parseUnits("1.2", 8),
-      );
-      await dloopMock.setMockPrice(
-        await debtToken.getAddress(),
-        ethers.parseUnits("0.8", 8),
-      );
+      await dloopMock.setMockPrice(await collateralToken.getAddress(), ethers.parseUnits("1.2", 8));
+      await dloopMock.setMockPrice(await debtToken.getAddress(), ethers.parseUnits("0.8", 8));
 
       const depositAmount = ethers.parseEther("100");
-      await collateralToken
-        .connect(user)
-        .approve(await dloopMock.getAddress(), depositAmount);
+      await collateralToken.connect(user).approve(await dloopMock.getAddress(), depositAmount);
       await dloopMock.connect(user).deposit(depositAmount, userAddress);
 
       // Try to redeem without sufficient debt token allowance
@@ -1272,9 +1057,7 @@ describe.skip("DLoopCoreMock Redeem Tests", function () {
       await debtToken.connect(user).approve(await dloopMock.getAddress(), 0);
 
       // Do not approve debt tokens for repayment
-      await expect(
-        dloopMock.connect(user).redeem(redeemShares, userAddress, userAddress),
-      ).to.be.revertedWithCustomError(
+      await expect(dloopMock.connect(user).redeem(redeemShares, userAddress, userAddress)).to.be.revertedWithCustomError(
         dloopMock,
         "InsufficientAllowanceOfDebtAssetToRepay",
       );
@@ -1285,26 +1068,16 @@ describe.skip("DLoopCoreMock Redeem Tests", function () {
       const userAddress = user.address;
 
       // Set prices for exact target leverage
-      await dloopMock.setMockPrice(
-        await collateralToken.getAddress(),
-        ethers.parseUnits("1.2", 8),
-      );
-      await dloopMock.setMockPrice(
-        await debtToken.getAddress(),
-        ethers.parseUnits("0.8", 8),
-      );
+      await dloopMock.setMockPrice(await collateralToken.getAddress(), ethers.parseUnits("1.2", 8));
+      await dloopMock.setMockPrice(await debtToken.getAddress(), ethers.parseUnits("0.8", 8));
 
       // Deposit to establish target leverage position
       const depositAmount = ethers.parseEther("100");
-      await collateralToken
-        .connect(user)
-        .approve(await dloopMock.getAddress(), depositAmount);
+      await collateralToken.connect(user).approve(await dloopMock.getAddress(), depositAmount);
       await dloopMock.connect(user).deposit(depositAmount, userAddress);
 
       // Verify we're at target leverage
-      expect(await dloopMock.getCurrentLeverageBps()).to.equal(
-        TARGET_LEVERAGE_BPS,
-      );
+      expect(await dloopMock.getCurrentLeverageBps()).to.equal(TARGET_LEVERAGE_BPS);
 
       // Get leverage before redeem
       const _leverageBeforeRedeem = await dloopMock.getCurrentLeverageBps();
@@ -1324,9 +1097,7 @@ describe.skip("DLoopCoreMock Redeem Tests", function () {
       //   .connect(user)
       //   .approve(await dloopMock.getAddress(), requiredDebtRepayment);
 
-      await expect(
-        dloopMock.connect(user).redeem(redeemShares, userAddress, userAddress),
-      ).to.not.be.reverted;
+      await expect(dloopMock.connect(user).redeem(redeemShares, userAddress, userAddress)).to.not.be.reverted;
 
       // Get leverage after redeem
       const leverageAfterRedeem = await dloopMock.getCurrentLeverageBps();
@@ -1343,19 +1114,11 @@ describe.skip("DLoopCoreMock Redeem Tests", function () {
       const userAddress = user.address;
 
       // Set prices and make deposit
-      await dloopMock.setMockPrice(
-        await collateralToken.getAddress(),
-        ethers.parseUnits("1.2", 8),
-      );
-      await dloopMock.setMockPrice(
-        await debtToken.getAddress(),
-        ethers.parseUnits("0.8", 8),
-      );
+      await dloopMock.setMockPrice(await collateralToken.getAddress(), ethers.parseUnits("1.2", 8));
+      await dloopMock.setMockPrice(await debtToken.getAddress(), ethers.parseUnits("0.8", 8));
 
       const depositAmount = ethers.parseEther("100");
-      await collateralToken
-        .connect(user)
-        .approve(await dloopMock.getAddress(), depositAmount);
+      await collateralToken.connect(user).approve(await dloopMock.getAddress(), depositAmount);
       await dloopMock.connect(user).deposit(depositAmount, userAddress);
 
       // Track balances before small redeem
@@ -1383,9 +1146,7 @@ describe.skip("DLoopCoreMock Redeem Tests", function () {
       //   .approve(await dloopMock.getAddress(), requiredDebtRepayment);
 
       // Redeem small shares
-      const tx = await dloopMock
-        .connect(user)
-        .redeem(smallShares, userAddress, userAddress);
+      const tx = await dloopMock.connect(user).redeem(smallShares, userAddress, userAddress);
 
       // Should emit event with small values
       await expect(tx)

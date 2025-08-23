@@ -17,18 +17,18 @@
 
 pragma solidity ^0.8.20;
 
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-import {ERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
-import {BasisPointConstants} from "contracts/common/BasisPointConstants.sol";
-import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
-import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
+import { ERC20, SafeERC20 } from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
+import { BasisPointConstants } from "contracts/common/BasisPointConstants.sol";
+import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
+import { ReentrancyGuard } from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
-import {IERC3156FlashBorrower} from "./interface/flashloan/IERC3156FlashBorrower.sol";
-import {IERC3156FlashLender} from "./interface/flashloan/IERC3156FlashLender.sol";
-import {DLoopCoreBase} from "../core/DLoopCoreBase.sol";
-import {SwappableVault} from "contracts/common/SwappableVault.sol";
-import {RescuableVault} from "contracts/common/RescuableVault.sol";
-import {SharedLogic} from "./helper/SharedLogic.sol";
+import { IERC3156FlashBorrower } from "./interface/flashloan/IERC3156FlashBorrower.sol";
+import { IERC3156FlashLender } from "./interface/flashloan/IERC3156FlashLender.sol";
+import { DLoopCoreBase } from "../core/DLoopCoreBase.sol";
+import { SwappableVault } from "contracts/common/SwappableVault.sol";
+import { RescuableVault } from "contracts/common/RescuableVault.sol";
+import { SharedLogic } from "./helper/SharedLogic.sol";
 
 /**
  * @title DLoopRedeemerBase
@@ -39,19 +39,12 @@ import {SharedLogic} from "./helper/SharedLogic.sol";
  *      - In the final state, the user has 100 WETH (300 - 200), and the core contract has 0 WETH as collateral, 0 dUSD as debt
  *      - NOTE: This contract only support redeem() from DLoopCore contracts, not withdraw()
  */
-abstract contract DLoopRedeemerBase is
-    IERC3156FlashBorrower,
-    Ownable,
-    ReentrancyGuard,
-    SwappableVault,
-    RescuableVault
-{
+abstract contract DLoopRedeemerBase is IERC3156FlashBorrower, Ownable, ReentrancyGuard, SwappableVault, RescuableVault {
     using SafeERC20 for ERC20;
 
     /* Constants */
 
-    bytes32 public constant FLASHLOAN_CALLBACK =
-        keccak256("ERC3156FlashBorrower.onFlashLoan");
+    bytes32 public constant FLASHLOAN_CALLBACK = keccak256("ERC3156FlashBorrower.onFlashLoan");
 
     /* Core state */
 
@@ -61,19 +54,10 @@ abstract contract DLoopRedeemerBase is
 
     error UnknownLender(address msgSender, address flashLender);
     error UnknownInitiator(address initiator, address thisContract);
-    error IncompatibleDLoopCoreDebtToken(
-        address currentDebtToken,
-        address dLoopCoreDebtToken
-    );
-    error SharesNotDecreasedAfterFlashLoan(
-        uint256 sharesBeforeWithdraw,
-        uint256 sharesAfterWithdraw
-    );
+    error IncompatibleDLoopCoreDebtToken(address currentDebtToken, address dLoopCoreDebtToken);
+    error SharesNotDecreasedAfterFlashLoan(uint256 sharesBeforeWithdraw, uint256 sharesAfterWithdraw);
     error InsufficientOutput(uint256 received, uint256 expected);
-    error UnexpectedIncreaseInDebtToken(
-        uint256 debtTokenBalanceBefore,
-        uint256 debtTokenBalanceAfter
-    );
+    error UnexpectedIncreaseInDebtToken(uint256 debtTokenBalanceBefore, uint256 debtTokenBalanceAfter);
     error UnexpectedDecreaseInCollateralToken(
         uint256 collateralTokenBalanceBefore,
         uint256 collateralTokenBalanceAfter
@@ -124,13 +108,7 @@ abstract contract DLoopRedeemerBase is
      * @dev Gets the restricted rescue tokens
      * @return restrictedTokens Restricted rescue tokens
      */
-    function getRestrictedRescueTokens()
-        public
-        view
-        virtual
-        override
-        returns (address[] memory restrictedTokens)
-    {
+    function getRestrictedRescueTokens() public view virtual override returns (address[] memory restrictedTokens) {
         // Return empty array as we no longer handle leftover collateral tokens
         return new address[](0);
     }
@@ -153,10 +131,7 @@ abstract contract DLoopRedeemerBase is
             revert SlippageBpsCannotExceedOneHundredPercent(slippageBps);
         }
         uint256 expectedLeverageCollateral = dLoopCore.previewRedeem(shares);
-        uint256 unleveragedCollateral = getUnleveragedAssets(
-            expectedLeverageCollateral,
-            dLoopCore
-        );
+        uint256 unleveragedCollateral = getUnleveragedAssets(expectedLeverageCollateral, dLoopCore);
         return
             Math.mulDiv(
                 unleveragedCollateral,
@@ -171,10 +146,7 @@ abstract contract DLoopRedeemerBase is
      * @param dLoopCore Address of the DLoopCore contract
      * @return unleveragedAssets Amount of unleveraged assets
      */
-    function getUnleveragedAssets(
-        uint256 leveragedAssets,
-        DLoopCoreBase dLoopCore
-    ) public view returns (uint256) {
+    function getUnleveragedAssets(uint256 leveragedAssets, DLoopCoreBase dLoopCore) public view returns (uint256) {
         return SharedLogic.getUnleveragedAssets(leveragedAssets, dLoopCore);
     }
 
@@ -196,12 +168,7 @@ abstract contract DLoopRedeemerBase is
         DLoopCoreBase dLoopCore
     ) public nonReentrant returns (uint256 assets) {
         // Transfer the shares to the periphery contract to prepare for the redeeming process
-        SafeERC20.safeTransferFrom(
-            dLoopCore,
-            msg.sender,
-            address(this),
-            shares
-        );
+        SafeERC20.safeTransferFrom(dLoopCore, msg.sender, address(this), shares);
 
         // Do not need to transfer the debt token to repay the lending pool, as it will be done with flash loan
 
@@ -241,56 +208,34 @@ abstract contract DLoopRedeemerBase is
          */
 
         // Create the flash loan params data
-        FlashLoanParams memory params = FlashLoanParams(
-            shares,
-            collateralToDebtTokenSwapData,
-            dLoopCore
-        );
+        FlashLoanParams memory params = FlashLoanParams(shares, collateralToDebtTokenSwapData, dLoopCore);
         bytes memory data = _encodeParamsToData(params);
         ERC20 collateralToken = dLoopCore.collateralToken();
         ERC20 debtToken = dLoopCore.debtToken();
-        uint256 maxFlashLoanAmount = flashLender.maxFlashLoan(
-            address(debtToken)
-        );
+        uint256 maxFlashLoanAmount = flashLender.maxFlashLoan(address(debtToken));
 
         // This value is used to calculate the shares burned after the flash loan
         uint256 sharesBeforeRedeem = dLoopCore.balanceOf(address(this));
 
         // This value is used to calculate the received collateral token amount after the flash loan
-        uint256 collateralTokenBalanceBefore = collateralToken.balanceOf(
-            address(this)
-        );
+        uint256 collateralTokenBalanceBefore = collateralToken.balanceOf(address(this));
 
         // Approve the flash lender to spend the flash loan amount of debt token from this contract
         debtToken.forceApprove(
             address(flashLender),
-            maxFlashLoanAmount +
-                flashLender.flashFee(address(debtToken), maxFlashLoanAmount)
+            maxFlashLoanAmount + flashLender.flashFee(address(debtToken), maxFlashLoanAmount)
         );
 
         // Make sure the flashLender is the same as the debt token
         if (address(flashLender) != address(debtToken)) {
-            revert FlashLenderNotSameAsDebtToken(
-                address(flashLender),
-                address(debtToken)
-            );
+            revert FlashLenderNotSameAsDebtToken(address(flashLender), address(debtToken));
         }
 
         // The main logic will be done in the onFlashLoan function
-        flashLender.flashLoan(
-            this,
-            address(debtToken),
-            maxFlashLoanAmount,
-            data
-        );
+        flashLender.flashLoan(this, address(debtToken), maxFlashLoanAmount, data);
 
         // Validate shares burned correctly
-        _validateSharesBurned(
-            dLoopCore,
-            address(this),
-            shares,
-            sharesBeforeRedeem
-        );
+        _validateSharesBurned(dLoopCore, address(this), shares, sharesBeforeRedeem);
 
         // Finalize redeem and transfer assets to receiver
         return
@@ -322,10 +267,8 @@ abstract contract DLoopRedeemerBase is
         // function, which is already protected by nonReentrant
         // Moreover, this function is only be able to be called by the address(this) (check the initiator condition)
         // thus even though the flash loan is public and not protected by nonReentrant, it is still safe
-        if (msg.sender != address(flashLender))
-            revert UnknownLender(msg.sender, address(flashLender));
-        if (initiator != address(this))
-            revert UnknownInitiator(initiator, address(this));
+        if (msg.sender != address(flashLender)) revert UnknownLender(msg.sender, address(flashLender));
+        if (initiator != address(this)) revert UnknownInitiator(initiator, address(this));
 
         // Decode the flash loan params data
         FlashLoanParams memory flashLoanParams = _decodeDataToParams(data);
@@ -334,8 +277,7 @@ abstract contract DLoopRedeemerBase is
         ERC20 debtToken = dLoopCore.debtToken();
 
         // Make sure the input dLoopCore is compatible with this periphery contract
-        if (token != address(debtToken))
-            revert IncompatibleDLoopCoreDebtToken(token, address(debtToken));
+        if (token != address(debtToken)) revert IncompatibleDLoopCoreDebtToken(token, address(debtToken));
 
         // This value is used to calculate the debt token was used from the flash loan
         uint256 debtTokenBalanceBefore = debtToken.balanceOf(address(this));
@@ -366,10 +308,7 @@ abstract contract DLoopRedeemerBase is
         // Calculate the debt token was used from the flash loan
         uint256 debtTokenBalanceAfter = debtToken.balanceOf(address(this));
         if (debtTokenBalanceAfter > debtTokenBalanceBefore) {
-            revert UnexpectedIncreaseInDebtToken(
-                debtTokenBalanceBefore,
-                debtTokenBalanceAfter
-            );
+            revert UnexpectedIncreaseInDebtToken(debtTokenBalanceBefore, debtTokenBalanceAfter);
         }
         uint256 debtTokenUsed = debtTokenBalanceBefore - debtTokenBalanceAfter;
 
@@ -419,10 +358,7 @@ abstract contract DLoopRedeemerBase is
         // Check if the shares decreased after the flash loan
         uint256 sharesAfterRedeem = dLoopCore.balanceOf(owner);
         if (sharesAfterRedeem >= sharesBeforeRedeem) {
-            revert SharesNotDecreasedAfterFlashLoan(
-                sharesBeforeRedeem,
-                sharesAfterRedeem
-            );
+            revert SharesNotDecreasedAfterFlashLoan(sharesBeforeRedeem, sharesAfterRedeem);
         }
 
         // Make sure the burned shares is exactly the shares amount
@@ -447,9 +383,7 @@ abstract contract DLoopRedeemerBase is
         uint256 minOutputCollateralAmount
     ) internal returns (uint256 receivedCollateralTokenAmount) {
         // Collateral balance after the flash loan
-        uint256 collateralTokenBalanceAfter = collateralToken.balanceOf(
-            address(this)
-        );
+        uint256 collateralTokenBalanceAfter = collateralToken.balanceOf(address(this));
 
         // Calculate the received collateral token amount after the flash loan
         if (collateralTokenBalanceAfter <= collateralTokenBalanceBefore) {
@@ -461,9 +395,7 @@ abstract contract DLoopRedeemerBase is
 
         // Make sure the received collateral token amount is not less than the minimum output collateral amount
         // for slippage protection
-        receivedCollateralTokenAmount =
-            collateralTokenBalanceAfter -
-            collateralTokenBalanceBefore;
+        receivedCollateralTokenAmount = collateralTokenBalanceAfter - collateralTokenBalanceBefore;
         if (receivedCollateralTokenAmount < minOutputCollateralAmount) {
             revert WithdrawnCollateralTokenAmountNotMetMinReceiveAmount(
                 receivedCollateralTokenAmount,
@@ -481,11 +413,7 @@ abstract contract DLoopRedeemerBase is
         uint256 leftoverAmount = collateralToken.balanceOf(address(this));
         if (leftoverAmount > 0) {
             collateralToken.safeTransfer(receiver, leftoverAmount);
-            emit LeftoverCollateralTokensTransferred(
-                address(collateralToken),
-                leftoverAmount,
-                receiver
-            );
+            emit LeftoverCollateralTokensTransferred(address(collateralToken), leftoverAmount, receiver);
         }
     }
 
@@ -496,9 +424,7 @@ abstract contract DLoopRedeemerBase is
      * @param _flashLoanParams Flash loan parameters
      * @return data Encoded data
      */
-    function _encodeParamsToData(
-        FlashLoanParams memory _flashLoanParams
-    ) internal pure returns (bytes memory data) {
+    function _encodeParamsToData(FlashLoanParams memory _flashLoanParams) internal pure returns (bytes memory data) {
         data = abi.encode(
             _flashLoanParams.shares,
             _flashLoanParams.collateralToDebtTokenSwapData,
@@ -511,13 +437,8 @@ abstract contract DLoopRedeemerBase is
      * @param data Encoded data
      * @return _flashLoanParams Decoded flash loan parameters
      */
-    function _decodeDataToParams(
-        bytes memory data
-    ) internal pure returns (FlashLoanParams memory _flashLoanParams) {
-        (
-            _flashLoanParams.shares,
-            _flashLoanParams.collateralToDebtTokenSwapData,
-            _flashLoanParams.dLoopCore
-        ) = abi.decode(data, (uint256, bytes, DLoopCoreBase));
+    function _decodeDataToParams(bytes memory data) internal pure returns (FlashLoanParams memory _flashLoanParams) {
+        (_flashLoanParams.shares, _flashLoanParams.collateralToDebtTokenSwapData, _flashLoanParams.dLoopCore) = abi
+            .decode(data, (uint256, bytes, DLoopCoreBase));
     }
 }

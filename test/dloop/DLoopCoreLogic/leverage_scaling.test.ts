@@ -82,10 +82,7 @@ describe("DLoopCoreLogic - Leverage Scaling", () => {
     for (const tc of cases) {
       it(tc.name, async () => {
         const { harness } = await deployHarness();
-        const res = await harness.getUnleveragedAssetsWithLeveragePublic(
-          tc.leveraged,
-          Number(tc.leverage),
-        );
+        const res = await harness.getUnleveragedAssetsWithLeveragePublic(tc.leveraged, Number(tc.leverage));
         expect(res).to.equal(tc.expected);
       });
     }
@@ -148,10 +145,7 @@ describe("DLoopCoreLogic - Leverage Scaling", () => {
     for (const tc of cases) {
       it(tc.name, async () => {
         const { harness } = await deployHarness();
-        const res = await harness.getLeveragedAssetsWithLeveragePublic(
-          tc.assets,
-          Number(tc.leverage),
-        );
+        const res = await harness.getLeveragedAssetsWithLeveragePublic(tc.assets, Number(tc.leverage));
         expect(res).to.equal(tc.expected);
       });
     }

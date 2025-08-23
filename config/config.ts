@@ -11,9 +11,7 @@ import { Config } from "./types";
  * @param hre - Hardhat Runtime Environment
  * @returns The configuration for the network
  */
-export async function getConfig(
-  hre: HardhatRuntimeEnvironment,
-): Promise<Config> {
+export async function getConfig(hre: HardhatRuntimeEnvironment): Promise<Config> {
   switch (hre.network.name) {
     case "sonic_testnet":
       return getSonicTestNetConfig(hre);

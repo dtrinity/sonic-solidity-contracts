@@ -7,24 +7,16 @@ import {
   USD_REDSTONE_COMPOSITE_WRAPPER_WITH_THRESHOLDING_ID,
   USD_REDSTONE_WRAPPER_WITH_THRESHOLDING_ID,
 } from "../../typescript/deploy-ids";
-import {
-  setupRedstoneCompositeFeedsForAssets,
-  setupRedstoneSimpleFeedsForAssets,
-} from "../../typescript/dlend/setup-oracle";
+import { setupRedstoneCompositeFeedsForAssets, setupRedstoneSimpleFeedsForAssets } from "../../typescript/dlend/setup-oracle";
 
-const func: DeployFunction = async function (
-  hre: HardhatRuntimeEnvironment,
-): Promise<boolean> {
+const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment): Promise<boolean> {
   const { deployer } = await hre.getNamedAccounts();
   const config = await getConfig(hre);
 
   // Define the assets to setup - categorized by feed type
   const compositeFeedAssets = [config.tokenAddresses.wstkscETH].filter(Boolean);
 
-  const simpleFeedAssets = [
-    config.tokenAddresses.WETH,
-    config.tokenAddresses.scETH,
-  ].filter(Boolean);
+  const simpleFeedAssets = [config.tokenAddresses.WETH, config.tokenAddresses.scETH].filter(Boolean);
 
   if (compositeFeedAssets.length === 0 && simpleFeedAssets.length === 0) {
     console.log("No assets configured for oracle feed setup. Exiting.");
@@ -32,22 +24,15 @@ const func: DeployFunction = async function (
   }
 
   const deployerSigner = await hre.ethers.getSigner(deployer);
-  const oracleAggregatorDeployment = await hre.deployments.get(
-    USD_ORACLE_AGGREGATOR_ID,
-  );
+  const oracleAggregatorDeployment = await hre.deployments.get(USD_ORACLE_AGGREGATOR_ID);
 
   if (!oracleAggregatorDeployment) {
     throw new Error("USD OracleAggregator deployment not found");
   }
 
-  const oracleAggregator = await hre.ethers.getContractAt(
-    "OracleAggregator",
-    oracleAggregatorDeployment.address,
-    deployerSigner,
-  );
+  const oracleAggregator = await hre.ethers.getContractAt("OracleAggregator", oracleAggregatorDeployment.address, deployerSigner);
 
-  const baseCurrencyUnit =
-    BigInt(10) ** BigInt(config.oracleAggregators.USD.priceDecimals);
+  const baseCurrencyUnit = BigInt(10) ** BigInt(config.oracleAggregators.USD.priceDecimals);
 
   // ETH price range for sanity checks
   const ETH_MIN_PRICE = 1000;
@@ -55,15 +40,10 @@ const func: DeployFunction = async function (
 
   // Setup composite feeds
   if (compositeFeedAssets.length > 0) {
-    const { address: redstoneCompositeWrapperAddress } =
-      await hre.deployments.get(
-        USD_REDSTONE_COMPOSITE_WRAPPER_WITH_THRESHOLDING_ID,
-      );
+    const { address: redstoneCompositeWrapperAddress } = await hre.deployments.get(USD_REDSTONE_COMPOSITE_WRAPPER_WITH_THRESHOLDING_ID);
 
     if (!redstoneCompositeWrapperAddress) {
-      throw new Error(
-        "RedstoneChainlinkCompositeWrapperWithThresholding artifact not found",
-      );
+      throw new Error("RedstoneChainlinkCompositeWrapperWithThresholding artifact not found");
     }
 
     const redstoneCompositeWrapper = await hre.ethers.getContractAt(
@@ -72,9 +52,7 @@ const func: DeployFunction = async function (
       deployerSigner,
     );
 
-    console.log(
-      `🔮 Setting up composite feeds for ${compositeFeedAssets.length} assets...`,
-    );
+    console.log(`🔮 Setting up composite feeds for ${compositeFeedAssets.length} assets...`);
 
     await setupRedstoneCompositeFeedsForAssets(
       compositeFeedAssets,
@@ -90,14 +68,10 @@ const func: DeployFunction = async function (
 
   // Setup simple feeds
   if (simpleFeedAssets.length > 0) {
-    const { address: redstoneWrapperAddress } = await hre.deployments.get(
-      USD_REDSTONE_WRAPPER_WITH_THRESHOLDING_ID,
-    );
+    const { address: redstoneWrapperAddress } = await hre.deployments.get(USD_REDSTONE_WRAPPER_WITH_THRESHOLDING_ID);
 
     if (!redstoneWrapperAddress) {
-      throw new Error(
-        "RedstoneChainlinkWrapperWithThresholding artifact not found",
-      );
+      throw new Error("RedstoneChainlinkWrapperWithThresholding artifact not found");
     }
 
     const redstoneWrapper = await hre.ethers.getContractAt(
@@ -106,9 +80,7 @@ const func: DeployFunction = async function (
       deployerSigner,
     );
 
-    console.log(
-      `🔮 Setting up simple feeds for ${simpleFeedAssets.length} assets...`,
-    );
+    console.log(`🔮 Setting up simple feeds for ${simpleFeedAssets.length} assets...`);
 
     await setupRedstoneSimpleFeedsForAssets(
       simpleFeedAssets,
@@ -133,10 +105,7 @@ func.tags = [
   "usd-redstone-oracle-wrapper",
   "weth-sceth-wstksceth-chainlink-composite-feeds",
 ];
-func.dependencies = [
-  USD_REDSTONE_COMPOSITE_WRAPPER_WITH_THRESHOLDING_ID,
-  USD_REDSTONE_WRAPPER_WITH_THRESHOLDING_ID,
-];
+func.dependencies = [USD_REDSTONE_COMPOSITE_WRAPPER_WITH_THRESHOLDING_ID, USD_REDSTONE_WRAPPER_WITH_THRESHOLDING_ID];
 func.id = "setup-weth-sceth-wstksceth-for-usd-oracle-wrapper";
 
 export default func;

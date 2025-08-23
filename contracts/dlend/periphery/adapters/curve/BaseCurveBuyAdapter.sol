@@ -17,13 +17,13 @@
 
 pragma solidity ^0.8.20;
 
-import {SafeERC20} from "contracts/dlend/periphery/treasury/libs/SafeERC20.sol";
-import {PercentageMath} from "contracts/dlend/core/protocol/libraries/math/PercentageMath.sol";
-import {IPoolAddressesProvider} from "contracts/dlend/core/interfaces/IPoolAddressesProvider.sol";
-import {IERC20Detailed} from "contracts/dlend/core/dependencies/openzeppelin/contracts/IERC20Detailed.sol";
-import {ICurveRouterNgPoolsOnlyV1} from "contracts/dlend/periphery/adapters/curve/interfaces/ICurveRouterNgPoolsOnlyV1.sol";
-import {BaseCurveSwapAdapter} from "contracts/dlend/periphery/adapters/curve/BaseCurveSwapAdapter.sol";
-import {BasisPointConstants} from "contracts/common/BasisPointConstants.sol";
+import { SafeERC20 } from "contracts/dlend/periphery/treasury/libs/SafeERC20.sol";
+import { PercentageMath } from "contracts/dlend/core/protocol/libraries/math/PercentageMath.sol";
+import { IPoolAddressesProvider } from "contracts/dlend/core/interfaces/IPoolAddressesProvider.sol";
+import { IERC20Detailed } from "contracts/dlend/core/dependencies/openzeppelin/contracts/IERC20Detailed.sol";
+import { ICurveRouterNgPoolsOnlyV1 } from "contracts/dlend/periphery/adapters/curve/interfaces/ICurveRouterNgPoolsOnlyV1.sol";
+import { BaseCurveSwapAdapter } from "contracts/dlend/periphery/adapters/curve/BaseCurveSwapAdapter.sol";
+import { BasisPointConstants } from "contracts/common/BasisPointConstants.sol";
 
 /**
  * @title BaseCurveBuyAdapter
@@ -57,31 +57,20 @@ abstract contract BaseCurveBuyAdapter is BaseCurveSwapAdapter {
         address[11] memory route,
         uint256[4][5] memory swapParams
     ) internal returns (uint256 amountSold) {
-        uint256 balanceBeforeAssetFrom = assetToSwapFrom.balanceOf(
-            address(this)
-        );
+        uint256 balanceBeforeAssetFrom = assetToSwapFrom.balanceOf(address(this));
         if (balanceBeforeAssetFrom < maxAmountToSwap) {
-            revert InsufficientBalanceBeforeSwap(
-                balanceBeforeAssetFrom,
-                maxAmountToSwap
-            );
+            revert InsufficientBalanceBeforeSwap(balanceBeforeAssetFrom, maxAmountToSwap);
         }
 
         address tokenIn = address(assetToSwapFrom);
         address tokenOut = address(assetToSwapTo);
 
         // Calculate the required input amount
-        uint256 estimatedAmountIn = swapRouter.get_dx(
-            route,
-            swapParams,
-            amountToReceive
-        );
+        uint256 estimatedAmountIn = swapRouter.get_dx(route, swapParams, amountToReceive);
 
         // Add a buffer to account for potential slippage
         amountSold =
-            (estimatedAmountIn *
-                (BasisPointConstants.ONE_HUNDRED_PERCENT_BPS +
-                    SLIPPAGE_BUFFER_BPS)) /
+            (estimatedAmountIn * (BasisPointConstants.ONE_HUNDRED_PERCENT_BPS + SLIPPAGE_BUFFER_BPS)) /
             BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
 
         // Ensure estimated amount is within limits

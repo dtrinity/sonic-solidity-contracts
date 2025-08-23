@@ -54,30 +54,15 @@ describe("DLoopCoreDLend.getTotalCollateralAndDebtOfUserInBase — per-asset onl
     // Minimal pool that returns reserve data with token addresses
     MockPool = await ethers.getContractFactory("MockPool");
     pool = await MockPool.deploy();
-    await pool.setReserveData(
-      await collateral.getAddress(),
-      await aCollateral.getAddress(),
-      ethers.ZeroAddress,
-      ethers.ZeroAddress,
-    );
+    await pool.setReserveData(await collateral.getAddress(), await aCollateral.getAddress(), ethers.ZeroAddress, ethers.ZeroAddress);
     await pool.setReserveData(
       await debt.getAddress(),
       ethers.ZeroAddress,
       await stableDebtToken.getAddress(),
       await varDebtToken.getAddress(),
     );
-    await pool.setReserveData(
-      await other.getAddress(),
-      await aOther.getAddress(),
-      ethers.ZeroAddress,
-      ethers.ZeroAddress,
-    );
-    await pool.setReserveData(
-      await usdt.getAddress(),
-      await aUSDT.getAddress(),
-      ethers.ZeroAddress,
-      await varUSDTDebt.getAddress(),
-    );
+    await pool.setReserveData(await other.getAddress(), await aOther.getAddress(), ethers.ZeroAddress, ethers.ZeroAddress);
+    await pool.setReserveData(await usdt.getAddress(), await aUSDT.getAddress(), ethers.ZeroAddress, await varUSDTDebt.getAddress());
 
     // Oracle with 1e8 units
     PriceOracle = await ethers.getContractFactory("MockPriceOracleGetter");
@@ -87,29 +72,19 @@ describe("DLoopCoreDLend.getTotalCollateralAndDebtOfUserInBase — per-asset onl
     await priceOracle.setPrice(await other.getAddress(), 1_00000000n); // DAI = 1 * 1e8
     await priceOracle.setPrice(await usdt.getAddress(), 1_00000000n); // USDT = 1 * 1e8
 
-    AddressesProvider = await ethers.getContractFactory(
-      "MockPoolAddressesProvider",
-    );
-    addressesProvider = await AddressesProvider.deploy(
-      await pool.getAddress(),
-      await priceOracle.getAddress(),
-    );
+    AddressesProvider = await ethers.getContractFactory("MockPoolAddressesProvider");
+    addressesProvider = await AddressesProvider.deploy(await pool.getAddress(), await priceOracle.getAddress());
 
     // Deploy and link DLoopCoreLogic library required by DLoopCoreDLendHarness
-    const DLoopCoreLogicFactory =
-      await ethers.getContractFactory("DLoopCoreLogic");
+    const DLoopCoreLogicFactory = await ethers.getContractFactory("DLoopCoreLogic");
     const dloopCoreLogicLib = await DLoopCoreLogicFactory.deploy();
     await dloopCoreLogicLib.waitForDeployment();
 
-    DLoopCoreDLendHarness = await ethers.getContractFactory(
-      "DLoopCoreDLendHarness",
-      {
-        libraries: {
-          "contracts/vaults/dloop/core/DLoopCoreLogic.sol:DLoopCoreLogic":
-            await dloopCoreLogicLib.getAddress(),
-        },
+    DLoopCoreDLendHarness = await ethers.getContractFactory("DLoopCoreDLendHarness", {
+      libraries: {
+        "contracts/vaults/dloop/core/DLoopCoreLogic.sol:DLoopCoreLogic": await dloopCoreLogicLib.getAddress(),
       },
-    );
+    });
     dloop = await DLoopCoreDLendHarness.deploy(
       "DLend Vault",
       "DLV",
@@ -137,17 +112,10 @@ describe("DLoopCoreDLend.getTotalCollateralAndDebtOfUserInBase — per-asset onl
       // Supply collateral to user (aToken to user)
       await aCollateral.mint(await user.getAddress(), 1_000_000n); // 1 USDC (6 decimals)
       // Borrow debt for user (mint variable + stable debt token balances)
-      await varDebtToken.mint(
-        await user.getAddress(),
-        ethers.parseEther("2000"),
-      );
-      await stableDebtToken.mint(
-        await user.getAddress(),
-        ethers.parseEther("1000"),
-      );
+      await varDebtToken.mint(await user.getAddress(), ethers.parseEther("2000"));
+      await stableDebtToken.mint(await user.getAddress(), ethers.parseEther("1000"));
 
-      const [collBase, debtBase] =
-        await dloop.getTotalCollateralAndDebtOfUserInBase(user.address);
+      const [collBase, debtBase] = await dloop.getTotalCollateralAndDebtOfUserInBase(user.address);
 
       // collateral: 1 USDC * 1e8 = 100,000,000
       expect(collBase).to.equal(100_000_000n);
@@ -166,8 +134,7 @@ describe("DLoopCoreDLend.getTotalCollateralAndDebtOfUserInBase — per-asset onl
       await varDebtToken.mint(vaultAddress, ethers.parseEther("1500"));
       await stableDebtToken.mint(vaultAddress, ethers.parseEther("500"));
 
-      const [collBase, debtBase] =
-        await dloop.getTotalCollateralAndDebtOfUserInBase(vaultAddress);
+      const [collBase, debtBase] = await dloop.getTotalCollateralAndDebtOfUserInBase(vaultAddress);
 
       // collateral: 2 USDC * 1e8 = 200,000,000
       expect(collBase).to.equal(200_000_000n);
@@ -179,13 +146,11 @@ describe("DLoopCoreDLend.getTotalCollateralAndDebtOfUserInBase — per-asset onl
   describe("Test Case 3: Ignore unrelated collateral donations (attack regression)", function () {
     it("ignores unrelated collateral donations (aOther)", async function () {
       await aCollateral.mint(await user.getAddress(), 5_000_000n); // 5 USDC
-      const [beforeColl, beforeDebt] =
-        await dloop.getTotalCollateralAndDebtOfUserInBase(user.address);
+      const [beforeColl, beforeDebt] = await dloop.getTotalCollateralAndDebtOfUserInBase(user.address);
 
       // Donate large amount of unrelated aToken (DAI) to user
       await aOther.mint(await user.getAddress(), ethers.parseEther("1000000")); // 1M DAI
-      const [afterColl, afterDebt] =
-        await dloop.getTotalCollateralAndDebtOfUserInBase(user.address);
+      const [afterColl, afterDebt] = await dloop.getTotalCollateralAndDebtOfUserInBase(user.address);
 
       expect(afterColl).to.equal(beforeColl);
       expect(afterDebt).to.equal(beforeDebt);
@@ -194,20 +159,15 @@ describe("DLoopCoreDLend.getTotalCollateralAndDebtOfUserInBase — per-asset onl
     it("massive donation attack has no effect", async function () {
       // Setup baseline position
       await aCollateral.mint(await user.getAddress(), 1_000_000n); // 1 USDC
-      await varDebtToken.mint(
-        await user.getAddress(),
-        ethers.parseEther("0.5"),
-      );
+      await varDebtToken.mint(await user.getAddress(), ethers.parseEther("0.5"));
 
-      const [beforeColl, beforeDebt] =
-        await dloop.getTotalCollateralAndDebtOfUserInBase(user.address);
+      const [beforeColl, beforeDebt] = await dloop.getTotalCollateralAndDebtOfUserInBase(user.address);
 
       // Massive donations of multiple unrelated assets
       await aOther.mint(await user.getAddress(), ethers.parseEther("10000000")); // 10M DAI
       await aUSDT.mint(await user.getAddress(), 50_000_000_000_000n); // 50M USDT
 
-      const [afterColl, afterDebt] =
-        await dloop.getTotalCollateralAndDebtOfUserInBase(user.address);
+      const [afterColl, afterDebt] = await dloop.getTotalCollateralAndDebtOfUserInBase(user.address);
 
       expect(afterColl).to.equal(beforeColl);
       expect(afterDebt).to.equal(beforeDebt);
@@ -218,19 +178,14 @@ describe("DLoopCoreDLend.getTotalCollateralAndDebtOfUserInBase — per-asset onl
     it("counts only designated debt token balances (stable + variable)", async function () {
       // Create some debt on designated debt token
       await varDebtToken.mint(await user.getAddress(), ethers.parseEther("10"));
-      await stableDebtToken.mint(
-        await user.getAddress(),
-        ethers.parseEther("5"),
-      );
+      await stableDebtToken.mint(await user.getAddress(), ethers.parseEther("5"));
 
-      const [, debtBaseBefore] =
-        await dloop.getTotalCollateralAndDebtOfUserInBase(user.address);
+      const [, debtBaseBefore] = await dloop.getTotalCollateralAndDebtOfUserInBase(user.address);
 
       // Add unrelated debt (USDT debt)
       await varUSDTDebt.mint(await user.getAddress(), 5_000_000_000n); // 5000 USDT debt
 
-      const [, debtBaseAfter] =
-        await dloop.getTotalCollateralAndDebtOfUserInBase(user.address);
+      const [, debtBaseAfter] = await dloop.getTotalCollateralAndDebtOfUserInBase(user.address);
 
       expect(debtBaseAfter).to.equal(debtBaseBefore);
       expect(debtBaseBefore).to.be.gt(0n);
@@ -241,8 +196,7 @@ describe("DLoopCoreDLend.getTotalCollateralAndDebtOfUserInBase — per-asset onl
 
   describe("Test Case 5: Zero positions → zeroes", function () {
     it("returns (0, 0) for zero positions", async function () {
-      const [collBase, debtBase] =
-        await dloop.getTotalCollateralAndDebtOfUserInBase(user.address);
+      const [collBase, debtBase] = await dloop.getTotalCollateralAndDebtOfUserInBase(user.address);
 
       expect(collBase).to.equal(0n);
       expect(debtBase).to.equal(0n);
@@ -251,8 +205,7 @@ describe("DLoopCoreDLend.getTotalCollateralAndDebtOfUserInBase — per-asset onl
     it("returns zero collateral with debt present", async function () {
       await varDebtToken.mint(await user.getAddress(), ethers.parseEther("1"));
 
-      const [collBase, debtBase] =
-        await dloop.getTotalCollateralAndDebtOfUserInBase(user.address);
+      const [collBase, debtBase] = await dloop.getTotalCollateralAndDebtOfUserInBase(user.address);
 
       expect(collBase).to.equal(0n);
       expect(debtBase).to.be.gt(0n);
@@ -261,8 +214,7 @@ describe("DLoopCoreDLend.getTotalCollateralAndDebtOfUserInBase — per-asset onl
     it("returns zero debt with collateral present", async function () {
       await aCollateral.mint(await user.getAddress(), 1_000_000n);
 
-      const [collBase, debtBase] =
-        await dloop.getTotalCollateralAndDebtOfUserInBase(user.address);
+      const [collBase, debtBase] = await dloop.getTotalCollateralAndDebtOfUserInBase(user.address);
 
       expect(collBase).to.be.gt(0n);
       expect(debtBase).to.equal(0n);
@@ -274,17 +226,10 @@ describe("DLoopCoreDLend.getTotalCollateralAndDebtOfUserInBase — per-asset onl
       // 1.234567 USDC (6 decimals) = 1,234,567 units
       await aCollateral.mint(await user.getAddress(), 1_234_567n);
       // 0.75 WETH (0.5 variable + 0.25 stable)
-      await varDebtToken.mint(
-        await user.getAddress(),
-        ethers.parseEther("0.5"),
-      );
-      await stableDebtToken.mint(
-        await user.getAddress(),
-        ethers.parseEther("0.25"),
-      );
+      await varDebtToken.mint(await user.getAddress(), ethers.parseEther("0.5"));
+      await stableDebtToken.mint(await user.getAddress(), ethers.parseEther("0.25"));
 
-      const [collBase, debtBase] =
-        await dloop.getTotalCollateralAndDebtOfUserInBase(user.address);
+      const [collBase, debtBase] = await dloop.getTotalCollateralAndDebtOfUserInBase(user.address);
 
       // collateral: 1.234567 USDC * 1e8 = 123,456,700
       expect(collBase).to.equal(123_456_700n);
@@ -299,12 +244,7 @@ describe("DLoopCoreDLend.getTotalCollateralAndDebtOfUserInBase — per-asset onl
       const aToken8 = await Token8Dec.deploy("aT8", "aT8", 8);
 
       // Setup pool data for 8-decimal token
-      await pool.setReserveData(
-        await token8.getAddress(),
-        await aToken8.getAddress(),
-        ethers.ZeroAddress,
-        ethers.ZeroAddress,
-      );
+      await pool.setReserveData(await token8.getAddress(), await aToken8.getAddress(), ethers.ZeroAddress, ethers.ZeroAddress);
       await priceOracle.setPrice(await token8.getAddress(), 2_00000000n); // 2.00 * 1e8
 
       // Deploy new dloop with 8-decimal collateral
@@ -332,8 +272,7 @@ describe("DLoopCoreDLend.getTotalCollateralAndDebtOfUserInBase — per-asset onl
       // 3.5 units of 8-decimal token = 350,000,000 units
       await aToken8.mint(await user.getAddress(), 350_000_000n);
 
-      const [collBase, debtBase] =
-        await dloop8.getTotalCollateralAndDebtOfUserInBase(user.address);
+      const [collBase, debtBase] = await dloop8.getTotalCollateralAndDebtOfUserInBase(user.address);
 
       // collateral: 3.5 * 2 * 1e8 = 700,000,000
       expect(collBase).to.equal(700_000_000n);
@@ -346,15 +285,13 @@ describe("DLoopCoreDLend.getTotalCollateralAndDebtOfUserInBase — per-asset onl
       await aCollateral.mint(await user.getAddress(), 1_000_000n); // 1 USDC
       await varDebtToken.mint(await user.getAddress(), ethers.parseEther("1")); // 1 WETH
 
-      const [collBaseBefore, _debtBaseBefore] =
-        await dloop.getTotalCollateralAndDebtOfUserInBase(user.address);
+      const [collBaseBefore, _debtBaseBefore] = await dloop.getTotalCollateralAndDebtOfUserInBase(user.address);
 
       // Change prices: USDC 1.00 → 1.10, WETH 3000 → 2500
       await priceOracle.setPrice(await collateral.getAddress(), 1_10000000n); // 1.10 * 1e8
       await priceOracle.setPrice(await debt.getAddress(), 2_500_00000000n); // 2500 * 1e8
 
-      const [collBaseAfter, debtBaseAfter] =
-        await dloop.getTotalCollateralAndDebtOfUserInBase(user.address);
+      const [collBaseAfter, debtBaseAfter] = await dloop.getTotalCollateralAndDebtOfUserInBase(user.address);
 
       // collateral increased by 10%: 100,000,000 → 110,000,000
       expect(collBaseAfter).to.equal(110_000_000n);
@@ -369,16 +306,12 @@ describe("DLoopCoreDLend.getTotalCollateralAndDebtOfUserInBase — per-asset onl
     it("reflects aToken balance changes linearly", async function () {
       await aCollateral.mint(await user.getAddress(), 1_000_000n); // 1 USDC
 
-      const [collBase1] = await dloop.getTotalCollateralAndDebtOfUserInBase(
-        user.address,
-      );
+      const [collBase1] = await dloop.getTotalCollateralAndDebtOfUserInBase(user.address);
 
       // Transfer +10 aUSDC (simulate additional supply)
       await aCollateral.mint(await user.getAddress(), 10_000_000n); // +10 USDC
 
-      const [collBase2] = await dloop.getTotalCollateralAndDebtOfUserInBase(
-        user.address,
-      );
+      const [collBase2] = await dloop.getTotalCollateralAndDebtOfUserInBase(user.address);
 
       // Should increase linearly
       expect(collBase2).to.equal(collBase1 + 1_000_000_000n); // +10 * 1e8
@@ -407,10 +340,8 @@ describe("DLoopCoreDLend.getTotalCollateralAndDebtOfUserInBase — per-asset onl
       await varDebtToken.mint(vaultAddress, varDebtAmount);
       await stableDebtToken.mint(vaultAddress, stableDebtAmount);
 
-      const [userColl, userDebt] =
-        await dloop.getTotalCollateralAndDebtOfUserInBase(user.address);
-      const [vaultColl, vaultDebt] =
-        await dloop.getTotalCollateralAndDebtOfUserInBase(vaultAddress);
+      const [userColl, userDebt] = await dloop.getTotalCollateralAndDebtOfUserInBase(user.address);
+      const [vaultColl, vaultDebt] = await dloop.getTotalCollateralAndDebtOfUserInBase(vaultAddress);
 
       expect(userColl).to.equal(vaultColl);
       expect(userDebt).to.equal(vaultDebt);
@@ -425,8 +356,7 @@ describe("DLoopCoreDLend.getTotalCollateralAndDebtOfUserInBase — per-asset onl
       // Set collateral price to very small value (oracle doesn't allow 0)
       await priceOracle.setPrice(await collateral.getAddress(), 1n); // Minimal price
 
-      const [collBase, debtBase] =
-        await dloop.getTotalCollateralAndDebtOfUserInBase(user.address);
+      const [collBase, debtBase] = await dloop.getTotalCollateralAndDebtOfUserInBase(user.address);
 
       expect(collBase).to.be.lt(100n); // Very low price means very low base value
       expect(debtBase).to.be.gt(0n); // Debt side should still work
@@ -439,8 +369,7 @@ describe("DLoopCoreDLend.getTotalCollateralAndDebtOfUserInBase — per-asset onl
       // Set debt price to very small value (oracle doesn't allow 0)
       await priceOracle.setPrice(await debt.getAddress(), 1n); // Minimal price
 
-      const [collBase, debtBase] =
-        await dloop.getTotalCollateralAndDebtOfUserInBase(user.address);
+      const [collBase, debtBase] = await dloop.getTotalCollateralAndDebtOfUserInBase(user.address);
 
       expect(collBase).to.be.gt(0n); // Collateral side should still work
       expect(debtBase).to.be.lt(1000n); // Very low price means very low base value
@@ -451,13 +380,9 @@ describe("DLoopCoreDLend.getTotalCollateralAndDebtOfUserInBase — per-asset onl
     it("massive multi-asset donations have no cumulative effect", async function () {
       // Setup baseline
       await aCollateral.mint(await user.getAddress(), 1_000_000n); // 1 USDC
-      await varDebtToken.mint(
-        await user.getAddress(),
-        ethers.parseEther("0.1"),
-      ); // 0.1 WETH
+      await varDebtToken.mint(await user.getAddress(), ethers.parseEther("0.1")); // 0.1 WETH
 
-      const [collBaseBefore, debtBaseBefore] =
-        await dloop.getTotalCollateralAndDebtOfUserInBase(user.address);
+      const [collBaseBefore, debtBaseBefore] = await dloop.getTotalCollateralAndDebtOfUserInBase(user.address);
 
       // Donate massive amounts of multiple unrelated assets
       await aOther.mint(await user.getAddress(), ethers.parseEther("1000000")); // 1M DAI
@@ -466,8 +391,7 @@ describe("DLoopCoreDLend.getTotalCollateralAndDebtOfUserInBase — per-asset onl
       // Also add unrelated debt positions
       await varUSDTDebt.mint(await user.getAddress(), 100_000_000_000n); // 100K USDT debt
 
-      const [collBaseAfter, debtBaseAfter] =
-        await dloop.getTotalCollateralAndDebtOfUserInBase(user.address);
+      const [collBaseAfter, debtBaseAfter] = await dloop.getTotalCollateralAndDebtOfUserInBase(user.address);
 
       expect(collBaseAfter).to.equal(collBaseBefore);
       expect(debtBaseAfter).to.equal(debtBaseBefore);
@@ -486,16 +410,14 @@ describe("DLoopCoreDLend.getTotalCollateralAndDebtOfUserInBase — per-asset onl
 
       // Record leverage metrics before donation
       const leverageBefore = await dloop.getCurrentLeverageBps();
-      const [collBefore, debtBefore] =
-        await dloop.getTotalCollateralAndDebtOfUserInBase(vaultAddress);
+      const [collBefore, debtBefore] = await dloop.getTotalCollateralAndDebtOfUserInBase(vaultAddress);
 
       // Massive donation attack
       await aOther.mint(vaultAddress, ethers.parseEther("10000000")); // 10M DAI
 
       // Verify metrics unchanged
       const leverageAfter = await dloop.getCurrentLeverageBps();
-      const [collAfter, debtAfter] =
-        await dloop.getTotalCollateralAndDebtOfUserInBase(vaultAddress);
+      const [collAfter, debtAfter] = await dloop.getTotalCollateralAndDebtOfUserInBase(vaultAddress);
 
       expect(leverageAfter).to.equal(leverageBefore);
       expect(collAfter).to.equal(collBefore);
@@ -508,13 +430,9 @@ describe("DLoopCoreDLend.getTotalCollateralAndDebtOfUserInBase — per-asset onl
       // Test calculation correctness with main token decimals (6 vs 18)
       // This is covered in other tests but verify calculation is exact
       await aCollateral.mint(await user.getAddress(), 123_456n); // 0.123456 USDC (6 decimals)
-      await varDebtToken.mint(
-        await user.getAddress(),
-        ethers.parseEther("0.001234"),
-      ); // 0.001234 WETH
+      await varDebtToken.mint(await user.getAddress(), ethers.parseEther("0.001234")); // 0.001234 WETH
 
-      const [collBase, debtBase] =
-        await dloop.getTotalCollateralAndDebtOfUserInBase(user.address);
+      const [collBase, debtBase] = await dloop.getTotalCollateralAndDebtOfUserInBase(user.address);
 
       // collateral: 0.123456 USDC * 1e8 = 12,345,600
       expect(collBase).to.equal(12_345_600n);
@@ -530,20 +448,13 @@ describe("DLoopCoreDLend.getTotalCollateralAndDebtOfUserInBase — per-asset onl
       ];
 
       for (const testCase of testCases) {
-        await priceOracle.setPrice(
-          await collateral.getAddress(),
-          testCase.collPrice,
-        );
+        await priceOracle.setPrice(await collateral.getAddress(), testCase.collPrice);
         await priceOracle.setPrice(await debt.getAddress(), testCase.debtPrice);
 
         await aCollateral.mint(await user.getAddress(), 1_000_000n); // 1 USDC
-        await varDebtToken.mint(
-          await user.getAddress(),
-          ethers.parseEther("1"),
-        ); // 1 WETH
+        await varDebtToken.mint(await user.getAddress(), ethers.parseEther("1")); // 1 WETH
 
-        const [collBase, debtBase] =
-          await dloop.getTotalCollateralAndDebtOfUserInBase(user.address);
+        const [collBase, debtBase] = await dloop.getTotalCollateralAndDebtOfUserInBase(user.address);
 
         // Verify the calculation: amount * price (no division by decimals since using exact conversion)
         expect(collBase).to.be.gt(0n);

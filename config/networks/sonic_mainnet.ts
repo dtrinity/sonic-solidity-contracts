@@ -2,15 +2,8 @@ import { ZeroAddress } from "ethers";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 
 import { ONE_PERCENT_BPS } from "../../typescript/common/bps_constants";
-import {
-  DS_TOKEN_ID,
-  DUSD_TOKEN_ID,
-  INCENTIVES_PROXY_ID,
-} from "../../typescript/deploy-ids";
-import {
-  ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT,
-  ORACLE_AGGREGATOR_PRICE_DECIMALS,
-} from "../../typescript/oracle_aggregator/constants";
+import { DS_TOKEN_ID, DUSD_TOKEN_ID, INCENTIVES_PROXY_ID } from "../../typescript/deploy-ids";
+import { ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT, ORACLE_AGGREGATOR_PRICE_DECIMALS } from "../../typescript/oracle_aggregator/constants";
 import { fetchTokenInfo } from "../../typescript/token/utils";
 import {
   rateStrategyHighLiquidityStable,
@@ -40,9 +33,7 @@ import { Config } from "../types";
  * @param _hre - Hardhat Runtime Environment
  * @returns The configuration for the network
  */
-export async function getConfig(
-  _hre: HardhatRuntimeEnvironment,
-): Promise<Config> {
+export async function getConfig(_hre: HardhatRuntimeEnvironment): Promise<Config> {
   const dUSDDeployment = await _hre.deployments.getOrNull(DUSD_TOKEN_ID);
   const dSDeployment = await _hre.deployments.getOrNull(DS_TOKEN_ID);
   const wSAddress = "0x039e2fB66102314Ce7b64Ce5Ce3E5183bc94aD38";
@@ -64,12 +55,17 @@ export async function getConfig(
 
   const governanceSafeMultisig = "0xE83c188a7BE46B90715C757A06cF917175f30262";
 
+  // Safe configuration for governance multisig
+  const safeOwners = [
+    "0xDC672ba6e55B71b39FA5423D42B88E7aDF9d24A4",
+    "0x4B58fF1AAE6AdD7465A5584eBCaeb876ec8f21FD",
+    "0x9E0c8376940aBE845A89b7304147a95c72644f59",
+  ];
+  const safeThreshold = 2; // 2 of 3 multisig
+
   // Fetch deployed dLend StaticATokenLM wrapper, aToken and RewardsController (may be undefined prior to deployment)
-  const dLendATokenWrapperDUSDDeployment = await _hre.deployments.getOrNull(
-    "dLend_ATokenWrapper_dUSD",
-  );
-  const rewardsControllerDeployment =
-    await _hre.deployments.getOrNull(INCENTIVES_PROXY_ID);
+  const dLendATokenWrapperDUSDDeployment = await _hre.deployments.getOrNull("dLend_ATokenWrapper_dUSD");
+  const rewardsControllerDeployment = await _hre.deployments.getOrNull(INCENTIVES_PROXY_ID);
   const aTokenDUSDDeployment = await _hre.deployments.getOrNull("dLEND-dUSD");
 
   // Fetch dUSD token decimals from the contract if deployed
@@ -85,6 +81,15 @@ export async function getConfig(
   }
 
   return {
+    safeConfig: {
+      safeAddress: governanceSafeMultisig,
+      owners: safeOwners,
+      threshold: safeThreshold,
+      chainId: 146, // Sonic mainnet chain ID
+      rpcUrl: "https://rpc.sonic.fantom.network",
+      // Temporary test: point to Ethereum mainnet Safe Transaction Service
+      txServiceUrl: "https://safe-transaction-mainnet.safe.global",
+    },
     tokenAddresses: {
       dUSD: emptyStringIfUndefined(dUSDDeployment?.address),
       dS: emptyStringIfUndefined(dSDeployment?.address),
@@ -105,7 +110,7 @@ export async function getConfig(
     },
     walletAddresses: {
       governanceMultisig: governanceSafeMultisig, // Created via Safe
-      incentivesVault: "0x4B4B5cC616be4cd1947B93f2304d36b3e80D3ef6", // TODO: Add incentives vault address
+      incentivesVault: "0x4B4B5cC616be4cd1947B93f2304d36b3e80D3ef6", // Incentives Safe address
     },
     pendle: {
       ptYtLpOracleAddress: "0x9a9Fa8338dd5E5B2188006f1Cd2Ef26d921650C2", // Universal Pendle PT/YT/LP Oracle address
@@ -176,8 +181,7 @@ export async function getConfig(
           minDeviationBps: 2 * ONE_PERCENT_BPS, // 2% deviation
           withdrawalFeeBps: 0.4 * ONE_PERCENT_BPS, // 0.4% withdrawal fee
           extraParams: {
-            targetStaticATokenWrapper:
-              dLendATokenWrapperDUSDDeployment?.address,
+            targetStaticATokenWrapper: dLendATokenWrapperDUSDDeployment?.address,
             treasury: governanceSafeMultisig,
             maxTreasuryFeeBps: "1000",
             initialTreasuryFeeBps: "500",
@@ -214,8 +218,7 @@ export async function getConfig(
         api3OracleAssets: {
           plainApi3OracleWrappers: {
             [wSAddress]: "0xAf9647E1F86406BC38F42FE630E9Fa8CBcd59B19", // S/USD dTRINITY OEV
-            [dSDeployment?.address || ""]:
-              "0xAf9647E1F86406BC38F42FE630E9Fa8CBcd59B19", // S/USD dTRINITY OEV
+            [dSDeployment?.address || ""]: "0xAf9647E1F86406BC38F42FE630E9Fa8CBcd59B19", // S/USD dTRINITY OEV
           },
           api3OracleWrappersWithThresholding: {},
           compositeApi3OracleWrappersWithThresholding: {},
@@ -331,6 +334,19 @@ export async function getConfig(
             fixedPriceInBase2: 0n,
           },
         },
+        safeRateProviderAssets: {
+          chainlinkSafeRateProviderCompositeWrappers: {
+            [wstkscUSDAddress]: {
+              feedAsset: wstkscUSDAddress,
+              chainlinkFeed: "0x39EEB8955948B980d9ad09F92F95cdD980751ce1", // wstkscUSD/stkscUSD Chainlink feed
+              rateProvider: "0x13cCc810DfaA6B71957F2b87060aFE17e6EB8034", // stkscUSD/scUSD Trevee AccountantWithFixedRate
+              lowerThresholdInBase1: 0n, // No thresholding on wstkscUSD/stkscUSD since rate goes up over time
+              fixedPriceInBase1: 0n,
+              lowerThresholdInBase2: ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT, // Threshold on stkscUSD/scUSD since rebasing token should never go above 1:1
+              fixedPriceInBase2: ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT,
+            },
+          },
+        },
       },
       S: {
         hardDStablePeg: 10n ** BigInt(ORACLE_AGGREGATOR_PRICE_DECIMALS),
@@ -389,27 +405,17 @@ export async function getConfig(
         initialWithdrawalFeeBps: 0.1 * ONE_PERCENT_BPS, // 0.1%
         adapters: [
           {
-            vaultAsset: emptyStringIfUndefined(
-              dLendATokenWrapperDUSDDeployment?.address,
-            ),
+            vaultAsset: emptyStringIfUndefined(dLendATokenWrapperDUSDDeployment?.address),
             adapterContract: "WrappedDLendConversionAdapter",
           },
         ],
-        defaultDepositVaultAsset: emptyStringIfUndefined(
-          dLendATokenWrapperDUSDDeployment?.address,
-        ),
+        defaultDepositVaultAsset: emptyStringIfUndefined(dLendATokenWrapperDUSDDeployment?.address),
         collateralVault: "DStakeCollateralVault_sdUSD", // Keep in sync with deploy ID constants
         collateralExchangers: [governanceSafeMultisig],
         dLendRewardManager: {
-          managedVaultAsset: emptyStringIfUndefined(
-            dLendATokenWrapperDUSDDeployment?.address,
-          ), // StaticATokenLM wrapper
-          dLendAssetToClaimFor: emptyStringIfUndefined(
-            aTokenDUSDDeployment?.address,
-          ), // dLEND aToken for dUSD
-          dLendRewardsController: emptyStringIfUndefined(
-            rewardsControllerDeployment?.address,
-          ), // RewardsController proxy
+          managedVaultAsset: emptyStringIfUndefined(dLendATokenWrapperDUSDDeployment?.address), // StaticATokenLM wrapper
+          dLendAssetToClaimFor: emptyStringIfUndefined(aTokenDUSDDeployment?.address), // dLEND aToken for dUSD
+          dLendRewardsController: emptyStringIfUndefined(rewardsControllerDeployment?.address), // RewardsController proxy
           treasury: governanceSafeMultisig,
           maxTreasuryFeeBps: 20 * ONE_PERCENT_BPS, // 20%
           initialTreasuryFeeBps: 0 * ONE_PERCENT_BPS, // 0%

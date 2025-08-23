@@ -17,13 +17,13 @@
 
 pragma solidity ^0.8.20;
 
-import {SafeERC20} from "contracts/dlend/core/dependencies/openzeppelin/contracts/SafeERC20.sol";
-import {PercentageMath} from "contracts/dlend/core/protocol/libraries/math/PercentageMath.sol";
-import {IPoolAddressesProvider} from "contracts/dlend/core/interfaces/IPoolAddressesProvider.sol";
-import {IERC20Detailed} from "contracts/dlend/core/dependencies/openzeppelin/contracts/IERC20Detailed.sol";
-import {IOdosRouterV2} from "contracts/odos/interface/IOdosRouterV2.sol";
-import {BaseOdosSwapAdapter} from "./BaseOdosSwapAdapter.sol";
-import {OdosSwapUtils} from "contracts/odos/OdosSwapUtils.sol";
+import { SafeERC20 } from "contracts/dlend/core/dependencies/openzeppelin/contracts/SafeERC20.sol";
+import { PercentageMath } from "contracts/dlend/core/protocol/libraries/math/PercentageMath.sol";
+import { IPoolAddressesProvider } from "contracts/dlend/core/interfaces/IPoolAddressesProvider.sol";
+import { IERC20Detailed } from "contracts/dlend/core/dependencies/openzeppelin/contracts/IERC20Detailed.sol";
+import { IOdosRouterV2 } from "contracts/odos/interface/IOdosRouterV2.sol";
+import { BaseOdosSwapAdapter } from "./BaseOdosSwapAdapter.sol";
+import { OdosSwapUtils } from "contracts/odos/OdosSwapUtils.sol";
 
 /**
  * @title BaseOdosSellAdapter
@@ -66,16 +66,11 @@ abstract contract BaseOdosSellAdapter is BaseOdosSwapAdapter {
         uint256 minAmountToReceive,
         bytes memory swapData
     ) internal returns (uint256 amountReceived) {
-        uint256 balanceBeforeAssetFrom = assetToSwapFrom.balanceOf(
-            address(this)
-        );
+        uint256 balanceBeforeAssetFrom = assetToSwapFrom.balanceOf(address(this));
         uint256 balanceBeforeAssetTo = assetToSwapTo.balanceOf(address(this));
 
         if (balanceBeforeAssetFrom < amountToSwap) {
-            revert InsufficientBalanceBeforeSwap(
-                balanceBeforeAssetFrom,
-                amountToSwap
-            );
+            revert InsufficientBalanceBeforeSwap(balanceBeforeAssetFrom, amountToSwap);
         }
 
         address tokenIn = address(assetToSwapFrom);
@@ -90,9 +85,7 @@ abstract contract BaseOdosSellAdapter is BaseOdosSwapAdapter {
             swapData
         );
 
-        amountReceived =
-            assetToSwapTo.balanceOf(address(this)) -
-            balanceBeforeAssetTo;
+        amountReceived = assetToSwapTo.balanceOf(address(this)) - balanceBeforeAssetTo;
 
         emit Bought(tokenIn, tokenOut, amountSpent, amountReceived);
     }

@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import {ICurveStableSwapNG} from "../vaults/dpool/core/interfaces/ICurveStableSwapNG.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import { ICurveStableSwapNG } from "../vaults/dpool/core/interfaces/ICurveStableSwapNG.sol";
 
 /**
  * @title MockCurveStableSwapNG
@@ -39,12 +39,7 @@ contract MockCurveStableSwapNG is ICurveStableSwapNG, ERC20 {
 
     // --- ICurveStableSwapNG Implementation ---
 
-    function exchange(
-        int128 i,
-        int128 j,
-        uint256 dx,
-        uint256 min_dy
-    ) external override returns (uint256) {
+    function exchange(int128 i, int128 j, uint256 dx, uint256 min_dy) external override returns (uint256) {
         return _exchange(i, j, dx, min_dy, msg.sender);
     }
 
@@ -58,12 +53,7 @@ contract MockCurveStableSwapNG is ICurveStableSwapNG, ERC20 {
         return _exchange(i, j, dx, min_dy, receiver);
     }
 
-    function exchange_received(
-        int128 i,
-        int128 j,
-        uint256 dx,
-        uint256 min_dy
-    ) external override returns (uint256) {
+    function exchange_received(int128 i, int128 j, uint256 dx, uint256 min_dy) external override returns (uint256) {
         return _exchange(i, j, dx, min_dy, msg.sender);
     }
 
@@ -77,10 +67,7 @@ contract MockCurveStableSwapNG is ICurveStableSwapNG, ERC20 {
         return _exchange(i, j, dx, min_dy, receiver);
     }
 
-    function add_liquidity(
-        uint256[] calldata amounts,
-        uint256 min_mint_amount
-    ) external override returns (uint256) {
+    function add_liquidity(uint256[] calldata amounts, uint256 min_mint_amount) external override returns (uint256) {
         return _add_liquidity(amounts, min_mint_amount, msg.sender);
     }
 
@@ -97,13 +84,7 @@ contract MockCurveStableSwapNG is ICurveStableSwapNG, ERC20 {
         int128 i,
         uint256 min_received
     ) external override returns (uint256) {
-        return
-            _remove_liquidity_one_coin(
-                burn_amount,
-                i,
-                min_received,
-                msg.sender
-            );
+        return _remove_liquidity_one_coin(burn_amount, i, min_received, msg.sender);
     }
 
     function remove_liquidity_one_coin(
@@ -112,8 +93,7 @@ contract MockCurveStableSwapNG is ICurveStableSwapNG, ERC20 {
         uint256 min_received,
         address receiver
     ) external override returns (uint256) {
-        return
-            _remove_liquidity_one_coin(burn_amount, i, min_received, receiver);
+        return _remove_liquidity_one_coin(burn_amount, i, min_received, receiver);
     }
 
     function remove_liquidity_imbalance(
@@ -152,48 +132,28 @@ contract MockCurveStableSwapNG is ICurveStableSwapNG, ERC20 {
         address receiver,
         bool claim_admin_fees
     ) external override returns (uint256[] memory) {
-        return
-            _remove_liquidity(
-                burn_amount,
-                min_amounts,
-                receiver,
-                claim_admin_fees
-            );
+        return _remove_liquidity(burn_amount, min_amounts, receiver, claim_admin_fees);
     }
 
     // --- View Functions ---
 
-    function get_dy(
-        int128 i,
-        int128 j,
-        uint256 dx
-    ) external view override returns (uint256) {
+    function get_dy(int128 i, int128 j, uint256 dx) external view override returns (uint256) {
         return _get_dy(i, j, dx);
     }
 
-    function get_dx(
-        int128 i,
-        int128 j,
-        uint256 dy
-    ) external view override returns (uint256) {
+    function get_dx(int128 i, int128 j, uint256 dy) external view override returns (uint256) {
         // Simplified: assume 1:1 exchange rate
         return dy;
     }
 
-    function calc_withdraw_one_coin(
-        uint256 burn_amount,
-        int128 i
-    ) external view override returns (uint256) {
+    function calc_withdraw_one_coin(uint256 burn_amount, int128 i) external view override returns (uint256) {
         if (totalSupply() == 0) return 0;
 
         // Simplified: proportional withdrawal
         return (burn_amount * balances[uint256(uint128(i))]) / totalSupply();
     }
 
-    function calc_token_amount(
-        uint256[] calldata amounts,
-        bool is_deposit
-    ) external view override returns (uint256) {
+    function calc_token_amount(uint256[] calldata amounts, bool is_deposit) external view override returns (uint256) {
         if (is_deposit) {
             // Simplified: sum of amounts as LP tokens (assuming balanced deposit)
             return amounts[0] + amounts[1];
@@ -222,10 +182,7 @@ contract MockCurveStableSwapNG is ICurveStableSwapNG, ERC20 {
         return rates;
     }
 
-    function dynamic_fee(
-        int128 i,
-        int128 j
-    ) external view override returns (uint256) {
+    function dynamic_fee(int128 i, int128 j) external view override returns (uint256) {
         return fee;
     }
 
@@ -242,9 +199,7 @@ contract MockCurveStableSwapNG is ICurveStableSwapNG, ERC20 {
     }
 
     // Override conflicting methods from both ICurveStableSwapNG and ERC20
-    function balanceOf(
-        address account
-    ) public view override(ICurveStableSwapNG, ERC20) returns (uint256) {
+    function balanceOf(address account) public view override(ICurveStableSwapNG, ERC20) returns (uint256) {
         return ERC20.balanceOf(account);
     }
 
@@ -257,24 +212,11 @@ contract MockCurveStableSwapNG is ICurveStableSwapNG, ERC20 {
 
     // --- Internal Functions ---
 
-    function _exchange(
-        int128 i,
-        int128 j,
-        uint256 dx,
-        uint256 min_dy,
-        address receiver
-    ) internal returns (uint256) {
-        require(
-            i != j && i >= 0 && j >= 0 && i < 2 && j < 2,
-            "Invalid coin indices"
-        );
+    function _exchange(int128 i, int128 j, uint256 dx, uint256 min_dy, address receiver) internal returns (uint256) {
+        require(i != j && i >= 0 && j >= 0 && i < 2 && j < 2, "Invalid coin indices");
 
         // Pull input token
-        IERC20(coins[uint256(uint128(i))]).safeTransferFrom(
-            msg.sender,
-            address(this),
-            dx
-        );
+        IERC20(coins[uint256(uint128(i))]).safeTransferFrom(msg.sender, address(this), dx);
 
         // Calculate output with minimal fee
         uint256 dy = _get_dy(i, j, dx);
@@ -301,11 +243,7 @@ contract MockCurveStableSwapNG is ICurveStableSwapNG, ERC20 {
 
         for (uint256 i = 0; i < 2; i++) {
             if (amounts[i] > 0) {
-                IERC20(coins[i]).safeTransferFrom(
-                    msg.sender,
-                    address(this),
-                    amounts[i]
-                );
+                IERC20(coins[i]).safeTransferFrom(msg.sender, address(this), amounts[i]);
                 balances[i] += amounts[i];
                 mint_amount += amounts[i]; // Simplified: 1:1 LP token minting
             }
@@ -326,8 +264,7 @@ contract MockCurveStableSwapNG is ICurveStableSwapNG, ERC20 {
         require(i >= 0 && i < 2, "Invalid coin index");
         require(balanceOf(msg.sender) >= burn_amount, "Insufficient LP tokens");
 
-        uint256 coin_amount = (burn_amount * balances[uint256(uint128(i))]) /
-            totalSupply();
+        uint256 coin_amount = (burn_amount * balances[uint256(uint128(i))]) / totalSupply();
         require(coin_amount >= min_received, "Slippage exceeded");
 
         balances[uint256(uint128(i))] -= coin_amount;
@@ -360,11 +297,7 @@ contract MockCurveStableSwapNG is ICurveStableSwapNG, ERC20 {
         return amounts;
     }
 
-    function _get_dy(
-        int128 i,
-        int128 j,
-        uint256 dx
-    ) internal view returns (uint256) {
+    function _get_dy(int128 i, int128 j, uint256 dx) internal view returns (uint256) {
         // Simplified stable swap: 1:1 exchange rate with small fee
         uint256 fee_amount = (dx * fee) / FEE_DENOMINATOR;
         return dx - fee_amount;

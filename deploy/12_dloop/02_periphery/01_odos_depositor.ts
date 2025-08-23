@@ -2,10 +2,7 @@ import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
 
 import { getConfig } from "../../../config/config";
-import {
-  DLOOP_PERIPHERY_ODOS_DEPOSITOR_ID,
-  DLOOP_PERIPHERY_ODOS_SWAP_LOGIC_ID,
-} from "../../../typescript/deploy-ids";
+import { DLOOP_PERIPHERY_ODOS_DEPOSITOR_ID, DLOOP_PERIPHERY_ODOS_SWAP_LOGIC_ID } from "../../../typescript/deploy-ids";
 import { isLocalNetwork } from "../../../typescript/hardhat/deploy";
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
@@ -15,9 +12,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   // Skip for local networks
   if (isLocalNetwork(hre.network.name)) {
-    console.log(
-      `Skipping dLOOP Periphery Odos depositor deployment for network ${hre.network.name}.`,
-    );
+    console.log(`Skipping dLOOP Periphery Odos depositor deployment for network ${hre.network.name}.`);
     return;
   }
 
@@ -27,18 +22,14 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   // Skip if no dLOOP configuration or no Odos depositor configuration is defined
   if (!dloopConfig || !dloopConfig.depositors?.odos) {
-    console.log(
-      `No Odos depositor configuration defined for network ${hre.network.name}. Skipping.`,
-    );
+    console.log(`No Odos depositor configuration defined for network ${hre.network.name}. Skipping.`);
     return;
   }
 
   const odosConfig = dloopConfig.depositors.odos;
 
   if (!odosConfig.router) {
-    console.log(
-      `Odos router not defined for network ${hre.network.name}. Skipping.`,
-    );
+    console.log(`Odos router not defined for network ${hre.network.name}. Skipping.`);
     return;
   }
 
@@ -49,13 +40,9 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     throw new Error("dUSD token address not found in configuration");
   }
 
-  console.log(
-    `Deploying Odos depositor on network ${hre.network.name} (chainId: ${chainId})`,
-  );
+  console.log(`Deploying Odos depositor on network ${hre.network.name} (chainId: ${chainId})`);
 
-  const { address: odosSwapLogicAddress } = await hre.deployments.get(
-    DLOOP_PERIPHERY_ODOS_SWAP_LOGIC_ID,
-  );
+  const { address: odosSwapLogicAddress } = await hre.deployments.get(DLOOP_PERIPHERY_ODOS_SWAP_LOGIC_ID);
 
   await hre.deployments.deploy(DLOOP_PERIPHERY_ODOS_DEPOSITOR_ID, {
     from: deployer,

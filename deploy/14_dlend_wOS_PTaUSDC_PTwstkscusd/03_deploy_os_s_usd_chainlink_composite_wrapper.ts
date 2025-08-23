@@ -36,9 +36,7 @@ async function deployChainlinkCompositeAggregators(
   const results = [];
 
   for (const [assetAddress, config] of Object.entries(configs)) {
-    console.log(
-      `🔍 Processing ChainlinkCompositeAggregator for asset ${assetAddress}...`,
-    );
+    console.log(`🔍 Processing ChainlinkCompositeAggregator for asset ${assetAddress}...`);
 
     // Create deployment name
     const deploymentName = `ChainlinkCompositeAggregator_${config.name}`;
@@ -46,9 +44,7 @@ async function deployChainlinkCompositeAggregators(
     try {
       // Check if wrapper is already deployed
       const existingDeployment = await hre.deployments.get(deploymentName);
-      console.log(
-        `♻️  Using existing ChainlinkCompositeAggregator for asset ${assetAddress}: ${existingDeployment.address}`,
-      );
+      console.log(`♻️  Using existing ChainlinkCompositeAggregator for asset ${assetAddress}: ${existingDeployment.address}`);
       results.push({
         assetAddress,
         address: existingDeployment.address,
@@ -56,9 +52,7 @@ async function deployChainlinkCompositeAggregators(
       continue;
     } catch {
       // Wrapper doesn't exist, deploy it
-      console.log(
-        `🚀 Deploying ChainlinkCompositeAggregator for asset ${assetAddress}...`,
-      );
+      console.log(`🚀 Deploying ChainlinkCompositeAggregator for asset ${assetAddress}...`);
     }
 
     // Prepare constructor arguments
@@ -76,27 +70,17 @@ async function deployChainlinkCompositeAggregators(
     await hre.deployments.deploy(deploymentName, {
       from: deployer,
       contract: "ChainlinkCompositeAggregator",
-      args: [
-        config.sourceFeed1,
-        config.sourceFeed2,
-        primaryThreshold,
-        secondaryThreshold,
-      ],
+      args: [config.sourceFeed1, config.sourceFeed2, primaryThreshold, secondaryThreshold],
       autoMine: true,
       log: true,
     });
 
     const deployment = await hre.deployments.get(deploymentName);
-    console.log(
-      `✅ Deployed ChainlinkCompositeAggregator for asset ${assetAddress}: ${deployment.address}`,
-    );
+    console.log(`✅ Deployed ChainlinkCompositeAggregator for asset ${assetAddress}: ${deployment.address}`);
 
     // Verify the deployment by calling description
     try {
-      const aggregatorContract = await ethers.getContractAt(
-        "ChainlinkCompositeAggregator",
-        deployment.address,
-      );
+      const aggregatorContract = await ethers.getContractAt("ChainlinkCompositeAggregator", deployment.address);
       const description = await aggregatorContract.description();
       console.log(`📝 Aggregator description: ${description}`);
     } catch (error) {
@@ -112,9 +96,7 @@ async function deployChainlinkCompositeAggregators(
   return results;
 }
 
-const func: DeployFunction = async function (
-  hre: HardhatRuntimeEnvironment,
-): Promise<boolean> {
+const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment): Promise<boolean> {
   const config = await getConfig(hre);
   const { oracleAggregators } = config;
 
@@ -126,26 +108,18 @@ const func: DeployFunction = async function (
     return true;
   }
 
-  const chainlinkCompositeConfigs =
-    usdOracleConfig.chainlinkCompositeAggregator;
+  const chainlinkCompositeConfigs = usdOracleConfig.chainlinkCompositeAggregator;
 
   if (!chainlinkCompositeConfigs) {
-    console.log(
-      "❌ No ChainlinkCompositeAggregator configurations found in USD oracle aggregator",
-    );
+    console.log("❌ No ChainlinkCompositeAggregator configurations found in USD oracle aggregator");
     return true;
   }
 
   console.log("🚀 Starting ChainlinkCompositeAggregator deployment...");
-  console.log(
-    `📊 Found ${Object.keys(chainlinkCompositeConfigs).length} composite aggregator configurations`,
-  );
+  console.log(`📊 Found ${Object.keys(chainlinkCompositeConfigs).length} composite aggregator configurations`);
 
   try {
-    const deployedAggregators = await deployChainlinkCompositeAggregators(
-      hre,
-      chainlinkCompositeConfigs,
-    );
+    const deployedAggregators = await deployChainlinkCompositeAggregators(hre, chainlinkCompositeConfigs);
 
     console.log("\n📋 Deployment Summary:");
     console.log("======================");
@@ -154,9 +128,7 @@ const func: DeployFunction = async function (
       console.log(`✅ Asset ${aggregator.assetAddress}: ${aggregator.address}`);
     }
 
-    console.log(
-      "\n🎉 ChainlinkCompositeAggregator deployment completed successfully!",
-    );
+    console.log("\n🎉 ChainlinkCompositeAggregator deployment completed successfully!");
     return true;
   } catch (error) {
     console.error("❌ ChainlinkCompositeAggregator deployment failed:", error);

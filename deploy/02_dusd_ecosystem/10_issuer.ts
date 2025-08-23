@@ -14,40 +14,25 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployer } = await hre.getNamedAccounts();
 
   // Get deployed addresses
-  const { address: oracleAggregatorAddress } = await hre.deployments.get(
-    USD_ORACLE_AGGREGATOR_ID,
-  );
+  const { address: oracleAggregatorAddress } = await hre.deployments.get(USD_ORACLE_AGGREGATOR_ID);
 
-  const { address: collateralVaultAddress } = await hre.deployments.get(
-    DUSD_COLLATERAL_VAULT_CONTRACT_ID,
-  );
+  const { address: collateralVaultAddress } = await hre.deployments.get(DUSD_COLLATERAL_VAULT_CONTRACT_ID);
   const { tokenAddresses } = await getConfig(hre);
-  const { address: amoManagerAddress } =
-    await hre.deployments.get(DUSD_AMO_MANAGER_ID);
+  const { address: amoManagerAddress } = await hre.deployments.get(DUSD_AMO_MANAGER_ID);
 
   await hre.deployments.deploy(DUSD_ISSUER_CONTRACT_ID, {
     from: deployer,
-    args: [
-      collateralVaultAddress,
-      tokenAddresses.dUSD,
-      oracleAggregatorAddress,
-      amoManagerAddress,
-    ],
+    args: [collateralVaultAddress, tokenAddresses.dUSD, oracleAggregatorAddress, amoManagerAddress],
     contract: "Issuer",
     autoMine: true,
     log: false,
   });
 
   // Get the deployed Issuer contract address
-  const { address: issuerAddress } = await hre.deployments.get(
-    DUSD_ISSUER_CONTRACT_ID,
-  );
+  const { address: issuerAddress } = await hre.deployments.get(DUSD_ISSUER_CONTRACT_ID);
 
   // Grant MINTER_ROLE to the Issuer contract so it can mint dUSD
-  const dusdContract = await hre.ethers.getContractAt(
-    "ERC20StablecoinUpgradeable",
-    tokenAddresses.dUSD,
-  );
+  const dusdContract = await hre.ethers.getContractAt("ERC20StablecoinUpgradeable", tokenAddresses.dUSD);
 
   const MINTER_ROLE = await dusdContract.MINTER_ROLE();
 
@@ -61,11 +46,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
 func.id = DUSD_ISSUER_CONTRACT_ID;
 func.tags = ["dusd"];
-func.dependencies = [
-  DUSD_COLLATERAL_VAULT_CONTRACT_ID,
-  DUSD_TOKEN_ID,
-  "usd-oracle",
-  DUSD_AMO_MANAGER_ID,
-];
+func.dependencies = [DUSD_COLLATERAL_VAULT_CONTRACT_ID, DUSD_TOKEN_ID, "usd-oracle", DUSD_AMO_MANAGER_ID];
 
 export default func;

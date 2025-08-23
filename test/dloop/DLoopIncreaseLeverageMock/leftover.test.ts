@@ -6,13 +6,9 @@ import { deployDLoopIncreaseLeverageMockFixture } from "./fixtures";
 
 describe("DLoopIncreaseLeverageMock - Leftover Debt Token Handling", function () {
   it("transfers leftover debt tokens to user and emits event", async function () {
-    const {
-      dloopMock,
-      increaseLeverageMock,
-      collateralToken,
-      debtToken,
-      user1,
-    } = await loadFixture(deployDLoopIncreaseLeverageMockFixture);
+    const { dloopMock, increaseLeverageMock, collateralToken, debtToken, user1 } = await loadFixture(
+      deployDLoopIncreaseLeverageMockFixture,
+    );
 
     // Simplified test - just pre-fund periphery with some tokens and run the function
     // The goal is to test that any leftover debt tokens are transferred to the user
@@ -32,24 +28,16 @@ describe("DLoopIncreaseLeverageMock - Leftover Debt Token Handling", function ()
     const requiredCollateralAmount: bigint = result[0];
     const direction: bigint = result[2];
 
-    console.log(
-      `Direction: ${direction}, Required: ${requiredCollateralAmount}`,
-    );
+    console.log(`Direction: ${direction}, Required: ${requiredCollateralAmount}`);
 
     // If no leverage increase is needed, manually create a small imbalance
     if (direction !== 1n) {
       // Slightly increase debt token price to create need for leverage increase
-      const currentDebtPrice = await dloopMock.getMockPrice(
-        await debtToken.getAddress(),
-      );
-      await dloopMock.setMockPrice(
-        await debtToken.getAddress(),
-        currentDebtPrice + 1n,
-      );
+      const currentDebtPrice = await dloopMock.getMockPrice(await debtToken.getAddress());
+      await dloopMock.setMockPrice(await debtToken.getAddress(), currentDebtPrice + 1n);
 
       // Check again
-      const result2 =
-        await dloopMock.quoteRebalanceAmountToReachTargetLeverage();
+      const result2 = await dloopMock.quoteRebalanceAmountToReachTargetLeverage();
 
       if (result2[2] !== 1n) {
         console.log("Skipping test - cannot create leverage increase scenario");
@@ -60,11 +48,8 @@ describe("DLoopIncreaseLeverageMock - Leftover Debt Token Handling", function ()
     const beforeDebt = await debtToken.balanceOf(user1.address);
 
     try {
-      const result =
-        await dloopMock.quoteRebalanceAmountToReachTargetLeverage();
-      const tx = await increaseLeverageMock
-        .connect(user1)
-        .increaseLeverage(result.inputTokenAmount, "0x", dloopMock);
+      const result = await dloopMock.quoteRebalanceAmountToReachTargetLeverage();
+      const tx = await increaseLeverageMock.connect(user1).increaseLeverage(result.inputTokenAmount, "0x", dloopMock);
 
       const receipt = await tx.wait();
 
@@ -101,9 +86,7 @@ describe("DLoopIncreaseLeverageMock - Leftover Debt Token Handling", function ()
       expect(afterDebt).to.be.gte(beforeDebt);
     } catch (error) {
       console.log("Test failed with error:", error);
-      console.log(
-        "This might be due to leverage constraints in the mock contract",
-      );
+      console.log("This might be due to leverage constraints in the mock contract");
       // For now, we'll skip if the operation fails due to leverage constraints
       // The important thing is that we've updated the function signatures correctly
     }

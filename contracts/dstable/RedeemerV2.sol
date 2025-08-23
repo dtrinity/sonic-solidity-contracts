@@ -18,7 +18,7 @@
 pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/access/AccessControl.sol";
-import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
+import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
 import "@openzeppelin/contracts/utils/Pausable.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
@@ -52,16 +52,9 @@ contract RedeemerV2 is AccessControl, OracleAware, Pausable, ReentrancyGuard {
     /* Events */
 
     event AssetRedemptionPauseUpdated(address indexed asset, bool paused);
-    event FeeReceiverUpdated(
-        address indexed oldFeeReceiver,
-        address indexed newFeeReceiver
-    );
+    event FeeReceiverUpdated(address indexed oldFeeReceiver, address indexed newFeeReceiver);
     event DefaultRedemptionFeeUpdated(uint256 oldFeeBps, uint256 newFeeBps);
-    event CollateralRedemptionFeeUpdated(
-        address indexed collateralAsset,
-        uint256 oldFeeBps,
-        uint256 newFeeBps
-    );
+    event CollateralRedemptionFeeUpdated(address indexed collateralAsset, uint256 oldFeeBps, uint256 newFeeBps);
     event Redemption(
         address indexed redeemer,
         address indexed collateralAsset,
@@ -73,8 +66,7 @@ contract RedeemerV2 is AccessControl, OracleAware, Pausable, ReentrancyGuard {
 
     /* Roles */
 
-    bytes32 public constant REDEMPTION_MANAGER_ROLE =
-        keccak256("REDEMPTION_MANAGER_ROLE");
+    bytes32 public constant REDEMPTION_MANAGER_ROLE = keccak256("REDEMPTION_MANAGER_ROLE");
     bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
 
     /* Errors */
@@ -82,11 +74,7 @@ contract RedeemerV2 is AccessControl, OracleAware, Pausable, ReentrancyGuard {
     error SlippageTooHigh(uint256 actualCollateral, uint256 minCollateral);
     error AssetRedemptionPaused(address asset);
     error FeeTooHigh(uint256 requestedFeeBps, uint256 maxFeeBps);
-    error CollateralTransferFailed(
-        address recipient,
-        uint256 amount,
-        address token
-    );
+    error CollateralTransferFailed(address recipient, uint256 amount, address token);
     error CannotBeZeroAddress();
 
     /* Overrides */
@@ -109,11 +97,7 @@ contract RedeemerV2 is AccessControl, OracleAware, Pausable, ReentrancyGuard {
         address _initialFeeReceiver,
         uint256 _initialRedemptionFeeBps
     ) OracleAware(_oracle, _oracle.BASE_CURRENCY_UNIT()) {
-        if (
-            _collateralVault == address(0) ||
-            _dstable == address(0) ||
-            address(_oracle) == address(0)
-        ) {
+        if (_collateralVault == address(0) || _dstable == address(0) || address(_oracle) == address(0)) {
             revert CannotBeZeroAddress();
         }
         if (_initialFeeReceiver == address(0)) {
@@ -161,10 +145,7 @@ contract RedeemerV2 is AccessControl, OracleAware, Pausable, ReentrancyGuard {
 
         // Calculate collateral amount and fee
         uint256 dstableValue = dstableAmountToBaseValue(dstableAmount);
-        uint256 totalCollateral = collateralVault.assetAmountFromValue(
-            dstableValue,
-            collateralAsset
-        );
+        uint256 totalCollateral = collateralVault.assetAmountFromValue(dstableValue, collateralAsset);
 
         uint256 currentFeeBps = isCollateralFeeOverridden[collateralAsset]
             ? collateralRedemptionFeeBps[collateralAsset]
@@ -172,11 +153,7 @@ contract RedeemerV2 is AccessControl, OracleAware, Pausable, ReentrancyGuard {
 
         uint256 feeCollateral = 0;
         if (currentFeeBps > 0) {
-            feeCollateral = Math.mulDiv(
-                totalCollateral,
-                currentFeeBps,
-                BasisPointConstants.ONE_HUNDRED_PERCENT_BPS
-            );
+            feeCollateral = Math.mulDiv(totalCollateral, currentFeeBps, BasisPointConstants.ONE_HUNDRED_PERCENT_BPS);
         }
         uint256 netCollateral = totalCollateral - feeCollateral;
         if (netCollateral < minNetCollateral) {
@@ -188,20 +165,10 @@ contract RedeemerV2 is AccessControl, OracleAware, Pausable, ReentrancyGuard {
 
         // Withdraw fee to feeReceiver
         if (feeCollateral > 0) {
-            collateralVault.withdrawTo(
-                feeReceiver,
-                feeCollateral,
-                collateralAsset
-            );
+            collateralVault.withdrawTo(feeReceiver, feeCollateral, collateralAsset);
         }
 
-        emit Redemption(
-            msg.sender,
-            collateralAsset,
-            dstableAmount,
-            netCollateral,
-            feeCollateral
-        );
+        emit Redemption(msg.sender, collateralAsset, dstableAmount, netCollateral, feeCollateral);
     }
 
     function redeemAsProtocol(
@@ -221,10 +188,7 @@ contract RedeemerV2 is AccessControl, OracleAware, Pausable, ReentrancyGuard {
 
         // Calculate collateral amount
         uint256 dstableValue = dstableAmountToBaseValue(dstableAmount);
-        uint256 totalCollateral = collateralVault.assetAmountFromValue(
-            dstableValue,
-            collateralAsset
-        );
+        uint256 totalCollateral = collateralVault.assetAmountFromValue(dstableValue, collateralAsset);
         if (totalCollateral < minCollateral) {
             revert SlippageTooHigh(totalCollateral, minCollateral);
         }
@@ -232,13 +196,7 @@ contract RedeemerV2 is AccessControl, OracleAware, Pausable, ReentrancyGuard {
         // Burn and withdraw full amount to redeemer
         _redeem(msg.sender, dstableAmount, collateralAsset, totalCollateral);
 
-        emit Redemption(
-            msg.sender,
-            collateralAsset,
-            dstableAmount,
-            totalCollateral,
-            0
-        );
+        emit Redemption(msg.sender, collateralAsset, dstableAmount, totalCollateral, 0);
     }
 
     function _redeem(
@@ -248,40 +206,27 @@ contract RedeemerV2 is AccessControl, OracleAware, Pausable, ReentrancyGuard {
         uint256 collateralAmount
     ) internal {
         // Transfer dStable from redeemer to this contract
-        if (
-            !dstable.transferFrom(redeemerAddress, address(this), dstableAmount)
-        ) {
+        if (!dstable.transferFrom(redeemerAddress, address(this), dstableAmount)) {
             revert DStableTransferFailed();
         }
         // Burn the dStable
         dstable.burn(dstableAmount);
         // Withdraw collateral from the vault
-        collateralVault.withdrawTo(
-            redeemerAddress,
-            collateralAmount,
-            collateralAsset
-        );
+        collateralVault.withdrawTo(redeemerAddress, collateralAmount, collateralAsset);
     }
 
-    function dstableAmountToBaseValue(
-        uint256 dstableAmount
-    ) public view returns (uint256) {
-        return
-            Math.mulDiv(dstableAmount, baseCurrencyUnit, 10 ** dstableDecimals);
+    function dstableAmountToBaseValue(uint256 dstableAmount) public view returns (uint256) {
+        return Math.mulDiv(dstableAmount, baseCurrencyUnit, 10 ** dstableDecimals);
     }
 
     /* Views */
-    function isAssetRedemptionEnabled(
-        address asset
-    ) public view returns (bool) {
+    function isAssetRedemptionEnabled(address asset) public view returns (bool) {
         if (!collateralVault.isCollateralSupported(asset)) return false;
         return !assetRedemptionPaused[asset];
     }
 
     /* Admin */
-    function setCollateralVault(
-        address _collateralVault
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function setCollateralVault(address _collateralVault) external onlyRole(DEFAULT_ADMIN_ROLE) {
         if (_collateralVault == address(0)) {
             revert CannotBeZeroAddress();
         }
@@ -289,10 +234,7 @@ contract RedeemerV2 is AccessControl, OracleAware, Pausable, ReentrancyGuard {
         emit CollateralVaultSet(_collateralVault);
     }
 
-    function setAssetRedemptionPause(
-        address asset,
-        bool paused
-    ) external onlyRole(PAUSER_ROLE) {
+    function setAssetRedemptionPause(address asset, bool paused) external onlyRole(PAUSER_ROLE) {
         if (!collateralVault.isCollateralSupported(asset)) {
             revert CollateralVault.UnsupportedCollateral(asset);
         }
@@ -300,9 +242,7 @@ contract RedeemerV2 is AccessControl, OracleAware, Pausable, ReentrancyGuard {
         emit AssetRedemptionPauseUpdated(asset, paused);
     }
 
-    function setFeeReceiver(
-        address _newFeeReceiver
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function setFeeReceiver(address _newFeeReceiver) external onlyRole(DEFAULT_ADMIN_ROLE) {
         if (_newFeeReceiver == address(0)) {
             revert CannotBeZeroAddress();
         }
@@ -311,9 +251,7 @@ contract RedeemerV2 is AccessControl, OracleAware, Pausable, ReentrancyGuard {
         emit FeeReceiverUpdated(oldFeeReceiver, _newFeeReceiver);
     }
 
-    function setDefaultRedemptionFee(
-        uint256 _newFeeBps
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function setDefaultRedemptionFee(uint256 _newFeeBps) external onlyRole(DEFAULT_ADMIN_ROLE) {
         if (_newFeeBps > MAX_FEE_BPS) {
             revert FeeTooHigh(_newFeeBps, MAX_FEE_BPS);
         }
@@ -335,20 +273,14 @@ contract RedeemerV2 is AccessControl, OracleAware, Pausable, ReentrancyGuard {
         uint256 oldFeeBps = collateralRedemptionFeeBps[_collateralAsset];
         collateralRedemptionFeeBps[_collateralAsset] = _newFeeBps;
         isCollateralFeeOverridden[_collateralAsset] = true; // enable override, allowing 0 bps explicitly
-        emit CollateralRedemptionFeeUpdated(
-            _collateralAsset,
-            oldFeeBps,
-            _newFeeBps
-        );
+        emit CollateralRedemptionFeeUpdated(_collateralAsset, oldFeeBps, _newFeeBps);
     }
 
     /**
      * @notice Clears a per-asset fee override so the default fee applies again
      * @param _collateralAsset The collateral asset for which to clear the override
      */
-    function clearCollateralRedemptionFee(
-        address _collateralAsset
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function clearCollateralRedemptionFee(address _collateralAsset) external onlyRole(DEFAULT_ADMIN_ROLE) {
         if (_collateralAsset == address(0)) {
             revert CannotBeZeroAddress();
         }

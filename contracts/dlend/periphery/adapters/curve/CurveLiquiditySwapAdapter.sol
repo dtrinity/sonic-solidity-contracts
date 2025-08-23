@@ -17,16 +17,16 @@
 
 pragma solidity ^0.8.20;
 
-import {IERC20Detailed} from "contracts/dlend/core/dependencies/openzeppelin/contracts/IERC20Detailed.sol";
-import {IPoolAddressesProvider} from "contracts/dlend/core/interfaces/IPoolAddressesProvider.sol";
-import {SafeERC20} from "contracts/dlend/periphery/treasury/libs/SafeERC20.sol";
-import {BaseCurveSellAdapter} from "contracts/dlend/periphery/adapters/curve/BaseCurveSellAdapter.sol";
-import {ReentrancyGuard} from "contracts/dlend/periphery/treasury/libs/ReentrancyGuard.sol";
-import {ICurveRouterNgPoolsOnlyV1} from "contracts/dlend/periphery/adapters/curve/interfaces/ICurveRouterNgPoolsOnlyV1.sol";
-import {DataTypes} from "contracts/dlend/core/protocol/libraries/types/DataTypes.sol";
-import {IAaveFlashLoanReceiver} from "contracts/dlend/periphery/adapters/curve/interfaces/IAaveFlashLoanReceiver.sol";
-import {ICurveLiquiditySwapAdapter} from "contracts/dlend/periphery/adapters/curve/interfaces/ICurveLiquiditySwapAdapter.sol";
-import {IERC20} from "contracts/dlend/core/dependencies/openzeppelin/contracts/IERC20.sol";
+import { IERC20Detailed } from "contracts/dlend/core/dependencies/openzeppelin/contracts/IERC20Detailed.sol";
+import { IPoolAddressesProvider } from "contracts/dlend/core/interfaces/IPoolAddressesProvider.sol";
+import { SafeERC20 } from "contracts/dlend/periphery/treasury/libs/SafeERC20.sol";
+import { BaseCurveSellAdapter } from "contracts/dlend/periphery/adapters/curve/BaseCurveSellAdapter.sol";
+import { ReentrancyGuard } from "contracts/dlend/periphery/treasury/libs/ReentrancyGuard.sol";
+import { ICurveRouterNgPoolsOnlyV1 } from "contracts/dlend/periphery/adapters/curve/interfaces/ICurveRouterNgPoolsOnlyV1.sol";
+import { DataTypes } from "contracts/dlend/core/protocol/libraries/types/DataTypes.sol";
+import { IAaveFlashLoanReceiver } from "contracts/dlend/periphery/adapters/curve/interfaces/IAaveFlashLoanReceiver.sol";
+import { ICurveLiquiditySwapAdapter } from "contracts/dlend/periphery/adapters/curve/interfaces/ICurveLiquiditySwapAdapter.sol";
+import { IERC20 } from "contracts/dlend/core/dependencies/openzeppelin/contracts/IERC20.sol";
 
 /**
  * @title CurveLiquiditySwapAdapter
@@ -62,15 +62,9 @@ contract CurveLiquiditySwapAdapter is
      * @param asset The address of the asset
      * @return The address of the vToken, sToken and aToken
      */
-    function _getReserveData(
-        address asset
-    ) internal view override returns (address, address, address) {
+    function _getReserveData(address asset) internal view override returns (address, address, address) {
         DataTypes.ReserveData memory reserveData = POOL.getReserveData(asset);
-        return (
-            reserveData.variableDebtTokenAddress,
-            reserveData.stableDebtTokenAddress,
-            reserveData.aTokenAddress
-        );
+        return (reserveData.variableDebtTokenAddress, reserveData.stableDebtTokenAddress, reserveData.aTokenAddress);
     }
 
     /**
@@ -80,12 +74,7 @@ contract CurveLiquiditySwapAdapter is
      * @param to The address receiving the aTokens
      * @param referralCode The referral code to pass to Aave
      */
-    function _supply(
-        address asset,
-        uint256 amount,
-        address to,
-        uint16 referralCode
-    ) internal override {
+    function _supply(address asset, uint256 amount, address to, uint16 referralCode) internal override {
         POOL.supply(asset, amount, to, referralCode);
     }
 
@@ -131,10 +120,10 @@ contract CurveLiquiditySwapAdapter is
             revert InitiatorMustBeThis(initiator, address(this));
         }
 
-        (
-            LiquiditySwapParams memory liquiditySwapParams,
-            PermitInput memory collateralATokenPermit
-        ) = abi.decode(params, (LiquiditySwapParams, PermitInput));
+        (LiquiditySwapParams memory liquiditySwapParams, PermitInput memory collateralATokenPermit) = abi.decode(
+            params,
+            (LiquiditySwapParams, PermitInput)
+        );
 
         address flashLoanAsset = assets[0];
         uint256 flashLoanAmount = amounts[0];
@@ -152,30 +141,14 @@ contract CurveLiquiditySwapAdapter is
         );
 
         // supplies the received asset(newCollateralAsset) from swap to Aave Pool
-        _conditionalRenewAllowance(
-            liquiditySwapParams.newCollateralAsset,
-            amountReceived
-        );
-        _supply(
-            liquiditySwapParams.newCollateralAsset,
-            amountReceived,
-            liquiditySwapParams.user,
-            REFERRER
-        );
+        _conditionalRenewAllowance(liquiditySwapParams.newCollateralAsset, amountReceived);
+        _supply(liquiditySwapParams.newCollateralAsset, amountReceived, liquiditySwapParams.user, REFERRER);
 
         // pulls flashLoanAmount amount of flash-borrowed asset from the user
-        _pullATokenAndWithdraw(
-            flashLoanAsset,
-            liquiditySwapParams.user,
-            flashLoanAmount,
-            collateralATokenPermit
-        );
+        _pullATokenAndWithdraw(flashLoanAsset, liquiditySwapParams.user, flashLoanAmount, collateralATokenPermit);
 
         // flashloan repayment
-        _conditionalRenewAllowance(
-            flashLoanAsset,
-            flashLoanAmount + flashLoanPremium
-        );
+        _conditionalRenewAllowance(flashLoanAsset, flashLoanAmount + flashLoanPremium);
         return true;
     }
 
@@ -211,16 +184,8 @@ contract CurveLiquiditySwapAdapter is
         );
 
         // supply the received asset(newCollateralAsset) from swap to the Aave Pool
-        _conditionalRenewAllowance(
-            liquiditySwapParams.newCollateralAsset,
-            amountReceived
-        );
-        _supply(
-            liquiditySwapParams.newCollateralAsset,
-            amountReceived,
-            liquiditySwapParams.user,
-            REFERRER
-        );
+        _conditionalRenewAllowance(liquiditySwapParams.newCollateralAsset, amountReceived);
+        _supply(liquiditySwapParams.newCollateralAsset, amountReceived, liquiditySwapParams.user, REFERRER);
 
         return amountReceived;
     }
@@ -234,10 +199,7 @@ contract CurveLiquiditySwapAdapter is
         LiquiditySwapParams memory liquiditySwapParams,
         PermitInput memory collateralATokenPermit
     ) internal virtual {
-        bytes memory params = abi.encode(
-            liquiditySwapParams,
-            collateralATokenPermit
-        );
+        bytes memory params = abi.encode(liquiditySwapParams, collateralATokenPermit);
         address[] memory assets = new address[](1);
         assets[0] = liquiditySwapParams.collateralAsset;
         uint256[] memory amounts = new uint256[](1);
@@ -245,14 +207,6 @@ contract CurveLiquiditySwapAdapter is
         uint256[] memory interestRateModes = new uint256[](1);
         interestRateModes[0] = 0;
 
-        POOL.flashLoan(
-            address(this),
-            assets,
-            amounts,
-            interestRateModes,
-            address(this),
-            params,
-            REFERRER
-        );
+        POOL.flashLoan(address(this), assets, amounts, interestRateModes, address(this), params, REFERRER);
     }
 }

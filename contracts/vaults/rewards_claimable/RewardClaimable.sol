@@ -20,8 +20,8 @@ pragma solidity ^0.8.20;
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-import {BasisPointConstants} from "contracts/common/BasisPointConstants.sol";
-import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
+import { BasisPointConstants } from "contracts/common/BasisPointConstants.sol";
+import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
 
 /**
  * @title RewardClaimable
@@ -32,8 +32,7 @@ abstract contract RewardClaimable is AccessControl, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
     // Roles
-    bytes32 public constant REWARDS_MANAGER_ROLE =
-        keccak256("REWARDS_MANAGER_ROLE");
+    bytes32 public constant REWARDS_MANAGER_ROLE = keccak256("REWARDS_MANAGER_ROLE");
 
     // State variables
     address public treasury;
@@ -44,30 +43,14 @@ abstract contract RewardClaimable is AccessControl, ReentrancyGuard {
 
     // Events
     event TreasuryUpdated(address oldTreasury, address newTreasury);
-    event TreasuryFeeBpsUpdated(
-        uint256 oldTreasuryFeeBps,
-        uint256 newTreasuryFeeBps
-    );
-    event ExchangeThresholdUpdated(
-        uint256 oldExchangeThreshold,
-        uint256 newExchangeThreshold
-    );
-    event RewardCompounded(
-        address exchangeAsset,
-        uint256 amount,
-        address[] rewardTokens
-    );
+    event TreasuryFeeBpsUpdated(uint256 oldTreasuryFeeBps, uint256 newTreasuryFeeBps);
+    event ExchangeThresholdUpdated(uint256 oldExchangeThreshold, uint256 newExchangeThreshold);
+    event RewardCompounded(address exchangeAsset, uint256 amount, address[] rewardTokens);
 
     // Custom errors
     error ExchangeAmountTooLow(uint256 amount, uint256 threshold);
-    error RewardAmountsLengthMismatch(
-        uint256 claimedAmountsLength,
-        uint256 rewardTokensLength
-    );
-    error TreasuryFeeExceedsRewardAmount(
-        uint256 treasuryFee,
-        uint256 rewardAmount
-    );
+    error RewardAmountsLengthMismatch(uint256 claimedAmountsLength, uint256 rewardTokensLength);
+    error TreasuryFeeExceedsRewardAmount(uint256 treasuryFee, uint256 rewardAmount);
     error ZeroExchangeAssetAddress();
     error ZeroTreasuryAddress();
     error MaxTreasuryFeeTooHigh(uint256 maxTreasuryFeeBps);
@@ -103,10 +86,7 @@ abstract contract RewardClaimable is AccessControl, ReentrancyGuard {
         }
         // The initial fee cannot exceed the max fee, which means cannot be greater than 100% as well
         if (_initialTreasuryFeeBps > _maxTreasuryFeeBps) {
-            revert TreasuryFeeTooHigh(
-                _initialTreasuryFeeBps,
-                _maxTreasuryFeeBps
-            );
+            revert TreasuryFeeTooHigh(_initialTreasuryFeeBps, _maxTreasuryFeeBps);
         }
         if (_initialExchangeThreshold == 0) {
             revert ZeroExchangeThreshold();
@@ -126,9 +106,7 @@ abstract contract RewardClaimable is AccessControl, ReentrancyGuard {
      * @dev Sets the treasury address
      * @param newTreasury The new treasury address
      */
-    function setTreasury(
-        address newTreasury
-    ) external onlyRole(REWARDS_MANAGER_ROLE) {
+    function setTreasury(address newTreasury) external onlyRole(REWARDS_MANAGER_ROLE) {
         if (newTreasury == address(0)) {
             revert ZeroTreasuryAddress();
         }
@@ -142,9 +120,7 @@ abstract contract RewardClaimable is AccessControl, ReentrancyGuard {
      * @dev Sets the treasury fee in basis points
      * @param newTreasuryFeeBps New treasury fee in basis points (100 = 1bps = 0.01%)
      */
-    function setTreasuryFeeBps(
-        uint256 newTreasuryFeeBps
-    ) external onlyRole(REWARDS_MANAGER_ROLE) {
+    function setTreasuryFeeBps(uint256 newTreasuryFeeBps) external onlyRole(REWARDS_MANAGER_ROLE) {
         if (newTreasuryFeeBps > maxTreasuryFeeBps) {
             revert TreasuryFeeTooHigh(newTreasuryFeeBps, maxTreasuryFeeBps);
         }
@@ -159,19 +135,14 @@ abstract contract RewardClaimable is AccessControl, ReentrancyGuard {
      * @dev Sets the minimum threshold for exchange operations
      * @param newExchangeThreshold New minimum threshold amount
      */
-    function setExchangeThreshold(
-        uint256 newExchangeThreshold
-    ) external onlyRole(REWARDS_MANAGER_ROLE) {
+    function setExchangeThreshold(uint256 newExchangeThreshold) external onlyRole(REWARDS_MANAGER_ROLE) {
         if (newExchangeThreshold == 0) {
             revert ZeroExchangeThreshold();
         }
         uint256 oldExchangeThreshold = exchangeThreshold;
         exchangeThreshold = newExchangeThreshold;
 
-        emit ExchangeThresholdUpdated(
-            oldExchangeThreshold,
-            newExchangeThreshold
-        );
+        emit ExchangeThresholdUpdated(oldExchangeThreshold, newExchangeThreshold);
     }
 
     /**
@@ -180,12 +151,7 @@ abstract contract RewardClaimable is AccessControl, ReentrancyGuard {
      * @return The treasury fee in the same unit as the amount
      */
     function getTreasuryFee(uint256 amount) public view returns (uint256) {
-        return
-            Math.mulDiv(
-                amount,
-                treasuryFeeBps,
-                BasisPointConstants.ONE_HUNDRED_PERCENT_BPS
-            );
+        return Math.mulDiv(amount, treasuryFeeBps, BasisPointConstants.ONE_HUNDRED_PERCENT_BPS);
     }
 
     /**
@@ -210,26 +176,16 @@ abstract contract RewardClaimable is AccessControl, ReentrancyGuard {
         }
 
         // Transfer the exchange asset from the caller to the vault
-        IERC20(exchangeAsset).safeTransferFrom(
-            msg.sender,
-            address(this),
-            amount
-        );
+        IERC20(exchangeAsset).safeTransferFrom(msg.sender, address(this), amount);
 
         // Emit the event before the internal call to avoid reentrancy
         emit RewardCompounded(exchangeAsset, amount, rewardTokens);
 
         // Claim the rewards
-        uint256[] memory rewardAmounts = _claimRewards(
-            rewardTokens,
-            address(this)
-        );
+        uint256[] memory rewardAmounts = _claimRewards(rewardTokens, address(this));
 
         if (rewardAmounts.length != rewardTokens.length) {
-            revert RewardAmountsLengthMismatch(
-                rewardAmounts.length,
-                rewardTokens.length
-            );
+            revert RewardAmountsLengthMismatch(rewardAmounts.length, rewardTokens.length);
         }
 
         for (uint256 i = 0; i < rewardTokens.length; i++) {
@@ -238,20 +194,14 @@ abstract contract RewardClaimable is AccessControl, ReentrancyGuard {
 
             // Overflow protection
             if (treasuryFee > rewardAmount) {
-                revert TreasuryFeeExceedsRewardAmount(
-                    treasuryFee,
-                    rewardAmount
-                );
+                revert TreasuryFeeExceedsRewardAmount(treasuryFee, rewardAmount);
             }
 
             // Transfer the treasury fee to the treasury
             IERC20(rewardTokens[i]).safeTransfer(treasury, treasuryFee);
 
             // Transfer the remaining amount to the caller
-            IERC20(rewardTokens[i]).safeTransfer(
-                receiver,
-                rewardAmount - treasuryFee
-            );
+            IERC20(rewardTokens[i]).safeTransfer(receiver, rewardAmount - treasuryFee);
         }
 
         // Process the exchange asset deposit

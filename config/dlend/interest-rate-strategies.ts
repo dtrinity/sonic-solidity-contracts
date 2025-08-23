@@ -21,19 +21,18 @@ export const rateStrategyHighLiquidityVolatile: IInterestRateStrategyParams = {
   optimalStableToTotalDebtRatio: ethers.parseUnits("0", 27).toString(),
 };
 
-export const rateStrategyMediumLiquidityVolatile: IInterestRateStrategyParams =
-  {
-    name: "rateStrategyMediumLiquidityVolatile",
-    optimalUsageRatio: ethers.parseUnits("0.4", 27).toString(),
-    baseVariableBorrowRate: "0",
-    variableRateSlope1: ethers.parseUnits("0.03", 27).toString(),
-    variableRateSlope2: ethers.parseUnits("1.97", 27).toString(),
-    stableRateSlope1: ethers.parseUnits("0", 27).toString(),
-    stableRateSlope2: ethers.parseUnits("0", 27).toString(),
-    baseStableRateOffset: ethers.parseUnits("0", 27).toString(),
-    stableRateExcessOffset: ethers.parseUnits("0", 27).toString(),
-    optimalStableToTotalDebtRatio: ethers.parseUnits("0", 27).toString(),
-  };
+export const rateStrategyMediumLiquidityVolatile: IInterestRateStrategyParams = {
+  name: "rateStrategyMediumLiquidityVolatile",
+  optimalUsageRatio: ethers.parseUnits("0.4", 27).toString(),
+  baseVariableBorrowRate: "0",
+  variableRateSlope1: ethers.parseUnits("0.03", 27).toString(),
+  variableRateSlope2: ethers.parseUnits("1.97", 27).toString(),
+  stableRateSlope1: ethers.parseUnits("0", 27).toString(),
+  stableRateSlope2: ethers.parseUnits("0", 27).toString(),
+  baseStableRateOffset: ethers.parseUnits("0", 27).toString(),
+  stableRateExcessOffset: ethers.parseUnits("0", 27).toString(),
+  optimalStableToTotalDebtRatio: ethers.parseUnits("0", 27).toString(),
+};
 
 export const rateStrategyHighLiquidityStable: IInterestRateStrategyParams = {
   name: "rateStrategyHighLiquidityStable",

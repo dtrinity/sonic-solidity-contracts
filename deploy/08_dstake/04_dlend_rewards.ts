@@ -3,16 +3,9 @@ import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
 
 import { getConfig } from "../../config/config";
-import {
-  DLendRewardManagerConfig,
-  DStakeInstanceConfig,
-} from "../../config/types";
+import { DLendRewardManagerConfig, DStakeInstanceConfig } from "../../config/types";
 import { DStakeRewardManagerDLend } from "../../typechain-types";
-import {
-  EMISSION_MANAGER_ID,
-  INCENTIVES_PROXY_ID,
-  POOL_DATA_PROVIDER_ID,
-} from "../../typescript/deploy-ids";
+import { EMISSION_MANAGER_ID, INCENTIVES_PROXY_ID, POOL_DATA_PROVIDER_ID } from "../../typescript/deploy-ids";
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployments, getNamedAccounts } = hre;
@@ -25,43 +18,28 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const config = await getConfig(hre);
 
   if (!config.dStake) {
-    console.log(
-      "No dSTAKE configuration found for this network. Skipping dLend rewards manager deployment.",
-    );
+    console.log("No dSTAKE configuration found for this network. Skipping dLend rewards manager deployment.");
     return;
   }
 
   // --- Validation Loop ---
   for (const instanceKey in config.dStake) {
     const instanceConfig = config.dStake[instanceKey] as DStakeInstanceConfig;
-    const rewardManagerConfig = instanceConfig.dLendRewardManager as
-      | DLendRewardManagerConfig
-      | undefined;
+    const rewardManagerConfig = instanceConfig.dLendRewardManager as DLendRewardManagerConfig | undefined;
 
     if (!rewardManagerConfig) {
-      throw new Error(
-        `dLendRewardManager not configured for dSTAKE instance ${instanceKey}.`,
-      );
+      throw new Error(`dLendRewardManager not configured for dSTAKE instance ${instanceKey}.`);
     }
 
     // Fetch required addresses *within* the deploy script execution flow,
     // ensuring dependencies have been run.
-    const incentivesProxyDeployment =
-      await deployments.get(INCENTIVES_PROXY_ID);
+    const incentivesProxyDeployment = await deployments.get(INCENTIVES_PROXY_ID);
 
     // Fetch the AaveProtocolDataProvider and get the aToken address for this instance's underlying stablecoin
     const underlyingStablecoinAddress = instanceConfig.dStable;
-    const poolDataProviderDeployment = await deployments.get(
-      POOL_DATA_PROVIDER_ID,
-    );
-    const poolDataProviderContract = await ethers.getContractAt(
-      "AaveProtocolDataProvider",
-      poolDataProviderDeployment.address,
-    );
-    const reserveTokens =
-      await poolDataProviderContract.getReserveTokensAddresses(
-        underlyingStablecoinAddress,
-      );
+    const poolDataProviderDeployment = await deployments.get(POOL_DATA_PROVIDER_ID);
+    const poolDataProviderContract = await ethers.getContractAt("AaveProtocolDataProvider", poolDataProviderDeployment.address);
+    const reserveTokens = await poolDataProviderContract.getReserveTokensAddresses(underlyingStablecoinAddress);
     const aTokenAddress = reserveTokens.aTokenAddress;
 
     const {
@@ -88,21 +66,13 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     ) {
       // Log specific missing address for better debugging
       let missing = [];
-      if (!managedVaultAsset || managedVaultAsset === ethers.ZeroAddress)
-        missing.push("managedVaultAsset");
-      if (!aTokenAddress || aTokenAddress === ethers.ZeroAddress)
-        missing.push("dLendAssetToClaimFor (aToken)");
-      if (
-        !incentivesProxyDeployment.address ||
-        incentivesProxyDeployment.address === ethers.ZeroAddress
-      )
+      if (!managedVaultAsset || managedVaultAsset === ethers.ZeroAddress) missing.push("managedVaultAsset");
+      if (!aTokenAddress || aTokenAddress === ethers.ZeroAddress) missing.push("dLendAssetToClaimFor (aToken)");
+      if (!incentivesProxyDeployment.address || incentivesProxyDeployment.address === ethers.ZeroAddress)
         missing.push("dLendRewardsController (IncentivesProxy)");
-      if (!treasury || treasury === ethers.ZeroAddress)
-        missing.push("treasury");
+      if (!treasury || treasury === ethers.ZeroAddress) missing.push("treasury");
 
-      throw new Error(
-        `Missing critical addresses in dLendRewardManager config for ${instanceKey}: ${missing.join(", ")}`,
-      );
+      throw new Error(`Missing critical addresses in dLendRewardManager config for ${instanceKey}: ${missing.join(", ")}`);
     }
 
     if (
@@ -113,9 +83,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       typeof initialExchangeThreshold !== "bigint" ||
       initialExchangeThreshold < 0n
     ) {
-      throw new Error(
-        `Invalid fee/threshold numbers in dLendRewardManager config for ${instanceKey}.`,
-      );
+      throw new Error(`Invalid fee/threshold numbers in dLendRewardManager config for ${instanceKey}.`);
     }
 
     // The config loop serves as validation, the actual deployment logic will be outside
@@ -125,51 +93,31 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   // Actual deployment logic using fetched addresses
   for (const instanceKey in config.dStake) {
     const instanceConfig = config.dStake[instanceKey] as DStakeInstanceConfig;
-    const rewardManagerConfig =
-      instanceConfig.dLendRewardManager as DLendRewardManagerConfig;
+    const rewardManagerConfig = instanceConfig.dLendRewardManager as DLendRewardManagerConfig;
 
     if (!rewardManagerConfig) {
-      console.log(
-        `No dLendRewardManager configuration for dSTAKE instance ${instanceKey}. Skipping.`,
-      );
+      console.log(`No dLendRewardManager configuration for dSTAKE instance ${instanceKey}. Skipping.`);
       continue;
     }
 
-    if (
-      !rewardManagerConfig.managedVaultAsset ||
-      rewardManagerConfig.managedVaultAsset === ethers.ZeroAddress
-    ) {
-      console.warn(
-        `Skipping dLend rewards for ${instanceKey}: missing managedVaultAsset in rewardManagerConfig.`,
-      );
+    if (!rewardManagerConfig.managedVaultAsset || rewardManagerConfig.managedVaultAsset === ethers.ZeroAddress) {
+      console.warn(`Skipping dLend rewards for ${instanceKey}: missing managedVaultAsset in rewardManagerConfig.`);
       continue;
     }
 
-    const collateralVaultDeployment = await get(
-      `DStakeCollateralVault_${instanceKey}`,
-    );
+    const collateralVaultDeployment = await get(`DStakeCollateralVault_${instanceKey}`);
     const dStakeCollateralVaultAddress = collateralVaultDeployment.address;
     const routerDeployment = await get(`DStakeRouter_${instanceKey}`);
     const dStakeRouterAddress = routerDeployment.address;
 
-    const targetStaticATokenWrapperAddress =
-      rewardManagerConfig.managedVaultAsset;
+    const targetStaticATokenWrapperAddress = rewardManagerConfig.managedVaultAsset;
     const underlyingStablecoinAddress = instanceConfig.dStable; // from parent DStakeInstanceConfig
 
-    const incentivesProxyDeployment =
-      await deployments.get(INCENTIVES_PROXY_ID);
+    const incentivesProxyDeployment = await deployments.get(INCENTIVES_PROXY_ID);
 
-    const poolDataProviderDeployment = await deployments.get(
-      POOL_DATA_PROVIDER_ID,
-    );
-    const poolDataProviderContract = await ethers.getContractAt(
-      "AaveProtocolDataProvider",
-      poolDataProviderDeployment.address,
-    );
-    const reserveTokens =
-      await poolDataProviderContract.getReserveTokensAddresses(
-        underlyingStablecoinAddress,
-      );
+    const poolDataProviderDeployment = await deployments.get(POOL_DATA_PROVIDER_ID);
+    const poolDataProviderContract = await ethers.getContractAt("AaveProtocolDataProvider", poolDataProviderDeployment.address);
+    const reserveTokens = await poolDataProviderContract.getReserveTokensAddresses(underlyingStablecoinAddress);
     const dLendAssetToClaimForAddress = reserveTokens.aTokenAddress;
 
     if (dLendAssetToClaimForAddress === ethers.ZeroAddress) {
@@ -202,20 +150,14 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
     // Authorize this manager as a claimer via EmissionManager
     const deployerSigner = await ethers.getSigner(deployer);
-    const emissionManagerDeployment =
-      await deployments.get(EMISSION_MANAGER_ID);
-    const emissionManager = await ethers.getContractAt(
-      "EmissionManager",
-      emissionManagerDeployment.address,
-    );
+    const emissionManagerDeployment = await deployments.get(EMISSION_MANAGER_ID);
+    const emissionManager = await ethers.getContractAt("EmissionManager", emissionManagerDeployment.address);
 
     // Attempt to authorize this manager as a claimer via EmissionManager only if the deployer is the owner.
     const emissionOwner = await emissionManager.owner();
 
     if (emissionOwner.toLowerCase() === deployer.toLowerCase()) {
-      const tx = await emissionManager
-        .connect(deployerSigner)
-        .setClaimer(targetStaticATokenWrapperAddress, deployment.address);
+      const tx = await emissionManager.connect(deployerSigner).setClaimer(targetStaticATokenWrapperAddress, deployment.address);
       await tx.wait();
     } else {
       manualActions.push(
@@ -225,31 +167,22 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
     // --- Configure Roles ---
     if (deployment.address) {
-      const rewardManager: DStakeRewardManagerDLend =
-        await ethers.getContractAt(
-          "DStakeRewardManagerDLend",
-          deployment.address,
-        );
+      const rewardManager: DStakeRewardManagerDLend = await ethers.getContractAt("DStakeRewardManagerDLend", deployment.address);
       const DEFAULT_ADMIN_ROLE = await rewardManager.DEFAULT_ADMIN_ROLE();
       const REWARDS_MANAGER_ROLE = await rewardManager.REWARDS_MANAGER_ROLE();
 
       const targetAdmin =
-        rewardManagerConfig.initialAdmin &&
-        rewardManagerConfig.initialAdmin !== ethers.ZeroAddress
+        rewardManagerConfig.initialAdmin && rewardManagerConfig.initialAdmin !== ethers.ZeroAddress
           ? rewardManagerConfig.initialAdmin
           : deployer;
 
       const targetRewardsManager =
-        rewardManagerConfig.initialRewardsManager &&
-        rewardManagerConfig.initialRewardsManager !== ethers.ZeroAddress
+        rewardManagerConfig.initialRewardsManager && rewardManagerConfig.initialRewardsManager !== ethers.ZeroAddress
           ? rewardManagerConfig.initialRewardsManager
           : deployer;
 
       // The deployer needs DEFAULT_ADMIN_ROLE to change roles. If not, just log what needs to be done.
-      const deployerIsAdmin = await rewardManager.hasRole(
-        DEFAULT_ADMIN_ROLE,
-        deployer,
-      );
+      const deployerIsAdmin = await rewardManager.hasRole(DEFAULT_ADMIN_ROLE, deployer);
 
       if (!deployerIsAdmin) {
         manualActions.push(
@@ -258,33 +191,19 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       } else {
         // Grant and revoke roles as necessary
         if (targetRewardsManager !== deployer) {
-          if (
-            !(await rewardManager.hasRole(
-              REWARDS_MANAGER_ROLE,
-              targetRewardsManager,
-            ))
-          ) {
-            await rewardManager.grantRole(
-              REWARDS_MANAGER_ROLE,
-              targetRewardsManager,
-            );
-            console.log(
-              `          Granted REWARDS_MANAGER_ROLE to ${targetRewardsManager}`,
-            );
+          if (!(await rewardManager.hasRole(REWARDS_MANAGER_ROLE, targetRewardsManager))) {
+            await rewardManager.grantRole(REWARDS_MANAGER_ROLE, targetRewardsManager);
+            console.log(`          Granted REWARDS_MANAGER_ROLE to ${targetRewardsManager}`);
           }
 
           if (await rewardManager.hasRole(REWARDS_MANAGER_ROLE, deployer)) {
             await rewardManager.revokeRole(REWARDS_MANAGER_ROLE, deployer);
-            console.log(
-              `          Revoked REWARDS_MANAGER_ROLE from ${deployer}`,
-            );
+            console.log(`          Revoked REWARDS_MANAGER_ROLE from ${deployer}`);
           }
         } else {
           if (!(await rewardManager.hasRole(REWARDS_MANAGER_ROLE, deployer))) {
             await rewardManager.grantRole(REWARDS_MANAGER_ROLE, deployer);
-            console.log(
-              `          Granted REWARDS_MANAGER_ROLE to ${deployer}`,
-            );
+            console.log(`          Granted REWARDS_MANAGER_ROLE to ${deployer}`);
           }
         }
       }
@@ -311,9 +230,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   // After processing all instances, print any manual steps that are required.
   if (manualActions.length > 0) {
-    console.log(
-      "\n⚠️  Manual actions required to finalize dLend rewards deployment:",
-    );
+    console.log("\n⚠️  Manual actions required to finalize dLend rewards deployment:");
     manualActions.forEach((a: string) => console.log(`   - ${a}`));
   }
 
@@ -328,3 +245,67 @@ func.dependencies = ["dStakeConfigure"];
 // Mark as executed once.
 func.id = "dstake_dlend_rewards";
 func.runAtTheEnd = true;
+
+// Hard skip when everything is already configured on-chain
+func.skip = async (hre: HardhatRuntimeEnvironment): Promise<boolean> => {
+  const { deployments, ethers, getNamedAccounts } = hre;
+  const { getOrNull } = deployments;
+
+  const config = await getConfig(hre);
+  if (!config.dStake) return true;
+
+  // Ensure dependencies exist
+  const emissionManagerDep = await getOrNull(EMISSION_MANAGER_ID);
+  const poolDataProviderDep = await getOrNull(POOL_DATA_PROVIDER_ID);
+  if (!emissionManagerDep || !poolDataProviderDep) return false;
+
+  const emissionManager = await ethers.getContractAt("EmissionManager", emissionManagerDep.address);
+  const rewardsControllerAddress = await emissionManager.getRewardsController();
+  if (rewardsControllerAddress === ethers.ZeroAddress) return false;
+  const rewardsController = await ethers.getContractAt(
+    "contracts/dlend/periphery/rewards/interfaces/IRewardsController.sol:IRewardsController",
+    rewardsControllerAddress,
+  );
+
+  for (const instanceKey in config.dStake) {
+    const instanceConfig = config.dStake[instanceKey] as DStakeInstanceConfig;
+    const rewardManagerConfig = instanceConfig.dLendRewardManager as DLendRewardManagerConfig | undefined;
+
+    // If config is missing for this instance, allow script to run to surface the error
+    if (!rewardManagerConfig) {
+      return false;
+    }
+
+    const targetStaticATokenWrapperAddress = rewardManagerConfig.managedVaultAsset;
+    if (!targetStaticATokenWrapperAddress || targetStaticATokenWrapperAddress === ethers.ZeroAddress) {
+      // Nothing actionable for this instance
+      continue;
+    }
+
+    // Resolve aToken; if not available, nothing to do for this instance
+    const poolDataProvider = await ethers.getContractAt("AaveProtocolDataProvider", poolDataProviderDep.address);
+    const reserveTokens = await poolDataProvider.getReserveTokensAddresses(instanceConfig.dStable);
+    const aTokenAddress = reserveTokens.aTokenAddress;
+    if (aTokenAddress === ethers.ZeroAddress) {
+      continue;
+    }
+
+    // Reward manager must exist
+    const rewardManagerDeploymentName = `DStakeRewardManagerDLend_${instanceKey}`;
+    const rewardManagerDep = await getOrNull(rewardManagerDeploymentName);
+    if (!rewardManagerDep) {
+      return false;
+    }
+
+    // Claimer must already be set to the reward manager for this wrapper
+    const currentClaimer = await rewardsController.getClaimer(targetStaticATokenWrapperAddress);
+    if (currentClaimer.toLowerCase() !== rewardManagerDep.address.toLowerCase()) {
+      return false;
+    }
+
+    // Roles may be governed by Safe; don't block skip on roles. Presence + claimer suffices.
+  }
+
+  // All instances are either fully configured or irrelevant → skip
+  return true;
+};

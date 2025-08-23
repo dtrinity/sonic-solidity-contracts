@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import {DLoopCoreLogic} from "contracts/vaults/dloop/core/DLoopCoreLogic.sol";
+import { DLoopCoreLogic } from "contracts/vaults/dloop/core/DLoopCoreLogic.sol";
 
 contract DLoopCoreLogicHarness {
     // State logic
@@ -9,11 +9,7 @@ contract DLoopCoreLogicHarness {
         uint256 totalCollateralBase,
         uint256 totalDebtBase
     ) external pure returns (uint256) {
-        return
-            DLoopCoreLogic.getCurrentLeverageBps(
-                totalCollateralBase,
-                totalDebtBase
-            );
+        return DLoopCoreLogic.getCurrentLeverageBps(totalCollateralBase, totalDebtBase);
     }
 
     function getCurrentSubsidyBpsPublic(
@@ -23,12 +19,7 @@ contract DLoopCoreLogicHarness {
         uint256 minDeviationBps
     ) external pure returns (uint256) {
         return
-            DLoopCoreLogic.getCurrentSubsidyBps(
-                currentLeverageBps,
-                targetLeverageBps,
-                maxSubsidyBps,
-                minDeviationBps
-            );
+            DLoopCoreLogic.getCurrentSubsidyBps(currentLeverageBps, targetLeverageBps, maxSubsidyBps, minDeviationBps);
     }
 
     function isTooImbalancedPublic(
@@ -50,12 +41,7 @@ contract DLoopCoreLogicHarness {
         uint256 tokenDecimals,
         uint256 tokenPriceInBase
     ) external pure returns (uint256) {
-        return
-            DLoopCoreLogic.convertFromBaseCurrencyToToken(
-                amountInBase,
-                tokenDecimals,
-                tokenPriceInBase
-            );
+        return DLoopCoreLogic.convertFromBaseCurrencyToToken(amountInBase, tokenDecimals, tokenPriceInBase);
     }
 
     function convertFromTokenAmountToBaseCurrencyPublic(
@@ -63,12 +49,7 @@ contract DLoopCoreLogicHarness {
         uint256 tokenDecimals,
         uint256 tokenPriceInBase
     ) external pure returns (uint256) {
-        return
-            DLoopCoreLogic.convertFromTokenAmountToBaseCurrency(
-                amountInToken,
-                tokenDecimals,
-                tokenPriceInBase
-            );
+        return DLoopCoreLogic.convertFromTokenAmountToBaseCurrency(amountInToken, tokenDecimals, tokenPriceInBase);
     }
 
     // Leverage scaling
@@ -76,19 +57,11 @@ contract DLoopCoreLogicHarness {
         uint256 leveragedAssets,
         uint256 leverageBps
     ) external pure returns (uint256) {
-        return
-            DLoopCoreLogic.getUnleveragedAssetsWithLeverage(
-                leveragedAssets,
-                leverageBps
-            );
+        return DLoopCoreLogic.getUnleveragedAssetsWithLeverage(leveragedAssets, leverageBps);
     }
 
-    function getLeveragedAssetsWithLeveragePublic(
-        uint256 assets,
-        uint256 leverageBps
-    ) external pure returns (uint256) {
-        return
-            DLoopCoreLogic.getLeveragedAssetsWithLeverage(assets, leverageBps);
+    function getLeveragedAssetsWithLeveragePublic(uint256 assets, uint256 leverageBps) external pure returns (uint256) {
+        return DLoopCoreLogic.getLeveragedAssetsWithLeverage(assets, leverageBps);
     }
 
     // Maintain leverage
@@ -153,10 +126,7 @@ contract DLoopCoreLogicHarness {
         uint256 subsidyBps
     ) external pure returns (uint256) {
         return
-            DLoopCoreLogic.getDebtBorrowAmountInBaseToIncreaseLeverage(
-                inputCollateralDepositAmountInBase,
-                subsidyBps
-            );
+            DLoopCoreLogic.getDebtBorrowAmountInBaseToIncreaseLeverage(inputCollateralDepositAmountInBase, subsidyBps);
     }
 
     function getDebtBorrowTokenAmountToIncreaseLeveragePublic(
@@ -199,10 +169,7 @@ contract DLoopCoreLogicHarness {
         uint256 subsidyBps
     ) external pure returns (uint256) {
         return
-            DLoopCoreLogic.getCollateralWithdrawAmountInBaseToDecreaseLeverage(
-                inputDebtRepayAmountInBase,
-                subsidyBps
-            );
+            DLoopCoreLogic.getCollateralWithdrawAmountInBaseToDecreaseLeverage(inputDebtRepayAmountInBase, subsidyBps);
     }
 
     function getCollateralWithdrawTokenAmountToDecreaseLeveragePublic(
@@ -235,69 +202,53 @@ contract DLoopCoreLogicHarness {
         uint256 collateralTokenPriceInBase,
         uint256 debtTokenDecimals,
         uint256 debtTokenPriceInBase
-    )
-        external
-        pure
-        returns (
-            uint256 inputTokenAmount,
-            uint256 estimatedOutputTokenAmount,
-            int8 direction
-        )
-    {
+    ) external pure returns (uint256 inputTokenAmount, uint256 estimatedOutputTokenAmount, int8 direction) {
         if (totalCollateralBase == 0) {
             return (0, 0, 0);
         }
 
         if (currentLeverageBps < targetLeverageBps) {
-            uint256 inputCollateralAmountInBase = DLoopCoreLogic
-                .getCollateralTokenDepositAmountToReachTargetLeverage(
-                    targetLeverageBps,
-                    totalCollateralBase,
-                    totalDebtBase,
-                    subsidyBps
-                );
+            uint256 inputCollateralAmountInBase = DLoopCoreLogic.getCollateralTokenDepositAmountToReachTargetLeverage(
+                targetLeverageBps,
+                totalCollateralBase,
+                totalDebtBase,
+                subsidyBps
+            );
             inputTokenAmount = DLoopCoreLogic.convertFromBaseCurrencyToToken(
                 inputCollateralAmountInBase,
                 collateralTokenDecimals,
                 collateralTokenPriceInBase
             );
-            uint256 estimatedDebtAmountInBase = DLoopCoreLogic
-                .getDebtBorrowAmountInBaseToIncreaseLeverage(
-                    inputCollateralAmountInBase,
-                    subsidyBps
-                );
-            estimatedOutputTokenAmount = DLoopCoreLogic
-                .convertFromBaseCurrencyToToken(
-                    estimatedDebtAmountInBase,
-                    debtTokenDecimals,
-                    debtTokenPriceInBase
-                );
+            uint256 estimatedDebtAmountInBase = DLoopCoreLogic.getDebtBorrowAmountInBaseToIncreaseLeverage(
+                inputCollateralAmountInBase,
+                subsidyBps
+            );
+            estimatedOutputTokenAmount = DLoopCoreLogic.convertFromBaseCurrencyToToken(
+                estimatedDebtAmountInBase,
+                debtTokenDecimals,
+                debtTokenPriceInBase
+            );
             direction = 1;
             return (inputTokenAmount, estimatedOutputTokenAmount, direction);
         } else if (currentLeverageBps > targetLeverageBps) {
-            uint256 inputDebtAmountInBase = DLoopCoreLogic
-                .getDebtRepayAmountInBaseToReachTargetLeverage(
-                    targetLeverageBps,
-                    totalCollateralBase,
-                    totalDebtBase,
-                    subsidyBps
-                );
+            uint256 inputDebtAmountInBase = DLoopCoreLogic.getDebtRepayAmountInBaseToReachTargetLeverage(
+                targetLeverageBps,
+                totalCollateralBase,
+                totalDebtBase,
+                subsidyBps
+            );
             inputTokenAmount = DLoopCoreLogic.convertFromBaseCurrencyToToken(
                 inputDebtAmountInBase,
                 debtTokenDecimals,
                 debtTokenPriceInBase
             );
             uint256 estimatedCollateralAmountInBase = DLoopCoreLogic
-                .getCollateralWithdrawAmountInBaseToDecreaseLeverage(
-                    inputDebtAmountInBase,
-                    subsidyBps
-                );
-            estimatedOutputTokenAmount = DLoopCoreLogic
-                .convertFromBaseCurrencyToToken(
-                    estimatedCollateralAmountInBase,
-                    collateralTokenDecimals,
-                    collateralTokenPriceInBase
-                );
+                .getCollateralWithdrawAmountInBaseToDecreaseLeverage(inputDebtAmountInBase, subsidyBps);
+            estimatedOutputTokenAmount = DLoopCoreLogic.convertFromBaseCurrencyToToken(
+                estimatedCollateralAmountInBase,
+                collateralTokenDecimals,
+                collateralTokenPriceInBase
+            );
             direction = -1;
             return (inputTokenAmount, estimatedOutputTokenAmount, direction);
         }
@@ -310,18 +261,10 @@ contract DLoopCoreLogicHarness {
         uint256 netAmount,
         uint256 withdrawalFeeBps
     ) external pure returns (uint256) {
-        return
-            DLoopCoreLogic.getGrossAmountRequiredForNet(
-                netAmount,
-                withdrawalFeeBps
-            );
+        return DLoopCoreLogic.getGrossAmountRequiredForNet(netAmount, withdrawalFeeBps);
     }
 
-    function getNetAmountAfterFeePublic(
-        uint256 grossAmount,
-        uint256 withdrawalFeeBps
-    ) external pure returns (uint256) {
-        return
-            DLoopCoreLogic.getNetAmountAfterFee(grossAmount, withdrawalFeeBps);
+    function getNetAmountAfterFeePublic(uint256 grossAmount, uint256 withdrawalFeeBps) external pure returns (uint256) {
+        return DLoopCoreLogic.getNetAmountAfterFee(grossAmount, withdrawalFeeBps);
     }
 }

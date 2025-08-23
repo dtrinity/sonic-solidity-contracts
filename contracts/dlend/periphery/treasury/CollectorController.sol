@@ -17,9 +17,9 @@
 
 pragma solidity ^0.8.20;
 
-import {Ownable} from "contracts/dlend/core/dependencies/openzeppelin/contracts/Ownable.sol";
-import {IERC20} from "contracts/dlend/core/dependencies/openzeppelin/contracts/IERC20.sol";
-import {ICollector} from "./interfaces/ICollector.sol";
+import { Ownable } from "contracts/dlend/core/dependencies/openzeppelin/contracts/Ownable.sol";
+import { IERC20 } from "contracts/dlend/core/dependencies/openzeppelin/contracts/IERC20.sol";
+import { ICollector } from "./interfaces/ICollector.sol";
 
 /**
  * @title CollectorController
@@ -45,12 +45,7 @@ contract CollectorController is Ownable {
      * @param recipient The address of the entity to transfer the tokens.
      * @param amount The amount to be transferred.
      */
-    function approve(
-        address collector,
-        IERC20 token,
-        address recipient,
-        uint256 amount
-    ) external onlyOwner {
+    function approve(address collector, IERC20 token, address recipient, uint256 amount) external onlyOwner {
         ICollector(collector).approve(token, recipient, amount);
     }
 
@@ -61,12 +56,7 @@ contract CollectorController is Ownable {
      * @param recipient The address of the entity to transfer the tokens.
      * @param amount The amount to be transferred.
      */
-    function transfer(
-        address collector,
-        IERC20 token,
-        address recipient,
-        uint256 amount
-    ) external onlyOwner {
+    function transfer(address collector, IERC20 token, address recipient, uint256 amount) external onlyOwner {
         ICollector(collector).transfer(token, recipient, amount);
     }
 }

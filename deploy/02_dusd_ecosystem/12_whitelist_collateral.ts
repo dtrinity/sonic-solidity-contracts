@@ -3,19 +3,14 @@ import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
 
 import { getConfig } from "../../config/config";
-import {
-  DUSD_COLLATERAL_VAULT_CONTRACT_ID,
-  USD_ORACLE_AGGREGATOR_ID,
-} from "../../typescript/deploy-ids";
+import { DUSD_COLLATERAL_VAULT_CONTRACT_ID, USD_ORACLE_AGGREGATOR_ID } from "../../typescript/deploy-ids";
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployer } = await hre.getNamedAccounts();
   const config = await getConfig(hre);
 
   // Get the CollateralVault contract
-  const { address: collateralVaultAddress } = await hre.deployments.get(
-    DUSD_COLLATERAL_VAULT_CONTRACT_ID,
-  );
+  const { address: collateralVaultAddress } = await hre.deployments.get(DUSD_COLLATERAL_VAULT_CONTRACT_ID);
   const collateralVault = await hre.ethers.getContractAt(
     "CollateralHolderVault",
     collateralVaultAddress,
@@ -23,9 +18,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   );
 
   // Get the OracleAggregator contract
-  const { address: oracleAggregatorAddress } = await hre.deployments.get(
-    USD_ORACLE_AGGREGATOR_ID,
-  );
+  const { address: oracleAggregatorAddress } = await hre.deployments.get(USD_ORACLE_AGGREGATOR_ID);
   const oracleAggregator = await hre.ethers.getContractAt(
     "OracleAggregator",
     oracleAggregatorAddress,
@@ -63,14 +56,10 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   for (const token of tokensToWhitelist) {
     try {
       // Check if the token is already whitelisted
-      const isAlreadyWhitelisted = await collateralVault.isCollateralSupported(
-        token.address,
-      );
+      const isAlreadyWhitelisted = await collateralVault.isCollateralSupported(token.address);
 
       if (isAlreadyWhitelisted) {
-        console.log(
-          `ℹ️ ${token.address} is already whitelisted as collateral. Skipping.`,
-        );
+        console.log(`ℹ️ ${token.address} is already whitelisted as collateral. Skipping.`);
         continue;
       }
 

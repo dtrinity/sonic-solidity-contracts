@@ -17,9 +17,9 @@
 
 pragma solidity ^0.8.20;
 
-import {IPool} from "../../interfaces/IPool.sol";
-import {IDelegationToken} from "../../interfaces/IDelegationToken.sol";
-import {AToken} from "./AToken.sol";
+import { IPool } from "../../interfaces/IPool.sol";
+import { IDelegationToken } from "../../interfaces/IDelegationToken.sol";
+import { AToken } from "./AToken.sol";
 
 /**
  * @title DelegationAwareAToken

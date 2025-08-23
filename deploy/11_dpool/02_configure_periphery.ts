@@ -12,9 +12,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   // Skip if no dPool config
   if (!config.dPool) {
-    console.log(
-      "No dPool configuration found, skipping periphery configuration",
-    );
+    console.log("No dPool configuration found, skipping periphery configuration");
     return;
   }
 
@@ -31,9 +29,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     try {
       peripheryDeployment = await get(peripheryDeploymentName);
     } catch (error) {
-      console.log(
-        `⚠️  Periphery deployment ${peripheryDeploymentName} not found: ${error}`,
-      );
+      console.log(`⚠️  Periphery deployment ${peripheryDeploymentName} not found: ${error}`);
       console.log(`⚠️  Skipping ${dPoolId}: periphery not deployed`);
       continue;
     }
@@ -45,11 +41,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     const adminSigner = initialAdmin === deployer ? deployer : initialAdmin;
 
     // Get periphery contract instance with the appropriate signer
-    const periphery = await ethers.getContractAt(
-      "DPoolCurvePeriphery",
-      peripheryDeployment.address,
-      await ethers.getSigner(adminSigner),
-    );
+    const periphery = await ethers.getContractAt("DPoolCurvePeriphery", peripheryDeployment.address, await ethers.getSigner(adminSigner));
 
     // Get Curve pool deployment
     let curvePoolDeployment;
@@ -63,9 +55,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
         curvePoolDeployment = { address: dPoolConfig.pool };
         console.log(`Using external pool address: ${dPoolConfig.pool}`);
       } else {
-        console.log(
-          `⚠️  Failed to get Curve pool deployment ${dPoolConfig.pool}: ${error}`,
-        );
+        console.log(`⚠️  Failed to get Curve pool deployment ${dPoolConfig.pool}: ${error}`);
         console.log(`⚠️  Skipping ${dPoolId}: pool not found`);
         continue;
       }
@@ -108,16 +98,9 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       try {
         const currentSlippage = await periphery.maxSlippageBps();
 
-        if (
-          currentSlippage.toString() !==
-          dPoolConfig.initialSlippageBps.toString()
-        ) {
-          console.log(
-            `  Setting max slippage to ${dPoolConfig.initialSlippageBps} BPS`,
-          );
-          const tx = await periphery.setMaxSlippage(
-            dPoolConfig.initialSlippageBps,
-          );
+        if (currentSlippage.toString() !== dPoolConfig.initialSlippageBps.toString()) {
+          console.log(`  Setting max slippage to ${dPoolConfig.initialSlippageBps} BPS`);
+          const tx = await periphery.setMaxSlippage(dPoolConfig.initialSlippageBps);
           await tx.wait();
           console.log(`  ✅ Max slippage set`);
         } else {

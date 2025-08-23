@@ -5,11 +5,7 @@ import { ethers } from "hardhat";
 
 import { DLoopCoreMock, TestMintableERC20 } from "../../../typechain-types";
 import { ONE_PERCENT_BPS } from "../../../typescript/common/bps_constants";
-import {
-  deployDLoopMockFixture,
-  TARGET_LEVERAGE_BPS,
-  testSetup,
-} from "./fixture";
+import { deployDLoopMockFixture, TARGET_LEVERAGE_BPS, testSetup } from "./fixture";
 
 // NOTE: Redundant with CoreLogic tests; keeping file but skipping suite to avoid duplication
 describe.skip("DLoopCoreMock Calculation Tests", function () {
@@ -31,8 +27,7 @@ describe.skip("DLoopCoreMock Calculation Tests", function () {
     _accounts = fixture.accounts;
 
     // Deploy an additional token for testing calculation functionality
-    const TestMintableERC20Factory =
-      await ethers.getContractFactory("TestMintableERC20");
+    const TestMintableERC20Factory = await ethers.getContractFactory("TestMintableERC20");
     _otherToken = await TestMintableERC20Factory.deploy(
       "Other Token",
       "OTHER",
@@ -101,9 +96,7 @@ describe.skip("DLoopCoreMock Calculation Tests", function () {
 
       for (const testCase of testCases) {
         it(testCase.name, async function () {
-          const result = await dloopMock.getTargetLeveragedAssets(
-            testCase.assets,
-          );
+          const result = await dloopMock.getTargetLeveragedAssets(testCase.assets);
           expect(result).to.equal(testCase.expectedLeveraged);
         });
       }
@@ -184,30 +177,16 @@ describe.skip("DLoopCoreMock Calculation Tests", function () {
           const collateralPrice = ethers.parseEther("1"); // $1 per token
           const debtPrice = ethers.parseEther("1"); // $1 per token
 
-          await dloopMock.setMockPrice(
-            await collateralToken.getAddress(),
-            collateralPrice,
-          );
+          await dloopMock.setMockPrice(await collateralToken.getAddress(), collateralPrice);
           await dloopMock.setMockPrice(await debtToken.getAddress(), debtPrice);
 
-          await dloopMock.setMockCollateral(
-            await dloopMock.getAddress(),
-            await collateralToken.getAddress(),
-            testCase.collateral,
-          );
-          await dloopMock.setMockDebt(
-            await dloopMock.getAddress(),
-            await debtToken.getAddress(),
-            testCase.debt,
-          );
+          await dloopMock.setMockCollateral(await dloopMock.getAddress(), await collateralToken.getAddress(), testCase.collateral);
+          await dloopMock.setMockDebt(await dloopMock.getAddress(), await debtToken.getAddress(), testCase.debt);
 
           const result = await dloopMock.getCurrentLeverageBps();
 
           if (testCase.expectedLeverage > 0) {
-            expect(result).to.be.closeTo(
-              testCase.expectedLeverage,
-              BigInt(ONE_PERCENT_BPS),
-            );
+            expect(result).to.be.closeTo(testCase.expectedLeverage, BigInt(ONE_PERCENT_BPS));
           } else {
             expect(result).to.equal(testCase.expectedLeverage);
           }
@@ -261,27 +240,14 @@ describe.skip("DLoopCoreMock Calculation Tests", function () {
           // Set price only if collateral > 0 to avoid unnecessary mocks
           if (c.collateral > 0n || c.debt > 0n) {
             const price = c.price ?? ethers.parseEther("1");
-            await dloopMock.setMockPrice(
-              await collateralToken.getAddress(),
-              price,
-            );
+            await dloopMock.setMockPrice(await collateralToken.getAddress(), price);
             await dloopMock.setMockPrice(await debtToken.getAddress(), price);
           }
 
-          await dloopMock.setMockCollateral(
-            await dloopMock.getAddress(),
-            await collateralToken.getAddress(),
-            c.collateral,
-          );
-          await dloopMock.setMockDebt(
-            await dloopMock.getAddress(),
-            await debtToken.getAddress(),
-            c.debt,
-          );
+          await dloopMock.setMockCollateral(await dloopMock.getAddress(), await collateralToken.getAddress(), c.collateral);
+          await dloopMock.setMockDebt(await dloopMock.getAddress(), await debtToken.getAddress(), c.debt);
 
-          const result = await dloopMock.getCurrentLeveragedAssets(
-            c.inputAssets,
-          );
+          const result = await dloopMock.getCurrentLeveragedAssets(c.inputAssets);
           expect(result).to.equal(c.expectedLeveraged);
         });
       }
@@ -308,9 +274,7 @@ describe.skip("DLoopCoreMock Calculation Tests", function () {
 
       for (const tc of testCases) {
         it(tc.name, async function () {
-          const result = await dloopMock.getUnleveragedAssetsWithTargetLeverage(
-            tc.leveraged,
-          );
+          const result = await dloopMock.getUnleveragedAssetsWithTargetLeverage(tc.leveraged);
           expect(result).to.equal(tc.expected);
         });
       }
@@ -353,27 +317,13 @@ describe.skip("DLoopCoreMock Calculation Tests", function () {
         it(c.name, async function () {
           const price = ethers.parseEther("1");
 
-          await dloopMock.setMockPrice(
-            await collateralToken.getAddress(),
-            price,
-          );
+          await dloopMock.setMockPrice(await collateralToken.getAddress(), price);
           await dloopMock.setMockPrice(await debtToken.getAddress(), price);
 
-          await dloopMock.setMockCollateral(
-            await dloopMock.getAddress(),
-            await collateralToken.getAddress(),
-            c.collateral,
-          );
-          await dloopMock.setMockDebt(
-            await dloopMock.getAddress(),
-            await debtToken.getAddress(),
-            c.debt,
-          );
+          await dloopMock.setMockCollateral(await dloopMock.getAddress(), await collateralToken.getAddress(), c.collateral);
+          await dloopMock.setMockDebt(await dloopMock.getAddress(), await debtToken.getAddress(), c.debt);
 
-          const result =
-            await dloopMock.getUnleveragedAssetsWithCurrentLeverage(
-              c.leveragedInput,
-            );
+          const result = await dloopMock.getUnleveragedAssetsWithCurrentLeverage(c.leveragedInput);
           expect(result).to.equal(c.expectedUnleveraged);
         });
       }
@@ -464,23 +414,12 @@ describe.skip("DLoopCoreMock Calculation Tests", function () {
       for (const testCase of testCases) {
         it(testCase.name, async function () {
           // Deploy a token with specific decimals for this test
-          const TestMintableERC20Factory =
-            await ethers.getContractFactory("TestMintableERC20");
-          const testToken = await TestMintableERC20Factory.deploy(
-            "Test Token",
-            "TEST",
-            testCase.tokenDecimals,
-          );
+          const TestMintableERC20Factory = await ethers.getContractFactory("TestMintableERC20");
+          const testToken = await TestMintableERC20Factory.deploy("Test Token", "TEST", testCase.tokenDecimals);
 
-          await dloopMock.setMockPrice(
-            await testToken.getAddress(),
-            testCase.tokenPrice,
-          );
+          await dloopMock.setMockPrice(await testToken.getAddress(), testCase.tokenPrice);
 
-          const result = await dloopMock.convertFromBaseCurrencyToToken(
-            testCase.amountInBase,
-            await testToken.getAddress(),
-          );
+          const result = await dloopMock.convertFromBaseCurrencyToToken(testCase.amountInBase, await testToken.getAddress());
 
           expect(result).to.equal(testCase.expectedAmount);
         });
@@ -570,23 +509,12 @@ describe.skip("DLoopCoreMock Calculation Tests", function () {
       for (const testCase of testCases) {
         it(testCase.name, async function () {
           // Deploy a token with specific decimals for this test
-          const TestMintableERC20Factory =
-            await ethers.getContractFactory("TestMintableERC20");
-          const testToken = await TestMintableERC20Factory.deploy(
-            "Test Token",
-            "TEST",
-            testCase.tokenDecimals,
-          );
+          const TestMintableERC20Factory = await ethers.getContractFactory("TestMintableERC20");
+          const testToken = await TestMintableERC20Factory.deploy("Test Token", "TEST", testCase.tokenDecimals);
 
-          await dloopMock.setMockPrice(
-            await testToken.getAddress(),
-            testCase.tokenPrice,
-          );
+          await dloopMock.setMockPrice(await testToken.getAddress(), testCase.tokenPrice);
 
-          const result = await dloopMock.convertFromTokenAmountToBaseCurrency(
-            testCase.amountInToken,
-            await testToken.getAddress(),
-          );
+          const result = await dloopMock.convertFromTokenAmountToBaseCurrency(testCase.amountInToken, await testToken.getAddress());
 
           expect(result).to.equal(testCase.expectedAmount);
         });

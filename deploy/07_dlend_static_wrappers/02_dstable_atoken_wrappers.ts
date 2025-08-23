@@ -20,14 +20,10 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { tokenAddresses } = config;
 
   // Get dLend contracts
-  const poolAddressesProvider = await deployments.getOrNull(
-    POOL_ADDRESSES_PROVIDER_ID,
-  );
+  const poolAddressesProvider = await deployments.getOrNull(POOL_ADDRESSES_PROVIDER_ID);
 
   if (!poolAddressesProvider) {
-    console.log(
-      "PoolAddressesProvider not found, skipping aToken wrapper deployment",
-    );
+    console.log("PoolAddressesProvider not found, skipping aToken wrapper deployment");
     return;
   }
 
@@ -37,10 +33,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   );
 
   const poolAddress = await poolAddressesProviderContract.getPool();
-  const poolContract = await ethers.getContractAt(
-    "contracts/dlend/core/interfaces/IPool.sol:IPool",
-    poolAddress,
-  );
+  const poolContract = await ethers.getContractAt("contracts/dlend/core/interfaces/IPool.sol:IPool", poolAddress);
 
   // Get rewards controller if available
   let rewardsControllerAddress = ethers.ZeroAddress;
@@ -54,9 +47,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   let dUSDAToken, dSAToken;
 
   try {
-    const dUSDReserveData = await poolContract.getReserveData(
-      tokenAddresses.dUSD,
-    );
+    const dUSDReserveData = await poolContract.getReserveData(tokenAddresses.dUSD);
     dUSDAToken = dUSDReserveData.aTokenAddress;
   } catch (error: any) {
     console.log(`Error getting dUSD aToken: ${error.message}`);
@@ -73,10 +64,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   // Deploy StaticATokenLM for dUSD
   if (dUSDAToken && dUSDAToken !== ethers.ZeroAddress) {
-    const dUSDATokenContract = await ethers.getContractAt(
-      "IERC20Detailed",
-      dUSDAToken,
-    );
+    const dUSDATokenContract = await ethers.getContractAt("IERC20Detailed", dUSDAToken);
     const dUSDATokenSymbol = await dUSDATokenContract.symbol();
 
     // console.log(`Deploying StaticATokenLM wrapper for ${dUSDATokenSymbol}...`);
@@ -84,38 +72,21 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     await deploy(DUSD_A_TOKEN_WRAPPER_ID, {
       from: deployer,
       contract: "StaticATokenLM",
-      args: [
-        poolAddress,
-        rewardsControllerAddress,
-        dUSDAToken,
-        `Static ${dUSDATokenSymbol}`,
-        `stk${dUSDATokenSymbol}`,
-      ],
+      args: [poolAddress, rewardsControllerAddress, dUSDAToken, `Static ${dUSDATokenSymbol}`, `stk${dUSDATokenSymbol}`],
     });
   } else {
-    console.log(
-      "dUSD aToken not found or invalid, skipping wrapper deployment",
-    );
+    console.log("dUSD aToken not found or invalid, skipping wrapper deployment");
   }
 
   // Deploy StaticATokenLM for dS
   if (dSAToken && dSAToken !== ethers.ZeroAddress) {
-    const dSATokenContract = await ethers.getContractAt(
-      "IERC20Detailed",
-      dSAToken,
-    );
+    const dSATokenContract = await ethers.getContractAt("IERC20Detailed", dSAToken);
     const dSATokenSymbol = await dSATokenContract.symbol();
 
     await deploy(DS_A_TOKEN_WRAPPER_ID, {
       from: deployer,
       contract: "StaticATokenLM",
-      args: [
-        poolAddress,
-        rewardsControllerAddress,
-        dSAToken,
-        `Static ${dSATokenSymbol}`,
-        `stk${dSATokenSymbol}`,
-      ],
+      args: [poolAddress, rewardsControllerAddress, dSAToken, `Static ${dSATokenSymbol}`, `stk${dSATokenSymbol}`],
     });
   } else {
     console.log("dS aToken not found or invalid, skipping wrapper deployment");

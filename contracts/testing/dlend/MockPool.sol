@@ -19,9 +19,7 @@ contract MockPool {
         _reserves[asset] = d;
     }
 
-    function getReserveData(
-        address asset
-    ) external view returns (DataTypes.ReserveData memory) {
+    function getReserveData(address asset) external view returns (DataTypes.ReserveData memory) {
         return _reserves[asset];
     }
 }

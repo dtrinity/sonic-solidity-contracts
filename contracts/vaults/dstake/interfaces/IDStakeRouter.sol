@@ -25,9 +25,5 @@ interface IDStakeRouter {
      * @param receiver The address that will receive the withdrawn dStable asset.
      * @param owner The original owner initiating the withdrawal (typically the user burning shares).
      */
-    function withdraw(
-        uint256 dStableAmount,
-        address receiver,
-        address owner
-    ) external;
+    function withdraw(uint256 dStableAmount, address receiver, address owner) external;
 }
