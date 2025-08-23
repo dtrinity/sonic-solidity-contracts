@@ -59,8 +59,5 @@ interface IOdosRepayAdapter is IBaseOdosAdapter {
      * @param permitInput The parameters of the permit signature, to approve collateral aToken
      * @return uint256 The amount repaid
      */
-    function swapAndRepay(
-        RepayParams memory repayParams,
-        PermitInput memory permitInput
-    ) external returns (uint256);
+    function swapAndRepay(RepayParams memory repayParams, PermitInput memory permitInput) external returns (uint256);
 }

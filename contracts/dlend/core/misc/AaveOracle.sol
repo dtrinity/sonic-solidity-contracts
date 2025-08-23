@@ -69,10 +69,7 @@ contract AaveOracle is IAaveOracle {
     }
 
     /// @inheritdoc IAaveOracle
-    function setAssetSources(
-        address[] calldata,
-        address[] calldata
-    ) external override onlyAssetListingOrPoolAdmins {
+    function setAssetSources(address[] calldata, address[] calldata) external override onlyAssetListingOrPoolAdmins {
         // No-op as we don't manage sources directly anymore
     }
 
@@ -89,9 +86,7 @@ contract AaveOracle is IAaveOracle {
     }
 
     /// @inheritdoc IAaveOracle
-    function getAssetsPrices(
-        address[] calldata assets
-    ) external view override returns (uint256[] memory) {
+    function getAssetsPrices(address[] calldata assets) external view override returns (uint256[] memory) {
         uint256[] memory prices = new uint256[](assets.length);
         for (uint256 i = 0; i < assets.length; i++) {
             prices[i] = getAssetPrice(assets[i]);

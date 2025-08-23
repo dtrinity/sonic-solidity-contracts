@@ -32,10 +32,7 @@ contract DLoopRedeemerOdos is DLoopRedeemerBase {
      * @param _flashLender Address of the flash loan provider
      * @param _odosRouter Address of the Odos router
      */
-    constructor(
-        IERC3156FlashLender _flashLender,
-        IOdosRouterV2 _odosRouter
-    ) DLoopRedeemerBase(_flashLender) {
+    constructor(IERC3156FlashLender _flashLender, IOdosRouterV2 _odosRouter) DLoopRedeemerBase(_flashLender) {
         odosRouter = _odosRouter;
     }
 

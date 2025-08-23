@@ -73,14 +73,7 @@ contract PendleSwapPOC {
             ERC20(underlyingToken).safeTransfer(msg.sender, underlyingReceived);
         }
 
-        emit PendleSwapExecuted(
-            msg.sender,
-            ptToken,
-            underlyingToken,
-            ptAmount,
-            amountSpent,
-            router
-        );
+        emit PendleSwapExecuted(msg.sender, ptToken, underlyingToken, ptAmount, amountSpent, router);
 
         return amountSpent;
     }
@@ -91,10 +84,7 @@ contract PendleSwapPOC {
      * @param user The user address to check
      * @return allowance Current allowance amount
      */
-    function checkAllowance(
-        address ptToken,
-        address user
-    ) external view returns (uint256 allowance) {
+    function checkAllowance(address ptToken, address user) external view returns (uint256 allowance) {
         return ERC20(ptToken).allowance(user, address(this));
     }
 

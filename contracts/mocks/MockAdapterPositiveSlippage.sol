@@ -29,9 +29,7 @@ contract MockAdapterPositiveSlippage is IDStableConversionAdapter {
         return (address(vaultToken), vaultAssetAmount);
     }
 
-    function convertFromVaultAsset(
-        uint256 vaultAssetAmount
-    ) external override returns (uint256 dStableAmount) {
+    function convertFromVaultAsset(uint256 vaultAssetAmount) external override returns (uint256 dStableAmount) {
         // pull vault tokens
         IERC20(address(vaultToken)).transferFrom(msg.sender, address(this), vaultAssetAmount);
         IERC20(address(vaultToken)).forceApprove(address(vaultToken), vaultAssetAmount);

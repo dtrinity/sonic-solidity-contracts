@@ -42,8 +42,5 @@ interface ICurveRepayAdapter is IBaseCurveAdapter {
      * @param repayParams struct describing the repay with collateral swap
      * @param collateralATokenPermit optional permit for collateral aToken
      */
-    function repayWithCollateral(
-        RepayParams memory repayParams,
-        PermitInput memory collateralATokenPermit
-    ) external;
+    function repayWithCollateral(RepayParams memory repayParams, PermitInput memory collateralATokenPermit) external;
 }

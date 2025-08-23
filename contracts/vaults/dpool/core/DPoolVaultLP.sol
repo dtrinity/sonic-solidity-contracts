@@ -33,13 +33,7 @@ import "../../../common/SupportsWithdrawalFee.sol";
  * @notice Abstract base ERC4626 vault that accepts LP tokens as the primary asset
  * @dev Each vault represents a specific LP position on a specific DEX. The vault's asset() is the LP token itself.
  */
-abstract contract DPoolVaultLP is
-    ERC4626,
-    AccessControl,
-    ReentrancyGuard,
-    IDPoolVaultLP,
-    SupportsWithdrawalFee
-{
+abstract contract DPoolVaultLP is ERC4626, AccessControl, ReentrancyGuard, IDPoolVaultLP, SupportsWithdrawalFee {
     using SafeERC20 for IERC20;
 
     // --- Constants ---
@@ -144,9 +138,7 @@ abstract contract DPoolVaultLP is
      * @dev Preview withdraw including withdrawal fee.
      *      The `assets` parameter is the net amount of LP tokens the user wants to receive.
      */
-    function previewWithdraw(
-        uint256 assets
-    ) public view virtual override(ERC4626, IERC4626) returns (uint256 shares) {
+    function previewWithdraw(uint256 assets) public view virtual override(ERC4626, IERC4626) returns (uint256 shares) {
         uint256 grossAssetsRequired = _getGrossAmountRequiredForNet(assets);
         return super.previewWithdraw(grossAssetsRequired);
     }
@@ -156,9 +148,7 @@ abstract contract DPoolVaultLP is
      * @dev Preview redeem including withdrawal fee.
      *      Calculates gross assets from shares, then deducts fee to show net assets user receives.
      */
-    function previewRedeem(
-        uint256 shares
-    ) public view virtual override(ERC4626, IERC4626) returns (uint256 assets) {
+    function previewRedeem(uint256 shares) public view virtual override(ERC4626, IERC4626) returns (uint256 assets) {
         uint256 grossAssets = super.previewRedeem(shares);
         return _getNetAmountAfterFee(grossAssets);
     }
@@ -218,12 +208,7 @@ abstract contract DPoolVaultLP is
      * @param lpAmount Amount of LP tokens being deposited
      * @param shares Amount of shares to mint
      */
-    function _deposit(
-        address caller,
-        address receiver,
-        uint256 lpAmount,
-        uint256 shares
-    ) internal virtual override {
+    function _deposit(address caller, address receiver, uint256 lpAmount, uint256 shares) internal virtual override {
         if (shares == 0) {
             revert ZeroShares();
         }
@@ -287,9 +272,7 @@ abstract contract DPoolVaultLP is
     /**
      * @dev See {IERC165-supportsInterface}.
      */
-    function supportsInterface(
-        bytes4 interfaceId
-    ) public view virtual override(AccessControl) returns (bool) {
+    function supportsInterface(bytes4 interfaceId) public view virtual override(AccessControl) returns (bool) {
         return super.supportsInterface(interfaceId);
     }
 }

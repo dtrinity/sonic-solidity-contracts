@@ -54,11 +54,7 @@ contract RedeemerV2 is AccessControl, OracleAware, Pausable, ReentrancyGuard {
     event AssetRedemptionPauseUpdated(address indexed asset, bool paused);
     event FeeReceiverUpdated(address indexed oldFeeReceiver, address indexed newFeeReceiver);
     event DefaultRedemptionFeeUpdated(uint256 oldFeeBps, uint256 newFeeBps);
-    event CollateralRedemptionFeeUpdated(
-        address indexed collateralAsset,
-        uint256 oldFeeBps,
-        uint256 newFeeBps
-    );
+    event CollateralRedemptionFeeUpdated(address indexed collateralAsset, uint256 oldFeeBps, uint256 newFeeBps);
     event Redemption(
         address indexed redeemer,
         address indexed collateralAsset,
@@ -101,11 +97,7 @@ contract RedeemerV2 is AccessControl, OracleAware, Pausable, ReentrancyGuard {
         address _initialFeeReceiver,
         uint256 _initialRedemptionFeeBps
     ) OracleAware(_oracle, _oracle.BASE_CURRENCY_UNIT()) {
-        if (
-            _collateralVault == address(0) ||
-            _dstable == address(0) ||
-            address(_oracle) == address(0)
-        ) {
+        if (_collateralVault == address(0) || _dstable == address(0) || address(_oracle) == address(0)) {
             revert CannotBeZeroAddress();
         }
         if (_initialFeeReceiver == address(0)) {
@@ -153,10 +145,7 @@ contract RedeemerV2 is AccessControl, OracleAware, Pausable, ReentrancyGuard {
 
         // Calculate collateral amount and fee
         uint256 dstableValue = dstableAmountToBaseValue(dstableAmount);
-        uint256 totalCollateral = collateralVault.assetAmountFromValue(
-            dstableValue,
-            collateralAsset
-        );
+        uint256 totalCollateral = collateralVault.assetAmountFromValue(dstableValue, collateralAsset);
 
         uint256 currentFeeBps = isCollateralFeeOverridden[collateralAsset]
             ? collateralRedemptionFeeBps[collateralAsset]
@@ -164,11 +153,7 @@ contract RedeemerV2 is AccessControl, OracleAware, Pausable, ReentrancyGuard {
 
         uint256 feeCollateral = 0;
         if (currentFeeBps > 0) {
-            feeCollateral = Math.mulDiv(
-                totalCollateral,
-                currentFeeBps,
-                BasisPointConstants.ONE_HUNDRED_PERCENT_BPS
-            );
+            feeCollateral = Math.mulDiv(totalCollateral, currentFeeBps, BasisPointConstants.ONE_HUNDRED_PERCENT_BPS);
         }
         uint256 netCollateral = totalCollateral - feeCollateral;
         if (netCollateral < minNetCollateral) {
@@ -203,10 +188,7 @@ contract RedeemerV2 is AccessControl, OracleAware, Pausable, ReentrancyGuard {
 
         // Calculate collateral amount
         uint256 dstableValue = dstableAmountToBaseValue(dstableAmount);
-        uint256 totalCollateral = collateralVault.assetAmountFromValue(
-            dstableValue,
-            collateralAsset
-        );
+        uint256 totalCollateral = collateralVault.assetAmountFromValue(dstableValue, collateralAsset);
         if (totalCollateral < minCollateral) {
             revert SlippageTooHigh(totalCollateral, minCollateral);
         }
@@ -298,9 +280,7 @@ contract RedeemerV2 is AccessControl, OracleAware, Pausable, ReentrancyGuard {
      * @notice Clears a per-asset fee override so the default fee applies again
      * @param _collateralAsset The collateral asset for which to clear the override
      */
-    function clearCollateralRedemptionFee(
-        address _collateralAsset
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function clearCollateralRedemptionFee(address _collateralAsset) external onlyRole(DEFAULT_ADMIN_ROLE) {
         if (_collateralAsset == address(0)) {
             revert CannotBeZeroAddress();
         }

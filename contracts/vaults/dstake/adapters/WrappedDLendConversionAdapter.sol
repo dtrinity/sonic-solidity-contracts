@@ -34,11 +34,7 @@ contract WrappedDLendConversionAdapter is IDStableConversionAdapter {
      * @param _collateralVault The address of the DStakeCollateralVault
      */
     constructor(address _dStable, address _wrappedDLendToken, address _collateralVault) {
-        if (
-            _dStable == address(0) ||
-            _wrappedDLendToken == address(0) ||
-            _collateralVault == address(0)
-        ) {
+        if (_dStable == address(0) || _wrappedDLendToken == address(0) || _collateralVault == address(0)) {
             revert ZeroAddress();
         }
         dStable = _dStable;
@@ -73,10 +69,7 @@ contract WrappedDLendConversionAdapter is IDStableConversionAdapter {
         IERC20(dStable).forceApprove(address(wrappedDLendToken), dStableAmount);
 
         // 3. Deposit dStable into the StaticATokenLM wrapper, minting wrappedDLendToken to collateralVault
-        vaultAssetAmount = IERC4626(address(wrappedDLendToken)).deposit(
-            dStableAmount,
-            collateralVault
-        );
+        vaultAssetAmount = IERC4626(address(wrappedDLendToken)).deposit(dStableAmount, collateralVault);
 
         return (address(wrappedDLendToken), vaultAssetAmount);
     }
@@ -86,26 +79,16 @@ contract WrappedDLendConversionAdapter is IDStableConversionAdapter {
      * @dev Converts wrappedDLendToken -> dStable by withdrawing from StaticATokenLM.
      *      The StaticATokenLM contract sends the dStable directly to msg.sender.
      */
-    function convertFromVaultAsset(
-        uint256 vaultAssetAmount
-    ) external override returns (uint256 dStableAmount) {
+    function convertFromVaultAsset(uint256 vaultAssetAmount) external override returns (uint256 dStableAmount) {
         if (vaultAssetAmount == 0) {
             revert InvalidAmount();
         }
 
         // 1. Pull wrappedDLendToken (shares) from caller (Router)
-        IERC20(address(wrappedDLendToken)).safeTransferFrom(
-            msg.sender,
-            address(this),
-            vaultAssetAmount
-        );
+        IERC20(address(wrappedDLendToken)).safeTransferFrom(msg.sender, address(this), vaultAssetAmount);
 
         // 2. Withdraw from StaticATokenLM, sending dStable to msg.sender
-        dStableAmount = IERC4626(address(wrappedDLendToken)).redeem(
-            vaultAssetAmount,
-            msg.sender,
-            address(this)
-        );
+        dStableAmount = IERC4626(address(wrappedDLendToken)).redeem(vaultAssetAmount, msg.sender, address(this));
 
         if (dStableAmount == 0) {
             revert InvalidAmount();

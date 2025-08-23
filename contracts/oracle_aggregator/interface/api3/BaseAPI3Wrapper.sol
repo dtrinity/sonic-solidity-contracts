@@ -62,9 +62,7 @@ abstract contract BaseAPI3Wrapper is IOracleWrapper, AccessControl {
         return _baseCurrency;
     }
 
-    function getPriceInfo(
-        address asset
-    ) public view virtual override returns (uint256 price, bool isAlive);
+    function getPriceInfo(address asset) public view virtual override returns (uint256 price, bool isAlive);
 
     function getAssetPrice(address asset) external view virtual override returns (uint256) {
         (uint256 price, bool isAlive) = getPriceInfo(asset);
@@ -78,9 +76,7 @@ abstract contract BaseAPI3Wrapper is IOracleWrapper, AccessControl {
         return (price * BASE_CURRENCY_UNIT) / API3_BASE_CURRENCY_UNIT;
     }
 
-    function setHeartbeatStaleTimeLimit(
-        uint256 _newHeartbeatStaleTimeLimit
-    ) external onlyRole(ORACLE_MANAGER_ROLE) {
+    function setHeartbeatStaleTimeLimit(uint256 _newHeartbeatStaleTimeLimit) external onlyRole(ORACLE_MANAGER_ROLE) {
         heartbeatStaleTimeLimit = _newHeartbeatStaleTimeLimit;
     }
 }

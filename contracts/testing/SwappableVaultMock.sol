@@ -75,9 +75,7 @@ contract SwappableVaultMock is SwappableVault {
         // For output tokens, we need to ensure the balance increases correctly
         // Instead of transferring to receiver directly, we'll mint new tokens to this contract
         // to simulate receiving tokens from a swap, then the balance increase will be detected
-        uint256 actualAmountOut = _amountOutToActuallyMint > 0
-            ? _amountOutToActuallyMint
-            : amountOut;
+        uint256 actualAmountOut = _amountOutToActuallyMint > 0 ? _amountOutToActuallyMint : amountOut;
         if (actualAmountOut > 0) {
             // Mint tokens to this contract to simulate receiving them from swap
             IMintableERC20(address(outputToken)).mint(address(this), actualAmountOut);
@@ -98,16 +96,7 @@ contract SwappableVaultMock is SwappableVault {
         uint256 deadline,
         bytes memory extraData
     ) external returns (uint256) {
-        return
-            _swapExactOutput(
-                inputToken,
-                outputToken,
-                amountOut,
-                amountInMaximum,
-                receiver,
-                deadline,
-                extraData
-            );
+        return _swapExactOutput(inputToken, outputToken, amountOut, amountInMaximum, receiver, deadline, extraData);
     }
 
     /**

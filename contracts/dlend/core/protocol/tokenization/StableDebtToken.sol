@@ -58,10 +58,7 @@ contract StableDebtToken is DebtTokenBase, IncentivizedERC20, IStableDebtToken {
      */
     constructor(
         IPool pool
-    )
-        DebtTokenBase()
-        IncentivizedERC20(pool, "STABLE_DEBT_TOKEN_IMPL", "STABLE_DEBT_TOKEN_IMPL", 0)
-    {
+    ) DebtTokenBase() IncentivizedERC20(pool, "STABLE_DEBT_TOKEN_IMPL", "STABLE_DEBT_TOKEN_IMPL", 0) {
         // Intentionally left blank
     }
 
@@ -123,10 +120,7 @@ contract StableDebtToken is DebtTokenBase, IncentivizedERC20, IStableDebtToken {
         if (accountBalance == 0) {
             return 0;
         }
-        uint256 cumulatedInterest = MathUtils.calculateCompoundedInterest(
-            stableRate,
-            _timestamps[account]
-        );
+        uint256 cumulatedInterest = MathUtils.calculateCompoundedInterest(stableRate, _timestamps[account]);
         return accountBalance.rayMul(cumulatedInterest);
     }
 
@@ -161,8 +155,8 @@ contract StableDebtToken is DebtTokenBase, IncentivizedERC20, IStableDebtToken {
         vars.amountInRay = amount.wadToRay();
 
         vars.currentStableRate = _userState[onBehalfOf].additionalData;
-        vars.nextStableRate = (vars.currentStableRate.rayMul(currentBalance.wadToRay()) +
-            vars.amountInRay.rayMul(rate)).rayDiv((currentBalance + amount).wadToRay());
+        vars.nextStableRate = (vars.currentStableRate.rayMul(currentBalance.wadToRay()) + vars.amountInRay.rayMul(rate))
+            .rayDiv((currentBalance + amount).wadToRay());
 
         _userState[onBehalfOf].additionalData = vars.nextStableRate.toUint128();
 
@@ -171,8 +165,9 @@ contract StableDebtToken is DebtTokenBase, IncentivizedERC20, IStableDebtToken {
 
         // Calculates the updated average stable rate
         vars.currentAvgStableRate = _avgStableRate = (
-            (vars.currentAvgStableRate.rayMul(vars.previousSupply.wadToRay()) +
-                rate.rayMul(vars.amountInRay)).rayDiv(vars.nextSupply.wadToRay())
+            (vars.currentAvgStableRate.rayMul(vars.previousSupply.wadToRay()) + rate.rayMul(vars.amountInRay)).rayDiv(
+                vars.nextSupply.wadToRay()
+            )
         ).toUint128();
 
         uint256 amountToMint = amount + balanceIncrease;
@@ -194,10 +189,7 @@ contract StableDebtToken is DebtTokenBase, IncentivizedERC20, IStableDebtToken {
     }
 
     /// @inheritdoc IStableDebtToken
-    function burn(
-        address from,
-        uint256 amount
-    ) external virtual override onlyPool returns (uint256, uint256) {
+    function burn(address from, uint256 amount) external virtual override onlyPool returns (uint256, uint256) {
         (, uint256 currentBalance, uint256 balanceIncrease) = _calculateBalanceIncrease(from);
 
         uint256 previousSupply = totalSupply();
@@ -223,9 +215,8 @@ contract StableDebtToken is DebtTokenBase, IncentivizedERC20, IStableDebtToken {
             if (secondTerm >= firstTerm) {
                 nextAvgStableRate = _totalSupply = _avgStableRate = 0;
             } else {
-                nextAvgStableRate = _avgStableRate = (
-                    (firstTerm - secondTerm).rayDiv(nextSupply.wadToRay())
-                ).toUint128();
+                nextAvgStableRate = _avgStableRate = ((firstTerm - secondTerm).rayDiv(nextSupply.wadToRay()))
+                    .toUint128();
             }
         }
 
@@ -257,14 +248,7 @@ contract StableDebtToken is DebtTokenBase, IncentivizedERC20, IStableDebtToken {
             uint256 amountToBurn = amount - balanceIncrease;
             _burn(from, amountToBurn, previousSupply);
             emit Transfer(from, address(0), amountToBurn);
-            emit Burn(
-                from,
-                amountToBurn,
-                currentBalance,
-                balanceIncrease,
-                nextAvgStableRate,
-                nextSupply
-            );
+            emit Burn(from, amountToBurn, currentBalance, balanceIncrease, nextAvgStableRate, nextSupply);
         }
 
         return (nextSupply, nextAvgStableRate);
@@ -277,9 +261,7 @@ contract StableDebtToken is DebtTokenBase, IncentivizedERC20, IStableDebtToken {
      * @return The new principal balance
      * @return The balance increase
      */
-    function _calculateBalanceIncrease(
-        address user
-    ) internal view returns (uint256, uint256, uint256) {
+    function _calculateBalanceIncrease(address user) internal view returns (uint256, uint256, uint256) {
         uint256 previousPrincipalBalance = super.balanceOf(user);
 
         if (previousPrincipalBalance == 0) {
@@ -288,11 +270,7 @@ contract StableDebtToken is DebtTokenBase, IncentivizedERC20, IStableDebtToken {
 
         uint256 newPrincipalBalance = balanceOf(user);
 
-        return (
-            previousPrincipalBalance,
-            newPrincipalBalance,
-            newPrincipalBalance - previousPrincipalBalance
-        );
+        return (previousPrincipalBalance, newPrincipalBalance, newPrincipalBalance - previousPrincipalBalance);
     }
 
     /// @inheritdoc IStableDebtToken
@@ -339,10 +317,7 @@ contract StableDebtToken is DebtTokenBase, IncentivizedERC20, IStableDebtToken {
             return 0;
         }
 
-        uint256 cumulatedInterest = MathUtils.calculateCompoundedInterest(
-            avgRate,
-            _totalSupplyTimestamp
-        );
+        uint256 cumulatedInterest = MathUtils.calculateCompoundedInterest(avgRate, _totalSupplyTimestamp);
 
         return principalSupply.rayMul(cumulatedInterest);
     }

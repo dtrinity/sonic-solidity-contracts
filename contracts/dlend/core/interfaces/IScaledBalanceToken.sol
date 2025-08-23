@@ -48,13 +48,7 @@ interface IScaledBalanceToken {
      * @param balanceIncrease The increase in scaled-up balance since the last action of 'from'
      * @param index The next liquidity index of the reserve
      */
-    event Burn(
-        address indexed from,
-        address indexed target,
-        uint256 value,
-        uint256 balanceIncrease,
-        uint256 index
-    );
+    event Burn(address indexed from, address indexed target, uint256 value, uint256 balanceIncrease, uint256 index);
 
     /**
      * @notice Returns the scaled balance of the user.

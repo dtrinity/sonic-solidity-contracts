@@ -33,22 +33,12 @@ contract AaveEcosystemReserveController is Ownable, IAaveEcosystemReserveControl
     }
 
     /// @inheritdoc IAaveEcosystemReserveController
-    function approve(
-        address collector,
-        IERC20 token,
-        address recipient,
-        uint256 amount
-    ) external onlyOwner {
+    function approve(address collector, IERC20 token, address recipient, uint256 amount) external onlyOwner {
         IAdminControlledEcosystemReserve(collector).approve(token, recipient, amount);
     }
 
     /// @inheritdoc IAaveEcosystemReserveController
-    function transfer(
-        address collector,
-        IERC20 token,
-        address recipient,
-        uint256 amount
-    ) external onlyOwner {
+    function transfer(address collector, IERC20 token, address recipient, uint256 amount) external onlyOwner {
         IAdminControlledEcosystemReserve(collector).transfer(token, recipient, amount);
     }
 
@@ -61,22 +51,11 @@ contract AaveEcosystemReserveController is Ownable, IAaveEcosystemReserveControl
         uint256 startTime,
         uint256 stopTime
     ) external onlyOwner returns (uint256) {
-        return
-            IStreamable(collector).createStream(
-                recipient,
-                deposit,
-                address(tokenAddress),
-                startTime,
-                stopTime
-            );
+        return IStreamable(collector).createStream(recipient, deposit, address(tokenAddress), startTime, stopTime);
     }
 
     /// @inheritdoc IAaveEcosystemReserveController
-    function withdrawFromStream(
-        address collector,
-        uint256 streamId,
-        uint256 funds
-    ) external onlyOwner returns (bool) {
+    function withdrawFromStream(address collector, uint256 streamId, uint256 funds) external onlyOwner returns (bool) {
         return IStreamable(collector).withdrawFromStream(streamId, funds);
     }
 

@@ -66,10 +66,7 @@ contract AaveProtocolDataProvider is IPoolDataProvider {
                 reservesTokens[i] = TokenData({ symbol: "ETH", tokenAddress: reserves[i] });
                 continue;
             }
-            reservesTokens[i] = TokenData({
-                symbol: IERC20Detailed(reserves[i]).symbol(),
-                tokenAddress: reserves[i]
-            });
+            reservesTokens[i] = TokenData({ symbol: IERC20Detailed(reserves[i]).symbol(), tokenAddress: reserves[i] });
         }
         return reservesTokens;
     }
@@ -109,32 +106,28 @@ contract AaveProtocolDataProvider is IPoolDataProvider {
             bool isFrozen
         )
     {
-        DataTypes.ReserveConfigurationMap memory configuration = IPool(ADDRESSES_PROVIDER.getPool())
-            .getConfiguration(asset);
+        DataTypes.ReserveConfigurationMap memory configuration = IPool(ADDRESSES_PROVIDER.getPool()).getConfiguration(
+            asset
+        );
 
-        (ltv, liquidationThreshold, liquidationBonus, decimals, reserveFactor, ) = configuration
-            .getParams();
+        (ltv, liquidationThreshold, liquidationBonus, decimals, reserveFactor, ) = configuration.getParams();
 
-        (isActive, isFrozen, borrowingEnabled, stableBorrowRateEnabled, ) = configuration
-            .getFlags();
+        (isActive, isFrozen, borrowingEnabled, stableBorrowRateEnabled, ) = configuration.getFlags();
 
         usageAsCollateralEnabled = liquidationThreshold != 0;
     }
 
     /// @inheritdoc IPoolDataProvider
     function getReserveEModeCategory(address asset) external view override returns (uint256) {
-        DataTypes.ReserveConfigurationMap memory configuration = IPool(ADDRESSES_PROVIDER.getPool())
-            .getConfiguration(asset);
+        DataTypes.ReserveConfigurationMap memory configuration = IPool(ADDRESSES_PROVIDER.getPool()).getConfiguration(
+            asset
+        );
         return configuration.getEModeCategory();
     }
 
     /// @inheritdoc IPoolDataProvider
-    function getReserveCaps(
-        address asset
-    ) external view override returns (uint256 borrowCap, uint256 supplyCap) {
-        (borrowCap, supplyCap) = IPool(ADDRESSES_PROVIDER.getPool())
-            .getConfiguration(asset)
-            .getCaps();
+    function getReserveCaps(address asset) external view override returns (uint256 borrowCap, uint256 supplyCap) {
+        (borrowCap, supplyCap) = IPool(ADDRESSES_PROVIDER.getPool()).getConfiguration(asset).getCaps();
     }
 
     /// @inheritdoc IPoolDataProvider
@@ -149,8 +142,7 @@ contract AaveProtocolDataProvider is IPoolDataProvider {
 
     /// @inheritdoc IPoolDataProvider
     function getLiquidationProtocolFee(address asset) external view override returns (uint256) {
-        return
-            IPool(ADDRESSES_PROVIDER.getPool()).getConfiguration(asset).getLiquidationProtocolFee();
+        return IPool(ADDRESSES_PROVIDER.getPool()).getConfiguration(asset).getLiquidationProtocolFee();
     }
 
     /// @inheritdoc IPoolDataProvider
@@ -190,9 +182,7 @@ contract AaveProtocolDataProvider is IPoolDataProvider {
             uint40 lastUpdateTimestamp
         )
     {
-        DataTypes.ReserveData memory reserve = IPool(ADDRESSES_PROVIDER.getPool()).getReserveData(
-            asset
-        );
+        DataTypes.ReserveData memory reserve = IPool(ADDRESSES_PROVIDER.getPool()).getReserveData(asset);
 
         return (
             reserve.unbacked,
@@ -212,17 +202,13 @@ contract AaveProtocolDataProvider is IPoolDataProvider {
 
     /// @inheritdoc IPoolDataProvider
     function getATokenTotalSupply(address asset) external view override returns (uint256) {
-        DataTypes.ReserveData memory reserve = IPool(ADDRESSES_PROVIDER.getPool()).getReserveData(
-            asset
-        );
+        DataTypes.ReserveData memory reserve = IPool(ADDRESSES_PROVIDER.getPool()).getReserveData(asset);
         return IERC20Detailed(reserve.aTokenAddress).totalSupply();
     }
 
     /// @inheritdoc IPoolDataProvider
     function getTotalDebt(address asset) external view override returns (uint256) {
-        DataTypes.ReserveData memory reserve = IPool(ADDRESSES_PROVIDER.getPool()).getReserveData(
-            asset
-        );
+        DataTypes.ReserveData memory reserve = IPool(ADDRESSES_PROVIDER.getPool()).getReserveData(asset);
         return
             IERC20Detailed(reserve.stableDebtTokenAddress).totalSupply() +
             IERC20Detailed(reserve.variableDebtTokenAddress).totalSupply();
@@ -248,27 +234,20 @@ contract AaveProtocolDataProvider is IPoolDataProvider {
             bool usageAsCollateralEnabled
         )
     {
-        DataTypes.ReserveData memory reserve = IPool(ADDRESSES_PROVIDER.getPool()).getReserveData(
-            asset
-        );
+        DataTypes.ReserveData memory reserve = IPool(ADDRESSES_PROVIDER.getPool()).getReserveData(asset);
 
-        DataTypes.UserConfigurationMap memory userConfig = IPool(ADDRESSES_PROVIDER.getPool())
-            .getUserConfiguration(user);
+        DataTypes.UserConfigurationMap memory userConfig = IPool(ADDRESSES_PROVIDER.getPool()).getUserConfiguration(
+            user
+        );
 
         currentATokenBalance = IERC20Detailed(reserve.aTokenAddress).balanceOf(user);
         currentVariableDebt = IERC20Detailed(reserve.variableDebtTokenAddress).balanceOf(user);
         currentStableDebt = IERC20Detailed(reserve.stableDebtTokenAddress).balanceOf(user);
-        principalStableDebt = IStableDebtToken(reserve.stableDebtTokenAddress).principalBalanceOf(
-            user
-        );
-        scaledVariableDebt = IVariableDebtToken(reserve.variableDebtTokenAddress).scaledBalanceOf(
-            user
-        );
+        principalStableDebt = IStableDebtToken(reserve.stableDebtTokenAddress).principalBalanceOf(user);
+        scaledVariableDebt = IVariableDebtToken(reserve.variableDebtTokenAddress).scaledBalanceOf(user);
         liquidityRate = reserve.currentLiquidityRate;
         stableBorrowRate = IStableDebtToken(reserve.stableDebtTokenAddress).getUserStableRate(user);
-        stableRateLastUpdated = IStableDebtToken(reserve.stableDebtTokenAddress).getUserLastUpdated(
-            user
-        );
+        stableRateLastUpdated = IStableDebtToken(reserve.stableDebtTokenAddress).getUserLastUpdated(user);
         usageAsCollateralEnabled = userConfig.isUsingAsCollateral(reserve.id);
     }
 
@@ -279,38 +258,25 @@ contract AaveProtocolDataProvider is IPoolDataProvider {
         external
         view
         override
-        returns (
-            address aTokenAddress,
-            address stableDebtTokenAddress,
-            address variableDebtTokenAddress
-        )
+        returns (address aTokenAddress, address stableDebtTokenAddress, address variableDebtTokenAddress)
     {
-        DataTypes.ReserveData memory reserve = IPool(ADDRESSES_PROVIDER.getPool()).getReserveData(
-            asset
-        );
+        DataTypes.ReserveData memory reserve = IPool(ADDRESSES_PROVIDER.getPool()).getReserveData(asset);
 
-        return (
-            reserve.aTokenAddress,
-            reserve.stableDebtTokenAddress,
-            reserve.variableDebtTokenAddress
-        );
+        return (reserve.aTokenAddress, reserve.stableDebtTokenAddress, reserve.variableDebtTokenAddress);
     }
 
     /// @inheritdoc IPoolDataProvider
-    function getInterestRateStrategyAddress(
-        address asset
-    ) external view override returns (address irStrategyAddress) {
-        DataTypes.ReserveData memory reserve = IPool(ADDRESSES_PROVIDER.getPool()).getReserveData(
-            asset
-        );
+    function getInterestRateStrategyAddress(address asset) external view override returns (address irStrategyAddress) {
+        DataTypes.ReserveData memory reserve = IPool(ADDRESSES_PROVIDER.getPool()).getReserveData(asset);
 
         return (reserve.interestRateStrategyAddress);
     }
 
     /// @inheritdoc IPoolDataProvider
     function getFlashLoanEnabled(address asset) external view override returns (bool) {
-        DataTypes.ReserveConfigurationMap memory configuration = IPool(ADDRESSES_PROVIDER.getPool())
-            .getConfiguration(asset);
+        DataTypes.ReserveConfigurationMap memory configuration = IPool(ADDRESSES_PROVIDER.getPool()).getConfiguration(
+            asset
+        );
 
         return configuration.getFlashLoanEnabled();
     }

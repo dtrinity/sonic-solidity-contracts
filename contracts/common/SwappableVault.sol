@@ -27,22 +27,10 @@ import { Compare } from "contracts/common/Compare.sol";
  *      - The wrapper function _swapExactOutput has some sanity checks
  */
 abstract contract SwappableVault {
-    error SpentInputTokenAmountGreaterThanAmountInMaximum(
-        uint256 spentInputTokenAmount,
-        uint256 amountInMaximum
-    );
-    error ReceivedOutputTokenAmountNotEqualAmountOut(
-        uint256 receivedOutputTokenAmount,
-        uint256 amountOut
-    );
-    error OutputTokenBalanceNotIncreasedAfterSwap(
-        uint256 outputTokenBalanceBefore,
-        uint256 outputTokenBalanceAfter
-    );
-    error SpentInputTokenAmountNotEqualReturnedAmountIn(
-        uint256 spentInputTokenAmount,
-        uint256 returnedAmountIn
-    );
+    error SpentInputTokenAmountGreaterThanAmountInMaximum(uint256 spentInputTokenAmount, uint256 amountInMaximum);
+    error ReceivedOutputTokenAmountNotEqualAmountOut(uint256 receivedOutputTokenAmount, uint256 amountOut);
+    error OutputTokenBalanceNotIncreasedAfterSwap(uint256 outputTokenBalanceBefore, uint256 outputTokenBalanceAfter);
+    error SpentInputTokenAmountNotEqualReturnedAmountIn(uint256 spentInputTokenAmount, uint256 returnedAmountIn);
 
     uint256 public constant BALANCE_DIFF_TOLERANCE = 1;
 
@@ -120,17 +108,11 @@ abstract contract SwappableVault {
             if (inCheck.directionOk) {
                 // First check: ensure we don't spend more than the maximum allowed
                 if (inCheck.observedDelta > amountInMaximum) {
-                    revert SpentInputTokenAmountGreaterThanAmountInMaximum(
-                        inCheck.observedDelta,
-                        amountInMaximum
-                    );
+                    revert SpentInputTokenAmountGreaterThanAmountInMaximum(inCheck.observedDelta, amountInMaximum);
                 }
                 // Second check: ensure spent amount matches returned amount within tolerance
                 if (!inCheck.toleranceOk) {
-                    revert SpentInputTokenAmountNotEqualReturnedAmountIn(
-                        inCheck.observedDelta,
-                        amountIn
-                    );
+                    revert SpentInputTokenAmountNotEqualReturnedAmountIn(inCheck.observedDelta, amountIn);
                 }
             }
             // If not decreased, no checks needed (not a risk for the caller)
@@ -146,16 +128,10 @@ abstract contract SwappableVault {
                 Compare.BalanceDirection.Increase
             );
             if (!outCheck.directionOk) {
-                revert OutputTokenBalanceNotIncreasedAfterSwap(
-                    outputTokenBalanceBefore,
-                    outputTokenBalanceAfter
-                );
+                revert OutputTokenBalanceNotIncreasedAfterSwap(outputTokenBalanceBefore, outputTokenBalanceAfter);
             }
             if (!outCheck.toleranceOk) {
-                revert ReceivedOutputTokenAmountNotEqualAmountOut(
-                    outCheck.observedDelta,
-                    amountOut
-                );
+                revert ReceivedOutputTokenAmountNotEqualAmountOut(outCheck.observedDelta, amountOut);
             }
         }
 

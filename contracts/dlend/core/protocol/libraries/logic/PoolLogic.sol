@@ -64,8 +64,7 @@ library PoolLogic {
             params.interestRateStrategyAddress
         );
 
-        bool reserveAlreadyAdded = reservesData[params.asset].id != 0 ||
-            reservesList[0] == params.asset;
+        bool reserveAlreadyAdded = reservesData[params.asset].id != 0 || reservesList[0] == params.asset;
         require(!reserveAlreadyAdded, Errors.RESERVE_ALREADY_ADDED);
 
         for (uint16 i = 0; i < params.reservesCount; i++) {
@@ -134,10 +133,7 @@ library PoolLogic {
         mapping(address => DataTypes.ReserveData) storage reservesData,
         address asset
     ) external {
-        require(
-            reservesData[asset].configuration.getDebtCeiling() == 0,
-            Errors.DEBT_CEILING_NOT_ZERO
-        );
+        require(reservesData[asset].configuration.getDebtCeiling() == 0, Errors.DEBT_CEILING_NOT_ZERO);
         reservesData[asset].isolationModeTotalDebt = 0;
         emit IsolationModeTotalDebtUpdated(asset, 0);
     }
@@ -189,24 +185,9 @@ library PoolLogic {
             uint256 healthFactor
         )
     {
-        (
-            totalCollateralBase,
-            totalDebtBase,
-            ltv,
-            currentLiquidationThreshold,
-            healthFactor,
+        (totalCollateralBase, totalDebtBase, ltv, currentLiquidationThreshold, healthFactor, ) = GenericLogic
+            .calculateUserAccountData(reservesData, reservesList, eModeCategories, params);
 
-        ) = GenericLogic.calculateUserAccountData(
-            reservesData,
-            reservesList,
-            eModeCategories,
-            params
-        );
-
-        availableBorrowsBase = GenericLogic.calculateAvailableBorrows(
-            totalCollateralBase,
-            totalDebtBase,
-            ltv
-        );
+        availableBorrowsBase = GenericLogic.calculateAvailableBorrows(totalCollateralBase, totalDebtBase, ltv);
     }
 }

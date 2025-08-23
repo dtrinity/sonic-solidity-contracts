@@ -1,5 +1,5 @@
 module.exports = {
-  printWidth: 100,
+  printWidth: 120, // https://docs.soliditylang.org/en/latest/style-guide.html#maximum-line-length
   // TS/JS style
   tabWidth: 2,
   useTabs: false,
@@ -15,7 +15,7 @@ module.exports = {
       options: {
         // Solidity code in this repo uses 4-space indentation
         tabWidth: 4,
-        printWidth: 100,
+        printWidth: 120, // https://docs.soliditylang.org/en/latest/style-guide.html#maximum-line-length
       },
     },
   ],

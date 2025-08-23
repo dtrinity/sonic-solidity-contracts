@@ -85,11 +85,7 @@ interface IPoolAddressesProvider {
      * @param proxyAddress The address of the created proxy contract
      * @param implementationAddress The address of the implementation contract
      */
-    event ProxyCreated(
-        bytes32 indexed id,
-        address indexed proxyAddress,
-        address indexed implementationAddress
-    );
+    event ProxyCreated(bytes32 indexed id, address indexed proxyAddress, address indexed implementationAddress);
 
     /**
      * @dev Emitted when a new non-proxied contract address is registered.

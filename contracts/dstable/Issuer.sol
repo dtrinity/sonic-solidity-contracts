@@ -56,14 +56,8 @@ contract Issuer is AccessControl, OracleAware, ReentrancyGuard {
     /* Errors */
 
     error SlippageTooHigh(uint256 minDStable, uint256 dstableAmount);
-    error IssuanceSurpassesExcessCollateral(
-        uint256 collateralInDstable,
-        uint256 circulatingDstable
-    );
-    error MintingToAmoShouldNotIncreaseSupply(
-        uint256 circulatingDstableBefore,
-        uint256 circulatingDstableAfter
-    );
+    error IssuanceSurpassesExcessCollateral(uint256 collateralInDstable, uint256 circulatingDstable);
+    error MintingToAmoShouldNotIncreaseSupply(uint256 circulatingDstableBefore, uint256 circulatingDstableAfter);
 
     /**
      * @notice Initializes the Issuer contract with core dependencies
@@ -96,11 +90,7 @@ contract Issuer is AccessControl, OracleAware, ReentrancyGuard {
      * @param collateralAsset The address of the collateral asset
      * @param minDStable The minimum amount of dStable to receive, used for slippage protection
      */
-    function issue(
-        uint256 collateralAmount,
-        address collateralAsset,
-        uint256 minDStable
-    ) external nonReentrant {
+    function issue(uint256 collateralAmount, address collateralAsset, uint256 minDStable) external nonReentrant {
         // Ensure the collateral asset is supported by the vault before any further processing
         if (!collateralVault.isCollateralSupported(collateralAsset)) {
             revert CollateralVault.UnsupportedCollateral(collateralAsset);
@@ -118,11 +108,7 @@ contract Issuer is AccessControl, OracleAware, ReentrancyGuard {
         }
 
         // Transfer collateral directly to vault
-        IERC20Metadata(collateralAsset).safeTransferFrom(
-            msg.sender,
-            address(collateralVault),
-            collateralAmount
-        );
+        IERC20Metadata(collateralAsset).safeTransferFrom(msg.sender, address(collateralVault), collateralAmount);
 
         dstable.mint(msg.sender, dstableAmount);
     }
@@ -159,10 +145,7 @@ contract Issuer is AccessControl, OracleAware, ReentrancyGuard {
 
         // Sanity check that we are sending to the active AMO Manager
         if (_circulatingDstableAfter != _circulatingDstableBefore) {
-            revert MintingToAmoShouldNotIncreaseSupply(
-                _circulatingDstableBefore,
-                _circulatingDstableAfter
-            );
+            revert MintingToAmoShouldNotIncreaseSupply(_circulatingDstableBefore, _circulatingDstableAfter);
         }
     }
 

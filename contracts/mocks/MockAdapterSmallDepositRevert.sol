@@ -52,9 +52,7 @@ contract MockAdapterSmallDepositRevert is IDStableConversionAdapter {
         vaultAssetAmount = dStableAmount;
     }
 
-    function convertFromVaultAsset(
-        uint256 vaultAssetAmount
-    ) external override returns (uint256 dStableAmount) {
+    function convertFromVaultAsset(uint256 vaultAssetAmount) external override returns (uint256 dStableAmount) {
         // Pull shares from caller (Router)
         IERC20(address(vaultAssetToken)).transferFrom(msg.sender, address(this), vaultAssetAmount);
 

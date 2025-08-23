@@ -45,12 +45,7 @@ contract CollectorController is Ownable {
      * @param recipient The address of the entity to transfer the tokens.
      * @param amount The amount to be transferred.
      */
-    function approve(
-        address collector,
-        IERC20 token,
-        address recipient,
-        uint256 amount
-    ) external onlyOwner {
+    function approve(address collector, IERC20 token, address recipient, uint256 amount) external onlyOwner {
         ICollector(collector).approve(token, recipient, amount);
     }
 
@@ -61,12 +56,7 @@ contract CollectorController is Ownable {
      * @param recipient The address of the entity to transfer the tokens.
      * @param amount The amount to be transferred.
      */
-    function transfer(
-        address collector,
-        IERC20 token,
-        address recipient,
-        uint256 amount
-    ) external onlyOwner {
+    function transfer(address collector, IERC20 token, address recipient, uint256 amount) external onlyOwner {
         ICollector(collector).transfer(token, recipient, amount);
     }
 }

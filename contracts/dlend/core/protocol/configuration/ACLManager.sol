@@ -50,10 +50,7 @@ contract ACLManager is AccessControl, IACLManager {
     }
 
     /// @inheritdoc IACLManager
-    function setRoleAdmin(
-        bytes32 role,
-        bytes32 adminRole
-    ) external override onlyRole(DEFAULT_ADMIN_ROLE) {
+    function setRoleAdmin(bytes32 role, bytes32 adminRole) external override onlyRole(DEFAULT_ADMIN_ROLE) {
         _setRoleAdmin(role, adminRole);
     }
 

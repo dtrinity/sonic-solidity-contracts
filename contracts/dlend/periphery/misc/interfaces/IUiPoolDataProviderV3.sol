@@ -109,9 +109,7 @@ interface IUiPoolDataProviderV3 {
         uint8 networkBaseTokenPriceDecimals;
     }
 
-    function getReservesList(
-        IPoolAddressesProvider provider
-    ) external view returns (address[] memory);
+    function getReservesList(IPoolAddressesProvider provider) external view returns (address[] memory);
 
     function getReservesData(
         IPoolAddressesProvider provider

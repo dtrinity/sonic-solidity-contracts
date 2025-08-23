@@ -49,12 +49,7 @@ library BridgeLogic {
         uint256 amount,
         uint16 indexed referralCode
     );
-    event BackUnbacked(
-        address indexed reserve,
-        address indexed backer,
-        uint256 amount,
-        uint256 fee
-    );
+    event BackUnbacked(address indexed reserve, address indexed backer, uint256 amount, uint256 fee);
 
     /**
      * @notice Mint unbacked aTokens to a user and updates the unbacked for the reserve.
@@ -91,10 +86,7 @@ library BridgeLogic {
 
         uint256 unbacked = reserve.unbacked += amount.toUint128();
 
-        require(
-            unbacked <= unbackedMintCap * (10 ** reserveDecimals),
-            Errors.UNBACKED_MINT_CAP_EXCEEDED
-        );
+        require(unbacked <= unbackedMintCap * (10 ** reserveDecimals), Errors.UNBACKED_MINT_CAP_EXCEEDED);
 
         reserve.updateInterestRates(reserveCache, asset, 0, 0);
 
@@ -157,9 +149,7 @@ library BridgeLogic {
             feeToLP
         );
 
-        reserve.accruedToTreasury += feeToProtocol
-            .rayDiv(reserveCache.nextLiquidityIndex)
-            .toUint128();
+        reserve.accruedToTreasury += feeToProtocol.rayDiv(reserveCache.nextLiquidityIndex).toUint128();
 
         reserve.unbacked -= backingAmount.toUint128();
         reserve.updateInterestRates(reserveCache, asset, added, 0);

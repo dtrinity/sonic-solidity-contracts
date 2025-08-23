@@ -70,9 +70,7 @@ abstract contract BaseChainlinkWrapper is IOracleWrapper, AccessControl {
      * @return price The price of the asset in base currency units
      * @return isAlive Whether the price feed is considered active/valid
      */
-    function getPriceInfo(
-        address asset
-    ) public view virtual override returns (uint256 price, bool isAlive);
+    function getPriceInfo(address asset) public view virtual override returns (uint256 price, bool isAlive);
 
     /**
      * @notice Gets the current price of an asset
@@ -100,9 +98,7 @@ abstract contract BaseChainlinkWrapper is IOracleWrapper, AccessControl {
      * @notice Sets the heartbeat stale time limit
      * @param _newHeartbeatStaleTimeLimit The new heartbeat stale time limit
      */
-    function setHeartbeatStaleTimeLimit(
-        uint256 _newHeartbeatStaleTimeLimit
-    ) external onlyRole(ORACLE_MANAGER_ROLE) {
+    function setHeartbeatStaleTimeLimit(uint256 _newHeartbeatStaleTimeLimit) external onlyRole(ORACLE_MANAGER_ROLE) {
         heartbeatStaleTimeLimit = _newHeartbeatStaleTimeLimit;
     }
 }

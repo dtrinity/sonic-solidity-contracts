@@ -26,10 +26,7 @@ import "./ThresholdingUtils.sol";
  * @title RedstoneChainlinkCompositeWrapperWithThresholding
  * @dev Implementation of BaseChainlinkWrapper for composite Redstone oracles with thresholding
  */
-contract RedstoneChainlinkCompositeWrapperWithThresholding is
-    BaseChainlinkWrapper,
-    ThresholdingUtils
-{
+contract RedstoneChainlinkCompositeWrapperWithThresholding is BaseChainlinkWrapper, ThresholdingUtils {
     /* Core state */
 
     struct CompositeFeed {
@@ -61,10 +58,7 @@ contract RedstoneChainlinkCompositeWrapperWithThresholding is
         uint256 fixedPriceInBase2
     );
 
-    constructor(
-        address baseCurrency,
-        uint256 _baseCurrencyUnit
-    ) BaseChainlinkWrapper(baseCurrency, _baseCurrencyUnit) {
+    constructor(address baseCurrency, uint256 _baseCurrencyUnit) BaseChainlinkWrapper(baseCurrency, _baseCurrencyUnit) {
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _grantRole(ORACLE_MANAGER_ROLE, msg.sender);
     }
@@ -130,9 +124,7 @@ contract RedstoneChainlinkCompositeWrapperWithThresholding is
         );
     }
 
-    function getPriceInfo(
-        address asset
-    ) public view override returns (uint256 price, bool isAlive) {
+    function getPriceInfo(address asset) public view override returns (uint256 price, bool isAlive) {
         CompositeFeed memory feed = compositeFeeds[asset];
         if (feed.feed1 == address(0) || feed.feed2 == address(0)) {
             revert FeedNotSet(asset);

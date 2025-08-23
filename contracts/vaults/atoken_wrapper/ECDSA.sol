@@ -53,10 +53,7 @@ library ECDSA {
      * - with https://web3js.readthedocs.io/en/v1.3.4/web3-eth-accounts.html#sign[Web3.js]
      * - with https://docs.ethers.io/v5/api/signer/#Signer-signMessage[ethers]
      */
-    function tryRecover(
-        bytes32 hash,
-        bytes memory signature
-    ) internal pure returns (address, RecoverError, bytes32) {
+    function tryRecover(bytes32 hash, bytes memory signature) internal pure returns (address, RecoverError, bytes32) {
         if (signature.length == 65) {
             bytes32 r;
             bytes32 s;
@@ -100,14 +97,9 @@ library ECDSA {
      *
      * See https://eips.ethereum.org/EIPS/eip-2098[EIP-2098 short signatures]
      */
-    function tryRecover(
-        bytes32 hash,
-        bytes32 r,
-        bytes32 vs
-    ) internal pure returns (address, RecoverError, bytes32) {
+    function tryRecover(bytes32 hash, bytes32 r, bytes32 vs) internal pure returns (address, RecoverError, bytes32) {
         unchecked {
-            bytes32 s = vs &
-                bytes32(0x7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff);
+            bytes32 s = vs & bytes32(0x7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff);
             // We do not check for an overflow here since the shift operation results in 0 or 1.
             uint8 v = uint8((uint256(vs) >> 255) + 27);
             return tryRecover(hash, v, r, s);

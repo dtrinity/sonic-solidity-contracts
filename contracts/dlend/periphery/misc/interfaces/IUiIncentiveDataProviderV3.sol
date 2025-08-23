@@ -84,8 +84,5 @@ interface IUiIncentiveDataProviderV3 {
     function getFullReservesIncentiveData(
         IPoolAddressesProvider provider,
         address user
-    )
-        external
-        view
-        returns (AggregatedReserveIncentiveData[] memory, UserReserveIncentiveData[] memory);
+    ) external view returns (AggregatedReserveIncentiveData[] memory, UserReserveIncentiveData[] memory);
 }

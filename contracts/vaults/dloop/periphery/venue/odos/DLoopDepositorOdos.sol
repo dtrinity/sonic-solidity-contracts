@@ -32,10 +32,7 @@ contract DLoopDepositorOdos is DLoopDepositorBase {
      * @param _flashLender Address of the flash loan provider
      * @param _odosRouter Address of the Odos router
      */
-    constructor(
-        IERC3156FlashLender _flashLender,
-        IOdosRouterV2 _odosRouter
-    ) DLoopDepositorBase(_flashLender) {
+    constructor(IERC3156FlashLender _flashLender, IOdosRouterV2 _odosRouter) DLoopDepositorBase(_flashLender) {
         odosRouter = _odosRouter;
     }
 

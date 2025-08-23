@@ -15,13 +15,6 @@ contract OdosSwapUtilsHarness {
         uint256 exactOut,
         bytes calldata swapData
     ) external returns (uint256 amountSpent) {
-        amountSpent = OdosSwapUtils.executeSwapOperation(
-            router,
-            inputToken,
-            outputToken,
-            maxIn,
-            exactOut,
-            swapData
-        );
+        amountSpent = OdosSwapUtils.executeSwapOperation(router, inputToken, outputToken, maxIn, exactOut, swapData);
     }
 }

@@ -90,11 +90,10 @@ library GenericLogic {
         CalculateUserAccountDataVars memory vars;
 
         if (params.userEModeCategory != 0) {
-            (vars.eModeLtv, vars.eModeLiqThreshold, vars.eModeAssetPrice) = EModeLogic
-                .getEModeConfiguration(
-                    eModeCategories[params.userEModeCategory],
-                    IPriceOracleGetter(params.oracle)
-                );
+            (vars.eModeLtv, vars.eModeLiqThreshold, vars.eModeAssetPrice) = EModeLogic.getEModeConfiguration(
+                eModeCategories[params.userEModeCategory],
+                IPriceOracleGetter(params.oracle)
+            );
         }
 
         while (vars.i < params.reservesCount) {
@@ -116,21 +115,15 @@ library GenericLogic {
 
             DataTypes.ReserveData storage currentReserve = reservesData[vars.currentReserveAddress];
 
-            (
-                vars.ltv,
-                vars.liquidationThreshold,
-                ,
-                vars.decimals,
-                ,
-                vars.eModeAssetCategory
-            ) = currentReserve.configuration.getParams();
+            (vars.ltv, vars.liquidationThreshold, , vars.decimals, , vars.eModeAssetCategory) = currentReserve
+                .configuration
+                .getParams();
 
             unchecked {
                 vars.assetUnit = 10 ** vars.decimals;
             }
 
-            vars.assetPrice = vars.eModeAssetPrice != 0 &&
-                params.userEModeCategory == vars.eModeAssetCategory
+            vars.assetPrice = vars.eModeAssetPrice != 0 && params.userEModeCategory == vars.eModeAssetCategory
                 ? vars.eModeAssetPrice
                 : IPriceOracleGetter(params.oracle).getAssetPrice(vars.currentReserveAddress);
 
@@ -150,9 +143,7 @@ library GenericLogic {
                 );
 
                 if (vars.ltv != 0) {
-                    vars.avgLtv +=
-                        vars.userBalanceInBaseCurrency *
-                        (vars.isInEModeCategory ? vars.eModeLtv : vars.ltv);
+                    vars.avgLtv += vars.userBalanceInBaseCurrency * (vars.isInEModeCategory ? vars.eModeLtv : vars.ltv);
                 } else {
                     vars.hasZeroLtvCollateral = true;
                 }
@@ -241,8 +232,7 @@ library GenericLogic {
         uint256 assetUnit
     ) private view returns (uint256) {
         // fetching variable debt
-        uint256 userTotalDebt = IScaledBalanceToken(reserve.variableDebtTokenAddress)
-            .scaledBalanceOf(user);
+        uint256 userTotalDebt = IScaledBalanceToken(reserve.variableDebtTokenAddress).scaledBalanceOf(user);
         if (userTotalDebt != 0) {
             userTotalDebt = userTotalDebt.rayMul(reserve.getNormalizedDebt());
         }
@@ -273,11 +263,8 @@ library GenericLogic {
         uint256 assetUnit
     ) private view returns (uint256) {
         uint256 normalizedIncome = reserve.getNormalizedIncome();
-        uint256 balance = (
-            IScaledBalanceToken(reserve.aTokenAddress).scaledBalanceOf(user).rayMul(
-                normalizedIncome
-            )
-        ) * assetPrice;
+        uint256 balance = (IScaledBalanceToken(reserve.aTokenAddress).scaledBalanceOf(user).rayMul(normalizedIncome)) *
+            assetPrice;
 
         unchecked {
             return balance / assetUnit;

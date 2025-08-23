@@ -32,9 +32,7 @@ contract RedstoneChainlinkWrapper is BaseChainlinkWrapper {
         uint256 _baseCurrencyUnit
     ) BaseChainlinkWrapper(baseCurrency, _baseCurrencyUnit) {}
 
-    function getPriceInfo(
-        address asset
-    ) public view virtual override returns (uint256 price, bool isAlive) {
+    function getPriceInfo(address asset) public view virtual override returns (uint256 price, bool isAlive) {
         IPriceFeed feed = assetToFeed[asset];
         if (address(feed) == address(0)) {
             revert FeedNotSet(asset);

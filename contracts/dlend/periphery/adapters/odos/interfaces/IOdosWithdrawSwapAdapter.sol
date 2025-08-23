@@ -39,8 +39,5 @@ interface IOdosWithdrawSwapAdapter is IBaseOdosAdapter {
      * @param withdrawSwapParams struct describing the withdraw swap
      * @param permitInput optional permit for collateral aToken
      */
-    function withdrawAndSwap(
-        WithdrawSwapParams memory withdrawSwapParams,
-        PermitInput memory permitInput
-    ) external;
+    function withdrawAndSwap(WithdrawSwapParams memory withdrawSwapParams, PermitInput memory permitInput) external;
 }

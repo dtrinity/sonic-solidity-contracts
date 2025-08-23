@@ -89,8 +89,7 @@ abstract contract AccessControl is Context, IAccessControl, ERC165 {
      * @dev See {IERC165-supportsInterface}.
      */
     function supportsInterface(bytes4 interfaceId) public view virtual override returns (bool) {
-        return
-            interfaceId == type(IAccessControl).interfaceId || super.supportsInterface(interfaceId);
+        return interfaceId == type(IAccessControl).interfaceId || super.supportsInterface(interfaceId);
     }
 
     /**
@@ -142,10 +141,7 @@ abstract contract AccessControl is Context, IAccessControl, ERC165 {
      *
      * - the caller must have ``role``'s admin role.
      */
-    function grantRole(
-        bytes32 role,
-        address account
-    ) public virtual override onlyRole(getRoleAdmin(role)) {
+    function grantRole(bytes32 role, address account) public virtual override onlyRole(getRoleAdmin(role)) {
         _grantRole(role, account);
     }
 
@@ -158,10 +154,7 @@ abstract contract AccessControl is Context, IAccessControl, ERC165 {
      *
      * - the caller must have ``role``'s admin role.
      */
-    function revokeRole(
-        bytes32 role,
-        address account
-    ) public virtual override onlyRole(getRoleAdmin(role)) {
+    function revokeRole(bytes32 role, address account) public virtual override onlyRole(getRoleAdmin(role)) {
         _revokeRole(role, account);
     }
 

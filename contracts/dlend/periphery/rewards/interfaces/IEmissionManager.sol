@@ -34,11 +34,7 @@ interface IEmissionManager {
      * @param oldAdmin The address of the old emission admin
      * @param newAdmin The address of the new emission admin
      */
-    event EmissionAdminUpdated(
-        address indexed reward,
-        address indexed oldAdmin,
-        address indexed newAdmin
-    );
+    event EmissionAdminUpdated(address indexed reward, address indexed oldAdmin, address indexed newAdmin);
 
     /**
      * @dev Configure assets to incentivize with an emission of rewards per second until the end of distribution.

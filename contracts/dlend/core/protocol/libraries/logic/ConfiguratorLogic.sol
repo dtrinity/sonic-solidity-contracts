@@ -41,21 +41,9 @@ library ConfiguratorLogic {
         address variableDebtToken,
         address interestRateStrategyAddress
     );
-    event ATokenUpgraded(
-        address indexed asset,
-        address indexed proxy,
-        address indexed implementation
-    );
-    event StableDebtTokenUpgraded(
-        address indexed asset,
-        address indexed proxy,
-        address indexed implementation
-    );
-    event VariableDebtTokenUpgraded(
-        address indexed asset,
-        address indexed proxy,
-        address indexed implementation
-    );
+    event ATokenUpgraded(address indexed asset, address indexed proxy, address indexed implementation);
+    event StableDebtTokenUpgraded(address indexed asset, address indexed proxy, address indexed implementation);
+    event VariableDebtTokenUpgraded(address indexed asset, address indexed proxy, address indexed implementation);
 
     /**
      * @notice Initialize a reserve by creating and initializing aToken, stable debt token and variable debt token
@@ -63,10 +51,7 @@ library ConfiguratorLogic {
      * @param pool The Pool in which the reserve will be initialized
      * @param input The needed parameters for the initialization
      */
-    function executeInitReserve(
-        IPool pool,
-        ConfiguratorInputTypes.InitReserveInput calldata input
-    ) public {
+    function executeInitReserve(IPool pool, ConfiguratorInputTypes.InitReserveInput calldata input) public {
         address aTokenProxyAddress = _initTokenWithProxy(
             input.aTokenImpl,
             abi.encodeWithSelector(
@@ -118,9 +103,7 @@ library ConfiguratorLogic {
             input.interestRateStrategyAddress
         );
 
-        DataTypes.ReserveConfigurationMap memory currentConfig = DataTypes.ReserveConfigurationMap(
-            0
-        );
+        DataTypes.ReserveConfigurationMap memory currentConfig = DataTypes.ReserveConfigurationMap(0);
 
         currentConfig.setDecimals(input.underlyingAssetDecimals);
 
@@ -145,10 +128,7 @@ library ConfiguratorLogic {
      * @param cachedPool The Pool containing the reserve with the aToken
      * @param input The parameters needed for the initialize call
      */
-    function executeUpdateAToken(
-        IPool cachedPool,
-        ConfiguratorInputTypes.UpdateATokenInput calldata input
-    ) public {
+    function executeUpdateAToken(IPool cachedPool, ConfiguratorInputTypes.UpdateATokenInput calldata input) public {
         DataTypes.ReserveData memory reserveData = cachedPool.getReserveData(input.asset);
 
         (, , , uint256 decimals, , ) = cachedPool.getConfiguration(input.asset).getParams();
@@ -195,17 +175,9 @@ library ConfiguratorLogic {
             input.params
         );
 
-        _upgradeTokenImplementation(
-            reserveData.stableDebtTokenAddress,
-            input.implementation,
-            encodedCall
-        );
+        _upgradeTokenImplementation(reserveData.stableDebtTokenAddress, input.implementation, encodedCall);
 
-        emit StableDebtTokenUpgraded(
-            input.asset,
-            reserveData.stableDebtTokenAddress,
-            input.implementation
-        );
+        emit StableDebtTokenUpgraded(input.asset, reserveData.stableDebtTokenAddress, input.implementation);
     }
 
     /**
@@ -233,17 +205,9 @@ library ConfiguratorLogic {
             input.params
         );
 
-        _upgradeTokenImplementation(
-            reserveData.variableDebtTokenAddress,
-            input.implementation,
-            encodedCall
-        );
+        _upgradeTokenImplementation(reserveData.variableDebtTokenAddress, input.implementation, encodedCall);
 
-        emit VariableDebtTokenUpgraded(
-            input.asset,
-            reserveData.variableDebtTokenAddress,
-            input.implementation
-        );
+        emit VariableDebtTokenUpgraded(input.asset, reserveData.variableDebtTokenAddress, input.implementation);
     }
 
     /**
@@ -252,13 +216,10 @@ library ConfiguratorLogic {
      * @param initParams The parameters that is passed to the implementation to initialize
      * @return The address of initialized proxy
      */
-    function _initTokenWithProxy(
-        address implementation,
-        bytes memory initParams
-    ) internal returns (address) {
+    function _initTokenWithProxy(address implementation, bytes memory initParams) internal returns (address) {
         InitializableImmutableAdminUpgradeabilityProxy proxy = new InitializableImmutableAdminUpgradeabilityProxy(
-                address(this)
-            );
+            address(this)
+        );
 
         proxy.initialize(implementation, initParams);
 
@@ -278,8 +239,8 @@ library ConfiguratorLogic {
         bytes memory initParams
     ) internal {
         InitializableImmutableAdminUpgradeabilityProxy proxy = InitializableImmutableAdminUpgradeabilityProxy(
-                payable(proxyAddress)
-            );
+            payable(proxyAddress)
+        );
 
         proxy.upgradeToAndCall(implementation, initParams);
     }

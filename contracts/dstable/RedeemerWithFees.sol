@@ -45,11 +45,7 @@ contract RedeemerWithFees is AccessControl, OracleAware {
     /* Events */
     event FeeReceiverUpdated(address indexed oldFeeReceiver, address indexed newFeeReceiver);
     event DefaultRedemptionFeeUpdated(uint256 oldFeeBps, uint256 newFeeBps);
-    event CollateralRedemptionFeeUpdated(
-        address indexed collateralAsset,
-        uint256 oldFeeBps,
-        uint256 newFeeBps
-    );
+    event CollateralRedemptionFeeUpdated(address indexed collateralAsset, uint256 oldFeeBps, uint256 newFeeBps);
     event Redemption(
         address indexed redeemer,
         address indexed collateralAsset,
@@ -81,11 +77,7 @@ contract RedeemerWithFees is AccessControl, OracleAware {
         address _initialFeeReceiver,
         uint256 _initialRedemptionFeeBps
     ) OracleAware(_oracle, _oracle.BASE_CURRENCY_UNIT()) {
-        if (
-            _collateralVault == address(0) ||
-            _dstable == address(0) ||
-            address(_oracle) == address(0)
-        ) {
+        if (_collateralVault == address(0) || _dstable == address(0) || address(_oracle) == address(0)) {
             revert CannotBeZeroAddress();
         }
         if (_initialFeeReceiver == address(0)) {
@@ -120,21 +112,14 @@ contract RedeemerWithFees is AccessControl, OracleAware {
      * @param collateralAsset The address of the collateral asset.
      * @param minNetCollateral The minimum amount of collateral to receive after fees, for slippage protection.
      */
-    function redeem(
-        uint256 dstableAmount,
-        address collateralAsset,
-        uint256 minNetCollateral
-    ) external {
+    function redeem(uint256 dstableAmount, address collateralAsset, uint256 minNetCollateral) external {
         // Ensure the requested collateral asset is supported by the vault
         if (!collateralVault.isCollateralSupported(collateralAsset)) {
             revert CollateralVault.UnsupportedCollateral(collateralAsset);
         }
 
         uint256 dstableValue = dstableAmountToBaseValue(dstableAmount);
-        uint256 totalCollateral = collateralVault.assetAmountFromValue(
-            dstableValue,
-            collateralAsset
-        );
+        uint256 totalCollateral = collateralVault.assetAmountFromValue(dstableValue, collateralAsset);
         // Calculate fee
         uint256 feeCollateral = 0;
         uint256 currentFeeBps = collateralRedemptionFeeBps[collateralAsset];
@@ -143,11 +128,7 @@ contract RedeemerWithFees is AccessControl, OracleAware {
         }
 
         if (currentFeeBps > 0) {
-            feeCollateral = Math.mulDiv(
-                totalCollateral,
-                currentFeeBps,
-                BasisPointConstants.ONE_HUNDRED_PERCENT_BPS
-            );
+            feeCollateral = Math.mulDiv(totalCollateral, currentFeeBps, BasisPointConstants.ONE_HUNDRED_PERCENT_BPS);
             if (feeCollateral > totalCollateral) {
                 // This should never happen
                 revert FeeTooHigh(currentFeeBps, MAX_FEE_BPS);
@@ -183,10 +164,7 @@ contract RedeemerWithFees is AccessControl, OracleAware {
         uint256 minCollateral
     ) external onlyRole(REDEMPTION_MANAGER_ROLE) {
         uint256 dstableValue = dstableAmountToBaseValue(dstableAmount);
-        uint256 totalCollateral = collateralVault.assetAmountFromValue(
-            dstableValue,
-            collateralAsset
-        );
+        uint256 totalCollateral = collateralVault.assetAmountFromValue(dstableValue, collateralAsset);
         if (totalCollateral < minCollateral) {
             revert SlippageTooHigh(totalCollateral, minCollateral);
         }

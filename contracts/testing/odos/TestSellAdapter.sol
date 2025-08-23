@@ -7,9 +7,7 @@ import { IPoolAddressesProvider } from "contracts/dlend/core/interfaces/IPoolAdd
 import { IERC20Detailed } from "contracts/dlend/core/dependencies/openzeppelin/contracts/IERC20Detailed.sol";
 
 contract TestSellAdapter is BaseOdosSellAdapter {
-    constructor(
-        IOdosRouterV2 router
-    ) BaseOdosSellAdapter(IPoolAddressesProvider(address(0)), address(0), router) {}
+    constructor(IOdosRouterV2 router) BaseOdosSellAdapter(IPoolAddressesProvider(address(0)), address(0), router) {}
 
     // Stubs for abstract methods
     function _getReserveData(address) internal pure override returns (address, address, address) {

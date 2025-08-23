@@ -46,12 +46,7 @@ library SupplyLogic {
     // See `IPool` for descriptions
     event ReserveUsedAsCollateralEnabled(address indexed reserve, address indexed user);
     event ReserveUsedAsCollateralDisabled(address indexed reserve, address indexed user);
-    event Withdraw(
-        address indexed reserve,
-        address indexed user,
-        address indexed to,
-        uint256 amount
-    );
+    event Withdraw(address indexed reserve, address indexed user, address indexed to, uint256 amount);
     event Supply(
         address indexed reserve,
         address user,
@@ -85,11 +80,7 @@ library SupplyLogic {
 
         reserve.updateInterestRates(reserveCache, params.asset, params.amount, 0);
 
-        IERC20(params.asset).safeTransferFrom(
-            msg.sender,
-            reserveCache.aTokenAddress,
-            params.amount
-        );
+        IERC20(params.asset).safeTransferFrom(msg.sender, reserveCache.aTokenAddress, params.amount);
 
         bool isFirstSupply = IAToken(reserveCache.aTokenAddress).mint(
             msg.sender,
@@ -113,13 +104,7 @@ library SupplyLogic {
             }
         }
 
-        emit Supply(
-            params.asset,
-            msg.sender,
-            params.onBehalfOf,
-            params.amount,
-            params.referralCode
-        );
+        emit Supply(params.asset, msg.sender, params.onBehalfOf, params.amount, params.referralCode);
     }
 
     /**
@@ -146,9 +131,9 @@ library SupplyLogic {
 
         reserve.updateState(reserveCache);
 
-        uint256 userBalance = IAToken(reserveCache.aTokenAddress)
-            .scaledBalanceOf(msg.sender)
-            .rayMul(reserveCache.nextLiquidityIndex);
+        uint256 userBalance = IAToken(reserveCache.aTokenAddress).scaledBalanceOf(msg.sender).rayMul(
+            reserveCache.nextLiquidityIndex
+        );
 
         uint256 amountToWithdraw = params.amount;
 

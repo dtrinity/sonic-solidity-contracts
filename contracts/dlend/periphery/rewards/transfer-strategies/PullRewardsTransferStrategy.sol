@@ -47,12 +47,7 @@ contract PullRewardsTransferStrategy is TransferStrategyBase, IPullRewardsTransf
         address to,
         address reward,
         uint256 amount
-    )
-        external
-        override(TransferStrategyBase, ITransferStrategyBase)
-        onlyIncentivesController
-        returns (bool)
-    {
+    ) external override(TransferStrategyBase, ITransferStrategyBase) onlyIncentivesController returns (bool) {
         IERC20(reward).safeTransferFrom(REWARDS_VAULT, to, amount);
 
         return true;

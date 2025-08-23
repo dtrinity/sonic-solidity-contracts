@@ -15,10 +15,7 @@ library SharedLogic {
      * @param dLoopCore Address of the DLoopCore contract
      * @return leveragedAssets Amount of leveraged assets
      */
-    function getLeveragedAssets(
-        uint256 assets,
-        DLoopCoreBase dLoopCore
-    ) internal view returns (uint256) {
+    function getLeveragedAssets(uint256 assets, DLoopCoreBase dLoopCore) internal view returns (uint256) {
         return
             dLoopCore.getCurrentLeverageBps() > 0
                 ? dLoopCore.getCurrentLeveragedAssets(assets)
@@ -32,10 +29,7 @@ library SharedLogic {
      * @param dLoopCore Address of the DLoopCore contract
      * @return unleveragedAssets Amount of unleveraged assets
      */
-    function getUnleveragedAssets(
-        uint256 leveragedAssets,
-        DLoopCoreBase dLoopCore
-    ) internal view returns (uint256) {
+    function getUnleveragedAssets(uint256 leveragedAssets, DLoopCoreBase dLoopCore) internal view returns (uint256) {
         return
             dLoopCore.getCurrentLeverageBps() > 0
                 ? dLoopCore.getUnleveragedAssetsWithCurrentLeverage(leveragedAssets)

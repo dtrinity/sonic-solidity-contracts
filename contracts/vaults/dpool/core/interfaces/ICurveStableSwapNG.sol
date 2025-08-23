@@ -4,20 +4,9 @@ pragma solidity ^0.8.20;
 interface ICurveStableSwapNG {
     function exchange(int128 i, int128 j, uint256 dx, uint256 min_dy) external returns (uint256);
 
-    function exchange(
-        int128 i,
-        int128 j,
-        uint256 dx,
-        uint256 min_dy,
-        address receiver
-    ) external returns (uint256);
+    function exchange(int128 i, int128 j, uint256 dx, uint256 min_dy, address receiver) external returns (uint256);
 
-    function exchange_received(
-        int128 i,
-        int128 j,
-        uint256 dx,
-        uint256 min_dy
-    ) external returns (uint256);
+    function exchange_received(int128 i, int128 j, uint256 dx, uint256 min_dy) external returns (uint256);
 
     function exchange_received(
         int128 i,
@@ -27,10 +16,7 @@ interface ICurveStableSwapNG {
         address receiver
     ) external returns (uint256);
 
-    function add_liquidity(
-        uint256[] calldata amounts,
-        uint256 min_mint_amount
-    ) external returns (uint256);
+    function add_liquidity(uint256[] calldata amounts, uint256 min_mint_amount) external returns (uint256);
 
     function add_liquidity(
         uint256[] calldata amounts,
@@ -38,11 +24,7 @@ interface ICurveStableSwapNG {
         address receiver
     ) external returns (uint256);
 
-    function remove_liquidity_one_coin(
-        uint256 burn_amount,
-        int128 i,
-        uint256 min_received
-    ) external returns (uint256);
+    function remove_liquidity_one_coin(uint256 burn_amount, int128 i, uint256 min_received) external returns (uint256);
 
     function remove_liquidity_one_coin(
         uint256 burn_amount,
@@ -51,10 +33,7 @@ interface ICurveStableSwapNG {
         address receiver
     ) external returns (uint256);
 
-    function remove_liquidity_imbalance(
-        uint256[] calldata amounts,
-        uint256 max_burn_amount
-    ) external returns (uint256);
+    function remove_liquidity_imbalance(uint256[] calldata amounts, uint256 max_burn_amount) external returns (uint256);
 
     function remove_liquidity_imbalance(
         uint256[] calldata amounts,
@@ -62,10 +41,7 @@ interface ICurveStableSwapNG {
         address receiver
     ) external returns (uint256);
 
-    function remove_liquidity(
-        uint256 burn_amount,
-        uint256[] calldata min_amounts
-    ) external returns (uint256[] memory);
+    function remove_liquidity(uint256 burn_amount, uint256[] calldata min_amounts) external returns (uint256[] memory);
 
     function remove_liquidity(
         uint256 burn_amount,
@@ -86,10 +62,7 @@ interface ICurveStableSwapNG {
 
     function calc_withdraw_one_coin(uint256 burn_amount, int128 i) external view returns (uint256);
 
-    function calc_token_amount(
-        uint256[] calldata amounts,
-        bool is_deposit
-    ) external view returns (uint256);
+    function calc_token_amount(uint256[] calldata amounts, bool is_deposit) external view returns (uint256);
 
     function get_virtual_price() external view returns (uint256);
 

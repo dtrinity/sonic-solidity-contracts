@@ -93,17 +93,9 @@ contract ChainlinkDecimalConverter is AggregatorV3Interface {
         external
         view
         override
-        returns (
-            uint80 roundId,
-            int256 answer,
-            uint256 startedAt,
-            uint256 updatedAt,
-            uint80 answeredInRound
-        )
+        returns (uint80 roundId, int256 answer, uint256 startedAt, uint256 updatedAt, uint80 answeredInRound)
     {
-        (roundId, answer, startedAt, updatedAt, answeredInRound) = sourceFeed.getRoundData(
-            _roundId
-        );
+        (roundId, answer, startedAt, updatedAt, answeredInRound) = sourceFeed.getRoundData(_roundId);
         answer = answer / scalingFactor;
     }
 
@@ -119,13 +111,7 @@ contract ChainlinkDecimalConverter is AggregatorV3Interface {
         external
         view
         override
-        returns (
-            uint80 roundId,
-            int256 answer,
-            uint256 startedAt,
-            uint256 updatedAt,
-            uint80 answeredInRound
-        )
+        returns (uint80 roundId, int256 answer, uint256 startedAt, uint256 updatedAt, uint80 answeredInRound)
     {
         (roundId, answer, startedAt, updatedAt, answeredInRound) = sourceFeed.latestRoundData();
         answer = answer / scalingFactor;

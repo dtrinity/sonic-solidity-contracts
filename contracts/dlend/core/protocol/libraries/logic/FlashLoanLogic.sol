@@ -101,16 +101,14 @@ library FlashLoanLogic {
         vars.totalPremiums = new uint256[](params.assets.length);
 
         vars.receiver = IFlashLoanReceiver(params.receiverAddress);
-        (vars.flashloanPremiumTotal, vars.flashloanPremiumToProtocol) = params
-            .isAuthorizedFlashBorrower
+        (vars.flashloanPremiumTotal, vars.flashloanPremiumToProtocol) = params.isAuthorizedFlashBorrower
             ? (0, 0)
             : (params.flashLoanPremiumTotal, params.flashLoanPremiumToProtocol);
 
         for (vars.i = 0; vars.i < params.assets.length; vars.i++) {
             vars.currentAmount = params.amounts[vars.i];
-            vars.totalPremiums[vars.i] = DataTypes.InterestRateMode(
-                params.interestRateModes[vars.i]
-            ) == DataTypes.InterestRateMode.NONE
+            vars.totalPremiums[vars.i] = DataTypes.InterestRateMode(params.interestRateModes[vars.i]) ==
+                DataTypes.InterestRateMode.NONE
                 ? vars.currentAmount.percentMul(vars.flashloanPremiumTotal)
                 : 0;
             IAToken(reservesData[params.assets[vars.i]].aTokenAddress).transferUnderlyingTo(
@@ -134,10 +132,7 @@ library FlashLoanLogic {
             vars.currentAsset = params.assets[vars.i];
             vars.currentAmount = params.amounts[vars.i];
 
-            if (
-                DataTypes.InterestRateMode(params.interestRateModes[vars.i]) ==
-                DataTypes.InterestRateMode.NONE
-            ) {
+            if (DataTypes.InterestRateMode(params.interestRateModes[vars.i]) == DataTypes.InterestRateMode.NONE) {
                 _handleFlashLoanRepayment(
                     reservesData[vars.currentAsset],
                     DataTypes.FlashLoanRepaymentParams({
@@ -162,17 +157,14 @@ library FlashLoanLogic {
                         user: msg.sender,
                         onBehalfOf: params.onBehalfOf,
                         amount: vars.currentAmount,
-                        interestRateMode: DataTypes.InterestRateMode(
-                            params.interestRateModes[vars.i]
-                        ),
+                        interestRateMode: DataTypes.InterestRateMode(params.interestRateModes[vars.i]),
                         referralCode: params.referralCode,
                         releaseUnderlying: false,
                         maxStableRateBorrowSizePercent: params.maxStableRateBorrowSizePercent,
                         reservesCount: params.reservesCount,
                         oracle: IPoolAddressesProvider(params.addressesProvider).getPriceOracle(),
                         userEModeCategory: params.userEModeCategory,
-                        priceOracleSentinel: IPoolAddressesProvider(params.addressesProvider)
-                            .getPriceOracleSentinel()
+                        priceOracleSentinel: IPoolAddressesProvider(params.addressesProvider).getPriceOracleSentinel()
                     })
                 );
                 // no premium is paid when taking on the flashloan as debt
@@ -214,13 +206,7 @@ library FlashLoanLogic {
         IAToken(reserve.aTokenAddress).transferUnderlyingTo(params.receiverAddress, params.amount);
 
         require(
-            receiver.executeOperation(
-                params.asset,
-                params.amount,
-                totalPremium,
-                msg.sender,
-                params.params
-            ),
+            receiver.executeOperation(params.asset, params.amount, totalPremium, msg.sender, params.params),
             Errors.INVALID_FLASHLOAN_EXECUTOR_RETURN
         );
 
@@ -247,9 +233,7 @@ library FlashLoanLogic {
         DataTypes.ReserveData storage reserve,
         DataTypes.FlashLoanRepaymentParams memory params
     ) internal {
-        uint256 premiumToProtocol = params.totalPremium.percentMul(
-            params.flashLoanPremiumToProtocol
-        );
+        uint256 premiumToProtocol = params.totalPremium.percentMul(params.flashLoanPremiumToProtocol);
         uint256 premiumToLP = params.totalPremium - premiumToProtocol;
         uint256 amountPlusPremium = params.amount + params.totalPremium;
 
@@ -261,17 +245,11 @@ library FlashLoanLogic {
             premiumToLP
         );
 
-        reserve.accruedToTreasury += premiumToProtocol
-            .rayDiv(reserveCache.nextLiquidityIndex)
-            .toUint128();
+        reserve.accruedToTreasury += premiumToProtocol.rayDiv(reserveCache.nextLiquidityIndex).toUint128();
 
         reserve.updateInterestRates(reserveCache, params.asset, amountPlusPremium, 0);
 
-        IERC20(params.asset).safeTransferFrom(
-            params.receiverAddress,
-            reserveCache.aTokenAddress,
-            amountPlusPremium
-        );
+        IERC20(params.asset).safeTransferFrom(params.receiverAddress, reserveCache.aTokenAddress, amountPlusPremium);
 
         IAToken(reserveCache.aTokenAddress).handleRepayment(
             params.receiverAddress,

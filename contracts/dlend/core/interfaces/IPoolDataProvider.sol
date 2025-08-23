@@ -95,9 +95,7 @@ interface IPoolDataProvider {
      * @return borrowCap The borrow cap of the reserve
      * @return supplyCap The supply cap of the reserve
      */
-    function getReserveCaps(
-        address asset
-    ) external view returns (uint256 borrowCap, uint256 supplyCap);
+    function getReserveCaps(address asset) external view returns (uint256 borrowCap, uint256 supplyCap);
 
     /**
      * @notice Returns if the pool is paused
@@ -232,23 +230,14 @@ interface IPoolDataProvider {
      */
     function getReserveTokensAddresses(
         address asset
-    )
-        external
-        view
-        returns (
-            address aTokenAddress,
-            address stableDebtTokenAddress,
-            address variableDebtTokenAddress
-        );
+    ) external view returns (address aTokenAddress, address stableDebtTokenAddress, address variableDebtTokenAddress);
 
     /**
      * @notice Returns the address of the Interest Rate strategy
      * @param asset The address of the underlying asset of the reserve
      * @return irStrategyAddress The address of the Interest Rate strategy
      */
-    function getInterestRateStrategyAddress(
-        address asset
-    ) external view returns (address irStrategyAddress);
+    function getInterestRateStrategyAddress(address asset) external view returns (address irStrategyAddress);
 
     /**
      * @notice Returns whether the reserve has FlashLoans enabled or disabled

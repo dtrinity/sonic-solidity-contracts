@@ -45,11 +45,7 @@ contract DStakeRewardManagerDLend is RewardClaimable {
 
     // --- Events ---
     event DLendRewardsControllerUpdated(address oldController, address newController);
-    event ExchangeAssetProcessed(
-        address indexed vaultAsset,
-        uint256 vaultAssetAmount,
-        uint256 dStableCompoundedAmount
-    );
+    event ExchangeAssetProcessed(address indexed vaultAsset, uint256 vaultAssetAmount, uint256 dStableCompoundedAmount);
 
     // --- Errors ---
     error InvalidRouter();
@@ -179,9 +175,7 @@ contract DStakeRewardManagerDLend is RewardClaimable {
      *      via the DStakeRouter and an appropriate adapter, and then deposited into the vault.
      *      The adapter is expected to transfer the compounded asset directly to dStakeCollateralVault.
      */
-    function _processExchangeAssetDeposit(
-        uint256 amountDStableToCompound
-    ) internal virtual override {
+    function _processExchangeAssetDeposit(uint256 amountDStableToCompound) internal virtual override {
         if (amountDStableToCompound == 0) {
             // RewardClaimable base function checks amount >= exchangeThreshold, implying amount > 0.
             return;
@@ -206,18 +200,15 @@ contract DStakeRewardManagerDLend is RewardClaimable {
         // 1. Pull `amountDStableToCompound` from this contract (msg.sender).
         // 2. Convert it to `defaultVaultAsset`.
         // 3. Deposit/transfer the `defaultVaultAsset` directly to the `dStakeCollateralVault`.
-        (address convertedVaultAsset, uint256 convertedVaultAssetAmount) = adapter
-            .convertToVaultAsset(amountDStableToCompound);
+        (address convertedVaultAsset, uint256 convertedVaultAssetAmount) = adapter.convertToVaultAsset(
+            amountDStableToCompound
+        );
 
         if (convertedVaultAsset != defaultVaultAsset) {
             revert AdapterReturnedUnexpectedAsset(defaultVaultAsset, convertedVaultAsset);
         }
 
-        emit ExchangeAssetProcessed(
-            convertedVaultAsset,
-            convertedVaultAssetAmount,
-            amountDStableToCompound
-        );
+        emit ExchangeAssetProcessed(convertedVaultAsset, convertedVaultAssetAmount, amountDStableToCompound);
     }
 
     /**
@@ -274,9 +265,7 @@ contract DStakeRewardManagerDLend is RewardClaimable {
      * @dev Only callable by DEFAULT_ADMIN_ROLE.
      * @param _newDLendRewardsController The address of the new rewards controller.
      */
-    function setDLendRewardsController(
-        address _newDLendRewardsController
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function setDLendRewardsController(address _newDLendRewardsController) external onlyRole(DEFAULT_ADMIN_ROLE) {
         if (_newDLendRewardsController == address(0)) {
             revert ZeroAddress();
         }

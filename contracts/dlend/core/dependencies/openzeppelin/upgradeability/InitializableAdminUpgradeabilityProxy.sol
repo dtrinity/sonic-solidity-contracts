@@ -25,10 +25,7 @@ import "./InitializableUpgradeabilityProxy.sol";
  * @dev Extends from BaseAdminUpgradeabilityProxy with an initializer for
  * initializing the implementation, admin, and init data.
  */
-contract InitializableAdminUpgradeabilityProxy is
-    BaseAdminUpgradeabilityProxy,
-    InitializableUpgradeabilityProxy
-{
+contract InitializableAdminUpgradeabilityProxy is BaseAdminUpgradeabilityProxy, InitializableUpgradeabilityProxy {
     /**
      * Contract initializer.
      * @param logic address of the initial implementation.

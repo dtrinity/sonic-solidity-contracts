@@ -63,10 +63,7 @@ abstract contract DLoopDecreaseLeverageBase is
         uint256 collateralTokenBalanceBeforeDecrease,
         uint256 collateralTokenBalanceAfterDecrease
     );
-    error FlashLoanAmountExceedsMaxAvailable(
-        uint256 requiredFlashLoanAmount,
-        uint256 maxFlashLoanAmount
-    );
+    error FlashLoanAmountExceedsMaxAvailable(uint256 requiredFlashLoanAmount, uint256 maxFlashLoanAmount);
     error LeverageNotDecreased(uint256 leverageBeforeDecrease, uint256 leverageAfterDecrease);
     error LeverageAlreadyAtOrBelowTarget(uint256 currentLeverage, uint256 targetLeverage);
 
@@ -111,13 +108,7 @@ abstract contract DLoopDecreaseLeverageBase is
      * @dev Gets the restricted rescue tokens
      * @return restrictedTokens Restricted rescue tokens
      */
-    function getRestrictedRescueTokens()
-        public
-        view
-        virtual
-        override
-        returns (address[] memory restrictedTokens)
-    {
+    function getRestrictedRescueTokens() public view virtual override returns (address[] memory restrictedTokens) {
         // Return empty array as we no longer handle leftover collateral tokens
         return new address[](0);
     }
@@ -145,11 +136,7 @@ abstract contract DLoopDecreaseLeverageBase is
 
         uint256 currentDebtTokenBalance = dLoopCore.debtToken().balanceOf(address(this));
         if (rebalanceDebtAmount > currentDebtTokenBalance) {
-            _decreaseLeverageWithFlashLoan(
-                rebalanceDebtAmount,
-                collateralToDebtTokenSwapData,
-                dLoopCore
-            );
+            _decreaseLeverageWithFlashLoan(rebalanceDebtAmount, collateralToDebtTokenSwapData, dLoopCore);
         } else {
             // No flash loan needed, direct decrease leverage
             _decreaseLeverageWithoutFlashLoan(dLoopCore, currentDebtTokenBalance);
@@ -170,11 +157,7 @@ abstract contract DLoopDecreaseLeverageBase is
         uint256 leftoverAmount = collateralToken.balanceOf(address(this));
         if (leftoverAmount > 0) {
             collateralToken.safeTransfer(msg.sender, leftoverAmount);
-            emit LeftoverCollateralTokensTransferred(
-                address(collateralToken),
-                leftoverAmount,
-                msg.sender
-            );
+            emit LeftoverCollateralTokensTransferred(address(collateralToken), leftoverAmount, msg.sender);
         }
 
         return receivedCollateralTokenAmount;
@@ -201,8 +184,7 @@ abstract contract DLoopDecreaseLeverageBase is
         // function, which is already protected by nonReentrant
         // Moreover, this function is only be able to be called by the address(this) (check the initiator condition)
         // thus even though the flash loan is public and not protected by nonReentrant, it is still safe
-        if (msg.sender != address(flashLender))
-            revert UnknownLender(msg.sender, address(flashLender));
+        if (msg.sender != address(flashLender)) revert UnknownLender(msg.sender, address(flashLender));
         if (initiator != address(this)) revert UnknownInitiator(initiator, address(this));
 
         // Decode flash loan params
@@ -212,8 +194,7 @@ abstract contract DLoopDecreaseLeverageBase is
         ERC20 debtToken = dLoopCore.debtToken();
 
         // Verify token compatibility
-        if (token != address(debtToken))
-            revert IncompatibleDLoopCoreDebtToken(token, address(debtToken));
+        if (token != address(debtToken)) revert IncompatibleDLoopCoreDebtToken(token, address(debtToken));
 
         // Record collateral token balance before decrease leverage
         uint256 collateralTokenBalanceBeforeDecrease = collateralToken.balanceOf(address(this));
@@ -272,11 +253,7 @@ abstract contract DLoopDecreaseLeverageBase is
         }
 
         // Create flash loan params
-        FlashLoanParams memory params = FlashLoanParams(
-            requiredDebtAmount,
-            collateralToDebtTokenSwapData,
-            dLoopCore
-        );
+        FlashLoanParams memory params = FlashLoanParams(requiredDebtAmount, collateralToDebtTokenSwapData, dLoopCore);
         bytes memory data = _encodeParamsToData(params);
 
         // Approve flash lender to spend debt tokens for repayment
@@ -294,10 +271,7 @@ abstract contract DLoopDecreaseLeverageBase is
      * @param dLoopCore DLoop core contract
      * @param currentDebtTokenBalance current debt token balance
      */
-    function _decreaseLeverageWithoutFlashLoan(
-        DLoopCoreBase dLoopCore,
-        uint256 currentDebtTokenBalance
-    ) internal {
+    function _decreaseLeverageWithoutFlashLoan(DLoopCoreBase dLoopCore, uint256 currentDebtTokenBalance) internal {
         ERC20 collateralToken = dLoopCore.collateralToken();
         ERC20 debtToken = dLoopCore.debtToken();
 
@@ -330,9 +304,7 @@ abstract contract DLoopDecreaseLeverageBase is
      * @param _flashLoanParams Flash loan parameters
      * @return data Encoded data
      */
-    function _encodeParamsToData(
-        FlashLoanParams memory _flashLoanParams
-    ) internal pure returns (bytes memory data) {
+    function _encodeParamsToData(FlashLoanParams memory _flashLoanParams) internal pure returns (bytes memory data) {
         data = abi.encode(
             _flashLoanParams.requiredDebtAmount,
             _flashLoanParams.collateralToDebtTokenSwapData,
@@ -345,9 +317,7 @@ abstract contract DLoopDecreaseLeverageBase is
      * @param data Encoded data
      * @return _flashLoanParams Decoded flash loan parameters
      */
-    function _decodeDataToParams(
-        bytes memory data
-    ) internal pure returns (FlashLoanParams memory _flashLoanParams) {
+    function _decodeDataToParams(bytes memory data) internal pure returns (FlashLoanParams memory _flashLoanParams) {
         (
             _flashLoanParams.requiredDebtAmount,
             _flashLoanParams.collateralToDebtTokenSwapData,

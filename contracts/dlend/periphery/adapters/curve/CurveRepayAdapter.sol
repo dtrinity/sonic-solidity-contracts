@@ -32,20 +32,10 @@ import { ICurveRouterNgPoolsOnlyV1 } from "contracts/dlend/periphery/adapters/cu
  * @title CurveRepayAdapter
  * @notice Curve Adapter to perform a repay of a debt with collateral.
  **/
-contract CurveRepayAdapter is
-    BaseCurveBuyAdapter,
-    ReentrancyGuard,
-    IAaveFlashLoanReceiver,
-    ICurveRepayAdapter
-{
+contract CurveRepayAdapter is BaseCurveBuyAdapter, ReentrancyGuard, IAaveFlashLoanReceiver, ICurveRepayAdapter {
     using SafeERC20 for IERC20;
 
-    error InvalidDebtRepayAmount(
-        uint256 requestedAmount,
-        uint256 currentDebt,
-        address user,
-        address debtToken
-    );
+    error InvalidDebtRepayAmount(uint256 requestedAmount, uint256 currentDebt, address user, address debtToken);
 
     // unique identifier to track usage via flashloan events
     uint16 public constant REFERRER = 13410; // uint16(uint256(keccak256(abi.encode('repay-swap-adapter'))) / type(uint16).max)
@@ -69,15 +59,9 @@ contract CurveRepayAdapter is
      * @param asset The address of the asset
      * @return The address of the vToken, sToken and aToken
      */
-    function _getReserveData(
-        address asset
-    ) internal view override returns (address, address, address) {
+    function _getReserveData(address asset) internal view override returns (address, address, address) {
         DataTypes.ReserveData memory reserveData = POOL.getReserveData(asset);
-        return (
-            reserveData.variableDebtTokenAddress,
-            reserveData.stableDebtTokenAddress,
-            reserveData.aTokenAddress
-        );
+        return (reserveData.variableDebtTokenAddress, reserveData.stableDebtTokenAddress, reserveData.aTokenAddress);
     }
 
     /**
@@ -87,12 +71,7 @@ contract CurveRepayAdapter is
      * @param to The address receiving the aTokens
      * @param referralCode The referral code to pass to Aave
      */
-    function _supply(
-        address asset,
-        uint256 amount,
-        address to,
-        uint16 referralCode
-    ) internal override {
+    function _supply(address asset, uint256 amount, address to, uint16 referralCode) internal override {
         POOL.supply(asset, amount, to, referralCode);
     }
 
@@ -111,15 +90,11 @@ contract CurveRepayAdapter is
 
         // true if flashloan is needed to repay the debt
         if (!repayParams.withFlashLoan) {
-            uint256 collateralBalanceBefore = IERC20(repayParams.collateralAsset).balanceOf(
-                address(this)
-            );
+            uint256 collateralBalanceBefore = IERC20(repayParams.collateralAsset).balanceOf(address(this));
             _swapAndRepay(repayParams, collateralATokenPermit);
 
             // Supply on behalf of the user in case of excess of collateral asset after the swap
-            uint256 collateralBalanceAfter = IERC20(repayParams.collateralAsset).balanceOf(
-                address(this)
-            );
+            uint256 collateralBalanceAfter = IERC20(repayParams.collateralAsset).balanceOf(address(this));
             uint256 collateralExcess = collateralBalanceAfter > collateralBalanceBefore
                 ? collateralBalanceAfter - collateralBalanceBefore
                 : 0;
@@ -196,12 +171,7 @@ contract CurveRepayAdapter is
         // flashLoanAmount + flashLoanPremium - (flashLoanAmount - amountSold)
         // equivalent to
         // flashLoanPremium + amountSold
-        _pullATokenAndWithdraw(
-            flashLoanAsset,
-            repayParams.user,
-            flashLoanPremium + amountSold,
-            collateralATokenPermit
-        );
+        _pullATokenAndWithdraw(flashLoanAsset, repayParams.user, flashLoanPremium + amountSold, collateralATokenPermit);
 
         // flashloan repayment
         _conditionalRenewAllowance(flashLoanAsset, flashLoanAmount + flashLoanPremium);
@@ -256,10 +226,7 @@ contract CurveRepayAdapter is
      * @param repayParams struct describing the repay swap
      * @param collateralATokenPermit optional permit for old collateral's aToken
      */
-    function _flash(
-        RepayParams memory repayParams,
-        PermitInput memory collateralATokenPermit
-    ) internal virtual {
+    function _flash(RepayParams memory repayParams, PermitInput memory collateralATokenPermit) internal virtual {
         bytes memory params = abi.encode(repayParams, collateralATokenPermit);
         address[] memory assets = new address[](1);
         assets[0] = repayParams.collateralAsset;
@@ -268,15 +235,7 @@ contract CurveRepayAdapter is
         uint256[] memory interestRateModes = new uint256[](1);
         interestRateModes[0] = 0;
 
-        POOL.flashLoan(
-            address(this),
-            assets,
-            amounts,
-            interestRateModes,
-            address(this),
-            params,
-            REFERRER
-        );
+        POOL.flashLoan(address(this), assets, amounts, interestRateModes, address(this), params, REFERRER);
     }
 
     /**
@@ -295,8 +254,7 @@ contract CurveRepayAdapter is
     ) internal view returns (uint256) {
         (address vDebtToken, address sDebtToken, ) = _getReserveData(address(debtAsset));
 
-        address debtToken = DataTypes.InterestRateMode(rateMode) ==
-            DataTypes.InterestRateMode.STABLE
+        address debtToken = DataTypes.InterestRateMode(rateMode) == DataTypes.InterestRateMode.STABLE
             ? sDebtToken
             : vDebtToken;
         uint256 currentDebt = IERC20(debtToken).balanceOf(user);

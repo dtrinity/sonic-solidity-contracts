@@ -26,21 +26,12 @@ contract API3WrapperWithThresholding is API3Wrapper, ThresholdingUtils {
     mapping(address => ThresholdConfig) public assetThresholds;
 
     /* Events */
-    event ThresholdConfigSet(
-        address indexed asset,
-        uint256 lowerThresholdInBase,
-        uint256 fixedPriceInBase
-    );
+    event ThresholdConfigSet(address indexed asset, uint256 lowerThresholdInBase, uint256 fixedPriceInBase);
     event ThresholdConfigRemoved(address indexed asset);
 
-    constructor(
-        address baseCurrency,
-        uint256 _baseCurrencyUnit
-    ) API3Wrapper(baseCurrency, _baseCurrencyUnit) {}
+    constructor(address baseCurrency, uint256 _baseCurrencyUnit) API3Wrapper(baseCurrency, _baseCurrencyUnit) {}
 
-    function getPriceInfo(
-        address asset
-    ) public view override returns (uint256 price, bool isAlive) {
+    function getPriceInfo(address asset) public view override returns (uint256 price, bool isAlive) {
         (price, isAlive) = super.getPriceInfo(asset);
         if (isAlive) {
             ThresholdConfig memory config = assetThresholds[asset];

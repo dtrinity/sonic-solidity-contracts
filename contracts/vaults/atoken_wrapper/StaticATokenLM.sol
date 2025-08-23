@@ -134,16 +134,15 @@ contract StaticATokenLM is ERC20, IStaticATokenLM, IERC4626 {
         // assume if deadline 0 no permit was supplied
         if (permit.deadline != 0) {
             try
-                IERC20WithPermit(depositToAave ? address(_aTokenUnderlying) : address(_aToken))
-                    .permit(
-                        depositor,
-                        address(this),
-                        permit.value,
-                        permit.deadline,
-                        permit.v,
-                        permit.r,
-                        permit.s
-                    )
+                IERC20WithPermit(depositToAave ? address(_aTokenUnderlying) : address(_aToken)).permit(
+                    depositor,
+                    address(this),
+                    permit.value,
+                    permit.deadline,
+                    permit.v,
+                    permit.r,
+                    permit.s
+                )
             {} catch {}
         }
         (uint256 shares, ) = _deposit(depositor, receiver, 0, assets, referralCode, depositToAave);
@@ -232,11 +231,7 @@ contract StaticATokenLM is ERC20, IStaticATokenLM, IERC4626 {
     }
 
     ///@inheritdoc IStaticATokenLM
-    function claimRewardsOnBehalf(
-        address onBehalfOf,
-        address receiver,
-        address[] memory rewards
-    ) external {
+    function claimRewardsOnBehalf(address onBehalfOf, address receiver, address[] memory rewards) external {
         require(
             msg.sender == onBehalfOf || msg.sender == REWARDS_CONTROLLER.getClaimer(onBehalfOf),
             StaticATokenErrors.INVALID_CLAIMER
@@ -347,10 +342,7 @@ contract StaticATokenLM is ERC20, IStaticATokenLM, IERC4626 {
             Rounding.DOWN
         );
         uint256 cachedUserBalance = balanceOf[owner];
-        return
-            underlyingTokenBalanceInShares >= cachedUserBalance
-                ? cachedUserBalance
-                : underlyingTokenBalanceInShares;
+        return underlyingTokenBalanceInShares >= cachedUserBalance ? cachedUserBalance : underlyingTokenBalanceInShares;
     }
 
     ///@inheritdoc IERC4626
@@ -371,8 +363,8 @@ contract StaticATokenLM is ERC20, IStaticATokenLM, IERC4626 {
         // if no supply cap deposit is unlimited
         if (supplyCap == 0) return type(uint256).max;
         // return remaining supply cap margin
-        uint256 currentSupply = (IAToken(reserveData.aTokenAddress).scaledTotalSupply() +
-            reserveData.accruedToTreasury).rayMulRoundUp(_getNormalizedIncome(reserveData));
+        uint256 currentSupply = (IAToken(reserveData.aTokenAddress).scaledTotalSupply() + reserveData.accruedToTreasury)
+            .rayMulRoundUp(_getNormalizedIncome(reserveData));
         return currentSupply > supplyCap ? 0 : supplyCap - currentSupply;
     }
 
@@ -390,32 +382,21 @@ contract StaticATokenLM is ERC20, IStaticATokenLM, IERC4626 {
     }
 
     ///@inheritdoc IERC4626
-    function withdraw(
-        uint256 assets,
-        address receiver,
-        address owner
-    ) external virtual returns (uint256) {
+    function withdraw(uint256 assets, address receiver, address owner) external virtual returns (uint256) {
         (uint256 shares, ) = _withdraw(owner, receiver, 0, assets, true);
 
         return shares;
     }
 
     ///@inheritdoc IERC4626
-    function redeem(
-        uint256 shares,
-        address receiver,
-        address owner
-    ) external virtual returns (uint256) {
+    function redeem(uint256 shares, address receiver, address owner) external virtual returns (uint256) {
         (, uint256 assets) = _withdraw(owner, receiver, shares, 0, true);
 
         return assets;
     }
 
     /// @notice Deposit aTokens and mint static tokens to receiver
-    function depositATokens(
-        uint256 aTokenAmount,
-        address receiver
-    ) external override returns (uint256) {
+    function depositATokens(uint256 aTokenAmount, address receiver) external override returns (uint256) {
         require(aTokenAmount > 0, StaticATokenErrors.INVALID_ZERO_AMOUNT);
         // allow compensation for rebase during tx
         uint256 userBalance = _aToken.balanceOf(msg.sender);
@@ -432,11 +413,7 @@ contract StaticATokenLM is ERC20, IStaticATokenLM, IERC4626 {
     }
 
     /// @notice Burn static tokens and return aTokens to receiver
-    function redeemATokens(
-        uint256 shares,
-        address receiver,
-        address owner
-    ) external override returns (uint256) {
+    function redeemATokens(uint256 shares, address receiver, address owner) external override returns (uint256) {
         require(shares > 0, StaticATokenErrors.INVALID_ZERO_AMOUNT);
         // determine assets to return
         uint256 assets = previewRedeem(shares);
@@ -484,12 +461,7 @@ contract StaticATokenLM is ERC20, IStaticATokenLM, IERC4626 {
 
         if (depositToAave) {
             address cachedATokenUnderlying = _aTokenUnderlying;
-            SafeERC20.safeTransferFrom(
-                IERC20(cachedATokenUnderlying),
-                depositor,
-                address(this),
-                assets
-            );
+            SafeERC20.safeTransferFrom(IERC20(cachedATokenUnderlying), depositor, address(this), assets);
             POOL.deposit(cachedATokenUnderlying, assets, address(this), referralCode);
         } else {
             _aToken.safeTransferFrom(depositor, address(this), assets);
@@ -581,8 +553,7 @@ contract StaticATokenLM is ERC20, IStaticATokenLM, IERC4626 {
                 currentRewardsIndex
             ).toUint128();
         }
-        _userRewardsData[user][rewardToken].rewardsIndexOnLastInteraction = currentRewardsIndex
-            .toUint128();
+        _userRewardsData[user][rewardToken].rewardsIndexOnLastInteraction = currentRewardsIndex.toUint128();
     }
 
     /**
@@ -641,23 +612,14 @@ contract StaticATokenLM is ERC20, IStaticATokenLM, IERC4626 {
      * @param rewards The addresses of the rewards
      * @param receiver The address to receive the rewards
      */
-    function _claimRewardsOnBehalf(
-        address onBehalfOf,
-        address receiver,
-        address[] memory rewards
-    ) internal {
+    function _claimRewardsOnBehalf(address onBehalfOf, address receiver, address[] memory rewards) internal {
         for (uint256 i = 0; i < rewards.length; i++) {
             if (address(rewards[i]) == address(0)) {
                 continue;
             }
             uint256 currentRewardsIndex = getCurrentRewardsIndex(rewards[i]);
             uint256 balance = balanceOf[onBehalfOf];
-            uint256 userReward = _getClaimableRewards(
-                onBehalfOf,
-                rewards[i],
-                balance,
-                currentRewardsIndex
-            );
+            uint256 userReward = _getClaimableRewards(onBehalfOf, rewards[i], balance, currentRewardsIndex);
             uint256 totalRewardTokenBalance = IERC20(rewards[i]).balanceOf(address(this));
             uint256 unclaimedReward = 0;
 
@@ -670,10 +632,9 @@ contract StaticATokenLM is ERC20, IStaticATokenLM, IERC4626 {
                 userReward = totalRewardTokenBalance;
             }
             if (userReward > 0) {
-                _userRewardsData[onBehalfOf][rewards[i]].unclaimedRewards = unclaimedReward
+                _userRewardsData[onBehalfOf][rewards[i]].unclaimedRewards = unclaimedReward.toUint128();
+                _userRewardsData[onBehalfOf][rewards[i]].rewardsIndexOnLastInteraction = currentRewardsIndex
                     .toUint128();
-                _userRewardsData[onBehalfOf][rewards[i]]
-                    .rewardsIndexOnLastInteraction = currentRewardsIndex.toUint128();
                 IERC20(rewards[i]).safeTransfer(receiver, userReward);
             }
         }
@@ -710,9 +671,7 @@ contract StaticATokenLM is ERC20, IStaticATokenLM, IERC4626 {
      * @param reserve The reserve object
      * @return The normalized income, expressed in ray
      */
-    function _getNormalizedIncome(
-        DataTypes.ReserveData memory reserve
-    ) internal view returns (uint256) {
+    function _getNormalizedIncome(DataTypes.ReserveData memory reserve) internal view returns (uint256) {
         uint40 timestamp = reserve.lastUpdateTimestamp;
 
         //solium-disable-next-line

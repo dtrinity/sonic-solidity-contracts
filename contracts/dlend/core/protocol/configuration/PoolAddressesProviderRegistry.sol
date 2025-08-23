@@ -77,9 +77,7 @@ contract PoolAddressesProviderRegistry is Ownable, IPoolAddressesProviderRegistr
     }
 
     /// @inheritdoc IPoolAddressesProviderRegistry
-    function getAddressesProviderIdByAddress(
-        address addressesProvider
-    ) external view override returns (uint256) {
+    function getAddressesProviderIdByAddress(address addressesProvider) external view override returns (uint256) {
         return _addressesProviderToId[addressesProvider];
     }
 

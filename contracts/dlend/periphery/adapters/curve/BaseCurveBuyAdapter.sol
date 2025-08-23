@@ -70,8 +70,7 @@ abstract contract BaseCurveBuyAdapter is BaseCurveSwapAdapter {
 
         // Add a buffer to account for potential slippage
         amountSold =
-            (estimatedAmountIn *
-                (BasisPointConstants.ONE_HUNDRED_PERCENT_BPS + SLIPPAGE_BUFFER_BPS)) /
+            (estimatedAmountIn * (BasisPointConstants.ONE_HUNDRED_PERCENT_BPS + SLIPPAGE_BUFFER_BPS)) /
             BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
 
         // Ensure estimated amount is within limits

@@ -78,15 +78,9 @@ interface IOdosRouterV2 {
 
     function owner() external view returns (address);
 
-    function referralLookup(
-        uint32
-    ) external view returns (uint64 referralFee, address beneficiary, bool registered);
+    function referralLookup(uint32) external view returns (uint64 referralFee, address beneficiary, bool registered);
 
-    function registerReferralCode(
-        uint32 _referralCode,
-        uint64 _referralFee,
-        address _beneficiary
-    ) external;
+    function registerReferralCode(uint32 _referralCode, uint64 _referralFee, address _beneficiary) external;
 
     function renounceOwnership() external;
 
@@ -142,11 +136,7 @@ interface IOdosRouterV2 {
 
     function transferOwnership(address newOwner) external;
 
-    function transferRouterFunds(
-        address[] calldata tokens,
-        uint256[] calldata amounts,
-        address dest
-    ) external;
+    function transferRouterFunds(address[] calldata tokens, uint256[] calldata amounts, address dest) external;
 
     function writeAddressList(address[] calldata addresses) external;
 

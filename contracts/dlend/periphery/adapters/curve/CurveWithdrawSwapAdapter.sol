@@ -31,11 +31,7 @@ import { IERC20 } from "contracts/dlend/core/dependencies/openzeppelin/contracts
  * @title CurveWithdrawSwapAdapter
  * @notice Adapter to swap then withdraw using Curve
  */
-contract CurveWithdrawSwapAdapter is
-    BaseCurveSellAdapter,
-    ReentrancyGuard,
-    ICurveWithdrawSwapAdapter
-{
+contract CurveWithdrawSwapAdapter is BaseCurveSellAdapter, ReentrancyGuard, ICurveWithdrawSwapAdapter {
     using SafeERC20 for IERC20;
 
     constructor(
@@ -52,15 +48,9 @@ contract CurveWithdrawSwapAdapter is
      * @param asset The address of the asset
      * @return The address of the vToken, sToken and aToken
      */
-    function _getReserveData(
-        address asset
-    ) internal view override returns (address, address, address) {
+    function _getReserveData(address asset) internal view override returns (address, address, address) {
         DataTypes.ReserveData memory reserveData = POOL.getReserveData(asset);
-        return (
-            reserveData.variableDebtTokenAddress,
-            reserveData.stableDebtTokenAddress,
-            reserveData.aTokenAddress
-        );
+        return (reserveData.variableDebtTokenAddress, reserveData.stableDebtTokenAddress, reserveData.aTokenAddress);
     }
 
     /**
@@ -70,12 +60,7 @@ contract CurveWithdrawSwapAdapter is
      * @param to The address receiving the aTokens
      * @param referralCode The referral code to pass to Aave
      */
-    function _supply(
-        address asset,
-        uint256 amount,
-        address to,
-        uint16 referralCode
-    ) internal override {
+    function _supply(address asset, uint256 amount, address to, uint16 referralCode) internal override {
         POOL.supply(asset, amount, to, referralCode);
     }
 

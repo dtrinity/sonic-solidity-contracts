@@ -149,10 +149,7 @@ contract AaveEcosystemReserveV2 is AdminControlledEcosystemReserve, ReentrancyGu
      * @param who The address for which to query the balance.
      * @notice Returns the total funds allocated to `who` as uint256.
      */
-    function balanceOf(
-        uint256 streamId,
-        address who
-    ) public view streamExists(streamId) returns (uint256 balance) {
+    function balanceOf(uint256 streamId, address who) public view streamExists(streamId) returns (uint256 balance) {
         Stream memory stream = _streams[streamId];
         BalanceOfLocalVars memory vars;
 
@@ -246,15 +243,7 @@ contract AaveEcosystemReserveV2 is AdminControlledEcosystemReserve, ReentrancyGu
         /* Increment the next stream id. */
         _nextStreamId++;
 
-        emit CreateStream(
-            streamId,
-            address(this),
-            recipient,
-            deposit,
-            tokenAddress,
-            startTime,
-            stopTime
-        );
+        emit CreateStream(streamId, address(this), recipient, deposit, tokenAddress, startTime, stopTime);
         return streamId;
     }
 
@@ -306,13 +295,7 @@ contract AaveEcosystemReserveV2 is AdminControlledEcosystemReserve, ReentrancyGu
         IERC20 token = IERC20(stream.tokenAddress);
         if (recipientBalance > 0) token.safeTransfer(stream.recipient, recipientBalance);
 
-        emit CancelStream(
-            streamId,
-            stream.sender,
-            stream.recipient,
-            senderBalance,
-            recipientBalance
-        );
+        emit CancelStream(streamId, stream.sender, stream.recipient, senderBalance, recipientBalance);
         return true;
     }
 }

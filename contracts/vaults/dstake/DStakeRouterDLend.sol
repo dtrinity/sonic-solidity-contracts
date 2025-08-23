@@ -83,9 +83,8 @@ contract DStakeRouterDLend is IDStakeRouter, AccessControl {
             revert AdapterNotFound(defaultDepositVaultAsset);
         }
 
-        (address vaultAssetExpected, uint256 expectedShares) = IDStableConversionAdapter(
-            adapterAddress
-        ).previewConvertToVaultAsset(dStableAmount);
+        (address vaultAssetExpected, uint256 expectedShares) = IDStableConversionAdapter(adapterAddress)
+            .previewConvertToVaultAsset(dStableAmount);
 
         uint256 mintedShares = _executeDeposit(adapterAddress, vaultAssetExpected, dStableAmount);
 
@@ -93,13 +92,7 @@ contract DStakeRouterDLend is IDStakeRouter, AccessControl {
             revert SlippageCheckFailed(vaultAssetExpected, mintedShares, expectedShares);
         }
 
-        emit RouterDeposit(
-            adapterAddress,
-            vaultAssetExpected,
-            msg.sender,
-            mintedShares,
-            dStableAmount
-        );
+        emit RouterDeposit(adapterAddress, vaultAssetExpected, msg.sender, mintedShares, dStableAmount);
     }
 
     /**
@@ -124,9 +117,8 @@ contract DStakeRouterDLend is IDStakeRouter, AccessControl {
         IERC20(dStable).forceApprove(adapterAddress, dStableAmount);
 
         // Convert dStable to vault asset (minted directly to collateral vault)
-        (address vaultAssetActual, uint256 reportedShares) = IDStableConversionAdapter(
-            adapterAddress
-        ).convertToVaultAsset(dStableAmount);
+        (address vaultAssetActual, uint256 reportedShares) = IDStableConversionAdapter(adapterAddress)
+            .convertToVaultAsset(dStableAmount);
 
         if (vaultAssetActual != vaultAssetExpected) {
             revert AdapterAssetMismatch(adapterAddress, vaultAssetExpected, vaultAssetActual);
@@ -186,10 +178,7 @@ contract DStakeRouterDLend is IDStakeRouter, AccessControl {
             IERC20(dStable).forceApprove(adapterAddress, surplus);
 
             // Attempt to recycle surplus; on failure hold it in the router
-            try adapter.convertToVaultAsset(surplus) returns (
-                address mintedAsset,
-                uint256 /* mintedAmount */
-            ) {
+            try adapter.convertToVaultAsset(surplus) returns (address mintedAsset, uint256 /* mintedAmount */) {
                 // Sanity: adapter must mint the same asset we just redeemed from
                 if (mintedAsset != vaultAsset) {
                     revert AdapterAssetMismatch(adapterAddress, vaultAsset, mintedAsset);
@@ -230,9 +219,7 @@ contract DStakeRouterDLend is IDStakeRouter, AccessControl {
         IDStableConversionAdapter toAdapter = IDStableConversionAdapter(toAdapterAddress);
 
         // 1. Get assets and calculate equivalent dStable amount
-        uint256 dStableAmountEquivalent = fromAdapter.previewConvertFromVaultAsset(
-            fromVaultAssetAmount
-        );
+        uint256 dStableAmountEquivalent = fromAdapter.previewConvertFromVaultAsset(fromVaultAssetAmount);
 
         // 2. Pull fromVaultAsset from collateral vault
         collateralVault.sendAsset(fromVaultAsset, fromVaultAssetAmount, address(this));
@@ -243,24 +230,19 @@ contract DStakeRouterDLend is IDStakeRouter, AccessControl {
 
         // 4. Approve toAdapter & Convert dStable -> toVaultAsset (sent to collateralVault)
         IERC20(dStable).forceApprove(toAdapterAddress, receivedDStable);
-        (address actualToVaultAsset, uint256 resultingToVaultAssetAmount) = toAdapter
-            .convertToVaultAsset(receivedDStable);
+        (address actualToVaultAsset, uint256 resultingToVaultAssetAmount) = toAdapter.convertToVaultAsset(
+            receivedDStable
+        );
         if (actualToVaultAsset != toVaultAsset) {
             revert AdapterAssetMismatch(toAdapterAddress, toVaultAsset, actualToVaultAsset);
         }
         // Slippage control: ensure output meets minimum requirement
         if (resultingToVaultAssetAmount < minToVaultAssetAmount) {
-            revert SlippageCheckFailed(
-                toVaultAsset,
-                resultingToVaultAssetAmount,
-                minToVaultAssetAmount
-            );
+            revert SlippageCheckFailed(toVaultAsset, resultingToVaultAssetAmount, minToVaultAssetAmount);
         }
 
         // --- Underlying value parity check ---
-        uint256 resultingDStableEquivalent = toAdapter.previewConvertFromVaultAsset(
-            resultingToVaultAssetAmount
-        );
+        uint256 resultingDStableEquivalent = toAdapter.previewConvertFromVaultAsset(resultingToVaultAssetAmount);
 
         // Rely on Solidity 0.8 checked arithmetic: if `dustTolerance` is greater than
         // `dStableAmountEquivalent`, the subtraction will underflow and the transaction
@@ -316,17 +298,15 @@ contract DStakeRouterDLend is IDStakeRouter, AccessControl {
         locals.toAdapter = IDStableConversionAdapter(locals.toAdapterAddress);
 
         // Calculate dStable received for the input asset
-        locals.dStableValueIn = locals.fromAdapter.previewConvertFromVaultAsset(
-            fromVaultAssetAmount
-        );
+        locals.dStableValueIn = locals.fromAdapter.previewConvertFromVaultAsset(fromVaultAssetAmount);
         if (locals.dStableValueIn == 0) {
             revert ZeroInputDStableValue(fromVaultAsset, fromVaultAssetAmount);
         }
 
         // Calculate expected output vault asset amount
-        (address expectedToAsset, uint256 tmpToAmount) = locals
-            .toAdapter
-            .previewConvertToVaultAsset(locals.dStableValueIn);
+        (address expectedToAsset, uint256 tmpToAmount) = locals.toAdapter.previewConvertToVaultAsset(
+            locals.dStableValueIn
+        );
 
         if (expectedToAsset != toVaultAsset) {
             revert AdapterAssetMismatch(locals.toAdapterAddress, toVaultAsset, expectedToAsset);
@@ -336,11 +316,7 @@ contract DStakeRouterDLend is IDStakeRouter, AccessControl {
 
         // Slippage check
         if (locals.calculatedToVaultAssetAmount < minToVaultAssetAmount) {
-            revert SlippageCheckFailed(
-                toVaultAsset,
-                locals.calculatedToVaultAssetAmount,
-                minToVaultAssetAmount
-            );
+            revert SlippageCheckFailed(toVaultAsset, locals.calculatedToVaultAssetAmount, minToVaultAssetAmount);
         }
 
         // --- Asset movements ---
@@ -372,20 +348,13 @@ contract DStakeRouterDLend is IDStakeRouter, AccessControl {
      * @param vaultAsset The address of the vault asset.
      * @param adapterAddress The address of the new adapter contract.
      */
-    function addAdapter(
-        address vaultAsset,
-        address adapterAddress
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function addAdapter(address vaultAsset, address adapterAddress) external onlyRole(DEFAULT_ADMIN_ROLE) {
         if (adapterAddress == address(0) || vaultAsset == address(0)) {
             revert ZeroAddress();
         }
         address adapterVaultAsset = IDStableConversionAdapter(adapterAddress).vaultAsset();
-        if (adapterVaultAsset != vaultAsset)
-            revert AdapterAssetMismatch(adapterAddress, vaultAsset, adapterVaultAsset);
-        if (
-            vaultAssetToAdapter[vaultAsset] != address(0) &&
-            vaultAssetToAdapter[vaultAsset] != adapterAddress
-        ) {
+        if (adapterVaultAsset != vaultAsset) revert AdapterAssetMismatch(adapterAddress, vaultAsset, adapterVaultAsset);
+        if (vaultAssetToAdapter[vaultAsset] != address(0) && vaultAssetToAdapter[vaultAsset] != adapterAddress) {
             revert VaultAssetManagedByDifferentAdapter(vaultAsset, vaultAssetToAdapter[vaultAsset]);
         }
         vaultAssetToAdapter[vaultAsset] = adapterAddress;

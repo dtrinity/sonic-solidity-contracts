@@ -68,10 +68,7 @@ library CalldataLogic {
             deadline := and(shr(160, args), 0xFFFFFFFF)
             permitV := and(shr(192, args), 0xFF)
         }
-        (address asset, uint256 amount, uint16 referralCode) = decodeSupplyParams(
-            reservesList,
-            args
-        );
+        (address asset, uint256 amount, uint16 referralCode) = decodeSupplyParams(reservesList, args);
 
         return (asset, amount, referralCode, deadline, permitV);
     }
@@ -173,10 +170,7 @@ library CalldataLogic {
         uint256 deadline;
         uint8 permitV;
 
-        (address asset, uint256 amount, uint256 interestRateMode) = decodeRepayParams(
-            reservesList,
-            args
-        );
+        (address asset, uint256 amount, uint256 interestRateMode) = decodeRepayParams(reservesList, args);
 
         assembly {
             deadline := and(shr(152, args), 0xFFFFFFFF)
@@ -283,12 +277,6 @@ library CalldataLogic {
             debtToCover = type(uint256).max;
         }
 
-        return (
-            reservesList[collateralAssetId],
-            reservesList[debtAssetId],
-            user,
-            debtToCover,
-            receiveAToken
-        );
+        return (reservesList[collateralAssetId], reservesList[debtAssetId], user, debtToCover, receiveAToken);
     }
 }
