@@ -232,10 +232,12 @@ export async function getPTMarketInfo(
     const underlyingAsset = extractAddressFromChainId(market.underlyingAsset);
 
     // Determine if market is active or inactive
-    const isActiveMarket = activeMarkets.some((m: PendleMarket) => m.address === market.address);
+    const isActiveMarket = activeMarkets.some(
+      (m: PendleMarket) => m.address === market.address,
+    );
     const marketStatus = isActiveMarket ? "active" : "inactive";
     const isMatured = !isActiveMarket; // Inactive markets are matured
-    
+
     // Extract YT address (needed for redemption if matured)
     const ytAddress = extractAddressFromChainId(market.yt);
 
@@ -312,7 +314,7 @@ export async function estimateRedeemMaturedPT(
   slippage: number,
   ytAddress: string,
   amountIn: string,
-  tokenOut: string
+  tokenOut: string,
 ): Promise<AxiosResponse<MethodReturnType<RedeemPyData>>> {
   return await callSDK<RedeemPyData>(`v2/sdk/${chainId}/redeem`, {
     receiver: receiver,
@@ -321,5 +323,5 @@ export async function estimateRedeemMaturedPT(
     yt: ytAddress,
     amountIn: amountIn,
     tokenOut: tokenOut,
-  })
+  });
 }
