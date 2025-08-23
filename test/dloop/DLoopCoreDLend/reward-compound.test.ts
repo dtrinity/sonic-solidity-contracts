@@ -100,12 +100,8 @@ describe("DLoopCoreDLend – Reward Compounding (vault shares as exchange asset)
     await rewardsController.setEmission(await rewardToken2.getAddress(), ethers.parseEther("2"));
 
     // Allow rewards controller to pull rewards from rewardSource
-    await rewardToken1
-      .connect(rewardSource)
-      .approve(await rewardsController.getAddress(), ethers.parseEther("1000000"));
-    await rewardToken2
-      .connect(rewardSource)
-      .approve(await rewardsController.getAddress(), ethers.parseEther("1000000"));
+    await rewardToken1.connect(rewardSource).approve(await rewardsController.getAddress(), ethers.parseEther("1000000"));
+    await rewardToken2.connect(rewardSource).approve(await rewardsController.getAddress(), ethers.parseEther("1000000"));
   });
 
   it("Should burn shares and distribute rewards with treasury fee on compound", async function () {
@@ -151,9 +147,10 @@ describe("DLoopCoreDLend – Reward Compounding (vault shares as exchange asset)
     await dloop.mintShares(await user.getAddress(), below);
     await dloop.connect(user).approve(await dloop.getAddress(), below);
 
-    await expect(
-      dloop.connect(user).compoundRewards(below, [await rewardToken1.getAddress()], user.address),
-    ).to.be.revertedWithCustomError(dloop, "ExchangeAmountTooLow");
+    await expect(dloop.connect(user).compoundRewards(below, [await rewardToken1.getAddress()], user.address)).to.be.revertedWithCustomError(
+      dloop,
+      "ExchangeAmountTooLow",
+    );
   });
 
   it("compounding uses share burn, not debt repay", async function () {

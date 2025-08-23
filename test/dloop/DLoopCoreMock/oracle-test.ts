@@ -139,10 +139,7 @@ describe.skip("DLoopCoreMock Oracle Tests", function () {
         const amountInBase = ethers.parseEther("3000"); // $3000
         const expectedTokenAmount = ethers.parseEther("2"); // 2 tokens at $1500 each
 
-        const tokenAmount = await dloopMock.convertFromBaseCurrencyToToken(
-          amountInBase,
-          await collateralToken.getAddress(),
-        );
+        const tokenAmount = await dloopMock.convertFromBaseCurrencyToToken(amountInBase, await collateralToken.getAddress());
         expect(tokenAmount).to.equal(expectedTokenAmount);
       });
 
@@ -173,10 +170,7 @@ describe.skip("DLoopCoreMock Oracle Tests", function () {
         const tokenAmount = ethers.parseEther("2"); // 2 tokens
         const expectedBaseAmount = ethers.parseEther("3000"); // $3000 at $1500 each
 
-        const baseAmount = await dloopMock.convertFromTokenAmountToBaseCurrency(
-          tokenAmount,
-          await collateralToken.getAddress(),
-        );
+        const baseAmount = await dloopMock.convertFromTokenAmountToBaseCurrency(tokenAmount, await collateralToken.getAddress());
         expect(baseAmount).to.equal(expectedBaseAmount);
       });
 
@@ -184,10 +178,7 @@ describe.skip("DLoopCoreMock Oracle Tests", function () {
         const tokenAmount = ethers.parseEther("500"); // 500 tokens
         const expectedBaseAmount = ethers.parseEther("500"); // $500 at $1 each
 
-        const baseAmount = await dloopMock.convertFromTokenAmountToBaseCurrency(
-          tokenAmount,
-          await debtToken.getAddress(),
-        );
+        const baseAmount = await dloopMock.convertFromTokenAmountToBaseCurrency(tokenAmount, await debtToken.getAddress());
         expect(baseAmount).to.equal(expectedBaseAmount);
       });
 
@@ -195,10 +186,7 @@ describe.skip("DLoopCoreMock Oracle Tests", function () {
         const tokenAmount = ethers.parseUnits("15", 6); // 15 tokens (6 decimals)
         const expectedBaseAmount = ethers.parseEther("150"); // $150 at $10 each
 
-        const baseAmount = await dloopMock.convertFromTokenAmountToBaseCurrency(
-          tokenAmount,
-          await otherToken.getAddress(),
-        );
+        const baseAmount = await dloopMock.convertFromTokenAmountToBaseCurrency(tokenAmount, await otherToken.getAddress());
         expect(baseAmount).to.equal(expectedBaseAmount);
       });
 
@@ -213,14 +201,8 @@ describe.skip("DLoopCoreMock Oracle Tests", function () {
         const originalAmount = ethers.parseEther("1500"); // Use amount divisible by price
 
         // Convert base -> token -> base
-        const tokenAmount = await dloopMock.convertFromBaseCurrencyToToken(
-          originalAmount,
-          await collateralToken.getAddress(),
-        );
-        const backToBaseAmount = await dloopMock.convertFromTokenAmountToBaseCurrency(
-          tokenAmount,
-          await collateralToken.getAddress(),
-        );
+        const tokenAmount = await dloopMock.convertFromBaseCurrencyToToken(originalAmount, await collateralToken.getAddress());
+        const backToBaseAmount = await dloopMock.convertFromTokenAmountToBaseCurrency(tokenAmount, await collateralToken.getAddress());
 
         expect(backToBaseAmount).to.equal(originalAmount);
       });
@@ -229,14 +211,8 @@ describe.skip("DLoopCoreMock Oracle Tests", function () {
         const originalAmount = ethers.parseEther("100");
 
         // Convert base -> token (6 decimals) -> base
-        const tokenAmount = await dloopMock.convertFromBaseCurrencyToToken(
-          originalAmount,
-          await otherToken.getAddress(),
-        );
-        const backToBaseAmount = await dloopMock.convertFromTokenAmountToBaseCurrency(
-          tokenAmount,
-          await otherToken.getAddress(),
-        );
+        const tokenAmount = await dloopMock.convertFromBaseCurrencyToToken(originalAmount, await otherToken.getAddress());
+        const backToBaseAmount = await dloopMock.convertFromTokenAmountToBaseCurrency(tokenAmount, await otherToken.getAddress());
 
         expect(backToBaseAmount).to.equal(originalAmount);
       });
@@ -269,10 +245,7 @@ describe.skip("DLoopCoreMock Oracle Tests", function () {
 
       // Verify it uses oracle price for calculation
       const [collateralBase] = await dloopMock.getTotalCollateralAndDebtOfUserInBase(await dloopMock.getAddress());
-      const expectedTotalAssets = await dloopMock.convertFromBaseCurrencyToToken(
-        collateralBase,
-        await collateralToken.getAddress(),
-      );
+      const expectedTotalAssets = await dloopMock.convertFromBaseCurrencyToToken(collateralBase, await collateralToken.getAddress());
       expect(totalAssets).to.equal(expectedTotalAssets);
     });
 
@@ -397,10 +370,7 @@ describe.skip("DLoopCoreMock Oracle Tests", function () {
       expect(retrievedPrice).to.equal(veryLargePrice);
 
       // Should work in conversions
-      const tokenAmount = await dloopMock.convertFromBaseCurrencyToToken(
-        ethers.parseEther("1000000"),
-        await collateralToken.getAddress(),
-      );
+      const tokenAmount = await dloopMock.convertFromBaseCurrencyToToken(ethers.parseEther("1000000"), await collateralToken.getAddress());
       expect(tokenAmount).to.equal(ethers.parseEther("1"));
     });
 
@@ -413,10 +383,7 @@ describe.skip("DLoopCoreMock Oracle Tests", function () {
       expect(retrievedPrice).to.equal(verySmallPrice);
 
       // Should work in conversions
-      const tokenAmount = await dloopMock.convertFromBaseCurrencyToToken(
-        ethers.parseEther("1"),
-        await collateralToken.getAddress(),
-      );
+      const tokenAmount = await dloopMock.convertFromBaseCurrencyToToken(ethers.parseEther("1"), await collateralToken.getAddress());
       expect(tokenAmount).to.be.gt(0);
     });
 
@@ -431,25 +398,14 @@ describe.skip("DLoopCoreMock Oracle Tests", function () {
 
       // Test conversion maintains precision
       const baseAmount = ethers.parseEther("12345.6789");
-      const tokenAmount = await dloopMock.convertFromBaseCurrencyToToken(
-        baseAmount,
-        await collateralToken.getAddress(),
-      );
-      const backToBase = await dloopMock.convertFromTokenAmountToBaseCurrency(
-        tokenAmount,
-        await collateralToken.getAddress(),
-      );
+      const tokenAmount = await dloopMock.convertFromBaseCurrencyToToken(baseAmount, await collateralToken.getAddress());
+      const backToBase = await dloopMock.convertFromTokenAmountToBaseCurrency(tokenAmount, await collateralToken.getAddress());
 
       expect(backToBase).to.equal(baseAmount);
     });
 
     it("Should handle multiple price updates for same asset", async function () {
-      const prices = [
-        ethers.parseEther("1000"),
-        ethers.parseEther("1500"),
-        ethers.parseEther("800"),
-        ethers.parseEther("2000"),
-      ];
+      const prices = [ethers.parseEther("1000"), ethers.parseEther("1500"), ethers.parseEther("800"), ethers.parseEther("2000")];
 
       for (const price of prices) {
         await dloopMock.setMockPrice(await collateralToken.getAddress(), price);

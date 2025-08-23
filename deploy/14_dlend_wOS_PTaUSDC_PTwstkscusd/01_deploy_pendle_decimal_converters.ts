@@ -3,10 +3,7 @@ import { DeployFunction } from "hardhat-deploy/types";
 
 import { getConfig } from "../../config/config";
 import { PTTokenConfig } from "../../config/types";
-import {
-  PENDLE_PT_AUSDC_DECIMAL_CONVERTER_ID,
-  PENDLE_PT_WSTKSCUSD_DECIMAL_CONVERTER_ID,
-} from "../../typescript/deploy-ids";
+import { PENDLE_PT_AUSDC_DECIMAL_CONVERTER_ID, PENDLE_PT_WSTKSCUSD_DECIMAL_CONVERTER_ID } from "../../typescript/deploy-ids";
 
 /**
  * This script deploys ChainlinkDecimalConverter contracts for Pendle PT oracles.
@@ -94,9 +91,7 @@ async function deployPendleDecimalConverters(
       const sourceDecimals = await pendleOracle.decimals();
 
       if (Number(sourceDecimals) !== EXPECTED_SOURCE_DECIMALS) {
-        throw new Error(
-          `Source oracle for ${config.name} has ${sourceDecimals} decimals, expected ${EXPECTED_SOURCE_DECIMALS}`,
-        );
+        throw new Error(`Source oracle for ${config.name} has ${sourceDecimals} decimals, expected ${EXPECTED_SOURCE_DECIMALS}`);
       }
 
       console.log(`✅ Verified source oracle has ${sourceDecimals} decimals`);
@@ -164,9 +159,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment): Pr
 
     if (ptConfig) {
       const converterId =
-        ptConfig.name === "PT-aUSDC-14AUG2025"
-          ? PENDLE_PT_AUSDC_DECIMAL_CONVERTER_ID
-          : PENDLE_PT_WSTKSCUSD_DECIMAL_CONVERTER_ID;
+        ptConfig.name === "PT-aUSDC-14AUG2025" ? PENDLE_PT_AUSDC_DECIMAL_CONVERTER_ID : PENDLE_PT_WSTKSCUSD_DECIMAL_CONVERTER_ID;
       console.log(`   • ${converterId}: ${converter.converter}`);
       console.log(`     └─ Converts from ${ptConfig.name} oracle (18 decimals) to 8 decimals`);
       console.log(`     └─ Source oracle: ${converter.oracle}`);

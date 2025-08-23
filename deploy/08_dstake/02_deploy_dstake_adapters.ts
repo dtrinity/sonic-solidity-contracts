@@ -44,16 +44,12 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       }
 
       if (!adapterConfig.vaultAsset || adapterConfig.vaultAsset === ethers.ZeroAddress) {
-        throw new Error(
-          `Missing vaultAsset for adapter ${adapterConfig.adapterContract} in dSTAKE instance ${instanceKey}`,
-        );
+        throw new Error(`Missing vaultAsset for adapter ${adapterConfig.adapterContract} in dSTAKE instance ${instanceKey}`);
       }
 
       // dLendConversionAdapter requires dLendAddressesProvider
       if (adapterConfig.adapterContract === "dLendConversionAdapter" && !dLendAddressesProviderAddress) {
-        throw new Error(
-          `dLend PoolAddressesProvider not found. Cannot deploy dLendConversionAdapter for dSTAKE instance ${instanceKey}`,
-        );
+        throw new Error(`dLend PoolAddressesProvider not found. Cannot deploy dLendConversionAdapter for dSTAKE instance ${instanceKey}`);
       }
     }
   }

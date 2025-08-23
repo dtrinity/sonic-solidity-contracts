@@ -30,12 +30,7 @@ import { SafeTransactionData } from "../../typescript/safe/types";
  * @param grantee - Address to receive the role
  * @param contractInterface - Contract interface used to encode the call
  */
-function createGrantRoleTransaction(
-  contractAddress: string,
-  role: string,
-  grantee: string,
-  contractInterface: any,
-): SafeTransactionData {
+function createGrantRoleTransaction(contractAddress: string, role: string, grantee: string, contractInterface: any): SafeTransactionData {
   return {
     to: contractAddress,
     value: "0",
@@ -51,12 +46,7 @@ function createGrantRoleTransaction(
  * @param account - Address to revoke the role from
  * @param contractInterface - Contract interface used to encode the call
  */
-function createRevokeRoleTransaction(
-  contractAddress: string,
-  role: string,
-  account: string,
-  contractInterface: any,
-): SafeTransactionData {
+function createRevokeRoleTransaction(contractAddress: string, role: string, account: string, contractInterface: any): SafeTransactionData {
   return {
     to: contractAddress,
     value: "0",
@@ -344,9 +334,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     }
 
     // Optional: keep old issuer operational until governance flips references
-    console.log(
-      `  ℹ️ New issuer ${t.newId} deployed and permissioned. Ensure dApp/services reference ${newIssuerAddress}.`,
-    );
+    console.log(`  ℹ️ New issuer ${t.newId} deployed and permissioned. Ensure dApp/services reference ${newIssuerAddress}.`);
   }
 
   if (!allOperationsComplete) {

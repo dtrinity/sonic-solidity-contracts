@@ -104,9 +104,7 @@ describe.skip("DLoopCoreMock Rescue Token Tests", function () {
       await collateralToken.mint(await dloopMock.getAddress(), ethers.parseEther("100"));
 
       await expect(
-        dloopMock
-          .connect(owner)
-          .rescueToken(await collateralToken.getAddress(), receiver.address, ethers.parseEther("50")),
+        dloopMock.connect(owner).rescueToken(await collateralToken.getAddress(), receiver.address, ethers.parseEther("50")),
       ).to.be.revertedWith("Cannot rescue restricted token");
     });
 
@@ -241,9 +239,7 @@ describe.skip("DLoopCoreMock Rescue Token Tests", function () {
     it("Should handle rescue to zero address", async function () {
       // This should revert due to ERC20 transfer to zero address
       await expect(
-        dloopMock
-          .connect(owner)
-          .rescueToken(await otherToken.getAddress(), ethers.ZeroAddress, ethers.parseEther("50")),
+        dloopMock.connect(owner).rescueToken(await otherToken.getAddress(), ethers.ZeroAddress, ethers.parseEther("50")),
       ).to.be.revertedWithCustomError(otherToken, "ERC20InvalidReceiver");
     });
 
@@ -262,9 +258,7 @@ describe.skip("DLoopCoreMock Rescue Token Tests", function () {
       await dloopMock.setMockPrice(await debtToken.getAddress(), ethers.parseEther("0.8"));
 
       // Rescue some non-restricted tokens
-      await dloopMock
-        .connect(owner)
-        .rescueToken(await otherToken.getAddress(), receiver.address, ethers.parseEther("50"));
+      await dloopMock.connect(owner).rescueToken(await otherToken.getAddress(), receiver.address, ethers.parseEther("50"));
 
       // Vault operations should still work normally
       await dloopMock.connect(targetUser).deposit(ethers.parseEther("100"), targetUser.address);
@@ -282,9 +276,7 @@ describe.skip("DLoopCoreMock Rescue Token Tests", function () {
       // This is evidenced by the nonReentrant modifier in RescuableVault.sol
 
       // Normal rescue should work
-      await dloopMock
-        .connect(owner)
-        .rescueToken(await otherToken.getAddress(), receiver.address, ethers.parseEther("25"));
+      await dloopMock.connect(owner).rescueToken(await otherToken.getAddress(), receiver.address, ethers.parseEther("25"));
 
       expect(await otherToken.balanceOf(receiver.address)).to.equal(ethers.parseEther("25"));
     });
@@ -306,14 +298,13 @@ describe.skip("DLoopCoreMock Rescue Token Tests", function () {
       expect(restrictedTokens).to.include(await debtToken.getAddress());
 
       // Verify only non-restricted tokens can be rescued
-      await expect(
-        dloopMock.connect(owner).rescueToken(await collateralToken.getAddress(), receiver.address, 1),
-      ).to.be.revertedWith("Cannot rescue restricted token");
+      await expect(dloopMock.connect(owner).rescueToken(await collateralToken.getAddress(), receiver.address, 1)).to.be.revertedWith(
+        "Cannot rescue restricted token",
+      );
 
       // Verify non-restricted tokens can be rescued
-      await expect(
-        dloopMock.connect(owner).rescueToken(await otherToken.getAddress(), receiver.address, ethers.parseEther("10")),
-      ).to.not.be.reverted;
+      await expect(dloopMock.connect(owner).rescueToken(await otherToken.getAddress(), receiver.address, ethers.parseEther("10"))).to.not.be
+        .reverted;
     });
 
     it("Should maintain consistency with base contract restrictions", async function () {

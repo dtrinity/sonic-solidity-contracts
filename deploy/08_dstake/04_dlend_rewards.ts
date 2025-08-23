@@ -38,10 +38,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     // Fetch the AaveProtocolDataProvider and get the aToken address for this instance's underlying stablecoin
     const underlyingStablecoinAddress = instanceConfig.dStable;
     const poolDataProviderDeployment = await deployments.get(POOL_DATA_PROVIDER_ID);
-    const poolDataProviderContract = await ethers.getContractAt(
-      "AaveProtocolDataProvider",
-      poolDataProviderDeployment.address,
-    );
+    const poolDataProviderContract = await ethers.getContractAt("AaveProtocolDataProvider", poolDataProviderDeployment.address);
     const reserveTokens = await poolDataProviderContract.getReserveTokensAddresses(underlyingStablecoinAddress);
     const aTokenAddress = reserveTokens.aTokenAddress;
 
@@ -75,9 +72,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
         missing.push("dLendRewardsController (IncentivesProxy)");
       if (!treasury || treasury === ethers.ZeroAddress) missing.push("treasury");
 
-      throw new Error(
-        `Missing critical addresses in dLendRewardManager config for ${instanceKey}: ${missing.join(", ")}`,
-      );
+      throw new Error(`Missing critical addresses in dLendRewardManager config for ${instanceKey}: ${missing.join(", ")}`);
     }
 
     if (
@@ -121,10 +116,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     const incentivesProxyDeployment = await deployments.get(INCENTIVES_PROXY_ID);
 
     const poolDataProviderDeployment = await deployments.get(POOL_DATA_PROVIDER_ID);
-    const poolDataProviderContract = await ethers.getContractAt(
-      "AaveProtocolDataProvider",
-      poolDataProviderDeployment.address,
-    );
+    const poolDataProviderContract = await ethers.getContractAt("AaveProtocolDataProvider", poolDataProviderDeployment.address);
     const reserveTokens = await poolDataProviderContract.getReserveTokensAddresses(underlyingStablecoinAddress);
     const dLendAssetToClaimForAddress = reserveTokens.aTokenAddress;
 
@@ -165,9 +157,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     const emissionOwner = await emissionManager.owner();
 
     if (emissionOwner.toLowerCase() === deployer.toLowerCase()) {
-      const tx = await emissionManager
-        .connect(deployerSigner)
-        .setClaimer(targetStaticATokenWrapperAddress, deployment.address);
+      const tx = await emissionManager.connect(deployerSigner).setClaimer(targetStaticATokenWrapperAddress, deployment.address);
       await tx.wait();
     } else {
       manualActions.push(
@@ -177,10 +167,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
     // --- Configure Roles ---
     if (deployment.address) {
-      const rewardManager: DStakeRewardManagerDLend = await ethers.getContractAt(
-        "DStakeRewardManagerDLend",
-        deployment.address,
-      );
+      const rewardManager: DStakeRewardManagerDLend = await ethers.getContractAt("DStakeRewardManagerDLend", deployment.address);
       const DEFAULT_ADMIN_ROLE = await rewardManager.DEFAULT_ADMIN_ROLE();
       const REWARDS_MANAGER_ROLE = await rewardManager.REWARDS_MANAGER_ROLE();
 

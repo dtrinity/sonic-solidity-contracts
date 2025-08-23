@@ -38,11 +38,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       console.log(`\n  📄 DLEND ACL ROLES`);
 
       const aclManagerContract = await ethers.getContractAt("ACLManager", aclManager.address, deployerSigner);
-      const addressesProviderContract = await ethers.getContractAt(
-        "PoolAddressesProvider",
-        addressesProvider.address,
-        deployerSigner,
-      );
+      const addressesProviderContract = await ethers.getContractAt("PoolAddressesProvider", addressesProvider.address, deployerSigner);
 
       // Set ACL admin on AddressesProvider
       const currentAclAdmin = await addressesProviderContract.getACLAdmin();
@@ -123,11 +119,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     if (emissionManager) {
       console.log(`\n  📄 EMISSION MANAGER ROLES`);
 
-      const emissionManagerContract = await ethers.getContractAt(
-        "EmissionManager",
-        emissionManager.address,
-        deployerSigner,
-      );
+      const emissionManagerContract = await ethers.getContractAt("EmissionManager", emissionManager.address, deployerSigner);
 
       const currentOwner = await emissionManagerContract.owner();
 
@@ -153,11 +145,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     if (reservesSetupHelper) {
       console.log(`\n  📄 RESERVES SETUP HELPER OWNERSHIP`);
 
-      const reservesSetupHelperContract = await ethers.getContractAt(
-        "ReservesSetupHelper",
-        reservesSetupHelper.address,
-        deployerSigner,
-      );
+      const reservesSetupHelperContract = await ethers.getContractAt("ReservesSetupHelper", reservesSetupHelper.address, deployerSigner);
 
       const currentOwner = await reservesSetupHelperContract.owner();
 

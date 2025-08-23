@@ -66,9 +66,10 @@ describe("DLoopCoreMock Wrapper Methods Tests", function () {
 
           // Due to the mock implementation design, this will trigger the wrapper validation error
           // The wrapper expects vault balance to decrease, but mock transfers from user to mockPool
-          await expect(
-            dloopMock.testSupplyToPool(await collateralToken.getAddress(), amount, user1),
-          ).to.be.revertedWithCustomError(dloopMock, testCase.expectedError);
+          await expect(dloopMock.testSupplyToPool(await collateralToken.getAddress(), amount, user1)).to.be.revertedWithCustomError(
+            dloopMock,
+            testCase.expectedError,
+          );
         });
       }
     });
@@ -105,9 +106,10 @@ describe("DLoopCoreMock Wrapper Methods Tests", function () {
 
           // Due to the mock implementation design, this will trigger the wrapper validation error
           // The wrapper expects vault balance to increase, but mock transfers from mockPool to user
-          await expect(
-            dloopMock.testBorrowFromPool(await debtToken.getAddress(), amount, user1),
-          ).to.be.revertedWithCustomError(dloopMock, testCase.expectedError);
+          await expect(dloopMock.testBorrowFromPool(await debtToken.getAddress(), amount, user1)).to.be.revertedWithCustomError(
+            dloopMock,
+            testCase.expectedError,
+          );
         });
       }
     });
@@ -146,9 +148,10 @@ describe("DLoopCoreMock Wrapper Methods Tests", function () {
 
           // Due to the mock implementation design, this will trigger the wrapper validation error
           // The wrapper expects vault balance to decrease, but mock transfers from user to mockPool
-          await expect(
-            dloopMock.testRepayDebtToPool(await debtToken.getAddress(), repayAmount, user1),
-          ).to.be.revertedWithCustomError(dloopMock, testCase.expectedError);
+          await expect(dloopMock.testRepayDebtToPool(await debtToken.getAddress(), repayAmount, user1)).to.be.revertedWithCustomError(
+            dloopMock,
+            testCase.expectedError,
+          );
         });
       }
     });
@@ -213,8 +216,7 @@ describe("DLoopCoreMock Wrapper Methods Tests", function () {
         const amount = ethers.parseEther("100");
 
         // Normal operation should work fine
-        await expect(dloopMock.testSupplyToPoolImplementation(await collateralToken.getAddress(), amount, user1)).to.not
-          .be.reverted;
+        await expect(dloopMock.testSupplyToPoolImplementation(await collateralToken.getAddress(), amount, user1)).to.not.be.reverted;
 
         // Verify the operation actually happened
         expect(await dloopMock.getMockCollateral(user1, await collateralToken.getAddress())).to.equal(amount);

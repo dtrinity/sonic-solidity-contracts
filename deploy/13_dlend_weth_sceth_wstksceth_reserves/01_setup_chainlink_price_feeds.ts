@@ -7,10 +7,7 @@ import {
   USD_REDSTONE_COMPOSITE_WRAPPER_WITH_THRESHOLDING_ID,
   USD_REDSTONE_WRAPPER_WITH_THRESHOLDING_ID,
 } from "../../typescript/deploy-ids";
-import {
-  setupRedstoneCompositeFeedsForAssets,
-  setupRedstoneSimpleFeedsForAssets,
-} from "../../typescript/dlend/setup-oracle";
+import { setupRedstoneCompositeFeedsForAssets, setupRedstoneSimpleFeedsForAssets } from "../../typescript/dlend/setup-oracle";
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment): Promise<boolean> {
   const { deployer } = await hre.getNamedAccounts();
@@ -33,11 +30,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment): Pr
     throw new Error("USD OracleAggregator deployment not found");
   }
 
-  const oracleAggregator = await hre.ethers.getContractAt(
-    "OracleAggregator",
-    oracleAggregatorDeployment.address,
-    deployerSigner,
-  );
+  const oracleAggregator = await hre.ethers.getContractAt("OracleAggregator", oracleAggregatorDeployment.address, deployerSigner);
 
   const baseCurrencyUnit = BigInt(10) ** BigInt(config.oracleAggregators.USD.priceDecimals);
 
@@ -47,9 +40,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment): Pr
 
   // Setup composite feeds
   if (compositeFeedAssets.length > 0) {
-    const { address: redstoneCompositeWrapperAddress } = await hre.deployments.get(
-      USD_REDSTONE_COMPOSITE_WRAPPER_WITH_THRESHOLDING_ID,
-    );
+    const { address: redstoneCompositeWrapperAddress } = await hre.deployments.get(USD_REDSTONE_COMPOSITE_WRAPPER_WITH_THRESHOLDING_ID);
 
     if (!redstoneCompositeWrapperAddress) {
       throw new Error("RedstoneChainlinkCompositeWrapperWithThresholding artifact not found");

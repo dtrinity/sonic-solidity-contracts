@@ -14,11 +14,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment): Pr
   const config = await getConfig(hre);
 
   // Define the assets to setup - categorized by feed type
-  const compositeFeedAssets = [
-    config.tokenAddresses.PTaUSDC,
-    config.tokenAddresses.PTwstkscUSD,
-    config.tokenAddresses.wOS,
-  ].filter(Boolean);
+  const compositeFeedAssets = [config.tokenAddresses.PTaUSDC, config.tokenAddresses.PTwstkscUSD, config.tokenAddresses.wOS].filter(Boolean);
 
   if (compositeFeedAssets.length === 0) {
     console.log("No assets configured for oracle feed setup. Exiting.");
@@ -32,19 +28,13 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment): Pr
     throw new Error("USD OracleAggregator deployment not found");
   }
 
-  const oracleAggregator = await hre.ethers.getContractAt(
-    "OracleAggregator",
-    oracleAggregatorDeployment.address,
-    deployerSigner,
-  );
+  const oracleAggregator = await hre.ethers.getContractAt("OracleAggregator", oracleAggregatorDeployment.address, deployerSigner);
 
   const baseCurrencyUnit = BigInt(10) ** BigInt(config.oracleAggregators.USD.priceDecimals);
 
   // Setup composite feeds
   if (compositeFeedAssets.length > 0) {
-    const { address: redstoneCompositeWrapperAddress } = await hre.deployments.get(
-      USD_REDSTONE_COMPOSITE_WRAPPER_WITH_THRESHOLDING_ID,
-    );
+    const { address: redstoneCompositeWrapperAddress } = await hre.deployments.get(USD_REDSTONE_COMPOSITE_WRAPPER_WITH_THRESHOLDING_ID);
 
     if (!redstoneCompositeWrapperAddress) {
       throw new Error("RedstoneChainlinkCompositeWrapperWithThresholding artifact not found");

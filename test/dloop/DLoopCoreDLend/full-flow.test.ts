@@ -71,10 +71,7 @@ describe("DLoopCoreDLend full-flow", () => {
   async function setUsdFeed(name: string, priceStr: string): Promise<void> {
     const mapping = await deployments.get("MockOracleNameToAddress");
     const addr = (mapping.linkedData as Record<string, string>)[name];
-    const feed = (await ethers.getContractAt(
-      "MockRedstoneChainlinkOracleAlwaysAlive",
-      addr,
-    )) as MockRedstoneChainlinkOracleAlwaysAlive;
+    const feed = (await ethers.getContractAt("MockRedstoneChainlinkOracleAlwaysAlive", addr)) as MockRedstoneChainlinkOracleAlwaysAlive;
     await feed.setMock(ethers.parseUnits(priceStr, 8));
   }
 
@@ -125,16 +122,10 @@ describe("DLoopCoreDLend full-flow", () => {
     const poolAddr = await getDeploymentAddress(POOL_PROXY_ID);
     pool = (await ethers.getContractAt("Pool", poolAddr)) as Pool;
     const dataProviderAddr = await getDeploymentAddress(POOL_DATA_PROVIDER_ID);
-    dataProvider = (await ethers.getContractAt(
-      "AaveProtocolDataProvider",
-      dataProviderAddr,
-    )) as AaveProtocolDataProvider;
+    dataProvider = (await ethers.getContractAt("AaveProtocolDataProvider", dataProviderAddr)) as AaveProtocolDataProvider;
 
     const addressesProviderAddr = (await deployments.get("PoolAddressesProvider")).address;
-    addressesProvider = (await ethers.getContractAt(
-      "PoolAddressesProvider",
-      addressesProviderAddr,
-    )) as PoolAddressesProvider;
+    addressesProvider = (await ethers.getContractAt("PoolAddressesProvider", addressesProviderAddr)) as PoolAddressesProvider;
     aaveOracle = (await ethers.getContractAt("IAaveOracle", await addressesProvider.getPriceOracle())) as IAaveOracle;
 
     // Tokens
@@ -156,16 +147,10 @@ describe("DLoopCoreDLend full-flow", () => {
     redeemerMock = (await RedeemerFactory.deploy(dUSDAddr, await simpleDEX.getAddress())) as DLoopRedeemerMock;
 
     const IncFactory = await ethers.getContractFactory("DLoopIncreaseLeverageMock");
-    increaseLeverageMock = (await IncFactory.deploy(
-      dUSDAddr,
-      await simpleDEX.getAddress(),
-    )) as DLoopIncreaseLeverageMock;
+    increaseLeverageMock = (await IncFactory.deploy(dUSDAddr, await simpleDEX.getAddress())) as DLoopIncreaseLeverageMock;
 
     const DecFactory = await ethers.getContractFactory("DLoopDecreaseLeverageMock");
-    decreaseLeverageMock = (await DecFactory.deploy(
-      dUSDAddr,
-      await simpleDEX.getAddress(),
-    )) as DLoopDecreaseLeverageMock;
+    decreaseLeverageMock = (await DecFactory.deploy(dUSDAddr, await simpleDEX.getAddress())) as DLoopDecreaseLeverageMock;
 
     // Get DLoop core vault instance (3X-sfrxUSD)
     const dloopVaultAddr = (await deployments.get(`${DLOOP_CORE_DLEND_ID}-3X-sfrxUSD`)).address;

@@ -33,45 +33,25 @@ describe("DLoopCoreLogic - Increase Leverage", () => {
 
     it("simple 2x, no subsidy", async () => {
       const { harness } = await deployHarness();
-      const res = await harness.getCollateralTokenDepositAmountToReachTargetLeveragePublic(
-        2n * SCALE,
-        1_000_000n,
-        500_000n,
-        0n,
-      );
+      const res = await harness.getCollateralTokenDepositAmountToReachTargetLeveragePublic(2n * SCALE, 1_000_000n, 500_000n, 0n);
       expect(res).to.equal(0n);
     });
 
     it("3x, no subsidy", async () => {
       const { harness } = await deployHarness();
-      const res = await harness.getCollateralTokenDepositAmountToReachTargetLeveragePublic(
-        3n * SCALE,
-        1_000_000n,
-        666_666n,
-        0n,
-      );
+      const res = await harness.getCollateralTokenDepositAmountToReachTargetLeveragePublic(3n * SCALE, 1_000_000n, 666_666n, 0n);
       expect(res).to.equal(2n);
     });
 
     it("2x, small subsidy", async () => {
       const { harness } = await deployHarness();
-      const res = await harness.getCollateralTokenDepositAmountToReachTargetLeveragePublic(
-        2n * SCALE,
-        1_000_000n,
-        500_000n,
-        1_000n,
-      );
+      const res = await harness.getCollateralTokenDepositAmountToReachTargetLeveragePublic(2n * SCALE, 1_000_000n, 500_000n, 1_000n);
       expect(res).to.equal(0n);
     });
 
     it("high subsidy cap", async () => {
       const { harness } = await deployHarness();
-      const res = await harness.getCollateralTokenDepositAmountToReachTargetLeveragePublic(
-        5n * SCALE,
-        2_000_000n,
-        1_000_000n,
-        10_000n,
-      );
+      const res = await harness.getCollateralTokenDepositAmountToReachTargetLeveragePublic(5n * SCALE, 2_000_000n, 1_000_000n, 10_000n);
       expect(res).to.equal(2_857_143n);
     });
 
@@ -84,12 +64,7 @@ describe("DLoopCoreLogic - Increase Leverage", () => {
 
     it("large numbers", async () => {
       const { harness } = await deployHarness();
-      const res = await harness.getCollateralTokenDepositAmountToReachTargetLeveragePublic(
-        7n * SCALE,
-        10n ** 24n,
-        3n * 10n ** 23n,
-        0n,
-      );
+      const res = await harness.getCollateralTokenDepositAmountToReachTargetLeveragePublic(7n * SCALE, 10n ** 24n, 3n * 10n ** 23n, 0n);
       expect(res).to.equal(3_900_000_000_000_000_000_000_000n);
     });
 
@@ -175,14 +150,7 @@ describe("DLoopCoreLogic - Increase Leverage", () => {
       const { harness } = await deployHarness();
       const xBase = await harness.convertFromTokenAmountToBaseCurrencyPublic(pow10(18n), 18, pow10(18n));
       const baseExpected = await harness.getDebtBorrowAmountInBaseToIncreaseLeveragePublic(xBase, 0n);
-      const tokenOut = await harness.getDebtBorrowTokenAmountToIncreaseLeveragePublic(
-        pow10(18n),
-        0n,
-        18,
-        pow10(18n),
-        18,
-        pow10(18n),
-      );
+      const tokenOut = await harness.getDebtBorrowTokenAmountToIncreaseLeveragePublic(pow10(18n), 0n, 18, pow10(18n), 18, pow10(18n));
       const baseFromToken = await harness.convertFromTokenAmountToBaseCurrencyPublic(tokenOut, 18, pow10(18n));
       const diff = baseExpected > baseFromToken ? baseExpected - baseFromToken : baseFromToken - baseExpected;
       expect(diff < 2n * pow10(18n)).to.equal(true);
@@ -209,14 +177,7 @@ describe("DLoopCoreLogic - Increase Leverage", () => {
       const { harness } = await deployHarness();
       const xBase = await harness.convertFromTokenAmountToBaseCurrencyPublic(pow10(6n), 6, pow10(6n));
       const baseExpected = await harness.getDebtBorrowAmountInBaseToIncreaseLeveragePublic(xBase, 3_333n);
-      const tokenOut = await harness.getDebtBorrowTokenAmountToIncreaseLeveragePublic(
-        pow10(6n),
-        3_333n,
-        6,
-        pow10(6n),
-        6,
-        pow10(6n),
-      );
+      const tokenOut = await harness.getDebtBorrowTokenAmountToIncreaseLeveragePublic(pow10(6n), 3_333n, 6, pow10(6n), 6, pow10(6n));
       const baseFromToken = await harness.convertFromTokenAmountToBaseCurrencyPublic(tokenOut, 6, pow10(6n));
       const diff = baseExpected > baseFromToken ? baseExpected - baseFromToken : baseFromToken - baseExpected;
       expect(diff < 2n * pow10(6n)).to.equal(true);
@@ -260,14 +221,7 @@ describe("DLoopCoreLogic - Increase Leverage", () => {
       const { harness } = await deployHarness();
       const xBase = await harness.convertFromTokenAmountToBaseCurrencyPublic(1n, 18, pow10(18n));
       const baseExpected = await harness.getDebtBorrowAmountInBaseToIncreaseLeveragePublic(xBase, 0n);
-      const tokenOut = await harness.getDebtBorrowTokenAmountToIncreaseLeveragePublic(
-        1n,
-        0n,
-        18,
-        pow10(18n),
-        18,
-        pow10(18n),
-      );
+      const tokenOut = await harness.getDebtBorrowTokenAmountToIncreaseLeveragePublic(1n, 0n, 18, pow10(18n), 18, pow10(18n));
       const baseFromToken = await harness.convertFromTokenAmountToBaseCurrencyPublic(tokenOut, 18, pow10(18n));
       const diff = baseExpected > baseFromToken ? baseExpected - baseFromToken : baseFromToken - baseExpected;
       expect(diff < 2n * pow10(18n)).to.equal(true);
@@ -277,14 +231,7 @@ describe("DLoopCoreLogic - Increase Leverage", () => {
       const { harness } = await deployHarness();
       const xBase = await harness.convertFromTokenAmountToBaseCurrencyPublic(10n ** 24n, 18, pow10(18n));
       const baseExpected = await harness.getDebtBorrowAmountInBaseToIncreaseLeveragePublic(xBase, 0n);
-      const tokenOut = await harness.getDebtBorrowTokenAmountToIncreaseLeveragePublic(
-        10n ** 24n,
-        0n,
-        18,
-        pow10(18n),
-        18,
-        pow10(18n),
-      );
+      const tokenOut = await harness.getDebtBorrowTokenAmountToIncreaseLeveragePublic(10n ** 24n, 0n, 18, pow10(18n), 18, pow10(18n));
       const baseFromToken = await harness.convertFromTokenAmountToBaseCurrencyPublic(tokenOut, 18, pow10(18n));
       const diff = baseExpected > baseFromToken ? baseExpected - baseFromToken : baseFromToken - baseExpected;
       expect(diff < 2n * pow10(18n)).to.equal(true);
@@ -294,14 +241,7 @@ describe("DLoopCoreLogic - Increase Leverage", () => {
       const { harness } = await deployHarness();
       const xBase = await harness.convertFromTokenAmountToBaseCurrencyPublic(pow10(8n), 8, pow10(8n));
       const baseExpected = await harness.getDebtBorrowAmountInBaseToIncreaseLeveragePublic(xBase, 0n);
-      const tokenOut = await harness.getDebtBorrowTokenAmountToIncreaseLeveragePublic(
-        pow10(8n),
-        0n,
-        8,
-        pow10(8n),
-        6,
-        pow10(6n),
-      );
+      const tokenOut = await harness.getDebtBorrowTokenAmountToIncreaseLeveragePublic(pow10(8n), 0n, 8, pow10(8n), 6, pow10(6n));
       const baseFromToken = await harness.convertFromTokenAmountToBaseCurrencyPublic(tokenOut, 6, pow10(6n));
       const diff = baseExpected > baseFromToken ? baseExpected - baseFromToken : baseFromToken - baseExpected;
       expect(diff < 2n * pow10(6n)).to.equal(true);
@@ -311,14 +251,7 @@ describe("DLoopCoreLogic - Increase Leverage", () => {
       const { harness } = await deployHarness();
       const xBase = await harness.convertFromTokenAmountToBaseCurrencyPublic(pow10(18n), 18, 123456789n);
       const baseExpected = await harness.getDebtBorrowAmountInBaseToIncreaseLeveragePublic(xBase, 77_700n);
-      const tokenOut = await harness.getDebtBorrowTokenAmountToIncreaseLeveragePublic(
-        pow10(18n),
-        77_700n,
-        18,
-        123456789n,
-        18,
-        987654321n,
-      );
+      const tokenOut = await harness.getDebtBorrowTokenAmountToIncreaseLeveragePublic(pow10(18n), 77_700n, 18, 123456789n, 18, 987654321n);
       const baseFromToken = await harness.convertFromTokenAmountToBaseCurrencyPublic(tokenOut, 18, 987654321n);
       const diff = baseExpected > baseFromToken ? baseExpected - baseFromToken : baseFromToken - baseExpected;
       expect(diff < 2n * 987654321n).to.equal(true);

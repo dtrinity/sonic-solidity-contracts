@@ -42,9 +42,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   // Get the governance multisig address
   const { governanceMultisig } = config.walletAddresses;
 
-  console.log(
-    `\n🔑 ${__filename.split("/").slice(-2).join("/")}: Transferring oracle wrapper roles to governance multisig`,
-  );
+  console.log(`\n🔑 ${__filename.split("/").slice(-2).join("/")}: Transferring oracle wrapper roles to governance multisig`);
 
   const DEFAULT_ADMIN_ROLE = ZERO_BYTES_32;
   const ORACLE_MANAGER_ROLE = await ethers
@@ -392,9 +390,7 @@ async function transferRole(
   const multisigHasRole = await contract.hasRole(role, governanceMultisig);
 
   if (!multisigHasRole) {
-    throw new Error(
-      `❌ Governance multisig ${governanceMultisig} does not have the role ${roleName}. Aborting revocation from deployer.`,
-    );
+    throw new Error(`❌ Governance multisig ${governanceMultisig} does not have the role ${roleName}. Aborting revocation from deployer.`);
   }
 
   // Revoke role from deployer

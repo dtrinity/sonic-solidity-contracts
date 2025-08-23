@@ -68,8 +68,7 @@ describe.skip("DLoopCoreMock Deposit Tests", function () {
         // Calculate expected values
         const expectedShares = await dloopMock.previewDeposit(testCase.assets);
         const expectedDebtAmount =
-          (testCase.assets * BigInt(testCase.expectedLeverage - ONE_HUNDRED_PERCENT_BPS)) /
-          BigInt(testCase.expectedLeverage);
+          (testCase.assets * BigInt(testCase.expectedLeverage - ONE_HUNDRED_PERCENT_BPS)) / BigInt(testCase.expectedLeverage);
 
         // Approve to allow the dloopMock to spend user's tokens
         await collateralToken.connect(user).approve(await dloopMock.getAddress(), testCase.assets);
@@ -85,18 +84,16 @@ describe.skip("DLoopCoreMock Deposit Tests", function () {
         expect(await debtToken.balanceOf(userAddress)).to.be.gte(expectedDebtAmount);
 
         // Verify collateral supplied to pool
-        expect(
-          await dloopMock.getMockCollateral(await dloopMock.getAddress(), await collateralToken.getAddress()),
-        ).to.equal(testCase.assets);
+        expect(await dloopMock.getMockCollateral(await dloopMock.getAddress(), await collateralToken.getAddress())).to.equal(
+          testCase.assets,
+        );
 
         // Verify leverage is correct
         const currentLeverage = await dloopMock.getCurrentLeverageBps();
         expect(currentLeverage).to.be.closeTo(BigInt(testCase.expectedLeverage), BigInt(ONE_PERCENT_BPS)); // Allow 1% tolerance
 
         // Verify event emission
-        await expect(tx)
-          .to.emit(dloopMock, "Deposit")
-          .withArgs(userAddress, userAddress, testCase.assets, expectedShares);
+        await expect(tx).to.emit(dloopMock, "Deposit").withArgs(userAddress, userAddress, testCase.assets, expectedShares);
       });
     }
   });
@@ -270,9 +267,7 @@ describe.skip("DLoopCoreMock Deposit Tests", function () {
             );
           }
         } else {
-          console.log(
-            `Deposit of ${ethers.formatEther(step.amount)} ETH not allowed - maxDeposit: ${ethers.formatEther(maxDeposit)} ETH`,
-          );
+          console.log(`Deposit of ${ethers.formatEther(step.amount)} ETH not allowed - maxDeposit: ${ethers.formatEther(maxDeposit)} ETH`);
         }
 
         // Verify leverage is within reasonable bounds (200% to 400%)
@@ -767,10 +762,7 @@ describe.skip("DLoopCoreMock Deposit Tests", function () {
         expect(await dloopMock.isTooImbalanced()).to.be.false;
 
         // Change prices to create imbalance
-        await dloopMock.setMockPrice(
-          await collateralToken.getAddress(),
-          testCase.priceChangeToImbalance.collateralPrice,
-        );
+        await dloopMock.setMockPrice(await collateralToken.getAddress(), testCase.priceChangeToImbalance.collateralPrice);
         await dloopMock.setMockPrice(await debtToken.getAddress(), testCase.priceChangeToImbalance.debtPrice);
 
         // Verify the vault is now imbalanced
@@ -790,10 +782,7 @@ describe.skip("DLoopCoreMock Deposit Tests", function () {
 
         // If there's a rebalancing price change, apply it
         if (testCase.priceChangeToRebalance) {
-          await dloopMock.setMockPrice(
-            await collateralToken.getAddress(),
-            testCase.priceChangeToRebalance.collateralPrice,
-          );
+          await dloopMock.setMockPrice(await collateralToken.getAddress(), testCase.priceChangeToRebalance.collateralPrice);
           await dloopMock.setMockPrice(await debtToken.getAddress(), testCase.priceChangeToRebalance.debtPrice);
 
           if (testCase.priceChangeToRebalance.expectedLeverageInRange) {
@@ -816,9 +805,7 @@ describe.skip("DLoopCoreMock Deposit Tests", function () {
           const leverageBeforeSecondDeposit = await dloopMock.getCurrentLeverageBps();
 
           // Verify deposit succeeds
-          const secondTx = await dloopMock
-            .connect(targetUser)
-            .deposit(testCase.secondDeposit.amount, targetUser.address);
+          const secondTx = await dloopMock.connect(targetUser).deposit(testCase.secondDeposit.amount, targetUser.address);
           await secondTx.wait();
 
           // Get leverage after second deposit
@@ -863,9 +850,10 @@ describe.skip("DLoopCoreMock Deposit Tests", function () {
       expect(await dloopMock.maxDeposit(targetUser.address)).to.equal(0);
 
       // Any deposit attempt should fail due to imbalance (maxDeposit returns 0)
-      await expect(
-        dloopMock.connect(targetUser).deposit(ethers.parseEther("1"), targetUser.address),
-      ).to.be.revertedWithCustomError(dloopMock, "ERC4626ExceededMaxDeposit");
+      await expect(dloopMock.connect(targetUser).deposit(ethers.parseEther("1"), targetUser.address)).to.be.revertedWithCustomError(
+        dloopMock,
+        "ERC4626ExceededMaxDeposit",
+      );
     });
 
     it("Should confirm TooImbalanced error exists in contract logic", async function () {
@@ -949,13 +937,15 @@ describe.skip("DLoopCoreMock Deposit Tests", function () {
       expect(await dloopMock.maxDeposit(user2.address)).to.equal(0);
 
       // Both users should be unable to deposit due to imbalance (maxDeposit returns 0)
-      await expect(
-        dloopMock.connect(user1).deposit(ethers.parseEther("10"), user1.address),
-      ).to.be.revertedWithCustomError(dloopMock, "ERC4626ExceededMaxDeposit");
+      await expect(dloopMock.connect(user1).deposit(ethers.parseEther("10"), user1.address)).to.be.revertedWithCustomError(
+        dloopMock,
+        "ERC4626ExceededMaxDeposit",
+      );
 
-      await expect(
-        dloopMock.connect(user2).deposit(ethers.parseEther("10"), user2.address),
-      ).to.be.revertedWithCustomError(dloopMock, "ERC4626ExceededMaxDeposit");
+      await expect(dloopMock.connect(user2).deposit(ethers.parseEther("10"), user2.address)).to.be.revertedWithCustomError(
+        dloopMock,
+        "ERC4626ExceededMaxDeposit",
+      );
     });
   });
 });

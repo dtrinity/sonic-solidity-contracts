@@ -3,10 +3,7 @@ import { HardhatRuntimeEnvironment } from "hardhat/types";
 
 import { ONE_PERCENT_BPS } from "../../typescript/common/bps_constants";
 import { DS_TOKEN_ID, DUSD_TOKEN_ID, INCENTIVES_PROXY_ID, SDUSD_DSTAKE_TOKEN_ID } from "../../typescript/deploy-ids";
-import {
-  ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT,
-  ORACLE_AGGREGATOR_PRICE_DECIMALS,
-} from "../../typescript/oracle_aggregator/constants";
+import { ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT, ORACLE_AGGREGATOR_PRICE_DECIMALS } from "../../typescript/oracle_aggregator/constants";
 import {
   rateStrategyHighLiquidityStable,
   rateStrategyHighLiquidityVolatile,
@@ -60,9 +57,7 @@ export async function getConfig(_hre: HardhatRuntimeEnvironment): Promise<Config
   if (mockOracleAddressesDeployment?.linkedData) {
     Object.assign(mockOracleNameToAddress, mockOracleAddressesDeployment.linkedData);
   } else {
-    console.warn(
-      "WARN: MockOracleNameToAddress deployment not found or has no linkedData. Oracle addresses might be incomplete.",
-    );
+    console.warn("WARN: MockOracleNameToAddress deployment not found or has no linkedData. Oracle addresses might be incomplete.");
   }
 
   // Get the named accounts
@@ -266,9 +261,7 @@ export async function getConfig(_hre: HardhatRuntimeEnvironment): Promise<Config
                   },
                 }
               : {}),
-            ...(sfrxUSDDeployment?.address &&
-            mockOracleNameToAddress["sfrxUSD_frxUSD"] &&
-            mockOracleNameToAddress["frxUSD_USD"]
+            ...(sfrxUSDDeployment?.address && mockOracleNameToAddress["sfrxUSD_frxUSD"] && mockOracleNameToAddress["frxUSD_USD"]
               ? {
                   [sfrxUSDDeployment.address]: {
                     feedAsset: sfrxUSDDeployment.address,
@@ -281,9 +274,7 @@ export async function getConfig(_hre: HardhatRuntimeEnvironment): Promise<Config
                   },
                 }
               : {}),
-            ...(wstkscUSDDeployment?.address &&
-            mockOracleNameToAddress["wstkscUSD_scUSD"] &&
-            mockOracleNameToAddress["scUSD_USD"]
+            ...(wstkscUSDDeployment?.address && mockOracleNameToAddress["wstkscUSD_scUSD"] && mockOracleNameToAddress["scUSD_USD"]
               ? {
                   [wstkscUSDDeployment.address]: {
                     feedAsset: wstkscUSDDeployment.address,

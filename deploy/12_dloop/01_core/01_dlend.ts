@@ -37,10 +37,7 @@ async function deployDLoopCoreDLend(
 
   // Get the pool data provider to fetch the aToken address
   const poolDataProviderDeployment = await hre.deployments.get(POOL_DATA_PROVIDER_ID);
-  const poolDataProviderContract = await ethers.getContractAt(
-    "AaveProtocolDataProvider",
-    poolDataProviderDeployment.address,
-  );
+  const poolDataProviderContract = await ethers.getContractAt("AaveProtocolDataProvider", poolDataProviderDeployment.address);
 
   // Get the aToken address for the underlying asset
   const reserveTokens = await poolDataProviderContract.getReserveTokensAddresses(vaultInfo.underlyingAsset);

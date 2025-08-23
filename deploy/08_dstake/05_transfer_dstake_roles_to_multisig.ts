@@ -83,11 +83,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
       if (vaultDeployment) {
         console.log(`  📄 VAULT ROLES: ${vaultId}`);
-        const vaultContract = await ethers.getContractAt(
-          "DStakeCollateralVault",
-          vaultDeployment.address,
-          deployerSigner,
-        );
+        const vaultContract = await ethers.getContractAt("DStakeCollateralVault", vaultDeployment.address, deployerSigner);
 
         const DEFAULT_ADMIN_ROLE = ZERO_BYTES_32;
 
@@ -114,11 +110,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
       if (routerDeployment) {
         console.log(`  📄 ROUTER ROLES: ${routerId}`);
-        const routerContract = await ethers.getContractAt(
-          "DStakeRouterDLend",
-          routerDeployment.address,
-          deployerSigner,
-        );
+        const routerContract = await ethers.getContractAt("DStakeRouterDLend", routerDeployment.address, deployerSigner);
         const DEFAULT_ADMIN_ROLE = ZERO_BYTES_32;
 
         if (!(await routerContract.hasRole(DEFAULT_ADMIN_ROLE, instanceConfig.initialAdmin))) {

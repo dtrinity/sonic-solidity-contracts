@@ -129,10 +129,7 @@ function extractAddressFromChainId(addressWithChainId: string): string {
  * @param params Optional query parameters to include in the request
  * @returns Promise that resolves to the API response containing transaction data and result data
  */
-export async function callSDK<Data>(
-  path: string,
-  params: Record<string, any> = {},
-): Promise<AxiosResponse<MethodReturnType<Data>>> {
+export async function callSDK<Data>(path: string, params: Record<string, any> = {}): Promise<AxiosResponse<MethodReturnType<Data>>> {
   const response = await axios.get<MethodReturnType<Data>>(HOSTED_SDK_URL + path, {
     params,
   });

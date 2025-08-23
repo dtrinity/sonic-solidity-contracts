@@ -1,13 +1,7 @@
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 import { ethers } from "hardhat";
 
-import {
-  DLoopCoreMock,
-  DLoopDepositorMock,
-  SimpleDEXMock,
-  TestERC20FlashMintable,
-  TestMintableERC20,
-} from "../../../typechain-types";
+import { DLoopCoreMock, DLoopDepositorMock, SimpleDEXMock, TestERC20FlashMintable, TestMintableERC20 } from "../../../typechain-types";
 import { ONE_PERCENT_BPS } from "../../../typescript/common/bps_constants";
 
 // Test constants
@@ -71,10 +65,7 @@ export async function deployDLoopDepositorMockFixture(): Promise<{
 
   // Deploy DLoopDepositorMock
   const DLoopDepositorMockFactory = await ethers.getContractFactory("DLoopDepositorMock");
-  const dLoopDepositorMock = await DLoopDepositorMockFactory.deploy(
-    await flashLender.getAddress(),
-    await simpleDEXMock.getAddress(),
-  );
+  const dLoopDepositorMock = await DLoopDepositorMockFactory.deploy(await flashLender.getAddress(), await simpleDEXMock.getAddress());
   await dLoopDepositorMock.waitForDeployment();
 
   const dloopDepositorMockFixture: DLoopDepositorMockFixture = {

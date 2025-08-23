@@ -49,9 +49,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   // If any required config values are missing, skip deployment
   if (missingConfigs.length > 0) {
-    console.log(
-      `⚠️  Skipping RedeemerWithFees deployment - missing configuration values: ${missingConfigs.join(", ")}`,
-    );
+    console.log(`⚠️  Skipping RedeemerWithFees deployment - missing configuration values: ${missingConfigs.join(", ")}`);
     console.log(`☯️  ${__filename.split("/").slice(-2).join("/")}: ⏭️  (skipped)`);
     return true;
   }
@@ -79,14 +77,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     await hre.ethers.getSigner(deployer),
   );
   const dUSDWithdrawerRole = await dUSDCollateralVaultContract.COLLATERAL_WITHDRAWER_ROLE();
-  const dUSDHasRole = await dUSDCollateralVaultContract.hasRole(
-    dUSDWithdrawerRole,
-    dUSDRedeemerWithFeesDeployment.address,
-  );
-  const dUSDDeployerIsAdmin = await dUSDCollateralVaultContract.hasRole(
-    await dUSDCollateralVaultContract.DEFAULT_ADMIN_ROLE(),
-    deployer,
-  );
+  const dUSDHasRole = await dUSDCollateralVaultContract.hasRole(dUSDWithdrawerRole, dUSDRedeemerWithFeesDeployment.address);
+  const dUSDDeployerIsAdmin = await dUSDCollateralVaultContract.hasRole(await dUSDCollateralVaultContract.DEFAULT_ADMIN_ROLE(), deployer);
 
   if (!dUSDHasRole) {
     if (dUSDDeployerIsAdmin) {
@@ -124,10 +116,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   );
   const dSWithdrawerRole = await dSCollateralVaultContract.COLLATERAL_WITHDRAWER_ROLE();
   const dSHasRole = await dSCollateralVaultContract.hasRole(dSWithdrawerRole, dSRedeemerWithFeesDeployment.address);
-  const dSDeployerIsAdmin = await dSCollateralVaultContract.hasRole(
-    await dSCollateralVaultContract.DEFAULT_ADMIN_ROLE(),
-    deployer,
-  );
+  const dSDeployerIsAdmin = await dSCollateralVaultContract.hasRole(await dSCollateralVaultContract.DEFAULT_ADMIN_ROLE(), deployer);
 
   if (!dSHasRole) {
     if (dSDeployerIsAdmin) {
@@ -170,18 +159,12 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       manualActions.push(
         `dUSD_RedeemerWithFees (${dUSDRedeemerWithFeesDeployment.address}).grantRole(DEFAULT_ADMIN_ROLE, ${governanceAddress})`,
       );
-      manualActions.push(
-        `dUSD_RedeemerWithFees (${dUSDRedeemerWithFeesDeployment.address}).revokeRole(DEFAULT_ADMIN_ROLE, ${deployer})`,
-      );
+      manualActions.push(`dUSD_RedeemerWithFees (${dUSDRedeemerWithFeesDeployment.address}).revokeRole(DEFAULT_ADMIN_ROLE, ${deployer})`);
     }
 
     // Transfer dS RedeemerWithFees admin role
     try {
-      const dSRedeemerContract = await hre.ethers.getContractAt(
-        "RedeemerWithFees",
-        dSRedeemerWithFeesDeployment.address,
-        deployerSigner,
-      );
+      const dSRedeemerContract = await hre.ethers.getContractAt("RedeemerWithFees", dSRedeemerWithFeesDeployment.address, deployerSigner);
 
       if (!(await dSRedeemerContract.hasRole(DEFAULT_ADMIN_ROLE, governanceAddress))) {
         await dSRedeemerContract.grantRole(DEFAULT_ADMIN_ROLE, governanceAddress);
@@ -197,9 +180,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       manualActions.push(
         `dS_RedeemerWithFees (${dSRedeemerWithFeesDeployment.address}).grantRole(DEFAULT_ADMIN_ROLE, ${governanceAddress})`,
       );
-      manualActions.push(
-        `dS_RedeemerWithFees (${dSRedeemerWithFeesDeployment.address}).revokeRole(DEFAULT_ADMIN_ROLE, ${deployer})`,
-      );
+      manualActions.push(`dS_RedeemerWithFees (${dSRedeemerWithFeesDeployment.address}).revokeRole(DEFAULT_ADMIN_ROLE, ${deployer})`);
     }
 
     console.log("  ✅ Completed RedeemerWithFees admin role transfers");

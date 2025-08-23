@@ -2,10 +2,7 @@ import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
 
 import { getConfig } from "../../../config/config";
-import {
-  DLOOP_PERIPHERY_ODOS_INCREASE_LEVERAGE_ID,
-  DLOOP_PERIPHERY_ODOS_SWAP_LOGIC_ID,
-} from "../../../typescript/deploy-ids";
+import { DLOOP_PERIPHERY_ODOS_INCREASE_LEVERAGE_ID, DLOOP_PERIPHERY_ODOS_SWAP_LOGIC_ID } from "../../../typescript/deploy-ids";
 import { isLocalNetwork } from "../../../typescript/hardhat/deploy";
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {

@@ -66,8 +66,7 @@ export async function setupRedstoneCompositeFeedsForAssets(
   maxPrice: number,
   deployerAddress: string,
 ): Promise<void> {
-  const allCompositeFeeds =
-    config.oracleAggregators.USD.redstoneOracleAssets?.compositeRedstoneOracleWrappersWithThresholding || {};
+  const allCompositeFeeds = config.oracleAggregators.USD.redstoneOracleAssets?.compositeRedstoneOracleWrappersWithThresholding || {};
 
   for (const assetAddress of assetAddresses) {
     const feedConfig = allCompositeFeeds[assetAddress];
@@ -133,9 +132,7 @@ export async function setupRedstoneCompositeFeedsForAssets(
 
     try {
       await oracleAggregator.setOracle(feedConfig.feedAsset, redstoneCompositeWrapper.target);
-      console.log(
-        `✅ Set composite Redstone wrapper for asset ${feedConfig.feedAsset} to ${redstoneCompositeWrapper.target}`,
-      );
+      console.log(`✅ Set composite Redstone wrapper for asset ${feedConfig.feedAsset} to ${redstoneCompositeWrapper.target}`);
     } catch (error) {
       console.error(`❌ Error setting oracle for ${assetAddress}:`, error);
       throw new Error(`Failed to set oracle for ${assetAddress}: ${error}`);
@@ -176,8 +173,7 @@ export async function setupRedstoneSimpleFeedsForAssets(
   maxPrice: number,
   deployerAddress: string,
 ): Promise<void> {
-  const allSimpleFeeds =
-    config.oracleAggregators.USD.redstoneOracleAssets?.redstoneOracleWrappersWithThresholding || {};
+  const allSimpleFeeds = config.oracleAggregators.USD.redstoneOracleAssets?.redstoneOracleWrappersWithThresholding || {};
 
   for (const assetAddress of assetAddresses) {
     const feedConfig = allSimpleFeeds[assetAddress];

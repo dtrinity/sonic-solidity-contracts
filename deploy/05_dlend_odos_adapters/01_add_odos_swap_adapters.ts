@@ -5,12 +5,7 @@ import { getConfig } from "../../config/config";
 import { POOL_ADDRESSES_PROVIDER_ID, POOL_PROXY_ID } from "../../typescript/deploy-ids";
 
 // List of all Odos adapters to deploy
-const ODOS_ADAPTERS = [
-  "OdosLiquiditySwapAdapter",
-  "OdosDebtSwapAdapter",
-  "OdosRepayAdapter",
-  "OdosWithdrawSwapAdapter",
-] as const;
+const ODOS_ADAPTERS = ["OdosLiquiditySwapAdapter", "OdosDebtSwapAdapter", "OdosRepayAdapter", "OdosWithdrawSwapAdapter"] as const;
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployer } = await hre.getNamedAccounts();

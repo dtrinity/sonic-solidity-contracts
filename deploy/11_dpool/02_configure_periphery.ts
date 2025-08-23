@@ -41,11 +41,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     const adminSigner = initialAdmin === deployer ? deployer : initialAdmin;
 
     // Get periphery contract instance with the appropriate signer
-    const periphery = await ethers.getContractAt(
-      "DPoolCurvePeriphery",
-      peripheryDeployment.address,
-      await ethers.getSigner(adminSigner),
-    );
+    const periphery = await ethers.getContractAt("DPoolCurvePeriphery", peripheryDeployment.address, await ethers.getSigner(adminSigner));
 
     // Get Curve pool deployment
     let curvePoolDeployment;

@@ -27,12 +27,7 @@ import { SafeTransactionData } from "../../typescript/safe/types";
  * @param grantee - Address to receive the role
  * @param contractInterface - Contract interface used to encode the call
  */
-function createGrantRoleTransaction(
-  contractAddress: string,
-  role: string,
-  grantee: string,
-  contractInterface: any,
-): SafeTransactionData {
+function createGrantRoleTransaction(contractAddress: string, role: string, grantee: string, contractInterface: any): SafeTransactionData {
   return {
     to: contractAddress,
     value: "0",
@@ -48,12 +43,7 @@ function createGrantRoleTransaction(
  * @param account - Address to revoke the role from
  * @param contractInterface - Contract interface used to encode the call
  */
-function createRevokeRoleTransaction(
-  contractAddress: string,
-  role: string,
-  account: string,
-  contractInterface: any,
-): SafeTransactionData {
+function createRevokeRoleTransaction(contractAddress: string, role: string, account: string, contractInterface: any): SafeTransactionData {
   return {
     to: contractAddress,
     value: "0",
@@ -273,13 +263,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
           await collateralVault.grantRole(COLLATERAL_WITHDRAWER_ROLE, newRedeemerAddress);
           console.log(`    ➕ Granted COLLATERAL_WITHDRAWER_ROLE to ${newRedeemerAddress}`);
         },
-        () =>
-          createGrantRoleTransaction(
-            collateralVaultAddress,
-            COLLATERAL_WITHDRAWER_ROLE,
-            newRedeemerAddress,
-            collateralVault.interface,
-          ),
+        () => createGrantRoleTransaction(collateralVaultAddress, COLLATERAL_WITHDRAWER_ROLE, newRedeemerAddress, collateralVault.interface),
       );
       if (!complete) allOperationsComplete = false;
     } else {
@@ -287,10 +271,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     }
 
     // 1b. Revoke COLLATERAL_WITHDRAWER_ROLE from legacy Redeemer contracts
-    const legacyIds = [
-      t.oldId,
-      t.newId === "RedeemerV2_DUSD" ? DUSD_REDEEMER_WITH_FEES_CONTRACT_ID : DS_REDEEMER_WITH_FEES_CONTRACT_ID,
-    ];
+    const legacyIds = [t.oldId, t.newId === "RedeemerV2_DUSD" ? DUSD_REDEEMER_WITH_FEES_CONTRACT_ID : DS_REDEEMER_WITH_FEES_CONTRACT_ID];
 
     for (const legacyId of legacyIds) {
       const legacyDep = await deployments.getOrNull(legacyId);
@@ -303,12 +284,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
             console.log(`    ➖ Revoked COLLATERAL_WITHDRAWER_ROLE from ${legacyId} (${legacyDep.address})`);
           },
           () =>
-            createRevokeRoleTransaction(
-              collateralVaultAddress,
-              COLLATERAL_WITHDRAWER_ROLE,
-              legacyDep.address,
-              collateralVault.interface,
-            ),
+            createRevokeRoleTransaction(collateralVaultAddress, COLLATERAL_WITHDRAWER_ROLE, legacyDep.address, collateralVault.interface),
         );
         if (!complete) allOperationsComplete = false;
       } else {
@@ -321,13 +297,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
     // 3. Migrate roles to governance
     console.log(`  🔐 Migrating ${t.newId} roles to governance...`);
-    const rolesMigrationComplete = await migrateRedeemerRolesIdempotent(
-      hre,
-      newRedeemerAddress,
-      deployer,
-      governanceMultisig,
-      executor,
-    );
+    const rolesMigrationComplete = await migrateRedeemerRolesIdempotent(hre, newRedeemerAddress, deployer, governanceMultisig, executor);
 
     if (!rolesMigrationComplete) {
       allOperationsComplete = false;

@@ -8,10 +8,7 @@ import { ONE_HUNDRED_PERCENT_BPS } from "../../../typescript/common/bps_constant
  * @returns the current leverage in basis points
  */
 export function getCurrentLeverageBps(currentTotalCollateralInBase: bigint, currentTotalDebtInBase: bigint): bigint {
-  return (
-    (currentTotalCollateralInBase * BigInt(ONE_HUNDRED_PERCENT_BPS)) /
-    (currentTotalCollateralInBase - currentTotalDebtInBase)
-  );
+  return (currentTotalCollateralInBase * BigInt(ONE_HUNDRED_PERCENT_BPS)) / (currentTotalCollateralInBase - currentTotalDebtInBase);
 }
 
 /**

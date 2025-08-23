@@ -17,8 +17,7 @@ describe("DLoopCoreLogic - State Logic", () => {
 
   describe("getCurrentLeverageBps", () => {
     const cases: Array<
-      | { name: string; C: bigint; D: bigint; expected: bigint }
-      | { name: string; C: bigint; D: bigint; expectedError: string }
+      { name: string; C: bigint; D: bigint; expected: bigint } | { name: string; C: bigint; D: bigint; expectedError: string }
     > = [
       { name: "no collateral", C: 0n, D: 0n, expected: 0n },
       { name: "no debt -> 1x", C: 1_000_000n, D: 0n, expected: HUNDRED_BPS },
@@ -68,10 +67,7 @@ describe("DLoopCoreLogic - State Logic", () => {
         const { harness } = await deployHarness();
 
         if ("expectedError" in tc) {
-          await expect(harness.getCurrentLeverageBpsPublic(tc.C, tc.D)).to.be.revertedWithCustomError(
-            harness,
-            (tc as any).expectedError,
-          );
+          await expect(harness.getCurrentLeverageBpsPublic(tc.C, tc.D)).to.be.revertedWithCustomError(harness, (tc as any).expectedError);
         } else {
           const res = await harness.getCurrentLeverageBpsPublic(tc.C, tc.D);
           expect(res).to.equal((tc as any).expected);

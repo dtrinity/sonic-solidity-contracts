@@ -2,12 +2,7 @@ import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
 
 import { getConfig } from "../../config/config";
-import {
-  DS_COLLATERAL_VAULT_CONTRACT_ID,
-  DS_REDEEMER_CONTRACT_ID,
-  DS_TOKEN_ID,
-  S_ORACLE_AGGREGATOR_ID,
-} from "../../typescript/deploy-ids";
+import { DS_COLLATERAL_VAULT_CONTRACT_ID, DS_REDEEMER_CONTRACT_ID, DS_TOKEN_ID, S_ORACLE_AGGREGATOR_ID } from "../../typescript/deploy-ids";
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployer } = await hre.getNamedAccounts();

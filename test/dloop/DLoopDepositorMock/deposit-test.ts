@@ -3,13 +3,7 @@ import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { ethers } from "hardhat";
 
-import {
-  DLoopCoreMock,
-  DLoopDepositorMock,
-  SimpleDEXMock,
-  TestERC20FlashMintable,
-  TestMintableERC20,
-} from "../../../typechain-types";
+import { DLoopCoreMock, DLoopDepositorMock, SimpleDEXMock, TestERC20FlashMintable, TestMintableERC20 } from "../../../typechain-types";
 import { ONE_HUNDRED_PERCENT_BPS, ONE_PERCENT_BPS } from "../../../typescript/common/bps_constants";
 import { deployDLoopDepositorMockFixture, TARGET_LEVERAGE_BPS, testSetup } from "./fixtures";
 
@@ -106,10 +100,7 @@ describe("DLoopDepositorMock Deposit Tests", function () {
         // Get initial balances
         const initialUserCollateralBalance = await collateralToken.balanceOf(user.address);
         const initialUserShareBalance = await dloopMock.balanceOf(user.address);
-        const initialCoreCollateral = await dloopMock.getMockCollateral(
-          await dloopMock.getAddress(),
-          await collateralToken.getAddress(),
-        );
+        const initialCoreCollateral = await dloopMock.getMockCollateral(await dloopMock.getAddress(), await collateralToken.getAddress());
 
         // Perform leveraged deposit
         await dLoopDepositorMock.connect(user).deposit(
@@ -135,10 +126,7 @@ describe("DLoopDepositorMock Deposit Tests", function () {
         );
 
         // Verify core vault received leveraged collateral amount
-        const finalCoreCollateral = await dloopMock.getMockCollateral(
-          await dloopMock.getAddress(),
-          await collateralToken.getAddress(),
-        );
+        const finalCoreCollateral = await dloopMock.getMockCollateral(await dloopMock.getAddress(), await collateralToken.getAddress());
         const actualLeveragedAmount = finalCoreCollateral - initialCoreCollateral;
 
         // Should be close to leveraged amount (allowing for slippage)
@@ -205,9 +193,7 @@ describe("DLoopDepositorMock Deposit Tests", function () {
         );
 
         // Perform leveraged deposit
-        await dLoopDepositorMock
-          .connect(user)
-          .deposit(testCase.depositAmount, user.address, minOutputShares, "0x", dloopMock);
+        await dLoopDepositorMock.connect(user).deposit(testCase.depositAmount, user.address, minOutputShares, "0x", dloopMock);
 
         // Verify user received expected shares
         const finalUserShareBalance = await dloopMock.balanceOf(user.address);
@@ -242,18 +228,11 @@ describe("DLoopDepositorMock Deposit Tests", function () {
         expect(flashFee).to.equal(testCase.expectedFee);
 
         // Calculate reasonable minOutputShares
-        const minOutputShares = await dLoopDepositorMock.calculateMinOutputShares(
-          testCase.depositAmount,
-          0.1 * ONE_PERCENT_BPS,
-          dloopMock,
-        );
+        const minOutputShares = await dLoopDepositorMock.calculateMinOutputShares(testCase.depositAmount, 0.1 * ONE_PERCENT_BPS, dloopMock);
 
         // Should succeed even with zero fees
-        await expect(
-          dLoopDepositorMock
-            .connect(user1)
-            .deposit(testCase.depositAmount, user1.address, minOutputShares, "0x", dloopMock),
-        ).to.not.be.reverted;
+        await expect(dLoopDepositorMock.connect(user1).deposit(testCase.depositAmount, user1.address, minOutputShares, "0x", dloopMock)).to
+          .not.be.reverted;
       }
     });
 
@@ -261,8 +240,7 @@ describe("DLoopDepositorMock Deposit Tests", function () {
       // Try to make an extremely large deposit that would require more flash loan than available
       const depositAmount = ethers.parseEther("10000000"); // 10M ETH
 
-      await expect(dLoopDepositorMock.connect(user1).deposit(depositAmount, user1.address, 0, "0x", dloopMock)).to.be
-        .reverted;
+      await expect(dLoopDepositorMock.connect(user1).deposit(depositAmount, user1.address, 0, "0x", dloopMock)).to.be.reverted;
     });
   });
 
@@ -322,11 +300,7 @@ describe("DLoopDepositorMock Deposit Tests", function () {
       it(testCase.name, async function () {
         // Set exchange rate if different from default
         if (testCase.exchangeRate !== ethers.parseEther("1.0")) {
-          await simpleDEXMock.setExchangeRate(
-            await debtToken.getAddress(),
-            await collateralToken.getAddress(),
-            testCase.exchangeRate,
-          );
+          await simpleDEXMock.setExchangeRate(await debtToken.getAddress(), await collateralToken.getAddress(), testCase.exchangeRate);
         }
 
         // Set execution slippage if specified
@@ -349,9 +323,7 @@ describe("DLoopDepositorMock Deposit Tests", function () {
         );
 
         // Perform leveraged deposit
-        await dLoopDepositorMock
-          .connect(user1)
-          .deposit(testCase.depositAmount, user1.address, minOutputShares, "0x", dloopMock);
+        await dLoopDepositorMock.connect(user1).deposit(testCase.depositAmount, user1.address, minOutputShares, "0x", dloopMock);
 
         // DEX should have received debt tokens and given out collateral tokens
         const finalDexCollateralBalance = await collateralToken.balanceOf(await simpleDEXMock.getAddress());
@@ -372,11 +344,7 @@ describe("DLoopDepositorMock Deposit Tests", function () {
 
         // Reset to default values for next test
         if (testCase.exchangeRate !== ethers.parseEther("1.0")) {
-          await simpleDEXMock.setExchangeRate(
-            await debtToken.getAddress(),
-            await collateralToken.getAddress(),
-            ethers.parseEther("1.0"),
-          );
+          await simpleDEXMock.setExchangeRate(await debtToken.getAddress(), await collateralToken.getAddress(), ethers.parseEther("1.0"));
         }
 
         if (testCase.executionSlippage > 0) {
@@ -428,9 +396,7 @@ describe("DLoopDepositorMock Deposit Tests", function () {
         const errorContract = testCase.errorSource === "collateralToken" ? collateralToken : dLoopDepositorMock;
 
         if (testCase.expectedError === "reverted") {
-          await expect(
-            dLoopDepositorMock.connect(user1).deposit(actualDepositAmount, user1.address, 0, "0x", dloopMock),
-          ).to.be.reverted;
+          await expect(dLoopDepositorMock.connect(user1).deposit(actualDepositAmount, user1.address, 0, "0x", dloopMock)).to.be.reverted;
         } else {
           await expect(
             dLoopDepositorMock.connect(user1).deposit(actualDepositAmount, user1.address, 0, "0x", dloopMock),
@@ -462,9 +428,7 @@ describe("DLoopDepositorMock Deposit Tests", function () {
         const impossibleMinimum = estimatedShares * BigInt(testCase.unreasonableMultiplier);
 
         await expect(
-          dLoopDepositorMock
-            .connect(user1)
-            .deposit(testCase.depositAmount, user1.address, impossibleMinimum, "0x", dloopMock),
+          dLoopDepositorMock.connect(user1).deposit(testCase.depositAmount, user1.address, impossibleMinimum, "0x", dloopMock),
         ).to.be.revertedWithCustomError(dLoopDepositorMock, testCase.expectedError);
       }
     });
@@ -497,11 +461,7 @@ describe("DLoopDepositorMock Deposit Tests", function () {
           const user = users[i];
           const depositAmount = testCase.depositAmounts ? testCase.depositAmounts[i] : testCase.depositAmount;
 
-          const minOutputShares = await dLoopDepositorMock.calculateMinOutputShares(
-            depositAmount,
-            testCase.slippagePercentage,
-            dloopMock,
-          );
+          const minOutputShares = await dLoopDepositorMock.calculateMinOutputShares(depositAmount, testCase.slippagePercentage, dloopMock);
 
           const initialShares = await dloopMock.balanceOf(user.address);
 
@@ -540,17 +500,11 @@ describe("DLoopDepositorMock Deposit Tests", function () {
         let cumulativeShares = BigInt(0);
 
         for (const depositAmount of testCase.depositAmounts) {
-          const minOutputShares = await dLoopDepositorMock.calculateMinOutputShares(
-            depositAmount,
-            testCase.slippagePercentage,
-            dloopMock,
-          );
+          const minOutputShares = await dLoopDepositorMock.calculateMinOutputShares(depositAmount, testCase.slippagePercentage, dloopMock);
 
           const initialShares = await dloopMock.balanceOf(user1.address);
 
-          await dLoopDepositorMock
-            .connect(user1)
-            .deposit(depositAmount, user1.address, minOutputShares, "0x", dloopMock);
+          await dLoopDepositorMock.connect(user1).deposit(depositAmount, user1.address, minOutputShares, "0x", dloopMock);
 
           const finalShares = await dloopMock.balanceOf(user1.address);
           const sharesGained = finalShares - initialShares;
@@ -654,9 +608,7 @@ describe("DLoopDepositorMock Deposit Tests", function () {
           dloopMock,
         );
 
-        const tx = await dLoopDepositorMock
-          .connect(user1)
-          .deposit(testCase.depositAmount, user1.address, minOutputShares, "0x", dloopMock);
+        const tx = await dLoopDepositorMock.connect(user1).deposit(testCase.depositAmount, user1.address, minOutputShares, "0x", dloopMock);
         await tx.wait();
 
         // Verify user received expected shares
@@ -690,9 +642,7 @@ describe("DLoopDepositorMock Deposit Tests", function () {
         );
 
         const receiverDebtBefore = await debtToken.balanceOf(user1.address);
-        const tx = await dLoopDepositorMock
-          .connect(user1)
-          .deposit(testCase.depositAmount, user1.address, minOutputShares, "0x", dloopMock);
+        const tx = await dLoopDepositorMock.connect(user1).deposit(testCase.depositAmount, user1.address, minOutputShares, "0x", dloopMock);
         await tx.wait();
         const receiverDebtAfter = await debtToken.balanceOf(user1.address);
 
@@ -713,11 +663,7 @@ describe("DLoopDepositorMock Deposit Tests", function () {
       await dloopMock.setMockPrice(await debtToken.getAddress(), ethers.parseEther("1"));
 
       // Inject the mock collateral / debt into the vault itself
-      await dloopMock.setMockCollateral(
-        await dloopMock.getAddress(),
-        await collateralToken.getAddress(),
-        mockCollateral,
-      );
+      await dloopMock.setMockCollateral(await dloopMock.getAddress(), await collateralToken.getAddress(), mockCollateral);
       await dloopMock.setMockDebt(await dloopMock.getAddress(), await debtToken.getAddress(), mockDebt);
 
       const leverageBps = await dloopMock.getCurrentLeverageBps();

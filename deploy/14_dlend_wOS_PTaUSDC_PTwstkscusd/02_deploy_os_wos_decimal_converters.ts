@@ -75,9 +75,7 @@ async function deployOSWOSDecimalConverters(
       const sourceDecimals = await sourceFeed.decimals();
 
       if (Number(sourceDecimals) !== EXPECTED_SOURCE_DECIMALS) {
-        throw new Error(
-          `Source feed for ${config.name} has ${sourceDecimals} decimals, expected ${EXPECTED_SOURCE_DECIMALS}`,
-        );
+        throw new Error(`Source feed for ${config.name} has ${sourceDecimals} decimals, expected ${EXPECTED_SOURCE_DECIMALS}`);
       }
 
       console.log(`✅ Verified source feed has ${sourceDecimals} decimals`);
@@ -104,9 +102,7 @@ async function deployOSWOSDecimalConverters(
       try {
         const latestRoundData = await converter.latestRoundData();
         const priceFormatted = Number(latestRoundData.answer) / 10 ** Number(targetDecimals);
-        console.log(
-          `💰 Current price from converter: ${priceFormatted} (${latestRoundData.answer} with ${targetDecimals} decimals)`,
-        );
+        console.log(`💰 Current price from converter: ${priceFormatted} (${latestRoundData.answer} with ${targetDecimals} decimals)`);
       } catch (priceError) {
         console.warn(`⚠️  Could not get price from converter (may be expected): ${priceError}`);
       }

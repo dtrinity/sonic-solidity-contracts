@@ -20,10 +20,7 @@ import { chunk } from "./helpers"; // Import chunk from the helpers file
  * @param hre - Hardhat Runtime Environment
  * @param reserveSymbolsToSetup - Optional array of reserve symbols (strings) to set up. If null/undefined, sets up all reserves from config.
  */
-export async function setupNewReserves(
-  hre: HardhatRuntimeEnvironment,
-  reserveSymbolsToSetup?: string[],
-): Promise<void> {
+export async function setupNewReserves(hre: HardhatRuntimeEnvironment, reserveSymbolsToSetup?: string[]): Promise<void> {
   const { deployer } = await hre.getNamedAccounts();
   const signer = await hre.ethers.getSigner(deployer);
   const config = await getConfig(hre);
@@ -41,11 +38,7 @@ export async function setupNewReserves(
   // --- Get Core Contract Instances ---
   // (Fetching contracts: PoolAddressesProvider, PoolConfigurator, Pool, ACLManager, ReservesSetupHelper, AaveProtocolDataProvider)
   const addressProvider = await hre.deployments.get(POOL_ADDRESSES_PROVIDER_ID);
-  const addressesProviderContract = await hre.ethers.getContractAt(
-    "PoolAddressesProvider",
-    addressProvider.address,
-    signer,
-  );
+  const addressesProviderContract = await hre.ethers.getContractAt("PoolAddressesProvider", addressProvider.address, signer);
   const poolConfiguratorAddress = await addressesProviderContract.getPoolConfigurator();
   const poolConfiguratorContract = await hre.ethers.getContractAt("PoolConfigurator", poolConfiguratorAddress, signer);
   const poolAddress = await addressesProviderContract.getPool();
@@ -53,17 +46,9 @@ export async function setupNewReserves(
   const aclManagerAddress = await addressesProviderContract.getACLManager();
   const aclManager = await hre.ethers.getContractAt("ACLManager", aclManagerAddress, signer);
   const reservesSetupHelper = await hre.deployments.get(RESERVES_SETUP_HELPER_ID);
-  const reservesSetupHelperContract = await hre.ethers.getContractAt(
-    "ReservesSetupHelper",
-    reservesSetupHelper.address,
-    signer,
-  );
+  const reservesSetupHelperContract = await hre.ethers.getContractAt("ReservesSetupHelper", reservesSetupHelper.address, signer);
   const poolDataProvider = await hre.deployments.get(POOL_DATA_PROVIDER_ID);
-  const poolDataProviderContract = await hre.ethers.getContractAt(
-    "AaveProtocolDataProvider",
-    poolDataProvider.address,
-    signer,
-  );
+  const poolDataProviderContract = await hre.ethers.getContractAt("AaveProtocolDataProvider", poolDataProvider.address, signer);
 
   // --- Get Implementations and Treasury ---
   const { address: treasuryAddress } = await hre.deployments.get(TREASURY_PROXY_ID);
@@ -103,9 +88,7 @@ export async function setupNewReserves(
     const strategyDeployment = await hre.deployments.get(strategyName);
 
     if (!strategyDeployment) {
-      throw new Error(
-        `Interest rate strategy deployment '${strategyName}' not found for reserve ${symbol}. Ensure it was deployed.`,
-      );
+      throw new Error(`Interest rate strategy deployment '${strategyName}' not found for reserve ${symbol}. Ensure it was deployed.`);
     }
     const strategyAddress = strategyDeployment.address;
 

@@ -44,20 +44,11 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   await treasuryImplContract.initialize(governanceMultisig);
 
   // Initialize proxy
-  const proxy = await hre.ethers.getContractAt(
-    "InitializableAdminUpgradeabilityProxy",
-    treasuryProxyDeployment.address,
-  );
+  const proxy = await hre.ethers.getContractAt("InitializableAdminUpgradeabilityProxy", treasuryProxyDeployment.address);
 
-  const initializePayload = treasuryImplContract.interface.encodeFunctionData("initialize", [
-    treasuryControllerDeployment.address,
-  ]);
+  const initializePayload = treasuryImplContract.interface.encodeFunctionData("initialize", [treasuryControllerDeployment.address]);
 
-  await proxy["initialize(address,address,bytes)"](
-    treasuryImplDeployment.address,
-    governanceMultisig,
-    initializePayload,
-  );
+  await proxy["initialize(address,address,bytes)"](treasuryImplDeployment.address, governanceMultisig, initializePayload);
 
   console.log(`🏦 ${__filename.split("/").slice(-2).join("/")}: ✅`);
   // Return true to indicate deployment success

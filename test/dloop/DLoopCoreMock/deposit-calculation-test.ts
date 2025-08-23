@@ -137,11 +137,7 @@ describe.skip("DLoopCoreMock Calculation Tests", function () {
 
           if (testCase.debtTokenDecimals) {
             const TestMintableERC20Factory = await ethers.getContractFactory("TestMintableERC20");
-            testDebtToken = await TestMintableERC20Factory.deploy(
-              "Test Debt Token",
-              "DEBT",
-              testCase.debtTokenDecimals,
-            );
+            testDebtToken = await TestMintableERC20Factory.deploy("Test Debt Token", "DEBT", testCase.debtTokenDecimals);
           }
 
           await dloopMock.setMockPrice(await collateralToken.getAddress(), testCase.collateralPrice);
@@ -155,10 +151,7 @@ describe.skip("DLoopCoreMock Calculation Tests", function () {
           );
 
           if (testCase.expectedBorrowAmount > 0) {
-            expect(result).to.be.closeTo(
-              testCase.expectedBorrowAmount,
-              ethers.parseUnits("0.000001", testCase.debtTokenDecimals || 18),
-            );
+            expect(result).to.be.closeTo(testCase.expectedBorrowAmount, ethers.parseUnits("0.000001", testCase.debtTokenDecimals || 18));
           } else {
             expect(result).to.equal(testCase.expectedBorrowAmount);
           }
@@ -182,10 +175,7 @@ describe.skip("DLoopCoreMock Calculation Tests", function () {
             const newLeverage = getNewLeverageBps(
               testState.totalCollateralInBase,
               getCorrespondingTotalDebtInBase(testState.totalCollateralInBase, testCase.leverageBpsBeforeSupply),
-              await dloopMock.convertFromTokenAmountToBaseCurrency(
-                testCase.suppliedCollateralAmount,
-                await collateralToken.getAddress(),
-              ),
+              await dloopMock.convertFromTokenAmountToBaseCurrency(testCase.suppliedCollateralAmount, await collateralToken.getAddress()),
               await dloopMock.convertFromTokenAmountToBaseCurrency(result, await testDebtToken.getAddress()),
             );
             expect(newLeverage).to.be.closeTo(testCase.leverageBpsBeforeSupply, ONE_BPS_UNIT);

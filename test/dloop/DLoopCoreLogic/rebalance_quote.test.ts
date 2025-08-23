@@ -129,54 +129,32 @@ describe("DLoopCoreLogic - Rebalance Quote", () => {
     for (const tc of cases) {
       it(tc.name, async () => {
         const { harness } = await deployHarness();
-        const [inputTokenAmount, estimatedOutputTokenAmount, direction] =
-          await harness.quoteRebalanceAmountToReachTargetLeveragePublic(
-            tc.C,
-            tc.D,
-            tc.current,
-            tc.target,
-            tc.k,
-            Number(tc.cDec),
-            tc.cPrice,
-            Number(tc.dDec),
-            tc.dPrice,
-          );
+        const [inputTokenAmount, estimatedOutputTokenAmount, direction] = await harness.quoteRebalanceAmountToReachTargetLeveragePublic(
+          tc.C,
+          tc.D,
+          tc.current,
+          tc.target,
+          tc.k,
+          Number(tc.cDec),
+          tc.cPrice,
+          Number(tc.dDec),
+          tc.dPrice,
+        );
 
         if (tc.current < tc.target && direction === 1n) {
           // Increase: compute expected via harness base functions to avoid duplication
-          const xBase = await harness.getCollateralTokenDepositAmountToReachTargetLeveragePublic(
-            tc.target,
-            tc.C,
-            tc.D,
-            tc.k,
-          );
-          const expectedInputToken = await harness.convertFromBaseCurrencyToTokenPublic(
-            xBase,
-            Number(tc.cDec),
-            tc.cPrice,
-          );
+          const xBase = await harness.getCollateralTokenDepositAmountToReachTargetLeveragePublic(tc.target, tc.C, tc.D, tc.k);
+          const expectedInputToken = await harness.convertFromBaseCurrencyToTokenPublic(xBase, Number(tc.cDec), tc.cPrice);
           expect(inputTokenAmount).to.equal(expectedInputToken);
           const yBase = await harness.getDebtBorrowAmountInBaseToIncreaseLeveragePublic(xBase, tc.k);
-          const expectedOutputToken = await harness.convertFromBaseCurrencyToTokenPublic(
-            yBase,
-            Number(tc.dDec),
-            tc.dPrice,
-          );
+          const expectedOutputToken = await harness.convertFromBaseCurrencyToTokenPublic(yBase, Number(tc.dDec), tc.dPrice);
           expect(estimatedOutputTokenAmount).to.equal(expectedOutputToken);
         } else if (tc.current > tc.target && direction === -1n) {
           const yBase = await harness.getDebtRepayAmountInBaseToReachTargetLeveragePublic(tc.target, tc.C, tc.D, tc.k);
-          const expectedInputToken = await harness.convertFromBaseCurrencyToTokenPublic(
-            yBase,
-            Number(tc.dDec),
-            tc.dPrice,
-          );
+          const expectedInputToken = await harness.convertFromBaseCurrencyToTokenPublic(yBase, Number(tc.dDec), tc.dPrice);
           expect(inputTokenAmount).to.equal(expectedInputToken);
           const xBase = await harness.getCollateralWithdrawAmountInBaseToDecreaseLeveragePublic(yBase, tc.k);
-          const expectedOutputToken = await harness.convertFromBaseCurrencyToTokenPublic(
-            xBase,
-            Number(tc.cDec),
-            tc.cPrice,
-          );
+          const expectedOutputToken = await harness.convertFromBaseCurrencyToTokenPublic(xBase, Number(tc.cDec), tc.cPrice);
           expect(estimatedOutputTokenAmount).to.equal(expectedOutputToken);
         } else {
           // At target: both amounts should be zero

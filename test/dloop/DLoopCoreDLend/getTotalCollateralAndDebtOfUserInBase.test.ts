@@ -54,30 +54,15 @@ describe("DLoopCoreDLend.getTotalCollateralAndDebtOfUserInBase — per-asset onl
     // Minimal pool that returns reserve data with token addresses
     MockPool = await ethers.getContractFactory("MockPool");
     pool = await MockPool.deploy();
-    await pool.setReserveData(
-      await collateral.getAddress(),
-      await aCollateral.getAddress(),
-      ethers.ZeroAddress,
-      ethers.ZeroAddress,
-    );
+    await pool.setReserveData(await collateral.getAddress(), await aCollateral.getAddress(), ethers.ZeroAddress, ethers.ZeroAddress);
     await pool.setReserveData(
       await debt.getAddress(),
       ethers.ZeroAddress,
       await stableDebtToken.getAddress(),
       await varDebtToken.getAddress(),
     );
-    await pool.setReserveData(
-      await other.getAddress(),
-      await aOther.getAddress(),
-      ethers.ZeroAddress,
-      ethers.ZeroAddress,
-    );
-    await pool.setReserveData(
-      await usdt.getAddress(),
-      await aUSDT.getAddress(),
-      ethers.ZeroAddress,
-      await varUSDTDebt.getAddress(),
-    );
+    await pool.setReserveData(await other.getAddress(), await aOther.getAddress(), ethers.ZeroAddress, ethers.ZeroAddress);
+    await pool.setReserveData(await usdt.getAddress(), await aUSDT.getAddress(), ethers.ZeroAddress, await varUSDTDebt.getAddress());
 
     // Oracle with 1e8 units
     PriceOracle = await ethers.getContractFactory("MockPriceOracleGetter");
@@ -259,12 +244,7 @@ describe("DLoopCoreDLend.getTotalCollateralAndDebtOfUserInBase — per-asset onl
       const aToken8 = await Token8Dec.deploy("aT8", "aT8", 8);
 
       // Setup pool data for 8-decimal token
-      await pool.setReserveData(
-        await token8.getAddress(),
-        await aToken8.getAddress(),
-        ethers.ZeroAddress,
-        ethers.ZeroAddress,
-      );
+      await pool.setReserveData(await token8.getAddress(), await aToken8.getAddress(), ethers.ZeroAddress, ethers.ZeroAddress);
       await priceOracle.setPrice(await token8.getAddress(), 2_00000000n); // 2.00 * 1e8
 
       // Deploy new dloop with 8-decimal collateral

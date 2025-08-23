@@ -36,9 +36,7 @@ async function performOracleSanityChecks(
           `Sanity check failed for asset ${assetAddress} in ${wrapperName}: Normalized price ${normalizedPrice} is outside the range [0.9, 2]`,
         );
       } else {
-        console.log(
-          `Sanity check passed for asset ${assetAddress} in ${wrapperName}: Normalized price is ${normalizedPrice}`,
-        );
+        console.log(`Sanity check passed for asset ${assetAddress} in ${wrapperName}: Normalized price is ${normalizedPrice}`);
       }
     } catch (error) {
       console.error(`Error performing sanity check for asset ${assetAddress} in ${wrapperName}:`, error);
@@ -101,21 +99,12 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment): Pr
     };
 
     await api3WrapperWithThresholding.setProxy(assetAddress, typedFeedConfig.proxy);
-    await api3WrapperWithThresholding.setThresholdConfig(
-      assetAddress,
-      typedFeedConfig.lowerThreshold,
-      typedFeedConfig.fixedPrice,
-    );
+    await api3WrapperWithThresholding.setThresholdConfig(assetAddress, typedFeedConfig.lowerThreshold, typedFeedConfig.fixedPrice);
     console.log(`Set API3 proxy with thresholding for asset ${assetAddress}:`);
   }
 
   // Sanity check for API3 proxies with thresholding
-  await performOracleSanityChecks(
-    api3WrapperWithThresholding,
-    thresholdFeeds,
-    baseCurrencyUnit,
-    "API3 proxies with thresholding",
-  );
+  await performOracleSanityChecks(api3WrapperWithThresholding, thresholdFeeds, baseCurrencyUnit, "API3 proxies with thresholding");
 
   // Deploy API3CompositeWrapperWithThresholding for composite feeds
   const compositeFeeds = config.oracleAggregators.S.api3OracleAssets.compositeApi3OracleWrappersWithThresholding || {};
