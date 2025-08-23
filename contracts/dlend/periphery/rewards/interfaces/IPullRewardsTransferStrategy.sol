@@ -17,7 +17,7 @@
 
 pragma solidity ^0.8.20;
 
-import {ITransferStrategyBase} from "./ITransferStrategyBase.sol";
+import { ITransferStrategyBase } from "./ITransferStrategyBase.sol";
 
 /**
  * @title IPullRewardsTransferStrategy

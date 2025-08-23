@@ -39,12 +39,8 @@ describe("DLoopCoreMock Mock Methods Tests", function () {
       expect(await dloopMock.name()).to.equal("Mock dLoop Vault");
       expect(await dloopMock.symbol()).to.equal("mdLOOP");
       expect(await dloopMock.targetLeverageBps()).to.equal(TARGET_LEVERAGE_BPS);
-      expect(await dloopMock.lowerBoundTargetLeverageBps()).to.equal(
-        LOWER_BOUND_BPS,
-      );
-      expect(await dloopMock.upperBoundTargetLeverageBps()).to.equal(
-        UPPER_BOUND_BPS,
-      );
+      expect(await dloopMock.lowerBoundTargetLeverageBps()).to.equal(LOWER_BOUND_BPS);
+      expect(await dloopMock.upperBoundTargetLeverageBps()).to.equal(UPPER_BOUND_BPS);
       expect(await dloopMock.maxSubsidyBps()).to.equal(MAX_SUBSIDY_BPS);
     });
 
@@ -53,12 +49,8 @@ describe("DLoopCoreMock Mock Methods Tests", function () {
       expect(await dloopMock.mockPool()).to.equal(mockPoolAddress);
 
       // Check that prices are set correctly
-      expect(
-        await dloopMock.getMockPrice(await collateralToken.getAddress()),
-      ).to.equal(DEFAULT_PRICE);
-      expect(
-        await dloopMock.getMockPrice(await debtToken.getAddress()),
-      ).to.equal(DEFAULT_PRICE);
+      expect(await dloopMock.getMockPrice(await collateralToken.getAddress())).to.equal(DEFAULT_PRICE);
+      expect(await dloopMock.getMockPrice(await debtToken.getAddress())).to.equal(DEFAULT_PRICE);
     });
   });
 
@@ -67,44 +59,24 @@ describe("DLoopCoreMock Mock Methods Tests", function () {
       it("Should set and get mock prices", async function () {
         const testPrice = 250000000; // 2.5 in 8 decimals
 
-        await dloopMock.setMockPrice(
-          await collateralToken.getAddress(),
-          testPrice,
-        );
-        expect(
-          await dloopMock.getMockPrice(await collateralToken.getAddress()),
-        ).to.equal(testPrice);
+        await dloopMock.setMockPrice(await collateralToken.getAddress(), testPrice);
+        expect(await dloopMock.getMockPrice(await collateralToken.getAddress())).to.equal(testPrice);
       });
     });
 
     describe("Collateral Management", function () {
       it("Should set mock collateral for user", async function () {
         const amount = ethers.parseEther("100");
-        await dloopMock.setMockCollateral(
-          user1,
-          await collateralToken.getAddress(),
-          amount,
-        );
-        expect(
-          await dloopMock.getMockCollateral(
-            user1,
-            await collateralToken.getAddress(),
-          ),
-        ).to.equal(amount);
+        await dloopMock.setMockCollateral(user1, await collateralToken.getAddress(), amount);
+        expect(await dloopMock.getMockCollateral(user1, await collateralToken.getAddress())).to.equal(amount);
       });
     });
 
     describe("Debt Management", function () {
       it("Should set mock debt for user", async function () {
         const amount = ethers.parseEther("50");
-        await dloopMock.setMockDebt(
-          user1,
-          await debtToken.getAddress(),
-          amount,
-        );
-        expect(
-          await dloopMock.getMockDebt(user1, await debtToken.getAddress()),
-        ).to.equal(amount);
+        await dloopMock.setMockDebt(user1, await debtToken.getAddress(), amount);
+        expect(await dloopMock.getMockDebt(user1, await debtToken.getAddress())).to.equal(amount);
       });
     });
   });

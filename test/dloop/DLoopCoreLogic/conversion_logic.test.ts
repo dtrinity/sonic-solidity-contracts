@@ -90,11 +90,7 @@ describe("DLoopCoreLogic - Conversion Logic", () => {
     for (const tc of cases) {
       it(tc.name, async () => {
         const { harness } = await deployHarness();
-        const res = await harness.convertFromBaseCurrencyToTokenPublic(
-          tc.amountInBase,
-          Number(tc.dec),
-          tc.price,
-        );
+        const res = await harness.convertFromBaseCurrencyToTokenPublic(tc.amountInBase, Number(tc.dec), tc.price);
         expect(res).to.equal(tc.expected);
       });
     }
@@ -177,11 +173,7 @@ describe("DLoopCoreLogic - Conversion Logic", () => {
     for (const tc of cases) {
       it(tc.name, async () => {
         const { harness } = await deployHarness();
-        const res = await harness.convertFromTokenAmountToBaseCurrencyPublic(
-          tc.amountInToken,
-          Number(tc.dec),
-          tc.price,
-        );
+        const res = await harness.convertFromTokenAmountToBaseCurrencyPublic(tc.amountInToken, Number(tc.dec), tc.price);
         expect(res).to.equal(tc.expected);
       });
     }

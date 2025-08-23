@@ -2,10 +2,7 @@ import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
 
 import { getConfig } from "../../../config/config";
-import {
-  POOL_ADDRESSES_PROVIDER_ID,
-  POOL_DATA_PROVIDER_ID,
-} from "../../../typescript/deploy-ids";
+import { POOL_ADDRESSES_PROVIDER_ID, POOL_DATA_PROVIDER_ID } from "../../../typescript/deploy-ids";
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployer } = await hre.getNamedAccounts();
@@ -15,16 +12,13 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   // 1. Deploy PoolAddressesProvider
   // NOTE: We pass 0 as market id to create the same address of PoolAddressesProvider
   // in multiple networks via CREATE2. Later we update the corresponding Market ID.
-  const addressesProviderDeployment = await hre.deployments.deploy(
-    POOL_ADDRESSES_PROVIDER_ID,
-    {
-      from: deployer,
-      args: ["0", deployer],
-      contract: "PoolAddressesProvider",
-      autoMine: true,
-      log: false,
-    },
-  );
+  const addressesProviderDeployment = await hre.deployments.deploy(POOL_ADDRESSES_PROVIDER_ID, {
+    from: deployer,
+    args: ["0", deployer],
+    contract: "PoolAddressesProvider",
+    autoMine: true,
+    log: false,
+  });
 
   // Get contract instance
   const addressesProviderContract = await hre.ethers.getContractAt(
@@ -43,35 +37,23 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     await hre.ethers.getSigner(deployer),
   );
 
-  await registryContract.registerAddressesProvider(
-    addressesProviderDeployment.address,
-    config.dLend.providerID,
-  );
+  await registryContract.registerAddressesProvider(addressesProviderDeployment.address, config.dLend.providerID);
 
   // 4. Deploy AaveProtocolDataProvider getters contract
-  const protocolDataProviderDeployment = await hre.deployments.deploy(
-    POOL_DATA_PROVIDER_ID,
-    {
-      from: deployer,
-      args: [addressesProviderDeployment.address],
-      contract: "AaveProtocolDataProvider",
-      autoMine: true,
-      log: false,
-    },
-  );
+  const protocolDataProviderDeployment = await hre.deployments.deploy(POOL_DATA_PROVIDER_ID, {
+    from: deployer,
+    args: [addressesProviderDeployment.address],
+    contract: "AaveProtocolDataProvider",
+    autoMine: true,
+    log: false,
+  });
 
   // Get current protocol data provider address
-  const currentProtocolDataProviderAddress =
-    await addressesProviderContract.getPoolDataProvider();
+  const currentProtocolDataProviderAddress = await addressesProviderContract.getPoolDataProvider();
 
   // Set the ProtocolDataProvider if not already set
-  if (
-    currentProtocolDataProviderAddress.toLowerCase() !==
-    protocolDataProviderDeployment.address.toLowerCase()
-  ) {
-    await addressesProviderContract.setPoolDataProvider(
-      protocolDataProviderDeployment.address,
-    );
+  if (currentProtocolDataProviderAddress.toLowerCase() !== protocolDataProviderDeployment.address.toLowerCase()) {
+    await addressesProviderContract.setPoolDataProvider(protocolDataProviderDeployment.address);
   }
 
   console.log(`🏦 ${__filename.split("/").slice(-2).join("/")}: ✅`);

@@ -13,9 +13,7 @@ contract DPoolVaultLPMock is DPoolVaultLP {
     /// @dev Dummy pool address, not used in tests
     address private immutable _pool;
 
-    constructor(
-        address lpToken
-    ) DPoolVaultLP(lpToken, "Mock DPool Vault", "mDPVL", msg.sender) {
+    constructor(address lpToken) DPoolVaultLP(lpToken, "Mock DPool Vault", "mDPVL", msg.sender) {
         _pool = address(0);
     }
 
@@ -25,9 +23,7 @@ contract DPoolVaultLPMock is DPoolVaultLP {
         return _pool;
     }
 
-    function previewLPValue(
-        uint256 lpAmount
-    ) external view override returns (uint256) {
+    function previewLPValue(uint256 lpAmount) external view override returns (uint256) {
         // For testing purposes we simply return the same amount.
         return lpAmount;
     }

@@ -30,12 +30,7 @@ import { SafeTransactionData } from "../../typescript/safe/types";
  * @param grantee - Address to receive the role
  * @param contractInterface - Contract interface used to encode the call
  */
-function createGrantRoleTransaction(
-  contractAddress: string,
-  role: string,
-  grantee: string,
-  contractInterface: any,
-): SafeTransactionData {
+function createGrantRoleTransaction(contractAddress: string, role: string, grantee: string, contractInterface: any): SafeTransactionData {
   return {
     to: contractAddress,
     value: "0",
@@ -51,12 +46,7 @@ function createGrantRoleTransaction(
  * @param account - Address to revoke the role from
  * @param contractInterface - Contract interface used to encode the call
  */
-function createRevokeRoleTransaction(
-  contractAddress: string,
-  role: string,
-  account: string,
-  contractInterface: any,
-): SafeTransactionData {
+function createRevokeRoleTransaction(contractAddress: string, role: string, account: string, contractInterface: any): SafeTransactionData {
   return {
     to: contractAddress,
     value: "0",
@@ -64,8 +54,7 @@ function createRevokeRoleTransaction(
   };
 }
 
-const ZERO_BYTES_32 =
-  "0x0000000000000000000000000000000000000000000000000000000000000000";
+const ZERO_BYTES_32 = "0x0000000000000000000000000000000000000000000000000000000000000000";
 
 /**
  * Ensure the given `grantee` holds MINTER_ROLE on the specified dStable token.
@@ -85,10 +74,7 @@ async function ensureMinterRole(
   grantee: string,
   executor: GovernanceExecutor,
 ): Promise<boolean> {
-  const stable = await hre.ethers.getContractAt(
-    "ERC20StablecoinUpgradeable",
-    stableAddress,
-  );
+  const stable = await hre.ethers.getContractAt("ERC20StablecoinUpgradeable", stableAddress);
   const MINTER_ROLE = await stable.MINTER_ROLE();
 
   if (!(await stable.hasRole(MINTER_ROLE, grantee))) {
@@ -97,13 +83,7 @@ async function ensureMinterRole(
         await stable.grantRole(MINTER_ROLE, grantee);
         console.log(`    ➕ Granted MINTER_ROLE to ${grantee}`);
       },
-      () =>
-        createGrantRoleTransaction(
-          stableAddress,
-          MINTER_ROLE,
-          grantee,
-          stable.interface,
-        ),
+      () => createGrantRoleTransaction(stableAddress, MINTER_ROLE, grantee, stable.interface),
     );
     return complete;
   } else {
@@ -136,11 +116,7 @@ async function migrateIssuerRolesIdempotent(
   governanceMultisig: string,
   executor: GovernanceExecutor,
 ): Promise<boolean> {
-  const issuer = await hre.ethers.getContractAt(
-    "IssuerV2",
-    issuerAddress,
-    deployerSigner,
-  );
+  const issuer = await hre.ethers.getContractAt("IssuerV2", issuerAddress, deployerSigner);
 
   const DEFAULT_ADMIN_ROLE = ZERO_BYTES_32;
   const AMO_MANAGER_ROLE = await issuer.AMO_MANAGER_ROLE();
@@ -163,17 +139,9 @@ async function migrateIssuerRolesIdempotent(
       const complete = await executor.tryOrQueue(
         async () => {
           await issuer.grantRole(role.hash, governanceMultisig);
-          console.log(
-            `    ➕ Granted ${role.name} to governance ${governanceMultisig}`,
-          );
+          console.log(`    ➕ Granted ${role.name} to governance ${governanceMultisig}`);
         },
-        () =>
-          createGrantRoleTransaction(
-            issuerAddress,
-            role.hash,
-            governanceMultisig,
-            issuer.interface,
-          ),
+        () => createGrantRoleTransaction(issuerAddress, role.hash, governanceMultisig, issuer.interface),
       );
       if (!complete) noPendingActions = false;
     } else {
@@ -190,10 +158,7 @@ async function migrateIssuerRolesIdempotent(
     if (role.hash === DEFAULT_ADMIN_ROLE) continue;
 
     const deployerHasRole = await issuer.hasRole(role.hash, deployerAddress);
-    const governanceHasRole = await issuer.hasRole(
-      role.hash,
-      governanceMultisig,
-    );
+    const governanceHasRole = await issuer.hasRole(role.hash, governanceMultisig);
 
     if (deployerHasRole && governanceHasRole) {
       const roleName = role.name;
@@ -202,29 +167,22 @@ async function migrateIssuerRolesIdempotent(
           await issuer.revokeRole(role.hash, deployerAddress);
           console.log(`    ➖ Revoked ${roleName} from deployer`);
         },
-        () =>
-          createRevokeRoleTransaction(
-            issuerAddress,
-            role.hash,
-            deployerAddress,
-            issuer.interface,
-          ),
+        () => createRevokeRoleTransaction(issuerAddress, role.hash, deployerAddress, issuer.interface),
       );
       if (!complete) noPendingActions = false;
     }
   }
 
   // Safely migrate DEFAULT_ADMIN_ROLE away from deployer
-  const adminMigrationComplete =
-    await ensureDefaultAdminExistsAndRevokeFromWithSafe(
-      hre,
-      "IssuerV2",
-      issuerAddress,
-      governanceMultisig,
-      deployerAddress,
-      deployerSigner,
-      executor,
-    );
+  const adminMigrationComplete = await ensureDefaultAdminExistsAndRevokeFromWithSafe(
+    hre,
+    "IssuerV2",
+    issuerAddress,
+    governanceMultisig,
+    deployerAddress,
+    deployerSigner,
+    executor,
+  );
 
   if (!adminMigrationComplete) {
     noPendingActions = false;
@@ -273,24 +231,17 @@ async function ensureDefaultAdminExistsAndRevokeFromWithSafe(
         // This would need proper Safe transaction creation; return pending
         return false;
       }
-      console.log(
-        `    ⏭️ Non-Safe mode: manual admin migration actions detected; continuing.`,
-      );
+      console.log(`    ⏭️ Non-Safe mode: manual admin migration actions detected; continuing.`);
     }
 
     return true;
   } catch (error) {
     if (executor.useSafe) {
       // Requires governance action; queue not implemented for this path
-      console.warn(
-        `    🔄 Admin role migration likely requires governance action:`,
-        error,
-      );
+      console.warn(`    🔄 Admin role migration likely requires governance action:`, error);
       return false;
     }
-    console.log(
-      `    ⏭️ Non-Safe mode: admin migration requires governance; continuing.`,
-    );
+    console.log(`    ⏭️ Non-Safe mode: admin migration requires governance; continuing.`);
     return true;
   }
 }
@@ -302,11 +253,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const config = await getConfig(hre);
 
   // Initialize governance executor (decides Safe vs direct execution)
-  const executor = new GovernanceExecutor(
-    hre,
-    deployerSigner,
-    config.safeConfig,
-  );
+  const executor = new GovernanceExecutor(hre, deployerSigner, config.safeConfig);
   await executor.initialize();
 
   console.log(`\n≻ ${__filename.split("/").slice(-2).join("/")}: executing...`);
@@ -341,9 +288,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     // Resolve dependencies
     const tokenDeployment = await deployments.get(t.tokenId);
     const tokenAddress = tokenDeployment.address;
-    const collateralVaultDeployment = await deployments.get(
-      t.collateralVaultId,
-    );
+    const collateralVaultDeployment = await deployments.get(t.collateralVaultId);
     const collateralVaultAddress = collateralVaultDeployment.address;
     const amoManagerDeployment = await deployments.get(t.amoManagerId);
     const _amoManagerAddress = amoManagerDeployment.address;
@@ -354,27 +299,15 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     const issuerDeployResult = await deployments.deploy(t.newId, {
       from: deployer,
       contract: "IssuerV2",
-      args: [
-        collateralVaultAddress,
-        tokenAddress,
-        oracleAggAddress,
-        _amoManagerAddress,
-      ],
+      args: [collateralVaultAddress, tokenAddress, oracleAggAddress, _amoManagerAddress],
       log: true,
       autoMine: true,
     });
     const newIssuerAddress = issuerDeployResult.address;
 
     // 1. Grant minter role on stablecoin to the new issuer
-    console.log(
-      `  🪙 Ensuring MINTER_ROLE for ${t.newId} on token ${t.tokenId}...`,
-    );
-    const minterRoleComplete = await ensureMinterRole(
-      hre,
-      tokenAddress,
-      newIssuerAddress,
-      executor,
-    );
+    console.log(`  🪙 Ensuring MINTER_ROLE for ${t.newId} on token ${t.tokenId}...`);
+    const minterRoleComplete = await ensureMinterRole(hre, tokenAddress, newIssuerAddress, executor);
 
     if (!minterRoleComplete) {
       allOperationsComplete = false;
@@ -401,34 +334,22 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     }
 
     // Optional: keep old issuer operational until governance flips references
-    console.log(
-      `  ℹ️ New issuer ${t.newId} deployed and permissioned. Ensure dApp/services reference ${newIssuerAddress}.`,
-    );
+    console.log(`  ℹ️ New issuer ${t.newId} deployed and permissioned. Ensure dApp/services reference ${newIssuerAddress}.`);
   }
 
   if (!allOperationsComplete) {
-    const flushed = await executor.flush(
-      `Setup IssuerV2: governance operations`,
-    );
+    const flushed = await executor.flush(`Setup IssuerV2: governance operations`);
 
     if (executor.useSafe) {
       if (!flushed) {
         console.log(`❌ Failed to prepare governance batch`);
       }
-      console.log(
-        "\n⏳ Some operations require governance signatures to complete.",
-      );
-      console.log(
-        "   The deployment script will exit and can be re-run after governance executes the transactions.",
-      );
-      console.log(
-        `\n≻ ${__filename.split("/").slice(-2).join("/")}: pending governance ⏳`,
-      );
+      console.log("\n⏳ Some operations require governance signatures to complete.");
+      console.log("   The deployment script will exit and can be re-run after governance executes the transactions.");
+      console.log(`\n≻ ${__filename.split("/").slice(-2).join("/")}: pending governance ⏳`);
       return false; // Fail idempotently - script can be re-run
     } else {
-      console.log(
-        "\n⏭️ Non-Safe mode: pending governance operations detected; continuing.",
-      );
+      console.log("\n⏭️ Non-Safe mode: pending governance operations detected; continuing.");
     }
   }
 

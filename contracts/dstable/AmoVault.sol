@@ -87,9 +87,7 @@ abstract contract AmoVault is CollateralVault, IRecoverable, ReentrancyGuard {
      *      the allowance to be set to zero before changing it.
      * @param amount The new allowance amount to grant.
      */
-    function setAmoManagerApproval(
-        uint256 amount
-    ) public onlyRole(DEFAULT_ADMIN_ROLE) {
+    function setAmoManagerApproval(uint256 amount) public onlyRole(DEFAULT_ADMIN_ROLE) {
         // Reset to zero first for safety with tokens that enforce the ERC20 race-condition mitigation
         // Use standard approve for trusted protocol token (dStable) and trusted protocol contract (AmoManager)
         dstable.approve(address(amoManager), 0);
@@ -101,9 +99,7 @@ abstract contract AmoVault is CollateralVault, IRecoverable, ReentrancyGuard {
      * @param _newAmoManager The address of the new AmoManager
      * @dev Only callable by an account with the DEFAULT_ADMIN_ROLE
      */
-    function setAmoManager(
-        address _newAmoManager
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function setAmoManager(address _newAmoManager) external onlyRole(DEFAULT_ADMIN_ROLE) {
         if (_newAmoManager == address(0)) revert InvalidAmoManager();
 
         // Revoke allowance from the previous AmoManager to prevent it from spending vault funds
@@ -125,11 +121,7 @@ abstract contract AmoVault is CollateralVault, IRecoverable, ReentrancyGuard {
      * @param to The address to send the tokens to
      * @param amount The amount of tokens to recover
      */
-    function recoverERC20(
-        address token,
-        address to,
-        uint256 amount
-    ) external onlyRole(RECOVERER_ROLE) nonReentrant {
+    function recoverERC20(address token, address to, uint256 amount) external onlyRole(RECOVERER_ROLE) nonReentrant {
         if (token == address(dstable) || isCollateralSupported(token)) {
             revert CannotRecoverVaultToken(token);
         }
@@ -141,10 +133,7 @@ abstract contract AmoVault is CollateralVault, IRecoverable, ReentrancyGuard {
      * @param to The address to send the ETH to
      * @param amount The amount of ETH to recover
      */
-    function recoverETH(
-        address to,
-        uint256 amount
-    ) external onlyRole(RECOVERER_ROLE) {
+    function recoverETH(address to, uint256 amount) external onlyRole(RECOVERER_ROLE) {
         payable(to).sendValue(amount);
     }
 

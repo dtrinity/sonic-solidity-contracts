@@ -17,7 +17,7 @@
 
 pragma solidity ^0.8.20;
 
-import {BaseUpgradeabilityProxy} from "../../../dependencies/openzeppelin/upgradeability/BaseUpgradeabilityProxy.sol";
+import { BaseUpgradeabilityProxy } from "../../../dependencies/openzeppelin/upgradeability/BaseUpgradeabilityProxy.sol";
 
 /**
  * @title BaseImmutableAdminUpgradeabilityProxy
@@ -82,10 +82,7 @@ contract BaseImmutableAdminUpgradeabilityProxy is BaseUpgradeabilityProxy {
      * It should include the signature and the parameters of the function to be called, as described in
      * https://solidity.readthedocs.io/en/v0.4.24/abi-spec.html#function-selector-and-argument-encoding.
      */
-    function upgradeToAndCall(
-        address newImplementation,
-        bytes calldata data
-    ) external payable ifAdmin {
+    function upgradeToAndCall(address newImplementation, bytes calldata data) external payable ifAdmin {
         _upgradeTo(newImplementation);
         (bool success, ) = newImplementation.delegatecall(data);
         require(success);
@@ -95,10 +92,7 @@ contract BaseImmutableAdminUpgradeabilityProxy is BaseUpgradeabilityProxy {
      * @notice Only fall back when the sender is not the admin.
      */
     function _willFallback() internal virtual override {
-        require(
-            msg.sender != _admin,
-            "Cannot call fallback function from the proxy admin"
-        );
+        require(msg.sender != _admin, "Cannot call fallback function from the proxy admin");
         super._willFallback();
     }
 }

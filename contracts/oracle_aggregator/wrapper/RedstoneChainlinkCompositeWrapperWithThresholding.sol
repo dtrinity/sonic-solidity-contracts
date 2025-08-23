@@ -19,17 +19,14 @@ pragma solidity ^0.8.20;
 
 import "../interface/chainlink/BaseChainlinkWrapper.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
-import {IPriceFeed} from "../interface/chainlink/IPriceFeed.sol";
+import { IPriceFeed } from "../interface/chainlink/IPriceFeed.sol";
 import "./ThresholdingUtils.sol";
 
 /**
  * @title RedstoneChainlinkCompositeWrapperWithThresholding
  * @dev Implementation of BaseChainlinkWrapper for composite Redstone oracles with thresholding
  */
-contract RedstoneChainlinkCompositeWrapperWithThresholding is
-    BaseChainlinkWrapper,
-    ThresholdingUtils
-{
+contract RedstoneChainlinkCompositeWrapperWithThresholding is BaseChainlinkWrapper, ThresholdingUtils {
     /* Core state */
 
     struct CompositeFeed {
@@ -61,10 +58,7 @@ contract RedstoneChainlinkCompositeWrapperWithThresholding is
         uint256 fixedPriceInBase2
     );
 
-    constructor(
-        address baseCurrency,
-        uint256 _baseCurrencyUnit
-    ) BaseChainlinkWrapper(baseCurrency, _baseCurrencyUnit) {
+    constructor(address baseCurrency, uint256 _baseCurrencyUnit) BaseChainlinkWrapper(baseCurrency, _baseCurrencyUnit) {
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _grantRole(ORACLE_MANAGER_ROLE, msg.sender);
     }
@@ -101,9 +95,7 @@ contract RedstoneChainlinkCompositeWrapperWithThresholding is
         );
     }
 
-    function removeCompositeFeed(
-        address asset
-    ) external onlyRole(ORACLE_MANAGER_ROLE) {
+    function removeCompositeFeed(address asset) external onlyRole(ORACLE_MANAGER_ROLE) {
         delete compositeFeeds[asset];
         emit CompositeFeedRemoved(asset);
     }
@@ -132,19 +124,15 @@ contract RedstoneChainlinkCompositeWrapperWithThresholding is
         );
     }
 
-    function getPriceInfo(
-        address asset
-    ) public view override returns (uint256 price, bool isAlive) {
+    function getPriceInfo(address asset) public view override returns (uint256 price, bool isAlive) {
         CompositeFeed memory feed = compositeFeeds[asset];
         if (feed.feed1 == address(0) || feed.feed2 == address(0)) {
             revert FeedNotSet(asset);
         }
 
-        (, int256 answer1, , uint256 updatedAt1, ) = IPriceFeed(feed.feed1)
-            .latestRoundData();
+        (, int256 answer1, , uint256 updatedAt1, ) = IPriceFeed(feed.feed1).latestRoundData();
 
-        (, int256 answer2, , uint256 updatedAt2, ) = IPriceFeed(feed.feed2)
-            .latestRoundData();
+        (, int256 answer2, , uint256 updatedAt2, ) = IPriceFeed(feed.feed2).latestRoundData();
 
         uint256 chainlinkPrice1 = answer1 > 0 ? uint256(answer1) : 0;
         uint256 chainlinkPrice2 = answer2 > 0 ? uint256(answer2) : 0;
@@ -158,24 +146,17 @@ contract RedstoneChainlinkCompositeWrapperWithThresholding is
             priceInBase1 = _applyThreshold(priceInBase1, feed.primaryThreshold);
         }
         if (feed.secondaryThreshold.lowerThresholdInBase > 0) {
-            priceInBase2 = _applyThreshold(
-                priceInBase2,
-                feed.secondaryThreshold
-            );
+            priceInBase2 = _applyThreshold(priceInBase2, feed.secondaryThreshold);
         }
 
         price = (priceInBase1 * priceInBase2) / BASE_CURRENCY_UNIT;
         isAlive =
             price > 0 &&
-            updatedAt1 + CHAINLINK_HEARTBEAT + heartbeatStaleTimeLimit >
-            block.timestamp &&
-            updatedAt2 + CHAINLINK_HEARTBEAT + heartbeatStaleTimeLimit >
-            block.timestamp;
+            updatedAt1 + CHAINLINK_HEARTBEAT + heartbeatStaleTimeLimit > block.timestamp &&
+            updatedAt2 + CHAINLINK_HEARTBEAT + heartbeatStaleTimeLimit > block.timestamp;
     }
 
-    function getAssetPrice(
-        address asset
-    ) external view override returns (uint256) {
+    function getAssetPrice(address asset) external view override returns (uint256) {
         (uint256 price, bool isAlive) = getPriceInfo(asset);
         if (!isAlive) {
             revert PriceIsStale();

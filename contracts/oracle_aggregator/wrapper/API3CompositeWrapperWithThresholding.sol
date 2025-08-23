@@ -19,17 +19,14 @@ pragma solidity ^0.8.20;
 
 import "../interface/api3/BaseAPI3Wrapper.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
-import {IProxy} from "../interface/api3/IProxy.sol";
+import { IProxy } from "../interface/api3/IProxy.sol";
 import "./ThresholdingUtils.sol";
 
 /**
  * @title API3CompositeWrapperWithThresholding
  * @dev Implementation of IAPI3Wrapper for composite API3 oracles with thresholding
  */
-contract API3CompositeWrapperWithThresholding is
-    BaseAPI3Wrapper,
-    ThresholdingUtils
-{
+contract API3CompositeWrapperWithThresholding is BaseAPI3Wrapper, ThresholdingUtils {
     /* Core state */
 
     struct CompositeFeed {
@@ -65,10 +62,7 @@ contract API3CompositeWrapperWithThresholding is
 
     error FeedNotSet(address asset);
 
-    constructor(
-        address baseCurrency,
-        uint256 _baseCurrencyUnit
-    ) BaseAPI3Wrapper(baseCurrency, _baseCurrencyUnit) {
+    constructor(address baseCurrency, uint256 _baseCurrencyUnit) BaseAPI3Wrapper(baseCurrency, _baseCurrencyUnit) {
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _grantRole(ORACLE_MANAGER_ROLE, msg.sender);
     }
@@ -105,9 +99,7 @@ contract API3CompositeWrapperWithThresholding is
         );
     }
 
-    function removeCompositeFeed(
-        address asset
-    ) external onlyRole(ORACLE_MANAGER_ROLE) {
+    function removeCompositeFeed(address asset) external onlyRole(ORACLE_MANAGER_ROLE) {
         delete compositeFeeds[asset];
         emit CompositeFeedRemoved(asset);
     }
@@ -136,9 +128,7 @@ contract API3CompositeWrapperWithThresholding is
         );
     }
 
-    function getPriceInfo(
-        address asset
-    ) public view override returns (uint256 price, bool isAlive) {
+    function getPriceInfo(address asset) public view override returns (uint256 price, bool isAlive) {
         CompositeFeed memory feed = compositeFeeds[asset];
         if (feed.proxy1 == address(0) || feed.proxy2 == address(0)) {
             revert FeedNotSet(asset);
@@ -159,24 +149,17 @@ contract API3CompositeWrapperWithThresholding is
             priceInBase1 = _applyThreshold(priceInBase1, feed.primaryThreshold);
         }
         if (feed.secondaryThreshold.lowerThresholdInBase > 0) {
-            priceInBase2 = _applyThreshold(
-                priceInBase2,
-                feed.secondaryThreshold
-            );
+            priceInBase2 = _applyThreshold(priceInBase2, feed.secondaryThreshold);
         }
 
         price = (priceInBase1 * priceInBase2) / BASE_CURRENCY_UNIT;
         isAlive =
             price > 0 &&
-            timestamp1 + API3_HEARTBEAT + heartbeatStaleTimeLimit >
-            block.timestamp &&
-            timestamp2 + API3_HEARTBEAT + heartbeatStaleTimeLimit >
-            block.timestamp;
+            timestamp1 + API3_HEARTBEAT + heartbeatStaleTimeLimit > block.timestamp &&
+            timestamp2 + API3_HEARTBEAT + heartbeatStaleTimeLimit > block.timestamp;
     }
 
-    function getAssetPrice(
-        address asset
-    ) external view override returns (uint256) {
+    function getAssetPrice(address asset) external view override returns (uint256) {
         (uint256 price, bool isAlive) = getPriceInfo(asset);
         if (!isAlive) {
             revert PriceIsStale();

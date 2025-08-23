@@ -17,8 +17,8 @@
 
 pragma solidity ^0.8.20;
 
-import {PoolConfigurator} from "../protocol/pool/PoolConfigurator.sol";
-import {Ownable} from "../dependencies/openzeppelin/contracts/Ownable.sol";
+import { PoolConfigurator } from "../protocol/pool/PoolConfigurator.sol";
+import { Ownable } from "../dependencies/openzeppelin/contracts/Ownable.sol";
 
 /**
  * @title ReservesSetupHelper
@@ -61,27 +61,12 @@ contract ReservesSetupHelper is Ownable {
             if (inputParams[i].borrowingEnabled) {
                 configurator.setReserveBorrowing(inputParams[i].asset, true);
 
-                configurator.setBorrowCap(
-                    inputParams[i].asset,
-                    inputParams[i].borrowCap
-                );
-                configurator.setReserveStableRateBorrowing(
-                    inputParams[i].asset,
-                    inputParams[i].stableBorrowingEnabled
-                );
+                configurator.setBorrowCap(inputParams[i].asset, inputParams[i].borrowCap);
+                configurator.setReserveStableRateBorrowing(inputParams[i].asset, inputParams[i].stableBorrowingEnabled);
             }
-            configurator.setReserveFlashLoaning(
-                inputParams[i].asset,
-                inputParams[i].flashLoanEnabled
-            );
-            configurator.setSupplyCap(
-                inputParams[i].asset,
-                inputParams[i].supplyCap
-            );
-            configurator.setReserveFactor(
-                inputParams[i].asset,
-                inputParams[i].reserveFactor
-            );
+            configurator.setReserveFlashLoaning(inputParams[i].asset, inputParams[i].flashLoanEnabled);
+            configurator.setSupplyCap(inputParams[i].asset, inputParams[i].supplyCap);
+            configurator.setReserveFactor(inputParams[i].asset, inputParams[i].reserveFactor);
         }
     }
 }

@@ -17,10 +17,10 @@
 
 pragma solidity ^0.8.20;
 
-import {DataTypes} from "../protocol/libraries/types/DataTypes.sol";
-import {IDefaultInterestRateStrategy} from "../interfaces/IDefaultInterestRateStrategy.sol";
-import {IReserveInterestRateStrategy} from "../interfaces/IReserveInterestRateStrategy.sol";
-import {IPoolAddressesProvider} from "../interfaces/IPoolAddressesProvider.sol";
+import { DataTypes } from "../protocol/libraries/types/DataTypes.sol";
+import { IDefaultInterestRateStrategy } from "../interfaces/IDefaultInterestRateStrategy.sol";
+import { IReserveInterestRateStrategy } from "../interfaces/IReserveInterestRateStrategy.sol";
+import { IPoolAddressesProvider } from "../interfaces/IPoolAddressesProvider.sol";
 
 /**
  * @title ZeroReserveInterestRateStrategy contract
@@ -103,24 +103,13 @@ contract ZeroReserveInterestRateStrategy is IDefaultInterestRateStrategy {
     }
 
     /// @inheritdoc IDefaultInterestRateStrategy
-    function getBaseVariableBorrowRate()
-        external
-        pure
-        override
-        returns (uint256)
-    {
+    function getBaseVariableBorrowRate() external pure override returns (uint256) {
         return _baseVariableBorrowRate;
     }
 
     /// @inheritdoc IDefaultInterestRateStrategy
-    function getMaxVariableBorrowRate()
-        external
-        pure
-        override
-        returns (uint256)
-    {
-        return
-            _baseVariableBorrowRate + _variableRateSlope1 + _variableRateSlope2;
+    function getMaxVariableBorrowRate() external pure override returns (uint256) {
+        return _baseVariableBorrowRate + _variableRateSlope1 + _variableRateSlope2;
     }
 
     /// @inheritdoc IReserveInterestRateStrategy

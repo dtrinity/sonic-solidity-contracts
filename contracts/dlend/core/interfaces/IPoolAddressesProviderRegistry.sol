@@ -28,47 +28,34 @@ interface IPoolAddressesProviderRegistry {
      * @param addressesProvider The address of the registered PoolAddressesProvider
      * @param id The id of the registered PoolAddressesProvider
      */
-    event AddressesProviderRegistered(
-        address indexed addressesProvider,
-        uint256 indexed id
-    );
+    event AddressesProviderRegistered(address indexed addressesProvider, uint256 indexed id);
 
     /**
      * @dev Emitted when an AddressesProvider is unregistered.
      * @param addressesProvider The address of the unregistered PoolAddressesProvider
      * @param id The id of the unregistered PoolAddressesProvider
      */
-    event AddressesProviderUnregistered(
-        address indexed addressesProvider,
-        uint256 indexed id
-    );
+    event AddressesProviderUnregistered(address indexed addressesProvider, uint256 indexed id);
 
     /**
      * @notice Returns the list of registered addresses providers
      * @return The list of addresses providers
      */
-    function getAddressesProvidersList()
-        external
-        view
-        returns (address[] memory);
+    function getAddressesProvidersList() external view returns (address[] memory);
 
     /**
      * @notice Returns the id of a registered PoolAddressesProvider
      * @param addressesProvider The address of the PoolAddressesProvider
      * @return The id of the PoolAddressesProvider or 0 if is not registered
      */
-    function getAddressesProviderIdByAddress(
-        address addressesProvider
-    ) external view returns (uint256);
+    function getAddressesProviderIdByAddress(address addressesProvider) external view returns (uint256);
 
     /**
      * @notice Returns the address of a registered PoolAddressesProvider
      * @param id The id of the market
      * @return The address of the PoolAddressesProvider with the given id or zero address if it is not registered
      */
-    function getAddressesProviderAddressById(
-        uint256 id
-    ) external view returns (address);
+    function getAddressesProviderAddressById(uint256 id) external view returns (address);
 
     /**
      * @notice Registers an addresses provider

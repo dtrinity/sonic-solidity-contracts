@@ -17,12 +17,12 @@
 
 pragma solidity ^0.8.20;
 
-import {IERC20} from "contracts/dlend/core/dependencies/openzeppelin/contracts/IERC20.sol";
-import {IAdminControlledEcosystemReserve} from "./interfaces/IAdminControlledEcosystemReserve.sol";
-import {VersionedInitializable} from "./libs/VersionedInitializable.sol";
-import {SafeERC20} from "./libs/SafeERC20.sol";
-import {ReentrancyGuard} from "./libs/ReentrancyGuard.sol";
-import {Address} from "./libs/Address.sol";
+import { IERC20 } from "contracts/dlend/core/dependencies/openzeppelin/contracts/IERC20.sol";
+import { IAdminControlledEcosystemReserve } from "./interfaces/IAdminControlledEcosystemReserve.sol";
+import { VersionedInitializable } from "./libs/VersionedInitializable.sol";
+import { SafeERC20 } from "./libs/SafeERC20.sol";
+import { ReentrancyGuard } from "./libs/ReentrancyGuard.sol";
+import { Address } from "./libs/Address.sol";
 
 /**
  * @title AdminControlledEcosystemReserve
@@ -31,10 +31,7 @@ import {Address} from "./libs/Address.sol";
  * @dev Done abstract to add an `initialize()` function on the child, with `initializer` modifier
  * @author BGD Labs
  **/
-abstract contract AdminControlledEcosystemReserve is
-    VersionedInitializable,
-    IAdminControlledEcosystemReserve
-{
+abstract contract AdminControlledEcosystemReserve is VersionedInitializable, IAdminControlledEcosystemReserve {
     using SafeERC20 for IERC20;
     using Address for address payable;
 
@@ -43,8 +40,7 @@ abstract contract AdminControlledEcosystemReserve is
     uint256 public constant REVISION = 1;
 
     /// @inheritdoc IAdminControlledEcosystemReserve
-    address public constant ETH_MOCK_ADDRESS =
-        0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
+    address public constant ETH_MOCK_ADDRESS = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
     modifier onlyFundsAdmin() {
         require(msg.sender == _fundsAdmin, "ONLY_BY_FUNDS_ADMIN");
@@ -61,20 +57,12 @@ abstract contract AdminControlledEcosystemReserve is
     }
 
     /// @inheritdoc IAdminControlledEcosystemReserve
-    function approve(
-        IERC20 token,
-        address recipient,
-        uint256 amount
-    ) external onlyFundsAdmin {
+    function approve(IERC20 token, address recipient, uint256 amount) external onlyFundsAdmin {
         token.safeApprove(recipient, amount);
     }
 
     /// @inheritdoc IAdminControlledEcosystemReserve
-    function transfer(
-        IERC20 token,
-        address recipient,
-        uint256 amount
-    ) external onlyFundsAdmin {
+    function transfer(IERC20 token, address recipient, uint256 amount) external onlyFundsAdmin {
         require(recipient != address(0), "INVALID_0X_RECIPIENT");
 
         if (address(token) == ETH_MOCK_ADDRESS) {

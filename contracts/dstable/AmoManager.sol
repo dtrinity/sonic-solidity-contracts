@@ -22,7 +22,7 @@ import "@openzeppelin/contracts/utils/structs/EnumerableMap.sol";
 import "contracts/common/IMintableERC20.sol";
 import "./CollateralVault.sol";
 import "./OracleAware.sol";
-import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
+import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 // Forward declaration interface for AmoVault instead of importing the full contract
@@ -33,16 +33,9 @@ interface IAmoVault {
 
     function totalCollateralValue() external view returns (uint256);
 
-    function withdrawTo(
-        address recipient,
-        uint256 amount,
-        address asset
-    ) external;
+    function withdrawTo(address recipient, uint256 amount, address asset) external;
 
-    function assetValueFromAmount(
-        uint256 amount,
-        address asset
-    ) external view returns (uint256);
+    function assetValueFromAmount(uint256 amount, address asset) external view returns (uint256);
 }
 
 /**
@@ -74,24 +67,16 @@ contract AmoManager is AccessControl, OracleAware, ReentrancyGuard {
 
     /* Roles */
 
-    bytes32 public constant AMO_ALLOCATOR_ROLE =
-        keccak256("AMO_ALLOCATOR_ROLE");
-    bytes32 public constant FEE_COLLECTOR_ROLE =
-        keccak256("FEE_COLLECTOR_ROLE");
+    bytes32 public constant AMO_ALLOCATOR_ROLE = keccak256("AMO_ALLOCATOR_ROLE");
+    bytes32 public constant FEE_COLLECTOR_ROLE = keccak256("FEE_COLLECTOR_ROLE");
 
     /* Errors */
 
     error InactiveAmoVault(address amoVault);
-    error AmoSupplyInvariantViolation(
-        uint256 startingSupply,
-        uint256 endingSupply
-    );
+    error AmoSupplyInvariantViolation(uint256 startingSupply, uint256 endingSupply);
     error AmoVaultAlreadyEnabled(address amoVault);
     error CannotTransferDStable();
-    error InsufficientProfits(
-        uint256 takeProfitValueInBase,
-        int256 availableProfitInBase
-    );
+    error InsufficientProfits(uint256 takeProfitValueInBase, int256 availableProfitInBase);
     error InsufficientAllocation(uint256 requested, uint256 available);
 
     /**
@@ -120,10 +105,7 @@ contract AmoManager is AccessControl, OracleAware, ReentrancyGuard {
      * @param amoVault The address of the AMO vault.
      * @param dstableAmount The amount of dStable to allocate.
      */
-    function allocateAmo(
-        address amoVault,
-        uint256 dstableAmount
-    ) public onlyRole(AMO_ALLOCATOR_ROLE) nonReentrant {
+    function allocateAmo(address amoVault, uint256 dstableAmount) public onlyRole(AMO_ALLOCATOR_ROLE) nonReentrant {
         uint256 startingAmoSupply = totalAmoSupply();
 
         // Make sure the vault is active
@@ -142,10 +124,7 @@ contract AmoManager is AccessControl, OracleAware, ReentrancyGuard {
         // Check invariants
         uint256 endingAmoSupply = totalAmoSupply();
         if (endingAmoSupply != startingAmoSupply) {
-            revert AmoSupplyInvariantViolation(
-                startingAmoSupply,
-                endingAmoSupply
-            );
+            revert AmoSupplyInvariantViolation(startingAmoSupply, endingAmoSupply);
         }
 
         emit AmoAllocated(amoVault, dstableAmount);
@@ -156,10 +135,7 @@ contract AmoManager is AccessControl, OracleAware, ReentrancyGuard {
      * @param amoVault The address of the AMO vault.
      * @param dstableAmount The amount of dStable to deallocate.
      */
-    function deallocateAmo(
-        address amoVault,
-        uint256 dstableAmount
-    ) public onlyRole(AMO_ALLOCATOR_ROLE) nonReentrant {
+    function deallocateAmo(address amoVault, uint256 dstableAmount) public onlyRole(AMO_ALLOCATOR_ROLE) nonReentrant {
         uint256 startingAmoSupply = totalAmoSupply();
 
         // We don't require that the vault is active or has allocation, since we want to allow withdrawing from inactive vaults
@@ -182,10 +158,7 @@ contract AmoManager is AccessControl, OracleAware, ReentrancyGuard {
         // Check invariants
         uint256 endingAmoSupply = totalAmoSupply();
         if (endingAmoSupply != startingAmoSupply) {
-            revert AmoSupplyInvariantViolation(
-                startingAmoSupply,
-                endingAmoSupply
-            );
+            revert AmoSupplyInvariantViolation(startingAmoSupply, endingAmoSupply);
         }
 
         emit AmoDeallocated(amoVault, dstableAmount);
@@ -204,9 +177,7 @@ contract AmoManager is AccessControl, OracleAware, ReentrancyGuard {
      * @notice Decreases the AMO supply by burning dStable.
      * @param dstableAmount The amount of dStable to burn.
      */
-    function decreaseAmoSupply(
-        uint256 dstableAmount
-    ) public onlyRole(AMO_ALLOCATOR_ROLE) {
+    function decreaseAmoSupply(uint256 dstableAmount) public onlyRole(AMO_ALLOCATOR_ROLE) {
         dstable.burn(dstableAmount);
     }
 
@@ -224,9 +195,7 @@ contract AmoManager is AccessControl, OracleAware, ReentrancyGuard {
      * @param amoVault The address of the AMO vault.
      * @return The current allocation for the vault.
      */
-    function amoVaultAllocation(
-        address amoVault
-    ) public view returns (uint256) {
+    function amoVaultAllocation(address amoVault) public view returns (uint256) {
         (bool exists, uint256 allocation) = _amoVaults.tryGet(amoVault);
         return exists ? allocation : 0;
     }
@@ -243,9 +212,7 @@ contract AmoManager is AccessControl, OracleAware, ReentrancyGuard {
      * @notice Enables an AMO vault.
      * @param amoVault The address of the AMO vault.
      */
-    function enableAmoVault(
-        address amoVault
-    ) public onlyRole(DEFAULT_ADMIN_ROLE) {
+    function enableAmoVault(address amoVault) public onlyRole(DEFAULT_ADMIN_ROLE) {
         if (_isAmoActive[amoVault]) {
             revert AmoVaultAlreadyEnabled(amoVault);
         }
@@ -260,9 +227,7 @@ contract AmoManager is AccessControl, OracleAware, ReentrancyGuard {
      * @notice Disables an AMO vault.
      * @param amoVault The address of the AMO vault.
      */
-    function disableAmoVault(
-        address amoVault
-    ) public onlyRole(DEFAULT_ADMIN_ROLE) {
+    function disableAmoVault(address amoVault) public onlyRole(DEFAULT_ADMIN_ROLE) {
         if (!_isAmoActive[amoVault]) {
             revert InactiveAmoVault(amoVault);
         }
@@ -281,8 +246,7 @@ contract AmoManager is AccessControl, OracleAware, ReentrancyGuard {
         for (uint256 i = 0; i < _amoVaults.length(); i++) {
             (address vaultAddress, ) = _amoVaults.at(i);
             if (isAmoActive(vaultAddress)) {
-                totalBaseValue += IAmoVault(vaultAddress)
-                    .totalCollateralValue();
+                totalBaseValue += IAmoVault(vaultAddress).totalCollateralValue();
             }
         }
         return totalBaseValue;
@@ -312,11 +276,8 @@ contract AmoManager is AccessControl, OracleAware, ReentrancyGuard {
         //    converted to that collateral is now free-floating and fully backed
         // 5. Thus we decrement the AMO allocation to reflect the fact that the dStable is no longer
         //    unbacked, but is actually fully backed and circulating
-        uint256 collateralBaseValue = collateralHolderVault
-            .assetValueFromAmount(amount, token);
-        uint256 collateralInDstable = baseValueToDstableAmount(
-            collateralBaseValue
-        );
+        uint256 collateralBaseValue = collateralHolderVault.assetValueFromAmount(amount, token);
+        uint256 collateralInDstable = baseValueToDstableAmount(collateralBaseValue);
         (, uint256 currentAllocation) = _amoVaults.tryGet(amoVault);
 
         uint256 adjustmentAmount = collateralInDstable;
@@ -334,11 +295,7 @@ contract AmoManager is AccessControl, OracleAware, ReentrancyGuard {
         totalAllocated -= adjustmentAmount;
 
         // Transfer the collateral
-        IAmoVault(amoVault).withdrawTo(
-            address(collateralHolderVault),
-            amount,
-            token
-        );
+        IAmoVault(amoVault).withdrawTo(address(collateralHolderVault), amount, token);
     }
 
     /**
@@ -365,11 +322,8 @@ contract AmoManager is AccessControl, OracleAware, ReentrancyGuard {
         // 2. When we buy back dStable, the dStable is now unbacked (a redemption)
         // 3. Thus any collateral deposited to an AMO vault can create unbacked dStable,
         //    which means the AMO allocation for that vault must be increased to reflect this
-        uint256 collateralBaseValue = collateralHolderVault
-            .assetValueFromAmount(amount, token);
-        uint256 collateralInDstable = baseValueToDstableAmount(
-            collateralBaseValue
-        );
+        uint256 collateralBaseValue = collateralHolderVault.assetValueFromAmount(amount, token);
+        uint256 collateralInDstable = baseValueToDstableAmount(collateralBaseValue);
         (, uint256 currentAllocation) = _amoVaults.tryGet(amoVault);
         _amoVaults.set(amoVault, currentAllocation + collateralInDstable);
         totalAllocated += collateralInDstable;
@@ -385,14 +339,10 @@ contract AmoManager is AccessControl, OracleAware, ReentrancyGuard {
      * @param vaultAddress The address of the AMO vault to check.
      * @return The available profit in base (can be negative).
      */
-    function availableVaultProfitsInBase(
-        address vaultAddress
-    ) public view returns (int256) {
+    function availableVaultProfitsInBase(address vaultAddress) public view returns (int256) {
         uint256 totalVaultValueInBase = IAmoVault(vaultAddress).totalValue();
         uint256 allocatedDstable = amoVaultAllocation(vaultAddress);
-        uint256 allocatedValueInBase = dstableAmountToBaseValue(
-            allocatedDstable
-        );
+        uint256 allocatedValueInBase = dstableAmountToBaseValue(allocatedDstable);
 
         return int256(totalVaultValueInBase) - int256(allocatedValueInBase);
     }
@@ -410,22 +360,12 @@ contract AmoManager is AccessControl, OracleAware, ReentrancyGuard {
         address recipient,
         address takeProfitToken,
         uint256 takeProfitAmount
-    )
-        public
-        onlyRole(FEE_COLLECTOR_ROLE)
-        nonReentrant
-        returns (uint256 takeProfitValueInBase)
-    {
+    ) public onlyRole(FEE_COLLECTOR_ROLE) nonReentrant returns (uint256 takeProfitValueInBase) {
         // Leave open the possibility of withdrawing profits from inactive vaults
 
-        takeProfitValueInBase = amoVault.assetValueFromAmount(
-            takeProfitAmount,
-            takeProfitToken
-        );
+        takeProfitValueInBase = amoVault.assetValueFromAmount(takeProfitAmount, takeProfitToken);
 
-        int256 _availableProfitInBase = availableVaultProfitsInBase(
-            address(amoVault)
-        );
+        int256 _availableProfitInBase = availableVaultProfitsInBase(address(amoVault));
 
         // Make sure we are withdrawing less than the available profit
         //
@@ -436,14 +376,8 @@ contract AmoManager is AccessControl, OracleAware, ReentrancyGuard {
         // Such a value is unachievable on-chain and the function is restricted to the
         // trusted `FEE_COLLECTOR_ROLE`, so the edge-case is not considered a practical
         // risk.
-        if (
-            _availableProfitInBase <= 0 ||
-            int256(takeProfitValueInBase) > _availableProfitInBase
-        ) {
-            revert InsufficientProfits(
-                takeProfitValueInBase,
-                _availableProfitInBase
-            );
+        if (_availableProfitInBase <= 0 || int256(takeProfitValueInBase) > _availableProfitInBase) {
+            revert InsufficientProfits(takeProfitValueInBase, _availableProfitInBase);
         }
 
         // Withdraw profits from the vault
@@ -480,9 +414,7 @@ contract AmoManager is AccessControl, OracleAware, ReentrancyGuard {
      * @param baseValue The amount of base value to convert.
      * @return The equivalent amount of dStable tokens.
      */
-    function baseValueToDstableAmount(
-        uint256 baseValue
-    ) public view returns (uint256) {
+    function baseValueToDstableAmount(uint256 baseValue) public view returns (uint256) {
         uint8 dstableDecimals = dstable.decimals();
         // Align valuation with Issuer/Redeemer: assume 1 dStable == baseCurrencyUnit
         return Math.mulDiv(baseValue, 10 ** dstableDecimals, baseCurrencyUnit);
@@ -493,13 +425,10 @@ contract AmoManager is AccessControl, OracleAware, ReentrancyGuard {
      * @param dstableAmount The amount of dStable tokens to convert.
      * @return The equivalent amount of base value.
      */
-    function dstableAmountToBaseValue(
-        uint256 dstableAmount
-    ) public view returns (uint256) {
+    function dstableAmountToBaseValue(uint256 dstableAmount) public view returns (uint256) {
         uint8 dstableDecimals = dstable.decimals();
         // Align valuation with Issuer/Redeemer: assume 1 dStable == baseCurrencyUnit
-        return
-            Math.mulDiv(dstableAmount, baseCurrencyUnit, 10 ** dstableDecimals);
+        return Math.mulDiv(dstableAmount, baseCurrencyUnit, 10 ** dstableDecimals);
     }
 
     /* Admin */
@@ -508,9 +437,7 @@ contract AmoManager is AccessControl, OracleAware, ReentrancyGuard {
      * @notice Sets the collateral vault address
      * @param _collateralVault The address of the new collateral vault
      */
-    function setCollateralVault(
-        address _collateralVault
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function setCollateralVault(address _collateralVault) external onlyRole(DEFAULT_ADMIN_ROLE) {
         collateralHolderVault = CollateralVault(_collateralVault);
     }
 }

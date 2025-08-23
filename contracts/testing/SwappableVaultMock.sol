@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import {ERC20} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
-import {SwappableVault} from "../common/SwappableVault.sol";
-import {IMintableERC20} from "../common/IMintableERC20.sol";
+import { ERC20 } from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
+import { SwappableVault } from "../common/SwappableVault.sol";
+import { IMintableERC20 } from "../common/IMintableERC20.sol";
 
 /**
  * @title SwappableVaultMock
@@ -28,10 +28,7 @@ contract SwappableVaultMock is SwappableVault {
     /**
      * @dev Set different amounts for return vs actual spend to test tolerance
      */
-    function setAmountInParams(
-        uint256 amountInToReturn,
-        uint256 amountInToActuallySpend
-    ) external {
+    function setAmountInParams(uint256 amountInToReturn, uint256 amountInToActuallySpend) external {
         _amountInToReturn = amountInToReturn;
         _amountInToActuallySpend = amountInToActuallySpend;
         _amountOutToActuallyMint = 0; // Will use amountOut parameter
@@ -47,10 +44,7 @@ contract SwappableVaultMock is SwappableVault {
     /**
      * @dev Set whether the swap implementation should revert
      */
-    function setShouldRevert(
-        bool shouldRevert,
-        string memory revertMessage
-    ) external {
+    function setShouldRevert(bool shouldRevert, string memory revertMessage) external {
         _shouldRevert = shouldRevert;
         _revertMessage = revertMessage;
     }
@@ -74,25 +68,17 @@ contract SwappableVaultMock is SwappableVault {
         // Transfer input tokens from this contract to simulate spending
         // We'll use _amountInToActuallySpend as the actual amount spent
         uint256 actualSpent = _amountInToActuallySpend;
-        if (
-            actualSpent > 0 &&
-            inputToken.balanceOf(address(this)) >= actualSpent
-        ) {
+        if (actualSpent > 0 && inputToken.balanceOf(address(this)) >= actualSpent) {
             inputToken.transfer(address(0xdead), actualSpent); // Burn tokens to simulate spending
         }
 
         // For output tokens, we need to ensure the balance increases correctly
         // Instead of transferring to receiver directly, we'll mint new tokens to this contract
         // to simulate receiving tokens from a swap, then the balance increase will be detected
-        uint256 actualAmountOut = _amountOutToActuallyMint > 0
-            ? _amountOutToActuallyMint
-            : amountOut;
+        uint256 actualAmountOut = _amountOutToActuallyMint > 0 ? _amountOutToActuallyMint : amountOut;
         if (actualAmountOut > 0) {
             // Mint tokens to this contract to simulate receiving them from swap
-            IMintableERC20(address(outputToken)).mint(
-                address(this),
-                actualAmountOut
-            );
+            IMintableERC20(address(outputToken)).mint(address(this), actualAmountOut);
         }
 
         return _amountInToReturn;
@@ -110,16 +96,7 @@ contract SwappableVaultMock is SwappableVault {
         uint256 deadline,
         bytes memory extraData
     ) external returns (uint256) {
-        return
-            _swapExactOutput(
-                inputToken,
-                outputToken,
-                amountOut,
-                amountInMaximum,
-                receiver,
-                deadline,
-                extraData
-            );
+        return _swapExactOutput(inputToken, outputToken, amountOut, amountInMaximum, receiver, deadline, extraData);
     }
 
     /**

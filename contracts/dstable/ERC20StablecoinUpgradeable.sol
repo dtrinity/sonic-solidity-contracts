@@ -45,10 +45,7 @@ contract ERC20StablecoinUpgradeable is
         _disableInitializers();
     }
 
-    function initialize(
-        string memory initialName,
-        string memory initialSymbol
-    ) public initializer {
+    function initialize(string memory initialName, string memory initialSymbol) public initializer {
         __ERC20_init(initialName, initialSymbol);
         __ERC20Burnable_init();
         __Pausable_init();
@@ -84,18 +81,11 @@ contract ERC20StablecoinUpgradeable is
         address from,
         address to,
         uint256 value
-    )
-        internal
-        override(ERC20Upgradeable, ERC20PausableUpgradeable)
-        whenNotPaused
-    {
+    ) internal override(ERC20Upgradeable, ERC20PausableUpgradeable) whenNotPaused {
         super._update(from, to, value);
     }
 
-    function setNameAndSymbol(
-        string memory newName,
-        string memory newSymbol
-    ) public onlyRole(DEFAULT_ADMIN_ROLE) {
+    function setNameAndSymbol(string memory newName, string memory newSymbol) public onlyRole(DEFAULT_ADMIN_ROLE) {
         _tokenName = newName;
         _tokenSymbol = newSymbol;
     }

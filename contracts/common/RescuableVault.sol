@@ -17,9 +17,9 @@
 
 pragma solidity ^0.8.20;
 
-import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-import {ERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
+import { ReentrancyGuard } from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
+import { ERC20, SafeERC20 } from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 
 /**
  * @title RescuableVault
@@ -35,11 +35,7 @@ abstract contract RescuableVault is Ownable, ReentrancyGuard {
      * @dev Gets the restricted rescue tokens
      * @return address[] Restricted rescue tokens
      */
-    function getRestrictedRescueTokens()
-        public
-        view
-        virtual
-        returns (address[] memory);
+    function getRestrictedRescueTokens() public view virtual returns (address[] memory);
 
     /* Rescue Functions */
 
@@ -49,11 +45,7 @@ abstract contract RescuableVault is Ownable, ReentrancyGuard {
      * @param receiver Address to receive the rescued tokens
      * @param amount Amount of tokens to rescue
      */
-    function rescueToken(
-        address token,
-        address receiver,
-        uint256 amount
-    ) public onlyOwner nonReentrant {
+    function rescueToken(address token, address receiver, uint256 amount) public onlyOwner nonReentrant {
         // The vault does not hold any debt token and collateral token, so it is not necessary to restrict the rescue of debt token and collateral token
         // We can just rescue any ERC-20 token
 

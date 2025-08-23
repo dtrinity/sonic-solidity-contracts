@@ -27,9 +27,7 @@ export interface IReserveCollateralParams {
   liquidationProtocolFee?: string;
 }
 
-export interface IReserveParams
-  extends IReserveBorrowParams,
-    IReserveCollateralParams {
+export interface IReserveParams extends IReserveBorrowParams, IReserveCollateralParams {
   aTokenImpl: eContractid;
   reserveFactor: string;
   supplyCap: string;

@@ -53,21 +53,14 @@ contract IssuerV2 is AccessControl, OracleAware, ReentrancyGuard, Pausable {
     /* Roles */
 
     bytes32 public constant AMO_MANAGER_ROLE = keccak256("AMO_MANAGER_ROLE");
-    bytes32 public constant INCENTIVES_MANAGER_ROLE =
-        keccak256("INCENTIVES_MANAGER_ROLE");
+    bytes32 public constant INCENTIVES_MANAGER_ROLE = keccak256("INCENTIVES_MANAGER_ROLE");
     bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
 
     /* Errors */
 
     error SlippageTooHigh(uint256 minDStable, uint256 dstableAmount);
-    error IssuanceSurpassesExcessCollateral(
-        uint256 collateralInDstable,
-        uint256 circulatingDstable
-    );
-    error MintingToAmoShouldNotIncreaseSupply(
-        uint256 circulatingDstableBefore,
-        uint256 circulatingDstableAfter
-    );
+    error IssuanceSurpassesExcessCollateral(uint256 collateralInDstable, uint256 circulatingDstable);
+    error MintingToAmoShouldNotIncreaseSupply(uint256 circulatingDstableBefore, uint256 circulatingDstableAfter);
     error AssetMintingPaused(address asset);
 
     /* Overrides */
@@ -134,11 +127,7 @@ contract IssuerV2 is AccessControl, OracleAware, ReentrancyGuard, Pausable {
         }
 
         // Transfer collateral directly to vault
-        IERC20Metadata(collateralAsset).safeTransferFrom(
-            msg.sender,
-            address(collateralVault),
-            collateralAmount
-        );
+        IERC20Metadata(collateralAsset).safeTransferFrom(msg.sender, address(collateralVault), collateralAmount);
 
         dstable.mint(msg.sender, dstableAmount);
     }
@@ -158,10 +147,7 @@ contract IssuerV2 is AccessControl, OracleAware, ReentrancyGuard, Pausable {
         uint256 _circulatingDstable = circulatingDstable();
         uint256 _collateralInDstable = collateralInDstable();
         if (_collateralInDstable < _circulatingDstable) {
-            revert IssuanceSurpassesExcessCollateral(
-                _collateralInDstable,
-                _circulatingDstable
-            );
+            revert IssuanceSurpassesExcessCollateral(_collateralInDstable, _circulatingDstable);
         }
     }
 
@@ -169,9 +155,7 @@ contract IssuerV2 is AccessControl, OracleAware, ReentrancyGuard, Pausable {
      * @notice Increases the AMO supply by minting new dStable tokens
      * @param dstableAmount The amount of dStable to mint and send to the AMO Manager
      */
-    function increaseAmoSupply(
-        uint256 dstableAmount
-    ) external onlyRole(AMO_MANAGER_ROLE) whenNotPaused {
+    function increaseAmoSupply(uint256 dstableAmount) external onlyRole(AMO_MANAGER_ROLE) whenNotPaused {
         uint256 _circulatingDstableBefore = circulatingDstable();
 
         dstable.mint(address(amoManager), dstableAmount);
@@ -180,10 +164,7 @@ contract IssuerV2 is AccessControl, OracleAware, ReentrancyGuard, Pausable {
 
         // Sanity check that we are sending to the active AMO Manager
         if (_circulatingDstableAfter != _circulatingDstableBefore) {
-            revert MintingToAmoShouldNotIncreaseSupply(
-                _circulatingDstableBefore,
-                _circulatingDstableAfter
-            );
+            revert MintingToAmoShouldNotIncreaseSupply(_circulatingDstableBefore, _circulatingDstableAfter);
         }
     }
 
@@ -211,9 +192,7 @@ contract IssuerV2 is AccessControl, OracleAware, ReentrancyGuard, Pausable {
      * @param baseValue The amount of base value to convert
      * @return The equivalent amount of dStable tokens
      */
-    function baseValueToDstableAmount(
-        uint256 baseValue
-    ) public view returns (uint256) {
+    function baseValueToDstableAmount(uint256 baseValue) public view returns (uint256) {
         return Math.mulDiv(baseValue, 10 ** dstableDecimals, baseCurrencyUnit);
     }
 
@@ -232,9 +211,7 @@ contract IssuerV2 is AccessControl, OracleAware, ReentrancyGuard, Pausable {
      * @notice Sets the AMO Manager address
      * @param _amoManager The address of the AMO Manager
      */
-    function setAmoManager(
-        address _amoManager
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function setAmoManager(address _amoManager) external onlyRole(DEFAULT_ADMIN_ROLE) {
         address old = address(amoManager);
         amoManager = AmoManager(_amoManager);
         grantRole(AMO_MANAGER_ROLE, _amoManager);
@@ -248,9 +225,7 @@ contract IssuerV2 is AccessControl, OracleAware, ReentrancyGuard, Pausable {
      * @notice Sets the collateral vault address
      * @param _collateralVault The address of the collateral vault
      */
-    function setCollateralVault(
-        address _collateralVault
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function setCollateralVault(address _collateralVault) external onlyRole(DEFAULT_ADMIN_ROLE) {
         collateralVault = CollateralVault(_collateralVault);
         emit CollateralVaultSet(_collateralVault);
     }
@@ -260,10 +235,7 @@ contract IssuerV2 is AccessControl, OracleAware, ReentrancyGuard, Pausable {
      * @param asset The collateral asset address
      * @param paused True to pause minting; false to enable
      */
-    function setAssetMintingPause(
-        address asset,
-        bool paused
-    ) external onlyRole(PAUSER_ROLE) {
+    function setAssetMintingPause(address asset, bool paused) external onlyRole(PAUSER_ROLE) {
         // Optional guard: if vault does not support the asset, setting an override is meaningless
         if (!collateralVault.isCollateralSupported(asset)) {
             revert CollateralVault.UnsupportedCollateral(asset);

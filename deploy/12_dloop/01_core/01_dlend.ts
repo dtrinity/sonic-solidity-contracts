@@ -28,33 +28,21 @@ async function deployDLoopCoreDLend(
   dUSDAddress: string,
   vaultInfo: DLoopCoreConfig,
 ): Promise<boolean> {
-  const { address: lendingPoolAddressesProviderAddress } =
-    await hre.deployments.get(POOL_ADDRESSES_PROVIDER_ID);
+  const { address: lendingPoolAddressesProviderAddress } = await hre.deployments.get(POOL_ADDRESSES_PROVIDER_ID);
 
   // Get the incentives proxy (rewards controller)
-  const incentivesProxyDeployment =
-    await hre.deployments.get(INCENTIVES_PROXY_ID);
+  const incentivesProxyDeployment = await hre.deployments.get(INCENTIVES_PROXY_ID);
 
   // Get the pool data provider to fetch the aToken address
-  const poolDataProviderDeployment = await hre.deployments.get(
-    POOL_DATA_PROVIDER_ID,
-  );
-  const poolDataProviderContract = await ethers.getContractAt(
-    "AaveProtocolDataProvider",
-    poolDataProviderDeployment.address,
-  );
+  const poolDataProviderDeployment = await hre.deployments.get(POOL_DATA_PROVIDER_ID);
+  const poolDataProviderContract = await ethers.getContractAt("AaveProtocolDataProvider", poolDataProviderDeployment.address);
 
   // Get the aToken address for the underlying asset
-  const reserveTokens =
-    await poolDataProviderContract.getReserveTokensAddresses(
-      vaultInfo.underlyingAsset,
-    );
+  const reserveTokens = await poolDataProviderContract.getReserveTokensAddresses(vaultInfo.underlyingAsset);
   const aTokenAddress = reserveTokens.aTokenAddress;
 
   if (aTokenAddress === ethers.ZeroAddress) {
-    throw new Error(
-      `Could not find aToken for underlying asset ${vaultInfo.underlyingAsset}`,
-    );
+    throw new Error(`Could not find aToken for underlying asset ${vaultInfo.underlyingAsset}`);
   }
 
   const underlyingTokenContract = await hre.ethers.getContractAt(
@@ -77,17 +65,11 @@ async function deployDLoopCoreDLend(
     throw new Error("No extra parameters provided for dLOOP Core DLend");
   }
 
-  const targetStaticATokenWrapper = assertNotEmpty(
-    extraParams.targetStaticATokenWrapper as string,
-  );
+  const targetStaticATokenWrapper = assertNotEmpty(extraParams.targetStaticATokenWrapper as string);
   const treasury = assertNotEmpty(extraParams.treasury);
   const maxTreasuryFeeBps = assertNotEmpty(extraParams.maxTreasuryFeeBps);
-  const initialTreasuryFeeBps = assertNotEmpty(
-    extraParams.initialTreasuryFeeBps,
-  );
-  const initialExchangeThreshold = assertNotEmpty(
-    extraParams.initialExchangeThreshold,
-  );
+  const initialTreasuryFeeBps = assertNotEmpty(extraParams.initialTreasuryFeeBps);
+  const initialExchangeThreshold = assertNotEmpty(extraParams.initialExchangeThreshold);
 
   await hre.deployments.deploy(deploymentName, {
     from: deployer,
@@ -126,9 +108,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   // Skip for local networks
   if (isLocalNetwork(hre.network.name)) {
-    console.log(
-      `Skipping dLOOP Core DLend deployment for network ${hre.network.name}.`,
-    );
+    console.log(`Skipping dLOOP Core DLend deployment for network ${hre.network.name}.`);
     return;
   }
   // Get network config
@@ -136,14 +116,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const dloopConfig = networkConfig.dLoop;
 
   // Skip if no dLOOP configuration or no core vaults are defined
-  if (
-    !dloopConfig ||
-    !dloopConfig.coreVaults ||
-    Object.keys(dloopConfig.coreVaults).length === 0
-  ) {
-    console.log(
-      `No dLOOP core vaults defined for network ${hre.network.name}. Skipping.`,
-    );
+  if (!dloopConfig || !dloopConfig.coreVaults || Object.keys(dloopConfig.coreVaults).length === 0) {
+    console.log(`No dLOOP core vaults defined for network ${hre.network.name}. Skipping.`);
     return;
   }
 
@@ -154,9 +128,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     throw new Error("dUSD token address not found in configuration");
   }
 
-  console.log(
-    `Deploying dLOOP core vaults on network ${hre.network.name} (chainId: ${chainId})`,
-  );
+  console.log(`Deploying dLOOP core vaults on network ${hre.network.name} (chainId: ${chainId})`);
 
   // Deploy each core vault
   for (const [vaultKey, vaultInfo] of Object.entries(dloopConfig.coreVaults)) {
@@ -177,11 +149,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 };
 
 func.tags = ["dloop", "core", "dlend"];
-func.dependencies = [
-  POOL_ADDRESSES_PROVIDER_ID,
-  INCENTIVES_PROXY_ID,
-  POOL_DATA_PROVIDER_ID,
-];
+func.dependencies = [POOL_ADDRESSES_PROVIDER_ID, INCENTIVES_PROXY_ID, POOL_DATA_PROVIDER_ID];
 func.id = DLOOP_CORE_DLEND_ID;
 
 export default func;

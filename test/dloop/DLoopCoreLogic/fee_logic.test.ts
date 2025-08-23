@@ -33,10 +33,7 @@ describe("DLoopCoreLogic - Fee Logic", () => {
 
       for (const tc of cases) {
         const expected = (tc.net * SCALE) / (SCALE - tc.fee);
-        const res = await harness.getGrossAmountRequiredForNetPublic(
-          tc.net,
-          tc.fee,
-        );
+        const res = await harness.getGrossAmountRequiredForNetPublic(tc.net, tc.fee);
         expect(res).to.equal(expected, tc.name);
       }
     });

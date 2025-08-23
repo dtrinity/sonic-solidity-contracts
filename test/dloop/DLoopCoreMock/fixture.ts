@@ -41,11 +41,7 @@ export async function deployDLoopMockFixture(): Promise<DLoopMockFixture> {
 
   // Deploy mock tokens
   const MockERC20 = await ethers.getContractFactory("TestMintableERC20");
-  const collateralToken = await MockERC20.deploy(
-    "Mock Collateral",
-    "mCOLL",
-    COLLATERAL_DECIMALS,
-  );
+  const collateralToken = await MockERC20.deploy("Mock Collateral", "mCOLL", COLLATERAL_DECIMALS);
   const debtToken = await MockERC20.deploy("Mock Debt", "mDEBT", DEBT_DECIMALS);
 
   // Mint tokens to mock pool (mockVault)
@@ -53,8 +49,7 @@ export async function deployDLoopMockFixture(): Promise<DLoopMockFixture> {
   await debtToken.mint(mockPool, ethers.parseEther("1000000"));
 
   // Deploy and link DLoopCoreLogic library before deploying DLoopCoreMock
-  const DLoopCoreLogicFactory =
-    await ethers.getContractFactory("DLoopCoreLogic");
+  const DLoopCoreLogicFactory = await ethers.getContractFactory("DLoopCoreLogic");
   const dloopCoreLogicLib = await DLoopCoreLogicFactory.deploy();
   await dloopCoreLogicLib.waitForDeployment();
 
@@ -68,23 +63,15 @@ export async function deployDLoopMockFixture(): Promise<DLoopMockFixture> {
   });
 
   // Set up allowances to the predicted contract address
-  await collateralToken
-    .connect(accounts[0])
-    .approve(contractAddress, ethers.MaxUint256);
-  await debtToken
-    .connect(accounts[0])
-    .approve(contractAddress, ethers.MaxUint256);
+  await collateralToken.connect(accounts[0]).approve(contractAddress, ethers.MaxUint256);
+  await debtToken.connect(accounts[0]).approve(contractAddress, ethers.MaxUint256);
 
   // Now deploy the contract (linking the DLoopCoreLogic library)
-  const DLoopCoreMockFactory = await ethers.getContractFactory(
-    "DLoopCoreMock",
-    {
-      libraries: {
-        "contracts/vaults/dloop/core/DLoopCoreLogic.sol:DLoopCoreLogic":
-          await dloopCoreLogicLib.getAddress(),
-      },
+  const DLoopCoreMockFactory = await ethers.getContractFactory("DLoopCoreMock", {
+    libraries: {
+      "contracts/vaults/dloop/core/DLoopCoreLogic.sol:DLoopCoreLogic": await dloopCoreLogicLib.getAddress(),
     },
-  );
+  });
   const dloopMock = await DLoopCoreMockFactory.deploy(
     "Mock dLoop Vault",
     "mdLOOP",
@@ -118,20 +105,9 @@ export async function deployDLoopMockFixture(): Promise<DLoopMockFixture> {
  * @param fixture - The fixture object containing the contract instances and addresses
  */
 export async function testSetup(fixture: DLoopMockFixture): Promise<void> {
-  const {
-    dloopMock,
-    collateralToken,
-    debtToken,
-    accounts,
-    user1,
-    user2,
-    mockPool,
-  } = fixture;
+  const { dloopMock, collateralToken, debtToken, accounts, user1, user2, mockPool } = fixture;
   // Set default prices
-  await dloopMock.setMockPrice(
-    await collateralToken.getAddress(),
-    DEFAULT_PRICE,
-  );
+  await dloopMock.setMockPrice(await collateralToken.getAddress(), DEFAULT_PRICE);
   await dloopMock.setMockPrice(await debtToken.getAddress(), DEFAULT_PRICE);
 
   // Setup token balances for users
@@ -144,22 +120,14 @@ export async function testSetup(fixture: DLoopMockFixture): Promise<void> {
 
   // Setup allowances for users to vault
   const vaultAddress = await dloopMock.getAddress();
-  await collateralToken
-    .connect(accounts[1])
-    .approve(vaultAddress, ethers.MaxUint256);
+  await collateralToken.connect(accounts[1]).approve(vaultAddress, ethers.MaxUint256);
   await debtToken.connect(accounts[1]).approve(vaultAddress, ethers.MaxUint256);
-  await collateralToken
-    .connect(accounts[2])
-    .approve(vaultAddress, ethers.MaxUint256);
+  await collateralToken.connect(accounts[2]).approve(vaultAddress, ethers.MaxUint256);
   await debtToken.connect(accounts[2]).approve(vaultAddress, ethers.MaxUint256);
-  await collateralToken
-    .connect(accounts[3])
-    .approve(vaultAddress, ethers.MaxUint256);
+  await collateralToken.connect(accounts[3]).approve(vaultAddress, ethers.MaxUint256);
   await debtToken.connect(accounts[3]).approve(vaultAddress, ethers.MaxUint256);
 
   // Set allowance to allow vault to spend tokens from mockPool
-  await collateralToken
-    .connect(mockPool)
-    .approve(vaultAddress, ethers.MaxUint256);
+  await collateralToken.connect(mockPool).approve(vaultAddress, ethers.MaxUint256);
   await debtToken.connect(mockPool).approve(vaultAddress, ethers.MaxUint256);
 }

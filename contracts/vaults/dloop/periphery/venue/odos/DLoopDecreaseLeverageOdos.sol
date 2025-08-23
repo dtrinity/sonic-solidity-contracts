@@ -17,8 +17,8 @@
 
 pragma solidity ^0.8.20;
 
-import {DLoopDecreaseLeverageBase, ERC20, IERC3156FlashLender} from "../../DLoopDecreaseLeverageBase.sol";
-import {OdosSwapLogic, IOdosRouterV2} from "./OdosSwapLogic.sol";
+import { DLoopDecreaseLeverageBase, ERC20, IERC3156FlashLender } from "../../DLoopDecreaseLeverageBase.sol";
+import { OdosSwapLogic, IOdosRouterV2 } from "./OdosSwapLogic.sol";
 
 /**
  * @title DLoopDecreaseLeverageOdos
@@ -32,10 +32,7 @@ contract DLoopDecreaseLeverageOdos is DLoopDecreaseLeverageBase {
      * @param _flashLender Address of the flash loan provider
      * @param _odosRouter Address of the Odos router
      */
-    constructor(
-        IERC3156FlashLender _flashLender,
-        IOdosRouterV2 _odosRouter
-    ) DLoopDecreaseLeverageBase(_flashLender) {
+    constructor(IERC3156FlashLender _flashLender, IOdosRouterV2 _odosRouter) DLoopDecreaseLeverageBase(_flashLender) {
         odosRouter = _odosRouter;
     }
 

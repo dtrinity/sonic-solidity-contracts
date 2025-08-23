@@ -17,8 +17,8 @@
 
 pragma solidity ^0.8.20;
 
-import {IERC20} from "contracts/dlend/core/dependencies/openzeppelin/contracts/IERC20.sol";
-import {IERC20WithPermit} from "contracts/dlend/core/interfaces/IERC20WithPermit.sol";
+import { IERC20 } from "contracts/dlend/core/dependencies/openzeppelin/contracts/IERC20.sol";
+import { IERC20WithPermit } from "contracts/dlend/core/interfaces/IERC20WithPermit.sol";
 
 /**
  * @title IBaseCurveAdapter
@@ -44,12 +44,7 @@ interface IBaseCurveAdapter {
      * @param fromAmount The amount of asset sold
      * @param receivedAmount The amount received from the sell
      */
-    event Swapped(
-        address indexed fromAsset,
-        address indexed toAsset,
-        uint256 fromAmount,
-        uint256 receivedAmount
-    );
+    event Swapped(address indexed fromAsset, address indexed toAsset, uint256 fromAmount, uint256 receivedAmount);
 
     /**
      * @dev Emitted after a buy of an asset is made
@@ -58,12 +53,7 @@ interface IBaseCurveAdapter {
      * @param amountSold The amount of asset provided for the buy
      * @param receivedAmount The amount of asset bought
      */
-    event Bought(
-        address indexed fromAsset,
-        address indexed toAsset,
-        uint256 amountSold,
-        uint256 receivedAmount
-    );
+    event Bought(address indexed fromAsset, address indexed toAsset, uint256 amountSold, uint256 receivedAmount);
 
     /* Custom Errors */
     error InsufficientBalanceBeforeSwap(uint256 balance, uint256 required);

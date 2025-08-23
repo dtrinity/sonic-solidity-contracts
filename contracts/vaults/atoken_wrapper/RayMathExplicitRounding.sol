@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: agpl-3.0
 pragma solidity ^0.8.20;
 
-import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
+import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
 
 enum Rounding {
     UP,
@@ -16,37 +16,25 @@ library RayMathExplicitRounding {
     uint256 internal constant RAY = 1e27;
     uint256 internal constant WAD_RAY_RATIO = 1e9;
 
-    function rayMulRoundDown(
-        uint256 a,
-        uint256 b
-    ) internal pure returns (uint256) {
+    function rayMulRoundDown(uint256 a, uint256 b) internal pure returns (uint256) {
         if (a == 0 || b == 0) {
             return 0;
         }
         return Math.mulDiv(a, b, RAY); // default is rounding down
     }
 
-    function rayMulRoundUp(
-        uint256 a,
-        uint256 b
-    ) internal pure returns (uint256) {
+    function rayMulRoundUp(uint256 a, uint256 b) internal pure returns (uint256) {
         if (a == 0 || b == 0) {
             return 0;
         }
         return Math.mulDiv(a, b, RAY, Math.Rounding.Ceil);
     }
 
-    function rayDivRoundDown(
-        uint256 a,
-        uint256 b
-    ) internal pure returns (uint256) {
+    function rayDivRoundDown(uint256 a, uint256 b) internal pure returns (uint256) {
         return Math.mulDiv(a, RAY, b); // rounding down
     }
 
-    function rayDivRoundUp(
-        uint256 a,
-        uint256 b
-    ) internal pure returns (uint256) {
+    function rayDivRoundUp(uint256 a, uint256 b) internal pure returns (uint256) {
         return Math.mulDiv(a, RAY, b, Math.Rounding.Ceil);
     }
 

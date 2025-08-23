@@ -17,11 +17,11 @@
 
 pragma solidity ^0.8.20;
 
-import {Errors} from "../protocol/libraries/helpers/Errors.sol";
-import {IACLManager} from "../interfaces/IACLManager.sol";
-import {IPoolAddressesProvider} from "../interfaces/IPoolAddressesProvider.sol";
-import {IPriceOracleGetter} from "../interfaces/IPriceOracleGetter.sol";
-import {IAaveOracle} from "../interfaces/IAaveOracle.sol";
+import { Errors } from "../protocol/libraries/helpers/Errors.sol";
+import { IACLManager } from "../interfaces/IACLManager.sol";
+import { IPoolAddressesProvider } from "../interfaces/IPoolAddressesProvider.sol";
+import { IPriceOracleGetter } from "../interfaces/IPriceOracleGetter.sol";
+import { IAaveOracle } from "../interfaces/IAaveOracle.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 
 /**
@@ -62,43 +62,31 @@ contract AaveOracle is IAaveOracle {
 
         // Calculate scaling factor as ratio between oracle unit and our target unit
         uint256 oracleUnit = _oracleAggregator.BASE_CURRENCY_UNIT();
-        require(
-            oracleUnit >= BASE_CURRENCY_UNIT,
-            "AaveOracle: oracle decimals too low"
-        );
+        require(oracleUnit >= BASE_CURRENCY_UNIT, "AaveOracle: oracle decimals too low");
         SCALING_FACTOR = oracleUnit / BASE_CURRENCY_UNIT;
 
         emit BaseCurrencySet(BASE_CURRENCY, BASE_CURRENCY_UNIT);
     }
 
     /// @inheritdoc IAaveOracle
-    function setAssetSources(
-        address[] calldata,
-        address[] calldata
-    ) external override onlyAssetListingOrPoolAdmins {
+    function setAssetSources(address[] calldata, address[] calldata) external override onlyAssetListingOrPoolAdmins {
         // No-op as we don't manage sources directly anymore
     }
 
     /// @inheritdoc IAaveOracle
-    function setFallbackOracle(
-        address
-    ) external override onlyAssetListingOrPoolAdmins {
+    function setFallbackOracle(address) external override onlyAssetListingOrPoolAdmins {
         // No-op as we don't use fallback oracle anymore
     }
 
     /// @inheritdoc IPriceOracleGetter
-    function getAssetPrice(
-        address asset
-    ) public view override returns (uint256) {
+    function getAssetPrice(address asset) public view override returns (uint256) {
         uint256 price = _oracleAggregator.getAssetPrice(asset);
         // Convert from oracle decimals to 8 decimals
         return price / SCALING_FACTOR;
     }
 
     /// @inheritdoc IAaveOracle
-    function getAssetsPrices(
-        address[] calldata assets
-    ) external view override returns (uint256[] memory) {
+    function getAssetsPrices(address[] calldata assets) external view override returns (uint256[] memory) {
         uint256[] memory prices = new uint256[](assets.length);
         for (uint256 i = 0; i < assets.length; i++) {
             prices[i] = getAssetPrice(assets[i]);
@@ -107,9 +95,7 @@ contract AaveOracle is IAaveOracle {
     }
 
     /// @inheritdoc IAaveOracle
-    function getSourceOfAsset(
-        address
-    ) external view override returns (address) {
+    function getSourceOfAsset(address) external view override returns (address) {
         return address(_oracleAggregator);
     }
 
@@ -119,12 +105,9 @@ contract AaveOracle is IAaveOracle {
     }
 
     function _onlyAssetListingOrPoolAdmins() internal view {
-        IACLManager aclManager = IACLManager(
-            ADDRESSES_PROVIDER.getACLManager()
-        );
+        IACLManager aclManager = IACLManager(ADDRESSES_PROVIDER.getACLManager());
         require(
-            aclManager.isAssetListingAdmin(msg.sender) ||
-                aclManager.isPoolAdmin(msg.sender),
+            aclManager.isAssetListingAdmin(msg.sender) || aclManager.isPoolAdmin(msg.sender),
             Errors.CALLER_NOT_ASSET_LISTING_OR_POOL_ADMIN
         );
     }

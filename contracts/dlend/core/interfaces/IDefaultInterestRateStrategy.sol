@@ -17,8 +17,8 @@
 
 pragma solidity ^0.8.20;
 
-import {IReserveInterestRateStrategy} from "./IReserveInterestRateStrategy.sol";
-import {IPoolAddressesProvider} from "./IPoolAddressesProvider.sol";
+import { IReserveInterestRateStrategy } from "./IReserveInterestRateStrategy.sol";
+import { IPoolAddressesProvider } from "./IPoolAddressesProvider.sol";
 
 /**
  * @title IDefaultInterestRateStrategy
@@ -36,10 +36,7 @@ interface IDefaultInterestRateStrategy is IReserveInterestRateStrategy {
      * @notice Returns the optimal stable to total debt ratio of the reserve.
      * @return The optimal stable to total debt ratio, expressed in ray.
      */
-    function OPTIMAL_STABLE_TO_TOTAL_DEBT_RATIO()
-        external
-        view
-        returns (uint256);
+    function OPTIMAL_STABLE_TO_TOTAL_DEBT_RATIO() external view returns (uint256);
 
     /**
      * @notice Returns the excess usage ratio above the optimal.
@@ -53,19 +50,13 @@ interface IDefaultInterestRateStrategy is IReserveInterestRateStrategy {
      * @dev It's always equal to 1-optimal stable to total debt ratio (added as constant for gas optimizations)
      * @return The max excess stable to total debt ratio, expressed in ray.
      */
-    function MAX_EXCESS_STABLE_TO_TOTAL_DEBT_RATIO()
-        external
-        view
-        returns (uint256);
+    function MAX_EXCESS_STABLE_TO_TOTAL_DEBT_RATIO() external view returns (uint256);
 
     /**
      * @notice Returns the address of the PoolAddressesProvider
      * @return The address of the PoolAddressesProvider contract
      */
-    function ADDRESSES_PROVIDER()
-        external
-        view
-        returns (IPoolAddressesProvider);
+    function ADDRESSES_PROVIDER() external view returns (IPoolAddressesProvider);
 
     /**
      * @notice Returns the variable rate slope below optimal usage ratio

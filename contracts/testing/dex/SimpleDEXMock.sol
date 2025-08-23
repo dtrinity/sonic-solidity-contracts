@@ -21,7 +21,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "contracts/common/BasisPointConstants.sol";
-import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
+import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
 
 /**
  * @title SimpleDEXMock
@@ -36,11 +36,7 @@ contract SimpleDEXMock {
     uint256 public executionSlippageBps; // Execution slippage in basis points
 
     // Events
-    event ExchangeRateSet(
-        address indexed inputToken,
-        address indexed outputToken,
-        uint256 rate
-    );
+    event ExchangeRateSet(address indexed inputToken, address indexed outputToken, uint256 rate);
     event ExecutionSlippageSet(uint256 slippageBps);
     event SwapExecuted(
         address indexed inputToken,
@@ -57,16 +53,8 @@ contract SimpleDEXMock {
     error ExchangeRateNotSet();
     error InsufficientOutputAmount(uint256 actual, uint256 minimum);
     error ExcessiveInputAmount(uint256 actual, uint256 maximum);
-    error InsufficientBalance(
-        address token,
-        uint256 requested,
-        uint256 available
-    );
-    error InsufficientAllowance(
-        address token,
-        uint256 requested,
-        uint256 available
-    );
+    error InsufficientBalance(address token, uint256 requested, uint256 available);
+    error InsufficientAllowance(address token, uint256 requested, uint256 available);
     error TransferFailed();
 
     /**
@@ -82,11 +70,7 @@ contract SimpleDEXMock {
      * @param outputToken The output token address
      * @param rate The exchange rate (how much outputToken per 1 inputToken, in 18 decimals)
      */
-    function setExchangeRate(
-        address inputToken,
-        address outputToken,
-        uint256 rate
-    ) external {
+    function setExchangeRate(address inputToken, address outputToken, uint256 rate) external {
         if (inputToken == address(0) || outputToken == address(0)) {
             revert ZeroAddress();
         }
@@ -126,10 +110,7 @@ contract SimpleDEXMock {
         uint256 amountOutMinimum,
         address receiver
     ) external returns (uint256 amountOut) {
-        if (
-            address(inputToken) == address(0) ||
-            address(outputToken) == address(0)
-        ) {
+        if (address(inputToken) == address(0) || address(outputToken) == address(0)) {
             revert ZeroAddress();
         }
         if (receiver == address(0)) {
@@ -148,11 +129,7 @@ contract SimpleDEXMock {
         // Check allowance
         uint256 allowance = inputToken.allowance(msg.sender, address(this));
         if (allowance < amountIn) {
-            revert InsufficientAllowance(
-                address(inputToken),
-                amountIn,
-                allowance
-            );
+            revert InsufficientAllowance(address(inputToken), amountIn, allowance);
         }
 
         // Calculate output amount before slippage
@@ -174,29 +151,14 @@ contract SimpleDEXMock {
         // Check contract has enough output tokens
         uint256 contractBalance = outputToken.balanceOf(address(this));
         if (contractBalance < amountOut) {
-            revert InsufficientBalance(
-                address(outputToken),
-                amountOut,
-                contractBalance
-            );
+            revert InsufficientBalance(address(outputToken), amountOut, contractBalance);
         }
 
         // Execute the swap
-        IERC20(inputToken).safeTransferFrom(
-            msg.sender,
-            address(this),
-            amountIn
-        );
+        IERC20(inputToken).safeTransferFrom(msg.sender, address(this), amountIn);
         IERC20(outputToken).safeTransfer(receiver, amountOut);
 
-        emit SwapExecuted(
-            address(inputToken),
-            address(outputToken),
-            amountIn,
-            amountOut,
-            receiver,
-            "ExactInput"
-        );
+        emit SwapExecuted(address(inputToken), address(outputToken), amountIn, amountOut, receiver, "ExactInput");
 
         return amountOut;
     }
@@ -217,10 +179,7 @@ contract SimpleDEXMock {
         uint256 amountInMaximum,
         address receiver
     ) external returns (uint256 amountIn) {
-        if (
-            address(inputToken) == address(0) ||
-            address(outputToken) == address(0)
-        ) {
+        if (address(inputToken) == address(0) || address(outputToken) == address(0)) {
             revert ZeroAddress();
         }
         if (receiver == address(0)) {
@@ -239,23 +198,14 @@ contract SimpleDEXMock {
         // Check contract has enough output tokens
         uint256 contractBalance = outputToken.balanceOf(address(this));
         if (contractBalance < amountOut) {
-            revert InsufficientBalance(
-                address(outputToken),
-                amountOut,
-                contractBalance
-            );
+            revert InsufficientBalance(address(outputToken), amountOut, contractBalance);
         }
 
         // Calculate required input amount considering execution slippage
         // We need to calculate how much input is needed to get amountOut after slippage
         uint256 amountOutBeforeSlippage = _reverseExecutionSlippage(amountOut);
 
-        amountIn = _calculateInputAmount(
-            amountOutBeforeSlippage,
-            rate,
-            inputToken.decimals(),
-            outputToken.decimals()
-        );
+        amountIn = _calculateInputAmount(amountOutBeforeSlippage, rate, inputToken.decimals(), outputToken.decimals());
 
         // Check maximum input
         if (amountIn > amountInMaximum) {
@@ -265,29 +215,14 @@ contract SimpleDEXMock {
         // Check allowance
         uint256 allowance = inputToken.allowance(msg.sender, address(this));
         if (allowance < amountIn) {
-            revert InsufficientAllowance(
-                address(inputToken),
-                amountIn,
-                allowance
-            );
+            revert InsufficientAllowance(address(inputToken), amountIn, allowance);
         }
 
         // Execute the swap
-        IERC20(inputToken).safeTransferFrom(
-            msg.sender,
-            address(this),
-            amountIn
-        );
+        IERC20(inputToken).safeTransferFrom(msg.sender, address(this), amountIn);
         IERC20(outputToken).safeTransfer(receiver, amountOut);
 
-        emit SwapExecuted(
-            address(inputToken),
-            address(outputToken),
-            amountIn,
-            amountOut,
-            receiver,
-            "ExactOutput"
-        );
+        emit SwapExecuted(address(inputToken), address(outputToken), amountIn, amountOut, receiver, "ExactOutput");
 
         return amountIn;
     }
@@ -298,10 +233,7 @@ contract SimpleDEXMock {
      * @param outputToken The output token address
      * @return rate The exchange rate (18 decimals)
      */
-    function getExchangeRate(
-        address inputToken,
-        address outputToken
-    ) external view returns (uint256 rate) {
+    function getExchangeRate(address inputToken, address outputToken) external view returns (uint256 rate) {
         return exchangeRates[inputToken][outputToken];
     }
 
@@ -351,13 +283,7 @@ contract SimpleDEXMock {
 
         uint256 amountOutBeforeSlippage = _reverseExecutionSlippage(amountOut);
 
-        return
-            _calculateInputAmount(
-                amountOutBeforeSlippage,
-                rate,
-                inputToken.decimals(),
-                outputToken.decimals()
-            );
+        return _calculateInputAmount(amountOutBeforeSlippage, rate, inputToken.decimals(), outputToken.decimals());
     }
 
     /**
@@ -439,9 +365,7 @@ contract SimpleDEXMock {
      * @param amount The original amount
      * @return slippedAmount The amount after applying execution slippage
      */
-    function _applyExecutionSlippage(
-        uint256 amount
-    ) internal view returns (uint256 slippedAmount) {
+    function _applyExecutionSlippage(uint256 amount) internal view returns (uint256 slippedAmount) {
         if (executionSlippageBps == 0) {
             return amount;
         }
@@ -461,9 +385,7 @@ contract SimpleDEXMock {
      * @param targetAmount The target amount after slippage
      * @return originalAmount The amount needed before slippage
      */
-    function _reverseExecutionSlippage(
-        uint256 targetAmount
-    ) internal view returns (uint256 originalAmount) {
+    function _reverseExecutionSlippage(uint256 targetAmount) internal view returns (uint256 originalAmount) {
         if (executionSlippageBps == 0) {
             return targetAmount;
         }
@@ -484,11 +406,7 @@ contract SimpleDEXMock {
      * @param amount The amount to withdraw
      * @param to The recipient address
      */
-    function emergencyWithdraw(
-        IERC20 token,
-        uint256 amount,
-        address to
-    ) external {
+    function emergencyWithdraw(IERC20 token, uint256 amount, address to) external {
         if (to == address(0)) {
             revert ZeroAddress();
         }

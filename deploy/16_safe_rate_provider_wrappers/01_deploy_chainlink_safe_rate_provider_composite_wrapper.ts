@@ -3,10 +3,7 @@ import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
 
 import { getConfig } from "../../config/config";
-import {
-  USD_CHAINLINK_SAFE_RATE_PROVIDER_COMPOSITE_WRAPPER_ID,
-  USD_ORACLE_AGGREGATOR_ID,
-} from "../../typescript/deploy-ids";
+import { USD_CHAINLINK_SAFE_RATE_PROVIDER_COMPOSITE_WRAPPER_ID, USD_ORACLE_AGGREGATOR_ID } from "../../typescript/deploy-ids";
 import { ensureDefaultAdminExistsAndRevokeFrom } from "../../typescript/hardhat/access_control";
 import { GovernanceExecutor } from "../../typescript/hardhat/governance";
 import { SafeTransactionData } from "../../typescript/safe/types";
@@ -19,12 +16,7 @@ import { SafeTransactionData } from "../../typescript/safe/types";
  * @param grantee - Address to receive the role
  * @param contractInterface - Contract interface used to encode the call
  */
-function createGrantRoleTransaction(
-  contractAddress: string,
-  role: string,
-  grantee: string,
-  contractInterface: any,
-): SafeTransactionData {
+function createGrantRoleTransaction(contractAddress: string, role: string, grantee: string, contractInterface: any): SafeTransactionData {
   return {
     to: contractAddress,
     value: "0",
@@ -40,12 +32,7 @@ function createGrantRoleTransaction(
  * @param account - Address to revoke the role from
  * @param contractInterface - Contract interface used to encode the call
  */
-function createRevokeRoleTransaction(
-  contractAddress: string,
-  role: string,
-  account: string,
-  contractInterface: any,
-): SafeTransactionData {
+function createRevokeRoleTransaction(contractAddress: string, role: string, account: string, contractInterface: any): SafeTransactionData {
   return {
     to: contractAddress,
     value: "0",
@@ -113,8 +100,7 @@ function createSetOracleTransaction(
   };
 }
 
-const ZERO_BYTES_32 =
-  "0x0000000000000000000000000000000000000000000000000000000000000000";
+const ZERO_BYTES_32 = "0x0000000000000000000000000000000000000000000000000000000000000000";
 
 /**
  * Wrapper for ensureDefaultAdminExistsAndRevokeFrom that returns boolean status
@@ -156,24 +142,17 @@ async function ensureDefaultAdminExistsAndRevokeFromWithSafe(
         // This would need proper Safe transaction creation; return pending
         return false;
       }
-      console.log(
-        `    ⏭️ Non-Safe mode: manual admin migration actions detected; continuing.`,
-      );
+      console.log(`    ⏭️ Non-Safe mode: manual admin migration actions detected; continuing.`);
     }
 
     return true;
   } catch (error) {
     if (executor.useSafe) {
       // Requires governance action; queue not implemented for this path
-      console.warn(
-        `    🔄 Admin role migration likely requires governance action:`,
-        error,
-      );
+      console.warn(`    🔄 Admin role migration likely requires governance action:`, error);
       return false;
     }
-    console.log(
-      `    ⏭️ Non-Safe mode: admin migration requires governance; continuing.`,
-    );
+    console.log(`    ⏭️ Non-Safe mode: admin migration requires governance; continuing.`);
     return true;
   }
 }
@@ -209,10 +188,7 @@ async function migrateOracleWrapperRolesIdempotent(
   const DEFAULT_ADMIN_ROLE = ZERO_BYTES_32;
   const ORACLE_MANAGER_ROLE = await wrapper.ORACLE_MANAGER_ROLE();
 
-  const roles = [
- 
-    { name: "ORACLE_MANAGER_ROLE", hash: ORACLE_MANAGER_ROLE },
-  ];
+  const roles = [{ name: "ORACLE_MANAGER_ROLE", hash: ORACLE_MANAGER_ROLE }];
 
   console.log(`  📄 Migrating roles for ${wrapperName} at ${wrapperAddress}`);
 
@@ -223,17 +199,9 @@ async function migrateOracleWrapperRolesIdempotent(
       const complete = await executor.tryOrQueue(
         async () => {
           await wrapper.grantRole(role.hash, governanceMultisig);
-          console.log(
-            `    ➕ Granted ${role.name} to governance ${governanceMultisig}`,
-          );
+          console.log(`    ➕ Granted ${role.name} to governance ${governanceMultisig}`);
         },
-        () =>
-          createGrantRoleTransaction(
-            wrapperAddress,
-            role.hash,
-            governanceMultisig,
-            wrapper.interface,
-          ),
+        () => createGrantRoleTransaction(wrapperAddress, role.hash, governanceMultisig, wrapper.interface),
       );
       if (!complete) noPendingActions = false;
     } else {
@@ -250,10 +218,7 @@ async function migrateOracleWrapperRolesIdempotent(
     if (role.hash === DEFAULT_ADMIN_ROLE) continue;
 
     const deployerHasRole = await wrapper.hasRole(role.hash, deployerAddress);
-    const governanceHasRole = await wrapper.hasRole(
-      role.hash,
-      governanceMultisig,
-    );
+    const governanceHasRole = await wrapper.hasRole(role.hash, governanceMultisig);
 
     if (deployerHasRole && governanceHasRole) {
       const roleName = role.name;
@@ -262,29 +227,22 @@ async function migrateOracleWrapperRolesIdempotent(
           await wrapper.revokeRole(role.hash, deployerAddress);
           console.log(`    ➖ Revoked ${roleName} from deployer`);
         },
-        () =>
-          createRevokeRoleTransaction(
-            wrapperAddress,
-            role.hash,
-            deployerAddress,
-            wrapper.interface,
-          ),
+        () => createRevokeRoleTransaction(wrapperAddress, role.hash, deployerAddress, wrapper.interface),
       );
       if (!complete) noPendingActions = false;
     }
   }
 
   // Safely migrate DEFAULT_ADMIN_ROLE away from deployer
-  const adminMigrationComplete =
-    await ensureDefaultAdminExistsAndRevokeFromWithSafe(
-      hre,
-      "ChainlinkSafeRateProviderCompositeWrapperWithThresholding",
-      wrapperAddress,
-      governanceMultisig,
-      deployerAddress,
-      deployerSigner,
-      executor,
-    );
+  const adminMigrationComplete = await ensureDefaultAdminExistsAndRevokeFromWithSafe(
+    hre,
+    "ChainlinkSafeRateProviderCompositeWrapperWithThresholding",
+    wrapperAddress,
+    governanceMultisig,
+    deployerAddress,
+    deployerSigner,
+    executor,
+  );
 
   if (!adminMigrationComplete) {
     noPendingActions = false;
@@ -300,11 +258,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const config = await getConfig(hre);
 
   // Initialize governance executor (decides Safe vs direct execution)
-  const executor = new GovernanceExecutor(
-    hre,
-    deployerSigner,
-    config.safeConfig,
-  );
+  const executor = new GovernanceExecutor(hre, deployerSigner, config.safeConfig);
   await executor.initialize();
 
   console.log(`\n≻ ${__filename.split("/").slice(-2).join("/")}: executing...`);
@@ -321,43 +275,30 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   console.log(`🔮 Base currency unit: ${baseCurrencyUnit}`);
 
   // Deploy ChainlinkSafeRateProviderCompositeWrapperWithThresholding
-  console.log(
-    `\n🚀 Deploying ChainlinkSafeRateProviderCompositeWrapperWithThresholding...`,
-  );
-  const wrapperDeployResult = await deployments.deploy(
-    USD_CHAINLINK_SAFE_RATE_PROVIDER_COMPOSITE_WRAPPER_ID,
-    {
-      from: deployer,
-      contract: "ChainlinkSafeRateProviderCompositeWrapperWithThresholding",
-      args: [baseCurrency, baseCurrencyUnit],
-      log: true,
-      autoMine: true,
-    },
-  );
+  console.log(`\n🚀 Deploying ChainlinkSafeRateProviderCompositeWrapperWithThresholding...`);
+  const wrapperDeployResult = await deployments.deploy(USD_CHAINLINK_SAFE_RATE_PROVIDER_COMPOSITE_WRAPPER_ID, {
+    from: deployer,
+    contract: "ChainlinkSafeRateProviderCompositeWrapperWithThresholding",
+    args: [baseCurrency, baseCurrencyUnit],
+    log: true,
+    autoMine: true,
+    skipIfAlreadyDeployed: true,
+  });
 
   const wrapperAddress = wrapperDeployResult.address;
-  const wrapper = await ethers.getContractAt(
-    "ChainlinkSafeRateProviderCompositeWrapperWithThresholding",
-    wrapperAddress,
-  );
+  const wrapper = await ethers.getContractAt("ChainlinkSafeRateProviderCompositeWrapperWithThresholding", wrapperAddress);
 
-  console.log(
-    `✅ ChainlinkSafeRateProviderCompositeWrapper deployed at: ${wrapperAddress}`,
-  );
+  console.log(`✅ ChainlinkSafeRateProviderCompositeWrapper deployed at: ${wrapperAddress}`);
 
   // Configure feeds from config
-  const chainlinkFeeds =
-    usdConfig.safeRateProviderAssets
-      ?.chainlinkSafeRateProviderCompositeWrappers || {};
+  const chainlinkFeeds = usdConfig.safeRateProviderAssets?.chainlinkSafeRateProviderCompositeWrappers || {};
   let allOperationsComplete = true;
 
   if (Object.keys(chainlinkFeeds).length > 0) {
     console.log(`\n🔧 Configuring ChainlinkSafeRateProviderComposite feeds...`);
 
     for (const [_assetAddress, feedConfig] of Object.entries(chainlinkFeeds)) {
-      console.log(
-        `  📊 Adding composite feed for asset ${feedConfig.feedAsset}...`,
-      );
+      console.log(`  📊 Adding composite feed for asset ${feedConfig.feedAsset}...`);
 
       const complete = await executor.tryOrQueue(
         async () => {
@@ -370,9 +311,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
             feedConfig.lowerThresholdInBase2,
             feedConfig.fixedPriceInBase2,
           );
-          console.log(
-            `    ✅ Added ChainlinkSafeRateProviderComposite feed for ${feedConfig.feedAsset}`,
-          );
+          console.log(`    ✅ Added ChainlinkSafeRateProviderComposite feed for ${feedConfig.feedAsset}`);
         },
         () =>
           createAddCompositeFeedTransaction(
@@ -392,45 +331,26 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     }
 
     // Point oracle aggregator to this wrapper for configured assets
-    console.log(
-      `\n🔗 Pointing USD Oracle Aggregator to ChainlinkSafeRateProviderComposite wrapper...`,
-    );
-    const oracleAggregatorDeployment = await deployments.get(
-      USD_ORACLE_AGGREGATOR_ID,
-    );
-    const oracleAggregator = await ethers.getContractAt(
-      "OracleAggregator",
-      oracleAggregatorDeployment.address,
-    );
+    console.log(`\n🔗 Pointing USD Oracle Aggregator to ChainlinkSafeRateProviderComposite wrapper...`);
+    const oracleAggregatorDeployment = await deployments.get(USD_ORACLE_AGGREGATOR_ID);
+    const oracleAggregator = await ethers.getContractAt("OracleAggregator", oracleAggregatorDeployment.address);
 
     for (const [_assetAddress, feedConfig] of Object.entries(chainlinkFeeds)) {
       console.log(`  🎯 Setting oracle for asset ${feedConfig.feedAsset}...`);
 
       const complete = await executor.tryOrQueue(
         async () => {
-          await oracleAggregator.setOracle(
-            feedConfig.feedAsset,
-            wrapperAddress,
-          );
-          console.log(
-            `    ✅ Set oracle for ${feedConfig.feedAsset} to ChainlinkSafeRateProviderComposite wrapper`,
-          );
+          await oracleAggregator.setOracle(feedConfig.feedAsset, wrapperAddress);
+          console.log(`    ✅ Set oracle for ${feedConfig.feedAsset} to ChainlinkSafeRateProviderComposite wrapper`);
         },
         () =>
-          createSetOracleTransaction(
-            oracleAggregatorDeployment.address,
-            feedConfig.feedAsset,
-            wrapperAddress,
-            oracleAggregator.interface,
-          ),
+          createSetOracleTransaction(oracleAggregatorDeployment.address, feedConfig.feedAsset, wrapperAddress, oracleAggregator.interface),
       );
 
       if (!complete) allOperationsComplete = false;
     }
   } else {
-    console.log(
-      `ℹ️  No ChainlinkSafeRateProviderComposite feeds configured in config`,
-    );
+    console.log(`ℹ️  No ChainlinkSafeRateProviderComposite feeds configured in config`);
   }
 
   // Migrate wrapper roles to governance
@@ -450,28 +370,18 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   // Handle governance operations if needed
   if (!allOperationsComplete) {
-    const flushed = await executor.flush(
-      `Deploy ChainlinkSafeRateProviderComposite wrapper: governance operations`,
-    );
+    const flushed = await executor.flush(`Deploy ChainlinkSafeRateProviderComposite wrapper: governance operations`);
 
     if (executor.useSafe) {
       if (!flushed) {
         console.log(`❌ Failed to prepare governance batch`);
       }
-      console.log(
-        "\n⏳ Some operations require governance signatures to complete.",
-      );
-      console.log(
-        "   The deployment script will exit and can be re-run after governance executes the transactions.",
-      );
-      console.log(
-        `\n≻ ${__filename.split("/").slice(-2).join("/")}: pending governance ⏳`,
-      );
+      console.log("\n⏳ Some operations require governance signatures to complete.");
+      console.log("   The deployment script will exit and can be re-run after governance executes the transactions.");
+      console.log(`\n≻ ${__filename.split("/").slice(-2).join("/")}: pending governance ⏳`);
       return false; // Fail idempotently - script can be re-run
     } else {
-      console.log(
-        "\n⏭️ Non-Safe mode: pending governance operations detected; continuing.",
-      );
+      console.log("\n⏭️ Non-Safe mode: pending governance operations detected; continuing.");
     }
   }
 

@@ -17,28 +17,23 @@
 
 pragma solidity ^0.8.20;
 
-import {IERC20Detailed} from "contracts/dlend/core/dependencies/openzeppelin/contracts/IERC20Detailed.sol";
-import {IERC20WithPermit} from "contracts/dlend/core/interfaces/IERC20WithPermit.sol";
-import {ICreditDelegationToken} from "contracts/dlend/core/interfaces/ICreditDelegationToken.sol";
-import {BaseCurveBuyAdapter} from "contracts/dlend/periphery/adapters/curve/BaseCurveBuyAdapter.sol";
-import {ICurveDebtSwapAdapter} from "contracts/dlend/periphery/adapters/curve/interfaces/ICurveDebtSwapAdapter.sol";
-import {ReentrancyGuard} from "contracts/dlend/periphery/treasury/libs/ReentrancyGuard.sol";
-import {ICurveRouterNgPoolsOnlyV1} from "contracts/dlend/periphery/adapters/curve/interfaces/ICurveRouterNgPoolsOnlyV1.sol";
-import {IAaveFlashLoanReceiver} from "contracts/dlend/periphery/adapters/curve/interfaces/IAaveFlashLoanReceiver.sol";
-import {SafeERC20} from "contracts/dlend/periphery/treasury/libs/SafeERC20.sol";
-import {IPoolAddressesProvider} from "contracts/dlend/core/interfaces/IPoolAddressesProvider.sol";
-import {DataTypes} from "contracts/dlend/core/protocol/libraries/types/DataTypes.sol";
+import { IERC20Detailed } from "contracts/dlend/core/dependencies/openzeppelin/contracts/IERC20Detailed.sol";
+import { IERC20WithPermit } from "contracts/dlend/core/interfaces/IERC20WithPermit.sol";
+import { ICreditDelegationToken } from "contracts/dlend/core/interfaces/ICreditDelegationToken.sol";
+import { BaseCurveBuyAdapter } from "contracts/dlend/periphery/adapters/curve/BaseCurveBuyAdapter.sol";
+import { ICurveDebtSwapAdapter } from "contracts/dlend/periphery/adapters/curve/interfaces/ICurveDebtSwapAdapter.sol";
+import { ReentrancyGuard } from "contracts/dlend/periphery/treasury/libs/ReentrancyGuard.sol";
+import { ICurveRouterNgPoolsOnlyV1 } from "contracts/dlend/periphery/adapters/curve/interfaces/ICurveRouterNgPoolsOnlyV1.sol";
+import { IAaveFlashLoanReceiver } from "contracts/dlend/periphery/adapters/curve/interfaces/IAaveFlashLoanReceiver.sol";
+import { SafeERC20 } from "contracts/dlend/periphery/treasury/libs/SafeERC20.sol";
+import { IPoolAddressesProvider } from "contracts/dlend/core/interfaces/IPoolAddressesProvider.sol";
+import { DataTypes } from "contracts/dlend/core/protocol/libraries/types/DataTypes.sol";
 
 /**
  * @title CurveDebtSwapAdapter
  * @notice Curve Adapter to perform a swap of debt to another debt.
  **/
-contract CurveDebtSwapAdapter is
-    BaseCurveBuyAdapter,
-    ReentrancyGuard,
-    IAaveFlashLoanReceiver,
-    ICurveDebtSwapAdapter
-{
+contract CurveDebtSwapAdapter is BaseCurveBuyAdapter, ReentrancyGuard, IAaveFlashLoanReceiver, ICurveDebtSwapAdapter {
     using SafeERC20 for IERC20WithPermit;
 
     // unique identifier to track usage via flashloan events
@@ -54,10 +49,7 @@ contract CurveDebtSwapAdapter is
         // set initial approval for all reserves
         address[] memory reserves = POOL.getReservesList();
         for (uint256 i = 0; i < reserves.length; i++) {
-            IERC20WithPermit(reserves[i]).safeApprove(
-                address(POOL),
-                type(uint256).max
-            );
+            IERC20WithPermit(reserves[i]).safeApprove(address(POOL), type(uint256).max);
         }
     }
 
@@ -66,15 +58,9 @@ contract CurveDebtSwapAdapter is
      * @param asset The address of the asset
      * @return The address of the vToken, sToken and aToken
      */
-    function _getReserveData(
-        address asset
-    ) internal view override returns (address, address, address) {
+    function _getReserveData(address asset) internal view override returns (address, address, address) {
         DataTypes.ReserveData memory reserveData = POOL.getReserveData(asset);
-        return (
-            reserveData.variableDebtTokenAddress,
-            reserveData.stableDebtTokenAddress,
-            reserveData.aTokenAddress
-        );
+        return (reserveData.variableDebtTokenAddress, reserveData.stableDebtTokenAddress, reserveData.aTokenAddress);
     }
 
     /**
@@ -84,12 +70,7 @@ contract CurveDebtSwapAdapter is
      * @param to The address receiving the aTokens
      * @param referralCode The referral code to pass to Aave
      */
-    function _supply(
-        address asset,
-        uint256 amount,
-        address to,
-        uint16 referralCode
-    ) internal override {
+    function _supply(address asset, uint256 amount, address to, uint16 referralCode) internal override {
         POOL.supply(asset, amount, to, referralCode);
     }
 
@@ -108,25 +89,21 @@ contract CurveDebtSwapAdapter is
         CreditDelegationInput memory creditDelegationPermit,
         PermitInput memory collateralATokenPermit
     ) external {
-        uint256 excessBefore = IERC20Detailed(debtSwapParams.newDebtAsset)
-            .balanceOf(address(this));
+        uint256 excessBefore = IERC20Detailed(debtSwapParams.newDebtAsset).balanceOf(address(this));
         // delegate credit
         if (creditDelegationPermit.deadline != 0) {
-            ICreditDelegationToken(creditDelegationPermit.debtToken)
-                .delegationWithSig(
-                    msg.sender,
-                    address(this),
-                    creditDelegationPermit.value,
-                    creditDelegationPermit.deadline,
-                    creditDelegationPermit.v,
-                    creditDelegationPermit.r,
-                    creditDelegationPermit.s
-                );
+            ICreditDelegationToken(creditDelegationPermit.debtToken).delegationWithSig(
+                msg.sender,
+                address(this),
+                creditDelegationPermit.value,
+                creditDelegationPermit.deadline,
+                creditDelegationPermit.v,
+                creditDelegationPermit.r,
+                creditDelegationPermit.s
+            );
         }
         // Default to the entire debt if an amount greater than it is passed.
-        (address vToken, address sToken, ) = _getReserveData(
-            debtSwapParams.debtAsset
-        );
+        (address vToken, address sToken, ) = _getReserveData(debtSwapParams.debtAsset);
         uint256 maxDebtRepayAmount = debtSwapParams.debtRateMode == 2
             ? IERC20WithPermit(vToken).balanceOf(msg.sender)
             : IERC20WithPermit(sToken).balanceOf(msg.sender);
@@ -160,42 +137,26 @@ contract CurveDebtSwapAdapter is
                 );
             }
             flashParams.nestedFlashloanDebtAsset = debtSwapParams.newDebtAsset;
-            flashParams.nestedFlashloanDebtAmount = debtSwapParams
-                .maxNewDebtAmount;
+            flashParams.nestedFlashloanDebtAmount = debtSwapParams.maxNewDebtAmount;
             // Execute the flashloan with the extra collateral asset.
-            _flash(
-                flashParams,
-                debtSwapParams.extraCollateralAsset,
-                debtSwapParams.extraCollateralAmount
-            );
+            _flash(flashParams, debtSwapParams.extraCollateralAsset, debtSwapParams.extraCollateralAmount);
         } else {
             // Execute the flashloan with the debt asset.
-            _flash(
-                flashParams,
-                debtSwapParams.newDebtAsset,
-                debtSwapParams.maxNewDebtAmount
-            );
+            _flash(flashParams, debtSwapParams.newDebtAsset, debtSwapParams.maxNewDebtAmount);
         }
 
         // use excess to repay parts of flash debt
-        uint256 excessAfter = IERC20Detailed(debtSwapParams.newDebtAsset)
-            .balanceOf(address(this));
+        uint256 excessAfter = IERC20Detailed(debtSwapParams.newDebtAsset).balanceOf(address(this));
         // with wrapped flashloans there is the chance of 1 wei inaccuracy on transfer & withdrawal
         // this might lead to a slight excess decrease
-        uint256 excess = excessAfter > excessBefore
-            ? excessAfter - excessBefore
-            : 0;
+        uint256 excess = excessAfter > excessBefore ? excessAfter - excessBefore : 0;
         if (excess > 0) {
             _conditionalRenewAllowance(debtSwapParams.newDebtAsset, excess);
             POOL.repay(debtSwapParams.newDebtAsset, excess, 2, msg.sender);
         }
     }
 
-    function _flash(
-        FlashParams memory flashParams,
-        address asset,
-        uint256 amount
-    ) internal virtual {
+    function _flash(FlashParams memory flashParams, address asset, uint256 amount) internal virtual {
         bytes memory params = abi.encode(flashParams);
 
         address[] memory assets = new address[](1);
@@ -204,20 +165,9 @@ contract CurveDebtSwapAdapter is
         amounts[0] = amount;
         uint256[] memory interestRateModes = new uint256[](1);
         // This is only true if there is no need for extra collateral.
-        interestRateModes[0] = flashParams.nestedFlashloanDebtAsset ==
-            address(0)
-            ? 2
-            : 0;
+        interestRateModes[0] = flashParams.nestedFlashloanDebtAsset == address(0) ? 2 : 0;
 
-        POOL.flashLoan(
-            address(this),
-            assets,
-            amounts,
-            interestRateModes,
-            flashParams.user,
-            params,
-            REFERRER
-        );
+        POOL.flashLoan(address(this), assets, amounts, interestRateModes, flashParams.user, params, REFERRER);
     }
 
     /**
@@ -253,29 +203,16 @@ contract CurveDebtSwapAdapter is
             uint256 collateralAmount = amounts[0];
 
             // Supply
-            _supply(
-                collateralAsset,
-                collateralAmount,
-                flashParams.user,
-                REFERRER
-            );
+            _supply(collateralAsset, collateralAmount, flashParams.user, REFERRER);
 
             // Execute the nested flashloan
             address newAsset = flashParams.nestedFlashloanDebtAsset;
             flashParams.nestedFlashloanDebtAsset = address(0);
-            _flash(
-                flashParams,
-                newAsset,
-                flashParams.nestedFlashloanDebtAmount
-            );
+            _flash(flashParams, newAsset, flashParams.nestedFlashloanDebtAmount);
 
             // Fetch and transfer back in the aToken to allow the pool to pull it.
             (, , address aToken) = _getReserveData(collateralAsset);
-            IERC20WithPermit(aToken).safeTransferFrom(
-                flashParams.user,
-                address(this),
-                collateralAmount
-            ); // Could be rounding error but it's insignificant
+            IERC20WithPermit(aToken).safeTransferFrom(flashParams.user, address(this), collateralAmount); // Could be rounding error but it's insignificant
             POOL.withdraw(collateralAsset, collateralAmount, address(this));
             _conditionalRenewAllowance(collateralAsset, collateralAmount);
         } else {
@@ -305,17 +242,9 @@ contract CurveDebtSwapAdapter is
             swapParams.swapParams
         );
 
-        _conditionalRenewAllowance(
-            swapParams.debtAsset,
-            swapParams.debtRepayAmount
-        );
+        _conditionalRenewAllowance(swapParams.debtAsset, swapParams.debtRepayAmount);
 
-        POOL.repay(
-            address(swapParams.debtAsset),
-            swapParams.debtRepayAmount,
-            swapParams.debtRateMode,
-            swapParams.user
-        );
+        POOL.repay(address(swapParams.debtAsset), swapParams.debtRepayAmount, swapParams.debtRateMode, swapParams.user);
         return amountSold;
     }
 }

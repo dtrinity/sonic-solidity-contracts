@@ -24,11 +24,7 @@ import "contracts/common/IMintableERC20.sol";
 contract TestERC20FlashMintable is ERC20, ERC20FlashMint, IMintableERC20 {
     uint8 private immutable _decimals;
 
-    constructor(
-        string memory name_,
-        string memory symbol_,
-        uint8 decimals_
-    ) ERC20(name_, symbol_) {
+    constructor(string memory name_, string memory symbol_, uint8 decimals_) ERC20(name_, symbol_) {
         _decimals = decimals_;
     }
 
@@ -45,13 +41,7 @@ contract TestERC20FlashMintable is ERC20, ERC20FlashMint, IMintableERC20 {
         _burn(account, amount);
     }
 
-    function decimals()
-        public
-        view
-        virtual
-        override(ERC20, IMintableERC20)
-        returns (uint8)
-    {
+    function decimals() public view virtual override(ERC20, IMintableERC20) returns (uint8) {
         return _decimals;
     }
 }

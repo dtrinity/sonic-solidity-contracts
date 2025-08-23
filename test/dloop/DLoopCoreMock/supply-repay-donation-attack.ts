@@ -30,14 +30,8 @@ describe("DLoopCoreMock - Supply/Repay Donation Edge Case Tests", function () {
       const victim = accounts[2]; // Will be the "vault user" trying to withdraw
 
       // Initial setup: ensure vault has no collateral or debt
-      const initialCollateral = await dloopMock.getMockCollateral(
-        await dloopMock.getAddress(),
-        await collateralToken.getAddress(),
-      );
-      const initialDebt = await dloopMock.getMockDebt(
-        await dloopMock.getAddress(),
-        await debtToken.getAddress(),
-      );
+      const initialCollateral = await dloopMock.getMockCollateral(await dloopMock.getAddress(), await collateralToken.getAddress());
+      const initialDebt = await dloopMock.getMockDebt(await dloopMock.getAddress(), await debtToken.getAddress());
 
       expect(initialCollateral).to.equal(0n);
       expect(initialDebt).to.equal(0n);
@@ -48,21 +42,14 @@ describe("DLoopCoreMock - Supply/Repay Donation Edge Case Tests", function () {
 
       // Directly set the vault's collateral state to simulate the attack
       // This simulates what happens when someone calls lendingPool.supply(collateralToken, amount, vaultAddress, 0)
-      await dloopMock.setMockCollateral(
-        await dloopMock.getAddress(),
-        await collateralToken.getAddress(),
-        donationAmount,
-      );
+      await dloopMock.setMockCollateral(await dloopMock.getAddress(), await collateralToken.getAddress(), donationAmount);
 
       // Verify attack was successful: vault now has collateral but no debt
       const vaultCollateralAfterAttack = await dloopMock.getMockCollateral(
         await dloopMock.getAddress(),
         await collateralToken.getAddress(),
       );
-      const vaultDebtAfterAttack = await dloopMock.getMockDebt(
-        await dloopMock.getAddress(),
-        await debtToken.getAddress(),
-      );
+      const vaultDebtAfterAttack = await dloopMock.getMockDebt(await dloopMock.getAddress(), await debtToken.getAddress());
 
       expect(vaultCollateralAfterAttack).to.equal(donationAmount);
       expect(vaultDebtAfterAttack).to.equal(0n);
@@ -74,45 +61,35 @@ describe("DLoopCoreMock - Supply/Repay Donation Edge Case Tests", function () {
       // Now attempt a normal user deposit to the vault - this should work
       const userDepositAmount = ethers.parseEther("100");
       await collateralToken.mint(victim, userDepositAmount);
-      await collateralToken
-        .connect(victim)
-        .approve(await dloopMock.getAddress(), userDepositAmount);
+      await collateralToken.connect(victim).approve(await dloopMock.getAddress(), userDepositAmount);
 
       // This deposit should be failed as the vault now is too imbalanced
       // which leads to maxDeposit() returns 0
-      await expect(
-        dloopMock.connect(victim).deposit(userDepositAmount, victim.address),
-      ).to.be.revertedWithCustomError(dloopMock, "ERC4626ExceededMaxDeposit");
+      await expect(dloopMock.connect(victim).deposit(userDepositAmount, victim.address)).to.be.revertedWithCustomError(
+        dloopMock,
+        "ERC4626ExceededMaxDeposit",
+      );
 
       // Since the vault started with leverage=100%, the withdrawal calculation will fail
 
       // Give user some debt tokens to satisfy the withdrawal requirements
       await debtToken.mint(victim, ethers.parseEther("10000"));
-      await debtToken
-        .connect(victim)
-        .approve(await dloopMock.getAddress(), ethers.parseEther("10000"));
+      await debtToken.connect(victim).approve(await dloopMock.getAddress(), ethers.parseEther("10000"));
 
       // Attempt withdrawal - this should revert as the vault is too imbalanced
       // which leads to maxWithdraw() returns 0
       await expect(
-        dloopMock
-          .connect(victim)
-          .withdraw(userDepositAmount / 2n, victim.address, victim.address),
+        dloopMock.connect(victim).withdraw(userDepositAmount / 2n, victim.address, victim.address),
       ).to.be.revertedWithCustomError(dloopMock, "ERC4626ExceededMaxWithdraw");
 
       // Approve to increaseLeverage()
-      await collateralToken
-        .connect(accounts[1])
-        .approve(await dloopMock.getAddress(), ethers.parseEther("1000"));
+      await collateralToken.connect(accounts[1]).approve(await dloopMock.getAddress(), ethers.parseEther("1000"));
 
       // Can call increaseLeverage()
-      await dloopMock
-        .connect(accounts[1])
-        .increaseLeverage(ethers.parseEther("1000"), 0n);
+      await dloopMock.connect(accounts[1]).increaseLeverage(ethers.parseEther("1000"), 0n);
 
       // Check current leverage
-      const currentLeverageAfterIncrease =
-        await dloopMock.getCurrentLeverageBps();
+      const currentLeverageAfterIncrease = await dloopMock.getCurrentLeverageBps();
       expect(currentLeverageAfterIncrease).to.equal(2020202n);
     });
   });
@@ -124,24 +101,14 @@ describe("DLoopCoreMock - Supply/Repay Donation Edge Case Tests", function () {
       // Setup: Create a normal vault position first
       const initialDepositAmount = ethers.parseEther("1000");
       await collateralToken.mint(victim, initialDepositAmount);
-      await collateralToken
-        .connect(victim)
-        .approve(await dloopMock.getAddress(), initialDepositAmount);
+      await collateralToken.connect(victim).approve(await dloopMock.getAddress(), initialDepositAmount);
 
       // Normal deposit creates leveraged position
-      await dloopMock
-        .connect(victim)
-        .deposit(initialDepositAmount, victim.address);
+      await dloopMock.connect(victim).deposit(initialDepositAmount, victim.address);
 
       // Verify vault has both collateral and debt after normal deposit
-      const vaultCollateral = await dloopMock.getMockCollateral(
-        await dloopMock.getAddress(),
-        await collateralToken.getAddress(),
-      );
-      const vaultDebt = await dloopMock.getMockDebt(
-        await dloopMock.getAddress(),
-        await debtToken.getAddress(),
-      );
+      const vaultCollateral = await dloopMock.getMockCollateral(await dloopMock.getAddress(), await collateralToken.getAddress());
+      const vaultDebt = await dloopMock.getMockDebt(await dloopMock.getAddress(), await debtToken.getAddress());
 
       expect(vaultCollateral).to.be.gt(0n);
       expect(vaultDebt).to.be.gt(0n);
@@ -155,21 +122,14 @@ describe("DLoopCoreMock - Supply/Repay Donation Edge Case Tests", function () {
 
       // Directly set the vault's debt to 0 to simulate the attack
       // This simulates what happens when someone calls lendingPool.repay(debtToken, vaultDebt, 2, vaultAddress)
-      await dloopMock.setMockDebt(
-        await dloopMock.getAddress(),
-        await debtToken.getAddress(),
-        0,
-      );
+      await dloopMock.setMockDebt(await dloopMock.getAddress(), await debtToken.getAddress(), 0);
 
       // Verify attack was successful: vault now has collateral but no debt
       const vaultCollateralAfterAttack = await dloopMock.getMockCollateral(
         await dloopMock.getAddress(),
         await collateralToken.getAddress(),
       );
-      const vaultDebtAfterAttack = await dloopMock.getMockDebt(
-        await dloopMock.getAddress(),
-        await debtToken.getAddress(),
-      );
+      const vaultDebtAfterAttack = await dloopMock.getMockDebt(await dloopMock.getAddress(), await debtToken.getAddress());
 
       expect(vaultCollateralAfterAttack).to.equal(vaultCollateral);
       expect(vaultDebtAfterAttack).to.equal(0n);
@@ -185,15 +145,11 @@ describe("DLoopCoreMock - Supply/Repay Donation Edge Case Tests", function () {
 
       // Give user some debt tokens to satisfy the withdrawal requirements
       await debtToken.mint(victim, ethers.parseEther("10000"));
-      await debtToken
-        .connect(victim)
-        .approve(await dloopMock.getAddress(), ethers.parseEther("10000"));
+      await debtToken.connect(victim).approve(await dloopMock.getAddress(), ethers.parseEther("10000"));
 
       // Attempt withdrawal - this should revert with ERC4626ExceededMaxWithdraw error
       await expect(
-        dloopMock
-          .connect(victim)
-          .withdraw(initialDepositAmount / 2n, victim.address, victim.address),
+        dloopMock.connect(victim).withdraw(initialDepositAmount / 2n, victim.address, victim.address),
       ).to.be.revertedWithCustomError(dloopMock, "ERC4626ExceededMaxWithdraw");
     });
   });
@@ -204,21 +160,11 @@ describe("DLoopCoreMock - Supply/Repay Donation Edge Case Tests", function () {
       const donationAmount = ethers.parseEther("1000");
 
       // Directly set the vault's collateral state to simulate the attack
-      await dloopMock.setMockCollateral(
-        await dloopMock.getAddress(),
-        await collateralToken.getAddress(),
-        donationAmount,
-      );
+      await dloopMock.setMockCollateral(await dloopMock.getAddress(), await collateralToken.getAddress(), donationAmount);
 
       // Check current collateral and debt
-      const collateral = await dloopMock.getMockCollateral(
-        await dloopMock.getAddress(),
-        await collateralToken.getAddress(),
-      );
-      const debt = await dloopMock.getMockDebt(
-        await dloopMock.getAddress(),
-        await debtToken.getAddress(),
-      );
+      const collateral = await dloopMock.getMockCollateral(await dloopMock.getAddress(), await collateralToken.getAddress());
+      const debt = await dloopMock.getMockDebt(await dloopMock.getAddress(), await debtToken.getAddress());
       expect(collateral).to.equal(donationAmount);
       expect(debt).to.equal(0n);
 
@@ -245,11 +191,7 @@ describe("DLoopCoreMock - Supply/Repay Donation Edge Case Tests", function () {
       const smallDonation = 1n; // 1 wei
 
       // Directly set the vault's collateral state to simulate the attack
-      await dloopMock.setMockCollateral(
-        await dloopMock.getAddress(),
-        await collateralToken.getAddress(),
-        smallDonation,
-      );
+      await dloopMock.setMockCollateral(await dloopMock.getAddress(), await collateralToken.getAddress(), smallDonation);
 
       // Even with minimal amounts, leverage is still 0
       const currentLeverage = await dloopMock.getCurrentLeverageBps();
@@ -258,22 +200,14 @@ describe("DLoopCoreMock - Supply/Repay Donation Edge Case Tests", function () {
       // Make a normal deposit
       const userDepositAmount = ethers.parseEther("100");
       await collateralToken.mint(victim, userDepositAmount);
-      await collateralToken
-        .connect(victim)
-        .approve(await dloopMock.getAddress(), userDepositAmount);
-      await dloopMock
-        .connect(victim)
-        .deposit(userDepositAmount, victim.address);
+      await collateralToken.connect(victim).approve(await dloopMock.getAddress(), userDepositAmount);
+      await dloopMock.connect(victim).deposit(userDepositAmount, victim.address);
 
       // Try to withdraw - succeeds
       await debtToken.mint(victim, ethers.parseEther("10000"));
-      await debtToken
-        .connect(victim)
-        .approve(await dloopMock.getAddress(), ethers.parseEther("10000"));
+      await debtToken.connect(victim).approve(await dloopMock.getAddress(), ethers.parseEther("10000"));
 
-      await dloopMock
-        .connect(victim)
-        .withdraw(userDepositAmount / 2n, victim.address, victim.address);
+      await dloopMock.connect(victim).withdraw(userDepositAmount / 2n, victim.address, victim.address);
     });
   });
 
@@ -285,11 +219,7 @@ describe("DLoopCoreMock - Supply/Repay Donation Edge Case Tests", function () {
       const donationAmount = ethers.parseEther("1000");
 
       // Directly set the vault's collateral state to simulate the attack
-      await dloopMock.setMockCollateral(
-        await dloopMock.getAddress(),
-        await collateralToken.getAddress(),
-        donationAmount,
-      );
+      await dloopMock.setMockCollateral(await dloopMock.getAddress(), await collateralToken.getAddress(), donationAmount);
 
       // Check current leverage
       const currentLeverage = await dloopMock.getCurrentLeverageBps();
@@ -298,12 +228,11 @@ describe("DLoopCoreMock - Supply/Repay Donation Edge Case Tests", function () {
       // User cannot deposit as the vault is too imbalanced
       const userDepositAmount = ethers.parseEther("100");
       await collateralToken.mint(victim, userDepositAmount);
-      await collateralToken
-        .connect(victim)
-        .approve(await dloopMock.getAddress(), userDepositAmount);
-      await expect(
-        dloopMock.connect(victim).deposit(userDepositAmount, victim.address),
-      ).to.be.revertedWithCustomError(dloopMock, "ERC4626ExceededMaxDeposit");
+      await collateralToken.connect(victim).approve(await dloopMock.getAddress(), userDepositAmount);
+      await expect(dloopMock.connect(victim).deposit(userDepositAmount, victim.address)).to.be.revertedWithCustomError(
+        dloopMock,
+        "ERC4626ExceededMaxDeposit",
+      );
     });
   });
 });

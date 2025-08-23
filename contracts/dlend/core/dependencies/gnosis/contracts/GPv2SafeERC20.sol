@@ -17,7 +17,7 @@
 
 pragma solidity ^0.8.20;
 
-import {IERC20} from "../../openzeppelin/contracts/IERC20.sol";
+import { IERC20 } from "../../openzeppelin/contracts/IERC20.sol";
 
 /// @title Gnosis Protocol v2 Safe ERC20 Transfer Library
 /// @author Gnosis Developers
@@ -32,10 +32,7 @@ library GPv2SafeERC20 {
         assembly {
             let freeMemoryPointer := mload(0x40)
             mstore(freeMemoryPointer, selector_)
-            mstore(
-                add(freeMemoryPointer, 4),
-                and(to, 0xffffffffffffffffffffffffffffffffffffffff)
-            )
+            mstore(add(freeMemoryPointer, 4), and(to, 0xffffffffffffffffffffffffffffffffffffffff))
             mstore(add(freeMemoryPointer, 36), value)
 
             if iszero(call(gas(), token, 0, freeMemoryPointer, 68, 0, 0)) {
@@ -49,26 +46,15 @@ library GPv2SafeERC20 {
 
     /// @dev Wrapper around a call to the ERC20 function `transferFrom` that
     /// reverts also when the token returns `false`.
-    function safeTransferFrom(
-        IERC20 token,
-        address from,
-        address to,
-        uint256 value
-    ) internal {
+    function safeTransferFrom(IERC20 token, address from, address to, uint256 value) internal {
         bytes4 selector_ = token.transferFrom.selector;
 
         // solhint-disable-next-line no-inline-assembly
         assembly {
             let freeMemoryPointer := mload(0x40)
             mstore(freeMemoryPointer, selector_)
-            mstore(
-                add(freeMemoryPointer, 4),
-                and(from, 0xffffffffffffffffffffffffffffffffffffffff)
-            )
-            mstore(
-                add(freeMemoryPointer, 36),
-                and(to, 0xffffffffffffffffffffffffffffffffffffffff)
-            )
+            mstore(add(freeMemoryPointer, 4), and(from, 0xffffffffffffffffffffffffffffffffffffffff))
+            mstore(add(freeMemoryPointer, 36), and(to, 0xffffffffffffffffffffffffffffffffffffffff))
             mstore(add(freeMemoryPointer, 68), value)
 
             if iszero(call(gas(), token, 0, freeMemoryPointer, 100, 0, 0)) {
@@ -83,9 +69,7 @@ library GPv2SafeERC20 {
     /// @dev Verifies that the last return was a successful `transfer*` call.
     /// This is done by checking that the return data is either empty, or
     /// is a valid ABI encoded boolean.
-    function getLastTransferResult(
-        IERC20 token
-    ) private view returns (bool success) {
+    function getLastTransferResult(IERC20 token) private view returns (bool success) {
         // NOTE: Inspecting previous return data requires assembly. Note that
         // we write the return data to memory 0 in the case where the return
         // data size is 32, this is OK since the first 64 bytes of memory are

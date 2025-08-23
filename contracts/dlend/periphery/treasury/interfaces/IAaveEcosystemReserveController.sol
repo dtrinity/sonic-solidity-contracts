@@ -17,7 +17,7 @@
 
 pragma solidity ^0.8.20;
 
-import {IERC20} from "contracts/dlend/core/dependencies/openzeppelin/contracts/IERC20.sol";
+import { IERC20 } from "contracts/dlend/core/dependencies/openzeppelin/contracts/IERC20.sol";
 
 interface IAaveEcosystemReserveController {
     /**
@@ -27,12 +27,7 @@ interface IAaveEcosystemReserveController {
      * @param recipient Allowance's recipient
      * @param amount Allowance to approve
      **/
-    function approve(
-        address collector,
-        IERC20 token,
-        address recipient,
-        uint256 amount
-    ) external;
+    function approve(address collector, IERC20 token, address recipient, uint256 amount) external;
 
     /**
      * @notice Proxy function for ERC20's transfer(), pointing to a specific collector contract
@@ -41,12 +36,7 @@ interface IAaveEcosystemReserveController {
      * @param recipient Transfer's recipient
      * @param amount Amount to transfer
      **/
-    function transfer(
-        address collector,
-        IERC20 token,
-        address recipient,
-        uint256 amount
-    ) external;
+    function transfer(address collector, IERC20 token, address recipient, uint256 amount) external;
 
     /**
      * @notice Proxy function to create a stream of token on a specific collector contract
@@ -74,11 +64,7 @@ interface IAaveEcosystemReserveController {
      * @param funds Amount to withdraw
      * @return bool If the withdrawal finished properly
      **/
-    function withdrawFromStream(
-        address collector,
-        uint256 streamId,
-        uint256 funds
-    ) external returns (bool);
+    function withdrawFromStream(address collector, uint256 streamId, uint256 funds) external returns (bool);
 
     /**
      * @notice Proxy function to cancel a stream of token on a specific collector contract
@@ -86,8 +72,5 @@ interface IAaveEcosystemReserveController {
      * @param streamId The id of the stream to cancel
      * @return bool If the cancellation happened correctly
      **/
-    function cancelStream(
-        address collector,
-        uint256 streamId
-    ) external returns (bool);
+    function cancelStream(address collector, uint256 streamId) external returns (bool);
 }

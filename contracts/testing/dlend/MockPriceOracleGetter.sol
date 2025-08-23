@@ -18,9 +18,7 @@ contract MockPriceOracleGetter is IPriceOracleGetter {
         return 1e8; // 8 decimals for USD base
     }
 
-    function getAssetPrice(
-        address asset
-    ) external view override returns (uint256) {
+    function getAssetPrice(address asset) external view override returns (uint256) {
         uint256 p = prices[asset];
         require(p != 0, "price not set");
         return p;

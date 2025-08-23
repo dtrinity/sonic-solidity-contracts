@@ -23,9 +23,7 @@ contract MockPoolAddressesProvider is IPoolAddressesProvider {
         emit MarketIdSet("", newMarketId);
     }
 
-    function getAddressFromID(
-        bytes32
-    ) external pure override returns (address) {
+    function getAddressFromID(bytes32) external pure override returns (address) {
         return address(0);
     }
 

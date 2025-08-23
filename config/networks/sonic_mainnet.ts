@@ -2,15 +2,8 @@ import { ZeroAddress } from "ethers";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 
 import { ONE_PERCENT_BPS } from "../../typescript/common/bps_constants";
-import {
-  DS_TOKEN_ID,
-  DUSD_TOKEN_ID,
-  INCENTIVES_PROXY_ID,
-} from "../../typescript/deploy-ids";
-import {
-  ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT,
-  ORACLE_AGGREGATOR_PRICE_DECIMALS,
-} from "../../typescript/oracle_aggregator/constants";
+import { DS_TOKEN_ID, DUSD_TOKEN_ID, INCENTIVES_PROXY_ID } from "../../typescript/deploy-ids";
+import { ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT, ORACLE_AGGREGATOR_PRICE_DECIMALS } from "../../typescript/oracle_aggregator/constants";
 import { fetchTokenInfo } from "../../typescript/token/utils";
 import {
   rateStrategyHighLiquidityStable,
@@ -40,9 +33,7 @@ import { Config } from "../types";
  * @param _hre - Hardhat Runtime Environment
  * @returns The configuration for the network
  */
-export async function getConfig(
-  _hre: HardhatRuntimeEnvironment,
-): Promise<Config> {
+export async function getConfig(_hre: HardhatRuntimeEnvironment): Promise<Config> {
   const dUSDDeployment = await _hre.deployments.getOrNull(DUSD_TOKEN_ID);
   const dSDeployment = await _hre.deployments.getOrNull(DS_TOKEN_ID);
   const wSAddress = "0x039e2fB66102314Ce7b64Ce5Ce3E5183bc94aD38";
@@ -73,11 +64,8 @@ export async function getConfig(
   const safeThreshold = 2; // 2 of 3 multisig
 
   // Fetch deployed dLend StaticATokenLM wrapper, aToken and RewardsController (may be undefined prior to deployment)
-  const dLendATokenWrapperDUSDDeployment = await _hre.deployments.getOrNull(
-    "dLend_ATokenWrapper_dUSD",
-  );
-  const rewardsControllerDeployment =
-    await _hre.deployments.getOrNull(INCENTIVES_PROXY_ID);
+  const dLendATokenWrapperDUSDDeployment = await _hre.deployments.getOrNull("dLend_ATokenWrapper_dUSD");
+  const rewardsControllerDeployment = await _hre.deployments.getOrNull(INCENTIVES_PROXY_ID);
   const aTokenDUSDDeployment = await _hre.deployments.getOrNull("dLEND-dUSD");
 
   // Fetch dUSD token decimals from the contract if deployed
@@ -193,8 +181,7 @@ export async function getConfig(
           minDeviationBps: 2 * ONE_PERCENT_BPS, // 2% deviation
           withdrawalFeeBps: 0.4 * ONE_PERCENT_BPS, // 0.4% withdrawal fee
           extraParams: {
-            targetStaticATokenWrapper:
-              dLendATokenWrapperDUSDDeployment?.address,
+            targetStaticATokenWrapper: dLendATokenWrapperDUSDDeployment?.address,
             treasury: governanceSafeMultisig,
             maxTreasuryFeeBps: "1000",
             initialTreasuryFeeBps: "500",
@@ -231,8 +218,7 @@ export async function getConfig(
         api3OracleAssets: {
           plainApi3OracleWrappers: {
             [wSAddress]: "0xAf9647E1F86406BC38F42FE630E9Fa8CBcd59B19", // S/USD dTRINITY OEV
-            [dSDeployment?.address || ""]:
-              "0xAf9647E1F86406BC38F42FE630E9Fa8CBcd59B19", // S/USD dTRINITY OEV
+            [dSDeployment?.address || ""]: "0xAf9647E1F86406BC38F42FE630E9Fa8CBcd59B19", // S/USD dTRINITY OEV
           },
           api3OracleWrappersWithThresholding: {},
           compositeApi3OracleWrappersWithThresholding: {},
@@ -419,27 +405,17 @@ export async function getConfig(
         initialWithdrawalFeeBps: 0.1 * ONE_PERCENT_BPS, // 0.1%
         adapters: [
           {
-            vaultAsset: emptyStringIfUndefined(
-              dLendATokenWrapperDUSDDeployment?.address,
-            ),
+            vaultAsset: emptyStringIfUndefined(dLendATokenWrapperDUSDDeployment?.address),
             adapterContract: "WrappedDLendConversionAdapter",
           },
         ],
-        defaultDepositVaultAsset: emptyStringIfUndefined(
-          dLendATokenWrapperDUSDDeployment?.address,
-        ),
+        defaultDepositVaultAsset: emptyStringIfUndefined(dLendATokenWrapperDUSDDeployment?.address),
         collateralVault: "DStakeCollateralVault_sdUSD", // Keep in sync with deploy ID constants
         collateralExchangers: [governanceSafeMultisig],
         dLendRewardManager: {
-          managedVaultAsset: emptyStringIfUndefined(
-            dLendATokenWrapperDUSDDeployment?.address,
-          ), // StaticATokenLM wrapper
-          dLendAssetToClaimFor: emptyStringIfUndefined(
-            aTokenDUSDDeployment?.address,
-          ), // dLEND aToken for dUSD
-          dLendRewardsController: emptyStringIfUndefined(
-            rewardsControllerDeployment?.address,
-          ), // RewardsController proxy
+          managedVaultAsset: emptyStringIfUndefined(dLendATokenWrapperDUSDDeployment?.address), // StaticATokenLM wrapper
+          dLendAssetToClaimFor: emptyStringIfUndefined(aTokenDUSDDeployment?.address), // dLEND aToken for dUSD
+          dLendRewardsController: emptyStringIfUndefined(rewardsControllerDeployment?.address), // RewardsController proxy
           treasury: governanceSafeMultisig,
           maxTreasuryFeeBps: 20 * ONE_PERCENT_BPS, // 20%
           initialTreasuryFeeBps: 0 * ONE_PERCENT_BPS, // 0%
