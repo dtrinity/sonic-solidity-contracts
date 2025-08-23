@@ -79,14 +79,43 @@ async function deployDLoopCoreDLend(
   }
 
   // Final fallback on local: use the aToken address directly to unblock local testing
+  // BUT only if we don't have a wrapper deployment
   if (!targetStaticATokenWrapperResolved && isLocalNetwork(hre.network.name)) {
+    console.log(`Using aToken address as fallback for targetStaticATokenWrapper: ${aTokenAddress}`);
     targetStaticATokenWrapperResolved = aTokenAddress;
   }
-  const targetStaticATokenWrapper = assertNotEmpty(targetStaticATokenWrapperResolved);
+
+  // Ensure we have a valid targetStaticATokenWrapper
+  if (!targetStaticATokenWrapperResolved) {
+    throw new Error(`targetStaticATokenWrapper is required but could not be resolved. aTokenAddress: ${aTokenAddress}`);
+  }
+
+  const targetStaticATokenWrapper = targetStaticATokenWrapperResolved;
   const treasury = assertNotEmpty(extraParams.treasury);
   const maxTreasuryFeeBps = extraParams.maxTreasuryFeeBps as number | bigint;
   const initialTreasuryFeeBps = (extraParams.initialTreasuryFeeBps as number | bigint) ?? 0;
   const initialExchangeThreshold = (extraParams.initialExchangeThreshold as number | bigint) ?? 0;
+
+  // Log the deployment parameters for debugging
+  console.log(`Deploying ${deploymentName} with parameters:`);
+  console.log(`  name: ${assertNotEmpty(vaultInfo.name)}`);
+  console.log(`  symbol: ${assertNotEmpty(vaultInfo.symbol)}`);
+  console.log(`  collateralToken: ${assertNotEmpty(vaultInfo.underlyingAsset)}`);
+  console.log(`  debtToken: ${assertNotEmpty(dUSDAddress)}`);
+  console.log(`  lendingPoolAddressesProvider: ${assertNotEmpty(lendingPoolAddressesProviderAddress)}`);
+  console.log(`  targetLeverageBps: ${vaultInfo.targetLeverageBps}`);
+  console.log(`  lowerBoundTargetLeverageBps: ${vaultInfo.lowerBoundTargetLeverageBps}`);
+  console.log(`  upperBoundTargetLeverageBps: ${vaultInfo.upperBoundTargetLeverageBps}`);
+  console.log(`  maxSubsidyBps: ${vaultInfo.maxSubsidyBps}`);
+  console.log(`  minDeviationBps: ${vaultInfo.minDeviationBps}`);
+  console.log(`  withdrawalFeeBps: ${vaultInfo.withdrawalFeeBps}`);
+  console.log(`  rewardsController: ${assertNotEmpty(incentivesProxyDeployment.address)}`);
+  console.log(`  dLendAssetToClaimFor: ${assertNotEmpty(aTokenAddress)}`);
+  console.log(`  targetStaticATokenWrapper: ${targetStaticATokenWrapper}`);
+  console.log(`  treasury: ${assertNotEmpty(treasury)}`);
+  console.log(`  maxTreasuryFeeBps: ${maxTreasuryFeeBps}`);
+  console.log(`  initialTreasuryFeeBps: ${initialTreasuryFeeBps}`);
+  console.log(`  initialExchangeThreshold: ${initialExchangeThreshold}`);
 
   await hre.deployments.deploy(deploymentName, {
     from: deployer,
@@ -105,7 +134,7 @@ async function deployDLoopCoreDLend(
       vaultInfo.withdrawalFeeBps,
       assertNotEmpty(incentivesProxyDeployment.address), // _rewardsController
       assertNotEmpty(aTokenAddress), // _dLendAssetToClaimFor
-      assertNotEmpty(targetStaticATokenWrapper), // _targetStaticATokenWrapper
+      targetStaticATokenWrapper, // _targetStaticATokenWrapper
       assertNotEmpty(treasury), // _treasury
       maxTreasuryFeeBps, // _maxTreasuryFeeBps
       initialTreasuryFeeBps, // _initialTreasuryFeeBps

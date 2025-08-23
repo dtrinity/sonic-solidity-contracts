@@ -98,6 +98,7 @@ describe("DLoopCoreDLend full-flow", () => {
   }
 
   before(async () => {
+    console.log("Starting before hook");
     // Single deployment pass to avoid double-initialization
     await deployments.fixture([
       "local-setup",
@@ -110,6 +111,7 @@ describe("DLoopCoreDLend full-flow", () => {
       "core",
       "dlend",
     ]);
+    console.log("Deployments fixture completed");
 
     // Named accounts
     const accounts = await hre.getNamedAccounts();
@@ -117,6 +119,7 @@ describe("DLoopCoreDLend full-flow", () => {
     userA = accounts.user1;
     userB = accounts.user2;
     userC = accounts.user3;
+    console.log("Named accounts set");
 
     // Core dLEND infra
     const poolAddr = await getDeploymentAddress(POOL_PROXY_ID);
@@ -127,6 +130,7 @@ describe("DLoopCoreDLend full-flow", () => {
     const addressesProviderAddr = (await deployments.get("PoolAddressesProvider")).address;
     addressesProvider = (await ethers.getContractAt("PoolAddressesProvider", addressesProviderAddr)) as PoolAddressesProvider;
     aaveOracle = (await ethers.getContractAt("IAaveOracle", await addressesProvider.getPriceOracle())) as IAaveOracle;
+    console.log("Core dLEND infra set");
 
     // Tokens
     const dUSDAddr = await getDeploymentAddress(DUSD_TOKEN_ID);
@@ -134,27 +138,40 @@ describe("DLoopCoreDLend full-flow", () => {
 
     const sfrxUSDAddr = (await deployments.get("sfrxUSD")).address;
     sfrxUSD = (await ethers.getContractAt("TestERC20", sfrxUSDAddr)) as TestERC20;
+    console.log("Tokens set");
 
     // Deploy DEX
     const SimpleDEXFactory = await ethers.getContractFactory("SimpleDEXMock");
     simpleDEX = (await SimpleDEXFactory.deploy()) as SimpleDEXMock;
+    await simpleDEX.waitForDeployment();
+    console.log("SimpleDEXMock deployed");
 
     // Deploy periphery mocks using dUSD as flash lender
     const DepositorFactory = await ethers.getContractFactory("DLoopDepositorMock");
     depositorMock = (await DepositorFactory.deploy(dUSDAddr, await simpleDEX.getAddress())) as DLoopDepositorMock;
+    await depositorMock.waitForDeployment();
+    console.log("DLoopDepositorMock deployed");
 
     const RedeemerFactory = await ethers.getContractFactory("DLoopRedeemerMock");
     redeemerMock = (await RedeemerFactory.deploy(dUSDAddr, await simpleDEX.getAddress())) as DLoopRedeemerMock;
+    await redeemerMock.waitForDeployment();
+    console.log("DLoopRedeemerMock deployed");
 
     const IncFactory = await ethers.getContractFactory("DLoopIncreaseLeverageMock");
     increaseLeverageMock = (await IncFactory.deploy(dUSDAddr, await simpleDEX.getAddress())) as DLoopIncreaseLeverageMock;
+    await increaseLeverageMock.waitForDeployment();
+    console.log("DLoopIncreaseLeverageMock deployed");
 
     const DecFactory = await ethers.getContractFactory("DLoopDecreaseLeverageMock");
     decreaseLeverageMock = (await DecFactory.deploy(dUSDAddr, await simpleDEX.getAddress())) as DLoopDecreaseLeverageMock;
+    await decreaseLeverageMock.waitForDeployment();
+    console.log("DLoopDecreaseLeverageMock deployed");
 
     // Get DLoop core vault instance (3X-sfrxUSD)
     const dloopVaultAddr = (await deployments.get(`${DLOOP_CORE_DLEND_ID}-3X-sfrxUSD`)).address;
+    console.log(`DLoopCoreDLend address: ${dloopVaultAddr}`);
     vault = (await ethers.getContractAt("DLoopCoreDLend", dloopVaultAddr)) as DLoopCoreDLend;
+    console.log("DLoopCoreDLend instantiated");
 
     // 3) Market liquidity for borrowing: mint dUSD via IssuerV2 and supply to pool
     const issuerAddr = (await deployments.get(DUSD_ISSUER_CONTRACT_ID)).address;
@@ -173,11 +190,13 @@ describe("DLoopCoreDLend full-flow", () => {
     await sfrxUSD.approve(await issuer.getAddress(), collateralAmount);
     const minDusd = (expectedDusdAmount * 99n) / 100n; // 1% slippage margin
     await issuer.issue(collateralAmount, sfrxUSDAddr, minDusd);
+    console.log("dUSD issued");
 
     // Supply dUSD liquidity to pool so borrowing works
     const dUsdSupply = ethers.parseUnits("200000", 18);
     await dUSD.approve(await pool.getAddress(), dUsdSupply);
     await pool.supply(dUSDAddr, dUsdSupply, deployer, 0);
+    console.log("dUSD supplied to pool");
 
     // 4) DEX setup: fund with both tokens and set 1:1 rates
     const dexFundDusdAmount = ethers.parseUnits("200000", 18);
@@ -187,6 +206,7 @@ describe("DLoopCoreDLend full-flow", () => {
     await simpleDEX.setExchangeRate(dUSDAddr, sfrxUSDAddr, ethers.parseUnits("1", 18));
     await simpleDEX.setExchangeRate(sfrxUSDAddr, dUSDAddr, ethers.parseUnits("1", 18));
     await simpleDEX.setExecutionSlippage(10); // 10 bps
+    console.log("DEX setup completed");
 
     // 5) Users: fund sfrxUSD and set approvals
     const userFund = ethers.parseUnits("100000", 18);
@@ -194,6 +214,8 @@ describe("DLoopCoreDLend full-flow", () => {
     await sfrxUSD.transfer(userB, userFund);
     await sfrxUSD.connect(await ethers.getSigner(userA)).approve(await depositorMock.getAddress(), ethers.MaxUint256);
     await sfrxUSD.connect(await ethers.getSigner(userB)).approve(await depositorMock.getAddress(), ethers.MaxUint256);
+    console.log("Users funded and approvals set");
+    console.log("Before hook completed");
   });
 
   it("runs full flow", async () => {
@@ -226,9 +248,11 @@ describe("DLoopCoreDLend full-flow", () => {
 
     // 4) UserC calls the correct rebalance (increase if 1, decrease if -1)
     if (dirAfterDown > 0) {
-      await increaseLeverageMock.connect(await ethers.getSigner(userC)).increaseLeverage("0x", vault);
+      const [inputAmount] = await vault.quoteRebalanceAmountToReachTargetLeverage();
+      await increaseLeverageMock.connect(await ethers.getSigner(userC)).increaseLeverage(inputAmount, "0x", vault);
     } else {
-      await decreaseLeverageMock.connect(await ethers.getSigner(userC)).decreaseLeverage("0x", vault);
+      const [inputAmount] = await vault.quoteRebalanceAmountToReachTargetLeverage();
+      await decreaseLeverageMock.connect(await ethers.getSigner(userC)).decreaseLeverage(inputAmount, "0x", vault);
     }
 
     // 5) Verify balanced
@@ -247,9 +271,11 @@ describe("DLoopCoreDLend full-flow", () => {
 
     // 7) UserC calls the corresponding rebalance
     if (dirAfterUp > 0) {
-      await increaseLeverageMock.connect(await ethers.getSigner(userC)).increaseLeverage("0x", vault);
+      const [inputAmount] = await vault.quoteRebalanceAmountToReachTargetLeverage();
+      await increaseLeverageMock.connect(await ethers.getSigner(userC)).increaseLeverage(inputAmount, "0x", vault);
     } else {
-      await decreaseLeverageMock.connect(await ethers.getSigner(userC)).decreaseLeverage("0x", vault);
+      const [inputAmount] = await vault.quoteRebalanceAmountToReachTargetLeverage();
+      await decreaseLeverageMock.connect(await ethers.getSigner(userC)).decreaseLeverage(inputAmount, "0x", vault);
     }
 
     // 8) Verify balanced
