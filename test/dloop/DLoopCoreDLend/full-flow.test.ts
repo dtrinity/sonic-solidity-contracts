@@ -34,6 +34,7 @@ describe("DLoopCoreDLend full-flow", () => {
   let addressesProvider: PoolAddressesProvider;
   let aaveOracle: IAaveOracle;
   let vault: DLoopCoreDLend;
+  let vaultAddress: string;
 
   // Tokens
   let dUSD: ERC20StablecoinUpgradeable;
@@ -81,6 +82,33 @@ describe("DLoopCoreDLend full-flow", () => {
   async function direction(): Promise<number> {
     const [, , dir] = await vault.quoteRebalanceAmountToReachTargetLeverage();
     return Number(dir);
+  }
+
+  /**
+   * Returns the absolute value of a bigint.
+   *
+   * @param x - The bigint to get the absolute value of
+   */
+  function absBigint(x: bigint): bigint {
+    return x < 0n ? -x : x;
+  }
+
+  /**
+   * Logs the current state of the vault.
+   *
+   * @param label - The label to log
+   */
+  async function logState(label: string): Promise<void> {
+    const target = await vault.targetLeverageBps();
+    const lev = await vault.getCurrentLeverageBps();
+    const subsidy = await vault.getCurrentSubsidyBps();
+    const [totC, totD] = await vault.getTotalCollateralAndDebtOfUserInBase(vaultAddress);
+    const totalAssets = await vault.totalAssets();
+    const totalSupply = await vault.totalSupply();
+    const dir = await direction();
+    console.log(
+      `${label} | dir=${dir} lev=${lev.toString()} target=${target.toString()} subsidy=${subsidy.toString()} C=${totC.toString()} D=${totD.toString()} totalAssets=${totalAssets.toString()} totalSupply=${totalSupply.toString()}`,
+    );
   }
 
   /**
@@ -171,6 +199,7 @@ describe("DLoopCoreDLend full-flow", () => {
     const dloopVaultAddr = (await deployments.get(`${DLOOP_CORE_DLEND_ID}-3X-sfrxUSD`)).address;
     console.log(`DLoopCoreDLend address: ${dloopVaultAddr}`);
     vault = (await ethers.getContractAt("DLoopCoreDLend", dloopVaultAddr)) as DLoopCoreDLend;
+    vaultAddress = await vault.getAddress();
     console.log("DLoopCoreDLend instantiated");
 
     // 3) Market liquidity for borrowing: mint dUSD via IssuerV2 and supply to pool
@@ -223,19 +252,48 @@ describe("DLoopCoreDLend full-flow", () => {
     const targetLeverage = await vault.targetLeverageBps();
 
     // 0) Sanity
-    expect(await vault.getCurrentLeverageBps()).to.be.a("bigint");
+    const initialLev = await vault.getCurrentLeverageBps();
+    expect(initialLev).to.be.a("bigint");
+    await logState("Step 0 - Sanity");
 
     // 1) UserA deposit via DepositorMock
     const depositAmountA = ethers.parseUnits("100", 18);
     const minSharesA = await depositorMock.calculateMinOutputShares(depositAmountA, 100, vault);
+    const tsBeforeA = await vault.totalSupply();
+    const userASharesBefore = await vault.balanceOf(userA);
+    await logState("Step 1 - pre deposit A");
     await depositorMock.connect(await ethers.getSigner(userA)).deposit(depositAmountA, userA, minSharesA, "0x", vault);
-    expect(await vault.balanceOf(userA)).to.be.gt(0n);
+    const userASharesAfter = await vault.balanceOf(userA);
+    const tsAfterA = await vault.totalSupply();
+    const mintedA = userASharesAfter - userASharesBefore;
+    console.log(
+      `Step 1 - UserA deposit: deposit=${depositAmountA.toString()} minShares=${minSharesA.toString()} minted=${mintedA.toString()}`,
+    );
+    expect(userASharesAfter).to.be.gt(0n);
+    expect(mintedA).to.be.gte(minSharesA);
+    expect(tsAfterA - tsBeforeA).to.equal(mintedA);
+    await logState("Step 1 - post deposit A");
 
     // 2) UserB deposit via DepositorMock
     const depositAmountB = ethers.parseUnits("50", 18);
     const minSharesB = await depositorMock.calculateMinOutputShares(depositAmountB, 100, vault);
+    const tsBeforeB = await vault.totalSupply();
+    const userBSharesBefore = await vault.balanceOf(userB);
+    await logState("Step 2 - pre deposit B");
     await depositorMock.connect(await ethers.getSigner(userB)).deposit(depositAmountB, userB, minSharesB, "0x", vault);
-    expect(await vault.balanceOf(userB)).to.be.gt(0n);
+    const userBSharesAfter = await vault.balanceOf(userB);
+    const tsAfterB = await vault.totalSupply();
+    const mintedB = userBSharesAfter - userBSharesBefore;
+    console.log(
+      `Step 2 - UserB deposit: deposit=${depositAmountB.toString()} minShares=${minSharesB.toString()} minted=${mintedB.toString()}`,
+    );
+    expect(userBSharesAfter).to.be.gt(0n);
+    expect(mintedB).to.be.gte(minSharesB);
+    expect(tsAfterB - tsBeforeB).to.equal(mintedB);
+    // supply consistency
+    const supplyNow = await vault.totalSupply();
+    expect(supplyNow).to.equal((await vault.balanceOf(userA)) + (await vault.balanceOf(userB)));
+    await logState("Step 2 - post deposit B");
 
     // Approve RedeemerMock for shares via vault (ERC20)
     await vault.connect(await ethers.getSigner(userA)).approve(await redeemerMock.getAddress(), ethers.MaxUint256);
@@ -244,16 +302,24 @@ describe("DLoopCoreDLend full-flow", () => {
     // 3) Lower sfrxUSD price => leverage changes, determine direction dynamically
     await setUsdFeed("sfrxUSD_frxUSD", "0.9");
     const dirAfterDown = await direction();
+    console.log(`Step 3 - after price down: dir=${dirAfterDown}`);
+    console.log(`Step 3 - lev=${await vault.getCurrentLeverageBps()}`);
     expect(dirAfterDown).to.not.equal(0);
 
     // 4) UserC calls the correct rebalance (increase if 1, decrease if -1)
+    const levBeforeRebal1 = await vault.getCurrentLeverageBps();
+    const [inputAmount1, estimatedOut1, dir1] = await vault.quoteRebalanceAmountToReachTargetLeverage();
+    console.log(`Step 4 - rebalance1 quote: input=${inputAmount1.toString()} out=${estimatedOut1.toString()} dir=${dir1}`);
+
     if (dirAfterDown > 0) {
-      const [inputAmount] = await vault.quoteRebalanceAmountToReachTargetLeverage();
-      await increaseLeverageMock.connect(await ethers.getSigner(userC)).increaseLeverage(inputAmount, "0x", vault);
+      await increaseLeverageMock.connect(await ethers.getSigner(userC)).increaseLeverage(inputAmount1, "0x", vault);
     } else {
-      const [inputAmount] = await vault.quoteRebalanceAmountToReachTargetLeverage();
-      await decreaseLeverageMock.connect(await ethers.getSigner(userC)).decreaseLeverage(inputAmount, "0x", vault);
+      await decreaseLeverageMock.connect(await ethers.getSigner(userC)).decreaseLeverage(inputAmount1, "0x", vault);
     }
+    const levAfterRebal1 = await vault.getCurrentLeverageBps();
+    expect(absBigint(levAfterRebal1 - targetLeverage)).to.be.lt(absBigint(levBeforeRebal1 - targetLeverage));
+    console.log(`Step 4 - lev=${await vault.getCurrentLeverageBps()}`);
+    await logState("Step 4 - post rebalance 1");
 
     // 5) Verify balanced
     // Tolerate small residual; if not 0, nudge price slightly and re-check
@@ -263,47 +329,66 @@ describe("DLoopCoreDLend full-flow", () => {
     const levAfterFirst = await vault.getCurrentLeverageBps();
     // Allow wider tolerance due to discrete swap and subsidy steps
     expect(levAfterFirst).to.be.within(targetLeverage - 400000n, targetLeverage + 400000n);
+    await logState("Step 5 - verify balanced 1");
 
     // 6) Raise sfrxUSD price => leverage changes again, determine direction dynamically
     await setUsdFeed("sfrxUSD_frxUSD", "1.2");
     const dirAfterUp = await direction();
+    console.log(`Step 6 - after price up: dir=${dirAfterUp}`);
+    console.log(`Step 6 - lev=${await vault.getCurrentLeverageBps()}`);
     expect(dirAfterUp).to.not.equal(0);
 
     // 7) UserC calls the corresponding rebalance
+    const levBeforeRebal2 = await vault.getCurrentLeverageBps();
+    const [inputAmount2, estimatedOut2, dir2] = await vault.quoteRebalanceAmountToReachTargetLeverage();
+    console.log(`Step 7 - rebalance2 quote: input=${inputAmount2.toString()} out=${estimatedOut2.toString()} dir=${dir2}`);
+
     if (dirAfterUp > 0) {
-      const [inputAmount] = await vault.quoteRebalanceAmountToReachTargetLeverage();
-      await increaseLeverageMock.connect(await ethers.getSigner(userC)).increaseLeverage(inputAmount, "0x", vault);
+      await increaseLeverageMock.connect(await ethers.getSigner(userC)).increaseLeverage(inputAmount2, "0x", vault);
     } else {
-      const [inputAmount] = await vault.quoteRebalanceAmountToReachTargetLeverage();
-      await decreaseLeverageMock.connect(await ethers.getSigner(userC)).decreaseLeverage(inputAmount, "0x", vault);
+      await decreaseLeverageMock.connect(await ethers.getSigner(userC)).decreaseLeverage(inputAmount2, "0x", vault);
     }
+    const levAfterRebal2 = await vault.getCurrentLeverageBps();
+    expect(absBigint(levAfterRebal2 - targetLeverage)).to.be.lt(absBigint(levBeforeRebal2 - targetLeverage));
+    console.log(`Step 7 - lev=${await vault.getCurrentLeverageBps()}`);
+    await logState("Step 7 - post rebalance 2");
 
     // 8) Verify balanced
-    if ((await direction()) !== 0) {
-      await setUsdFeed("sfrxUSD_frxUSD", "1.15");
-    }
+    // if ((await direction()) !== 0) {
+    //   console.log(`Step 8 - changing sfrxUSD price to 1.15`);
+    //   await setUsdFeed("sfrxUSD_frxUSD", "1.15");
+    // }
     const levAfterSecond = await vault.getCurrentLeverageBps();
     expect(levAfterSecond).to.be.within(targetLeverage - 400000n, targetLeverage + 400000n);
+    await logState("Step 8 - verify balanced 2");
 
     // 9) UserA redeems 50%
     const userAShares = await vault.balanceOf(userA);
     const redeemSharesA = userAShares / 2n;
-    const minCollA = await redeemerMock.calculateMinOutputCollateral(redeemSharesA, 10000, vault);
+    const minCollA = await redeemerMock.calculateMinOutputCollateral(redeemSharesA, 100, vault); // 1% slippage (for reference)
 
     const balBeforeA = await sfrxUSD.balanceOf(userA);
+    console.log(`Step 9 - UserA redeem: shares=${redeemSharesA.toString()} minColl=${minCollA.toString()}`);
     await redeemerMock.connect(await ethers.getSigner(userA)).redeem(redeemSharesA, userA, 1, "0x", vault);
     const balAfterA = await sfrxUSD.balanceOf(userA);
-    expect(balAfterA).to.be.gt(balBeforeA);
+    const receivedA = balAfterA - balBeforeA;
+    console.log(`Step 9 - UserA received sfrxUSD=${receivedA.toString()}`);
+    expect(receivedA).to.be.gt(0n);
     expect(await vault.balanceOf(userA)).to.equal(userAShares - redeemSharesA);
+    await logState("Step 9 - post redeem A");
 
     // 10) UserB redeems 100%
     const userBShares = await vault.balanceOf(userB);
-    const minCollB = await redeemerMock.calculateMinOutputCollateral(userBShares, 10000, vault);
+    const minCollB = await redeemerMock.calculateMinOutputCollateral(userBShares, 100, vault); // 1% slippage (for reference)
 
     const balBeforeB = await sfrxUSD.balanceOf(userB);
+    console.log(`Step 10 - UserB redeem: shares=${userBShares.toString()} minColl=${minCollB.toString()}`);
     await redeemerMock.connect(await ethers.getSigner(userB)).redeem(userBShares, userB, 1, "0x", vault);
     const balAfterB = await sfrxUSD.balanceOf(userB);
-    expect(balAfterB).to.be.gt(balBeforeB);
+    const receivedB = balAfterB - balBeforeB;
+    console.log(`Step 10 - UserB received sfrxUSD=${receivedB.toString()}`);
+    expect(receivedB).to.be.gt(0n);
     expect(await vault.balanceOf(userB)).to.equal(0n);
+    await logState("Step 10 - post redeem B");
   });
 });
