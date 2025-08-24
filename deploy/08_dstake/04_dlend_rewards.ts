@@ -277,6 +277,7 @@ func.skip = async (hre: HardhatRuntimeEnvironment): Promise<boolean> => {
     }
 
     const targetStaticATokenWrapperAddress = rewardManagerConfig.managedVaultAsset;
+
     if (!targetStaticATokenWrapperAddress || targetStaticATokenWrapperAddress === ethers.ZeroAddress) {
       // Nothing actionable for this instance
       continue;
@@ -286,6 +287,7 @@ func.skip = async (hre: HardhatRuntimeEnvironment): Promise<boolean> => {
     const poolDataProvider = await ethers.getContractAt("AaveProtocolDataProvider", poolDataProviderDep.address);
     const reserveTokens = await poolDataProvider.getReserveTokensAddresses(instanceConfig.dStable);
     const aTokenAddress = reserveTokens.aTokenAddress;
+
     if (aTokenAddress === ethers.ZeroAddress) {
       continue;
     }
@@ -293,12 +295,14 @@ func.skip = async (hre: HardhatRuntimeEnvironment): Promise<boolean> => {
     // Reward manager must exist
     const rewardManagerDeploymentName = `DStakeRewardManagerDLend_${instanceKey}`;
     const rewardManagerDep = await getOrNull(rewardManagerDeploymentName);
+
     if (!rewardManagerDep) {
       return false;
     }
 
     // Claimer must already be set to the reward manager for this wrapper
     const currentClaimer = await rewardsController.getClaimer(targetStaticATokenWrapperAddress);
+
     if (currentClaimer.toLowerCase() !== rewardManagerDep.address.toLowerCase()) {
       return false;
     }

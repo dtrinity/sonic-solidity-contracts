@@ -32,6 +32,10 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const plainFeeds = config.oracleAggregators.USD.redstoneOracleAssets?.plainRedstoneOracleWrappers || {};
 
   for (const [assetAddress, _feed] of Object.entries(plainFeeds)) {
+    if (!assetAddress || !/^0x[0-9a-fA-F]{40}$/.test(assetAddress)) {
+      console.warn(`[oracle-setup] Skipping setOracle for invalid/missing plain asset address: '${assetAddress}'`);
+      continue;
+    }
     await oracleAggregator.setOracle(assetAddress, redstoneWrapperAddress);
     console.log(`Set plain Redstone wrapper for asset ${assetAddress} to ${redstoneWrapperAddress}`);
   }

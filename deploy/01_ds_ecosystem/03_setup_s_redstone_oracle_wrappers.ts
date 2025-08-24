@@ -67,6 +67,16 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment): Pr
   const plainFeeds = config.oracleAggregators.S.redstoneOracleAssets?.plainRedstoneOracleWrappers || {};
 
   for (const [assetAddress, feed] of Object.entries(plainFeeds)) {
+    // Skip invalid or empty asset addresses (can appear in localhost configs before all tokens are deployed)
+    if (!assetAddress || !/^0x[0-9a-fA-F]{40}$/.test(assetAddress)) {
+      console.warn(`[oracle-setup] Skipping invalid or missing assetAddress in plainFeeds: '${assetAddress}'`);
+      continue;
+    }
+
+    if (!feed || !/^0x[0-9a-fA-F]{40}$/.test(feed)) {
+      console.error(`[oracle-setup] Invalid or missing feed address in plainFeeds for asset ${assetAddress}: '${feed}'`);
+      throw new Error(`[oracle-setup] Invalid or missing feed address in plainFeeds for asset ${assetAddress}: '${feed}'`);
+    }
     await redstoneWrapper.setFeed(assetAddress, feed);
     console.log(`Set plain Redstone feed for asset ${assetAddress} to ${feed}`);
   }
@@ -92,6 +102,16 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment): Pr
 
   // Set feeds and thresholds for feeds with thresholding
   for (const [assetAddress, feedConfig] of Object.entries(thresholdFeeds)) {
+    // Skip invalid or empty asset addresses (can appear in localhost configs before all tokens are deployed)
+    if (!assetAddress || !/^0x[0-9a-fA-F]{40}$/.test(assetAddress)) {
+      console.warn(`[oracle-setup] Skipping invalid or missing assetAddress in thresholdFeeds: '${assetAddress}'`);
+      continue;
+    }
+
+    if (!feedConfig.feed || !/^0x[0-9a-fA-F]{40}$/.test(feedConfig.feed)) {
+      console.error(`[oracle-setup] Invalid or missing feed address in thresholdFeeds for asset ${assetAddress}: '${feedConfig.feed}'`);
+      throw new Error(`[oracle-setup] Invalid or missing feed address in thresholdFeeds for asset ${assetAddress}: '${feedConfig.feed}'`);
+    }
     await redstoneWrapperWithThresholding.setFeed(assetAddress, feedConfig.feed);
     await redstoneWrapperWithThresholding.setThresholdConfig(assetAddress, feedConfig.lowerThreshold, feedConfig.fixedPrice);
     console.log(`Set Redstone feed with thresholding for asset ${assetAddress}`);
@@ -118,6 +138,26 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment): Pr
 
   // Add composite feeds
   for (const [assetAddress, feedConfig] of Object.entries(compositeFeeds)) {
+    // Skip invalid or empty asset addresses (can appear in localhost configs before all tokens are deployed)
+    if (!assetAddress || !/^0x[0-9a-fA-F]{40}$/.test(assetAddress)) {
+      console.warn(`[oracle-setup] Skipping invalid or missing assetAddress in compositeFeeds: '${assetAddress}'`);
+      continue;
+    }
+
+    if (!feedConfig.feedAsset || !/^0x[0-9a-fA-F]{40}$/.test(feedConfig.feedAsset)) {
+      console.error(`[oracle-setup] Invalid or missing feedAsset in compositeFeeds for asset ${assetAddress}: '${feedConfig.feedAsset}'`);
+      throw new Error(`[oracle-setup] Invalid or missing feedAsset in compositeFeeds for asset ${assetAddress}: '${feedConfig.feedAsset}'`);
+    }
+
+    if (!feedConfig.feed1 || !/^0x[0-9a-fA-F]{40}$/.test(feedConfig.feed1)) {
+      console.error(`[oracle-setup] Invalid or missing feed1 in compositeFeeds for asset ${assetAddress}: '${feedConfig.feed1}'`);
+      throw new Error(`[oracle-setup] Invalid or missing feed1 in compositeFeeds for asset ${assetAddress}: '${feedConfig.feed1}'`);
+    }
+
+    if (!feedConfig.feed2 || !/^0x[0-9a-fA-F]{40}$/.test(feedConfig.feed2)) {
+      console.error(`[oracle-setup] Invalid or missing feed2 in compositeFeeds for asset ${assetAddress}: '${feedConfig.feed2}'`);
+      throw new Error(`[oracle-setup] Invalid or missing feed2 in compositeFeeds for asset ${assetAddress}: '${feedConfig.feed2}'`);
+    }
     await redstoneCompositeWrapper.addCompositeFeed(
       feedConfig.feedAsset,
       feedConfig.feed1,
