@@ -261,7 +261,7 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard, RescuableV
      */
     function getTotalCollateralAndDebtOfUserInBase(
         address user
-    ) public view virtual returns (uint256 totalCollateralBase, uint256 totalDebtBase) {
+    ) public view returns (uint256 totalCollateralBase, uint256 totalDebtBase) {
         // Collateral side: balance of the aToken corresponding to collateralToken
         uint256 collateralBalanceInTokenAmount = getCollateralValueInTokenAmount(address(collateralToken), user);
         totalCollateralBase = convertFromTokenAmountToBaseCurrency(
