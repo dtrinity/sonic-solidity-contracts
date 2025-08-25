@@ -86,9 +86,7 @@ export async function getConfig(_hre: HardhatRuntimeEnvironment): Promise<Config
       owners: safeOwners,
       threshold: safeThreshold,
       chainId: 146, // Sonic mainnet chain ID
-      rpcUrl: "https://rpc.sonic.fantom.network",
-      // Temporary test: point to Ethereum mainnet Safe Transaction Service
-      txServiceUrl: "https://safe-transaction-mainnet.safe.global",
+      rpcUrl: "https://rpc.soniclabs.com",
     },
     tokenAddresses: {
       dUSD: emptyStringIfUndefined(dUSDDeployment?.address),
