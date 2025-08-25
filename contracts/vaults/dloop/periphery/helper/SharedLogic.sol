@@ -2,6 +2,7 @@
 pragma solidity ^0.8.20;
 
 import { DLoopCoreBase } from "../../core/DLoopCoreBase.sol";
+import { DLoopCoreLogic } from "../../core/DLoopCoreLogic.sol";
 
 /**
  * @title SharedLogic
@@ -18,8 +19,8 @@ library SharedLogic {
     function getLeveragedAssets(uint256 assets, DLoopCoreBase dLoopCore) internal view returns (uint256) {
         return
             dLoopCore.getCurrentLeverageBps() > 0
-                ? dLoopCore.getCurrentLeveragedAssets(assets)
-                : dLoopCore.getTargetLeveragedAssets(assets);
+                ? DLoopCoreLogic.getLeveragedAssetsWithLeverage(assets, dLoopCore.getCurrentLeverageBps())
+                : DLoopCoreLogic.getLeveragedAssetsWithLeverage(assets, dLoopCore.targetLeverageBps());
     }
 
     /**
@@ -32,7 +33,7 @@ library SharedLogic {
     function getUnleveragedAssets(uint256 leveragedAssets, DLoopCoreBase dLoopCore) internal view returns (uint256) {
         return
             dLoopCore.getCurrentLeverageBps() > 0
-                ? dLoopCore.getUnleveragedAssetsWithCurrentLeverage(leveragedAssets)
-                : dLoopCore.getUnleveragedAssetsWithTargetLeverage(leveragedAssets);
+                ? DLoopCoreLogic.getUnleveragedAssetsWithLeverage(leveragedAssets, dLoopCore.getCurrentLeverageBps())
+                : DLoopCoreLogic.getUnleveragedAssetsWithLeverage(leveragedAssets, dLoopCore.targetLeverageBps());
     }
 }

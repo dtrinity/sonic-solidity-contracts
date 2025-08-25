@@ -531,42 +531,6 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard, RescuableV
     /* Helper Functions */
 
     /**
-     * @dev Calculates the leveraged amount of the assets with the target leverage
-     * @param assets Amount of assets
-     * @return leveragedAssets Amount of leveraged assets
-     */
-    function getTargetLeveragedAssets(uint256 assets) public view returns (uint256) {
-        return DLoopCoreLogic.getLeveragedAssetsWithLeverage(assets, targetLeverageBps);
-    }
-
-    /**
-     * @dev Calculates the leveraged amount of the assets with the current leverage
-     * @param assets Amount of assets
-     * @return leveragedAssets Amount of leveraged assets
-     */
-    function getCurrentLeveragedAssets(uint256 assets) public view returns (uint256) {
-        return DLoopCoreLogic.getLeveragedAssetsWithLeverage(assets, getCurrentLeverageBps());
-    }
-
-    /**
-     * @dev Calculates the unleveraged amount of the assets with the target leverage
-     * @param leveragedAssets Amount of leveraged assets
-     * @return unleveragedAssets Amount of unleveraged assets
-     */
-    function getUnleveragedAssetsWithTargetLeverage(uint256 leveragedAssets) public view returns (uint256) {
-        return DLoopCoreLogic.getUnleveragedAssetsWithLeverage(leveragedAssets, targetLeverageBps);
-    }
-
-    /**
-     * @dev Calculates the unleveraged amount of the assets with the current leverage
-     * @param leveragedAssets Amount of leveraged assets
-     * @return unleveragedAssets Amount of unleveraged assets
-     */
-    function getUnleveragedAssetsWithCurrentLeverage(uint256 leveragedAssets) public view returns (uint256) {
-        return DLoopCoreLogic.getUnleveragedAssetsWithLeverage(leveragedAssets, getCurrentLeverageBps());
-    }
-
-    /**
      * @dev Gets the asset price from the oracle
      * @param asset Address of the asset
      * @return uint256 Price of the asset
