@@ -297,35 +297,6 @@ contract DLoopCoreMock is DLoopCoreBase {
         return debtTokenAmount;
     }
 
-    /**
-     * @inheritdoc DLoopCoreBase
-     */
-    function getTotalCollateralAndDebtOfUserInBase(
-        address user
-    ) public view override returns (uint256 totalCollateralBase, uint256 totalDebtBase) {
-        // Sum collateral across all collateral tokens tracked for user
-        address[] memory collateralTokens = mockCollateralTokens[user];
-        for (uint256 i = 0; i < collateralTokens.length; i++) {
-            address token = collateralTokens[i];
-            uint256 amount = mockCollateral[user][token];
-            if (amount > 0) {
-                totalCollateralBase += convertFromTokenAmountToBaseCurrency(amount, token);
-            }
-        }
-
-        // Sum debt across all debt tokens tracked for user
-        address[] memory debtTokens = mockDebtTokens[user];
-        for (uint256 j = 0; j < debtTokens.length; j++) {
-            address token = debtTokens[j];
-            uint256 amount = mockDebt[user][token];
-            if (amount > 0) {
-                totalDebtBase += convertFromTokenAmountToBaseCurrency(amount, token);
-            }
-        }
-
-        return (totalCollateralBase, totalDebtBase);
-    }
-
     // --- Test-only public wrappers for internal pool logic ---
     function testSupplyToPool(address token, uint256 amount, address onBehalfOf) external {
         _supplyToPool(token, amount, onBehalfOf);

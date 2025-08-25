@@ -54,6 +54,16 @@ const config: HardhatUserConfig = {
           viaIR: true,
         },
       },
+      "contracts/vaults/dloop/core/DLoopQuoter.sol": {
+        version: "0.8.20",
+        settings: {
+          optimizer: {
+            enabled: true,
+            runs: 200,
+          },
+          viaIR: true,
+        },
+      },
       "contracts/vaults/dloop/core/venue/dlend/DLoopCoreDLend.sol": {
         version: "0.8.20",
         settings: {
