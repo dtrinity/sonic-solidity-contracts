@@ -26,6 +26,7 @@ import {OdosSwapUtils} from "contracts/odos/OdosSwapUtils.sol";
 import {PendleSwapLogic} from "./PendleSwapLogic.sol";
 import {ISwapTypes} from "./interfaces/ISwapTypes.sol";
 import {SwapExecutorV2} from "./SwapExecutorV2.sol";
+import {IPriceOracleGetter} from "contracts/dlend/core/interfaces/IPriceOracleGetter.sol";
 
 /**
  * @title BaseOdosBuyAdapterV2
@@ -42,6 +43,9 @@ abstract contract BaseOdosBuyAdapterV2 is
     /// @notice The address of the Pendle Router
     address public immutable pendleRouter;
 
+    /// @notice Oracle price deviation tolerance in basis points (500 = 5%)
+    uint256 public constant ORACLE_PRICE_TOLERANCE_BPS = 500;
+
     // Uses InvalidPTSwapData() from IBaseOdosAdapterV2
 
     constructor(
@@ -52,6 +56,58 @@ abstract contract BaseOdosBuyAdapterV2 is
     ) BaseOdosSwapAdapter(addressesProvider, pool) {
         odosRouter = _odosRouter;
         pendleRouter = _pendleRouter;
+    }
+
+    /**
+     * @dev Validates swap amounts against oracle prices for exact output swaps
+     * @param tokenIn The input token address
+     * @param tokenOut The output token address
+     * @param maxAmountIn The maximum input amount willing to spend
+     * @param exactAmountOut The exact output amount required
+     */
+    function _validateOraclePriceExactOutput(
+        address tokenIn,
+        address tokenOut,
+        uint256 maxAmountIn,
+        uint256 exactAmountOut
+    ) internal view {
+        // Skip validation for same token swaps
+        if (tokenIn == tokenOut) return;
+
+        // Get oracle prices
+        IPriceOracleGetter oracle = IPriceOracleGetter(ADDRESSES_PROVIDER.getPriceOracle());
+        uint256 priceIn = oracle.getAssetPrice(tokenIn);
+        uint256 priceOut = oracle.getAssetPrice(tokenOut);
+
+        // Skip validation if either price is zero (oracle not configured)
+        if (priceIn == 0 || priceOut == 0) return;
+
+        // Get token decimals for proper calculation
+        uint256 decimalsIn = IERC20Detailed(tokenIn).decimals();
+        uint256 decimalsOut = IERC20Detailed(tokenOut).decimals();
+
+        // Calculate expected input amount using oracle prices
+        // expectedIn = (exactAmountOut * priceOut * 10^decimalsIn) / (priceIn * 10^decimalsOut)
+        uint256 expectedAmountIn = (exactAmountOut * priceOut * (10 ** decimalsIn)) / 
+                                  (priceIn * (10 ** decimalsOut));
+
+        // For exact output, we validate that maxAmountIn isn't excessively higher than expectedAmountIn
+        // Calculate deviation: (maxAmountIn - expectedAmountIn) / expectedAmountIn * 10000 (in BPS)
+        if (maxAmountIn > expectedAmountIn) {
+            uint256 deviationBps = ((maxAmountIn - expectedAmountIn) * 10000) / expectedAmountIn;
+            
+            // Revert if user is willing to pay too much more than oracle suggests
+            if (deviationBps > ORACLE_PRICE_TOLERANCE_BPS) {
+                revert OraclePriceDeviationExceeded(
+                    tokenIn,
+                    tokenOut,
+                    expectedAmountIn,
+                    maxAmountIn,
+                    deviationBps
+                );
+            }
+        }
+        // Note: We don't validate if maxAmountIn < expectedAmountIn as the user might have better pricing
     }
 
     /**
@@ -73,6 +129,9 @@ abstract contract BaseOdosBuyAdapterV2 is
     ) internal returns (uint256 amountSold) {
         address tokenIn = address(assetToSwapFrom);
         address tokenOut = address(assetToSwapTo);
+
+        // Validate swap amounts against oracle prices before execution
+        _validateOraclePriceExactOutput(tokenIn, tokenOut, maxAmountToSwap, amountToReceive);
 
         // Check swap type using PendleSwapLogic
         ISwapTypes.SwapType swapType = PendleSwapLogic.determineSwapType(

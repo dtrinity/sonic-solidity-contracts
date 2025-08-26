@@ -58,5 +58,21 @@ interface IBaseOdosAdapterV2 is IBaseOdosAdapter {
      */
     error LeftoverCollateralAfterSwap(address asset, uint256 leftoverAmount);
 
+    /**
+     * @dev Thrown when oracle price validation fails (deviation > tolerance)
+     * @param tokenIn The input token address
+     * @param tokenOut The output token address
+     * @param expectedAmount The oracle-calculated expected amount
+     * @param actualAmount The swap parameter amount
+     * @param deviationBps The actual deviation in basis points
+     */
+    error OraclePriceDeviationExceeded(
+        address tokenIn,
+        address tokenOut,
+        uint256 expectedAmount,
+        uint256 actualAmount,
+        uint256 deviationBps
+    );
+
     /* Structs intentionally omitted to avoid duplication with PTSwapUtils */
 }
