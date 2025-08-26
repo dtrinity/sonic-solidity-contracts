@@ -261,7 +261,7 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard, RescuableV
      */
     function getTotalCollateralAndDebtOfUserInBase(
         address user
-    ) public view virtual returns (uint256 totalCollateralBase, uint256 totalDebtBase) {
+    ) public view returns (uint256 totalCollateralBase, uint256 totalDebtBase) {
         // Collateral side: balance of the aToken corresponding to collateralToken
         uint256 collateralBalanceInTokenAmount = getCollateralValueInTokenAmount(address(collateralToken), user);
         totalCollateralBase = convertFromTokenAmountToBaseCurrency(
@@ -529,42 +529,6 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard, RescuableV
     }
 
     /* Helper Functions */
-
-    /**
-     * @dev Calculates the leveraged amount of the assets with the target leverage
-     * @param assets Amount of assets
-     * @return leveragedAssets Amount of leveraged assets
-     */
-    function getTargetLeveragedAssets(uint256 assets) public view returns (uint256) {
-        return DLoopCoreLogic.getLeveragedAssetsWithLeverage(assets, targetLeverageBps);
-    }
-
-    /**
-     * @dev Calculates the leveraged amount of the assets with the current leverage
-     * @param assets Amount of assets
-     * @return leveragedAssets Amount of leveraged assets
-     */
-    function getCurrentLeveragedAssets(uint256 assets) public view returns (uint256) {
-        return DLoopCoreLogic.getLeveragedAssetsWithLeverage(assets, getCurrentLeverageBps());
-    }
-
-    /**
-     * @dev Calculates the unleveraged amount of the assets with the target leverage
-     * @param leveragedAssets Amount of leveraged assets
-     * @return unleveragedAssets Amount of unleveraged assets
-     */
-    function getUnleveragedAssetsWithTargetLeverage(uint256 leveragedAssets) public view returns (uint256) {
-        return DLoopCoreLogic.getUnleveragedAssetsWithLeverage(leveragedAssets, targetLeverageBps);
-    }
-
-    /**
-     * @dev Calculates the unleveraged amount of the assets with the current leverage
-     * @param leveragedAssets Amount of leveraged assets
-     * @return unleveragedAssets Amount of unleveraged assets
-     */
-    function getUnleveragedAssetsWithCurrentLeverage(uint256 leveragedAssets) public view returns (uint256) {
-        return DLoopCoreLogic.getUnleveragedAssetsWithLeverage(leveragedAssets, getCurrentLeverageBps());
-    }
 
     /**
      * @dev Gets the asset price from the oracle
@@ -930,39 +894,6 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard, RescuableV
     }
 
     /* Rebalance */
-
-    /**
-     * @notice Gets the rebalance amount to reach the target leverage in token units
-     * @dev This method is used by rebalancing services to quote required collateral/debt amounts
-     *      and determine the rebalancing direction (increase or decrease leverage)
-     * @return inputTokenAmount The amount of token to call increaseLeverage or decreaseLeverage (in token unit)
-     *         - If direction is 1, the amount is in collateral token
-     *         - If direction is -1, the amount is in debt token
-     * @return estimatedOutputTokenAmount The estimated output token amount after the rebalance (in token unit)
-     *         - If direction is 1, the amount is in debt token
-     *         - If direction is -1, the amount is in collateral token
-     * @return direction The direction of the rebalance (1 for increase, -1 for decrease, 0 means no rebalance)
-     */
-    function quoteRebalanceAmountToReachTargetLeverage()
-        public
-        view
-        returns (uint256 inputTokenAmount, uint256 estimatedOutputTokenAmount, int8 direction)
-    {
-        (uint256 totalCollateralBase, uint256 totalDebtBase) = getTotalCollateralAndDebtOfUserInBase(address(this));
-
-        return
-            DLoopCoreLogic.quoteRebalanceAmountToReachTargetLeverage(
-                totalCollateralBase,
-                totalDebtBase,
-                getCurrentLeverageBps(),
-                targetLeverageBps,
-                getCurrentSubsidyBps(),
-                ERC20(collateralToken).decimals(),
-                getAssetPriceFromOracle(address(collateralToken)),
-                ERC20(debtToken).decimals(),
-                getAssetPriceFromOracle(address(debtToken))
-            );
-    }
 
     /**
      * @notice Increases the leverage of the user by supplying collateral token and borrowing more debt token

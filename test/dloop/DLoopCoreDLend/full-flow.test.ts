@@ -7,6 +7,7 @@ import {
   DLoopDecreaseLeverageMock,
   DLoopDepositorMock,
   DLoopIncreaseLeverageMock,
+  DLoopQuoter,
   DLoopRedeemerMock,
   ERC20StablecoinUpgradeable,
   IAaveOracle,
@@ -20,6 +21,7 @@ import {
 } from "../../../typechain-types";
 import {
   DLOOP_CORE_DLEND_ID,
+  DLOOP_QUOTER_ID,
   DUSD_ISSUER_CONTRACT_ID,
   DUSD_TOKEN_ID,
   POOL_DATA_PROVIDER_ID,
@@ -30,11 +32,12 @@ import {
 describe("DLoopCoreDLend full-flow", () => {
   // Contracts
   let pool: Pool;
-  let dataProvider: AaveProtocolDataProvider;
+  let _dataProvider: AaveProtocolDataProvider;
   let addressesProvider: PoolAddressesProvider;
-  let aaveOracle: IAaveOracle;
+  let _aaveOracle: IAaveOracle;
   let vault: DLoopCoreDLend;
   let vaultAddress: string;
+  let quoter: DLoopQuoter;
 
   // Tokens
   let dUSD: ERC20StablecoinUpgradeable;
@@ -80,7 +83,7 @@ describe("DLoopCoreDLend full-flow", () => {
    * Gets the rebalance direction from vault.
    */
   async function direction(): Promise<number> {
-    const [, , dir] = await vault.quoteRebalanceAmountToReachTargetLeverage();
+    const [, , dir] = await quoter.quoteRebalanceAmountToReachTargetLeverage(vaultAddress);
     return Number(dir);
   }
 
@@ -116,7 +119,7 @@ describe("DLoopCoreDLend full-flow", () => {
    *
    * @param dirWanted - The desired direction
    */
-  async function ensureDirection(dirWanted: number): Promise<void> {
+  async function _ensureDirection(dirWanted: number): Promise<void> {
     for (let i = 0; i < 3; i++) {
       const dirNow = await direction();
       if (dirNow === dirWanted) return;
@@ -138,6 +141,7 @@ describe("DLoopCoreDLend full-flow", () => {
       "dloop",
       "core",
       "dlend",
+      "quoter",
     ]);
     console.log("Deployments fixture completed");
 
@@ -153,11 +157,11 @@ describe("DLoopCoreDLend full-flow", () => {
     const poolAddr = await getDeploymentAddress(POOL_PROXY_ID);
     pool = (await ethers.getContractAt("Pool", poolAddr)) as Pool;
     const dataProviderAddr = await getDeploymentAddress(POOL_DATA_PROVIDER_ID);
-    dataProvider = (await ethers.getContractAt("AaveProtocolDataProvider", dataProviderAddr)) as AaveProtocolDataProvider;
+    _dataProvider = (await ethers.getContractAt("AaveProtocolDataProvider", dataProviderAddr)) as AaveProtocolDataProvider;
 
     const addressesProviderAddr = (await deployments.get("PoolAddressesProvider")).address;
     addressesProvider = (await ethers.getContractAt("PoolAddressesProvider", addressesProviderAddr)) as PoolAddressesProvider;
-    aaveOracle = (await ethers.getContractAt("IAaveOracle", await addressesProvider.getPriceOracle())) as IAaveOracle;
+    _aaveOracle = (await ethers.getContractAt("IAaveOracle", await addressesProvider.getPriceOracle())) as IAaveOracle;
     console.log("Core dLEND infra set");
 
     // Tokens
@@ -201,6 +205,12 @@ describe("DLoopCoreDLend full-flow", () => {
     vault = (await ethers.getContractAt("DLoopCoreDLend", dloopVaultAddr)) as DLoopCoreDLend;
     vaultAddress = await vault.getAddress();
     console.log("DLoopCoreDLend instantiated");
+
+    // Get DLoopQuoter instance
+    const quoterAddr = (await deployments.get(DLOOP_QUOTER_ID)).address;
+    console.log(`DLoopQuoter address: ${quoterAddr}`);
+    quoter = (await ethers.getContractAt("DLoopQuoter", quoterAddr)) as DLoopQuoter;
+    console.log("DLoopQuoter instantiated");
 
     // 3) Market liquidity for borrowing: mint dUSD via IssuerV2 and supply to pool
     const issuerAddr = (await deployments.get(DUSD_ISSUER_CONTRACT_ID)).address;
@@ -308,7 +318,7 @@ describe("DLoopCoreDLend full-flow", () => {
 
     // 4) UserC calls the correct rebalance (increase if 1, decrease if -1)
     const levBeforeRebal1 = await vault.getCurrentLeverageBps();
-    const [inputAmount1, estimatedOut1, dir1] = await vault.quoteRebalanceAmountToReachTargetLeverage();
+    const [inputAmount1, estimatedOut1, dir1] = await quoter.quoteRebalanceAmountToReachTargetLeverage(vaultAddress);
     console.log(`Step 4 - rebalance1 quote: input=${inputAmount1.toString()} out=${estimatedOut1.toString()} dir=${dir1}`);
 
     if (dirAfterDown > 0) {
@@ -340,7 +350,7 @@ describe("DLoopCoreDLend full-flow", () => {
 
     // 7) UserC calls the corresponding rebalance
     const levBeforeRebal2 = await vault.getCurrentLeverageBps();
-    const [inputAmount2, estimatedOut2, dir2] = await vault.quoteRebalanceAmountToReachTargetLeverage();
+    const [inputAmount2, estimatedOut2, dir2] = await quoter.quoteRebalanceAmountToReachTargetLeverage(vaultAddress);
     console.log(`Step 7 - rebalance2 quote: input=${inputAmount2.toString()} out=${estimatedOut2.toString()} dir=${dir2}`);
 
     if (dirAfterUp > 0) {

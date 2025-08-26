@@ -83,6 +83,7 @@ export const ORACLE_AGGREGATOR_WRAPPER_BASE_ID = "oracle-aggregator-wrapper-base
 
 // dLOOP
 export const DLOOP_CORE_DLEND_ID = "DLoopCoreDLend";
+export const DLOOP_QUOTER_ID = "DLoopQuoter";
 
 /* dLOOP Periphery */
 export const DLOOP_PERIPHERY_ODOS_DEPOSITOR_ID = "DLoopDepositorOdos";
