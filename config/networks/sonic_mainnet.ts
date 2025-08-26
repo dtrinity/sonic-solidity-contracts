@@ -6,6 +6,7 @@ import { DS_TOKEN_ID, DUSD_TOKEN_ID, INCENTIVES_PROXY_ID } from "../../typescrip
 import { ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT, ORACLE_AGGREGATOR_PRICE_DECIMALS } from "../../typescript/oracle_aggregator/constants";
 import { fetchTokenInfo } from "../../typescript/token/utils";
 import {
+  rateStrategyDUSD,
   rateStrategyHighLiquidityStable,
   rateStrategyHighLiquidityVolatile,
   rateStrategyMediumLiquidityStable,
@@ -375,6 +376,7 @@ export async function getConfig(_hre: HardhatRuntimeEnvironment): Promise<Config
         rateStrategyMediumLiquidityVolatile,
         rateStrategyHighLiquidityStable,
         rateStrategyMediumLiquidityStable,
+        rateStrategyDUSD,
       ],
       reservesConfig: {
         dUSD: strategyDUSD,

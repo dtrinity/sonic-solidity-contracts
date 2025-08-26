@@ -5,6 +5,7 @@ import { ONE_PERCENT_BPS } from "../../typescript/common/bps_constants";
 import { DS_TOKEN_ID, DUSD_TOKEN_ID, INCENTIVES_PROXY_ID, SDUSD_DSTAKE_TOKEN_ID } from "../../typescript/deploy-ids";
 import { ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT, ORACLE_AGGREGATOR_PRICE_DECIMALS } from "../../typescript/oracle_aggregator/constants";
 import {
+  rateStrategyDUSD,
   rateStrategyHighLiquidityStable,
   rateStrategyHighLiquidityVolatile,
   rateStrategyMediumLiquidityStable,
@@ -369,6 +370,7 @@ export async function getConfig(_hre: HardhatRuntimeEnvironment): Promise<Config
         rateStrategyMediumLiquidityVolatile,
         rateStrategyHighLiquidityStable,
         rateStrategyMediumLiquidityStable,
+        rateStrategyDUSD,
       ],
       reservesConfig: {
         dUSD: strategyDUSD,

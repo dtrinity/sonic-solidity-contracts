@@ -8,6 +8,19 @@ import { IInterestRateStrategyParams } from "./types";
  * The borrow APR at 100% utilization rate is baseVariableBorrowRate + variableRateSlope1 + variableRateSlope2
  */
 
+export const rateStrategyDUSD: IInterestRateStrategyParams = {
+  name: "rateStrategyDUSD",
+  optimalUsageRatio: ethers.parseUnits("0.8", 27).toString(), // 80%
+  baseVariableBorrowRate: ethers.parseUnits("0.05", 27).toString(), // 5%
+  variableRateSlope1: ethers.parseUnits("0.05", 27).toString(), // 5%
+  variableRateSlope2: ethers.parseUnits("0.2", 27).toString(), // 20%
+  stableRateSlope1: ethers.parseUnits("0", 27).toString(),
+  stableRateSlope2: ethers.parseUnits("0", 27).toString(),
+  baseStableRateOffset: ethers.parseUnits("0", 27).toString(),
+  stableRateExcessOffset: ethers.parseUnits("0", 27).toString(),
+  optimalStableToTotalDebtRatio: ethers.parseUnits("0", 27).toString(),
+};
+
 export const rateStrategyHighLiquidityVolatile: IInterestRateStrategyParams = {
   name: "rateStrategyHighLiquidityVolatile",
   optimalUsageRatio: ethers.parseUnits("0.5", 27).toString(), // This is the "kink" in the curve

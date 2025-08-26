@@ -157,7 +157,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     } catch (error) {
       console.error(`  ❌ Failed to transfer dUSD RedeemerWithFees admin role: ${error}`);
       manualActions.push(
-        `dUSD_RedeemerWithFees (${dUSDRedeemerWithFeesDeployment.address}).grantRole(DEFAULT_ADMIN_ROLE, ${governanceAddress})`,
+        `dUSD_RedeemerWithFees (${dUSDRedeemerWithFeesDeployment.address}).grantRole(DEFAULT_ADMIN_ROLE, ${governanceAddress}`,
       );
       manualActions.push(`dUSD_RedeemerWithFees (${dUSDRedeemerWithFeesDeployment.address}).revokeRole(DEFAULT_ADMIN_ROLE, ${deployer})`);
     }
