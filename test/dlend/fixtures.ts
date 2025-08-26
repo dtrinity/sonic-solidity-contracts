@@ -11,9 +11,9 @@ import {
   VariableDebtToken,
 } from "../../typechain-types";
 import {
-  DS_ISSUER_CONTRACT_ID,
+  DS_ISSUER_V2_CONTRACT_ID,
   DS_TOKEN_ID,
-  DUSD_ISSUER_CONTRACT_ID,
+  DUSD_ISSUER_V2_CONTRACT_ID,
   DUSD_TOKEN_ID,
   POOL_DATA_PROVIDER_ID,
   POOL_PROXY_ID,
@@ -168,10 +168,11 @@ async function setupDLendFixture(): Promise<DLendFixtureResult> {
   }
 
   // Mint dUSD
-  const dusdIssuerAddress = (await hre.deployments.get(DUSD_ISSUER_CONTRACT_ID))
-    .address;
+  const dusdIssuerAddress = (
+    await hre.deployments.get(DUSD_ISSUER_V2_CONTRACT_ID)
+  ).address;
   const dusdIssuer = await hre.ethers.getContractAt(
-    "Issuer",
+    "IssuerV2",
     dusdIssuerAddress,
   );
   const usdOracleAddress = (await hre.deployments.get(USD_ORACLE_AGGREGATOR_ID))
@@ -215,9 +216,9 @@ async function setupDLendFixture(): Promise<DLendFixtureResult> {
   );
 
   // Then mint dS
-  const dsIssuerAddress = (await hre.deployments.get(DS_ISSUER_CONTRACT_ID))
+  const dsIssuerAddress = (await hre.deployments.get(DS_ISSUER_V2_CONTRACT_ID))
     .address;
-  const dsIssuer = await hre.ethers.getContractAt("Issuer", dsIssuerAddress);
+  const dsIssuer = await hre.ethers.getContractAt("IssuerV2", dsIssuerAddress);
   const sOracleAddress = (await hre.deployments.get(S_ORACLE_AGGREGATOR_ID))
     .address;
   const sOracle = await hre.ethers.getContractAt(

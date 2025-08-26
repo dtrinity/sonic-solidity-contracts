@@ -15,7 +15,7 @@
  * dTRINITY Protocol: https://github.com/dtrinity                                   *
  * ———————————————————————————————————————————————————————————————————————————————— */
 
-pragma solidity 0.8.20;
+pragma solidity ^0.8.20;
 
 import "./IERC3156FlashBorrower.sol";
 
@@ -33,10 +33,7 @@ interface IERC3156FlashLender {
      * @param amount The amount of tokens lent.
      * @return The amount of `token` to be charged for the loan, on top of the returned principal.
      */
-    function flashFee(
-        address token,
-        uint256 amount
-    ) external view returns (uint256);
+    function flashFee(address token, uint256 amount) external view returns (uint256);
 
     /**
      * @dev Initiate a flash loan.

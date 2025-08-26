@@ -17,7 +17,7 @@
 
 pragma solidity ^0.8.20;
 
-import {IProxy} from "../../oracle_aggregator/interface/api3/IProxy.sol";
+import { IProxy } from "../../oracle_aggregator/interface/api3/IProxy.sol";
 
 contract MockAPI3OracleAlwaysAlive is IProxy {
     int224 private mockPrice;
@@ -31,12 +31,7 @@ contract MockAPI3OracleAlwaysAlive is IProxy {
         mockPrice = _price;
     }
 
-    function read()
-        external
-        view
-        override
-        returns (int224 value, uint32 timestamp)
-    {
+    function read() external view override returns (int224 value, uint32 timestamp) {
         return (mockPrice, uint32(block.timestamp));
     }
 

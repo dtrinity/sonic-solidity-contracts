@@ -6,7 +6,7 @@ import { getConfig } from "../../config/config";
 import {
   AmoManager,
   CollateralVault,
-  Issuer,
+  IssuerV2,
   MockAmoVault,
   OracleAggregator,
   TestERC20,
@@ -60,7 +60,7 @@ async function runTestsForDStable(
 ) {
   describe(`AmoManager for ${config.symbol}`, () => {
     let amoManagerContract: AmoManager;
-    let issuerContract: Issuer;
+    let issuerContract: IssuerV2;
     let dstableContract: TestMintableERC20;
     let dstableInfo: TokenInfo;
     let oracleAggregatorContract: OracleAggregator;
@@ -91,7 +91,7 @@ async function runTestsForDStable(
       const issuerAddress = (await hre.deployments.get(config.issuerContractId))
         .address;
       issuerContract = await hre.ethers.getContractAt(
-        "Issuer",
+        "IssuerV2",
         issuerAddress,
         await hre.ethers.getSigner(deployer),
       );
@@ -166,7 +166,13 @@ async function runTestsForDStable(
         "10000",
         dstableInfo.decimals,
       );
-      await issuerContract.increaseAmoSupply(initialAmoSupply);
+      const appConfig = await getConfig(hre);
+      const governanceSigner = await hre.ethers.getSigner(
+        appConfig.walletAddresses.governanceMultisig,
+      );
+      await issuerContract
+        .connect(governanceSigner)
+        .increaseAmoSupply(initialAmoSupply);
 
       // Ensure the MockAmoVault has the necessary roles
       const collateralWithdrawerRole =

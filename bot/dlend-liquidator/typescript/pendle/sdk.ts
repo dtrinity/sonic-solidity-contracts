@@ -52,6 +52,8 @@ export type RollOverPtData = { amountPtOut: string; priceImpact: number };
 export interface PTMarketInfo {
   marketAddress: string; // Market contract address
   underlyingAsset: string; // Underlying asset address
+  isMatured: boolean; // Whether the PT token is matured (from inactive market)
+  ytAddress?: string; // YT address (needed for redemption if matured)
 }
 
 /**
@@ -155,7 +157,7 @@ export async function callSDK<Data>(
  * @param slippage The slippage tolerance for the swap
  * @returns The SDK response containing transaction data and result data
  */
-export async function swapExactIn(
+export async function estimateSwapExactIn(
   tokenIn: string,
   amountIn: string,
   tokenOut: string,
@@ -190,18 +192,30 @@ export async function getPTMarketInfo(
   chainId: number,
 ): Promise<PTMarketInfo> {
   try {
-    // Call markets API directly (different structure than SDK endpoints)
-    const response = await axios.get<PendleMarketsResponse>(
-      HOSTED_SDK_URL + `v1/${chainId}/markets/active`,
-    );
-    const marketsData = response.data;
+    // Call markets API for both active and inactive markets
+    const [activeResponse, inactiveResponse] = await Promise.all([
+      axios.get<PendleMarketsResponse>(
+        HOSTED_SDK_URL + `v1/${chainId}/markets/active`,
+      ),
+      axios.get<PendleMarketsResponse>(
+        HOSTED_SDK_URL + `v1/${chainId}/markets/inactive`,
+      ),
+    ]);
 
-    if (!marketsData || !marketsData.markets) {
+    const activeMarketsData = activeResponse.data;
+    const inactiveMarketsData = inactiveResponse.data;
+
+    if (!activeMarketsData?.markets || !inactiveMarketsData?.markets) {
       throw new Error("Invalid markets response format");
     }
 
-    // Find market where PT matches our token
-    const market = marketsData.markets.find((m: PendleMarket) => {
+    // Compose two lists - active and inactive markets
+    const activeMarkets = activeMarketsData.markets;
+    const inactiveMarkets = inactiveMarketsData.markets;
+    const allMarkets = [...activeMarkets, ...inactiveMarkets];
+
+    // Find market where PT matches our token in both active and inactive markets
+    const market = allMarkets.find((m: PendleMarket) => {
       const ptAddress = extractAddressFromChainId(m.pt);
       return ptAddress.toLowerCase() === ptTokenAddress.toLowerCase();
     });
@@ -217,15 +231,30 @@ export async function getPTMarketInfo(
     const marketAddress = market.address;
     const underlyingAsset = extractAddressFromChainId(market.underlyingAsset);
 
+    // Determine if market is active or inactive
+    const isActiveMarket = activeMarkets.some(
+      (m: PendleMarket) => m.address === market.address,
+    );
+    const marketStatus = isActiveMarket ? "active" : "inactive";
+    const isMatured = !isActiveMarket; // Inactive markets are matured
+
+    // Extract YT address (needed for redemption if matured)
+    const ytAddress = extractAddressFromChainId(market.yt);
+
     console.log(`Found PT market info via API:`, {
       ptToken: ptTokenAddress,
       marketAddress,
       underlyingAsset,
+      status: marketStatus,
+      isMatured,
+      ytAddress,
     });
 
     return {
       marketAddress,
       underlyingAsset,
+      isMatured,
+      ytAddress,
     };
   } catch (error) {
     console.error("Failed to get PT market info from API:", error);
@@ -266,4 +295,33 @@ export async function isPT(
     );
     return false;
   }
+}
+
+/**
+ * Calculates redeem for matured PT tokens
+ *
+ * @param chainId The chain ID
+ * @param receiver The address to receive the redeemed tokens
+ * @param slippage The slippage tolerance for the redeem
+ * @param ytAddress The YT (Yield Token) address
+ * @param amountIn The amount of PT tokens to redeem
+ * @param tokenOut The token address to receive after redemption
+ * @returns The SDK response containing transaction data and result data
+ */
+export async function estimateRedeemMaturedPT(
+  chainId: number,
+  receiver: string,
+  slippage: number,
+  ytAddress: string,
+  amountIn: string,
+  tokenOut: string,
+): Promise<AxiosResponse<MethodReturnType<RedeemPyData>>> {
+  return await callSDK<RedeemPyData>(`v2/sdk/${chainId}/redeem`, {
+    receiver: receiver,
+    slippage: slippage,
+    enableAggregator: true,
+    yt: ytAddress,
+    amountIn: amountIn,
+    tokenOut: tokenOut,
+  });
 }

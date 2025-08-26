@@ -16,17 +16,10 @@ describe("TestERC20FlashMintable", () => {
     user1: any;
     user2: any;
   }> {
-    const [deployerSigner, user1Signer, user2Signer] =
-      await hre.ethers.getSigners();
+    const [deployerSigner, user1Signer, user2Signer] = await hre.ethers.getSigners();
 
-    const TestERC20FlashMintableFactory = await hre.ethers.getContractFactory(
-      "TestERC20FlashMintable",
-    );
-    const testToken = await TestERC20FlashMintableFactory.deploy(
-      "Test Flash Mintable Token",
-      "TFMT",
-      18,
-    );
+    const TestERC20FlashMintableFactory = await hre.ethers.getContractFactory("TestERC20FlashMintable");
+    const testToken = await TestERC20FlashMintableFactory.deploy("Test Flash Mintable Token", "TFMT", 18);
     await testToken.waitForDeployment();
 
     return {
@@ -124,9 +117,7 @@ describe("TestERC20FlashMintable", () => {
     it("should revert when burning more than balance", async function () {
       const burnAmount = hre.ethers.parseUnits("2000", 18); // More than minted
 
-      await expect(
-        token.connect(user1).burn(burnAmount),
-      ).to.be.revertedWithCustomError(token, "ERC20InsufficientBalance");
+      await expect(token.connect(user1).burn(burnAmount)).to.be.revertedWithCustomError(token, "ERC20InsufficientBalance");
     });
   });
 
@@ -152,15 +143,12 @@ describe("TestERC20FlashMintable", () => {
     it("should revert flash fee for unsupported token", async function () {
       const flashAmount = hre.ethers.parseUnits("1000", 18);
 
-      await expect(
-        token.flashFee(user1.address, flashAmount),
-      ).to.be.revertedWithCustomError(token, "ERC3156UnsupportedToken");
+      await expect(token.flashFee(user1.address, flashAmount)).to.be.revertedWithCustomError(token, "ERC3156UnsupportedToken");
     });
 
     it("should successfully execute flash loan", async function () {
       // Deploy a simple flash borrower contract
-      const FlashBorrowerFactory =
-        await hre.ethers.getContractFactory("TestFlashBorrower");
+      const FlashBorrowerFactory = await hre.ethers.getContractFactory("TestFlashBorrower");
       const flashBorrower = await FlashBorrowerFactory.deploy();
       await flashBorrower.waitForDeployment();
 
@@ -168,12 +156,7 @@ describe("TestERC20FlashMintable", () => {
       const tokenAddress = await token.getAddress();
 
       // Execute flash loan
-      const tx = await token.flashLoan(
-        await flashBorrower.getAddress(),
-        tokenAddress,
-        flashAmount,
-        "0x",
-      );
+      const tx = await token.flashLoan(await flashBorrower.getAddress(), tokenAddress, flashAmount, "0x");
 
       // Wait for transaction to complete
       await tx.wait();
@@ -184,8 +167,7 @@ describe("TestERC20FlashMintable", () => {
     });
 
     it("should revert if flash loan amount exceeds max loan", async function () {
-      const FlashBorrowerFactory =
-        await hre.ethers.getContractFactory("TestFlashBorrower");
+      const FlashBorrowerFactory = await hre.ethers.getContractFactory("TestFlashBorrower");
       const flashBorrower = await FlashBorrowerFactory.deploy();
       await flashBorrower.waitForDeployment();
 
@@ -196,14 +178,10 @@ describe("TestERC20FlashMintable", () => {
       // First mint some tokens to reduce max loan
       await token.mint(user1.address, hre.ethers.parseUnits("1", 18));
 
-      await expect(
-        token.flashLoan(
-          await flashBorrower.getAddress(),
-          tokenAddress,
-          maxAmount,
-          "0x",
-        ),
-      ).to.be.revertedWithCustomError(token, "ERC3156ExceededMaxLoan");
+      await expect(token.flashLoan(await flashBorrower.getAddress(), tokenAddress, maxAmount, "0x")).to.be.revertedWithCustomError(
+        token,
+        "ERC3156ExceededMaxLoan",
+      );
     });
   });
 

@@ -6,10 +6,10 @@ import { getConfig } from "../../config/config";
 import {
   AmoManager,
   CollateralHolderVault,
-  Issuer,
+  IssuerV2,
   MockAmoVault,
   OracleAggregator,
-  Redeemer,
+  RedeemerV2,
   TestERC20,
   TestMintableERC20,
 } from "../../typechain-types";
@@ -32,8 +32,8 @@ const dstableConfigs: DStableFixtureConfig[] = [DUSD_CONFIG, DS_CONFIG];
 dstableConfigs.forEach((config) => {
   describe(`${config.symbol} Ecosystem Lifecycle`, () => {
     let amoManagerContract: AmoManager;
-    let issuerContract: Issuer;
-    let redeemerContract: Redeemer;
+    let issuerContract: IssuerV2;
+    let redeemerContract: RedeemerV2;
     let collateralHolderVaultContract: CollateralHolderVault;
     let oracleAggregatorContract: OracleAggregator;
     let mockAmoVaultContract: MockAmoVault;
@@ -61,20 +61,12 @@ dstableConfigs.forEach((config) => {
       const issuerAddress = (await hre.deployments.get(config.issuerContractId))
         .address;
       issuerContract = await hre.ethers.getContractAt(
-        "Issuer",
+        "IssuerV2",
         issuerAddress,
         await hre.ethers.getSigner(deployer),
       );
 
-      const redeemerAddress = (
-        await hre.deployments.get(config.redeemerContractId)
-      ).address;
-      redeemerContract = await hre.ethers.getContractAt(
-        "Redeemer",
-        redeemerAddress,
-        await hre.ethers.getSigner(deployer),
-      );
-
+      // Resolve collateral vault and oracle
       const collateralVaultAddress = await issuerContract.collateralVault();
       collateralHolderVaultContract = await hre.ethers.getContractAt(
         "CollateralHolderVault",
@@ -97,6 +89,31 @@ dstableConfigs.forEach((config) => {
         "OracleAggregator",
         oracleAggregatorAddress,
         await hre.ethers.getSigner(deployer),
+      );
+
+      // Deploy and wire up RedeemerV2 to use the existing vault, token and oracle
+      const { tokenInfo: dstInfo } = await getTokenContractForSymbol(
+        hre,
+        deployer,
+        config.symbol,
+      );
+      const RedeemerV2Factory = await hre.ethers.getContractFactory(
+        "RedeemerV2",
+        await hre.ethers.getSigner(deployer),
+      );
+      redeemerContract = (await RedeemerV2Factory.deploy(
+        collateralVaultAddress,
+        dstInfo.address,
+        oracleAggregatorAddress,
+        deployer,
+        0,
+      )) as unknown as RedeemerV2;
+      await redeemerContract.waitForDeployment();
+
+      // Allow RedeemerV2 to withdraw from the collateral vault
+      await collateralHolderVaultContract.grantRole(
+        await collateralHolderVaultContract.COLLATERAL_WITHDRAWER_ROLE(),
+        await redeemerContract.getAddress(),
       );
 
       // Get dStable token info
@@ -341,7 +358,13 @@ dstableConfigs.forEach((config) => {
           "100",
           dstableInfo.decimals,
         );
-        await issuerContract.increaseAmoSupply(dstableToAllocate);
+        const appConfig = await getConfig(hre);
+        const governanceSigner = await hre.ethers.getSigner(
+          appConfig.walletAddresses.governanceMultisig,
+        );
+        await issuerContract
+          .connect(governanceSigner)
+          .increaseAmoSupply(dstableToAllocate);
         await amoManagerContract.allocateAmo(
           await mockAmoVaultContract.getAddress(),
           dstableToAllocate,
@@ -484,7 +507,13 @@ dstableConfigs.forEach((config) => {
           "200",
           dstableInfo.decimals,
         );
-        await issuerContract.increaseAmoSupply(dstableToAllocate);
+        const appConfig = await getConfig(hre);
+        const governanceSigner = await hre.ethers.getSigner(
+          appConfig.walletAddresses.governanceMultisig,
+        );
+        await issuerContract
+          .connect(governanceSigner)
+          .increaseAmoSupply(dstableToAllocate);
         await amoManagerContract.allocateAmo(
           await mockAmoVaultContract.getAddress(),
           dstableToAllocate,

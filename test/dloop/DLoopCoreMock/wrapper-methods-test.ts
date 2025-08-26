@@ -62,19 +62,14 @@ describe("DLoopCoreMock Wrapper Methods Tests", function () {
           await dloopMock.setTransferPortionBps(testCase.transferPortionBps);
 
           // Approve the mockPool to transfer tokens from user
-          await collateralToken
-            .connect(accounts[0])
-            .approve(await mockPool.getAddress(), amount);
+          await collateralToken.connect(accounts[0]).approve(await mockPool.getAddress(), amount);
 
           // Due to the mock implementation design, this will trigger the wrapper validation error
           // The wrapper expects vault balance to decrease, but mock transfers from user to mockPool
-          await expect(
-            dloopMock.testSupplyToPool(
-              await collateralToken.getAddress(),
-              amount,
-              user1,
-            ),
-          ).to.be.revertedWithCustomError(dloopMock, testCase.expectedError);
+          await expect(dloopMock.testSupplyToPool(await collateralToken.getAddress(), amount, user1)).to.be.revertedWithCustomError(
+            dloopMock,
+            testCase.expectedError,
+          );
         });
       }
     });
@@ -100,28 +95,21 @@ describe("DLoopCoreMock Wrapper Methods Tests", function () {
           const amount = ethers.parseEther("100");
 
           // Ensure mockPool has sufficient tokens and allowance
-          const mockPoolBalance = await debtToken.balanceOf(
-            await mockPool.getAddress(),
-          );
+          const mockPoolBalance = await debtToken.balanceOf(await mockPool.getAddress());
           expect(mockPoolBalance).to.be.gte(amount);
 
           // Set transfer portion bps according to test case
           await dloopMock.setTransferPortionBps(testCase.transferPortionBps);
 
           // Set up allowance from mockPool to transfer tokens
-          await debtToken
-            .connect(accounts[0])
-            .approve(await mockPool.getAddress(), amount);
+          await debtToken.connect(accounts[0]).approve(await mockPool.getAddress(), amount);
 
           // Due to the mock implementation design, this will trigger the wrapper validation error
           // The wrapper expects vault balance to increase, but mock transfers from mockPool to user
-          await expect(
-            dloopMock.testBorrowFromPool(
-              await debtToken.getAddress(),
-              amount,
-              user1,
-            ),
-          ).to.be.revertedWithCustomError(dloopMock, testCase.expectedError);
+          await expect(dloopMock.testBorrowFromPool(await debtToken.getAddress(), amount, user1)).to.be.revertedWithCustomError(
+            dloopMock,
+            testCase.expectedError,
+          );
         });
       }
     });
@@ -148,33 +136,22 @@ describe("DLoopCoreMock Wrapper Methods Tests", function () {
           const repayAmount = ethers.parseEther("50");
 
           // First create some debt using the implementation method
-          await dloopMock.testBorrowFromPoolImplementation(
-            await debtToken.getAddress(),
-            borrowAmount,
-            user1,
-          );
+          await dloopMock.testBorrowFromPoolImplementation(await debtToken.getAddress(), borrowAmount, user1);
 
           // Give user1 tokens to repay and set up allowances
           await debtToken.mint(user1, repayAmount);
-          await debtToken
-            .connect(accounts[1])
-            .approve(await dloopMock.getAddress(), repayAmount);
-          await debtToken
-            .connect(accounts[1])
-            .approve(await mockPool.getAddress(), repayAmount);
+          await debtToken.connect(accounts[1]).approve(await dloopMock.getAddress(), repayAmount);
+          await debtToken.connect(accounts[1]).approve(await mockPool.getAddress(), repayAmount);
 
           // Set transfer portion bps according to test case
           await dloopMock.setTransferPortionBps(testCase.transferPortionBps);
 
           // Due to the mock implementation design, this will trigger the wrapper validation error
           // The wrapper expects vault balance to decrease, but mock transfers from user to mockPool
-          await expect(
-            dloopMock.testRepayDebtToPool(
-              await debtToken.getAddress(),
-              repayAmount,
-              user1,
-            ),
-          ).to.be.revertedWithCustomError(dloopMock, testCase.expectedError);
+          await expect(dloopMock.testRepayDebtToPool(await debtToken.getAddress(), repayAmount, user1)).to.be.revertedWithCustomError(
+            dloopMock,
+            testCase.expectedError,
+          );
         });
       }
     });
@@ -201,16 +178,10 @@ describe("DLoopCoreMock Wrapper Methods Tests", function () {
           const withdrawAmount = ethers.parseEther("50");
 
           // First create some collateral using the implementation method
-          await dloopMock.testSupplyToPoolImplementation(
-            await collateralToken.getAddress(),
-            supplyAmount,
-            user1,
-          );
+          await dloopMock.testSupplyToPoolImplementation(await collateralToken.getAddress(), supplyAmount, user1);
 
           // Set up allowance from mockPool to transfer tokens
-          await collateralToken
-            .connect(accounts[0])
-            .approve(await mockPool.getAddress(), withdrawAmount);
+          await collateralToken.connect(accounts[0]).approve(await mockPool.getAddress(), withdrawAmount);
 
           // Set transfer portion bps according to test case
           await dloopMock.setTransferPortionBps(testCase.transferPortionBps);
@@ -218,11 +189,7 @@ describe("DLoopCoreMock Wrapper Methods Tests", function () {
           // Due to the mock implementation design, this will trigger the wrapper validation error
           // The wrapper expects vault balance to increase, but mock transfers from mockPool to user
           await expect(
-            dloopMock.testWithdrawFromPool(
-              await collateralToken.getAddress(),
-              withdrawAmount,
-              user1,
-            ),
+            dloopMock.testWithdrawFromPool(await collateralToken.getAddress(), withdrawAmount, user1),
           ).to.be.revertedWithCustomError(dloopMock, testCase.expectedError);
         });
       }
@@ -238,11 +205,7 @@ describe("DLoopCoreMock Wrapper Methods Tests", function () {
 
         // Note: Some operations might still revert due to business logic, but not due to balance validation
         await expect(
-          dloopMock.testSupplyToPoolImplementation(
-            await collateralToken.getAddress(),
-            zeroAmount,
-            user1,
-          ),
+          dloopMock.testSupplyToPoolImplementation(await collateralToken.getAddress(), zeroAmount, user1),
         ).to.not.be.revertedWith("TokenBalanceNotDecreasedAfterSupply");
       });
 
@@ -253,21 +216,10 @@ describe("DLoopCoreMock Wrapper Methods Tests", function () {
         const amount = ethers.parseEther("100");
 
         // Normal operation should work fine
-        await expect(
-          dloopMock.testSupplyToPoolImplementation(
-            await collateralToken.getAddress(),
-            amount,
-            user1,
-          ),
-        ).to.not.be.reverted;
+        await expect(dloopMock.testSupplyToPoolImplementation(await collateralToken.getAddress(), amount, user1)).to.not.be.reverted;
 
         // Verify the operation actually happened
-        expect(
-          await dloopMock.getMockCollateral(
-            user1,
-            await collateralToken.getAddress(),
-          ),
-        ).to.equal(amount);
+        expect(await dloopMock.getMockCollateral(user1, await collateralToken.getAddress())).to.equal(amount);
       });
     });
   });

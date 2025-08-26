@@ -17,9 +17,9 @@
 
 pragma solidity ^0.8.20;
 
-import {InitializableUpgradeabilityProxy} from "../../../dependencies/openzeppelin/upgradeability/InitializableUpgradeabilityProxy.sol";
-import {Proxy} from "../../../dependencies/openzeppelin/upgradeability/Proxy.sol";
-import {BaseImmutableAdminUpgradeabilityProxy} from "./BaseImmutableAdminUpgradeabilityProxy.sol";
+import { InitializableUpgradeabilityProxy } from "../../../dependencies/openzeppelin/upgradeability/InitializableUpgradeabilityProxy.sol";
+import { Proxy } from "../../../dependencies/openzeppelin/upgradeability/Proxy.sol";
+import { BaseImmutableAdminUpgradeabilityProxy } from "./BaseImmutableAdminUpgradeabilityProxy.sol";
 
 /**
  * @title InitializableAdminUpgradeabilityProxy
@@ -39,10 +39,7 @@ contract InitializableImmutableAdminUpgradeabilityProxy is
     }
 
     /// @inheritdoc BaseImmutableAdminUpgradeabilityProxy
-    function _willFallback()
-        internal
-        override(BaseImmutableAdminUpgradeabilityProxy, Proxy)
-    {
+    function _willFallback() internal override(BaseImmutableAdminUpgradeabilityProxy, Proxy) {
         BaseImmutableAdminUpgradeabilityProxy._willFallback();
     }
 }

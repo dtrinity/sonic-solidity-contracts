@@ -1,11 +1,13 @@
 import { Address } from "hardhat-deploy/types";
 
+import { SafeConfig } from "../typescript/safe/types";
 import { DLendConfig } from "./dlend/types";
 
 export interface Config {
   readonly MOCK_ONLY?: MockConfig;
   readonly tokenAddresses: TokenAddresses;
   readonly walletAddresses: WalletAddresses;
+  readonly safeConfig?: SafeConfig;
   readonly oracleAggregators: {
     [key: string]: OracleAggregatorConfig;
   };
@@ -81,6 +83,8 @@ export interface DLoopCoreConfig {
   readonly lowerBoundTargetLeverageBps: number;
   readonly upperBoundTargetLeverageBps: number;
   readonly maxSubsidyBps: number;
+  readonly minDeviationBps: number;
+  readonly withdrawalFeeBps: number;
   readonly extraParams: { [key: string]: any }; // Add more params here
 }
 
@@ -165,6 +169,30 @@ export interface OracleAggregatorConfig {
   readonly chainlinkCompositeAggregator?: {
     [assetAddress: string]: ChainlinkCompositeAggregatorConfig;
   };
+  readonly safeRateProviderAssets?: {
+    chainlinkSafeRateProviderCompositeWrappers?: {
+      [assetAddress: string]: {
+        feedAsset: string;
+        chainlinkFeed: string;
+        rateProvider: string;
+        lowerThresholdInBase1: bigint;
+        fixedPriceInBase1: bigint;
+        lowerThresholdInBase2: bigint;
+        fixedPriceInBase2: bigint;
+      };
+    };
+    erc4626SafeRateProviderWrappers?: {
+      [assetAddress: string]: {
+        feedAsset: string;
+        erc4626Vault: string;
+        rateProvider: string;
+        lowerThresholdInBase1: bigint;
+        fixedPriceInBase1: bigint;
+        lowerThresholdInBase2: bigint;
+        fixedPriceInBase2: bigint;
+      };
+    };
+  };
 }
 
 export interface IInterestRateStrategyParams {
@@ -197,9 +225,7 @@ export interface IReserveCollateralParams {
   readonly liquidationProtocolFee?: string;
 }
 
-export interface IReserveParams
-  extends IReserveBorrowParams,
-    IReserveCollateralParams {
+export interface IReserveParams extends IReserveBorrowParams, IReserveCollateralParams {
   readonly aTokenImpl: string;
   readonly reserveFactor: string;
   readonly supplyCap: string;

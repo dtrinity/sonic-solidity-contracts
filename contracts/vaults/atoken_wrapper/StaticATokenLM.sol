@@ -2,27 +2,27 @@
 pragma solidity ^0.8.20;
 
 // --- DLend fork imports ---
-import {IPool} from "contracts/dlend/core/interfaces/IPool.sol";
-import {DataTypes} from "contracts/dlend/core/protocol/libraries/types/DataTypes.sol";
-import {ReserveConfiguration} from "contracts/dlend/core/protocol/libraries/configuration/ReserveConfiguration.sol";
-import {IScaledBalanceToken} from "contracts/dlend/core/interfaces/IScaledBalanceToken.sol";
-import {IRewardsController} from "contracts/dlend/periphery/rewards/interfaces/IRewardsController.sol";
-import {WadRayMath} from "contracts/dlend/core/protocol/libraries/math/WadRayMath.sol";
-import {MathUtils} from "contracts/dlend/core/protocol/libraries/math/MathUtils.sol";
-import {SafeCast} from "contracts/dlend/core/dependencies/openzeppelin/contracts/SafeCast.sol";
-import {Initializable} from "contracts/dlend/core/dependencies/openzeppelin/upgradeability/Initializable.sol";
-import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {IERC20WithPermit} from "contracts/dlend/core/interfaces/IERC20WithPermit.sol";
+import { IPool } from "contracts/dlend/core/interfaces/IPool.sol";
+import { DataTypes } from "contracts/dlend/core/protocol/libraries/types/DataTypes.sol";
+import { ReserveConfiguration } from "contracts/dlend/core/protocol/libraries/configuration/ReserveConfiguration.sol";
+import { IScaledBalanceToken } from "contracts/dlend/core/interfaces/IScaledBalanceToken.sol";
+import { IRewardsController } from "contracts/dlend/periphery/rewards/interfaces/IRewardsController.sol";
+import { WadRayMath } from "contracts/dlend/core/protocol/libraries/math/WadRayMath.sol";
+import { MathUtils } from "contracts/dlend/core/protocol/libraries/math/MathUtils.sol";
+import { SafeCast } from "contracts/dlend/core/dependencies/openzeppelin/contracts/SafeCast.sol";
+import { Initializable } from "contracts/dlend/core/dependencies/openzeppelin/upgradeability/Initializable.sol";
+import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import { IERC20Metadata } from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { IERC20WithPermit } from "contracts/dlend/core/interfaces/IERC20WithPermit.sol";
 // --- Local imports ---
-import {IStaticATokenLM} from "./interfaces/IStaticATokenLM.sol";
-import {IAToken} from "./interfaces/IAToken.sol";
-import {ERC20} from "./ERC20.sol";
-import {StaticATokenErrors} from "./StaticATokenErrors.sol";
-import {RayMathExplicitRounding, Rounding} from "./RayMathExplicitRounding.sol";
-import {IERC4626} from "./interfaces/IERC4626.sol";
-import {ECDSA} from "./ECDSA.sol";
+import { IStaticATokenLM } from "./interfaces/IStaticATokenLM.sol";
+import { IAToken } from "./interfaces/IAToken.sol";
+import { ERC20 } from "./ERC20.sol";
+import { StaticATokenErrors } from "./StaticATokenErrors.sol";
+import { RayMathExplicitRounding, Rounding } from "./RayMathExplicitRounding.sol";
+import { IERC4626 } from "./interfaces/IERC4626.sol";
+import { ECDSA } from "./ECDSA.sol";
 
 /**
  * @title StaticATokenLM
@@ -55,8 +55,7 @@ contract StaticATokenLM is ERC20, IStaticATokenLM, IERC4626 {
     address internal _aTokenUnderlying;
     address[] internal _rewardTokens;
     mapping(address => RewardIndexCache) internal _startIndex;
-    mapping(address => mapping(address => UserRewardsData))
-        internal _userRewardsData;
+    mapping(address => mapping(address => UserRewardsData)) internal _userRewardsData;
 
     constructor(
         IPool pool,
@@ -64,19 +63,12 @@ contract StaticATokenLM is ERC20, IStaticATokenLM, IERC4626 {
         address newAToken,
         string memory staticATokenName,
         string memory staticATokenSymbol
-    )
-        ERC20(
-            staticATokenName,
-            staticATokenSymbol,
-            IERC20Metadata(newAToken).decimals()
-        )
-    {
+    ) ERC20(staticATokenName, staticATokenSymbol, IERC20Metadata(newAToken).decimals()) {
         POOL = pool;
         REWARDS_CONTROLLER = rewardsController;
         _aToken = IERC20(newAToken);
         _aTokenUnderlying = IAToken(newAToken).UNDERLYING_ASSET_ADDRESS();
-        // Use standard approve for trusted protocol token (aToken underlying) and trusted protocol contract (dLEND POOL)
-        IERC20(_aTokenUnderlying).approve(address(POOL), type(uint256).max);
+        IERC20(_aTokenUnderlying).forceApprove(address(POOL), type(uint256).max);
         if (address(REWARDS_CONTROLLER) != address(0)) {
             refreshRewardTokens();
         }
@@ -84,18 +76,14 @@ contract StaticATokenLM is ERC20, IStaticATokenLM, IERC4626 {
 
     ///@inheritdoc IStaticATokenLM
     function refreshRewardTokens() public override {
-        address[] memory rewards = REWARDS_CONTROLLER.getRewardsByAsset(
-            address(_aToken)
-        );
+        address[] memory rewards = REWARDS_CONTROLLER.getRewardsByAsset(address(_aToken));
         for (uint256 i = 0; i < rewards.length; i++) {
             _registerRewardToken(rewards[i]);
         }
     }
 
     ///@inheritdoc IStaticATokenLM
-    function isRegisteredRewardToken(
-        address reward
-    ) public view override returns (bool) {
+    function isRegisteredRewardToken(address reward) public view override returns (bool) {
         return _startIndex[reward].isRegistered;
     }
 
@@ -112,10 +100,7 @@ contract StaticATokenLM is ERC20, IStaticATokenLM, IERC4626 {
     ) external returns (uint256) {
         require(depositor != address(0), StaticATokenErrors.INVALID_DEPOSITOR);
         //solium-disable-next-line
-        require(
-            deadline >= block.timestamp,
-            StaticATokenErrors.INVALID_EXPIRATION
-        );
+        require(deadline >= block.timestamp, StaticATokenErrors.INVALID_EXPIRATION);
         uint256 nonce = nonces[depositor];
 
         // Unchecked because the only math done is incrementing
@@ -142,42 +127,25 @@ contract StaticATokenLM is ERC20, IStaticATokenLM, IERC4626 {
             );
             nonces[depositor] = nonce + 1;
             require(
-                depositor ==
-                    ECDSA.recover(
-                        digest,
-                        sigParams.v,
-                        sigParams.r,
-                        sigParams.s
-                    ),
+                depositor == ECDSA.recover(digest, sigParams.v, sigParams.r, sigParams.s),
                 StaticATokenErrors.INVALID_SIGNATURE
             );
         }
         // assume if deadline 0 no permit was supplied
         if (permit.deadline != 0) {
             try
-                IERC20WithPermit(
-                    depositToAave
-                        ? address(_aTokenUnderlying)
-                        : address(_aToken)
-                ).permit(
-                        depositor,
-                        address(this),
-                        permit.value,
-                        permit.deadline,
-                        permit.v,
-                        permit.r,
-                        permit.s
-                    )
+                IERC20WithPermit(depositToAave ? address(_aTokenUnderlying) : address(_aToken)).permit(
+                    depositor,
+                    address(this),
+                    permit.value,
+                    permit.deadline,
+                    permit.v,
+                    permit.r,
+                    permit.s
+                )
             {} catch {}
         }
-        (uint256 shares, ) = _deposit(
-            depositor,
-            receiver,
-            0,
-            assets,
-            referralCode,
-            depositToAave
-        );
+        (uint256 shares, ) = _deposit(depositor, receiver, 0, assets, referralCode, depositToAave);
         return shares;
     }
 
@@ -193,10 +161,7 @@ contract StaticATokenLM is ERC20, IStaticATokenLM, IERC4626 {
     ) external returns (uint256, uint256) {
         require(owner != address(0), StaticATokenErrors.INVALID_OWNER);
         //solium-disable-next-line
-        require(
-            deadline >= block.timestamp,
-            StaticATokenErrors.INVALID_EXPIRATION
-        );
+        require(deadline >= block.timestamp, StaticATokenErrors.INVALID_EXPIRATION);
         uint256 nonce = nonces[owner];
         // Unchecked because the only math done is incrementing
         // the owner's nonce which cannot realistically overflow.
@@ -221,13 +186,7 @@ contract StaticATokenLM is ERC20, IStaticATokenLM, IERC4626 {
             );
             nonces[owner] = nonce + 1;
             require(
-                owner ==
-                    ECDSA.recover(
-                        digest,
-                        sigParams.v,
-                        sigParams.r,
-                        sigParams.s
-                    ),
+                owner == ECDSA.recover(digest, sigParams.v, sigParams.r, sigParams.s),
                 StaticATokenErrors.INVALID_SIGNATURE
             );
         }
@@ -235,9 +194,7 @@ contract StaticATokenLM is ERC20, IStaticATokenLM, IERC4626 {
     }
 
     ///@inheritdoc IERC4626
-    function previewRedeem(
-        uint256 shares
-    ) public view virtual returns (uint256) {
+    function previewRedeem(uint256 shares) public view virtual returns (uint256) {
         return _convertToAssets(shares, Rounding.DOWN);
     }
 
@@ -247,16 +204,12 @@ contract StaticATokenLM is ERC20, IStaticATokenLM, IERC4626 {
     }
 
     ///@inheritdoc IERC4626
-    function previewWithdraw(
-        uint256 assets
-    ) public view virtual returns (uint256) {
+    function previewWithdraw(uint256 assets) public view virtual returns (uint256) {
         return _convertToShares(assets, Rounding.UP);
     }
 
     ///@inheritdoc IERC4626
-    function previewDeposit(
-        uint256 assets
-    ) public view virtual returns (uint256) {
+    function previewDeposit(uint256 assets) public view virtual returns (uint256) {
         return _convertToShares(assets, Rounding.DOWN);
     }
 
@@ -274,24 +227,13 @@ contract StaticATokenLM is ERC20, IStaticATokenLM, IERC4626 {
         address[] memory assets = new address[](1);
         assets[0] = address(_aToken);
 
-        return
-            REWARDS_CONTROLLER.claimRewards(
-                assets,
-                type(uint256).max,
-                address(this),
-                reward
-            );
+        return REWARDS_CONTROLLER.claimRewards(assets, type(uint256).max, address(this), reward);
     }
 
     ///@inheritdoc IStaticATokenLM
-    function claimRewardsOnBehalf(
-        address onBehalfOf,
-        address receiver,
-        address[] memory rewards
-    ) external {
+    function claimRewardsOnBehalf(address onBehalfOf, address receiver, address[] memory rewards) external {
         require(
-            msg.sender == onBehalfOf ||
-                msg.sender == REWARDS_CONTROLLER.getClaimer(onBehalfOf),
+            msg.sender == onBehalfOf || msg.sender == REWARDS_CONTROLLER.getClaimer(onBehalfOf),
             StaticATokenErrors.INVALID_CLAIMER
         );
         _claimRewardsOnBehalf(onBehalfOf, receiver, rewards);
@@ -308,56 +250,33 @@ contract StaticATokenLM is ERC20, IStaticATokenLM, IERC4626 {
     }
 
     ///@inheritdoc IStaticATokenLM
-    function getCurrentRewardsIndex(
-        address reward
-    ) public view returns (uint256) {
+    function getCurrentRewardsIndex(address reward) public view returns (uint256) {
         if (address(reward) == address(0)) {
             return 0;
         }
-        (, uint256 nextIndex) = REWARDS_CONTROLLER.getAssetIndex(
-            address(_aToken),
-            reward
-        );
+        (, uint256 nextIndex) = REWARDS_CONTROLLER.getAssetIndex(address(_aToken), reward);
         return nextIndex;
     }
 
     ///@inheritdoc IStaticATokenLM
-    function getTotalClaimableRewards(
-        address reward
-    ) external view returns (uint256) {
+    function getTotalClaimableRewards(address reward) external view returns (uint256) {
         if (reward == address(0)) {
             return 0;
         }
 
         address[] memory assets = new address[](1);
         assets[0] = address(_aToken);
-        uint256 freshRewards = REWARDS_CONTROLLER.getUserRewards(
-            assets,
-            address(this),
-            reward
-        );
+        uint256 freshRewards = REWARDS_CONTROLLER.getUserRewards(assets, address(this), reward);
         return IERC20(reward).balanceOf(address(this)) + freshRewards;
     }
 
     ///@inheritdoc IStaticATokenLM
-    function getClaimableRewards(
-        address user,
-        address reward
-    ) external view returns (uint256) {
-        return
-            _getClaimableRewards(
-                user,
-                reward,
-                balanceOf[user],
-                getCurrentRewardsIndex(reward)
-            );
+    function getClaimableRewards(address user, address reward) external view returns (uint256) {
+        return _getClaimableRewards(user, reward, balanceOf[user], getCurrentRewardsIndex(reward));
     }
 
     ///@inheritdoc IStaticATokenLM
-    function getUnclaimedRewards(
-        address user,
-        address reward
-    ) external view returns (uint256) {
+    function getUnclaimedRewards(address user, address reward) external view returns (uint256) {
         return _userRewardsData[user][reward].unclaimedRewards;
     }
 
@@ -407,9 +326,7 @@ contract StaticATokenLM is ERC20, IStaticATokenLM, IERC4626 {
     ///@inheritdoc IERC4626
     function maxRedeem(address owner) public view virtual returns (uint256) {
         address cachedATokenUnderlying = _aTokenUnderlying;
-        DataTypes.ReserveData memory reserveData = POOL.getReserveData(
-            cachedATokenUnderlying
-        );
+        DataTypes.ReserveData memory reserveData = POOL.getReserveData(cachedATokenUnderlying);
 
         // if paused or inactive users cannot withdraw underlying
         if (
@@ -425,17 +342,12 @@ contract StaticATokenLM is ERC20, IStaticATokenLM, IERC4626 {
             Rounding.DOWN
         );
         uint256 cachedUserBalance = balanceOf[owner];
-        return
-            underlyingTokenBalanceInShares >= cachedUserBalance
-                ? cachedUserBalance
-                : underlyingTokenBalanceInShares;
+        return underlyingTokenBalanceInShares >= cachedUserBalance ? cachedUserBalance : underlyingTokenBalanceInShares;
     }
 
     ///@inheritdoc IERC4626
     function maxDeposit(address) public view virtual returns (uint256) {
-        DataTypes.ReserveData memory reserveData = POOL.getReserveData(
-            _aTokenUnderlying
-        );
+        DataTypes.ReserveData memory reserveData = POOL.getReserveData(_aTokenUnderlying);
 
         // if inactive, paused or frozen users cannot deposit underlying
         if (
@@ -446,71 +358,49 @@ contract StaticATokenLM is ERC20, IStaticATokenLM, IERC4626 {
             return 0;
         }
 
-        uint256 supplyCap = ReserveConfiguration.getSupplyCap(
-            reserveData.configuration
-        ) * (10 ** ReserveConfiguration.getDecimals(reserveData.configuration));
+        uint256 supplyCap = ReserveConfiguration.getSupplyCap(reserveData.configuration) *
+            (10 ** ReserveConfiguration.getDecimals(reserveData.configuration));
         // if no supply cap deposit is unlimited
         if (supplyCap == 0) return type(uint256).max;
         // return remaining supply cap margin
-        uint256 currentSupply = (IAToken(reserveData.aTokenAddress)
-            .scaledTotalSupply() + reserveData.accruedToTreasury).rayMulRoundUp(
-                _getNormalizedIncome(reserveData)
-            );
+        uint256 currentSupply = (IAToken(reserveData.aTokenAddress).scaledTotalSupply() + reserveData.accruedToTreasury)
+            .rayMulRoundUp(_getNormalizedIncome(reserveData));
         return currentSupply > supplyCap ? 0 : supplyCap - currentSupply;
     }
 
     ///@inheritdoc IERC4626
-    function deposit(
-        uint256 assets,
-        address receiver
-    ) external virtual returns (uint256) {
+    function deposit(uint256 assets, address receiver) external virtual returns (uint256) {
         (uint256 shares, ) = _deposit(msg.sender, receiver, 0, assets, 0, true);
         return shares;
     }
 
     ///@inheritdoc IERC4626
-    function mint(
-        uint256 shares,
-        address receiver
-    ) external virtual returns (uint256) {
+    function mint(uint256 shares, address receiver) external virtual returns (uint256) {
         (, uint256 assets) = _deposit(msg.sender, receiver, shares, 0, 0, true);
 
         return assets;
     }
 
     ///@inheritdoc IERC4626
-    function withdraw(
-        uint256 assets,
-        address receiver,
-        address owner
-    ) external virtual returns (uint256) {
+    function withdraw(uint256 assets, address receiver, address owner) external virtual returns (uint256) {
         (uint256 shares, ) = _withdraw(owner, receiver, 0, assets, true);
 
         return shares;
     }
 
     ///@inheritdoc IERC4626
-    function redeem(
-        uint256 shares,
-        address receiver,
-        address owner
-    ) external virtual returns (uint256) {
+    function redeem(uint256 shares, address receiver, address owner) external virtual returns (uint256) {
         (, uint256 assets) = _withdraw(owner, receiver, shares, 0, true);
 
         return assets;
     }
 
     /// @notice Deposit aTokens and mint static tokens to receiver
-    function depositATokens(
-        uint256 aTokenAmount,
-        address receiver
-    ) external override returns (uint256) {
+    function depositATokens(uint256 aTokenAmount, address receiver) external override returns (uint256) {
         require(aTokenAmount > 0, StaticATokenErrors.INVALID_ZERO_AMOUNT);
         // allow compensation for rebase during tx
         uint256 userBalance = _aToken.balanceOf(msg.sender);
-        uint256 amount = aTokenAmount > userBalance
-            ? userBalance
-            : aTokenAmount;
+        uint256 amount = aTokenAmount > userBalance ? userBalance : aTokenAmount;
         // determine shares to mint
         uint256 shares = previewDeposit(amount);
         require(shares != 0, StaticATokenErrors.INVALID_ZERO_AMOUNT);
@@ -523,11 +413,7 @@ contract StaticATokenLM is ERC20, IStaticATokenLM, IERC4626 {
     }
 
     /// @notice Burn static tokens and return aTokens to receiver
-    function redeemATokens(
-        uint256 shares,
-        address receiver,
-        address owner
-    ) external override returns (uint256) {
+    function redeemATokens(uint256 shares, address receiver, address owner) external override returns (uint256) {
         require(shares > 0, StaticATokenErrors.INVALID_ZERO_AMOUNT);
         // determine assets to return
         uint256 assets = previewRedeem(shares);
@@ -556,27 +442,18 @@ contract StaticATokenLM is ERC20, IStaticATokenLM, IERC4626 {
         bool depositToAave
     ) internal returns (uint256, uint256) {
         require(receiver != address(0), StaticATokenErrors.INVALID_RECIPIENT);
-        require(
-            _shares == 0 || _assets == 0,
-            StaticATokenErrors.ONLY_ONE_AMOUNT_FORMAT_ALLOWED
-        );
+        require(_shares == 0 || _assets == 0, StaticATokenErrors.ONLY_ONE_AMOUNT_FORMAT_ALLOWED);
 
         uint256 assets = _assets;
         uint256 shares = _shares;
         if (shares > 0) {
             if (depositToAave) {
-                require(
-                    shares <= maxMint(receiver),
-                    "ERC4626: mint more than max"
-                );
+                require(shares <= maxMint(receiver), "ERC4626: mint more than max");
             }
             assets = previewMint(shares);
         } else {
             if (depositToAave) {
-                require(
-                    assets <= maxDeposit(receiver),
-                    "ERC4626: deposit more than max"
-                );
+                require(assets <= maxDeposit(receiver), "ERC4626: deposit more than max");
             }
             shares = previewDeposit(assets);
         }
@@ -584,18 +461,8 @@ contract StaticATokenLM is ERC20, IStaticATokenLM, IERC4626 {
 
         if (depositToAave) {
             address cachedATokenUnderlying = _aTokenUnderlying;
-            SafeERC20.safeTransferFrom(
-                IERC20(cachedATokenUnderlying),
-                depositor,
-                address(this),
-                assets
-            );
-            POOL.deposit(
-                cachedATokenUnderlying,
-                assets,
-                address(this),
-                referralCode
-            );
+            SafeERC20.safeTransferFrom(IERC20(cachedATokenUnderlying), depositor, address(this), assets);
+            POOL.deposit(cachedATokenUnderlying, assets, address(this), referralCode);
         } else {
             _aToken.safeTransferFrom(depositor, address(this), assets);
         }
@@ -615,10 +482,7 @@ contract StaticATokenLM is ERC20, IStaticATokenLM, IERC4626 {
         bool withdrawFromAave
     ) internal returns (uint256, uint256) {
         require(receiver != address(0), StaticATokenErrors.INVALID_RECIPIENT);
-        require(
-            _shares == 0 || _assets == 0,
-            StaticATokenErrors.ONLY_ONE_AMOUNT_FORMAT_ALLOWED
-        );
+        require(_shares == 0 || _assets == 0, StaticATokenErrors.ONLY_ONE_AMOUNT_FORMAT_ALLOWED);
         require(_shares != _assets, StaticATokenErrors.INVALID_ZERO_AMOUNT);
 
         uint256 assets = _assets;
@@ -626,18 +490,12 @@ contract StaticATokenLM is ERC20, IStaticATokenLM, IERC4626 {
 
         if (shares > 0) {
             if (withdrawFromAave) {
-                require(
-                    shares <= maxRedeem(owner),
-                    "ERC4626: redeem more than max"
-                );
+                require(shares <= maxRedeem(owner), "ERC4626: redeem more than max");
             }
             assets = previewRedeem(shares);
         } else {
             if (withdrawFromAave) {
-                require(
-                    assets <= maxWithdraw(owner),
-                    "ERC4626: withdraw more than max"
-                );
+                require(assets <= maxWithdraw(owner), "ERC4626: withdraw more than max");
             }
             shares = previewWithdraw(assets);
         }
@@ -645,8 +503,7 @@ contract StaticATokenLM is ERC20, IStaticATokenLM, IERC4626 {
         if (msg.sender != owner) {
             uint256 allowed = allowance[owner][msg.sender]; // Saves gas for limited approvals.
 
-            if (allowed != type(uint256).max)
-                allowance[owner][msg.sender] = allowed - shares;
+            if (allowed != type(uint256).max) allowance[owner][msg.sender] = allowed - shares;
         }
 
         _burn(owner, shares);
@@ -667,11 +524,7 @@ contract StaticATokenLM is ERC20, IStaticATokenLM, IERC4626 {
      * @param from The address of the sender of tokens
      * @param to The address of the receiver of tokens
      */
-    function _beforeTokenTransfer(
-        address from,
-        address to,
-        uint256
-    ) internal override {
+    function _beforeTokenTransfer(address from, address to, uint256) internal override {
         for (uint256 i = 0; i < _rewardTokens.length; i++) {
             address rewardToken = address(_rewardTokens[i]);
             uint256 rewardsIndex = getCurrentRewardsIndex(rewardToken);
@@ -690,23 +543,17 @@ contract StaticATokenLM is ERC20, IStaticATokenLM, IERC4626 {
      * @param currentRewardsIndex The current rewardIndex
      * @param rewardToken The address of the reward token
      */
-    function _updateUser(
-        address user,
-        uint256 currentRewardsIndex,
-        address rewardToken
-    ) internal {
+    function _updateUser(address user, uint256 currentRewardsIndex, address rewardToken) internal {
         uint256 balance = balanceOf[user];
         if (balance > 0) {
-            _userRewardsData[user][rewardToken]
-                .unclaimedRewards = _getClaimableRewards(
+            _userRewardsData[user][rewardToken].unclaimedRewards = _getClaimableRewards(
                 user,
                 rewardToken,
                 balance,
                 currentRewardsIndex
             ).toUint128();
         }
-        _userRewardsData[user][rewardToken]
-            .rewardsIndexOnLastInteraction = currentRewardsIndex.toUint128();
+        _userRewardsData[user][rewardToken].rewardsIndexOnLastInteraction = currentRewardsIndex.toUint128();
     }
 
     /**
@@ -726,9 +573,7 @@ contract StaticATokenLM is ERC20, IStaticATokenLM, IERC4626 {
         if (balance == 0) {
             return 0;
         }
-        return
-            (balance * (currentRewardsIndex - rewardsIndexOnLastInteraction)) /
-            assetUnit;
+        return (balance * (currentRewardsIndex - rewardsIndexOnLastInteraction)) / assetUnit;
     }
 
     /**
@@ -746,13 +591,8 @@ contract StaticATokenLM is ERC20, IStaticATokenLM, IERC4626 {
         uint256 currentRewardsIndex
     ) internal view returns (uint256) {
         RewardIndexCache memory rewardsIndexCache = _startIndex[reward];
-        require(
-            rewardsIndexCache.isRegistered == true,
-            StaticATokenErrors.REWARD_NOT_INITIALIZED
-        );
-        UserRewardsData memory currentUserRewardsData = _userRewardsData[user][
-            reward
-        ];
+        require(rewardsIndexCache.isRegistered == true, StaticATokenErrors.REWARD_NOT_INITIALIZED);
+        UserRewardsData memory currentUserRewardsData = _userRewardsData[user][reward];
         uint256 assetUnit = 10 ** decimals;
         return
             currentUserRewardsData.unclaimedRewards +
@@ -772,32 +612,19 @@ contract StaticATokenLM is ERC20, IStaticATokenLM, IERC4626 {
      * @param rewards The addresses of the rewards
      * @param receiver The address to receive the rewards
      */
-    function _claimRewardsOnBehalf(
-        address onBehalfOf,
-        address receiver,
-        address[] memory rewards
-    ) internal {
+    function _claimRewardsOnBehalf(address onBehalfOf, address receiver, address[] memory rewards) internal {
         for (uint256 i = 0; i < rewards.length; i++) {
             if (address(rewards[i]) == address(0)) {
                 continue;
             }
             uint256 currentRewardsIndex = getCurrentRewardsIndex(rewards[i]);
             uint256 balance = balanceOf[onBehalfOf];
-            uint256 userReward = _getClaimableRewards(
-                onBehalfOf,
-                rewards[i],
-                balance,
-                currentRewardsIndex
-            );
-            uint256 totalRewardTokenBalance = IERC20(rewards[i]).balanceOf(
-                address(this)
-            );
+            uint256 userReward = _getClaimableRewards(onBehalfOf, rewards[i], balance, currentRewardsIndex);
+            uint256 totalRewardTokenBalance = IERC20(rewards[i]).balanceOf(address(this));
             uint256 unclaimedReward = 0;
 
             if (userReward > totalRewardTokenBalance) {
-                totalRewardTokenBalance += collectAndUpdateRewards(
-                    address(rewards[i])
-                );
+                totalRewardTokenBalance += collectAndUpdateRewards(address(rewards[i]));
             }
 
             if (userReward > totalRewardTokenBalance) {
@@ -805,28 +632,20 @@ contract StaticATokenLM is ERC20, IStaticATokenLM, IERC4626 {
                 userReward = totalRewardTokenBalance;
             }
             if (userReward > 0) {
-                _userRewardsData[onBehalfOf][rewards[i]]
-                    .unclaimedRewards = unclaimedReward.toUint128();
-                _userRewardsData[onBehalfOf][rewards[i]]
-                    .rewardsIndexOnLastInteraction = currentRewardsIndex
+                _userRewardsData[onBehalfOf][rewards[i]].unclaimedRewards = unclaimedReward.toUint128();
+                _userRewardsData[onBehalfOf][rewards[i]].rewardsIndexOnLastInteraction = currentRewardsIndex
                     .toUint128();
                 IERC20(rewards[i]).safeTransfer(receiver, userReward);
             }
         }
     }
 
-    function _convertToShares(
-        uint256 assets,
-        Rounding rounding
-    ) internal view returns (uint256) {
+    function _convertToShares(uint256 assets, Rounding rounding) internal view returns (uint256) {
         if (rounding == Rounding.UP) return assets.rayDivRoundUp(rate());
         return assets.rayDivRoundDown(rate());
     }
 
-    function _convertToAssets(
-        uint256 shares,
-        Rounding rounding
-    ) internal view returns (uint256) {
+    function _convertToAssets(uint256 shares, Rounding rounding) internal view returns (uint256) {
         if (rounding == Rounding.UP) return shares.rayMulRoundUp(rate());
         return shares.rayMulRoundDown(rate());
     }
@@ -852,9 +671,7 @@ contract StaticATokenLM is ERC20, IStaticATokenLM, IERC4626 {
      * @param reserve The reserve object
      * @return The normalized income, expressed in ray
      */
-    function _getNormalizedIncome(
-        DataTypes.ReserveData memory reserve
-    ) internal view returns (uint256) {
+    function _getNormalizedIncome(DataTypes.ReserveData memory reserve) internal view returns (uint256) {
         uint40 timestamp = reserve.lastUpdateTimestamp;
 
         //solium-disable-next-line
@@ -863,12 +680,9 @@ contract StaticATokenLM is ERC20, IStaticATokenLM, IERC4626 {
             return reserve.liquidityIndex;
         } else {
             return
-                MathUtils
-                    .calculateLinearInterest(
-                        reserve.currentLiquidityRate,
-                        timestamp
-                    )
-                    .rayMul(reserve.liquidityIndex);
+                MathUtils.calculateLinearInterest(reserve.currentLiquidityRate, timestamp).rayMul(
+                    reserve.liquidityIndex
+                );
         }
     }
 }

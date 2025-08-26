@@ -1,7 +1,11 @@
 import hre from "hardhat";
 
 import { OdosClient } from "../../odos/client";
-import { getPTMarketInfo, swapExactIn } from "../../pendle/sdk";
+import {
+  estimateRedeemMaturedPT,
+  estimateSwapExactIn,
+  getPTMarketInfo,
+} from "../../pendle/sdk";
 import { getERC4626UnderlyingAsset } from "../../token/erc4626";
 
 /**
@@ -83,24 +87,42 @@ export async function getPTOdosSwapQuote(
 
   console.log("Readable repay amount:", readableRepayAmount);
 
+  // Log PT token status
+  if (pyMarketInfo.isMatured) {
+    console.log("PT token is matured - using redemption logic");
+
+    if (!pyMarketInfo.ytAddress) {
+      throw new Error("YT address is required for redemption but not found");
+    }
+  } else {
+    console.log("PT token is active - using swap logic");
+  }
+
   // Step 1: Calculate how much underlying asset we need for exact borrow token amount
-  console.log("Step 1: Calculating underlying needed for exact borrow token amount");
-  
+  console.log(
+    "Step 1: Calculating underlying needed for exact borrow token amount",
+  );
+
   let underlyingAmountNeeded: string;
   let odosTarget = "";
   let odosCalldata = "";
   let formattedUnderlyingAmount: string;
 
-  if (pyMarketInfo.underlyingAsset.toLowerCase() === borrowTokenAddress.toLowerCase()) {
+  if (
+    pyMarketInfo.underlyingAsset.toLowerCase() ===
+    borrowTokenAddress.toLowerCase()
+  ) {
     // Direct case: underlying asset is the target token
     console.log("Direct case: underlying asset = target token");
     underlyingAmountNeeded = readableRepayAmount;
   } else {
     // Need Odos swap: calculate how much underlying needed for exact borrow token out
-    console.log("Odos swap needed: calculating underlying input for exact borrow token output");
-    
+    console.log(
+      "Odos swap needed: calculating underlying input for exact borrow token output",
+    );
+
     const swapSlippageBufferPercentage = 0.5; // 0.5% buffer for Odos
-    
+
     // Use Odos reverse calculation to find required underlying input
     const underlyingInputNeeded = await odosClient.calculateInputAmount(
       readableRepayAmount,
@@ -111,7 +133,10 @@ export async function getPTOdosSwapQuote(
     );
 
     underlyingAmountNeeded = underlyingInputNeeded;
-    console.log("Underlying amount needed for Odos swap:", underlyingAmountNeeded);
+    console.log(
+      "Underlying amount needed for Odos swap:",
+      underlyingAmountNeeded,
+    );
 
     // Get Odos quote for the exact swap we'll need to do
     const underlyingToken = await hre.ethers.getContractAt(
@@ -141,7 +166,7 @@ export async function getPTOdosSwapQuote(
     const odosQuote = await odosClient.getQuote(odosQuoteRequest);
     console.log("Odos quote:", {
       inputAmount: formattedUnderlyingAmount,
-      expectedOutput: odosQuote.outAmounts[0]
+      expectedOutput: odosQuote.outAmounts[0],
     });
 
     // Assemble Odos transaction
@@ -175,30 +200,40 @@ export async function getPTOdosSwapQuote(
     Number(underlyingDecimals),
   );
 
-  // For Pendle reverse calculation, we can use swapExactIn in reverse direction
-  // by swapping 1 PT to see the rate, then calculate the inverse
+  // For Pendle reverse calculation, we can use swap or redemption to see the rate
   const ptEstimationAmount = OdosClient.formatTokenAmount(
     "1", // 1 unit to get the rate
     Number(ptDecimals),
   );
 
-  const rateResponse = await swapExactIn(
-    effectivePTAddress,
-    ptEstimationAmount,
-    pyMarketInfo.underlyingAsset,
-    receiverAddress,
-    pyMarketInfo.marketAddress,
-    chainId,
-    0.01, // 1% slippage for rate calculation
-  );
+  const rateResponse = pyMarketInfo.isMatured
+    ? await estimateRedeemMaturedPT(
+        chainId,
+        receiverAddress,
+        0.01, // 1% slippage for rate calculation
+        pyMarketInfo.ytAddress!,
+        ptEstimationAmount,
+        pyMarketInfo.underlyingAsset,
+      )
+    : await estimateSwapExactIn(
+        effectivePTAddress,
+        ptEstimationAmount,
+        pyMarketInfo.underlyingAsset,
+        receiverAddress,
+        pyMarketInfo.marketAddress,
+        chainId,
+        0.01, // 1% slippage for rate calculation
+      );
 
   // Calculate PT needed based on the rate (both values now in formatted units)
   const underlyingPerPT = Number(rateResponse.data.data.amountOut);
-  const ptAmountNeededFormatted = Number(formattedUnderlyingNeeded) / underlyingPerPT;
-  
+  const ptAmountNeededFormatted =
+    Number(formattedUnderlyingNeeded) / underlyingPerPT;
+
   // Add buffer for Pendle slippage and price impact
   const pendleSlippageBufferPercentage = 1.0; // 1% buffer for Pendle
-  const ptAmountWithBuffer = ptAmountNeededFormatted * (1 + pendleSlippageBufferPercentage / 100);
+  const ptAmountWithBuffer =
+    ptAmountNeededFormatted * (1 + pendleSlippageBufferPercentage / 100);
 
   const formattedPTAmount = OdosClient.formatTokenAmount(
     ptAmountWithBuffer,
@@ -210,36 +245,54 @@ export async function getPTOdosSwapQuote(
     formattedUnderlyingNeeded,
     ptAmountNeededFormatted,
     ptAmountWithBuffer,
-    formattedPTAmount
+    formattedPTAmount,
   });
 
-  // Step 3: Get the actual Pendle swap data for the calculated PT amount
-  console.log("Step 3: Getting Pendle swap data for calculated PT amount");
-  const pendleResponse = await swapExactIn(
-    effectivePTAddress,
-    formattedPTAmount,
-    pyMarketInfo.underlyingAsset,
-    receiverAddress,
-    pyMarketInfo.marketAddress,
-    chainId,
-    0.01, // 1% slippage
+  // Step 3: Get the actual Pendle swap/redemption data for the calculated PT amount
+  console.log(
+    `Step 3: Getting Pendle ${pyMarketInfo.isMatured ? "redemption" : "swap"} data for calculated PT amount`,
   );
+  const pendleResponse = pyMarketInfo.isMatured
+    ? await estimateRedeemMaturedPT(
+        chainId,
+        receiverAddress,
+        0.01, // 1% slippage
+        pyMarketInfo.ytAddress!,
+        formattedPTAmount,
+        pyMarketInfo.underlyingAsset,
+      )
+    : await estimateSwapExactIn(
+        effectivePTAddress,
+        formattedPTAmount,
+        pyMarketInfo.underlyingAsset,
+        receiverAddress,
+        pyMarketInfo.marketAddress,
+        chainId,
+        0.01, // 1% slippage
+      );
 
   const pendleData = pendleResponse.data;
-  console.log("Pendle SDK response:", {
-    ptInput: formattedPTAmount,
-    underlyingOut: pendleData.data.amountOut,
-    priceImpact: pendleData.data.priceImpact,
-    target: pendleData.tx.to,
-  });
+  console.log(
+    `Pendle ${pyMarketInfo.isMatured ? "redemption" : "swap"} response:`,
+    {
+      ptInput: formattedPTAmount,
+      underlyingOut: pendleData.data.amountOut,
+      priceImpact: pendleData.data.priceImpact,
+      target: pendleData.tx.to,
+    },
+  );
 
   // Verify we get enough underlying from Pendle
   const actualUnderlyingOut = Number(pendleData.data.amountOut);
   const targetUnderlyingAmount = Number(underlyingAmountNeeded);
-  
+
   if (actualUnderlyingOut < targetUnderlyingAmount) {
-    console.warn(`Pendle output (${actualUnderlyingOut}) less than needed (${targetUnderlyingAmount})`);
-    console.warn("Consider increasing PT input amount or slippage tolerance");
+    console.warn(
+      `Pendle ${pyMarketInfo.isMatured ? "redemption" : "swap"} output (${actualUnderlyingOut}) less than needed (${targetUnderlyingAmount})`,
+    );
+    console.warn(
+      `Consider increasing PT input amount${pyMarketInfo.isMatured ? "" : " or slippage tolerance"}`,
+    );
   }
 
   // Step 4: Create PTSwapData structure
@@ -251,11 +304,22 @@ export async function getPTOdosSwapQuote(
     odosCalldata: odosCalldata,
   };
 
-  console.log("Two-stage swap plan:");
-  console.log(`  Stage 1 (Pendle): ${formattedPTAmount} PT → ${pendleData.data.amountOut} underlying`);
-  console.log(`  Stage 2 (Odos): ${underlyingAmountNeeded} underlying → ${readableRepayAmount} target`);
+  console.log(
+    `Two-stage ${pyMarketInfo.isMatured ? "redemption" : "swap"} plan:`,
+  );
+  console.log(
+    `  Stage 1 (Pendle ${pyMarketInfo.isMatured ? "Redemption" : "Swap"}): ${formattedPTAmount} PT → ${pendleData.data.amountOut} underlying`,
+  );
+
+  if (odosCalldata) {
+    console.log(
+      `  Stage 2 (Odos): ${underlyingAmountNeeded} underlying → ${readableRepayAmount} target`,
+    );
+  } else {
+    console.log(
+      `  Direct ${pyMarketInfo.isMatured ? "redemption" : "swap"}: underlying = target token`,
+    );
+  }
 
   return { ptSwapData };
 }
-
-

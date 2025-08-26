@@ -17,9 +17,9 @@
 
 pragma solidity ^0.8.20;
 
-import {Errors} from "../helpers/Errors.sol";
-import {DataTypes} from "../types/DataTypes.sol";
-import {ReserveConfiguration} from "./ReserveConfiguration.sol";
+import { Errors } from "../helpers/Errors.sol";
+import { DataTypes } from "../types/DataTypes.sol";
+import { ReserveConfiguration } from "./ReserveConfiguration.sol";
 
 /**
  * @title UserConfiguration library
@@ -29,10 +29,8 @@ import {ReserveConfiguration} from "./ReserveConfiguration.sol";
 library UserConfiguration {
     using ReserveConfiguration for DataTypes.ReserveConfigurationMap;
 
-    uint256 internal constant BORROWING_MASK =
-        0x5555555555555555555555555555555555555555555555555555555555555555;
-    uint256 internal constant COLLATERAL_MASK =
-        0xAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA;
+    uint256 internal constant BORROWING_MASK = 0x5555555555555555555555555555555555555555555555555555555555555555;
+    uint256 internal constant COLLATERAL_MASK = 0xAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA;
 
     /**
      * @notice Sets if the user is borrowing the reserve identified by reserveIndex
@@ -40,16 +38,9 @@ library UserConfiguration {
      * @param reserveIndex The index of the reserve in the bitmap
      * @param borrowing True if the user is borrowing the reserve, false otherwise
      */
-    function setBorrowing(
-        DataTypes.UserConfigurationMap storage self,
-        uint256 reserveIndex,
-        bool borrowing
-    ) internal {
+    function setBorrowing(DataTypes.UserConfigurationMap storage self, uint256 reserveIndex, bool borrowing) internal {
         unchecked {
-            require(
-                reserveIndex < ReserveConfiguration.MAX_RESERVES_COUNT,
-                Errors.INVALID_RESERVE_INDEX
-            );
+            require(reserveIndex < ReserveConfiguration.MAX_RESERVES_COUNT, Errors.INVALID_RESERVE_INDEX);
             uint256 bit = 1 << (reserveIndex << 1);
             if (borrowing) {
                 self.data |= bit;
@@ -71,10 +62,7 @@ library UserConfiguration {
         bool usingAsCollateral
     ) internal {
         unchecked {
-            require(
-                reserveIndex < ReserveConfiguration.MAX_RESERVES_COUNT,
-                Errors.INVALID_RESERVE_INDEX
-            );
+            require(reserveIndex < ReserveConfiguration.MAX_RESERVES_COUNT, Errors.INVALID_RESERVE_INDEX);
             uint256 bit = 1 << ((reserveIndex << 1) + 1);
             if (usingAsCollateral) {
                 self.data |= bit;
@@ -95,10 +83,7 @@ library UserConfiguration {
         uint256 reserveIndex
     ) internal pure returns (bool) {
         unchecked {
-            require(
-                reserveIndex < ReserveConfiguration.MAX_RESERVES_COUNT,
-                Errors.INVALID_RESERVE_INDEX
-            );
+            require(reserveIndex < ReserveConfiguration.MAX_RESERVES_COUNT, Errors.INVALID_RESERVE_INDEX);
             return (self.data >> (reserveIndex << 1)) & 3 != 0;
         }
     }
@@ -114,10 +99,7 @@ library UserConfiguration {
         uint256 reserveIndex
     ) internal pure returns (bool) {
         unchecked {
-            require(
-                reserveIndex < ReserveConfiguration.MAX_RESERVES_COUNT,
-                Errors.INVALID_RESERVE_INDEX
-            );
+            require(reserveIndex < ReserveConfiguration.MAX_RESERVES_COUNT, Errors.INVALID_RESERVE_INDEX);
             return (self.data >> (reserveIndex << 1)) & 1 != 0;
         }
     }
@@ -133,10 +115,7 @@ library UserConfiguration {
         uint256 reserveIndex
     ) internal pure returns (bool) {
         unchecked {
-            require(
-                reserveIndex < ReserveConfiguration.MAX_RESERVES_COUNT,
-                Errors.INVALID_RESERVE_INDEX
-            );
+            require(reserveIndex < ReserveConfiguration.MAX_RESERVES_COUNT, Errors.INVALID_RESERVE_INDEX);
             return (self.data >> ((reserveIndex << 1) + 1)) & 1 != 0;
         }
     }
@@ -147,12 +126,9 @@ library UserConfiguration {
      * @param self The configuration object
      * @return True if the user has been supplying as collateral one reserve, false otherwise
      */
-    function isUsingAsCollateralOne(
-        DataTypes.UserConfigurationMap memory self
-    ) internal pure returns (bool) {
+    function isUsingAsCollateralOne(DataTypes.UserConfigurationMap memory self) internal pure returns (bool) {
         uint256 collateralData = self.data & COLLATERAL_MASK;
-        return
-            collateralData != 0 && (collateralData & (collateralData - 1) == 0);
+        return collateralData != 0 && (collateralData & (collateralData - 1) == 0);
     }
 
     /**
@@ -160,9 +136,7 @@ library UserConfiguration {
      * @param self The configuration object
      * @return True if the user has been supplying as collateral any reserve, false otherwise
      */
-    function isUsingAsCollateralAny(
-        DataTypes.UserConfigurationMap memory self
-    ) internal pure returns (bool) {
+    function isUsingAsCollateralAny(DataTypes.UserConfigurationMap memory self) internal pure returns (bool) {
         return self.data & COLLATERAL_MASK != 0;
     }
 
@@ -172,9 +146,7 @@ library UserConfiguration {
      * @param self The configuration object
      * @return True if the user has been supplying as collateral one reserve, false otherwise
      */
-    function isBorrowingOne(
-        DataTypes.UserConfigurationMap memory self
-    ) internal pure returns (bool) {
+    function isBorrowingOne(DataTypes.UserConfigurationMap memory self) internal pure returns (bool) {
         uint256 borrowingData = self.data & BORROWING_MASK;
         return borrowingData != 0 && (borrowingData & (borrowingData - 1) == 0);
     }
@@ -184,9 +156,7 @@ library UserConfiguration {
      * @param self The configuration object
      * @return True if the user has been borrowing any reserve, false otherwise
      */
-    function isBorrowingAny(
-        DataTypes.UserConfigurationMap memory self
-    ) internal pure returns (bool) {
+    function isBorrowingAny(DataTypes.UserConfigurationMap memory self) internal pure returns (bool) {
         return self.data & BORROWING_MASK != 0;
     }
 
@@ -195,9 +165,7 @@ library UserConfiguration {
      * @param self The configuration object
      * @return True if the user has not been borrowing or supplying any reserve, false otherwise
      */
-    function isEmpty(
-        DataTypes.UserConfigurationMap memory self
-    ) internal pure returns (bool) {
+    function isEmpty(DataTypes.UserConfigurationMap memory self) internal pure returns (bool) {
         return self.data == 0;
     }
 
@@ -219,9 +187,7 @@ library UserConfiguration {
             uint256 assetId = _getFirstAssetIdByMask(self, COLLATERAL_MASK);
 
             address assetAddress = reservesList[assetId];
-            uint256 ceiling = reservesData[assetAddress]
-                .configuration
-                .getDebtCeiling();
+            uint256 ceiling = reservesData[assetAddress].configuration.getDebtCeiling();
             if (ceiling != 0) {
                 return (true, assetAddress, ceiling);
             }

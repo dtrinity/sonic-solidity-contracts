@@ -18,27 +18,20 @@ const TARGET_DECIMALS = 8;
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   // The hard-coded values are only valid for mainnet
   if (!isMainnet(hre.network.name)) {
-    console.log(
-      `\n🔑 ${__filename.split("/").slice(-2).join("/")}: Skipping non-mainnet network`,
-    );
+    console.log(`\n🔑 ${__filename.split("/").slice(-2).join("/")}: Skipping non-mainnet network`);
     return true;
   }
   const { deployer } = await hre.getNamedAccounts();
   const { deployments, ethers } = hre;
 
   // Connect to the source Chainlink feed
-  const sourceFeed = await ethers.getContractAt(
-    "AggregatorV3Interface",
-    WSTKSCUSD_FEED_ADDRESS,
-  );
+  const sourceFeed = await ethers.getContractAt("AggregatorV3Interface", WSTKSCUSD_FEED_ADDRESS);
 
   // Verify the source feed has the expected number of decimals
   const sourceDecimals = await sourceFeed.decimals();
 
   if (sourceDecimals !== BigInt(EXPECTED_SOURCE_DECIMALS)) {
-    throw new Error(
-      `Source feed has ${sourceDecimals} decimals, expected ${EXPECTED_SOURCE_DECIMALS}`,
-    );
+    throw new Error(`Source feed has ${sourceDecimals} decimals, expected ${EXPECTED_SOURCE_DECIMALS}`);
   }
 
   // Deploy the ChainlinkDecimalConverter

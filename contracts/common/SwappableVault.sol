@@ -15,9 +15,10 @@
  * dTRINITY Protocol: https://github.com/dtrinity                                   *
  * ———————————————————————————————————————————————————————————————————————————————— */
 
-pragma solidity 0.8.20;
+pragma solidity ^0.8.20;
 
-import {ERC20} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
+import { ERC20 } from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
+import { Compare } from "contracts/common/Compare.sol";
 
 /**
  * @title SwappableVault
@@ -26,22 +27,12 @@ import {ERC20} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol"
  *      - The wrapper function _swapExactOutput has some sanity checks
  */
 abstract contract SwappableVault {
-    error SpentInputTokenAmountGreaterThanAmountInMaximum(
-        uint256 spentInputTokenAmount,
-        uint256 amountInMaximum
-    );
-    error ReceivedOutputTokenAmountNotEqualAmountOut(
-        uint256 receivedOutputTokenAmount,
-        uint256 amountOut
-    );
-    error OutputTokenBalanceNotIncreasedAfterSwap(
-        uint256 outputTokenBalanceBefore,
-        uint256 outputTokenBalanceAfter
-    );
-    error SpentInputTokenAmountNotEqualReturnedAmountIn(
-        uint256 spentInputTokenAmount,
-        uint256 returnedAmountIn
-    );
+    error SpentInputTokenAmountGreaterThanAmountInMaximum(uint256 spentInputTokenAmount, uint256 amountInMaximum);
+    error ReceivedOutputTokenAmountNotEqualAmountOut(uint256 receivedOutputTokenAmount, uint256 amountOut);
+    error OutputTokenBalanceNotIncreasedAfterSwap(uint256 outputTokenBalanceBefore, uint256 outputTokenBalanceAfter);
+    error SpentInputTokenAmountNotEqualReturnedAmountIn(uint256 spentInputTokenAmount, uint256 returnedAmountIn);
+
+    uint256 public constant BALANCE_DIFF_TOLERANCE = 1;
 
     /* Virtual functions */
 
@@ -105,41 +96,43 @@ abstract contract SwappableVault {
         uint256 inputTokenBalanceAfter = inputToken.balanceOf(address(this));
         uint256 outputTokenBalanceAfter = outputToken.balanceOf(address(this));
 
-        // Make sure the spent input token amount is not greater than the amount in maximum
-        if (inputTokenBalanceAfter < inputTokenBalanceBefore) {
-            uint256 spentInputTokenAmount = inputTokenBalanceBefore -
-                inputTokenBalanceAfter;
-            if (spentInputTokenAmount > amountInMaximum) {
-                revert SpentInputTokenAmountGreaterThanAmountInMaximum(
-                    spentInputTokenAmount,
-                    amountInMaximum
-                );
-            }
-            if (spentInputTokenAmount != amountIn) {
-                revert SpentInputTokenAmountNotEqualReturnedAmountIn(
-                    spentInputTokenAmount,
-                    amountIn
-                );
-            }
-        }
-        // Do not need to check the input token balance decreased after the swap
-        // as it is not a risk for the caller
-
-        // Make sure the received output token amount is exactly the amount out
-        if (outputTokenBalanceAfter > outputTokenBalanceBefore) {
-            uint256 receivedOutputTokenAmount = outputTokenBalanceAfter -
-                outputTokenBalanceBefore;
-            if (receivedOutputTokenAmount != amountOut) {
-                revert ReceivedOutputTokenAmountNotEqualAmountOut(
-                    receivedOutputTokenAmount,
-                    amountOut
-                );
-            }
-        } else {
-            revert OutputTokenBalanceNotIncreasedAfterSwap(
-                outputTokenBalanceBefore,
-                outputTokenBalanceAfter
+        // Input token: if decreased, ensure not over max and within tolerance of amountIn
+        {
+            Compare.BalanceCheckResult memory inCheck = Compare.checkBalanceDelta(
+                inputTokenBalanceBefore,
+                inputTokenBalanceAfter,
+                amountIn,
+                BALANCE_DIFF_TOLERANCE,
+                Compare.BalanceDirection.Decrease
             );
+            if (inCheck.directionOk) {
+                // First check: ensure we don't spend more than the maximum allowed
+                if (inCheck.observedDelta > amountInMaximum) {
+                    revert SpentInputTokenAmountGreaterThanAmountInMaximum(inCheck.observedDelta, amountInMaximum);
+                }
+                // Second check: ensure spent amount matches returned amount within tolerance
+                if (!inCheck.toleranceOk) {
+                    revert SpentInputTokenAmountNotEqualReturnedAmountIn(inCheck.observedDelta, amountIn);
+                }
+            }
+            // If not decreased, no checks needed (not a risk for the caller)
+        }
+
+        // Output token: must increase and be within tolerance of amountOut
+        {
+            Compare.BalanceCheckResult memory outCheck = Compare.checkBalanceDelta(
+                outputTokenBalanceBefore,
+                outputTokenBalanceAfter,
+                amountOut,
+                BALANCE_DIFF_TOLERANCE,
+                Compare.BalanceDirection.Increase
+            );
+            if (!outCheck.directionOk) {
+                revert OutputTokenBalanceNotIncreasedAfterSwap(outputTokenBalanceBefore, outputTokenBalanceAfter);
+            }
+            if (!outCheck.toleranceOk) {
+                revert ReceivedOutputTokenAmountNotEqualAmountOut(outCheck.observedDelta, amountOut);
+            }
         }
 
         return amountIn;

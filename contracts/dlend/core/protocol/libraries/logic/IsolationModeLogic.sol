@@ -17,10 +17,10 @@
 
 pragma solidity ^0.8.20;
 
-import {DataTypes} from "../types/DataTypes.sol";
-import {ReserveConfiguration} from "../configuration/ReserveConfiguration.sol";
-import {UserConfiguration} from "../configuration/UserConfiguration.sol";
-import {SafeCast} from "../../../dependencies/openzeppelin/contracts/SafeCast.sol";
+import { DataTypes } from "../types/DataTypes.sol";
+import { ReserveConfiguration } from "../configuration/ReserveConfiguration.sol";
+import { UserConfiguration } from "../configuration/UserConfiguration.sol";
+import { SafeCast } from "../../../dependencies/openzeppelin/contracts/SafeCast.sol";
 
 /**
  * @title IsolationModeLogic library
@@ -33,10 +33,7 @@ library IsolationModeLogic {
     using SafeCast for uint256;
 
     // See `IPool` for descriptions
-    event IsolationModeTotalDebtUpdated(
-        address indexed asset,
-        uint256 totalDebt
-    );
+    event IsolationModeTotalDebtUpdated(address indexed asset, uint256 totalDebt);
 
     /**
      * @notice updated the isolated debt whenever a position collateralized by an isolated asset is repaid or liquidated
@@ -53,42 +50,27 @@ library IsolationModeLogic {
         DataTypes.ReserveCache memory reserveCache,
         uint256 repayAmount
     ) internal {
-        (
-            bool isolationModeActive,
-            address isolationModeCollateralAddress,
-
-        ) = userConfig.getIsolationModeState(reservesData, reservesList);
+        (bool isolationModeActive, address isolationModeCollateralAddress, ) = userConfig.getIsolationModeState(
+            reservesData,
+            reservesList
+        );
 
         if (isolationModeActive) {
-            uint128 isolationModeTotalDebt = reservesData[
-                isolationModeCollateralAddress
-            ].isolationModeTotalDebt;
+            uint128 isolationModeTotalDebt = reservesData[isolationModeCollateralAddress].isolationModeTotalDebt;
 
             uint128 isolatedDebtRepaid = (repayAmount /
-                10 **
-                    (reserveCache.reserveConfiguration.getDecimals() -
-                        ReserveConfiguration.DEBT_CEILING_DECIMALS))
+                10 ** (reserveCache.reserveConfiguration.getDecimals() - ReserveConfiguration.DEBT_CEILING_DECIMALS))
                 .toUint128();
 
             // since the debt ceiling does not take into account the interest accrued, it might happen that amount
             // repaid > debt in isolation mode
             if (isolationModeTotalDebt <= isolatedDebtRepaid) {
-                reservesData[isolationModeCollateralAddress]
-                    .isolationModeTotalDebt = 0;
-                emit IsolationModeTotalDebtUpdated(
-                    isolationModeCollateralAddress,
-                    0
-                );
+                reservesData[isolationModeCollateralAddress].isolationModeTotalDebt = 0;
+                emit IsolationModeTotalDebtUpdated(isolationModeCollateralAddress, 0);
             } else {
-                uint256 nextIsolationModeTotalDebt = reservesData[
-                    isolationModeCollateralAddress
-                ].isolationModeTotalDebt =
-                    isolationModeTotalDebt -
-                    isolatedDebtRepaid;
-                emit IsolationModeTotalDebtUpdated(
-                    isolationModeCollateralAddress,
-                    nextIsolationModeTotalDebt
-                );
+                uint256 nextIsolationModeTotalDebt = reservesData[isolationModeCollateralAddress]
+                    .isolationModeTotalDebt = isolationModeTotalDebt - isolatedDebtRepaid;
+                emit IsolationModeTotalDebtUpdated(isolationModeCollateralAddress, nextIsolationModeTotalDebt);
             }
         }
     }

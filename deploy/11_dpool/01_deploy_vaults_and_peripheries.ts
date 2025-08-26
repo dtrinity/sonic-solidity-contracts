@@ -23,15 +23,10 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     console.log(`\n--- Deploying dPOOL for ${dPoolId} ---`);
 
     // Get base asset address
-    const baseAssetAddress =
-      config.tokenAddresses[
-        dPoolConfig.baseAsset as keyof typeof config.tokenAddresses
-      ];
+    const baseAssetAddress = config.tokenAddresses[dPoolConfig.baseAsset as keyof typeof config.tokenAddresses];
 
     if (!baseAssetAddress) {
-      console.log(
-        `⚠️  Skipping ${dPoolId}: missing base asset address for ${dPoolConfig.baseAsset}`,
-      );
+      console.log(`⚠️  Skipping ${dPoolId}: missing base asset address for ${dPoolConfig.baseAsset}`);
       continue;
     }
 
@@ -47,9 +42,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
         curvePoolDeployment = { address: dPoolConfig.pool };
         console.log(`Using external pool address: ${dPoolConfig.pool}`);
       } else {
-        console.log(
-          `⚠️  Failed to get Curve pool deployment ${dPoolConfig.pool}: ${error}`,
-        );
+        console.log(`⚠️  Failed to get Curve pool deployment ${dPoolConfig.pool}: ${error}`);
         console.log(`⚠️  Skipping ${dPoolId}: pool not found`);
         continue;
       }

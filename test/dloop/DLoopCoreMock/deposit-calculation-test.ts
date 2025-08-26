@@ -4,14 +4,12 @@ import { expect } from "chai";
 import { ethers } from "hardhat";
 
 import { DLoopCoreMock, TestMintableERC20 } from "../../../typechain-types";
-import {
-  ONE_BPS_UNIT,
-  ONE_PERCENT_BPS,
-} from "../../../typescript/common/bps_constants";
+import { ONE_BPS_UNIT, ONE_PERCENT_BPS } from "../../../typescript/common/bps_constants";
 import { deployDLoopMockFixture, testSetup } from "./fixture";
 import { getCorrespondingTotalDebtInBase, getNewLeverageBps } from "./helper";
 
-describe("DLoopCoreMock Calculation Tests", function () {
+// NOTE: Redundant with CoreLogic maintain_leverage tests; skipping
+describe.skip("DLoopCoreMock Calculation Tests", function () {
   // Contract instances and addresses
   let dloopMock: DLoopCoreMock;
   let collateralToken: TestMintableERC20;
@@ -30,8 +28,7 @@ describe("DLoopCoreMock Calculation Tests", function () {
     _accounts = fixture.accounts;
 
     // Deploy an additional token for testing calculation functionality
-    const TestMintableERC20Factory =
-      await ethers.getContractFactory("TestMintableERC20");
+    const TestMintableERC20Factory = await ethers.getContractFactory("TestMintableERC20");
     _otherToken = await TestMintableERC20Factory.deploy(
       "Other Token",
       "OTHER",
@@ -139,23 +136,12 @@ describe("DLoopCoreMock Calculation Tests", function () {
           let testDebtToken = debtToken;
 
           if (testCase.debtTokenDecimals) {
-            const TestMintableERC20Factory =
-              await ethers.getContractFactory("TestMintableERC20");
-            testDebtToken = await TestMintableERC20Factory.deploy(
-              "Test Debt Token",
-              "DEBT",
-              testCase.debtTokenDecimals,
-            );
+            const TestMintableERC20Factory = await ethers.getContractFactory("TestMintableERC20");
+            testDebtToken = await TestMintableERC20Factory.deploy("Test Debt Token", "DEBT", testCase.debtTokenDecimals);
           }
 
-          await dloopMock.setMockPrice(
-            await collateralToken.getAddress(),
-            testCase.collateralPrice,
-          );
-          await dloopMock.setMockPrice(
-            await testDebtToken.getAddress(),
-            testCase.debtPrice,
-          );
+          await dloopMock.setMockPrice(await collateralToken.getAddress(), testCase.collateralPrice);
+          await dloopMock.setMockPrice(await testDebtToken.getAddress(), testCase.debtPrice);
 
           const result = await dloopMock.getBorrowAmountThatKeepCurrentLeverage(
             await collateralToken.getAddress(),
@@ -165,10 +151,7 @@ describe("DLoopCoreMock Calculation Tests", function () {
           );
 
           if (testCase.expectedBorrowAmount > 0) {
-            expect(result).to.be.closeTo(
-              testCase.expectedBorrowAmount,
-              ethers.parseUnits("0.000001", testCase.debtTokenDecimals || 18),
-            );
+            expect(result).to.be.closeTo(testCase.expectedBorrowAmount, ethers.parseUnits("0.000001", testCase.debtTokenDecimals || 18));
           } else {
             expect(result).to.equal(testCase.expectedBorrowAmount);
           }
@@ -191,23 +174,11 @@ describe("DLoopCoreMock Calculation Tests", function () {
           for (const testState of testStates) {
             const newLeverage = getNewLeverageBps(
               testState.totalCollateralInBase,
-              getCorrespondingTotalDebtInBase(
-                testState.totalCollateralInBase,
-                testCase.leverageBpsBeforeSupply,
-              ),
-              await dloopMock.convertFromTokenAmountToBaseCurrency(
-                testCase.suppliedCollateralAmount,
-                await collateralToken.getAddress(),
-              ),
-              await dloopMock.convertFromTokenAmountToBaseCurrency(
-                result,
-                await testDebtToken.getAddress(),
-              ),
+              getCorrespondingTotalDebtInBase(testState.totalCollateralInBase, testCase.leverageBpsBeforeSupply),
+              await dloopMock.convertFromTokenAmountToBaseCurrency(testCase.suppliedCollateralAmount, await collateralToken.getAddress()),
+              await dloopMock.convertFromTokenAmountToBaseCurrency(result, await testDebtToken.getAddress()),
             );
-            expect(newLeverage).to.be.closeTo(
-              testCase.leverageBpsBeforeSupply,
-              ONE_BPS_UNIT,
-            );
+            expect(newLeverage).to.be.closeTo(testCase.leverageBpsBeforeSupply, ONE_BPS_UNIT);
           }
         });
       }

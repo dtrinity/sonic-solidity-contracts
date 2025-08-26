@@ -1,13 +1,7 @@
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 import { ethers } from "hardhat";
 
-import {
-  DLoopCoreMock,
-  DLoopDepositorMock,
-  SimpleDEXMock,
-  TestERC20FlashMintable,
-  TestMintableERC20,
-} from "../../../typechain-types";
+import { DLoopCoreMock, DLoopDepositorMock, SimpleDEXMock, TestERC20FlashMintable, TestMintableERC20 } from "../../../typechain-types";
 import { ONE_PERCENT_BPS } from "../../../typescript/common/bps_constants";
 
 // Test constants
@@ -70,12 +64,8 @@ export async function deployDLoopDepositorMockFixture(): Promise<{
   await simpleDEXMock.waitForDeployment();
 
   // Deploy DLoopDepositorMock
-  const DLoopDepositorMockFactory =
-    await ethers.getContractFactory("DLoopDepositorMock");
-  const dLoopDepositorMock = await DLoopDepositorMockFactory.deploy(
-    await flashLender.getAddress(),
-    await simpleDEXMock.getAddress(),
-  );
+  const DLoopDepositorMockFactory = await ethers.getContractFactory("DLoopDepositorMock");
+  const dLoopDepositorMock = await DLoopDepositorMockFactory.deploy(await flashLender.getAddress(), await simpleDEXMock.getAddress());
   await dLoopDepositorMock.waitForDeployment();
 
   const dloopDepositorMockFixture: DLoopDepositorMockFixture = {
@@ -110,28 +100,22 @@ export async function deployDLoopMockLogic(): Promise<DLoopMockFixture> {
 
   // Deploy mock tokens
   const MockERC20 = await ethers.getContractFactory("TestMintableERC20");
-  const collateralToken = await MockERC20.deploy(
-    "Mock Collateral",
-    "mCOLL",
-    COLLATERAL_DECIMALS,
-  );
+  const collateralToken = await MockERC20.deploy("Mock Collateral", "mCOLL", COLLATERAL_DECIMALS);
 
   // Deploy debt token using TestERC20FlashMintable so it can act as flash lender
-  const FlashMintableERC20 = await ethers.getContractFactory(
-    "TestERC20FlashMintable",
-  );
-  const debtToken = await FlashMintableERC20.deploy(
-    "Mock Debt",
-    "mDEBT",
-    DEBT_DECIMALS,
-  );
+  const FlashMintableERC20 = await ethers.getContractFactory("TestERC20FlashMintable");
+  const debtToken = await FlashMintableERC20.deploy("Mock Debt", "mDEBT", DEBT_DECIMALS);
 
   // Mint tokens to mock pool (mockVault)
   await collateralToken.mint(mockPool, ethers.parseEther("1000000"));
   await debtToken.mint(mockPool, ethers.parseEther("1000000"));
 
+  // Deploy and link DLoopCoreLogic library before deploying DLoopCoreMock
+  const DLoopCoreLogicFactory = await ethers.getContractFactory("DLoopCoreLogic");
+  const dloopCoreLogicLib = await DLoopCoreLogicFactory.deploy();
+  await dloopCoreLogicLib.waitForDeployment();
+
   // Get the exact nonce for deployment and set up allowances correctly
-  const DLoopCoreMock = await ethers.getContractFactory("DLoopCoreMock");
   const currentNonce = await ethers.provider.getTransactionCount(deployer);
 
   // We'll have 2 approve transactions, so deployment will be at currentNonce + 2
@@ -141,15 +125,16 @@ export async function deployDLoopMockLogic(): Promise<DLoopMockFixture> {
   });
 
   // Set up allowances to the predicted contract address
-  await collateralToken
-    .connect(accounts[0])
-    .approve(contractAddress, ethers.MaxUint256);
-  await debtToken
-    .connect(accounts[0])
-    .approve(contractAddress, ethers.MaxUint256);
+  await collateralToken.connect(accounts[0]).approve(contractAddress, ethers.MaxUint256);
+  await debtToken.connect(accounts[0]).approve(contractAddress, ethers.MaxUint256);
 
-  // Now deploy the contract
-  const dloopMock = await DLoopCoreMock.deploy(
+  // Now deploy the contract (linking the DLoopCoreLogic library)
+  const DLoopCoreMockFactory = await ethers.getContractFactory("DLoopCoreMock", {
+    libraries: {
+      "contracts/vaults/dloop/core/DLoopCoreLogic.sol:DLoopCoreLogic": await dloopCoreLogicLib.getAddress(),
+    },
+  });
+  const dloopMock = await DLoopCoreMockFactory.deploy(
     "Mock dLoop Vault",
     "mdLOOP",
     await collateralToken.getAddress(),
@@ -158,6 +143,8 @@ export async function deployDLoopMockLogic(): Promise<DLoopMockFixture> {
     LOWER_BOUND_BPS,
     UPPER_BOUND_BPS,
     MAX_SUBSIDY_BPS,
+    0, // minDeviationBps
+    0, // withdrawalFeeBps
     mockPool,
   );
 
@@ -184,16 +171,11 @@ export async function testSetup(
   dloopCoreMockFixture: DLoopMockFixture,
   dloopDepositorMockFixture: DLoopDepositorMockFixture,
 ): Promise<void> {
-  const { dloopMock, collateralToken, debtToken, mockPool } =
-    dloopCoreMockFixture;
-  const { flashLender, simpleDEXMock, user1, user2, user3 } =
-    dloopDepositorMockFixture;
+  const { dloopMock, collateralToken, debtToken, mockPool } = dloopCoreMockFixture;
+  const { flashLender, simpleDEXMock, user1, user2, user3 } = dloopDepositorMockFixture;
 
   // Set default prices
-  await dloopMock.setMockPrice(
-    await collateralToken.getAddress(),
-    DEFAULT_PRICE,
-  );
+  await dloopMock.setMockPrice(await collateralToken.getAddress(), DEFAULT_PRICE);
   await dloopMock.setMockPrice(await debtToken.getAddress(), DEFAULT_PRICE);
 
   // Setup token balances for users
@@ -215,25 +197,16 @@ export async function testSetup(
   await debtToken.connect(user3).approve(vaultAddress, ethers.MaxUint256);
 
   // Set allowance to allow vault to spend tokens from mockPool
-  await collateralToken
-    .connect(mockPool)
-    .approve(vaultAddress, ethers.MaxUint256);
+  await collateralToken.connect(mockPool).approve(vaultAddress, ethers.MaxUint256);
   await debtToken.connect(mockPool).approve(vaultAddress, ethers.MaxUint256);
 
   // Setup allowances for depositor mock
-  const depositorAddress =
-    await dloopDepositorMockFixture.dLoopDepositorMock.getAddress();
-  await collateralToken
-    .connect(user1)
-    .approve(depositorAddress, ethers.MaxUint256);
+  const depositorAddress = await dloopDepositorMockFixture.dLoopDepositorMock.getAddress();
+  await collateralToken.connect(user1).approve(depositorAddress, ethers.MaxUint256);
   await debtToken.connect(user1).approve(depositorAddress, ethers.MaxUint256);
-  await collateralToken
-    .connect(user2)
-    .approve(depositorAddress, ethers.MaxUint256);
+  await collateralToken.connect(user2).approve(depositorAddress, ethers.MaxUint256);
   await debtToken.connect(user2).approve(depositorAddress, ethers.MaxUint256);
-  await collateralToken
-    .connect(user3)
-    .approve(depositorAddress, ethers.MaxUint256);
+  await collateralToken.connect(user3).approve(depositorAddress, ethers.MaxUint256);
   await debtToken.connect(user3).approve(depositorAddress, ethers.MaxUint256);
 
   // Setup SimpleDEXMock
@@ -244,24 +217,13 @@ export async function testSetup(
 
   // Set exchange rates: 1 debt token = 1 collateral token (1:1 rate)
   const exchangeRate = ethers.parseEther("1.0");
-  await simpleDEXMock.setExchangeRate(
-    await debtToken.getAddress(),
-    await collateralToken.getAddress(),
-    exchangeRate,
-  );
-  await simpleDEXMock.setExchangeRate(
-    await collateralToken.getAddress(),
-    await debtToken.getAddress(),
-    exchangeRate,
-  );
+  await simpleDEXMock.setExchangeRate(await debtToken.getAddress(), await collateralToken.getAddress(), exchangeRate);
+  await simpleDEXMock.setExchangeRate(await collateralToken.getAddress(), await debtToken.getAddress(), exchangeRate);
 
   // Set minimal execution slippage (0.1%)
   await simpleDEXMock.setExecutionSlippage(10); // 10 basis points = 0.1%
 
   // Setup flash lender (mint tokens for flash loans)
   // The flash lender is the debt token, so mint tokens to itself for flash loans
-  await flashLender.mint(
-    await flashLender.getAddress(),
-    ethers.parseEther("1000000"),
-  );
+  await flashLender.mint(await flashLender.getAddress(), ethers.parseEther("1000000"));
 }

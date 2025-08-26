@@ -3,10 +3,7 @@ import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
 
 import { getConfig } from "../../config/config";
-import {
-  USD_ORACLE_AGGREGATOR_ID,
-  USD_REDSTONE_COMPOSITE_WRAPPER_WITH_THRESHOLDING_ID,
-} from "../../typescript/deploy-ids";
+import { USD_ORACLE_AGGREGATOR_ID, USD_REDSTONE_COMPOSITE_WRAPPER_WITH_THRESHOLDING_ID } from "../../typescript/deploy-ids";
 
 // Helper function to perform sanity checks on oracle wrappers
 /**
@@ -37,25 +34,16 @@ async function performOracleSanityChecks(
           `Sanity check failed for asset ${assetAddress} in ${wrapperName}: Normalized price ${normalizedPrice} is outside the range [0.01, 1e6]`,
         );
       } else {
-        console.log(
-          `Sanity check passed for asset ${assetAddress} in ${wrapperName}: Normalized price is ${normalizedPrice}`,
-        );
+        console.log(`Sanity check passed for asset ${assetAddress} in ${wrapperName}: Normalized price is ${normalizedPrice}`);
       }
     } catch (error) {
-      console.error(
-        `Error performing sanity check for asset ${assetAddress} in ${wrapperName}:`,
-        error,
-      );
-      throw new Error(
-        `Error performing sanity check for asset ${assetAddress} in ${wrapperName}: ${error}`,
-      );
+      console.error(`Error performing sanity check for asset ${assetAddress} in ${wrapperName}:`, error);
+      throw new Error(`Error performing sanity check for asset ${assetAddress} in ${wrapperName}: ${error}`);
     }
   }
 }
 
-const func: DeployFunction = async function (
-  hre: HardhatRuntimeEnvironment,
-): Promise<boolean> {
+const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment): Promise<boolean> {
   const { deployer } = await hre.getNamedAccounts();
   const config = await getConfig(hre);
   const wstkscUSDAddress = config.tokenAddresses.wstkscUSD;
@@ -64,29 +52,18 @@ const func: DeployFunction = async function (
     throw new Error("wstkscUSD address not found in config");
   }
   const deployerSigner = await hre.ethers.getSigner(deployer);
-  const oracleAggregatorDeployment = await hre.deployments.get(
-    USD_ORACLE_AGGREGATOR_ID,
-  );
+  const oracleAggregatorDeployment = await hre.deployments.get(USD_ORACLE_AGGREGATOR_ID);
 
   if (!oracleAggregatorDeployment) {
     throw new Error("USD OracleAggregator deployment not found");
   }
 
-  const oracleAggregator = await hre.ethers.getContractAt(
-    "OracleAggregator",
-    oracleAggregatorDeployment.address,
-    deployerSigner,
-  );
+  const oracleAggregator = await hre.ethers.getContractAt("OracleAggregator", oracleAggregatorDeployment.address, deployerSigner);
 
-  const { address: redstoneCompositeWrapperAddress } =
-    await hre.deployments.get(
-      USD_REDSTONE_COMPOSITE_WRAPPER_WITH_THRESHOLDING_ID,
-    );
+  const { address: redstoneCompositeWrapperAddress } = await hre.deployments.get(USD_REDSTONE_COMPOSITE_WRAPPER_WITH_THRESHOLDING_ID);
 
   if (!redstoneCompositeWrapperAddress) {
-    throw new Error(
-      "RedstoneChainlinkCompositeWrapperWithThresholding artifact not found",
-    );
+    throw new Error("RedstoneChainlinkCompositeWrapperWithThresholding artifact not found");
   }
 
   const redstoneCompositeWrapper = await hre.ethers.getContractAt(
@@ -95,29 +72,20 @@ const func: DeployFunction = async function (
     deployerSigner,
   );
 
-  const existingFeed =
-    await redstoneCompositeWrapper.compositeFeeds(wstkscUSDAddress);
+  const existingFeed = await redstoneCompositeWrapper.compositeFeeds(wstkscUSDAddress);
 
   if (existingFeed.feed1 !== ZeroAddress) {
-    console.log(
-      `- Composite feed for wstkscUSD (${wstkscUSDAddress}) already configured. Skipping setup.`,
-    );
+    console.log(`- Composite feed for wstkscUSD (${wstkscUSDAddress}) already configured. Skipping setup.`);
     return true;
   }
-  console.log(
-    `- Composite feed for wstkscUSD not found. Proceeding with setup...`,
-  );
+  console.log(`- Composite feed for wstkscUSD not found. Proceeding with setup...`);
 
-  const allCompositeFeeds =
-    config.oracleAggregators.USD.redstoneOracleAssets
-      ?.compositeRedstoneOracleWrappersWithThresholding || {};
+  const allCompositeFeeds = config.oracleAggregators.USD.redstoneOracleAssets?.compositeRedstoneOracleWrappersWithThresholding || {};
 
   const feedConfig = allCompositeFeeds[wstkscUSDAddress];
 
   if (!feedConfig) {
-    throw new Error(
-      `Configuration for wstkscUSD not found in compositeRedstoneOracleWrappersWithThresholding`,
-    );
+    throw new Error(`Configuration for wstkscUSD not found in compositeRedstoneOracleWrappersWithThresholding`);
   }
 
   // Perform sanity check for wstkscUSD feed
@@ -147,13 +115,8 @@ const func: DeployFunction = async function (
   }
 
   try {
-    await oracleAggregator.setOracle(
-      feedConfig.feedAsset,
-      redstoneCompositeWrapperAddress,
-    );
-    console.log(
-      `Set composite Redstone wrapper for asset ${feedConfig.feedAsset} to ${redstoneCompositeWrapperAddress}`,
-    );
+    await oracleAggregator.setOracle(feedConfig.feedAsset, redstoneCompositeWrapperAddress);
+    console.log(`Set composite Redstone wrapper for asset ${feedConfig.feedAsset} to ${redstoneCompositeWrapperAddress}`);
   } catch (error) {
     console.error(`❌ Error setting oracle for wstkscUSD:`, error);
     throw new Error(`Failed to set oracle for wstkscUSD: ${error}`);
@@ -163,13 +126,7 @@ const func: DeployFunction = async function (
   return true;
 };
 
-func.tags = [
-  "usd-oracle",
-  "oracle-aggregator",
-  "oracle-wrapper",
-  "usd-redstone-oracle-wrapper",
-  "wstkscusd-chainlink-composite-feed",
-];
+func.tags = ["usd-oracle", "oracle-aggregator", "oracle-wrapper", "usd-redstone-oracle-wrapper", "wstkscusd-chainlink-composite-feed"];
 func.dependencies = [USD_REDSTONE_COMPOSITE_WRAPPER_WITH_THRESHOLDING_ID];
 func.id = "setup-wstkscusd-for-usd-redstone-composite-oracle-wrapper";
 

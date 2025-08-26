@@ -36,8 +36,7 @@ abstract contract BaseChainlinkWrapper is IOracleWrapper, AccessControl {
 
     /* Roles */
 
-    bytes32 public constant ORACLE_MANAGER_ROLE =
-        keccak256("ORACLE_MANAGER_ROLE");
+    bytes32 public constant ORACLE_MANAGER_ROLE = keccak256("ORACLE_MANAGER_ROLE");
 
     /* Errors */
 
@@ -71,18 +70,14 @@ abstract contract BaseChainlinkWrapper is IOracleWrapper, AccessControl {
      * @return price The price of the asset in base currency units
      * @return isAlive Whether the price feed is considered active/valid
      */
-    function getPriceInfo(
-        address asset
-    ) public view virtual override returns (uint256 price, bool isAlive);
+    function getPriceInfo(address asset) public view virtual override returns (uint256 price, bool isAlive);
 
     /**
      * @notice Gets the current price of an asset
      * @param asset The address of the asset to get the price for
      * @return The current price of the asset
      */
-    function getAssetPrice(
-        address asset
-    ) external view virtual override returns (uint256) {
+    function getAssetPrice(address asset) external view virtual override returns (uint256) {
         (uint256 price, bool isAlive) = getPriceInfo(asset);
         if (!isAlive) {
             revert PriceIsStale();
@@ -95,9 +90,7 @@ abstract contract BaseChainlinkWrapper is IOracleWrapper, AccessControl {
      * @param price The price in Chainlink decimals
      * @return The price in base currency decimals
      */
-    function _convertToBaseCurrencyUnit(
-        uint256 price
-    ) internal view returns (uint256) {
+    function _convertToBaseCurrencyUnit(uint256 price) internal view returns (uint256) {
         return (price * BASE_CURRENCY_UNIT) / CHAINLINK_BASE_CURRENCY_UNIT;
     }
 
@@ -105,9 +98,7 @@ abstract contract BaseChainlinkWrapper is IOracleWrapper, AccessControl {
      * @notice Sets the heartbeat stale time limit
      * @param _newHeartbeatStaleTimeLimit The new heartbeat stale time limit
      */
-    function setHeartbeatStaleTimeLimit(
-        uint256 _newHeartbeatStaleTimeLimit
-    ) external onlyRole(ORACLE_MANAGER_ROLE) {
+    function setHeartbeatStaleTimeLimit(uint256 _newHeartbeatStaleTimeLimit) external onlyRole(ORACLE_MANAGER_ROLE) {
         heartbeatStaleTimeLimit = _newHeartbeatStaleTimeLimit;
     }
 }

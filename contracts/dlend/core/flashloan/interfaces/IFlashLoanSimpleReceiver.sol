@@ -17,8 +17,8 @@
 
 pragma solidity ^0.8.20;
 
-import {IPoolAddressesProvider} from "../../interfaces/IPoolAddressesProvider.sol";
-import {IPool} from "../../interfaces/IPool.sol";
+import { IPoolAddressesProvider } from "../../interfaces/IPoolAddressesProvider.sol";
+import { IPool } from "../../interfaces/IPool.sol";
 
 /**
  * @title IFlashLoanSimpleReceiver
@@ -46,10 +46,7 @@ interface IFlashLoanSimpleReceiver {
         bytes calldata params
     ) external returns (bool);
 
-    function ADDRESSES_PROVIDER()
-        external
-        view
-        returns (IPoolAddressesProvider);
+    function ADDRESSES_PROVIDER() external view returns (IPoolAddressesProvider);
 
     function POOL() external view returns (IPool);
 }

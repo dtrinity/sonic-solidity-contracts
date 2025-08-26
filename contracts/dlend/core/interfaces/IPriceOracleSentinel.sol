@@ -17,7 +17,7 @@
 
 pragma solidity ^0.8.20;
 
-import {IPoolAddressesProvider} from "./IPoolAddressesProvider.sol";
+import { IPoolAddressesProvider } from "./IPoolAddressesProvider.sol";
 
 /**
  * @title IPriceOracleSentinel
@@ -41,10 +41,7 @@ interface IPriceOracleSentinel {
      * @notice Returns the PoolAddressesProvider
      * @return The address of the PoolAddressesProvider contract
      */
-    function ADDRESSES_PROVIDER()
-        external
-        view
-        returns (IPoolAddressesProvider);
+    function ADDRESSES_PROVIDER() external view returns (IPoolAddressesProvider);
 
     /**
      * @notice Returns true if the `borrow` operation is allowed.

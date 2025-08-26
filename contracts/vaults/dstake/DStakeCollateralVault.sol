@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {IDStakeCollateralVault} from "./interfaces/IDStakeCollateralVault.sol";
-import {IDStableConversionAdapter} from "./interfaces/IDStableConversionAdapter.sol";
-import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
-import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
-import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import { IDStakeCollateralVault } from "./interfaces/IDStakeCollateralVault.sol";
+import { IDStableConversionAdapter } from "./interfaces/IDStableConversionAdapter.sol";
+import { AccessControl } from "@openzeppelin/contracts/access/AccessControl.sol";
+import { EnumerableSet } from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+import { ReentrancyGuard } from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 // ---------------------------------------------------------------------------
 // Internal interface to query the router's public mapping without importing the
@@ -25,11 +25,7 @@ interface IAdapterProvider {
  *      DStakeToken governance.
  *      Uses AccessControl for role-based access control.
  */
-contract DStakeCollateralVault is
-    IDStakeCollateralVault,
-    AccessControl,
-    ReentrancyGuard
-{
+contract DStakeCollateralVault is IDStakeCollateralVault, AccessControl, ReentrancyGuard {
     using SafeERC20 for IERC20;
     using EnumerableSet for EnumerableSet.AddressSet;
 
@@ -45,11 +41,7 @@ contract DStakeCollateralVault is
     error ETHTransferFailed(address receiver, uint256 amount);
 
     // --- Events ---
-    event TokenRescued(
-        address indexed token,
-        address indexed receiver,
-        uint256 amount
-    );
+    event TokenRescued(address indexed token, address indexed receiver, uint256 amount);
     event ETHRescued(address indexed receiver, uint256 amount);
 
     // --- State ---
@@ -77,18 +69,12 @@ contract DStakeCollateralVault is
     /**
      * @inheritdoc IDStakeCollateralVault
      */
-    function totalValueInDStable()
-        external
-        view
-        override
-        returns (uint256 dStableValue)
-    {
+    function totalValueInDStable() external view override returns (uint256 dStableValue) {
         uint256 totalValue = 0;
         uint256 len = _supportedAssets.length();
         for (uint256 i = 0; i < len; i++) {
             address vaultAsset = _supportedAssets.at(i);
-            address adapterAddress = IAdapterProvider(router)
-                .vaultAssetToAdapter(vaultAsset);
+            address adapterAddress = IAdapterProvider(router).vaultAssetToAdapter(vaultAsset);
 
             if (adapterAddress == address(0)) {
                 // If there is no adapter configured, simply skip this asset to
@@ -99,8 +85,7 @@ contract DStakeCollateralVault is
 
             uint256 balance = IERC20(vaultAsset).balanceOf(address(this));
             if (balance > 0) {
-                totalValue += IDStableConversionAdapter(adapterAddress)
-                    .assetValueInDStable(vaultAsset, balance);
+                totalValue += IDStableConversionAdapter(adapterAddress).assetValueInDStable(vaultAsset, balance);
             }
         }
         return totalValue;
@@ -111,22 +96,21 @@ contract DStakeCollateralVault is
     /**
      * @notice Transfers `amount` of `vaultAsset` from this vault to `recipient`.
      * @dev Only callable by the registered router (ROUTER_ROLE).
+     * @param vaultAsset The vault asset to transfer
+     * @param amount Amount of tokens to transfer
+     * @param recipient Address to receive the tokens
      */
-    function sendAsset(
-        address vaultAsset,
-        uint256 amount,
-        address recipient
-    ) external onlyRole(ROUTER_ROLE) {
+    function sendAsset(address vaultAsset, uint256 amount, address recipient) external onlyRole(ROUTER_ROLE) {
         if (!_isSupported(vaultAsset)) revert AssetNotSupported(vaultAsset);
         IERC20(vaultAsset).safeTransfer(recipient, amount);
     }
 
     /**
      * @notice Adds a new supported vault asset. Can only be invoked by the router.
+     * @dev Only callable by the registered router (ROUTER_ROLE).
+     * @param vaultAsset Address of the vault asset to add
      */
-    function addSupportedAsset(
-        address vaultAsset
-    ) external onlyRole(ROUTER_ROLE) {
+    function addSupportedAsset(address vaultAsset) external onlyRole(ROUTER_ROLE) {
         if (vaultAsset == address(0)) revert ZeroAddress();
         if (_isSupported(vaultAsset)) revert AssetAlreadySupported(vaultAsset);
 
@@ -136,10 +120,10 @@ contract DStakeCollateralVault is
 
     /**
      * @notice Removes a supported vault asset. Can only be invoked by the router.
+     * @dev Only callable by the registered router (ROUTER_ROLE).
+     * @param vaultAsset Address of the vault asset to remove
      */
-    function removeSupportedAsset(
-        address vaultAsset
-    ) external onlyRole(ROUTER_ROLE) {
+    function removeSupportedAsset(address vaultAsset) external onlyRole(ROUTER_ROLE) {
         if (!_isSupported(vaultAsset)) revert AssetNotSupported(vaultAsset);
         // NOTE: Previously this function reverted if the vault still held a
         // non-zero balance of the asset, causing a griefing / DoS vector:
@@ -155,10 +139,10 @@ contract DStakeCollateralVault is
     /**
      * @notice Sets the router address. Grants ROUTER_ROLE to new router and
      *         revokes it from the previous router.
+     * @dev Only callable by DEFAULT_ADMIN_ROLE.
+     * @param _newRouter Address of the new router
      */
-    function setRouter(
-        address _newRouter
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function setRouter(address _newRouter) external onlyRole(DEFAULT_ADMIN_ROLE) {
         if (_newRouter == address(0)) revert ZeroAddress();
 
         // Revoke role from old router
@@ -183,9 +167,7 @@ contract DStakeCollateralVault is
      * @notice Returns the vault asset at `index` from the internal supported set.
      *         Kept for backwards-compatibility with the previous public array getter.
      */
-    function supportedAssets(
-        uint256 index
-    ) external view override returns (address) {
+    function supportedAssets(uint256 index) external view override returns (address) {
         return _supportedAssets.at(index);
     }
 
@@ -232,13 +214,10 @@ contract DStakeCollateralVault is
      * @param receiver Address to receive the rescued ETH
      * @param amount Amount of ETH to rescue
      */
-    function rescueETH(
-        address receiver,
-        uint256 amount
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) nonReentrant {
+    function rescueETH(address receiver, uint256 amount) external onlyRole(DEFAULT_ADMIN_ROLE) nonReentrant {
         if (receiver == address(0)) revert ZeroAddress();
 
-        (bool success, ) = receiver.call{value: amount}("");
+        (bool success, ) = receiver.call{ value: amount }("");
         if (!success) revert ETHTransferFailed(receiver, amount);
 
         emit ETHRescued(receiver, amount);
@@ -248,11 +227,7 @@ contract DStakeCollateralVault is
      * @notice Returns the list of tokens that cannot be rescued
      * @return restrictedTokens Array of restricted token addresses
      */
-    function getRestrictedRescueTokens()
-        external
-        view
-        returns (address[] memory)
-    {
+    function getRestrictedRescueTokens() external view returns (address[] memory) {
         address[] memory assets = _supportedAssets.values();
         address[] memory restrictedTokens = new address[](assets.length + 1);
 

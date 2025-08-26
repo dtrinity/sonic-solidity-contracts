@@ -17,9 +17,9 @@
 
 pragma solidity ^0.8.20;
 
-import {VersionedInitializable} from "contracts/dlend/core/protocol/libraries/aave-upgradeability/VersionedInitializable.sol";
-import {IERC20} from "contracts/dlend/core/dependencies/openzeppelin/contracts/IERC20.sol";
-import {ICollector} from "./interfaces/ICollector.sol";
+import { VersionedInitializable } from "contracts/dlend/core/protocol/libraries/aave-upgradeability/VersionedInitializable.sol";
+import { IERC20 } from "contracts/dlend/core/dependencies/openzeppelin/contracts/IERC20.sol";
+import { ICollector } from "./interfaces/ICollector.sol";
 
 /**
  * @title Collector
@@ -62,20 +62,12 @@ contract Collector is VersionedInitializable, ICollector {
     }
 
     /// @inheritdoc ICollector
-    function approve(
-        IERC20 token,
-        address recipient,
-        uint256 amount
-    ) external onlyFundsAdmin {
+    function approve(IERC20 token, address recipient, uint256 amount) external onlyFundsAdmin {
         token.approve(recipient, amount);
     }
 
     /// @inheritdoc ICollector
-    function transfer(
-        IERC20 token,
-        address recipient,
-        uint256 amount
-    ) external onlyFundsAdmin {
+    function transfer(IERC20 token, address recipient, uint256 amount) external onlyFundsAdmin {
         token.transfer(recipient, amount);
     }
 

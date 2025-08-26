@@ -48,7 +48,5 @@ interface IOracleWrapper {
      * @return price The price of the asset
      * @return isAlive The alive status of the asset
      */
-    function getPriceInfo(
-        address asset
-    ) external view returns (uint256 price, bool isAlive);
+    function getPriceInfo(address asset) external view returns (uint256 price, bool isAlive);
 }

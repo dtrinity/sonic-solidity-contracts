@@ -2,10 +2,11 @@ import { assert, expect } from "chai";
 import hre, { getNamedAccounts } from "hardhat";
 import { Address } from "hardhat-deploy/types";
 
+import { getConfig } from "../../config/config";
 import {
   AmoManager,
   CollateralHolderVault,
-  Issuer,
+  IssuerV2,
   MockAmoVault,
   OracleAggregator,
   TestERC20,
@@ -29,7 +30,7 @@ const dstableConfigs: DStableFixtureConfig[] = [DUSD_CONFIG, DS_CONFIG];
 dstableConfigs.forEach((config) => {
   describe(`AmoManager Ecosystem Tests for ${config.symbol}`, () => {
     let amoManagerContract: AmoManager;
-    let issuerContract: Issuer;
+    let issuerContract: IssuerV2;
     let collateralVaultContract: CollateralHolderVault;
     let mockAmoVaultContract: MockAmoVault;
     let oracleAggregatorContract: OracleAggregator;
@@ -56,7 +57,7 @@ dstableConfigs.forEach((config) => {
       const issuerAddress = (await hre.deployments.get(config.issuerContractId))
         .address;
       issuerContract = await hre.ethers.getContractAt(
-        "Issuer",
+        "IssuerV2",
         issuerAddress,
         await hre.ethers.getSigner(deployer),
       );
@@ -152,7 +153,13 @@ dstableConfigs.forEach((config) => {
         "10000",
         dstableInfo.decimals,
       );
-      await issuerContract.increaseAmoSupply(initialAmoSupply);
+      const appConfig = await getConfig(hre);
+      const governanceSigner = await hre.ethers.getSigner(
+        appConfig.walletAddresses.governanceMultisig,
+      );
+      await issuerContract
+        .connect(governanceSigner)
+        .increaseAmoSupply(initialAmoSupply);
     });
 
     /**

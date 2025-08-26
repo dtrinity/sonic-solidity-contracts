@@ -44,16 +44,10 @@ contract OracleAggregator is AccessControl, IOracleWrapper {
     /* Roles */
 
     /// @notice Role for managing oracles
-    bytes32 public constant ORACLE_MANAGER_ROLE =
-        keccak256("ORACLE_MANAGER_ROLE");
+    bytes32 public constant ORACLE_MANAGER_ROLE = keccak256("ORACLE_MANAGER_ROLE");
 
     /* Errors */
-    error UnexpectedBaseUnit(
-        address asset,
-        address oracle,
-        uint256 expectedBaseUnit,
-        uint256 oracleBaseUnit
-    );
+    error UnexpectedBaseUnit(address asset, address oracle, uint256 expectedBaseUnit, uint256 oracleBaseUnit);
     error OracleNotSet(address asset);
     error PriceNotAlive(address asset);
 
@@ -75,18 +69,10 @@ contract OracleAggregator is AccessControl, IOracleWrapper {
      * @param asset Address of the asset
      * @param oracle Address of the oracle for the asset
      */
-    function setOracle(
-        address asset,
-        address oracle
-    ) external onlyRole(ORACLE_MANAGER_ROLE) {
+    function setOracle(address asset, address oracle) external onlyRole(ORACLE_MANAGER_ROLE) {
         uint256 oracleBaseUnit = IOracleWrapper(oracle).BASE_CURRENCY_UNIT();
         if (oracleBaseUnit != baseCurrencyUnit) {
-            revert UnexpectedBaseUnit(
-                asset,
-                oracle,
-                baseCurrencyUnit,
-                oracleBaseUnit
-            );
+            revert UnexpectedBaseUnit(asset, oracle, baseCurrencyUnit, oracleBaseUnit);
         }
         assetOracles[asset] = oracle;
         emit OracleUpdated(asset, oracle);
@@ -96,9 +82,7 @@ contract OracleAggregator is AccessControl, IOracleWrapper {
      * @notice Removes the oracle for a specific asset
      * @param asset Address of the asset
      */
-    function removeOracle(
-        address asset
-    ) external onlyRole(ORACLE_MANAGER_ROLE) {
+    function removeOracle(address asset) external onlyRole(ORACLE_MANAGER_ROLE) {
         assetOracles[asset] = address(0);
         emit OracleUpdated(asset, address(0));
     }
@@ -138,9 +122,7 @@ contract OracleAggregator is AccessControl, IOracleWrapper {
      * @return price Price of the asset
      * @return isAlive Whether the price is considered valid
      */
-    function getPriceInfo(
-        address asset
-    ) public view returns (uint256 price, bool isAlive) {
+    function getPriceInfo(address asset) public view returns (uint256 price, bool isAlive) {
         address oracle = assetOracles[asset];
         if (oracle == address(0)) {
             revert OracleNotSet(asset);

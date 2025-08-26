@@ -78,7 +78,7 @@ describe("Pendle SDK Functions", function () {
   });
 
   describe("getPTMarketInfo function", function () {
-    it("Should return correct market info for PT-aUSDC", async function () {
+    it("Should return correct market info for PT-aUSDC (inactive market)", async function () {
       console.log(`\n=== Testing getPTMarketInfo for PT-aUSDC ===`);
 
       const ptToken = SONIC_MAINNET_PT_TOKENS.PTaUSDC;
@@ -103,7 +103,7 @@ describe("Pendle SDK Functions", function () {
       );
     });
 
-    it("Should return correct market info for PT-wstkscUSD", async function () {
+    it("Should return correct market info for PT-wstkscUSD (active market)", async function () {
       console.log(`\n=== Testing getPTMarketInfo for PT-wstkscUSD ===`);
 
       const ptToken = SONIC_MAINNET_PT_TOKENS.PTwstkscUSD;

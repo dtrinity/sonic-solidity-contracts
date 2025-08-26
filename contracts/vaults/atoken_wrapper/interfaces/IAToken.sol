@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: agpl-3.0
 pragma solidity ^0.8.20;
 
-import {IRewardsController} from "../../../dlend/periphery/rewards/interfaces/IRewardsController.sol";
+import { IRewardsController } from "../../../dlend/periphery/rewards/interfaces/IRewardsController.sol";
 
 interface IAToken {
     function POOL() external view returns (address);

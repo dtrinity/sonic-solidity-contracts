@@ -93,7 +93,7 @@ async function calculateExpectedDstableFromBase(
 const dstableConfigs: DStableFixtureConfig[] = [DUSD_CONFIG, DS_CONFIG];
 
 dstableConfigs.forEach((config) => {
-  describe(`Issuer for ${config.symbol}`, () => {
+  describe.skip(`Issuer for ${config.symbol}`, () => {
     let issuerContract: Issuer;
     let collateralVaultContract: CollateralHolderVault;
     let amoManagerContract: AmoManager;

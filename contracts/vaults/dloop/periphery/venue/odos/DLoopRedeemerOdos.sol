@@ -15,10 +15,10 @@
  * dTRINITY Protocol: https://github.com/dtrinity                                   *
  * ———————————————————————————————————————————————————————————————————————————————— */
 
-pragma solidity 0.8.20;
+pragma solidity ^0.8.20;
 
-import {DLoopRedeemerBase, ERC20, IERC3156FlashLender} from "../../DLoopRedeemerBase.sol";
-import {OdosSwapLogic, IOdosRouterV2} from "./OdosSwapLogic.sol";
+import { DLoopRedeemerBase, ERC20, IERC3156FlashLender } from "../../DLoopRedeemerBase.sol";
+import { OdosSwapLogic, IOdosRouterV2 } from "./OdosSwapLogic.sol";
 
 /**
  * @title DLoopRedeemerOdos
@@ -32,10 +32,7 @@ contract DLoopRedeemerOdos is DLoopRedeemerBase {
      * @param _flashLender Address of the flash loan provider
      * @param _odosRouter Address of the Odos router
      */
-    constructor(
-        IERC3156FlashLender _flashLender,
-        IOdosRouterV2 _odosRouter
-    ) DLoopRedeemerBase(_flashLender) {
+    constructor(IERC3156FlashLender _flashLender, IOdosRouterV2 _odosRouter) DLoopRedeemerBase(_flashLender) {
         odosRouter = _odosRouter;
     }
 

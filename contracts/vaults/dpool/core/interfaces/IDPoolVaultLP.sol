@@ -85,9 +85,7 @@ interface IDPoolVaultLP is IERC4626, IAccessControl {
      * @param lpAmount Amount of LP tokens to deposit
      * @return shares Amount of shares that would be minted
      */
-    function previewDepositLP(
-        uint256 lpAmount
-    ) external view returns (uint256 shares);
+    function previewDepositLP(uint256 lpAmount) external view returns (uint256 shares);
 
     /**
      * @notice Preview base asset value for a given amount of LP tokens
