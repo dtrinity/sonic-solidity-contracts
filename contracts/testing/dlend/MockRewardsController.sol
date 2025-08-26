@@ -72,11 +72,7 @@ contract MockRewardsController is IRewardsController {
     function claimAllRewards(
         address[] calldata assets,
         address to
-    )
-        external
-        override
-        returns (address[] memory rewardsList, uint256[] memory claimedAmounts)
-    {
+    ) external override returns (address[] memory rewardsList, uint256[] memory claimedAmounts) {
         assets;
         to; // not needed for this test mock
         rewardsList = new address[](0);
@@ -87,11 +83,7 @@ contract MockRewardsController is IRewardsController {
         address[] calldata assets,
         address user,
         address to
-    )
-        external
-        override
-        returns (address[] memory rewardsList, uint256[] memory claimedAmounts)
-    {
+    ) external override returns (address[] memory rewardsList, uint256[] memory claimedAmounts) {
         assets;
         user;
         to;
@@ -101,11 +93,7 @@ contract MockRewardsController is IRewardsController {
 
     function claimAllRewardsToSelf(
         address[] calldata assets
-    )
-        external
-        override
-        returns (address[] memory rewardsList, uint256[] memory claimedAmounts)
-    {
+    ) external override returns (address[] memory rewardsList, uint256[] memory claimedAmounts) {
         assets;
         rewardsList = new address[](0);
         claimedAmounts = new uint256[](0);

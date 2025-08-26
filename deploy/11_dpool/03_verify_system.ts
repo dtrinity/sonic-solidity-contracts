@@ -12,16 +12,12 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   // Skip if no dPool config
   if (!config.dPool) {
-    console.log(
-      "No dPool configuration found, skipping dPOOL system verification",
-    );
+    console.log("No dPool configuration found, skipping dPOOL system verification");
     return;
   }
 
   if (!deployer) {
-    console.log(
-      "No deployer address found, skipping dPOOL system verification",
-    );
+    console.log("No deployer address found, skipping dPOOL system verification");
     return;
   }
 
@@ -81,18 +77,14 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
         console.log(`    Whitelisted Assets: ${supportedAssets.length}`);
         console.log(`    Max Slippage: ${maxSlippage} BPS`);
-        console.log(
-          `    Vault Connection: ${vaultAddress === vaultDeployment.address ? "✅" : "❌"}`,
-        );
+        console.log(`    Vault Connection: ${vaultAddress === vaultDeployment.address ? "✅" : "❌"}`);
 
         if (supportedAssets.length === 0) {
           console.log(`    ⚠️  No assets whitelisted in periphery`);
         }
 
         if (vaultAddress !== vaultDeployment.address) {
-          console.log(
-            `    ⚠️  Periphery vault mismatch: expected ${vaultDeployment.address}, got ${vaultAddress}`,
-          );
+          console.log(`    ⚠️  Periphery vault mismatch: expected ${vaultDeployment.address}, got ${vaultAddress}`);
         }
       } catch (error) {
         console.log(`    ⚠️  Failed to verify periphery: ${error}`);
@@ -108,13 +100,9 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   // Final system health check
   console.log(`\n🏥 System Health Check:`);
-  console.log(
-    `  ✅ Total dPOOL configurations: ${Object.keys(config.dPool).length}`,
-  );
+  console.log(`  ✅ Total dPOOL configurations: ${Object.keys(config.dPool).length}`);
   console.log(`  ✅ Successfully deployed: ${totalDeployedCount}`);
-  console.log(
-    `  ✅ Deployment success rate: ${Math.round((totalDeployedCount / Object.keys(config.dPool).length) * 100)}%`,
-  );
+  console.log(`  ✅ Deployment success rate: ${Math.round((totalDeployedCount / Object.keys(config.dPool).length) * 100)}%`);
 
   if (deployedPools.length > 0) {
     console.log(`\n📋 Deployed Pools:`);
@@ -127,9 +115,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   if (totalDeployedCount === Object.keys(config.dPool).length) {
     console.log(`\n🎉 dPOOL System deployment completed successfully!`);
   } else {
-    console.log(
-      `\n⚠️  System deployment incomplete - please review errors above`,
-    );
+    console.log(`\n⚠️  System deployment incomplete - please review errors above`);
     const failedCount = Object.keys(config.dPool).length - totalDeployedCount;
     console.log(`  • Failed deployments: ${failedCount}`);
   }

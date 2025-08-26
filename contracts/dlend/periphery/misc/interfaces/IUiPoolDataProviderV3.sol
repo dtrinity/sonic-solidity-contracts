@@ -17,7 +17,7 @@
 
 pragma solidity ^0.8.20;
 
-import {IPoolAddressesProvider} from "contracts/dlend/core/interfaces/IPoolAddressesProvider.sol";
+import { IPoolAddressesProvider } from "contracts/dlend/core/interfaces/IPoolAddressesProvider.sol";
 
 interface IUiPoolDataProviderV3 {
     struct InterestRates {
@@ -109,16 +109,11 @@ interface IUiPoolDataProviderV3 {
         uint8 networkBaseTokenPriceDecimals;
     }
 
-    function getReservesList(
-        IPoolAddressesProvider provider
-    ) external view returns (address[] memory);
+    function getReservesList(IPoolAddressesProvider provider) external view returns (address[] memory);
 
     function getReservesData(
         IPoolAddressesProvider provider
-    )
-        external
-        view
-        returns (AggregatedReserveData[] memory, BaseCurrencyInfo memory);
+    ) external view returns (AggregatedReserveData[] memory, BaseCurrencyInfo memory);
 
     function getUserReservesData(
         IPoolAddressesProvider provider,

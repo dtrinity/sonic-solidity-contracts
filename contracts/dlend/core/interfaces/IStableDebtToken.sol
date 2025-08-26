@@ -17,7 +17,7 @@
 
 pragma solidity ^0.8.20;
 
-import {IInitializableDebtToken} from "./IInitializableDebtToken.sol";
+import { IInitializableDebtToken } from "./IInitializableDebtToken.sol";
 
 /**
  * @title IStableDebtToken
@@ -97,10 +97,7 @@ interface IStableDebtToken is IInitializableDebtToken {
      * @return The total stable debt
      * @return The average stable borrow rate
      */
-    function burn(
-        address from,
-        uint256 amount
-    ) external returns (uint256, uint256);
+    function burn(address from, uint256 amount) external returns (uint256, uint256);
 
     /**
      * @notice Returns the average rate of all the stable rate loans.
@@ -129,10 +126,7 @@ interface IStableDebtToken is IInitializableDebtToken {
      * @return The average stable rate
      * @return The timestamp of the last update
      */
-    function getSupplyData()
-        external
-        view
-        returns (uint256, uint256, uint256, uint40);
+    function getSupplyData() external view returns (uint256, uint256, uint256, uint40);
 
     /**
      * @notice Returns the timestamp of the last update of the total supply
@@ -145,10 +139,7 @@ interface IStableDebtToken is IInitializableDebtToken {
      * @return The total supply
      * @return The average rate
      */
-    function getTotalSupplyAndAvgRate()
-        external
-        view
-        returns (uint256, uint256);
+    function getTotalSupplyAndAvgRate() external view returns (uint256, uint256);
 
     /**
      * @notice Returns the principal debt balance of the user

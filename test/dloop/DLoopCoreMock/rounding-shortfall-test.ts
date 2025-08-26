@@ -24,16 +24,8 @@ describe("DLoopCoreShortfallMock – 1-wei rounding shortfall", function () {
 
     // Deploy mock tokens
     const ERC20Factory = await ethers.getContractFactory("TestMintableERC20");
-    const collateral = (await ERC20Factory.deploy(
-      "Mock Collateral",
-      "mCOLL",
-      18,
-    )) as TestMintableERC20;
-    const debt = (await ERC20Factory.deploy(
-      "Mock Debt",
-      "mDEBT",
-      18,
-    )) as TestMintableERC20;
+    const collateral = (await ERC20Factory.deploy("Mock Collateral", "mCOLL", 18)) as TestMintableERC20;
+    const debt = (await ERC20Factory.deploy("Mock Debt", "mDEBT", 18)) as TestMintableERC20;
 
     // Mint balances
     await collateral.mint(user.address, ethers.parseEther("100"));
@@ -41,21 +33,16 @@ describe("DLoopCoreShortfallMock – 1-wei rounding shortfall", function () {
     await debt.mint(mockPool.address, ethers.parseEther("100000"));
 
     // Deploy and link DLoopCoreLogic library before deploying DLoopCoreMock
-    const DLoopCoreLogicFactory =
-      await ethers.getContractFactory("DLoopCoreLogic");
+    const DLoopCoreLogicFactory = await ethers.getContractFactory("DLoopCoreLogic");
     const dloopCoreLogicLib = await DLoopCoreLogicFactory.deploy();
     await dloopCoreLogicLib.waitForDeployment();
 
     // Deploy vault mock
-    const VaultFactory = await ethers.getContractFactory(
-      "DLoopCoreShortfallMock",
-      {
-        libraries: {
-          "contracts/vaults/dloop/core/DLoopCoreLogic.sol:DLoopCoreLogic":
-            await dloopCoreLogicLib.getAddress(),
-        },
+    const VaultFactory = await ethers.getContractFactory("DLoopCoreShortfallMock", {
+      libraries: {
+        "contracts/vaults/dloop/core/DLoopCoreLogic.sol:DLoopCoreLogic": await dloopCoreLogicLib.getAddress(),
       },
-    );
+    });
     const vault = (await VaultFactory.deploy(
       "Mock dLoop Vault – Shortfall",
       "mdLOOPS",
@@ -92,9 +79,7 @@ describe("DLoopCoreShortfallMock – 1-wei rounding shortfall", function () {
     let reverted = false;
 
     try {
-      const tx = await vault
-        .connect(user)
-        .deposit(ethers.parseEther("1"), user.address);
+      const tx = await vault.connect(user).deposit(ethers.parseEther("1"), user.address);
       await tx.wait();
     } catch {
       reverted = true;
@@ -102,10 +87,7 @@ describe("DLoopCoreShortfallMock – 1-wei rounding shortfall", function () {
 
     if (!reverted) {
       const userSharesAfter = await vault.balanceOf(user.address);
-      expect(userSharesAfter).to.be.gte(
-        userSharesBefore,
-        "When not reverting, deposit should mint shares or keep balance",
-      );
+      expect(userSharesAfter).to.be.gte(userSharesBefore, "When not reverting, deposit should mint shares or keep balance");
     }
   });
 
@@ -115,11 +97,7 @@ describe("DLoopCoreShortfallMock – 1-wei rounding shortfall", function () {
     const reqAmount = ethers.parseEther("5");
     const before = await collateral.balanceOf(await vault.getAddress());
     // Call internal implementation directly via test wrapper to bypass higher-level checks
-    await vault.testWithdrawFromPoolImplementation(
-      await collateral.getAddress(),
-      reqAmount,
-      await vault.getAddress(),
-    );
+    await vault.testWithdrawFromPoolImplementation(await collateral.getAddress(), reqAmount, await vault.getAddress());
     const after = await collateral.balanceOf(await vault.getAddress());
     expect(after - before).to.equal(reqAmount - 1n);
   });

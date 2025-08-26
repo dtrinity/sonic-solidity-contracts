@@ -43,44 +43,20 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
       if (tokenDeployment) {
         console.log(`  📄 TOKEN ROLES: ${tokenId}`);
-        const tokenContract = await ethers.getContractAt(
-          "DStakeToken",
-          tokenDeployment.address,
-          deployerSigner,
-        );
+        const tokenContract = await ethers.getContractAt("DStakeToken", tokenDeployment.address, deployerSigner);
 
         const DEFAULT_ADMIN_ROLE = ZERO_BYTES_32;
         const FEE_MANAGER_ROLE = await tokenContract.FEE_MANAGER_ROLE();
 
         // Grant roles to configured addresses
-        if (
-          !(await tokenContract.hasRole(
-            DEFAULT_ADMIN_ROLE,
-            instanceConfig.initialAdmin,
-          ))
-        ) {
-          await tokenContract.grantRole(
-            DEFAULT_ADMIN_ROLE,
-            instanceConfig.initialAdmin,
-          );
-          console.log(
-            `    ➕ Granted DEFAULT_ADMIN_ROLE to ${instanceConfig.initialAdmin}`,
-          );
+        if (!(await tokenContract.hasRole(DEFAULT_ADMIN_ROLE, instanceConfig.initialAdmin))) {
+          await tokenContract.grantRole(DEFAULT_ADMIN_ROLE, instanceConfig.initialAdmin);
+          console.log(`    ➕ Granted DEFAULT_ADMIN_ROLE to ${instanceConfig.initialAdmin}`);
         }
 
-        if (
-          !(await tokenContract.hasRole(
-            FEE_MANAGER_ROLE,
-            instanceConfig.initialFeeManager,
-          ))
-        ) {
-          await tokenContract.grantRole(
-            FEE_MANAGER_ROLE,
-            instanceConfig.initialFeeManager,
-          );
-          console.log(
-            `    ➕ Granted FEE_MANAGER_ROLE to ${instanceConfig.initialFeeManager}`,
-          );
+        if (!(await tokenContract.hasRole(FEE_MANAGER_ROLE, instanceConfig.initialFeeManager))) {
+          await tokenContract.grantRole(FEE_MANAGER_ROLE, instanceConfig.initialFeeManager);
+          console.log(`    ➕ Granted FEE_MANAGER_ROLE to ${instanceConfig.initialFeeManager}`);
         }
 
         // Revoke non-admin roles from deployer first
@@ -95,9 +71,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
           console.log(`    ➖ Revoked DEFAULT_ADMIN_ROLE from deployer`);
         }
       } else {
-        console.log(
-          `  ⚠️ ${tokenId} not deployed, skipping token role transfer`,
-        );
+        console.log(`  ⚠️ ${tokenId} not deployed, skipping token role transfer`);
       }
     } catch (error) {
       console.error(`  ❌ Failed to migrate ${tokenId} roles: ${error}`);
@@ -109,27 +83,13 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
       if (vaultDeployment) {
         console.log(`  📄 VAULT ROLES: ${vaultId}`);
-        const vaultContract = await ethers.getContractAt(
-          "DStakeCollateralVault",
-          vaultDeployment.address,
-          deployerSigner,
-        );
+        const vaultContract = await ethers.getContractAt("DStakeCollateralVault", vaultDeployment.address, deployerSigner);
 
         const DEFAULT_ADMIN_ROLE = ZERO_BYTES_32;
 
-        if (
-          !(await vaultContract.hasRole(
-            DEFAULT_ADMIN_ROLE,
-            instanceConfig.initialAdmin,
-          ))
-        ) {
-          await vaultContract.grantRole(
-            DEFAULT_ADMIN_ROLE,
-            instanceConfig.initialAdmin,
-          );
-          console.log(
-            `    ➕ Granted DEFAULT_ADMIN_ROLE to ${instanceConfig.initialAdmin}`,
-          );
+        if (!(await vaultContract.hasRole(DEFAULT_ADMIN_ROLE, instanceConfig.initialAdmin))) {
+          await vaultContract.grantRole(DEFAULT_ADMIN_ROLE, instanceConfig.initialAdmin);
+          console.log(`    ➕ Granted DEFAULT_ADMIN_ROLE to ${instanceConfig.initialAdmin}`);
         }
 
         // Revoke DEFAULT_ADMIN_ROLE from deployer
@@ -138,9 +98,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
           console.log(`    ➖ Revoked DEFAULT_ADMIN_ROLE from deployer`);
         }
       } else {
-        console.log(
-          `  ⚠️ ${vaultId} not deployed, skipping vault role transfer`,
-        );
+        console.log(`  ⚠️ ${vaultId} not deployed, skipping vault role transfer`);
       }
     } catch (error) {
       console.error(`  ❌ Failed to migrate ${vaultId} roles: ${error}`);
@@ -152,26 +110,12 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
       if (routerDeployment) {
         console.log(`  📄 ROUTER ROLES: ${routerId}`);
-        const routerContract = await ethers.getContractAt(
-          "DStakeRouterDLend",
-          routerDeployment.address,
-          deployerSigner,
-        );
+        const routerContract = await ethers.getContractAt("DStakeRouterDLend", routerDeployment.address, deployerSigner);
         const DEFAULT_ADMIN_ROLE = ZERO_BYTES_32;
 
-        if (
-          !(await routerContract.hasRole(
-            DEFAULT_ADMIN_ROLE,
-            instanceConfig.initialAdmin,
-          ))
-        ) {
-          await routerContract.grantRole(
-            DEFAULT_ADMIN_ROLE,
-            instanceConfig.initialAdmin,
-          );
-          console.log(
-            `    ➕ Granted DEFAULT_ADMIN_ROLE to ${instanceConfig.initialAdmin}`,
-          );
+        if (!(await routerContract.hasRole(DEFAULT_ADMIN_ROLE, instanceConfig.initialAdmin))) {
+          await routerContract.grantRole(DEFAULT_ADMIN_ROLE, instanceConfig.initialAdmin);
+          console.log(`    ➕ Granted DEFAULT_ADMIN_ROLE to ${instanceConfig.initialAdmin}`);
         }
 
         if (await routerContract.hasRole(DEFAULT_ADMIN_ROLE, deployer)) {
@@ -179,9 +123,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
           console.log(`    ➖ Revoked DEFAULT_ADMIN_ROLE from deployer`);
         }
       } else {
-        console.log(
-          `  ⚠️ ${routerId} not deployed, skipping router role transfer`,
-        );
+        console.log(`  ⚠️ ${routerId} not deployed, skipping router role transfer`);
       }
     } catch (error) {
       console.error(`  ❌ Failed to migrate ${routerId} roles: ${error}`);

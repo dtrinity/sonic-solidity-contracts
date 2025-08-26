@@ -17,39 +17,32 @@
 
 pragma solidity ^0.8.20;
 
-import {IERC20} from "../../dependencies/openzeppelin/contracts/IERC20.sol";
-import {GPv2SafeERC20} from "../../dependencies/gnosis/contracts/GPv2SafeERC20.sol";
-import {SafeCast} from "../../dependencies/openzeppelin/contracts/SafeCast.sol";
-import {VersionedInitializable} from "../libraries/aave-upgradeability/VersionedInitializable.sol";
-import {Errors} from "../libraries/helpers/Errors.sol";
-import {WadRayMath} from "../libraries/math/WadRayMath.sol";
-import {IPool} from "../../interfaces/IPool.sol";
-import {IAToken} from "../../interfaces/IAToken.sol";
-import {IAaveIncentivesController} from "../../interfaces/IAaveIncentivesController.sol";
-import {IInitializableAToken} from "../../interfaces/IInitializableAToken.sol";
-import {ScaledBalanceTokenBase} from "./base/ScaledBalanceTokenBase.sol";
-import {IncentivizedERC20} from "./base/IncentivizedERC20.sol";
-import {EIP712Base} from "./base/EIP712Base.sol";
+import { IERC20 } from "../../dependencies/openzeppelin/contracts/IERC20.sol";
+import { GPv2SafeERC20 } from "../../dependencies/gnosis/contracts/GPv2SafeERC20.sol";
+import { SafeCast } from "../../dependencies/openzeppelin/contracts/SafeCast.sol";
+import { VersionedInitializable } from "../libraries/aave-upgradeability/VersionedInitializable.sol";
+import { Errors } from "../libraries/helpers/Errors.sol";
+import { WadRayMath } from "../libraries/math/WadRayMath.sol";
+import { IPool } from "../../interfaces/IPool.sol";
+import { IAToken } from "../../interfaces/IAToken.sol";
+import { IAaveIncentivesController } from "../../interfaces/IAaveIncentivesController.sol";
+import { IInitializableAToken } from "../../interfaces/IInitializableAToken.sol";
+import { ScaledBalanceTokenBase } from "./base/ScaledBalanceTokenBase.sol";
+import { IncentivizedERC20 } from "./base/IncentivizedERC20.sol";
+import { EIP712Base } from "./base/EIP712Base.sol";
 
 /**
  * @title Aave ERC20 AToken
  * @author Aave
  * @notice Implementation of the interest bearing token for the Aave protocol
  */
-contract AToken is
-    VersionedInitializable,
-    ScaledBalanceTokenBase,
-    EIP712Base,
-    IAToken
-{
+contract AToken is VersionedInitializable, ScaledBalanceTokenBase, EIP712Base, IAToken {
     using WadRayMath for uint256;
     using SafeCast for uint256;
     using GPv2SafeERC20 for IERC20;
 
     bytes32 public constant PERMIT_TYPEHASH =
-        keccak256(
-            "Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)"
-        );
+        keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)");
 
     uint256 public constant ATOKEN_REVISION = 0x1;
 
@@ -65,12 +58,7 @@ contract AToken is
      * @dev Constructor.
      * @param pool The address of the Pool contract
      */
-    constructor(
-        IPool pool
-    )
-        ScaledBalanceTokenBase(pool, "ATOKEN_IMPL", "ATOKEN_IMPL", 0)
-        EIP712Base()
-    {
+    constructor(IPool pool) ScaledBalanceTokenBase(pool, "ATOKEN_IMPL", "ATOKEN_IMPL", 0) EIP712Base() {
         // Intentionally left blank
     }
 
@@ -132,10 +120,7 @@ contract AToken is
     }
 
     /// @inheritdoc IAToken
-    function mintToTreasury(
-        uint256 amount,
-        uint256 index
-    ) external virtual override onlyPool {
+    function mintToTreasury(uint256 amount, uint256 index) external virtual override onlyPool {
         if (amount == 0) {
             return;
         }
@@ -143,86 +128,45 @@ contract AToken is
     }
 
     /// @inheritdoc IAToken
-    function transferOnLiquidation(
-        address from,
-        address to,
-        uint256 value
-    ) external virtual override onlyPool {
+    function transferOnLiquidation(address from, address to, uint256 value) external virtual override onlyPool {
         // Being a normal transfer, the Transfer() and BalanceTransfer() are emitted
         // so no need to emit a specific event here
         _transfer(from, to, value, false);
     }
 
     /// @inheritdoc IERC20
-    function balanceOf(
-        address user
-    )
-        public
-        view
-        virtual
-        override(IncentivizedERC20, IERC20)
-        returns (uint256)
-    {
-        return
-            super.balanceOf(user).rayMul(
-                POOL.getReserveNormalizedIncome(_underlyingAsset)
-            );
+    function balanceOf(address user) public view virtual override(IncentivizedERC20, IERC20) returns (uint256) {
+        return super.balanceOf(user).rayMul(POOL.getReserveNormalizedIncome(_underlyingAsset));
     }
 
     /// @inheritdoc IERC20
-    function totalSupply()
-        public
-        view
-        virtual
-        override(IncentivizedERC20, IERC20)
-        returns (uint256)
-    {
+    function totalSupply() public view virtual override(IncentivizedERC20, IERC20) returns (uint256) {
         uint256 currentSupplyScaled = super.totalSupply();
 
         if (currentSupplyScaled == 0) {
             return 0;
         }
 
-        return
-            currentSupplyScaled.rayMul(
-                POOL.getReserveNormalizedIncome(_underlyingAsset)
-            );
+        return currentSupplyScaled.rayMul(POOL.getReserveNormalizedIncome(_underlyingAsset));
     }
 
     /// @inheritdoc IAToken
-    function RESERVE_TREASURY_ADDRESS()
-        external
-        view
-        override
-        returns (address)
-    {
+    function RESERVE_TREASURY_ADDRESS() external view override returns (address) {
         return _treasury;
     }
 
     /// @inheritdoc IAToken
-    function UNDERLYING_ASSET_ADDRESS()
-        external
-        view
-        override
-        returns (address)
-    {
+    function UNDERLYING_ASSET_ADDRESS() external view override returns (address) {
         return _underlyingAsset;
     }
 
     /// @inheritdoc IAToken
-    function transferUnderlyingTo(
-        address target,
-        uint256 amount
-    ) external virtual override onlyPool {
+    function transferUnderlyingTo(address target, uint256 amount) external virtual override onlyPool {
         IERC20(_underlyingAsset).safeTransfer(target, amount);
     }
 
     /// @inheritdoc IAToken
-    function handleRepayment(
-        address user,
-        address onBehalfOf,
-        uint256 amount
-    ) external virtual override onlyPool {
+    function handleRepayment(address user, address onBehalfOf, uint256 amount) external virtual override onlyPool {
         // Intentionally left blank
     }
 
@@ -244,16 +188,7 @@ contract AToken is
             abi.encodePacked(
                 "\x19\x01",
                 DOMAIN_SEPARATOR(),
-                keccak256(
-                    abi.encode(
-                        PERMIT_TYPEHASH,
-                        owner,
-                        spender,
-                        value,
-                        currentValidNonce,
-                        deadline
-                    )
-                )
+                keccak256(abi.encode(PERMIT_TYPEHASH, owner, spender, value, currentValidNonce, deadline))
             )
         );
         require(owner == ecrecover(digest, v, r, s), Errors.INVALID_SIGNATURE);
@@ -269,12 +204,7 @@ contract AToken is
      * @param amount The amount getting transferred
      * @param validate True if the transfer needs to be validated, false otherwise
      */
-    function _transfer(
-        address from,
-        address to,
-        uint256 amount,
-        bool validate
-    ) internal virtual {
+    function _transfer(address from, address to, uint256 amount, bool validate) internal virtual {
         address underlyingAsset = _underlyingAsset;
 
         uint256 index = POOL.getReserveNormalizedIncome(underlyingAsset);
@@ -285,14 +215,7 @@ contract AToken is
         super._transfer(from, to, amount, index);
 
         if (validate) {
-            POOL.finalizeTransfer(
-                underlyingAsset,
-                from,
-                to,
-                amount,
-                fromBalanceBefore,
-                toBalanceBefore
-            );
+            POOL.finalizeTransfer(underlyingAsset, from, to, amount, fromBalanceBefore, toBalanceBefore);
         }
 
         emit BalanceTransfer(from, to, amount.rayDiv(index), index);
@@ -304,11 +227,7 @@ contract AToken is
      * @param to The destination address
      * @param amount The amount getting transferred
      */
-    function _transfer(
-        address from,
-        address to,
-        uint128 amount
-    ) internal virtual override {
+    function _transfer(address from, address to, uint128 amount) internal virtual override {
         _transfer(from, to, amount, true);
     }
 
@@ -316,12 +235,7 @@ contract AToken is
      * @dev Overrides the base function to fully implement IAToken
      * @dev see `EIP712Base.DOMAIN_SEPARATOR()` for more detailed documentation
      */
-    function DOMAIN_SEPARATOR()
-        public
-        view
-        override(IAToken, EIP712Base)
-        returns (bytes32)
-    {
+    function DOMAIN_SEPARATOR() public view override(IAToken, EIP712Base) returns (bytes32) {
         return super.DOMAIN_SEPARATOR();
     }
 
@@ -329,9 +243,7 @@ contract AToken is
      * @dev Overrides the base function to fully implement IAToken
      * @dev see `EIP712Base.nonces()` for more detailed documentation
      */
-    function nonces(
-        address owner
-    ) public view override(IAToken, EIP712Base) returns (uint256) {
+    function nonces(address owner) public view override(IAToken, EIP712Base) returns (uint256) {
         return super.nonces(owner);
     }
 
@@ -341,11 +253,7 @@ contract AToken is
     }
 
     /// @inheritdoc IAToken
-    function rescueTokens(
-        address token,
-        address to,
-        uint256 amount
-    ) external override onlyPoolAdmin {
+    function rescueTokens(address token, address to, uint256 amount) external override onlyPoolAdmin {
         require(token != _underlyingAsset, Errors.UNDERLYING_CANNOT_BE_RESCUED);
         IERC20(token).safeTransfer(to, amount);
     }

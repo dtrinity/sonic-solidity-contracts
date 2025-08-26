@@ -14,9 +14,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const config = await getConfig(hre);
 
   if (!config.dStake) {
-    console.log(
-      "No dStake configuration found for this network. Skipping core deployment.",
-    );
+    console.log("No dStake configuration found for this network. Skipping core deployment.");
     return;
   }
 
@@ -24,13 +22,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   for (const instanceKey in config.dStake) {
     const instanceConfig = config.dStake[instanceKey] as DStakeInstanceConfig;
 
-    if (
-      !instanceConfig.dStable ||
-      instanceConfig.dStable === ethers.ZeroAddress
-    ) {
-      throw new Error(
-        `Missing dStable address for dSTAKE instance ${instanceKey}`,
-      );
+    if (!instanceConfig.dStable || instanceConfig.dStable === ethers.ZeroAddress) {
+      throw new Error(`Missing dStable address for dSTAKE instance ${instanceKey}`);
     }
 
     if (!instanceConfig.symbol) {
@@ -41,52 +34,28 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       throw new Error(`Missing name for dSTAKE instance ${instanceKey}`);
     }
 
-    if (
-      !instanceConfig.initialAdmin ||
-      instanceConfig.initialAdmin === ethers.ZeroAddress
-    ) {
-      throw new Error(
-        `Missing initialAdmin for dSTAKE instance ${instanceKey}`,
-      );
+    if (!instanceConfig.initialAdmin || instanceConfig.initialAdmin === ethers.ZeroAddress) {
+      throw new Error(`Missing initialAdmin for dSTAKE instance ${instanceKey}`);
     }
 
-    if (
-      !instanceConfig.initialFeeManager ||
-      instanceConfig.initialFeeManager === ethers.ZeroAddress
-    ) {
-      throw new Error(
-        `Missing initialFeeManager for dSTAKE instance ${instanceKey}`,
-      );
+    if (!instanceConfig.initialFeeManager || instanceConfig.initialFeeManager === ethers.ZeroAddress) {
+      throw new Error(`Missing initialFeeManager for dSTAKE instance ${instanceKey}`);
     }
 
     if (typeof instanceConfig.initialWithdrawalFeeBps !== "number") {
-      throw new Error(
-        `Missing initialWithdrawalFeeBps for dSTAKE instance ${instanceKey}`,
-      );
+      throw new Error(`Missing initialWithdrawalFeeBps for dSTAKE instance ${instanceKey}`);
     }
 
     if (!instanceConfig.adapters || !Array.isArray(instanceConfig.adapters)) {
-      throw new Error(
-        `Missing adapters array for dSTAKE instance ${instanceKey}`,
-      );
+      throw new Error(`Missing adapters array for dSTAKE instance ${instanceKey}`);
     }
 
-    if (
-      !instanceConfig.defaultDepositVaultAsset ||
-      instanceConfig.defaultDepositVaultAsset === ethers.ZeroAddress
-    ) {
-      throw new Error(
-        `Missing defaultDepositVaultAsset for dSTAKE instance ${instanceKey}`,
-      );
+    if (!instanceConfig.defaultDepositVaultAsset || instanceConfig.defaultDepositVaultAsset === ethers.ZeroAddress) {
+      throw new Error(`Missing defaultDepositVaultAsset for dSTAKE instance ${instanceKey}`);
     }
 
-    if (
-      !instanceConfig.collateralExchangers ||
-      !Array.isArray(instanceConfig.collateralExchangers)
-    ) {
-      throw new Error(
-        `Missing collateralExchangers array for dSTAKE instance ${instanceKey}`,
-      );
+    if (!instanceConfig.collateralExchangers || !Array.isArray(instanceConfig.collateralExchangers)) {
+      throw new Error(`Missing collateralExchangers array for dSTAKE instance ${instanceKey}`);
     }
   }
 
@@ -96,20 +65,12 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     const DStakeTokenDeploymentName = `DStakeToken_${instanceKey}`;
 
     // If dSTAKE core already exists on this network, skip re-deployment (idempotent on mainnet)
-    const existingTokenImpl = await deployments.getOrNull(
-      `${DStakeTokenDeploymentName}_Implementation`,
-    );
-    const existingVault = await deployments.getOrNull(
-      `DStakeCollateralVault_${instanceKey}`,
-    );
-    const existingRouter = await deployments.getOrNull(
-      `DStakeRouter_${instanceKey}`,
-    );
+    const existingTokenImpl = await deployments.getOrNull(`${DStakeTokenDeploymentName}_Implementation`);
+    const existingVault = await deployments.getOrNull(`DStakeCollateralVault_${instanceKey}`);
+    const existingRouter = await deployments.getOrNull(`DStakeRouter_${instanceKey}`);
 
     if (existingTokenImpl || existingVault || existingRouter) {
-      console.log(
-        `dSTAKE core for ${instanceKey} already deployed. Skipping core deployment.`,
-      );
+      console.log(`dSTAKE core for ${instanceKey} already deployed. Skipping core deployment.`);
       continue;
     }
 
@@ -138,15 +99,12 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     });
 
     const collateralVaultDeploymentName = `DStakeCollateralVault_${instanceKey}`;
-    const collateralVaultDeployment = await deploy(
-      collateralVaultDeploymentName,
-      {
-        from: deployer,
-        contract: "DStakeCollateralVault",
-        args: [DStakeTokenDeployment.address, instanceConfig.dStable],
-        log: false,
-      },
-    );
+    const collateralVaultDeployment = await deploy(collateralVaultDeploymentName, {
+      from: deployer,
+      contract: "DStakeCollateralVault",
+      args: [DStakeTokenDeployment.address, instanceConfig.dStable],
+      log: false,
+    });
 
     const routerDeploymentName = `DStakeRouter_${instanceKey}`;
     const _routerDeployment = await deploy(routerDeploymentName, {
@@ -182,9 +140,7 @@ func.skip = async (hre: HardhatRuntimeEnvironment): Promise<boolean> => {
     const name = `DStakeToken_${instanceKey}`;
     const proxy = await deployments.getOrNull(name);
     const impl = await deployments.getOrNull(`${name}_Implementation`);
-    const vault = await deployments.getOrNull(
-      `DStakeCollateralVault_${instanceKey}`,
-    );
+    const vault = await deployments.getOrNull(`DStakeCollateralVault_${instanceKey}`);
     const router = await deployments.getOrNull(`DStakeRouter_${instanceKey}`);
 
     // If any required piece is missing, allow the script to run

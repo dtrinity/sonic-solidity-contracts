@@ -20,82 +20,41 @@ import { chunk } from "./helpers"; // Import chunk from the helpers file
  * @param hre - Hardhat Runtime Environment
  * @param reserveSymbolsToSetup - Optional array of reserve symbols (strings) to set up. If null/undefined, sets up all reserves from config.
  */
-export async function setupNewReserves(
-  hre: HardhatRuntimeEnvironment,
-  reserveSymbolsToSetup?: string[],
-): Promise<void> {
+export async function setupNewReserves(hre: HardhatRuntimeEnvironment, reserveSymbolsToSetup?: string[]): Promise<void> {
   const { deployer } = await hre.getNamedAccounts();
   const signer = await hre.ethers.getSigner(deployer);
   const config = await getConfig(hre);
   const { reservesConfig } = config.dLend;
 
-  const targetReserveSymbols = reserveSymbolsToSetup
-    ? reserveSymbolsToSetup
-    : Object.keys(reservesConfig);
+  const targetReserveSymbols = reserveSymbolsToSetup ? reserveSymbolsToSetup : Object.keys(reservesConfig);
 
   if (targetReserveSymbols.length === 0) {
-    console.log(
-      "No reserves specified or found in config to set up. Skipping...",
-    );
+    console.log("No reserves specified or found in config to set up. Skipping...");
     return;
   }
 
-  console.log(
-    `--- Setting up Reserves: ${targetReserveSymbols.join(", ")} ---`,
-  );
+  console.log(`--- Setting up Reserves: ${targetReserveSymbols.join(", ")} ---`);
 
   // --- Get Core Contract Instances ---
   // (Fetching contracts: PoolAddressesProvider, PoolConfigurator, Pool, ACLManager, ReservesSetupHelper, AaveProtocolDataProvider)
   const addressProvider = await hre.deployments.get(POOL_ADDRESSES_PROVIDER_ID);
-  const addressesProviderContract = await hre.ethers.getContractAt(
-    "PoolAddressesProvider",
-    addressProvider.address,
-    signer,
-  );
-  const poolConfiguratorAddress =
-    await addressesProviderContract.getPoolConfigurator();
-  const poolConfiguratorContract = await hre.ethers.getContractAt(
-    "PoolConfigurator",
-    poolConfiguratorAddress,
-    signer,
-  );
+  const addressesProviderContract = await hre.ethers.getContractAt("PoolAddressesProvider", addressProvider.address, signer);
+  const poolConfiguratorAddress = await addressesProviderContract.getPoolConfigurator();
+  const poolConfiguratorContract = await hre.ethers.getContractAt("PoolConfigurator", poolConfiguratorAddress, signer);
   const poolAddress = await addressesProviderContract.getPool();
-  const poolContract = await hre.ethers.getContractAt(
-    "Pool",
-    poolAddress,
-    signer,
-  );
+  const poolContract = await hre.ethers.getContractAt("Pool", poolAddress, signer);
   const aclManagerAddress = await addressesProviderContract.getACLManager();
-  const aclManager = await hre.ethers.getContractAt(
-    "ACLManager",
-    aclManagerAddress,
-    signer,
-  );
-  const reservesSetupHelper = await hre.deployments.get(
-    RESERVES_SETUP_HELPER_ID,
-  );
-  const reservesSetupHelperContract = await hre.ethers.getContractAt(
-    "ReservesSetupHelper",
-    reservesSetupHelper.address,
-    signer,
-  );
+  const aclManager = await hre.ethers.getContractAt("ACLManager", aclManagerAddress, signer);
+  const reservesSetupHelper = await hre.deployments.get(RESERVES_SETUP_HELPER_ID);
+  const reservesSetupHelperContract = await hre.ethers.getContractAt("ReservesSetupHelper", reservesSetupHelper.address, signer);
   const poolDataProvider = await hre.deployments.get(POOL_DATA_PROVIDER_ID);
-  const poolDataProviderContract = await hre.ethers.getContractAt(
-    "AaveProtocolDataProvider",
-    poolDataProvider.address,
-    signer,
-  );
+  const poolDataProviderContract = await hre.ethers.getContractAt("AaveProtocolDataProvider", poolDataProvider.address, signer);
 
   // --- Get Implementations and Treasury ---
-  const { address: treasuryAddress } =
-    await hre.deployments.get(TREASURY_PROXY_ID);
+  const { address: treasuryAddress } = await hre.deployments.get(TREASURY_PROXY_ID);
   const aTokenImpl = await hre.deployments.get(ATOKEN_IMPL_ID);
-  const stableDebtTokenImpl = await hre.deployments.get(
-    STABLE_DEBT_TOKEN_IMPL_ID,
-  );
-  const variableDebtTokenImpl = await hre.deployments.get(
-    VARIABLE_DEBT_TOKEN_IMPL_ID,
-  );
+  const stableDebtTokenImpl = await hre.deployments.get(STABLE_DEBT_TOKEN_IMPL_ID);
+  const variableDebtTokenImpl = await hre.deployments.get(VARIABLE_DEBT_TOKEN_IMPL_ID);
 
   // --- Prepare Initialization Parameters ---
   const initInputParams: any[] = [];
@@ -110,8 +69,7 @@ export async function setupNewReserves(
       console.warn(`- Skipping ${symbol}: No configuration found.`);
       continue;
     }
-    const tokenAddress =
-      config.tokenAddresses[symbol as keyof typeof config.tokenAddresses];
+    const tokenAddress = config.tokenAddresses[symbol as keyof typeof config.tokenAddresses];
 
     if (!tokenAddress) {
       console.warn(`- Skipping ${symbol}: Token address not found in config.`);
@@ -130,16 +88,11 @@ export async function setupNewReserves(
     const strategyDeployment = await hre.deployments.get(strategyName);
 
     if (!strategyDeployment) {
-      throw new Error(
-        `Interest rate strategy deployment '${strategyName}' not found for reserve ${symbol}. Ensure it was deployed.`,
-      );
+      throw new Error(`Interest rate strategy deployment '${strategyName}' not found for reserve ${symbol}. Ensure it was deployed.`);
     }
     const strategyAddress = strategyDeployment.address;
 
-    const tokenContract = await hre.ethers.getContractAt(
-      "IERC20Detailed",
-      tokenAddress,
-    );
+    const tokenContract = await hre.ethers.getContractAt("IERC20Detailed", tokenAddress);
     const tokenName = await tokenContract.name();
     const tokenDecimals = Number(await tokenContract.decimals());
 
@@ -171,17 +124,9 @@ export async function setupNewReserves(
     const initChunks = 3;
     const chunkedInitInputParams = chunk(initInputParams, initChunks);
 
-    for (
-      let chunkIndex = 0;
-      chunkIndex < chunkedInitInputParams.length;
-      chunkIndex++
-    ) {
-      console.log(
-        `  - Initializing chunk ${chunkIndex + 1}/${chunkedInitInputParams.length}...`,
-      );
-      const tx = await poolConfiguratorContract.initReserves(
-        chunkedInitInputParams[chunkIndex],
-      );
+    for (let chunkIndex = 0; chunkIndex < chunkedInitInputParams.length; chunkIndex++) {
+      console.log(`  - Initializing chunk ${chunkIndex + 1}/${chunkedInitInputParams.length}...`);
+      const tx = await poolConfiguratorContract.initReserves(chunkedInitInputParams[chunkIndex]);
       await tx.wait();
       console.log(`  - Chunk ${chunkIndex + 1} initialized (Tx: ${tx.hash})`);
     }
@@ -199,18 +144,13 @@ export async function setupNewReserves(
     const params = reservesConfig[symbol];
 
     if (!params) {
-      console.warn(
-        `- Skipping configuration for ${symbol}: No configuration found.`,
-      );
+      console.warn(`- Skipping configuration for ${symbol}: No configuration found.`);
       continue;
     }
-    const tokenAddress =
-      config.tokenAddresses[symbol as keyof typeof config.tokenAddresses];
+    const tokenAddress = config.tokenAddresses[symbol as keyof typeof config.tokenAddresses];
 
     if (!tokenAddress) {
-      console.warn(
-        `- Skipping configuration for ${symbol}: Token address not found in config.`,
-      );
+      console.warn(`- Skipping configuration for ${symbol}: Token address not found in config.`);
       continue;
     }
 
@@ -218,9 +158,7 @@ export async function setupNewReserves(
     const reserveData = await poolContract.getReserveData(tokenAddress);
 
     if (reserveData.aTokenAddress === ZeroAddress) {
-      console.warn(
-        `- Skipping configuration for ${symbol}: Reserve not actually initialized in the pool.`,
-      );
+      console.warn(`- Skipping configuration for ${symbol}: Reserve not actually initialized in the pool.`);
       continue;
     }
 
@@ -240,42 +178,29 @@ export async function setupNewReserves(
   }
 
   if (configInputParams.length > 0) {
-    console.log(
-      `- Configuring ${configInputParams.length} reserves via ReservesSetupHelper...`,
-    );
+    console.log(`- Configuring ${configInputParams.length} reserves via ReservesSetupHelper...`);
     const reserveHelperAddress = await reservesSetupHelperContract.getAddress();
     let riskAdminGranted = false;
 
     try {
-      console.log(
-        `  - Granting Risk Admin role to helper (${reserveHelperAddress})...`,
-      );
+      console.log(`  - Granting Risk Admin role to helper (${reserveHelperAddress})...`);
       // Ensure the grant transaction is confirmed before continuing
       const grantTx = await aclManager.addRiskAdmin(reserveHelperAddress);
       await grantTx.wait();
       riskAdminGranted = true;
       console.log("  - Calling configureReserves on helper...");
-      const configTx = await reservesSetupHelperContract.configureReserves(
-        poolConfiguratorAddress,
-        configInputParams,
-      );
+      const configTx = await reservesSetupHelperContract.configureReserves(poolConfiguratorAddress, configInputParams);
       await configTx.wait();
-      console.log(
-        `  - Configuration transaction successful (Tx: ${configTx.hash})`,
-      );
+      console.log(`  - Configuration transaction successful (Tx: ${configTx.hash})`);
     } finally {
       if (riskAdminGranted) {
-        console.log(
-          `  - Revoking Risk Admin role from helper (${reserveHelperAddress})...`,
-        );
+        console.log(`  - Revoking Risk Admin role from helper (${reserveHelperAddress})...`);
         await aclManager.removeRiskAdmin(reserveHelperAddress);
       }
     }
     console.log("- Configuration of targeted reserves complete.");
   } else {
-    console.log(
-      "- No target reserves require configuration (or were eligible).",
-    );
+    console.log("- No target reserves require configuration (or were eligible).");
   }
 
   // --- Save Token Addresses (for all targeted reserves) ---
@@ -283,22 +208,18 @@ export async function setupNewReserves(
 
   for (const symbol of targetReserveSymbols) {
     // Iterate over all targets to ensure artifacts exist
-    const tokenAddress =
-      config.tokenAddresses[symbol as keyof typeof config.tokenAddresses];
+    const tokenAddress = config.tokenAddresses[symbol as keyof typeof config.tokenAddresses];
     if (!tokenAddress) continue;
 
     const reserveDataCheck = await poolContract.getReserveData(tokenAddress);
 
     if (reserveDataCheck.aTokenAddress === ZeroAddress) {
-      console.log(
-        `  - Skipping save for ${symbol}: Reserve not found in pool.`,
-      );
+      console.log(`  - Skipping save for ${symbol}: Reserve not found in pool.`);
       continue;
     }
 
     try {
-      const tokenData =
-        await poolDataProviderContract.getReserveTokensAddresses(tokenAddress);
+      const tokenData = await poolDataProviderContract.getReserveTokensAddresses(tokenAddress);
       await hre.deployments.save(`${symbol}AToken`, {
         abi: aTokenImpl.abi,
         address: tokenData.aTokenAddress,

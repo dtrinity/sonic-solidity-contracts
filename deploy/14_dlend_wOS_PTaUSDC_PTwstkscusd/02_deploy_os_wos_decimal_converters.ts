@@ -1,10 +1,7 @@
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
 
-import {
-  OS_TO_S_DECIMAL_CONVERTER_ID,
-  WOS_TO_OS_DECIMAL_CONVERTER_ID,
-} from "../../typescript/deploy-ids";
+import { OS_TO_S_DECIMAL_CONVERTER_ID, WOS_TO_OS_DECIMAL_CONVERTER_ID } from "../../typescript/deploy-ids";
 import { isMainnet } from "../../typescript/hardhat/deploy";
 
 /**
@@ -59,9 +56,7 @@ async function deployOSWOSDecimalConverters(
     try {
       // Check if converter already exists
       const existingConverter = await hre.deployments.get(config.converterId);
-      console.log(
-        `♻️  Using existing decimal converter for ${config.name}: ${existingConverter.address}`,
-      );
+      console.log(`♻️  Using existing decimal converter for ${config.name}: ${existingConverter.address}`);
       results.push({
         feedName: config.name,
         feedAddress: config.feedAddress,
@@ -80,9 +75,7 @@ async function deployOSWOSDecimalConverters(
       const sourceDecimals = await sourceFeed.decimals();
 
       if (Number(sourceDecimals) !== EXPECTED_SOURCE_DECIMALS) {
-        throw new Error(
-          `Source feed for ${config.name} has ${sourceDecimals} decimals, expected ${EXPECTED_SOURCE_DECIMALS}`,
-        );
+        throw new Error(`Source feed for ${config.name} has ${sourceDecimals} decimals, expected ${EXPECTED_SOURCE_DECIMALS}`);
       }
 
       console.log(`✅ Verified source feed has ${sourceDecimals} decimals`);
@@ -97,31 +90,21 @@ async function deployOSWOSDecimalConverters(
       });
 
       const converterDeployment = await hre.deployments.get(config.converterId);
-      console.log(
-        `✅ Deployed decimal converter for ${config.name}: ${converterDeployment.address}`,
-      );
+      console.log(`✅ Deployed decimal converter for ${config.name}: ${converterDeployment.address}`);
       console.log(`💾 Saved converter as deployment: ${config.converterId}`);
 
       // Verify the converter has the correct target decimals
-      const converter = await hre.ethers.getContractAt(
-        "ChainlinkDecimalConverter",
-        converterDeployment.address,
-      );
+      const converter = await hre.ethers.getContractAt("ChainlinkDecimalConverter", converterDeployment.address);
       const targetDecimals = await converter.decimals();
       console.log(`✅ Verified converter has ${targetDecimals} decimals`);
 
       // Test the converter by getting a price
       try {
         const latestRoundData = await converter.latestRoundData();
-        const priceFormatted =
-          Number(latestRoundData.answer) / 10 ** Number(targetDecimals);
-        console.log(
-          `💰 Current price from converter: ${priceFormatted} (${latestRoundData.answer} with ${targetDecimals} decimals)`,
-        );
+        const priceFormatted = Number(latestRoundData.answer) / 10 ** Number(targetDecimals);
+        console.log(`💰 Current price from converter: ${priceFormatted} (${latestRoundData.answer} with ${targetDecimals} decimals)`);
       } catch (priceError) {
-        console.warn(
-          `⚠️  Could not get price from converter (may be expected): ${priceError}`,
-        );
+        console.warn(`⚠️  Could not get price from converter (may be expected): ${priceError}`);
       }
 
       results.push({
@@ -135,13 +118,9 @@ async function deployOSWOSDecimalConverters(
   return results;
 }
 
-const func: DeployFunction = async function (
-  hre: HardhatRuntimeEnvironment,
-): Promise<boolean> {
+const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment): Promise<boolean> {
   if (!isMainnet(hre.network.name)) {
-    console.log(
-      `⏭️  Skipping OS/S and wOS/OS decimal converter deployment on ${hre.network.name}`,
-    );
+    console.log(`⏭️  Skipping OS/S and wOS/OS decimal converter deployment on ${hre.network.name}`);
     return true;
   }
 
@@ -155,9 +134,7 @@ const func: DeployFunction = async function (
 
   for (const converter of deployedConverters) {
     console.log(`   • ${converter.feedName}: ${converter.converter}`);
-    console.log(
-      `     └─ Converts from ${converter.feedName} feed (18 decimals) to 8 decimals`,
-    );
+    console.log(`     └─ Converts from ${converter.feedName} feed (18 decimals) to 8 decimals`);
     console.log(`     └─ Source feed: ${converter.feedAddress}`);
   }
 

@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: agpl-3.0
 pragma solidity ^0.8.20;
 
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {IPool} from "contracts/dlend/core/interfaces/IPool.sol";
-import {IRewardsController} from "contracts/dlend/periphery/rewards/interfaces/IRewardsController.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { IPool } from "contracts/dlend/core/interfaces/IPool.sol";
+import { IRewardsController } from "contracts/dlend/periphery/rewards/interfaces/IRewardsController.sol";
 
 interface IStaticATokenLM {
     struct SignatureParams {
@@ -106,11 +106,7 @@ interface IStaticATokenLM {
      * @param receiver The address to receive the rewards
      * @param rewards The rewards to claim
      */
-    function claimRewardsOnBehalf(
-        address onBehalfOf,
-        address receiver,
-        address[] memory rewards
-    ) external;
+    function claimRewardsOnBehalf(address onBehalfOf, address receiver, address[] memory rewards) external;
 
     /**
      * @notice Claim rewards and send them to a receiver
@@ -130,9 +126,7 @@ interface IStaticATokenLM {
      * @param reward The reward to claim
      * @return uint256 The current balance + pending rewards from the `_incentivesController`
      */
-    function getTotalClaimableRewards(
-        address reward
-    ) external view returns (uint256);
+    function getTotalClaimableRewards(address reward) external view returns (uint256);
 
     /**
      * @notice Get the total claimable rewards for a user in WAD
@@ -140,10 +134,7 @@ interface IStaticATokenLM {
      * @param reward The reward to claim
      * @return uint256 The claimable amount of rewards in WAD
      */
-    function getClaimableRewards(
-        address user,
-        address reward
-    ) external view returns (uint256);
+    function getClaimableRewards(address user, address reward) external view returns (uint256);
 
     /**
      * @notice The unclaimed rewards for a user in WAD
@@ -151,19 +142,14 @@ interface IStaticATokenLM {
      * @param reward The reward to claim
      * @return uint256 The unclaimed amount of rewards in WAD
      */
-    function getUnclaimedRewards(
-        address user,
-        address reward
-    ) external view returns (uint256);
+    function getUnclaimedRewards(address user, address reward) external view returns (uint256);
 
     /**
      * @notice The underlying asset reward index in RAY
      * @param reward The reward to claim
      * @return uint256 The underlying asset reward index in RAY
      */
-    function getCurrentRewardsIndex(
-        address reward
-    ) external view returns (uint256);
+    function getCurrentRewardsIndex(address reward) external view returns (uint256);
 
     /**
      * @notice The aToken used inside the 4626 vault.
@@ -186,9 +172,7 @@ interface IStaticATokenLM {
      * @notice Checks if the passed token is a registered reward.
      * @return bool signaling if token is a registered reward.
      */
-    function isRegisteredRewardToken(
-        address reward
-    ) external view returns (bool);
+    function isRegisteredRewardToken(address reward) external view returns (bool);
 
     /**
      * @notice Deposits aTokens and mints static aTokens to the receiver
@@ -196,10 +180,7 @@ interface IStaticATokenLM {
      * @param receiver The address that will receive the static aTokens
      * @return uint256 The amount of StaticAToken minted, static balance
      */
-    function depositATokens(
-        uint256 aTokenAmount,
-        address receiver
-    ) external returns (uint256);
+    function depositATokens(uint256 aTokenAmount, address receiver) external returns (uint256);
 
     /**
      * @notice Burns static aTokens and returns aTokens to the receiver
@@ -208,9 +189,5 @@ interface IStaticATokenLM {
      * @param owner The address whose static aTokens will be burned
      * @return uint256 The amount of aTokens returned
      */
-    function redeemATokens(
-        uint256 shares,
-        address receiver,
-        address owner
-    ) external returns (uint256);
+    function redeemATokens(uint256 shares, address receiver, address owner) external returns (uint256);
 }

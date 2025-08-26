@@ -17,9 +17,9 @@
 
 pragma solidity ^0.8.20;
 
-import {Ownable} from "../../dependencies/openzeppelin/contracts/Ownable.sol";
-import {IPoolAddressesProvider} from "../../interfaces/IPoolAddressesProvider.sol";
-import {InitializableImmutableAdminUpgradeabilityProxy} from "../libraries/aave-upgradeability/InitializableImmutableAdminUpgradeabilityProxy.sol";
+import { Ownable } from "../../dependencies/openzeppelin/contracts/Ownable.sol";
+import { IPoolAddressesProvider } from "../../interfaces/IPoolAddressesProvider.sol";
+import { InitializableImmutableAdminUpgradeabilityProxy } from "../libraries/aave-upgradeability/InitializableImmutableAdminUpgradeabilityProxy.sol";
 
 /**
  * @title PoolAddressesProvider
@@ -60,43 +60,28 @@ contract PoolAddressesProvider is Ownable, IPoolAddressesProvider {
     }
 
     /// @inheritdoc IPoolAddressesProvider
-    function setMarketId(
-        string memory newMarketId
-    ) external override onlyOwner {
+    function setMarketId(string memory newMarketId) external override onlyOwner {
         _setMarketId(newMarketId);
     }
 
     /// @inheritdoc IPoolAddressesProvider
-    function getAddressFromID(
-        bytes32 id
-    ) public view override returns (address) {
+    function getAddressFromID(bytes32 id) public view override returns (address) {
         return _addresses[id];
     }
 
     /// @inheritdoc IPoolAddressesProvider
-    function setAddress(
-        bytes32 id,
-        address newAddress
-    ) external override onlyOwner {
+    function setAddress(bytes32 id, address newAddress) external override onlyOwner {
         address oldAddress = _addresses[id];
         _addresses[id] = newAddress;
         emit AddressSet(id, oldAddress, newAddress);
     }
 
     /// @inheritdoc IPoolAddressesProvider
-    function setAddressAsProxy(
-        bytes32 id,
-        address newImplementationAddress
-    ) external override onlyOwner {
+    function setAddressAsProxy(bytes32 id, address newImplementationAddress) external override onlyOwner {
         address proxyAddress = _addresses[id];
         address oldImplementationAddress = _getProxyImplementation(id);
         _updateImpl(id, newImplementationAddress);
-        emit AddressSetAsProxy(
-            id,
-            proxyAddress,
-            oldImplementationAddress,
-            newImplementationAddress
-        );
+        emit AddressSetAsProxy(id, proxyAddress, oldImplementationAddress, newImplementationAddress);
     }
 
     /// @inheritdoc IPoolAddressesProvider
@@ -117,17 +102,10 @@ contract PoolAddressesProvider is Ownable, IPoolAddressesProvider {
     }
 
     /// @inheritdoc IPoolAddressesProvider
-    function setPoolConfiguratorImpl(
-        address newPoolConfiguratorImpl
-    ) external override onlyOwner {
-        address oldPoolConfiguratorImpl = _getProxyImplementation(
-            POOL_CONFIGURATOR
-        );
+    function setPoolConfiguratorImpl(address newPoolConfiguratorImpl) external override onlyOwner {
+        address oldPoolConfiguratorImpl = _getProxyImplementation(POOL_CONFIGURATOR);
         _updateImpl(POOL_CONFIGURATOR, newPoolConfiguratorImpl);
-        emit PoolConfiguratorUpdated(
-            oldPoolConfiguratorImpl,
-            newPoolConfiguratorImpl
-        );
+        emit PoolConfiguratorUpdated(oldPoolConfiguratorImpl, newPoolConfiguratorImpl);
     }
 
     /// @inheritdoc IPoolAddressesProvider
@@ -136,9 +114,7 @@ contract PoolAddressesProvider is Ownable, IPoolAddressesProvider {
     }
 
     /// @inheritdoc IPoolAddressesProvider
-    function setPriceOracle(
-        address newPriceOracle
-    ) external override onlyOwner {
+    function setPriceOracle(address newPriceOracle) external override onlyOwner {
         address oldPriceOracle = _addresses[PRICE_ORACLE];
         _addresses[PRICE_ORACLE] = newPriceOracle;
         emit PriceOracleUpdated(oldPriceOracle, newPriceOracle);
@@ -174,15 +150,10 @@ contract PoolAddressesProvider is Ownable, IPoolAddressesProvider {
     }
 
     /// @inheritdoc IPoolAddressesProvider
-    function setPriceOracleSentinel(
-        address newPriceOracleSentinel
-    ) external override onlyOwner {
+    function setPriceOracleSentinel(address newPriceOracleSentinel) external override onlyOwner {
         address oldPriceOracleSentinel = _addresses[PRICE_ORACLE_SENTINEL];
         _addresses[PRICE_ORACLE_SENTINEL] = newPriceOracleSentinel;
-        emit PriceOracleSentinelUpdated(
-            oldPriceOracleSentinel,
-            newPriceOracleSentinel
-        );
+        emit PriceOracleSentinelUpdated(oldPriceOracleSentinel, newPriceOracleSentinel);
     }
 
     /// @inheritdoc IPoolAddressesProvider
@@ -191,9 +162,7 @@ contract PoolAddressesProvider is Ownable, IPoolAddressesProvider {
     }
 
     /// @inheritdoc IPoolAddressesProvider
-    function setPoolDataProvider(
-        address newDataProvider
-    ) external override onlyOwner {
+    function setPoolDataProvider(address newDataProvider) external override onlyOwner {
         address oldDataProvider = _addresses[DATA_PROVIDER];
         _addresses[DATA_PROVIDER] = newDataProvider;
         emit PoolDataProviderUpdated(oldDataProvider, newDataProvider);
@@ -211,22 +180,15 @@ contract PoolAddressesProvider is Ownable, IPoolAddressesProvider {
     function _updateImpl(bytes32 id, address newAddress) internal {
         address proxyAddress = _addresses[id];
         InitializableImmutableAdminUpgradeabilityProxy proxy;
-        bytes memory params = abi.encodeWithSignature(
-            "initialize(address)",
-            address(this)
-        );
+        bytes memory params = abi.encodeWithSignature("initialize(address)", address(this));
 
         if (proxyAddress == address(0)) {
-            proxy = new InitializableImmutableAdminUpgradeabilityProxy(
-                address(this)
-            );
+            proxy = new InitializableImmutableAdminUpgradeabilityProxy(address(this));
             _addresses[id] = proxyAddress = address(proxy);
             proxy.initialize(newAddress, params);
             emit ProxyCreated(id, proxyAddress, newAddress);
         } else {
-            proxy = InitializableImmutableAdminUpgradeabilityProxy(
-                payable(proxyAddress)
-            );
+            proxy = InitializableImmutableAdminUpgradeabilityProxy(payable(proxyAddress));
             proxy.upgradeToAndCall(newAddress, params);
         }
     }
@@ -254,10 +216,7 @@ contract PoolAddressesProvider is Ownable, IPoolAddressesProvider {
             return address(0);
         } else {
             address payable payableProxyAddress = payable(proxyAddress);
-            return
-                InitializableImmutableAdminUpgradeabilityProxy(
-                    payableProxyAddress
-                ).implementation();
+            return InitializableImmutableAdminUpgradeabilityProxy(payableProxyAddress).implementation();
         }
     }
 }

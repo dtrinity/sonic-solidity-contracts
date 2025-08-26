@@ -2,8 +2,8 @@
 pragma solidity ^0.8.20;
 
 import "../../pendle/PendleSwapUtils.sol";
-import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 /**
  * @title PendleSwapPOC
@@ -82,20 +82,13 @@ contract PendleSwapPOC {
         amountSpent = ptBalanceBefore - ptBalanceAfter;
         uint256 underlyingReceived = underlyingBalanceAfter -
             underlyingBalanceBefore;
-
+            
         // Transfer underlying tokens back to user
         if (underlyingReceived > 0) {
             ERC20(underlyingToken).safeTransfer(msg.sender, underlyingReceived);
         }
 
-        emit PendleSwapExecuted(
-            msg.sender,
-            ptToken,
-            underlyingToken,
-            ptAmount,
-            amountSpent,
-            router
-        );
+        emit PendleSwapExecuted(msg.sender, ptToken, underlyingToken, ptAmount, amountSpent, router);
 
         return amountSpent;
     }
@@ -106,10 +99,7 @@ contract PendleSwapPOC {
      * @param user The user address to check
      * @return allowance Current allowance amount
      */
-    function checkAllowance(
-        address ptToken,
-        address user
-    ) external view returns (uint256 allowance) {
+    function checkAllowance(address ptToken, address user) external view returns (uint256 allowance) {
         return ERC20(ptToken).allowance(user, address(this));
     }
 
@@ -119,10 +109,7 @@ contract PendleSwapPOC {
      * @param user The user address to check
      * @return balance User's current PT token balance
      */
-    function getUserBalance(
-        address ptToken,
-        address user
-    ) external view returns (uint256 balance) {
+    function getUserBalance(address ptToken, address user) external view returns (uint256 balance) {
         return ERC20(ptToken).balanceOf(user);
     }
 
@@ -132,11 +119,7 @@ contract PendleSwapPOC {
      * @param to Recipient address
      * @param amount Amount to withdraw
      */
-    function withdrawTokens(
-        address token,
-        address to,
-        uint256 amount
-    ) external {
+    function withdrawTokens(address token, address to, uint256 amount) external {
         ERC20(token).safeTransfer(to, amount);
     }
 

@@ -68,18 +68,14 @@ describe("DLoopCoreMock - Withdraw Fee", function () {
 
     const balBefore = await collateral.balanceOf(user.address);
     const recvBefore = await collateral.balanceOf(receiver);
-    const tx = await dloop
-      .connect(user)
-      .redeem(shares, user.address, user.address);
+    const tx = await dloop.connect(user).redeem(shares, user.address, user.address);
     const balAfter = await collateral.balanceOf(user.address);
     const recvAfter = await collateral.balanceOf(receiver);
 
     expect(balAfter - balBefore).to.equal(net);
     // Under current logic, fee remains in the vault and is not forwarded externally
     expect(recvAfter - recvBefore).to.equal(0n);
-    await expect(tx)
-      .to.emit(dloop, "Withdraw")
-      .withArgs(user.address, user.address, user.address, net, shares);
+    await expect(tx).to.emit(dloop, "Withdraw").withArgs(user.address, user.address, user.address, net, shares);
   });
 
   it("previewWithdraw inverts net→shares using gross+fee", async function () {
@@ -91,8 +87,7 @@ describe("DLoopCoreMock - Withdraw Fee", function () {
     await dloop.connect(user).deposit(amount, user.address);
 
     const desiredNet = ethers.parseEther("10");
-    const feeOnNet =
-      (desiredNet * BigInt(FEE_BPS)) / BigInt(100 * ONE_BPS_UNIT * 100);
+    const feeOnNet = (desiredNet * BigInt(FEE_BPS)) / BigInt(100 * ONE_BPS_UNIT * 100);
     const gross = desiredNet + feeOnNet;
 
     const shares = await dloop.previewWithdraw(desiredNet);
@@ -110,16 +105,11 @@ describe("DLoopCoreMock - Withdraw Fee", function () {
 
     // Prices 1:1 already
     const depositAmt = ethers.parseEther("100");
-    await collateral
-      .connect(user)
-      .approve(await dloop.getAddress(), depositAmt);
+    await collateral.connect(user).approve(await dloop.getAddress(), depositAmt);
     await dloop.connect(user).deposit(depositAmt, user.address);
 
     // Create imbalance (increase leverage above target) by decreasing collateral price
-    await dloop.setMockPrice(
-      await collateral.getAddress(),
-      ethers.parseUnits("0.9", 8),
-    );
+    await dloop.setMockPrice(await collateral.getAddress(), ethers.parseUnits("0.9", 8));
 
     const additionalDebt = ethers.parseEther("10");
     const debtBal = await debt.balanceOf(user.address);
@@ -160,9 +150,7 @@ describe("DLoopCoreMock - Withdraw Fee", function () {
 
     // Tiny flow: deposit a small amount that still results in non-zero borrow and allows small net withdraw
     const smallDeposit = 5n * 10n ** 10n; // 5e10 wei
-    await collateral
-      .connect(user)
-      .approve(await dloop.getAddress(), smallDeposit);
+    await collateral.connect(user).approve(await dloop.getAddress(), smallDeposit);
     await dloop.connect(user).deposit(smallDeposit, user.address);
 
     const netFromRedeem = await dloop.previewRedeem(1n);
@@ -226,17 +214,13 @@ describe("DLoopCoreMock - Withdraw Fee", function () {
     expect(await dloop.previewRedeem(shares)).to.equal(expectedNet);
 
     // Above max should revert with custom error
-    await expect(
-      dloop.setWithdrawalFeeBps(MAX_FEE_BPS + 1n),
-    ).to.be.revertedWithCustomError(dloop, "WithdrawalFeeIsGreaterThanMaxFee");
+    await expect(dloop.setWithdrawalFeeBps(MAX_FEE_BPS + 1n)).to.be.revertedWithCustomError(dloop, "WithdrawalFeeIsGreaterThanMaxFee");
   });
 
   it("setWithdrawalFeeBps is onlyOwner", async function () {
     const user = users[1]; // not the deployer/owner
     const nonOwner = dloop.connect(user);
-    await expect(
-      nonOwner.setWithdrawalFeeBps(FEE_BPS),
-    ).to.be.revertedWithCustomError(dloop, "OwnableUnauthorizedAccount");
+    await expect(nonOwner.setWithdrawalFeeBps(FEE_BPS)).to.be.revertedWithCustomError(dloop, "OwnableUnauthorizedAccount");
   });
 
   it("large amounts maintain precision and match previews", async function () {

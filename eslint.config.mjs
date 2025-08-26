@@ -57,11 +57,7 @@ export default [
       "config/**/*.js",
     ],
   },
-  ...compat.extends(
-    "plugin:jsdoc/recommended",
-    "plugin:eslint-comments/recommended",
-    "prettier",
-  ),
+  ...compat.extends("plugin:jsdoc/recommended", "plugin:eslint-comments/recommended", "prettier"),
   {
     plugins: {
       "@typescript-eslint": typescriptEslint,
@@ -95,7 +91,22 @@ export default [
         },
       ],
 
-      "prettier/prettier": ["error"],
+      // Pin Prettier options here so CLI and editor use identical formatting
+      // (prevents mismatches between eslint-plugin-prettier and Prettier extension)
+      "prettier/prettier": [
+        "error",
+        {
+          printWidth: 140,
+          tabWidth: 2,
+          useTabs: false,
+          singleQuote: false,
+          semi: true,
+          trailingComma: "all",
+          bracketSpacing: true,
+          arrowParens: "always",
+          endOfLine: "auto",
+        },
+      ],
       camelcase: "error",
       "@typescript-eslint/explicit-function-return-type": "error",
       "eslint-comments/require-description": ["error"],

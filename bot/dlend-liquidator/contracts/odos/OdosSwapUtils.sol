@@ -34,8 +34,10 @@ library OdosSwapUtils {
         uint256 exactOut,
         bytes memory swapData
     ) internal returns (uint256 actualAmountSpent) {
-        uint256 outputBalanceBefore = ERC20(outputToken).balanceOf(address(this));
-        
+        uint256 outputBalanceBefore = ERC20(outputToken).balanceOf(
+            address(this)
+        );
+
         ERC20(inputToken).forceApprove(address(router), maxIn);
 
         (bool success, bytes memory result) = address(router).call(swapData);
@@ -53,8 +55,10 @@ library OdosSwapUtils {
         assembly {
             actualAmountSpent := mload(add(result, 32))
         }
-        
-        uint256 outputBalanceAfter = ERC20(outputToken).balanceOf(address(this));
+
+        uint256 outputBalanceAfter = ERC20(outputToken).balanceOf(
+            address(this)
+        );
         uint256 actualAmountReceived = outputBalanceAfter - outputBalanceBefore;
 
         if (actualAmountReceived < exactOut) {

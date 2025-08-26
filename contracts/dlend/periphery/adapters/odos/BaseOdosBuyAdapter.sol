@@ -17,14 +17,14 @@
 
 pragma solidity ^0.8.20;
 
-import {SafeERC20} from "contracts/dlend/core/dependencies/openzeppelin/contracts/SafeERC20.sol";
-import {PercentageMath} from "contracts/dlend/core/protocol/libraries/math/PercentageMath.sol";
-import {IPoolAddressesProvider} from "contracts/dlend/core/interfaces/IPoolAddressesProvider.sol";
-import {IERC20Detailed} from "contracts/dlend/core/dependencies/openzeppelin/contracts/IERC20Detailed.sol";
-import {BaseOdosSwapAdapter} from "./BaseOdosSwapAdapter.sol";
-import {BasisPointConstants} from "contracts/common/BasisPointConstants.sol";
-import {IOdosRouterV2} from "contracts/odos/interface/IOdosRouterV2.sol";
-import {OdosSwapUtils} from "contracts/odos/OdosSwapUtils.sol";
+import { SafeERC20 } from "contracts/dlend/core/dependencies/openzeppelin/contracts/SafeERC20.sol";
+import { PercentageMath } from "contracts/dlend/core/protocol/libraries/math/PercentageMath.sol";
+import { IPoolAddressesProvider } from "contracts/dlend/core/interfaces/IPoolAddressesProvider.sol";
+import { IERC20Detailed } from "contracts/dlend/core/dependencies/openzeppelin/contracts/IERC20Detailed.sol";
+import { BaseOdosSwapAdapter } from "./BaseOdosSwapAdapter.sol";
+import { BasisPointConstants } from "contracts/common/BasisPointConstants.sol";
+import { IOdosRouterV2 } from "contracts/odos/interface/IOdosRouterV2.sol";
+import { OdosSwapUtils } from "contracts/odos/OdosSwapUtils.sol";
 
 /**
  * @title BaseOdosBuyAdapter
@@ -70,10 +70,7 @@ abstract contract BaseOdosBuyAdapter is BaseOdosSwapAdapter {
             address(this)
         );
         if (balanceBeforeAssetFrom < maxAmountToSwap) {
-            revert InsufficientBalanceBeforeSwap(
-                balanceBeforeAssetFrom,
-                maxAmountToSwap
-            );
+            revert InsufficientBalanceBeforeSwap(balanceBeforeAssetFrom, maxAmountToSwap);
         }
 
         address tokenIn = address(assetToSwapFrom);

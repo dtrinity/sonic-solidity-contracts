@@ -26,8 +26,7 @@ describe.skip("DLoopCoreMock Calculation Tests", function () {
     _accounts = fixture.accounts;
 
     // Deploy an additional token for testing calculation functionality
-    const TestMintableERC20Factory =
-      await ethers.getContractFactory("TestMintableERC20");
+    const TestMintableERC20Factory = await ethers.getContractFactory("TestMintableERC20");
     _otherToken = await TestMintableERC20Factory.deploy(
       "Other Token",
       "OTHER",
@@ -135,23 +134,12 @@ describe.skip("DLoopCoreMock Calculation Tests", function () {
           let testDebtToken = debtToken;
 
           if (testCase.debtTokenDecimals) {
-            const TestMintableERC20Factory =
-              await ethers.getContractFactory("TestMintableERC20");
-            testDebtToken = await TestMintableERC20Factory.deploy(
-              "Test Debt Token",
-              "DEBT",
-              testCase.debtTokenDecimals,
-            );
+            const TestMintableERC20Factory = await ethers.getContractFactory("TestMintableERC20");
+            testDebtToken = await TestMintableERC20Factory.deploy("Test Debt Token", "DEBT", testCase.debtTokenDecimals);
           }
 
-          await dloopMock.setMockPrice(
-            await collateralToken.getAddress(),
-            testCase.collateralPrice,
-          );
-          await dloopMock.setMockPrice(
-            await testDebtToken.getAddress(),
-            testCase.debtPrice,
-          );
+          await dloopMock.setMockPrice(await collateralToken.getAddress(), testCase.collateralPrice);
+          await dloopMock.setMockPrice(await testDebtToken.getAddress(), testCase.debtPrice);
 
           // const result = await dloopMock.getRepayAmountThatKeepCurrentLeverage(
           //   await collateralToken.getAddress(),

@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import {DLoopCoreBase} from "../../core/DLoopCoreBase.sol";
+import { DLoopCoreBase } from "../../core/DLoopCoreBase.sol";
+import { DLoopCoreLogic } from "../../core/DLoopCoreLogic.sol";
 
 /**
  * @title SharedLogic
@@ -15,14 +16,11 @@ library SharedLogic {
      * @param dLoopCore Address of the DLoopCore contract
      * @return leveragedAssets Amount of leveraged assets
      */
-    function getLeveragedAssets(
-        uint256 assets,
-        DLoopCoreBase dLoopCore
-    ) internal view returns (uint256) {
+    function getLeveragedAssets(uint256 assets, DLoopCoreBase dLoopCore) internal view returns (uint256) {
         return
             dLoopCore.getCurrentLeverageBps() > 0
-                ? dLoopCore.getCurrentLeveragedAssets(assets)
-                : dLoopCore.getTargetLeveragedAssets(assets);
+                ? DLoopCoreLogic.getLeveragedAssetsWithLeverage(assets, dLoopCore.getCurrentLeverageBps())
+                : DLoopCoreLogic.getLeveragedAssetsWithLeverage(assets, dLoopCore.targetLeverageBps());
     }
 
     /**
@@ -32,17 +30,10 @@ library SharedLogic {
      * @param dLoopCore Address of the DLoopCore contract
      * @return unleveragedAssets Amount of unleveraged assets
      */
-    function getUnleveragedAssets(
-        uint256 leveragedAssets,
-        DLoopCoreBase dLoopCore
-    ) internal view returns (uint256) {
+    function getUnleveragedAssets(uint256 leveragedAssets, DLoopCoreBase dLoopCore) internal view returns (uint256) {
         return
             dLoopCore.getCurrentLeverageBps() > 0
-                ? dLoopCore.getUnleveragedAssetsWithCurrentLeverage(
-                    leveragedAssets
-                )
-                : dLoopCore.getUnleveragedAssetsWithTargetLeverage(
-                    leveragedAssets
-                );
+                ? DLoopCoreLogic.getUnleveragedAssetsWithLeverage(leveragedAssets, dLoopCore.getCurrentLeverageBps())
+                : DLoopCoreLogic.getUnleveragedAssetsWithLeverage(leveragedAssets, dLoopCore.targetLeverageBps());
     }
 }

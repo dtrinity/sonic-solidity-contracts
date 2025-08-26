@@ -38,7 +38,9 @@ contract FlashLoanLiquidatorAaveBorrowRepayOdos is
         uint256 _amount,
         uint256 _maxIn
     ) internal override returns (uint256) {
-        uint256 outputBalanceBefore = ERC20(_outputToken).balanceOf(address(this));
+        uint256 outputBalanceBefore = ERC20(_outputToken).balanceOf(
+            address(this)
+        );
 
         uint256 amountSpent = OdosSwapUtils.executeSwapOperation(
             odosRouter,
@@ -49,7 +51,9 @@ contract FlashLoanLiquidatorAaveBorrowRepayOdos is
             _swapData
         );
 
-        uint256 outputBalanceAfter = ERC20(_outputToken).balanceOf(address(this));
+        uint256 outputBalanceAfter = ERC20(_outputToken).balanceOf(
+            address(this)
+        );
         uint256 actualOutputReceived = outputBalanceAfter - outputBalanceBefore;
 
         // Validation is already done in OdosSwapUtils, but double-check for safety

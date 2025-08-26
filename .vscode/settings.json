@@ -1,3 +1,43 @@
 {
-    "makefile.configureOnOpen": false
+  "editor.formatOnSave": false,
+
+  // Use ESLint to format TS/JS
+  "editor.defaultFormatter": "dbaeumer.vscode-eslint",
+  // Use the new flat config (eslint.config.mjs)
+  "eslint.useFlatConfig": true,
+  "[typescript]": {
+    "editor.defaultFormatter": "dbaeumer.vscode-eslint"
+  },
+  "[typescriptreact]": {
+    "editor.defaultFormatter": "dbaeumer.vscode-eslint"
+  },
+  "[javascript]": {
+    "editor.defaultFormatter": "dbaeumer.vscode-eslint"
+  },
+  "[json]": {
+    "editor.defaultFormatter": "dbaeumer.vscode-eslint"
+  },
+
+  // Use Prettier for Solidity with solidity plugin
+  "[solidity]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.formatOnSave": true
+  },
+
+  // Ensure ESLint validates but does not auto-fix on save
+  "eslint.validate": ["javascript", "typescript", "json"],
+  "eslint.format.enable": true,
+
+  // Prevent Prettier extension from formatting JS/TS (ESLint handles it)
+  "prettier.disableLanguages": [
+    "javascript",
+    "typescript",
+    "typescriptreact",
+    "json"
+  ],
+
+  // Prettier picks up prettier.config.cjs at workspace root
+  "prettier.configPath": "prettier.config.cjs"
 }
+
+

@@ -36,8 +36,7 @@ abstract contract BaseAPI3Wrapper is IOracleWrapper, AccessControl {
 
     /* Roles */
 
-    bytes32 public constant ORACLE_MANAGER_ROLE =
-        keccak256("ORACLE_MANAGER_ROLE");
+    bytes32 public constant ORACLE_MANAGER_ROLE = keccak256("ORACLE_MANAGER_ROLE");
 
     /* Errors */
 
@@ -63,13 +62,9 @@ abstract contract BaseAPI3Wrapper is IOracleWrapper, AccessControl {
         return _baseCurrency;
     }
 
-    function getPriceInfo(
-        address asset
-    ) public view virtual override returns (uint256 price, bool isAlive);
+    function getPriceInfo(address asset) public view virtual override returns (uint256 price, bool isAlive);
 
-    function getAssetPrice(
-        address asset
-    ) external view virtual override returns (uint256) {
+    function getAssetPrice(address asset) external view virtual override returns (uint256) {
         (uint256 price, bool isAlive) = getPriceInfo(asset);
         if (!isAlive) {
             revert PriceIsStale();
@@ -77,15 +72,11 @@ abstract contract BaseAPI3Wrapper is IOracleWrapper, AccessControl {
         return price;
     }
 
-    function _convertToBaseCurrencyUnit(
-        uint256 price
-    ) internal view returns (uint256) {
+    function _convertToBaseCurrencyUnit(uint256 price) internal view returns (uint256) {
         return (price * BASE_CURRENCY_UNIT) / API3_BASE_CURRENCY_UNIT;
     }
 
-    function setHeartbeatStaleTimeLimit(
-        uint256 _newHeartbeatStaleTimeLimit
-    ) external onlyRole(ORACLE_MANAGER_ROLE) {
+    function setHeartbeatStaleTimeLimit(uint256 _newHeartbeatStaleTimeLimit) external onlyRole(ORACLE_MANAGER_ROLE) {
         heartbeatStaleTimeLimit = _newHeartbeatStaleTimeLimit;
     }
 }

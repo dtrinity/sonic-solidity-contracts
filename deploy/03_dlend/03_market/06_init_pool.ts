@@ -17,32 +17,20 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   const config = await getConfig(hre);
 
-  const proxyArtifact = await hre.deployments.getExtendedArtifact(
-    "InitializableImmutableAdminUpgradeabilityProxy",
-  );
+  const proxyArtifact = await hre.deployments.getExtendedArtifact("InitializableImmutableAdminUpgradeabilityProxy");
 
   const poolImplDeployment = await hre.deployments.get(POOL_IMPL_ID);
-  const poolConfiguratorImplDeployment =
-    await hre.deployments.get(POOL_CONFIGURATOR_ID);
+  const poolConfiguratorImplDeployment = await hre.deployments.get(POOL_CONFIGURATOR_ID);
 
-  const { address: addressesProviderAddress } = await hre.deployments.get(
-    POOL_ADDRESSES_PROVIDER_ID,
-  );
+  const { address: addressesProviderAddress } = await hre.deployments.get(POOL_ADDRESSES_PROVIDER_ID);
 
-  const addressesProviderInstance = await hre.ethers.getContractAt(
-    "PoolAddressesProvider",
-    addressesProviderAddress,
-    signer,
-  );
+  const addressesProviderInstance = await hre.ethers.getContractAt("PoolAddressesProvider", addressesProviderAddress, signer);
 
-  const isPoolProxyPending =
-    (await addressesProviderInstance.getPool()) === ZeroAddress;
+  const isPoolProxyPending = (await addressesProviderInstance.getPool()) === ZeroAddress;
 
   // Set Pool implementation to Addresses provider and save the proxy deployment artifact at disk
   if (isPoolProxyPending) {
-    const setPoolImplTx = await addressesProviderInstance.setPoolImpl(
-      poolImplDeployment.address,
-    );
+    const setPoolImplTx = await addressesProviderInstance.setPoolImpl(poolImplDeployment.address);
     await setPoolImplTx.wait();
   }
 
@@ -53,19 +41,14 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     address: poolAddressProviderAddress,
   });
 
-  const isPoolConfiguratorProxyPending =
-    (await addressesProviderInstance.getPoolConfigurator()) === ZeroAddress;
+  const isPoolConfiguratorProxyPending = (await addressesProviderInstance.getPoolConfigurator()) === ZeroAddress;
 
   // Set Pool Configurator to Addresses Provider proxy deployment artifact at disk
   if (isPoolConfiguratorProxyPending) {
-    const setPoolConfiguratorTx =
-      await addressesProviderInstance.setPoolConfiguratorImpl(
-        poolConfiguratorImplDeployment.address,
-      );
+    const setPoolConfiguratorTx = await addressesProviderInstance.setPoolConfiguratorImpl(poolConfiguratorImplDeployment.address);
     await setPoolConfiguratorTx.wait();
   }
-  const poolConfiguratorProxyAddress =
-    await addressesProviderInstance.getPoolConfigurator();
+  const poolConfiguratorProxyAddress = await addressesProviderInstance.getPoolConfigurator();
 
   await hre.deployments.save(POOL_CONFIGURATOR_PROXY_ID, {
     ...proxyArtifact,
@@ -73,42 +56,26 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   });
 
   // Set Flash Loan premiums
-  const poolConfiguratorContract = await hre.ethers.getContractAt(
-    "PoolConfigurator",
-    poolConfiguratorProxyAddress,
-    signer,
-  );
+  const poolConfiguratorContract = await hre.ethers.getContractAt("PoolConfigurator", poolConfiguratorProxyAddress, signer);
 
   // Get ACLManager address
-  const addressProvider = await hre.ethers.getContractAt(
-    "PoolAddressesProvider",
-    addressesProviderAddress,
-    signer,
-  );
+  const addressProvider = await hre.ethers.getContractAt("PoolAddressesProvider", addressesProviderAddress, signer);
   const aclManagerAddress = await addressProvider.getACLManager();
 
   // Get pool admin from ACL Manager
-  const aclManager = await hre.ethers.getContractAt(
-    "ACLManager",
-    aclManagerAddress,
-    signer,
-  );
+  const aclManager = await hre.ethers.getContractAt("ACLManager", aclManagerAddress, signer);
   await aclManager.isPoolAdmin(await signer.getAddress());
 
   const flashLoanPremium = config.dLend.flashLoanPremium;
 
   // Set total Flash Loan Premium
-  const updateFlashloanPremiumTotalResponse =
-    await poolConfiguratorContract.updateFlashloanPremiumTotal(
-      flashLoanPremium.total,
-    );
+  const updateFlashloanPremiumTotalResponse = await poolConfiguratorContract.updateFlashloanPremiumTotal(flashLoanPremium.total);
   await updateFlashloanPremiumTotalResponse.wait();
 
   // Set protocol Flash Loan Premium
-  const updateFlashloanPremiumToProtocolResponse =
-    await poolConfiguratorContract.updateFlashloanPremiumToProtocol(
-      flashLoanPremium.protocol,
-    );
+  const updateFlashloanPremiumToProtocolResponse = await poolConfiguratorContract.updateFlashloanPremiumToProtocol(
+    flashLoanPremium.protocol,
+  );
   await updateFlashloanPremiumToProtocolResponse.wait();
 
   console.log(`🏦 ${__filename.split("/").slice(-2).join("/")}: ✅`);
@@ -118,12 +85,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
 func.id = "dLend:init_pool";
 func.tags = ["dlend", "dlend-market"];
-func.dependencies = [
-  "dlend-core",
-  "dlend-periphery-pre",
-  "PoolAddressesProvider",
-  "L2PoolImplementations",
-  "PoolConfigurator",
-];
+func.dependencies = ["dlend-core", "dlend-periphery-pre", "PoolAddressesProvider", "L2PoolImplementations", "PoolConfigurator"];
 
 export default func;

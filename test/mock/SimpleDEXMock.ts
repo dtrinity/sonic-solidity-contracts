@@ -4,10 +4,7 @@ import { expect } from "chai";
 import { ethers } from "hardhat";
 
 import { SimpleDEXMock, TestMintableERC20 } from "../../typechain-types";
-import {
-  ONE_HUNDRED_PERCENT_BPS,
-  ONE_PERCENT_BPS,
-} from "../../typescript/common/bps_constants";
+import { ONE_HUNDRED_PERCENT_BPS, ONE_PERCENT_BPS } from "../../typescript/common/bps_constants";
 
 // Test constants
 const DEFAULT_EXCHANGE_RATE = ethers.parseEther("1.5"); // 1 input token = 1.5 output tokens
@@ -73,52 +70,26 @@ async function testSetup(fixture: SimpleDEXMockFixture): Promise<void> {
   // Mint tokens to DEX contract for liquidity
   const dexLiquidity = ethers.parseEther("1000000"); // Large liquidity
   await tokenA.mint(await dexMock.getAddress(), dexLiquidity);
-  await tokenB.mint(
-    await dexMock.getAddress(),
-    ethers.parseUnits("1000000", TOKEN_B_DECIMALS),
-  );
-  await tokenC.mint(
-    await dexMock.getAddress(),
-    ethers.parseUnits("1000000", TOKEN_C_DECIMALS),
-  );
+  await tokenB.mint(await dexMock.getAddress(), ethers.parseUnits("1000000", TOKEN_B_DECIMALS));
+  await tokenC.mint(await dexMock.getAddress(), ethers.parseUnits("1000000", TOKEN_C_DECIMALS));
 
   // Mint tokens to users
   const userBalance = ethers.parseEther("10000");
 
   for (const user of [user1, user2, user3]) {
     await tokenA.mint(user.address, userBalance);
-    await tokenB.mint(
-      user.address,
-      ethers.parseUnits("10000", TOKEN_B_DECIMALS),
-    );
-    await tokenC.mint(
-      user.address,
-      ethers.parseUnits("10000", TOKEN_C_DECIMALS),
-    );
+    await tokenB.mint(user.address, ethers.parseUnits("10000", TOKEN_B_DECIMALS));
+    await tokenC.mint(user.address, ethers.parseUnits("10000", TOKEN_C_DECIMALS));
 
     // Set approvals
-    await tokenA
-      .connect(user)
-      .approve(await dexMock.getAddress(), ethers.MaxUint256);
-    await tokenB
-      .connect(user)
-      .approve(await dexMock.getAddress(), ethers.MaxUint256);
-    await tokenC
-      .connect(user)
-      .approve(await dexMock.getAddress(), ethers.MaxUint256);
+    await tokenA.connect(user).approve(await dexMock.getAddress(), ethers.MaxUint256);
+    await tokenB.connect(user).approve(await dexMock.getAddress(), ethers.MaxUint256);
+    await tokenC.connect(user).approve(await dexMock.getAddress(), ethers.MaxUint256);
   }
 
   // Set up exchange rates
-  await dexMock.setExchangeRate(
-    await tokenA.getAddress(),
-    await tokenB.getAddress(),
-    DEFAULT_EXCHANGE_RATE,
-  );
-  await dexMock.setExchangeRate(
-    await tokenB.getAddress(),
-    await tokenA.getAddress(),
-    REVERSE_EXCHANGE_RATE,
-  );
+  await dexMock.setExchangeRate(await tokenA.getAddress(), await tokenB.getAddress(), DEFAULT_EXCHANGE_RATE);
+  await dexMock.setExchangeRate(await tokenB.getAddress(), await tokenA.getAddress(), REVERSE_EXCHANGE_RATE);
   await dexMock.setExchangeRate(
     await tokenA.getAddress(),
     await tokenC.getAddress(),
@@ -160,65 +131,39 @@ describe("SimpleDEXMock Tests", function () {
 
   describe("I. Configuration and Setup", function () {
     it("Should set exchange rates correctly", async function () {
-      const rate = await dexMock.getExchangeRate(
-        await tokenA.getAddress(),
-        await tokenB.getAddress(),
-      );
+      const rate = await dexMock.getExchangeRate(await tokenA.getAddress(), await tokenB.getAddress());
       expect(rate).to.equal(DEFAULT_EXCHANGE_RATE);
     });
 
     it("Should set execution slippage correctly", async function () {
-      expect(await dexMock.executionSlippageBps()).to.equal(
-        EXECUTION_SLIPPAGE_BPS,
-      );
+      expect(await dexMock.executionSlippageBps()).to.equal(EXECUTION_SLIPPAGE_BPS);
     });
 
     it("Should emit events when setting exchange rates", async function () {
       const newRate = ethers.parseEther("2.5");
-      await expect(
-        dexMock.setExchangeRate(
-          await tokenA.getAddress(),
-          await tokenB.getAddress(),
-          newRate,
-        ),
-      )
+      await expect(dexMock.setExchangeRate(await tokenA.getAddress(), await tokenB.getAddress(), newRate))
         .to.emit(dexMock, "ExchangeRateSet")
-        .withArgs(
-          await tokenA.getAddress(),
-          await tokenB.getAddress(),
-          newRate,
-        );
+        .withArgs(await tokenA.getAddress(), await tokenB.getAddress(), newRate);
     });
 
     it("Should emit events when setting execution slippage", async function () {
       const newSlippage = 3 * ONE_PERCENT_BPS;
-      await expect(dexMock.setExecutionSlippage(newSlippage))
-        .to.emit(dexMock, "ExecutionSlippageSet")
-        .withArgs(newSlippage);
+      await expect(dexMock.setExecutionSlippage(newSlippage)).to.emit(dexMock, "ExecutionSlippageSet").withArgs(newSlippage);
     });
 
     it("Should revert when setting invalid exchange rate", async function () {
       await expect(
-        dexMock.setExchangeRate(
-          ethers.ZeroAddress,
-          await tokenB.getAddress(),
-          DEFAULT_EXCHANGE_RATE,
-        ),
+        dexMock.setExchangeRate(ethers.ZeroAddress, await tokenB.getAddress(), DEFAULT_EXCHANGE_RATE),
       ).to.be.revertedWithCustomError(dexMock, "ZeroAddress");
 
-      await expect(
-        dexMock.setExchangeRate(
-          await tokenA.getAddress(),
-          await tokenB.getAddress(),
-          0,
-        ),
-      ).to.be.revertedWithCustomError(dexMock, "ZeroAmount");
+      await expect(dexMock.setExchangeRate(await tokenA.getAddress(), await tokenB.getAddress(), 0)).to.be.revertedWithCustomError(
+        dexMock,
+        "ZeroAmount",
+      );
     });
 
     it("Should revert when setting invalid execution slippage", async function () {
-      await expect(
-        dexMock.setExecutionSlippage(ONE_HUNDRED_PERCENT_BPS),
-      ).to.be.revertedWith("Execution slippage cannot be 100% or more");
+      await expect(dexMock.setExecutionSlippage(ONE_HUNDRED_PERCENT_BPS)).to.be.revertedWith("Execution slippage cannot be 100% or more");
     });
   });
 
@@ -471,39 +416,21 @@ describe("SimpleDEXMock Tests", function () {
     for (const testCase of exactInputTestCases) {
       it(testCase.name, async function () {
         const user = accounts[testCase.userIndex];
-        const inputToken =
-          testCase.inputToken === "A"
-            ? tokenA
-            : testCase.inputToken === "B"
-              ? tokenB
-              : tokenC;
-        const outputToken =
-          testCase.outputToken === "A"
-            ? tokenA
-            : testCase.outputToken === "B"
-              ? tokenB
-              : tokenC;
+        const inputToken = testCase.inputToken === "A" ? tokenA : testCase.inputToken === "B" ? tokenB : tokenC;
+        const outputToken = testCase.outputToken === "A" ? tokenA : testCase.outputToken === "B" ? tokenB : tokenC;
 
         // Get initial balances
         const initialInputBalance = await inputToken.balanceOf(user.address);
         const initialOutputBalance = await outputToken.balanceOf(user.address);
 
         // Set exchange rate
-        await dexMock.setExchangeRate(
-          await inputToken.getAddress(),
-          await outputToken.getAddress(),
-          testCase.exchangeRate,
-        );
+        await dexMock.setExchangeRate(await inputToken.getAddress(), await outputToken.getAddress(), testCase.exchangeRate);
 
         // Set execution slippage
         await dexMock.setExecutionSlippage(testCase.executionSlippage);
 
         // Preview the swap
-        const estimatedOutput = await dexMock.previewSwapExactInput(
-          inputToken,
-          outputToken,
-          testCase.amountIn,
-        );
+        const estimatedOutput = await dexMock.previewSwapExactInput(inputToken, outputToken, testCase.amountIn);
 
         // Execute the swap
         const tx = await dexMock.connect(user).executeSwapExactInput(
@@ -518,31 +445,18 @@ describe("SimpleDEXMock Tests", function () {
         const finalInputBalance = await inputToken.balanceOf(user.address);
         const finalOutputBalance = await outputToken.balanceOf(user.address);
 
-        expect(finalInputBalance).to.equal(
-          initialInputBalance - testCase.amountIn,
-        );
-        expect(finalOutputBalance).to.equal(
-          initialOutputBalance + estimatedOutput,
-        );
+        expect(finalInputBalance).to.equal(initialInputBalance - testCase.amountIn);
+        expect(finalOutputBalance).to.equal(initialOutputBalance + estimatedOutput);
 
         // Verify the actual amounts match expected amounts
         const actualInputSpent = initialInputBalance - finalInputBalance;
         const actualOutputReceived = finalOutputBalance - initialOutputBalance;
 
-        expect(actualInputSpent).to.equal(
-          testCase.amountIn,
-          "Input amount spent should match expected",
-        );
-        expect(actualOutputReceived).to.equal(
-          estimatedOutput,
-          "Output amount received should match expected",
-        );
+        expect(actualInputSpent).to.equal(testCase.amountIn, "Input amount spent should match expected");
+        expect(actualOutputReceived).to.equal(estimatedOutput, "Output amount received should match expected");
 
         // Verify the expected output amount matches the expected output amount
-        expect(actualOutputReceived).to.equal(
-          testCase.expectedOutput,
-          "Output amount received should match expected",
-        );
+        expect(actualOutputReceived).to.equal(testCase.expectedOutput, "Output amount received should match expected");
 
         // Verify event emission
         await expect(tx)
@@ -568,11 +482,7 @@ describe("SimpleDEXMock Tests", function () {
 
         // Temporarily remove slippage and check
         await dexMock.setExecutionSlippage(0);
-        const outputNoSlippage = await dexMock.previewSwapExactInput(
-          inputToken,
-          outputToken,
-          testCase.amountIn,
-        );
+        const outputNoSlippage = await dexMock.previewSwapExactInput(inputToken, outputToken, testCase.amountIn);
 
         // Restore slippage
         await dexMock.setExecutionSlippage(testCase.executionSlippage);
@@ -586,47 +496,24 @@ describe("SimpleDEXMock Tests", function () {
 
         // Calculate expected slippage reduction
         const expectedSlippedOutput =
-          (outputNoSlippage *
-            BigInt(ONE_HUNDRED_PERCENT_BPS - testCase.executionSlippage)) /
-          BigInt(ONE_HUNDRED_PERCENT_BPS);
+          (outputNoSlippage * BigInt(ONE_HUNDRED_PERCENT_BPS - testCase.executionSlippage)) / BigInt(ONE_HUNDRED_PERCENT_BPS);
         expect(estimatedOutput).to.be.closeTo(expectedSlippedOutput, 1);
       });
     }
 
     it("Should revert when output is below minimum", async function () {
       const amountIn = ethers.parseEther("100");
-      const expectedOutput = await dexMock.previewSwapExactInput(
-        tokenA,
-        tokenB,
-        amountIn,
-      );
-      const tooHighMinimum =
-        expectedOutput + ethers.parseUnits("1", TOKEN_B_DECIMALS);
+      const expectedOutput = await dexMock.previewSwapExactInput(tokenA, tokenB, amountIn);
+      const tooHighMinimum = expectedOutput + ethers.parseUnits("1", TOKEN_B_DECIMALS);
 
       await expect(
-        dexMock
-          .connect(user1)
-          .executeSwapExactInput(
-            tokenA,
-            tokenB,
-            amountIn,
-            tooHighMinimum,
-            user1.address,
-          ),
+        dexMock.connect(user1).executeSwapExactInput(tokenA, tokenB, amountIn, tooHighMinimum, user1.address),
       ).to.be.revertedWithCustomError(dexMock, "InsufficientOutputAmount");
     });
 
     it("Should revert when exchange rate not set", async function () {
       await expect(
-        dexMock
-          .connect(user1)
-          .executeSwapExactInput(
-            tokenB,
-            tokenC,
-            ethers.parseUnits("100", TOKEN_B_DECIMALS),
-            0,
-            user1.address,
-          ),
+        dexMock.connect(user1).executeSwapExactInput(tokenB, tokenC, ethers.parseUnits("100", TOKEN_B_DECIMALS), 0, user1.address),
       ).to.be.revertedWithCustomError(dexMock, "ExchangeRateNotSet");
     });
 
@@ -634,15 +521,7 @@ describe("SimpleDEXMock Tests", function () {
       await tokenA.connect(user1).approve(await dexMock.getAddress(), 0);
 
       await expect(
-        dexMock
-          .connect(user1)
-          .executeSwapExactInput(
-            tokenA,
-            tokenB,
-            ethers.parseEther("100"),
-            0,
-            user1.address,
-          ),
+        dexMock.connect(user1).executeSwapExactInput(tokenA, tokenB, ethers.parseEther("100"), 0, user1.address),
       ).to.be.revertedWithCustomError(dexMock, "InsufficientAllowance");
     });
   });
@@ -916,39 +795,21 @@ describe("SimpleDEXMock Tests", function () {
     for (const testCase of exactOutputTestCases) {
       it(testCase.name, async function () {
         const user = accounts[testCase.userIndex];
-        const inputToken =
-          testCase.inputToken === "A"
-            ? tokenA
-            : testCase.inputToken === "B"
-              ? tokenB
-              : tokenC;
-        const outputToken =
-          testCase.outputToken === "A"
-            ? tokenA
-            : testCase.outputToken === "B"
-              ? tokenB
-              : tokenC;
+        const inputToken = testCase.inputToken === "A" ? tokenA : testCase.inputToken === "B" ? tokenB : tokenC;
+        const outputToken = testCase.outputToken === "A" ? tokenA : testCase.outputToken === "B" ? tokenB : tokenC;
 
         // Get initial balances
         const initialInputBalance = await inputToken.balanceOf(user.address);
         const initialOutputBalance = await outputToken.balanceOf(user.address);
 
         // Set exchange rate
-        await dexMock.setExchangeRate(
-          await inputToken.getAddress(),
-          await outputToken.getAddress(),
-          testCase.exchangeRate,
-        );
+        await dexMock.setExchangeRate(await inputToken.getAddress(), await outputToken.getAddress(), testCase.exchangeRate);
 
         // Set execution slippage
         await dexMock.setExecutionSlippage(testCase.executionSlippage);
 
         // Preview the swap
-        const estimatedInput = await dexMock.previewSwapExactOutput(
-          inputToken,
-          outputToken,
-          testCase.amountOut,
-        );
+        const estimatedInput = await dexMock.previewSwapExactOutput(inputToken, outputToken, testCase.amountOut);
 
         // Execute the swap
         const tx = await dexMock.connect(user).executeSwapExactOutput(
@@ -963,31 +824,18 @@ describe("SimpleDEXMock Tests", function () {
         const finalInputBalance = await inputToken.balanceOf(user.address);
         const finalOutputBalance = await outputToken.balanceOf(user.address);
 
-        expect(finalInputBalance).to.equal(
-          initialInputBalance - estimatedInput,
-        );
-        expect(finalOutputBalance).to.equal(
-          initialOutputBalance + testCase.amountOut,
-        );
+        expect(finalInputBalance).to.equal(initialInputBalance - estimatedInput);
+        expect(finalOutputBalance).to.equal(initialOutputBalance + testCase.amountOut);
 
         // Verify the actual amounts match expected amounts
         const actualInputSpent = initialInputBalance - finalInputBalance;
         const actualOutputReceived = finalOutputBalance - initialOutputBalance;
 
-        expect(actualInputSpent).to.equal(
-          estimatedInput,
-          "Input amount spent should match expected",
-        );
-        expect(actualOutputReceived).to.equal(
-          testCase.amountOut,
-          "Output amount received should match expected",
-        );
+        expect(actualInputSpent).to.equal(estimatedInput, "Input amount spent should match expected");
+        expect(actualOutputReceived).to.equal(testCase.amountOut, "Output amount received should match expected");
 
         // Verify the expected input amount matches the expected input amount
-        expect(actualInputSpent).to.equal(
-          testCase.expectedInput,
-          "Input amount spent should match expected",
-        );
+        expect(actualInputSpent).to.equal(testCase.expectedInput, "Input amount spent should match expected");
 
         // Verify event emission
         await expect(tx)
@@ -1005,42 +853,21 @@ describe("SimpleDEXMock Tests", function () {
 
     it("Should revert when input exceeds maximum", async function () {
       const amountOut = ethers.parseUnits("150", TOKEN_B_DECIMALS);
-      const expectedInput = await dexMock.previewSwapExactOutput(
-        tokenA,
-        tokenB,
-        amountOut,
-      );
+      const expectedInput = await dexMock.previewSwapExactOutput(tokenA, tokenB, amountOut);
       const tooLowMaximum = expectedInput - ethers.parseEther("1");
 
       await expect(
-        dexMock
-          .connect(user1)
-          .executeSwapExactOutput(
-            tokenA,
-            tokenB,
-            amountOut,
-            tooLowMaximum,
-            user1.address,
-          ),
+        dexMock.connect(user1).executeSwapExactOutput(tokenA, tokenB, amountOut, tooLowMaximum, user1.address),
       ).to.be.revertedWithCustomError(dexMock, "ExcessiveInputAmount");
     });
 
     it("Should revert when DEX has insufficient output tokens", async function () {
       // Try to swap for more tokens than the DEX has
       const dexBalance = await tokenB.balanceOf(await dexMock.getAddress());
-      const excessiveAmount =
-        dexBalance + ethers.parseUnits("1", TOKEN_B_DECIMALS);
+      const excessiveAmount = dexBalance + ethers.parseUnits("1", TOKEN_B_DECIMALS);
 
       await expect(
-        dexMock
-          .connect(user1)
-          .executeSwapExactOutput(
-            tokenA,
-            tokenB,
-            excessiveAmount,
-            ethers.MaxUint256,
-            user1.address,
-          ),
+        dexMock.connect(user1).executeSwapExactOutput(tokenA, tokenB, excessiveAmount, ethers.MaxUint256, user1.address),
       ).to.be.revertedWithCustomError(dexMock, "InsufficientBalance");
     });
   });
@@ -1090,14 +917,8 @@ describe("SimpleDEXMock Tests", function () {
 
       for (const scenario of swapScenarios) {
         const userAddr = scenario.user.address;
-        initialBalances.set(
-          `${userAddr}_input`,
-          await scenario.inputToken.balanceOf(userAddr),
-        );
-        initialBalances.set(
-          `${userAddr}_output`,
-          await scenario.outputToken.balanceOf(userAddr),
-        );
+        initialBalances.set(`${userAddr}_input`, await scenario.inputToken.balanceOf(userAddr));
+        initialBalances.set(`${userAddr}_output`, await scenario.outputToken.balanceOf(userAddr));
 
         // Set exchange rate for this scenario
         await dexMock.setExchangeRate(
@@ -1110,14 +931,8 @@ describe("SimpleDEXMock Tests", function () {
         await dexMock.setExecutionSlippage(scenario.executionSlippage);
 
         // Use predefined expected amounts from test case
-        expectedAmounts.set(
-          `${userAddr}_expectedInput`,
-          scenario.expectedInput,
-        );
-        expectedAmounts.set(
-          `${userAddr}_expectedOutput`,
-          scenario.expectedOutput,
-        );
+        expectedAmounts.set(`${userAddr}_expectedInput`, scenario.expectedInput);
+        expectedAmounts.set(`${userAddr}_expectedOutput`, scenario.expectedOutput);
       }
 
       // Execute all swaps
@@ -1125,13 +940,7 @@ describe("SimpleDEXMock Tests", function () {
         if (scenario.swapType === "exactInput") {
           await dexMock
             .connect(scenario.user)
-            .executeSwapExactInput(
-              scenario.inputToken,
-              scenario.outputToken,
-              scenario.amountIn!,
-              0,
-              scenario.user.address,
-            );
+            .executeSwapExactInput(scenario.inputToken, scenario.outputToken, scenario.amountIn!, 0, scenario.user.address);
         } else {
           await dexMock
             .connect(scenario.user)
@@ -1148,33 +957,20 @@ describe("SimpleDEXMock Tests", function () {
       // Verify all balances changed appropriately with exact expected amounts
       for (const scenario of swapScenarios) {
         const userAddr = scenario.user.address;
-        const currentInputBalance =
-          await scenario.inputToken.balanceOf(userAddr);
-        const currentOutputBalance =
-          await scenario.outputToken.balanceOf(userAddr);
+        const currentInputBalance = await scenario.inputToken.balanceOf(userAddr);
+        const currentOutputBalance = await scenario.outputToken.balanceOf(userAddr);
 
         const initialInputBalance = initialBalances.get(`${userAddr}_input`);
         const initialOutputBalance = initialBalances.get(`${userAddr}_output`);
-        const expectedInputAmount = expectedAmounts.get(
-          `${userAddr}_expectedInput`,
-        );
-        const expectedOutputAmount = expectedAmounts.get(
-          `${userAddr}_expectedOutput`,
-        );
+        const expectedInputAmount = expectedAmounts.get(`${userAddr}_expectedInput`);
+        const expectedOutputAmount = expectedAmounts.get(`${userAddr}_expectedOutput`);
 
         // Verify exact input and output amounts
         const actualInputSpent = initialInputBalance - currentInputBalance;
-        const actualOutputReceived =
-          currentOutputBalance - initialOutputBalance;
+        const actualOutputReceived = currentOutputBalance - initialOutputBalance;
 
-        expect(actualInputSpent).to.equal(
-          expectedInputAmount,
-          `User ${userAddr} input amount should match expected`,
-        );
-        expect(actualOutputReceived).to.equal(
-          expectedOutputAmount,
-          `User ${userAddr} output amount should match expected`,
-        );
+        expect(actualInputSpent).to.equal(expectedInputAmount, `User ${userAddr} input amount should match expected`);
+        expect(actualOutputReceived).to.equal(expectedOutputAmount, `User ${userAddr} output amount should match expected`);
 
         // Input balance should have decreased
         expect(currentInputBalance).to.be.lt(initialInputBalance);
@@ -1206,26 +1002,16 @@ describe("SimpleDEXMock Tests", function () {
         await dexMock.setExecutionSlippage(testCase.slippageBps);
 
         // Set exchange rate
-        await dexMock.setExchangeRate(
-          await tokenA.getAddress(),
-          await tokenB.getAddress(),
-          DEFAULT_EXCHANGE_RATE,
-        );
+        await dexMock.setExchangeRate(await tokenA.getAddress(), await tokenB.getAddress(), DEFAULT_EXCHANGE_RATE);
 
         // Get balances before swap
         const initialInputBalance = await tokenA.balanceOf(user1.address);
         const initialOutputBalance = await tokenB.balanceOf(user1.address);
 
-        const expectedOutput = await dexMock.previewSwapExactInput(
-          tokenA,
-          tokenB,
-          amountIn,
-        );
+        const expectedOutput = await dexMock.previewSwapExactInput(tokenA, tokenB, amountIn);
 
         // Execute actual swap to verify
-        await dexMock
-          .connect(user1)
-          .executeSwapExactInput(tokenA, tokenB, amountIn, 0, user1.address);
+        await dexMock.connect(user1).executeSwapExactInput(tokenA, tokenB, amountIn, 0, user1.address);
 
         // Verify actual amounts match expected amounts
         const finalInputBalance = await tokenA.balanceOf(user1.address);
@@ -1256,21 +1042,9 @@ describe("SimpleDEXMock Tests", function () {
       const initialBalance = await tokenB.balanceOf(user1.address);
 
       for (let i = 0; i < rapidSwaps; i++) {
-        const expectedOutput = await dexMock.previewSwapExactInput(
-          tokenA,
-          tokenB,
-          amountPerSwap,
-        );
+        const expectedOutput = await dexMock.previewSwapExactInput(tokenA, tokenB, amountPerSwap);
 
-        await dexMock
-          .connect(user1)
-          .executeSwapExactInput(
-            tokenA,
-            tokenB,
-            amountPerSwap,
-            0,
-            user1.address,
-          );
+        await dexMock.connect(user1).executeSwapExactInput(tokenA, tokenB, amountPerSwap, 0, user1.address);
 
         cumulativeOutput += expectedOutput;
       }
@@ -1290,27 +1064,14 @@ describe("SimpleDEXMock Tests", function () {
       const tokenHighDecimals = await MockERC20.deploy("High Dec", "HIGH", 24); // Reduced from 30 to 24
 
       // Mint tokens to DEX and user
-      await tokenLowDecimals.mint(
-        await dexMock.getAddress(),
-        ethers.parseUnits("1000000", 2),
-      );
-      await tokenHighDecimals.mint(
-        await dexMock.getAddress(),
-        ethers.parseUnits("1000000", 24),
-      );
+      await tokenLowDecimals.mint(await dexMock.getAddress(), ethers.parseUnits("1000000", 2));
+      await tokenHighDecimals.mint(await dexMock.getAddress(), ethers.parseUnits("1000000", 24));
       await tokenLowDecimals.mint(user1.address, ethers.parseUnits("10000", 2));
-      await tokenHighDecimals.mint(
-        user1.address,
-        ethers.parseUnits("10000", 24),
-      );
+      await tokenHighDecimals.mint(user1.address, ethers.parseUnits("10000", 24));
 
       // Set approvals
-      await tokenLowDecimals
-        .connect(user1)
-        .approve(await dexMock.getAddress(), ethers.MaxUint256);
-      await tokenHighDecimals
-        .connect(user1)
-        .approve(await dexMock.getAddress(), ethers.MaxUint256);
+      await tokenLowDecimals.connect(user1).approve(await dexMock.getAddress(), ethers.MaxUint256);
+      await tokenHighDecimals.connect(user1).approve(await dexMock.getAddress(), ethers.MaxUint256);
 
       // Set exchange rate - more reasonable rate to prevent overflow
       await dexMock.setExchangeRate(
@@ -1323,22 +1084,12 @@ describe("SimpleDEXMock Tests", function () {
       const amountIn = ethers.parseUnits("1", 2); // Much smaller amount
 
       try {
-        await dexMock
-          .connect(user1)
-          .executeSwapExactInput(
-            tokenLowDecimals,
-            tokenHighDecimals,
-            amountIn,
-            0,
-            user1.address,
-          );
+        await dexMock.connect(user1).executeSwapExactInput(tokenLowDecimals, tokenHighDecimals, amountIn, 0, user1.address);
         // eslint-disable-next-line unused-imports/no-unused-vars -- error is not used
       } catch (error) {
         // If the extreme decimal difference causes arithmetic issues,
         // that's acceptable for this edge case test
-        console.log(
-          "Extreme decimal difference caused expected arithmetic issues",
-        );
+        console.log("Extreme decimal difference caused expected arithmetic issues");
       }
 
       // Test in the other direction with a more manageable rate
@@ -1352,15 +1103,7 @@ describe("SimpleDEXMock Tests", function () {
 
       // This should work in the reverse direction
       await expect(
-        dexMock
-          .connect(user1)
-          .executeSwapExactInput(
-            tokenHighDecimals,
-            tokenLowDecimals,
-            smallHighDecimalAmount,
-            0,
-            user1.address,
-          ),
+        dexMock.connect(user1).executeSwapExactInput(tokenHighDecimals, tokenLowDecimals, smallHighDecimalAmount, 0, user1.address),
       ).to.not.be.reverted;
     });
 
@@ -1370,22 +1113,11 @@ describe("SimpleDEXMock Tests", function () {
 
       // Mint large amounts
       await tokenA.mint(user1.address, largeAmount);
-      await tokenB.mint(
-        await dexMock.getAddress(),
-        ethers.parseUnits("200000000", TOKEN_B_DECIMALS),
-      );
+      await tokenB.mint(await dexMock.getAddress(), ethers.parseUnits("200000000", TOKEN_B_DECIMALS));
 
-      const expectedOutput = await dexMock.previewSwapExactInput(
-        tokenA,
-        tokenB,
-        largeAmount,
-      );
+      const expectedOutput = await dexMock.previewSwapExactInput(tokenA, tokenB, largeAmount);
 
-      await expect(
-        dexMock
-          .connect(user1)
-          .executeSwapExactInput(tokenA, tokenB, largeAmount, 0, user1.address),
-      ).to.not.be.reverted;
+      await expect(dexMock.connect(user1).executeSwapExactInput(tokenA, tokenB, largeAmount, 0, user1.address)).to.not.be.reverted;
 
       // Verify the large output was received
       const finalBalance = await tokenB.balanceOf(user1.address);
@@ -1396,24 +1128,10 @@ describe("SimpleDEXMock Tests", function () {
       const tinyAmount = 1n; // 1 wei
 
       // This might result in zero output due to rounding, which should be handled gracefully
-      const expectedOutput = await dexMock.previewSwapExactInput(
-        tokenA,
-        tokenB,
-        tinyAmount,
-      );
+      const expectedOutput = await dexMock.previewSwapExactInput(tokenA, tokenB, tinyAmount);
 
       if (expectedOutput > 0) {
-        await expect(
-          dexMock
-            .connect(user1)
-            .executeSwapExactInput(
-              tokenA,
-              tokenB,
-              tinyAmount,
-              0,
-              user1.address,
-            ),
-        ).to.not.be.reverted;
+        await expect(dexMock.connect(user1).executeSwapExactInput(tokenA, tokenB, tinyAmount, 0, user1.address)).to.not.be.reverted;
       } else {
         // If expected output is 0, the swap might fail due to zero amount checks
         // This is acceptable behavior
@@ -1437,37 +1155,17 @@ describe("SimpleDEXMock Tests", function () {
       ];
 
       // Set up additional exchange rates
-      await dexMock.setExchangeRate(
-        await tokenB.getAddress(),
-        await tokenC.getAddress(),
-        ethers.parseEther("1.25"),
-      );
+      await dexMock.setExchangeRate(await tokenB.getAddress(), await tokenC.getAddress(), ethers.parseEther("1.25"));
 
       for (const combo of testCombinations) {
-        const rate = await dexMock.getExchangeRate(
-          await combo.from.getAddress(),
-          await combo.to.getAddress(),
-        );
+        const rate = await dexMock.getExchangeRate(await combo.from.getAddress(), await combo.to.getAddress());
 
         if (rate > 0) {
-          const expectedOutput = await dexMock.previewSwapExactInput(
-            combo.from,
-            combo.to,
-            combo.amount,
-          );
+          const expectedOutput = await dexMock.previewSwapExactInput(combo.from, combo.to, combo.amount);
 
           if (expectedOutput > 0) {
-            await expect(
-              dexMock
-                .connect(user1)
-                .executeSwapExactInput(
-                  combo.from,
-                  combo.to,
-                  combo.amount,
-                  0,
-                  user1.address,
-                ),
-            ).to.not.be.reverted;
+            await expect(dexMock.connect(user1).executeSwapExactInput(combo.from, combo.to, combo.amount, 0, user1.address)).to.not.be
+              .reverted;
           }
         }
       }
@@ -1477,67 +1175,32 @@ describe("SimpleDEXMock Tests", function () {
   describe("VI. Error Conditions and Edge Cases", function () {
     it("Should revert with zero addresses", async function () {
       await expect(
-        dexMock
-          .connect(user1)
-          .executeSwapExactInput(
-            ethers.ZeroAddress as any,
-            tokenB,
-            ethers.parseEther("100"),
-            0,
-            user1.address,
-          ),
+        dexMock.connect(user1).executeSwapExactInput(ethers.ZeroAddress as any, tokenB, ethers.parseEther("100"), 0, user1.address),
       ).to.be.revertedWithCustomError(dexMock, "ZeroAddress");
 
       await expect(
         dexMock
           .connect(user1)
-          .executeSwapExactOutput(
-            tokenA,
-            tokenB,
-            ethers.parseUnits("100", TOKEN_B_DECIMALS),
-            ethers.MaxUint256,
-            ethers.ZeroAddress,
-          ),
+          .executeSwapExactOutput(tokenA, tokenB, ethers.parseUnits("100", TOKEN_B_DECIMALS), ethers.MaxUint256, ethers.ZeroAddress),
       ).to.be.revertedWithCustomError(dexMock, "ZeroAddress");
     });
 
     it("Should revert with zero amounts", async function () {
-      await expect(
-        dexMock
-          .connect(user1)
-          .executeSwapExactInput(tokenA, tokenB, 0, 0, user1.address),
-      ).to.be.revertedWithCustomError(dexMock, "ZeroAmount");
+      await expect(dexMock.connect(user1).executeSwapExactInput(tokenA, tokenB, 0, 0, user1.address)).to.be.revertedWithCustomError(
+        dexMock,
+        "ZeroAmount",
+      );
 
       await expect(
-        dexMock
-          .connect(user1)
-          .executeSwapExactOutput(
-            tokenA,
-            tokenB,
-            0,
-            ethers.MaxUint256,
-            user1.address,
-          ),
+        dexMock.connect(user1).executeSwapExactOutput(tokenA, tokenB, 0, ethers.MaxUint256, user1.address),
       ).to.be.revertedWithCustomError(dexMock, "ZeroAmount");
     });
 
     it("Should handle preview functions with no exchange rate", async function () {
       // Preview should return 0 when no exchange rate is set
-      expect(
-        await dexMock.previewSwapExactInput(
-          tokenB,
-          tokenC,
-          ethers.parseUnits("100", TOKEN_B_DECIMALS),
-        ),
-      ).to.equal(0);
+      expect(await dexMock.previewSwapExactInput(tokenB, tokenC, ethers.parseUnits("100", TOKEN_B_DECIMALS))).to.equal(0);
 
-      expect(
-        await dexMock.previewSwapExactOutput(
-          tokenB,
-          tokenC,
-          ethers.parseUnits("100", TOKEN_C_DECIMALS),
-        ),
-      ).to.equal(0);
+      expect(await dexMock.previewSwapExactOutput(tokenB, tokenC, ethers.parseUnits("100", TOKEN_C_DECIMALS))).to.equal(0);
     });
 
     it("Should work with different receivers", async function () {
@@ -1546,9 +1209,7 @@ describe("SimpleDEXMock Tests", function () {
 
       const initialReceiverBalance = await tokenB.balanceOf(receiver);
 
-      await dexMock
-        .connect(user1)
-        .executeSwapExactInput(tokenA, tokenB, amountIn, 0, receiver);
+      await dexMock.connect(user1).executeSwapExactInput(tokenA, tokenB, amountIn, 0, receiver);
 
       const finalReceiverBalance = await tokenB.balanceOf(receiver);
       expect(finalReceiverBalance).to.be.gt(initialReceiverBalance);
@@ -1570,11 +1231,7 @@ describe("SimpleDEXMock Tests", function () {
 
     it("Should revert emergency withdrawal to zero address", async function () {
       await expect(
-        dexMock.emergencyWithdraw(
-          tokenB,
-          ethers.parseUnits("100", TOKEN_B_DECIMALS),
-          ethers.ZeroAddress,
-        ),
+        dexMock.emergencyWithdraw(tokenB, ethers.parseUnits("100", TOKEN_B_DECIMALS), ethers.ZeroAddress),
       ).to.be.revertedWithCustomError(dexMock, "ZeroAddress");
     });
   });

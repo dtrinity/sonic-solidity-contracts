@@ -12,9 +12,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   // Skip for local networks
   if (isLocalNetwork(hre.network.name)) {
-    console.log(
-      `Skipping dLOOP Periphery Odos swap logic deployment for network ${hre.network.name}.`,
-    );
+    console.log(`Skipping dLOOP Periphery Odos swap logic deployment for network ${hre.network.name}.`);
     return;
   }
 
@@ -23,19 +21,12 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const dloopConfig = networkConfig.dLoop;
 
   // Skip if no dLOOP configuration or no Odos configuration is defined
-  if (
-    !dloopConfig ||
-    (!dloopConfig.depositors?.odos && !dloopConfig.redeemers?.odos)
-  ) {
-    console.log(
-      `No Odos configuration defined for network ${hre.network.name}. Skipping.`,
-    );
+  if (!dloopConfig || (!dloopConfig.depositors?.odos && !dloopConfig.redeemers?.odos)) {
+    console.log(`No Odos configuration defined for network ${hre.network.name}. Skipping.`);
     return;
   }
 
-  console.log(
-    `Deploying Odos swap logic on network ${hre.network.name} (chainId: ${chainId})`,
-  );
+  console.log(`Deploying Odos swap logic on network ${hre.network.name} (chainId: ${chainId})`);
 
   await hre.deployments.deploy(DLOOP_PERIPHERY_ODOS_SWAP_LOGIC_ID, {
     from: deployer,

@@ -17,7 +17,7 @@
 
 pragma solidity ^0.8.20;
 
-import {IPoolAddressesProvider} from "./IPoolAddressesProvider.sol";
+import { IPoolAddressesProvider } from "./IPoolAddressesProvider.sol";
 
 /**
  * @title IACLManager
@@ -29,10 +29,7 @@ interface IACLManager {
      * @notice Returns the contract address of the PoolAddressesProvider
      * @return The address of the PoolAddressesProvider
      */
-    function ADDRESSES_PROVIDER()
-        external
-        view
-        returns (IPoolAddressesProvider);
+    function ADDRESSES_PROVIDER() external view returns (IPoolAddressesProvider);
 
     /**
      * @notice Returns the identifier of the PoolAdmin role

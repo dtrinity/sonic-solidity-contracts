@@ -17,9 +17,9 @@
 
 pragma solidity ^0.8.20;
 
-import {ITransferStrategyBase} from "../interfaces/ITransferStrategyBase.sol";
-import {GPv2SafeERC20} from "contracts/dlend/core/dependencies/gnosis/contracts/GPv2SafeERC20.sol";
-import {IERC20} from "contracts/dlend/core/dependencies/openzeppelin/contracts/IERC20.sol";
+import { ITransferStrategyBase } from "../interfaces/ITransferStrategyBase.sol";
+import { GPv2SafeERC20 } from "contracts/dlend/core/dependencies/gnosis/contracts/GPv2SafeERC20.sol";
+import { IERC20 } from "contracts/dlend/core/dependencies/openzeppelin/contracts/IERC20.sol";
 
 /**
  * @title TransferStrategyStorage
@@ -40,10 +40,7 @@ abstract contract TransferStrategyBase is ITransferStrategyBase {
      * @dev Modifier for incentives controller only functions
      */
     modifier onlyIncentivesController() {
-        require(
-            INCENTIVES_CONTROLLER == msg.sender,
-            "CALLER_NOT_INCENTIVES_CONTROLLER"
-        );
+        require(INCENTIVES_CONTROLLER == msg.sender, "CALLER_NOT_INCENTIVES_CONTROLLER");
         _;
     }
 
@@ -56,12 +53,7 @@ abstract contract TransferStrategyBase is ITransferStrategyBase {
     }
 
     /// @inheritdoc ITransferStrategyBase
-    function getIncentivesController()
-        external
-        view
-        override
-        returns (address)
-    {
+    function getIncentivesController() external view override returns (address) {
         return INCENTIVES_CONTROLLER;
     }
 
@@ -71,18 +63,10 @@ abstract contract TransferStrategyBase is ITransferStrategyBase {
     }
 
     /// @inheritdoc ITransferStrategyBase
-    function performTransfer(
-        address to,
-        address reward,
-        uint256 amount
-    ) external virtual returns (bool);
+    function performTransfer(address to, address reward, uint256 amount) external virtual returns (bool);
 
     /// @inheritdoc ITransferStrategyBase
-    function emergencyWithdrawal(
-        address token,
-        address to,
-        uint256 amount
-    ) external onlyRewardsAdmin {
+    function emergencyWithdrawal(address token, address to, uint256 amount) external onlyRewardsAdmin {
         IERC20(token).safeTransfer(to, amount);
 
         emit EmergencyWithdrawal(msg.sender, token, to, amount);

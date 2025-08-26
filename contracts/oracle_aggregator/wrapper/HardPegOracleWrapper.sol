@@ -25,11 +25,7 @@ contract HardPegOracleWrapper is IOracleWrapper {
 
     uint256 public BASE_CURRENCY_UNIT;
 
-    constructor(
-        address _baseCurrency,
-        uint256 _baseCurrencyUnit,
-        uint256 _pricePeg
-    ) {
+    constructor(address _baseCurrency, uint256 _baseCurrencyUnit, uint256 _pricePeg) {
         BASE_CURRENCY = _baseCurrency;
         BASE_CURRENCY_UNIT = _baseCurrencyUnit;
         pricePeg = _pricePeg;

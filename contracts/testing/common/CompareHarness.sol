@@ -18,11 +18,7 @@ contract CompareHarness {
         uint256 expectedDelta,
         uint256 tolerance,
         Compare.BalanceDirection direction
-    )
-        external
-        pure
-        returns (bool directionOk, uint256 observedDelta, bool toleranceOk)
-    {
+    ) external pure returns (bool directionOk, uint256 observedDelta, bool toleranceOk) {
         Compare.BalanceCheckResult memory result = Compare.checkBalanceDelta(
             beforeBalance,
             afterBalance,

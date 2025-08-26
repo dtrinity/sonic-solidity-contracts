@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 /// @title MockOdosRouterV2
 /// @notice Very light-weight mock that emulates the minimal behaviour that the production contracts rely on:
@@ -49,11 +49,7 @@ contract MockOdosRouterV2 {
 
         // Pull input tokens from the caller and send output tokens back
         if (b.amountSpent > 0) {
-            IERC20(b.inputToken).transferFrom(
-                msg.sender,
-                address(this),
-                b.amountSpent
-            );
+            IERC20(b.inputToken).transferFrom(msg.sender, address(this), b.amountSpent);
         }
         if (b.amountReceived > 0) {
             IERC20(b.outputToken).transfer(msg.sender, b.amountReceived);

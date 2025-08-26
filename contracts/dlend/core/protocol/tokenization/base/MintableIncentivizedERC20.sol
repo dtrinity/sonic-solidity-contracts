@@ -17,9 +17,9 @@
 
 pragma solidity ^0.8.20;
 
-import {IAaveIncentivesController} from "../../../interfaces/IAaveIncentivesController.sol";
-import {IPool} from "../../../interfaces/IPool.sol";
-import {IncentivizedERC20} from "./IncentivizedERC20.sol";
+import { IAaveIncentivesController } from "../../../interfaces/IAaveIncentivesController.sol";
+import { IPool } from "../../../interfaces/IPool.sol";
+import { IncentivizedERC20 } from "./IncentivizedERC20.sol";
 
 /**
  * @title MintableIncentivizedERC20
@@ -57,11 +57,7 @@ abstract contract MintableIncentivizedERC20 is IncentivizedERC20 {
 
         IAaveIncentivesController incentivesControllerLocal = _incentivesController;
         if (address(incentivesControllerLocal) != address(0)) {
-            incentivesControllerLocal.handleAction(
-                account,
-                oldTotalSupply,
-                oldAccountBalance
-            );
+            incentivesControllerLocal.handleAction(account, oldTotalSupply, oldAccountBalance);
         }
     }
 
@@ -80,11 +76,7 @@ abstract contract MintableIncentivizedERC20 is IncentivizedERC20 {
         IAaveIncentivesController incentivesControllerLocal = _incentivesController;
 
         if (address(incentivesControllerLocal) != address(0)) {
-            incentivesControllerLocal.handleAction(
-                account,
-                oldTotalSupply,
-                oldAccountBalance
-            );
+            incentivesControllerLocal.handleAction(account, oldTotalSupply, oldAccountBalance);
         }
     }
 }
