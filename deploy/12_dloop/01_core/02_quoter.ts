@@ -2,7 +2,7 @@ import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
 
 import { getConfig } from "../../../config/config";
-import { DLOOP_QUOTER_ID } from "../../../typescript/deploy-ids";
+import { DLOOP_CORE_LOGIC_ID, DLOOP_QUOTER_ID } from "../../../typescript/deploy-ids";
 
 /**
  * Deploy DLoopQuoter contract
@@ -39,18 +39,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const networkConfig = await getConfig(hre);
   const dloopConfig = networkConfig.dLoop;
 
-  // Ensure DLoopCoreLogic library is deployed (needed for linking)
-  const dloopCoreLogic = await hre.deployments.getOrNull("DLoopCoreLogic");
-
-  if (!dloopCoreLogic) {
-    await hre.deployments.deploy("DLoopCoreLogic", {
-      from: deployer,
-      contract: "DLoopCoreLogic",
-      args: [],
-      log: true,
-      autoMine: true,
-    });
-  }
+  // DLoopCoreLogic library should be deployed via dependency
 
   // Skip if no dLOOP configuration
   if (!dloopConfig) {
@@ -67,7 +56,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 };
 
 func.tags = ["dloop", "core", "quoter"];
-func.dependencies = ["DLoopCoreLogic"];
+func.dependencies = [DLOOP_CORE_LOGIC_ID];
 func.id = DLOOP_QUOTER_ID;
 
 export default func;
