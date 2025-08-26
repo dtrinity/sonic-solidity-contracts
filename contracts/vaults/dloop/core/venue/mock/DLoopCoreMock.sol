@@ -6,6 +6,7 @@ import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import { BasisPointConstants } from "contracts/common/BasisPointConstants.sol";
 import { PercentageMath } from "contracts/dlend/core/protocol/libraries/math/PercentageMath.sol";
 import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
+import { DLoopCoreLogic } from "../../DLoopCoreLogic.sol";
 
 /**
  * @title DLoopCoreMock
@@ -349,6 +350,26 @@ contract DLoopCoreMock is DLoopCoreBase {
      */
     function testWithdrawFromPoolImplementation(address token, uint256 amount, address onBehalfOf) external {
         _withdrawFromPoolImplementation(token, amount, onBehalfOf);
+    }
+
+    /**
+     * Just for testing to avoid deploying another contract just for testing this method
+     *
+     * @dev Test wrapper for DLoopCoreLogic.getBorrowAmountThatKeepCurrentLeverage
+     */
+    function testGetBorrowAmountThatKeepCurrentLeverage(
+        uint256 amount,
+        uint256 currentLeverageBpsBeforeSupply
+    ) external view returns (uint256) {
+        return DLoopCoreLogic.getBorrowAmountThatKeepCurrentLeverage(
+            amount,
+            currentLeverageBpsBeforeSupply,
+            targetLeverageBps,
+            ERC20(collateralToken).decimals(),
+            getAssetPriceFromOracle(address(collateralToken)),
+            ERC20(debtToken).decimals(),
+            getAssetPriceFromOracle(address(debtToken))
+        );
     }
 
     // --- Mock State Getters for Testing ---
