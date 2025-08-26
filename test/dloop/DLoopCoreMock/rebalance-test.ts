@@ -3,14 +3,15 @@ import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { ethers } from "hardhat";
 
-import { DLoopCoreMock, TestMintableERC20 } from "../../../typechain-types";
+import { DLoopCoreMock, DLoopQuoter, TestMintableERC20 } from "../../../typechain-types";
 import { ONE_BPS_UNIT, ONE_PERCENT_BPS } from "../../../typescript/common/bps_constants";
 import { deployDLoopMockFixture, LOWER_BOUND_BPS, MAX_SUBSIDY_BPS, TARGET_LEVERAGE_BPS, testSetup, UPPER_BOUND_BPS } from "./fixture";
 
 // NOTE: High-level rebalance scenarios are covered by CoreLogic tests; skip redundant mock integration suite
-describe.skip("DLoopCoreMock Rebalance Tests", function () {
+describe("DLoopCoreMock Rebalance Tests", function () {
   // Contract instances and addresses
   let dloopMock: DLoopCoreMock;
+  let quoter: DLoopQuoter;
   let collateralToken: TestMintableERC20;
   let debtToken: TestMintableERC20;
   let accounts: HardhatEthersSigner[];
@@ -21,6 +22,7 @@ describe.skip("DLoopCoreMock Rebalance Tests", function () {
     await testSetup(fixture);
 
     dloopMock = fixture.dloopMock;
+    quoter = fixture.quoter;
     collateralToken = fixture.collateralToken;
     debtToken = fixture.debtToken;
     accounts = fixture.accounts;
@@ -112,7 +114,7 @@ describe.skip("DLoopCoreMock Rebalance Tests", function () {
         expect(leverageAfterPriceChange).to.be.lt(TARGET_LEVERAGE_BPS);
 
         // Get expected quote for increase leverage
-        const [, direction] = await dloopMock.quoteRebalanceAmountToReachTargetLeverage();
+        const [, , direction] = await quoter.quoteRebalanceAmountToReachTargetLeverage(await dloopMock.getAddress());
         expect(direction).to.equal(testCase.expectedDirection);
 
         // Get user balances before increase leverage
@@ -231,7 +233,7 @@ describe.skip("DLoopCoreMock Rebalance Tests", function () {
         expect(leverageAfterPriceChange).to.be.gt(TARGET_LEVERAGE_BPS);
 
         // Get expected quote for decrease leverage
-        const [, direction] = await dloopMock.quoteRebalanceAmountToReachTargetLeverage();
+        const [, , direction] = await quoter.quoteRebalanceAmountToReachTargetLeverage(await dloopMock.getAddress());
         expect(direction).to.equal(testCase.expectedDirection);
 
         // Get user balances before decrease leverage
@@ -717,13 +719,6 @@ describe.skip("DLoopCoreMock Rebalance Tests", function () {
         await dloopMock.setMockPrice(await collateralToken.getAddress(), testCase.priceChangeToImbalance.collateral);
         await dloopMock.setMockPrice(await debtToken.getAddress(), testCase.priceChangeToImbalance.debt);
 
-        // Get quotes with and without vault balance
-        const [tokenAmountWithVault] = await dloopMock.quoteRebalanceAmountToReachTargetLeverage();
-        const [tokenAmountWithoutVault] = await dloopMock.quoteRebalanceAmountToReachTargetLeverage();
-
-        // Should require less additional tokens when using vault balance
-        expect(tokenAmountWithVault).to.be.lte(tokenAmountWithoutVault);
-
         // Perform operation with 0 additional (using only vault balance)
         let userBalanceBefore: bigint;
 
@@ -965,7 +960,7 @@ describe.skip("DLoopCoreMock Rebalance Tests", function () {
         }
 
         // Get exact amount needed to reach target leverage
-        const [exactAmount, direction] = await dloopMock.quoteRebalanceAmountToReachTargetLeverage();
+        const [exactAmount, , direction] = await quoter.quoteRebalanceAmountToReachTargetLeverage(await dloopMock.getAddress());
 
         // Verify direction matches expected operation
         if (testCase.operation === "increase") {
@@ -1024,7 +1019,7 @@ describe.skip("DLoopCoreMock Rebalance Tests", function () {
       expect(currentLeverage).to.be.closeTo(TARGET_LEVERAGE_BPS, 10000);
 
       // Get amount when already at target
-      const [amount, _direction] = await dloopMock.quoteRebalanceAmountToReachTargetLeverage();
+      const [amount, , _direction] = await quoter.quoteRebalanceAmountToReachTargetLeverage(await dloopMock.getAddress());
 
       // When already at target, amount should be very small
       // Direction might not be exactly 0 due to precision, but should indicate minimal adjustment
