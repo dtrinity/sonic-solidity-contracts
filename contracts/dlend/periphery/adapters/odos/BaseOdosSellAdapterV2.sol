@@ -88,24 +88,37 @@ abstract contract BaseOdosSellAdapterV2 is
         );
 
         if (swapType == ISwapTypes.SwapType.REGULAR_SWAP) {
-            // Regular swap - use direct Odos execution
-            return
-                _executeDirectOdosExactInput(
-                    tokenIn,
-                    tokenOut,
-                    amountToSwap,
-                    minAmountToReceive,
-                    swapData
-                );
+            // Regular swap - use direct Odos execution with leftover validation
+            uint256 inputBalanceBefore = assetToSwapFrom.balanceOf(address(this));
+            
+            uint256 swapResult = _executeDirectOdosExactInput(
+                tokenIn,
+                tokenOut,
+                amountToSwap,
+                minAmountToReceive,
+                swapData
+            );
+
+            // Validate no leftover collateral remains after exact input swap
+            uint256 inputBalanceAfter = assetToSwapFrom.balanceOf(address(this));
+            uint256 inputLeftoverAmount = inputBalanceAfter > inputBalanceBefore 
+                ? inputBalanceAfter - inputBalanceBefore 
+                : 0;
+            
+            if (inputLeftoverAmount > 0) {
+                revert LeftoverCollateralAfterSwap(tokenIn, inputLeftoverAmount);
+            }
+
+            return swapResult;
         }
 
         // PT token involved - use composed swap logic
-        uint256 balanceBeforeAssetFrom = assetToSwapFrom.balanceOf(
+        uint256 ptInputBalanceBefore = assetToSwapFrom.balanceOf(
             address(this)
         );
-        if (balanceBeforeAssetFrom < amountToSwap) {
+        if (ptInputBalanceBefore < amountToSwap) {
             revert InsufficientBalanceBeforeSwap(
-                balanceBeforeAssetFrom,
+                ptInputBalanceBefore,
                 amountToSwap
             );
         }
@@ -118,6 +131,16 @@ abstract contract BaseOdosSellAdapterV2 is
             minAmountToReceive,
             swapData
         );
+
+        // Validate no leftover collateral remains after exact input swap
+        uint256 ptInputBalanceAfter = assetToSwapFrom.balanceOf(address(this));
+        uint256 ptLeftoverAmount = ptInputBalanceAfter > ptInputBalanceBefore 
+            ? ptInputBalanceAfter - ptInputBalanceBefore 
+            : 0;
+        
+        if (ptLeftoverAmount > 0) {
+            revert LeftoverCollateralAfterSwap(tokenIn, ptLeftoverAmount);
+        }
 
         emit Bought(tokenIn, tokenOut, amountToSwap, amountReceived);
         return amountReceived;

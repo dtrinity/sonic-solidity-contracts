@@ -156,10 +156,11 @@ contract OdosLiquiditySwapAdapterV2 is
 
         // sell the flashLoanAmount minus the premium, so flashloan repayment is guaranteed
         // flashLoan premium stays in the contract
+        uint256 amountToSwap = flashLoanAmount - flashLoanPremium;
         uint256 amountReceived = _executeAdaptiveSwap(
             IERC20Detailed(flashLoanAsset),
             IERC20Detailed(liquiditySwapParams.newCollateralAsset),
-            flashLoanAmount - flashLoanPremium,
+            amountToSwap,
             liquiditySwapParams.newCollateralAmount,
             liquiditySwapParams.swapData
         );

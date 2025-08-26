@@ -51,5 +51,12 @@ interface IBaseOdosAdapterV2 is IBaseOdosAdapter {
      */
     error InsufficientOutputAfterComposedSwap(uint256 expected, uint256 actual);
 
+    /**
+     * @dev Thrown when leftover collateral remains after exact input swap
+     * @param asset The collateral asset address
+     * @param leftoverAmount The amount of leftover collateral
+     */
+    error LeftoverCollateralAfterSwap(address asset, uint256 leftoverAmount);
+
     /* Structs intentionally omitted to avoid duplication with PTSwapUtils */
 }
