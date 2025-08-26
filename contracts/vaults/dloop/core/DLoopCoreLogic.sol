@@ -438,8 +438,6 @@ library DLoopCoreLogic {
          *      - y is the debt amount in base currency to be borrowed
          *      - x is the collateral amount in base currency to be deposited
          *      - kk is the subsidy in basis points unit
-         *
-         * For more detail, check the comment in _getCollateralTokenDepositAmountToReachTargetLeverage()
          */
 
         // Use rounding down with mulDiv with Rounding.Floor as we want to borrow a bit less, to avoid
@@ -631,8 +629,6 @@ library DLoopCoreLogic {
          *      - x is the collateral amount in base currency to be withdraw
          *      - y is the debt amount in base currency to be repaid
          *      - kk is the subsidy in basis points unit
-         *
-         * For more detail, check the comment in _getDebtRepayAmountInBaseToReachTargetLeverage()
          */
 
         // Use rounding up with mulDiv with Rounding.Ceil as we want to withdraw a bit more, to avoid
