@@ -7,7 +7,7 @@ import { DLoopCoreMock, TestMintableERC20 } from "../../../typechain-types";
 import { deployDLoopMockFixture, testSetup } from "./fixture";
 
 // NOTE: Mostly covered by CoreLogic conversion tests; skip redundant mock-level oracle tests
-describe.skip("DLoopCoreMock Oracle Tests", function () {
+describe("DLoopCoreMock Oracle Tests", function () {
   // Contract instances and addresses
   let dloopMock: DLoopCoreMock;
   let collateralToken: TestMintableERC20;
@@ -285,12 +285,7 @@ describe.skip("DLoopCoreMock Oracle Tests", function () {
       const depositAmount = ethers.parseEther("100");
 
       // Calculate expected borrow amount using current prices
-      const expectedBorrowAmount = await dloopMock.getBorrowAmountThatKeepCurrentLeverage(
-        await collateralToken.getAddress(),
-        await debtToken.getAddress(),
-        depositAmount,
-        300_0000, // 300% target leverage
-      );
+      const expectedBorrowAmount = await dloopMock.testGetBorrowAmountThatKeepCurrentLeverage(depositAmount, 300_0000);
 
       // Verify the calculation uses oracle prices
       expect(expectedBorrowAmount).to.be.gt(0);
