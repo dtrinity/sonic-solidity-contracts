@@ -65,8 +65,10 @@ abstract contract BaseOdosSellAdapter is BaseOdosSwapAdapter {
         uint256 amountToSwap,
         uint256 minAmountToReceive,
         bytes memory swapData
-    ) internal returns (uint256 amountReceived) {
-        uint256 balanceBeforeAssetFrom = assetToSwapFrom.balanceOf(address(this));
+    ) internal virtual returns (uint256 amountReceived) {
+        uint256 balanceBeforeAssetFrom = assetToSwapFrom.balanceOf(
+            address(this)
+        );
         uint256 balanceBeforeAssetTo = assetToSwapTo.balanceOf(address(this));
 
         if (balanceBeforeAssetFrom < amountToSwap) {

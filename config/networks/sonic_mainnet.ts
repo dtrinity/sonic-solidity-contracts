@@ -53,6 +53,7 @@ export async function getConfig(_hre: HardhatRuntimeEnvironment): Promise<Config
   const osAddress = "0xb1e25689D55734FD3ffFc939c4C3Eb52DFf8A794";
 
   const odoRouterV2Address = "0xaC041Df48dF9791B0654f1Dbbf2CC8450C5f2e9D"; // OdoRouterV2
+  const pendleRouterV4Address = "0x888888888889758F76e7103c6CbF23ABbF58F946"; // PendleRouterV4
 
   const governanceSafeMultisig = "0xE83c188a7BE46B90715C757A06cF917175f30262";
 
@@ -394,6 +395,7 @@ export async function getConfig(_hre: HardhatRuntimeEnvironment): Promise<Config
     },
     odos: {
       router: odoRouterV2Address,
+      pendleRouter: pendleRouterV4Address,
     },
     dStake: {
       sdUSD: {
