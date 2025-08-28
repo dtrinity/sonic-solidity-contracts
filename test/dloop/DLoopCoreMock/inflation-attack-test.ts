@@ -6,8 +6,7 @@ import { ethers } from "hardhat";
 import { DLoopCoreMock, DLoopQuoter, TestMintableERC20 } from "../../../typechain-types";
 import { deployDLoopMockFixture, testSetup } from "./fixture";
 
-// NOTE: Outdated scenario relative to current leverage logic; skip this legacy mock test suite
-describe.skip("DLoopCoreMock - Inflation Attack Tests", function () {
+describe("DLoopCoreMock - Inflation Attack Tests", function () {
   // Contract instances and addresses
   let dloopMock: DLoopCoreMock;
   let collateralToken: TestMintableERC20;
