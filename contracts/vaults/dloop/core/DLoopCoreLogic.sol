@@ -31,6 +31,7 @@ library DLoopCoreLogic {
     error TotalCollateralBaseIsLessThanTotalDebtBase(uint256 totalCollateralBase, uint256 totalDebtBase);
     error InputCollateralTokenAmountIsZero();
     error InputDebtTokenAmountIsZero();
+    error InvalidWithdrawalFeeBps(uint256 withdrawalFeeBps);
 
     /**
      * @dev Gets the current leverage in basis points
@@ -798,6 +799,9 @@ library DLoopCoreLogic {
         uint256 netAmount,
         uint256 withdrawalFeeBps
     ) internal pure returns (uint256 grossAmount) {
+        if (withdrawalFeeBps > BasisPointConstants.ONE_HUNDRED_PERCENT_BPS) {
+            revert InvalidWithdrawalFeeBps(withdrawalFeeBps);
+        }
         return
             Math.mulDiv(
                 netAmount,
@@ -816,6 +820,9 @@ library DLoopCoreLogic {
         uint256 grossAmount,
         uint256 withdrawalFeeBps
     ) internal pure returns (uint256 netAmount) {
+        if (withdrawalFeeBps > BasisPointConstants.ONE_HUNDRED_PERCENT_BPS) {
+            revert InvalidWithdrawalFeeBps(withdrawalFeeBps);
+        }
         return
             Math.mulDiv(
                 grossAmount,
