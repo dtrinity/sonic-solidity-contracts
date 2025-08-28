@@ -17,6 +17,11 @@ import { createLeverageIncreaseScenario, deployDLoopIncreaseLeverageMockFixture 
  */
 describe("DLoopIncreaseLeverageBase – double-counting collateral bug", function () {
   it("Should successfully increase leverage with a flash loan when user supplies exactly the required collateral", async function () {
+    /**
+     * With flash-loan case, we expect no input fund are needed from the caller
+     * The helper should therefore flash-loan the required collateral token amount
+     */
+
     const { dloopMock, quoter, increaseLeverageMock, collateralToken, debtToken, simpleDEXMock, mockPool, accounts, deployer, user1 } =
       await loadFixture(deployDLoopIncreaseLeverageMockFixture);
 
@@ -47,24 +52,28 @@ describe("DLoopIncreaseLeverageBase – double-counting collateral bug", functio
     expect(direction).to.equal(1); // We need to increase leverage
     expect(fullRequiredCollateralAmount).to.be.gt(0n);
 
-    /*
-     * 3️⃣  Pre-fund periphery with less than required amount.
-     *     The helper should recognise it lacks collateral and therefore
-     *     take a flash-loan for the shortfall.
-     */
+    // Only use 1/2 of the required collateral amount
     const requiredCollateralAmount = fullRequiredCollateralAmount / 2n;
-
-    // 4️⃣  Capture state before the leverage adjustment
-    const leverageBefore = await dloopMock.getCurrentLeverageBps();
-    const userDebtTokenBalanceBefore = await debtToken.balanceOf(user1.address);
 
     // Make sure the periphery has no collateral balance
     // This will trigger flash-loan since periphery has no collateral balance
     const peripheryCollateralBalance = await collateralToken.balanceOf(await increaseLeverageMock.getAddress());
     expect(peripheryCollateralBalance).to.equal(0n);
 
+    // Make sure caller has 0 collateral token balance as well
+    // This case, we use another account to call the periphery mock
+    // to prove that no input fund are needed from the caller
+    const rebalancerCaller = accounts[5];
+    expect(rebalancerCaller.address).not.to.equal(user1.address);
+    const callerCollateralBalance = await collateralToken.balanceOf(rebalancerCaller.address);
+    expect(callerCollateralBalance).to.equal(0n);
+
+    // 4️⃣  Capture state before the leverage adjustment
+    const leverageBefore = await dloopMock.getCurrentLeverageBps();
+    const userDebtTokenBalanceBefore = await debtToken.balanceOf(rebalancerCaller.address);
+
     // 5️⃣  The call should now succeed (flash-loan branch is taken)
-    await increaseLeverageMock.connect(user1).increaseLeverage(
+    await increaseLeverageMock.connect(rebalancerCaller).increaseLeverage(
       requiredCollateralAmount,
       "0x", // swap data (ignored by SimpleDEXMock)
       dloopMock,
@@ -74,8 +83,11 @@ describe("DLoopIncreaseLeverageBase – double-counting collateral bug", functio
     const leverageFinal = await dloopMock.getCurrentLeverageBps();
     expect(leverageFinal).to.be.gt(leverageBefore);
 
+    // Leverage must not exceed the target leverage
+    expect(leverageFinal).to.lte(await dloopMock.targetLeverageBps());
+
     // 7️⃣  User should have received debt tokens from the operation
-    const userDebtTokenBalanceAfter = await debtToken.balanceOf(user1.address);
+    const userDebtTokenBalanceAfter = await debtToken.balanceOf(rebalancerCaller.address);
     expect(userDebtTokenBalanceAfter).to.be.gt(userDebtTokenBalanceBefore);
   });
 });
