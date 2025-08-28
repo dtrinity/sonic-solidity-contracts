@@ -55,8 +55,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   return true;
 };
 
-func.tags = ["dloop", "core", "quoter"];
-func.dependencies = ["logic"];
+func.tags = ["dloop", "dloop-quoter"];
+func.dependencies = ["dloop-core-logic"];
 func.id = DLOOP_QUOTER_ID;
 
 export default func;

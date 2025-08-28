@@ -38,7 +38,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   return true;
 };
 
-func.tags = ["dloop", "core", "logic"];
+func.tags = ["dloop", "dloop-core-logic"];
 func.id = DLOOP_CORE_LOGIC_ID;
 
 export default func;
