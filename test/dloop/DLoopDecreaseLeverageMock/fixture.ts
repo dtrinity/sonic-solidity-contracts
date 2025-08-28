@@ -26,7 +26,6 @@ export interface DLoopDecreaseLeverageFixture {
   decreaseLeverageMock: DLoopDecreaseLeverageMock;
   collateralToken: TestMintableERC20;
   debtToken: TestERC20FlashMintable;
-  flashLender: TestERC20FlashMintable;
   simpleDEXMock: SimpleDEXMock;
   mockPool: HardhatEthersSigner;
   accounts: HardhatEthersSigner[];
@@ -114,7 +113,6 @@ export async function deployDLoopDecreaseLeverageFixture(): Promise<DLoopDecreas
     decreaseLeverageMock,
     collateralToken,
     debtToken,
-    flashLender,
     simpleDEXMock,
     mockPool,
     accounts,
