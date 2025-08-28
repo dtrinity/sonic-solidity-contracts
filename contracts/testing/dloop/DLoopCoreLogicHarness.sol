@@ -267,4 +267,31 @@ contract DLoopCoreLogicHarness {
     function getNetAmountAfterFeePublic(uint256 grossAmount, uint256 withdrawalFeeBps) external pure returns (uint256) {
         return DLoopCoreLogic.getNetAmountAfterFee(grossAmount, withdrawalFeeBps);
     }
+
+    // Missing functions from mock tests - implemented using existing logic
+    function getTargetLeveragedAssetsPublic(uint256 assets) external pure returns (uint256) {
+        return DLoopCoreLogic.getLeveragedAssetsWithLeverage(assets, 3000000); // 3x leverage (target) = 300 * 10000
+    }
+
+    function getCurrentLeveragedAssetsPublic(
+        uint256 inputAssets,
+        uint256 totalCollateralBase,
+        uint256 totalDebtBase
+    ) external pure returns (uint256) {
+        uint256 currentLeverageBps = DLoopCoreLogic.getCurrentLeverageBps(totalCollateralBase, totalDebtBase);
+        return DLoopCoreLogic.getLeveragedAssetsWithLeverage(inputAssets, currentLeverageBps);
+    }
+
+    function getUnleveragedAssetsWithTargetLeveragePublic(uint256 leveragedAssets) external pure returns (uint256) {
+        return DLoopCoreLogic.getUnleveragedAssetsWithLeverage(leveragedAssets, 3000000); // 3x leverage (target) = 300 * 10000
+    }
+
+    function getUnleveragedAssetsWithCurrentLeveragePublic(
+        uint256 leveragedAssets,
+        uint256 totalCollateralBase,
+        uint256 totalDebtBase
+    ) external pure returns (uint256) {
+        uint256 currentLeverageBps = DLoopCoreLogic.getCurrentLeverageBps(totalCollateralBase, totalDebtBase);
+        return DLoopCoreLogic.getUnleveragedAssetsWithLeverage(leveragedAssets, currentLeverageBps);
+    }
 }
