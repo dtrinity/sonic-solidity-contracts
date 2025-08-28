@@ -104,25 +104,62 @@ describe("DLoopCoreLogic - Decrease Leverage", () => {
       });
     }
 
-    it("returns zero when equal to target, reverts when below target", async () => {
-      const { harness } = await deployHarness();
-
+    describe("returns zero when equal to target, reverts when below target", () => {
       // equal to target => returns 0
-      {
+      it("equal to target", async () => {
+        const { harness } = await deployHarness();
         const tc = { C: 1_000_000n, D: 500_000n, TT: 2_000_000n, k: 0n };
         const Lcur = await harness.getCurrentLeverageBpsPublic(tc.C, tc.D);
         expect(Lcur === tc.TT).to.equal(true);
         const res = await harness.getDebtRepayAmountInBaseToReachTargetLeveragePublic(tc.TT, tc.C, tc.D, tc.k);
         expect(res).to.equal(0n);
-      }
+      });
 
       // below target => revert with panic 0x11
-      {
+      it("reverts with FailedGettingDebtTokenRepayAmountNumerator", async () => {
+        const { harness } = await deployHarness();
         const tc = { C: 1_000_000n, D: 333_333n, TT: 2_000_000n, k: 0n };
         const Lcur = await harness.getCurrentLeverageBpsPublic(tc.C, tc.D);
         expect(Lcur < tc.TT).to.equal(true);
-        await expect(harness.getDebtRepayAmountInBaseToReachTargetLeveragePublic(tc.TT, tc.C, tc.D, tc.k)).to.be.revertedWithPanic(0x11);
-      }
+        await expect(harness.getDebtRepayAmountInBaseToReachTargetLeveragePublic(tc.TT, tc.C, tc.D, tc.k)).to.be.revertedWithCustomError(
+          harness,
+          "FailedGettingDebtTokenRepayAmountNumerator",
+        );
+      });
+
+      // denominator underflow => revert with FailedGettingDebtTokenRepayAmountDenominator
+      it("reverts with FailedGettingDebtTokenRepayAmountDenominator", async () => {
+        const { harness } = await deployHarness();
+        // To trigger FailedGettingDebtTokenRepayAmountDenominator:
+        // Math.mulDiv(TT, k, 1000000) > (1000000 + k)
+        // Rearranging: TT * k > 1000000 * (1000000 + k)
+        // Using large TT and k values to cause underflow
+        // Current leverage for C=20M, D=19M is ~1950000 bps (19M/20M * 1000000)
+        const tc = { C: 20_000_000n, D: 19_000_000n, TT: 9_000_000n, k: 1_000_000n };
+        const Lcur = await harness.getCurrentLeverageBpsPublic(tc.C, tc.D);
+        expect(Lcur).to.be.gt(tc.TT);
+        await expect(harness.getDebtRepayAmountInBaseToReachTargetLeveragePublic(tc.TT, tc.C, tc.D, tc.k)).to.be.revertedWithCustomError(
+          harness,
+          "FailedGettingDebtTokenRepayAmountDenominator",
+        );
+      });
+
+      // denominator is zero => revert with DenominatorIsZero
+      it("reverts with DenominatorIsZero", async () => {
+        const { harness } = await deployHarness();
+        // To trigger DenominatorIsZero:
+        // Math.mulDiv(TT, k, 1000000) == (1000000 + k)
+        // Rearranging: TT * k == 1000000 * (1000000 + k)
+        // Using specific values where this equality holds
+        // Current leverage for C=5M, D=4M is ~1800000 bps (4M/5M * 1000000)
+        const tc = { C: 5_000_000n, D: 4_000_000n, TT: 2_000_000n, k: 1_000_000n };
+        const Lcur = await harness.getCurrentLeverageBpsPublic(tc.C, tc.D);
+        expect(Lcur).to.be.gt(tc.TT);
+        await expect(harness.getDebtRepayAmountInBaseToReachTargetLeveragePublic(tc.TT, tc.C, tc.D, tc.k)).to.be.revertedWithCustomError(
+          harness,
+          "DenominatorIsZero",
+        );
+      });
     });
   });
 
