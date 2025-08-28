@@ -2,8 +2,11 @@
 pragma solidity ^0.8.20;
 
 import { DLoopCoreLogic } from "contracts/vaults/dloop/core/DLoopCoreLogic.sol";
+import { BasisPointConstants } from "contracts/common/BasisPointConstants.sol";
 
 contract DLoopCoreLogicHarness {
+    uint256 public constant TARGET_LEVERAGE_BPS = 3 * BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
+
     // State logic
     function getCurrentLeverageBpsPublic(
         uint256 totalCollateralBase,
@@ -270,7 +273,7 @@ contract DLoopCoreLogicHarness {
 
     // Missing functions from mock tests - implemented using existing logic
     function getTargetLeveragedAssetsPublic(uint256 assets) external pure returns (uint256) {
-        return DLoopCoreLogic.getLeveragedAssetsWithLeverage(assets, 3000000); // 3x leverage (target) = 300 * 10000
+        return DLoopCoreLogic.getLeveragedAssetsWithLeverage(assets, TARGET_LEVERAGE_BPS);
     }
 
     function getCurrentLeveragedAssetsPublic(
