@@ -1,7 +1,6 @@
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
 
-import { getConfig } from "../../../config/config";
 import { DLOOP_CORE_LOGIC_ID } from "../../../typescript/deploy-ids";
 
 /**
@@ -30,17 +29,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { getNamedAccounts, getChainId } = hre;
   const { deployer } = await getNamedAccounts();
   const chainId = await getChainId();
-
-  // Allow local deployments (do not skip on localhost/hardhat)
-  // Get network config
-  const networkConfig = await getConfig(hre);
-  const dloopConfig = networkConfig.dLoop;
-
-  // Skip if no dLOOP configuration
-  if (!dloopConfig) {
-    console.log(`No dLOOP configuration found for network ${hre.network.name}. Skipping DLoopCoreLogic deployment.`);
-    return;
-  }
 
   console.log(`Deploying DLoopCoreLogic on network ${hre.network.name} (chainId: ${chainId})`);
 

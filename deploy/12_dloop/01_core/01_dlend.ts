@@ -144,7 +144,7 @@ async function deployDLoopCoreDLend(
     log: true,
     autoMine: true,
     libraries: {
-      DLoopCoreLogic: (await hre.deployments.get("DLoopCoreLogic")).address,
+      DLoopCoreLogic: (await hre.deployments.get(DLOOP_CORE_LOGIC_ID)).address,
     },
   });
 

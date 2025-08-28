@@ -91,7 +91,7 @@ describe("DLoopCoreLogic - Decrease Leverage", () => {
         const { harness } = await deployHarness();
         // Precondition: current leverage must be > target
         const Lcur = await harness.getCurrentLeverageBpsPublic(tc.C, tc.D);
-        if (Lcur <= tc.TT) return; // skip invalid case
+        expect(Lcur).to.be.gt(tc.TT);
 
         const y = await harness.getDebtRepayAmountInBaseToReachTargetLeveragePublic(tc.TT, tc.C, tc.D, tc.k);
         const x = await harness.getCollateralWithdrawAmountInBaseToDecreaseLeveragePublic(y, tc.k);

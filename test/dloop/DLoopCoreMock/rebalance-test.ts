@@ -431,8 +431,7 @@ describe("DLoopCoreMock Rebalance Tests", function () {
     ];
 
     for (const testCase of errorCaseTests) {
-      const testFunction = testCase.name.includes("SKIP") ? it.skip : it;
-      testFunction(testCase.name, async function () {
+      it(testCase.name, async function () {
         const user = accounts[1];
 
         // Set initial prices
@@ -814,9 +813,8 @@ describe("DLoopCoreMock Rebalance Tests", function () {
           // If user already deposited in the previous scenario, skip deposit
           const currentShares = await dloopMock.balanceOf(user.address);
 
-          if (currentShares === 0n) {
-            await dloopMock.connect(user).deposit(ethers.parseEther("100"), user.address);
-          }
+          expect(currentShares).to.equal(0n);
+          await dloopMock.connect(user).deposit(ethers.parseEther("100"), user.address);
 
           // Create imbalance
           await dloopMock.setMockPrice(await collateralToken.getAddress(), testCase.priceChange.collateral);

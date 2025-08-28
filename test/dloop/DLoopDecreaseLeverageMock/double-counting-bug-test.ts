@@ -41,11 +41,7 @@ describe("DLoopDecreaseLeverageBase – double-counting collateral protection", 
 
     console.log(`After price decrease: leverage=${currentLeverage}, target=${targetLeverage}, upperBound=${upperBound}`);
 
-    // Only proceed if leverage is above target (need to decrease)
-    if (currentLeverage <= targetLeverage) {
-      console.log("Skipping test - leverage is not above target after price decrease");
-      return;
-    }
+    expect(currentLeverage).to.be.gt(targetLeverage);
 
     // Calculate the amount needed to reach the upper bound (400%)
     // Current leverage is ~600%, target upper bound is 400%
