@@ -2,7 +2,7 @@ import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
 
 import { getConfig } from "../../../config/config";
-import { DLOOP_CORE_LOGIC_ID, DLOOP_QUOTER_ID } from "../../../typescript/deploy-ids";
+import { DLOOP_QUOTER_ID } from "../../../typescript/deploy-ids";
 
 /**
  * Deploy DLoopQuoter contract
@@ -56,7 +56,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 };
 
 func.tags = ["dloop", "core", "quoter"];
-func.dependencies = [DLOOP_CORE_LOGIC_ID];
+func.dependencies = ["logic"];
 func.id = DLOOP_QUOTER_ID;
 
 export default func;

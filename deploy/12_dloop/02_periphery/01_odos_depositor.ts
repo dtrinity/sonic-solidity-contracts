@@ -61,7 +61,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 };
 
 func.tags = ["dloop", "periphery", "odos", "depositor"];
-func.dependencies = [DLOOP_PERIPHERY_ODOS_SWAP_LOGIC_ID];
+func.dependencies = ["swap-logic"];
 func.id = DLOOP_PERIPHERY_ODOS_DEPOSITOR_ID;
 
 export default func;

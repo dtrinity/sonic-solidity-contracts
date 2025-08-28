@@ -6,7 +6,6 @@ import { getConfig } from "../../../config/config";
 import { DLoopCoreConfig } from "../../../config/types";
 import { assertNotEmpty } from "../../../typescript/common/assert";
 import {
-  DLEND_STATIC_A_TOKEN_FACTORY_ID,
   DLOOP_CORE_DLEND_ID,
   DLOOP_CORE_LOGIC_ID,
   DUSD_A_TOKEN_WRAPPER_ID,
@@ -198,11 +197,11 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
 func.tags = ["dloop", "core", "dlend"];
 func.dependencies = [
-  DLOOP_CORE_LOGIC_ID,
-  POOL_ADDRESSES_PROVIDER_ID,
-  INCENTIVES_PROXY_ID,
-  POOL_DATA_PROVIDER_ID,
-  DLEND_STATIC_A_TOKEN_FACTORY_ID,
+  "logic",
+  "PoolAddressesProvider",
+  "dlend-periphery-post",
+  "PoolDataProvider",
+  "dlend-static-wrapper-factory",
   "dStableATokenWrappers",
 ];
 func.id = DLOOP_CORE_DLEND_ID;
