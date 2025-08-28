@@ -1,8 +1,6 @@
 import { expect } from "chai";
 import { ethers } from "hardhat";
 
-import { ONE_PERCENT_BPS } from "../../../typescript/common/bps_constants";
-
 import type { DLoopCoreLogicHarness } from "../../../typechain-types/contracts/testing/dloop/DLoopCoreLogicHarness";
 
 describe("DLoopCoreLogic - Conversion Logic", () => {
