@@ -141,6 +141,7 @@ explorer.verify.sonic_mainnet:
 	@yarn hardhat --network sonic_mainnet etherscan-verify --api-key 4EJCRRD3JKIE6TKF6ME7AKVYWFEJI79A26 --api-url https://api.sonicscan.org
 
 ##############
+
 ## Building ##
 ##############
 
