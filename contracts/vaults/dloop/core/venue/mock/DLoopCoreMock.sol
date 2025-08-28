@@ -25,6 +25,9 @@ contract DLoopCoreMock is DLoopCoreBase {
     mapping(address => address[]) private mockDebtTokens; // user => tokens
     address public mockPool;
 
+    // Mock state for additional rescue tokens
+    address[] private mockAdditionalRescueTokens;
+
     // This is used to test the supply, borrow, repay, withdraw wrapper validation
     uint256 public transferPortionBps;
 
@@ -147,8 +150,8 @@ contract DLoopCoreMock is DLoopCoreBase {
      * @inheritdoc DLoopCoreBase
      * @return address[] Additional rescue tokens
      */
-    function _getAdditionalRescueTokensImplementation() internal pure override returns (address[] memory) {
-        return new address[](0);
+    function _getAdditionalRescueTokensImplementation() internal view override returns (address[] memory) {
+        return mockAdditionalRescueTokens;
     }
 
     function _getAssetPriceFromOracleImplementation(address asset) internal view override returns (uint256) {
@@ -320,7 +323,7 @@ contract DLoopCoreMock is DLoopCoreBase {
     /**
      * @dev Test wrapper for _getAdditionalRescueTokensImplementation
      */
-    function testGetAdditionalRescueTokensImplementation() external pure returns (address[] memory) {
+    function testGetAdditionalRescueTokensImplementation() external view returns (address[] memory) {
         return _getAdditionalRescueTokensImplementation();
     }
 
@@ -361,15 +364,16 @@ contract DLoopCoreMock is DLoopCoreBase {
         uint256 amount,
         uint256 currentLeverageBpsBeforeSupply
     ) external view returns (uint256) {
-        return DLoopCoreLogic.getBorrowAmountThatKeepCurrentLeverage(
-            amount,
-            currentLeverageBpsBeforeSupply,
-            targetLeverageBps,
-            ERC20(collateralToken).decimals(),
-            getAssetPriceFromOracle(address(collateralToken)),
-            ERC20(debtToken).decimals(),
-            getAssetPriceFromOracle(address(debtToken))
-        );
+        return
+            DLoopCoreLogic.getBorrowAmountThatKeepCurrentLeverage(
+                amount,
+                currentLeverageBpsBeforeSupply,
+                targetLeverageBps,
+                ERC20(collateralToken).decimals(),
+                getAssetPriceFromOracle(address(collateralToken)),
+                ERC20(debtToken).decimals(),
+                getAssetPriceFromOracle(address(debtToken))
+            );
     }
 
     // --- Mock State Getters for Testing ---
@@ -409,5 +413,27 @@ contract DLoopCoreMock is DLoopCoreBase {
         uint256 price = mockPrices[asset];
         if (price == 0) revert MockPriceNotSet(asset);
         return price;
+    }
+
+    /**
+     * @dev Set additional rescue tokens for testing
+     * @param tokens Array of token addresses to be treated as additional rescue tokens
+     */
+    function setMockAdditionalRescueTokens(address[] calldata tokens) external {
+        // Clear existing tokens
+        delete mockAdditionalRescueTokens;
+
+        // Add new tokens
+        for (uint256 i = 0; i < tokens.length; i++) {
+            mockAdditionalRescueTokens.push(tokens[i]);
+        }
+    }
+
+    /**
+     * @dev Get the current mock additional rescue tokens
+     * @return Array of additional rescue token addresses
+     */
+    function getMockAdditionalRescueTokens() external view returns (address[] memory) {
+        return mockAdditionalRescueTokens;
     }
 }
