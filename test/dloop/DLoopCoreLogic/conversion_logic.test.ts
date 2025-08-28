@@ -85,6 +85,63 @@ describe("DLoopCoreLogic - Conversion Logic", () => {
         price: 10n,
         expected: 100n,
       },
+      // Additional test cases from mock tests for better coverage
+      {
+        name: "Should convert with 6 decimal token",
+        amountInBase: ethers.parseUnits("100", 8), // $100
+        dec: 6n,
+        price: ethers.parseUnits("1", 8), // $1 per token
+        expected: ethers.parseUnits("100", 6), // 100 tokens
+      },
+      {
+        name: "Should convert with 8 decimal token",
+        amountInBase: ethers.parseUnits("500", 8), // $500
+        dec: 8n,
+        price: ethers.parseUnits("5", 8), // $5 per token
+        expected: ethers.parseUnits("100", 8), // 100 tokens
+      },
+      {
+        name: "Should handle fractional result",
+        amountInBase: ethers.parseUnits("150", 8), // $150
+        dec: 18n,
+        price: ethers.parseUnits("3", 8), // $3 per token
+        expected: ethers.parseEther("50"), // 150/3 = 50 tokens
+      },
+      {
+        name: "Should handle high price token",
+        amountInBase: ethers.parseUnits("10000", 8), // $10,000
+        dec: 18n,
+        price: ethers.parseUnits("5000", 8), // $5,000 per token
+        expected: ethers.parseEther("2"), // 10000/5000 = 2 tokens
+      },
+      {
+        name: "Should handle low price token",
+        amountInBase: ethers.parseUnits("1", 8), // $1
+        dec: 18n,
+        price: ethers.parseUnits("0.01", 8), // $0.01 per token
+        expected: ethers.parseEther("100"), // 1/0.01 = 100 tokens
+      },
+      {
+        name: "Should handle very small amounts",
+        amountInBase: 1n, // Smallest unit
+        dec: 18n,
+        price: ethers.parseUnits("1", 8),
+        expected: ethers.parseUnits("1", 10), // 1 * 10^18 / 10^8 = 10^10
+      },
+      {
+        name: "Should handle precision edge case",
+        amountInBase: ethers.parseUnits("333.33333333", 8),
+        dec: 18n,
+        price: ethers.parseUnits("111.11111111", 8),
+        expected: ethers.parseEther("3"), // Close to 3
+      },
+      {
+        name: "Should handle rounding down",
+        amountInBase: ethers.parseUnits("999", 8), // $999
+        dec: 18n,
+        price: ethers.parseUnits("1000", 8), // $1000 per token
+        expected: ethers.parseUnits("999", 15), // 999 * 10^18 / 10^11 = 999 * 10^7
+      },
     ];
 
     for (const tc of cases) {
@@ -167,6 +224,63 @@ describe("DLoopCoreLogic - Conversion Logic", () => {
         dec: 0n,
         price: 10n,
         expected: 10000n,
+      },
+      // Additional test cases from mock tests for better coverage
+      {
+        name: "Should convert with 6 decimal token",
+        amountInToken: ethers.parseUnits("100", 6), // 100 tokens
+        dec: 6n,
+        price: ethers.parseUnits("1", 8), // $1 per token
+        expected: ethers.parseUnits("100", 8), // $100
+      },
+      {
+        name: "Should convert with 8 decimal token",
+        amountInToken: ethers.parseUnits("100", 8), // 100 tokens
+        dec: 8n,
+        price: ethers.parseUnits("5", 8), // $5 per token
+        expected: ethers.parseUnits("500", 8), // $500
+      },
+      {
+        name: "Should handle fractional tokens",
+        amountInToken: ethers.parseEther("50.5"), // 50.5 tokens
+        dec: 18n,
+        price: ethers.parseUnits("3", 8), // $3 per token
+        expected: ethers.parseUnits("151.5", 8), // 50.5 * 3 = $151.5
+      },
+      {
+        name: "Should handle high price token",
+        amountInToken: ethers.parseEther("2"), // 2 tokens
+        dec: 18n,
+        price: ethers.parseUnits("5000", 8), // $5,000 per token
+        expected: ethers.parseUnits("10000", 8), // $10,000
+      },
+      {
+        name: "Should handle low price token",
+        amountInToken: ethers.parseEther("100"), // 100 tokens
+        dec: 18n,
+        price: ethers.parseUnits("0.01", 8), // $0.01 per token
+        expected: ethers.parseUnits("1", 8), // $1
+      },
+      {
+        name: "Should handle reasonable token amounts",
+        amountInToken: ethers.parseEther("1000"), // 1000 tokens
+        dec: 18n,
+        price: ethers.parseUnits("1", 8), // $1 per token
+        expected: ethers.parseUnits("1000", 8), // $1000
+      },
+      {
+        name: "Should handle precision calculations",
+        amountInToken: ethers.parseEther("3.333333333333333333"),
+        dec: 18n,
+        price: ethers.parseUnits("111.11111111", 8),
+        expected: ethers.parseUnits("370.37037036", 8), // Adjusted for precision loss
+      },
+      {
+        name: "Should handle large token amounts",
+        amountInToken: ethers.parseEther("1000000"), // 1M tokens
+        dec: 18n,
+        price: ethers.parseUnits("1", 8), // $1 per token
+        expected: ethers.parseUnits("1000000", 8), // $1M
       },
     ];
 

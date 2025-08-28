@@ -139,7 +139,7 @@ abstract contract DLoopDecreaseLeverageBase is
             _decreaseLeverageWithFlashLoan(rebalanceDebtAmount, collateralToDebtTokenSwapData, dLoopCore);
         } else {
             // No flash loan needed, direct decrease leverage
-            _decreaseLeverageWithoutFlashLoan(dLoopCore, currentDebtTokenBalance);
+            _decreaseLeverageWithoutFlashLoan(dLoopCore, rebalanceDebtAmount);
         }
 
         // Verify leverage decreased

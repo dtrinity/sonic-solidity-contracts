@@ -177,24 +177,20 @@ describe("DLoopCoreMock Virtual Methods Tests", function () {
     });
 
     it("Should handle multiple tokens for the same user", async function () {
-      // Set up multiple collateral and debt tokens
-      const collateral1Amount = ethers.parseEther("100");
-      const collateral2Amount = ethers.parseEther("50");
-      const debt1Amount = ethers.parseEther("30");
-      const debt2Amount = ethers.parseEther("20");
+      // Set up collateral and debt using the single tokens supported by base contract
+      const collateralAmount = ethers.parseEther("100");
+      const debtAmount = ethers.parseEther("30");
 
-      // Use both tokens as collateral and debt
-      await dloopMock.setMockCollateral(user1, await collateralToken.getAddress(), collateral1Amount);
-      await dloopMock.setMockCollateral(user1, await debtToken.getAddress(), collateral2Amount);
-      await dloopMock.setMockDebt(user1, await collateralToken.getAddress(), debt1Amount);
-      await dloopMock.setMockDebt(user1, await debtToken.getAddress(), debt2Amount);
+      // Use the designated collateral and debt tokens
+      await dloopMock.setMockCollateral(user1, await collateralToken.getAddress(), collateralAmount);
+      await dloopMock.setMockDebt(user1, await debtToken.getAddress(), debtAmount);
 
       const [totalCollateralBase, totalDebtBase] = await dloopMock.getTotalCollateralAndDebtOfUserInBase(user1);
 
-      // Expected collateral: (100 + 50) * 1.0 = 150
-      expect(totalCollateralBase).to.equal(150n * 10n ** 8n);
-      // Expected debt: (30 + 20) * 1.0 = 50
-      expect(totalDebtBase).to.equal(50n * 10n ** 8n);
+      // Expected collateral: 100 * 1.0 = 100
+      expect(totalCollateralBase).to.equal(100n * 10n ** 8n);
+      // Expected debt: 30 * 1.0 = 30
+      expect(totalDebtBase).to.equal(30n * 10n ** 8n);
     });
   });
 

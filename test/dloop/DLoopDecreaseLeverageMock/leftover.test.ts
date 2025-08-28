@@ -9,11 +9,17 @@ describe("DLoopDecreaseLeverageMock - Leftover Collateral Token Handling", funct
     const fixture = await loadFixture(deployDLoopDecreaseLeverageFixture);
     await testSetup(fixture);
 
-    const { dloopCoreMock, decreaseLeverageMock, collateralToken, debtToken, user1 } = fixture;
+    const { dloopCoreMock, quoter, decreaseLeverageMock, collateralToken, debtToken, user1 } = fixture;
 
     // Create imbalanced position (above target leverage)
     const depositAmount = ethers.parseEther("100");
-    await createImbalancedLeveragePosition(fixture, user1, depositAmount);
+    const { leverageAfter } = await createImbalancedLeveragePosition(fixture, user1, depositAmount);
+
+    // Check if leverage is actually above upper bound
+    const upperBound = await dloopCoreMock.upperBoundTargetLeverageBps();
+
+    // Make sure the scenario is created correctly
+    expect(leverageAfter).to.be.gt(upperBound);
 
     // Pre-fund periphery with some debt tokens for the operation
     await debtToken.mint(await decreaseLeverageMock.getAddress(), ethers.parseEther("10"));
@@ -27,27 +33,25 @@ describe("DLoopDecreaseLeverageMock - Leftover Collateral Token Handling", funct
     await dloopCoreMock.setTransferPortionBps(1_000_000);
 
     // Ensure the core holds enough debt tokens to perform repay (mock uses transfer from core)
-    const result = await dloopCoreMock.quoteRebalanceAmountToReachTargetLeverage();
-    const requiredDebtAmount = result[0];
-    const direction = result[2];
+    // Note: quoteRebalanceAmountToReachTargetLeverage is now in DLoopQuoter contract
+    // For this test, we'll use a fixed amount for testing leftover functionality
+    const [fullRequiredDebtAmount, , direction] = await quoter.quoteRebalanceAmountToReachTargetLeverage(await dloopCoreMock.getAddress());
+
+    const requiredDebtAmount = (fullRequiredDebtAmount + 1n) / 2n;
     expect(direction).to.equal(-1n);
     await debtToken.mint(await dloopCoreMock.getAddress(), requiredDebtAmount);
 
+    // The operation should succeed
     const tx = await decreaseLeverageMock.connect(user1).decreaseLeverage(requiredDebtAmount, "0x", await dloopCoreMock.getAddress());
-
     const receipt = await tx.wait();
 
     // Find event
     const leftoverEvents = receipt!.logs.filter((log) => {
-      try {
-        const parsed = decreaseLeverageMock.interface.parseLog({
-          topics: log.topics,
-          data: log.data,
-        });
-        return parsed?.name === "LeftoverCollateralTokensTransferred";
-      } catch {
-        return false;
-      }
+      const parsed = decreaseLeverageMock.interface.parseLog({
+        topics: log.topics,
+        data: log.data,
+      });
+      return parsed?.name === "LeftoverCollateralTokensTransferred";
     });
 
     expect(leftoverEvents.length).to.be.greaterThan(0);
@@ -58,15 +62,16 @@ describe("DLoopDecreaseLeverageMock - Leftover Collateral Token Handling", funct
     });
 
     expect(parsed).to.not.be.null;
-
-    if (parsed) {
-      expect(parsed.args[0]).to.equal(await collateralToken.getAddress());
-      expect(parsed.args[2]).to.equal(user1.address);
-      expect(parsed.args[1]).to.be.gte(1n);
-    }
+    expect(parsed?.args[0]).to.equal(await collateralToken.getAddress());
+    expect(parsed?.args[2]).to.equal(user1.address);
+    expect(parsed?.args[1]).to.be.gte(1n);
 
     const after = await collateralToken.balanceOf(user1.address);
 
     expect(after).to.be.gte(before);
+
+    // Make sure periphery has no leftovers
+    const leftovers = await collateralToken.balanceOf(await decreaseLeverageMock.getAddress());
+    expect(leftovers).to.equal(0n);
   });
 });

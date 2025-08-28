@@ -31,6 +31,23 @@ library DLoopCoreLogic {
     error TotalCollateralBaseIsLessThanTotalDebtBase(uint256 totalCollateralBase, uint256 totalDebtBase);
     error InputCollateralTokenAmountIsZero();
     error InputDebtTokenAmountIsZero();
+    error InvalidWithdrawalFeeBps(uint256 withdrawalFeeBps);
+    error DenominatorIsZero(uint256 expectedTargetLeverageBps, uint256 totalCollateralBase, uint256 totalDebtBase);
+    error FailedGettingCollateralTokenDepositAmount(
+        uint256 expectedTargetLeverageBps,
+        uint256 totalCollateralBase,
+        uint256 totalDebtBase
+    );
+    error FailedGettingDebtTokenRepayAmountNumerator(
+        uint256 expectedTargetLeverageBps,
+        uint256 totalCollateralBase,
+        uint256 totalDebtBase
+    );
+    error FailedGettingDebtTokenRepayAmountDenominator(
+        uint256 expectedTargetLeverageBps,
+        uint256 totalCollateralBase,
+        uint256 totalDebtBase
+    );
 
     /**
      * @dev Gets the current leverage in basis points
@@ -49,6 +66,7 @@ library DLoopCoreLogic {
             return type(uint256).max; // infinite leverage
         }
         // The leverage will be 1 if totalDebtBase is 0 (no more debt)
+        // In this case, totalCollateralBase > totalDebtBase, thus the denominator is always positive
         uint256 leverageBps = ((totalCollateralBase * BasisPointConstants.ONE_HUNDRED_PERCENT_BPS) /
             (totalCollateralBase - totalDebtBase));
         if (leverageBps < BasisPointConstants.ONE_HUNDRED_PERCENT_BPS) {
@@ -398,6 +416,20 @@ library DLoopCoreLogic {
             revert TotalCollateralBaseIsLessThanTotalDebtBase(totalCollateralBase, totalDebtBase);
         }
 
+        // Now, totalCollateralBase is guaranteed to be greater than totalDebtBase
+        // Use trySub to avoid overflow/underflow
+        (bool success, uint256 numerator) = Math.trySub(
+            expectedTargetLeverageBps * (totalCollateralBase - totalDebtBase),
+            totalCollateralBase * BasisPointConstants.ONE_HUNDRED_PERCENT_BPS
+        );
+        if (!success) {
+            revert FailedGettingCollateralTokenDepositAmount(
+                expectedTargetLeverageBps,
+                totalCollateralBase,
+                totalDebtBase
+            );
+        }
+
         uint256 denominator = BasisPointConstants.ONE_HUNDRED_PERCENT_BPS +
             Math.mulDiv(expectedTargetLeverageBps, subsidyBps, BasisPointConstants.ONE_HUNDRED_PERCENT_BPS);
 
@@ -407,13 +439,9 @@ library DLoopCoreLogic {
         // The logic is to deposit a bit more collateral, and borrow a bit more debt (due to rounding),
         // which will guarantee the new leverage cannot be more than the target leverage, avoid
         // unexpected post-process assertion revert.
-        requiredCollateralDepositAmountInBase = Math.ceilDiv(
-            expectedTargetLeverageBps *
-                (totalCollateralBase - totalDebtBase) -
-                totalCollateralBase *
-                BasisPointConstants.ONE_HUNDRED_PERCENT_BPS,
-            denominator
-        );
+        // This denominator cannot be zero because it is equal to: 100% + x
+        // where is x is uint256, thus is always >= 100%, thus is always positive
+        requiredCollateralDepositAmountInBase = Math.ceilDiv(numerator, denominator);
 
         return requiredCollateralDepositAmountInBase;
     }
@@ -438,8 +466,6 @@ library DLoopCoreLogic {
          *      - y is the debt amount in base currency to be borrowed
          *      - x is the collateral amount in base currency to be deposited
          *      - kk is the subsidy in basis points unit
-         *
-         * For more detail, check the comment in _getCollateralTokenDepositAmountToReachTargetLeverage()
          */
 
         // Use rounding down with mulDiv with Rounding.Floor as we want to borrow a bit less, to avoid
@@ -591,9 +617,35 @@ library DLoopCoreLogic {
             revert TotalCollateralBaseIsLessThanTotalDebtBase(totalCollateralBase, totalDebtBase);
         }
 
-        uint256 denominator = BasisPointConstants.ONE_HUNDRED_PERCENT_BPS +
-            subsidyBps -
-            Math.mulDiv(expectedTargetLeverageBps, subsidyBps, BasisPointConstants.ONE_HUNDRED_PERCENT_BPS);
+        // Now, totalCollateralBase is greater than totalDebtBase, thus: totalCollateralBase - totalDebtBase > 0
+        // Use trySub to avoid overflow/underflow
+        (bool successNumerator, uint256 numerator) = Math.trySub(
+            totalCollateralBase * BasisPointConstants.ONE_HUNDRED_PERCENT_BPS,
+            expectedTargetLeverageBps * (totalCollateralBase - totalDebtBase)
+        );
+        if (!successNumerator) {
+            revert FailedGettingDebtTokenRepayAmountNumerator(
+                expectedTargetLeverageBps,
+                totalCollateralBase,
+                totalDebtBase
+            );
+        }
+
+        (bool successDenominator, uint256 denominator) = Math.trySub(
+            BasisPointConstants.ONE_HUNDRED_PERCENT_BPS + subsidyBps,
+            Math.mulDiv(expectedTargetLeverageBps, subsidyBps, BasisPointConstants.ONE_HUNDRED_PERCENT_BPS)
+        );
+        if (!successDenominator) {
+            revert FailedGettingDebtTokenRepayAmountDenominator(
+                expectedTargetLeverageBps,
+                totalCollateralBase,
+                totalDebtBase
+            );
+        }
+
+        if (denominator == 0) {
+            revert DenominatorIsZero(expectedTargetLeverageBps, totalCollateralBase, totalDebtBase);
+        }
 
         // Do not use ceilDiv as we want to round down required debt repay amount in base currency
         // to avoid getting the new leverage below the target leverage, which will revert the
@@ -601,12 +653,7 @@ library DLoopCoreLogic {
         // The logic is to repay a bit less, and withdraw a bit more collateral (due to rounding),
         // which will guarantee the new leverage cannot be less than the target leverage, avoid
         // unexpected post-process assertion revert.
-        requiredDebtRepayAmountInBase =
-            (totalCollateralBase *
-                BasisPointConstants.ONE_HUNDRED_PERCENT_BPS -
-                expectedTargetLeverageBps *
-                (totalCollateralBase - totalDebtBase)) /
-            denominator;
+        requiredDebtRepayAmountInBase = numerator / denominator;
 
         return requiredDebtRepayAmountInBase;
     }
@@ -631,8 +678,6 @@ library DLoopCoreLogic {
          *      - x is the collateral amount in base currency to be withdraw
          *      - y is the debt amount in base currency to be repaid
          *      - kk is the subsidy in basis points unit
-         *
-         * For more detail, check the comment in _getDebtRepayAmountInBaseToReachTargetLeverage()
          */
 
         // Use rounding up with mulDiv with Rounding.Ceil as we want to withdraw a bit more, to avoid
@@ -802,6 +847,9 @@ library DLoopCoreLogic {
         uint256 netAmount,
         uint256 withdrawalFeeBps
     ) internal pure returns (uint256 grossAmount) {
+        if (withdrawalFeeBps > BasisPointConstants.ONE_HUNDRED_PERCENT_BPS) {
+            revert InvalidWithdrawalFeeBps(withdrawalFeeBps);
+        }
         return
             Math.mulDiv(
                 netAmount,
@@ -820,6 +868,9 @@ library DLoopCoreLogic {
         uint256 grossAmount,
         uint256 withdrawalFeeBps
     ) internal pure returns (uint256 netAmount) {
+        if (withdrawalFeeBps > BasisPointConstants.ONE_HUNDRED_PERCENT_BPS) {
+            revert InvalidWithdrawalFeeBps(withdrawalFeeBps);
+        }
         return
             Math.mulDiv(
                 grossAmount,

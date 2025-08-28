@@ -55,11 +55,11 @@ describe("DLoopCoreLogic - Increase Leverage", () => {
       expect(res).to.equal(2_857_143n);
     });
 
-    it("already near target (tiny)", async () => {
+    it("already near target (tiny), reverts with FailedGettingCollateralTokenDepositAmount", async () => {
       const { harness } = await deployHarness();
       await expect(
         harness.getCollateralTokenDepositAmountToReachTargetLeveragePublic(2n * SCALE, 1_000_001n, 500_001n, 0n),
-      ).to.be.revertedWithPanic(0x11);
+      ).to.be.revertedWithCustomError(harness, "FailedGettingCollateralTokenDepositAmount");
     });
 
     it("large numbers", async () => {
@@ -68,18 +68,18 @@ describe("DLoopCoreLogic - Increase Leverage", () => {
       expect(res).to.equal(3_900_000_000_000_000_000_000_000n);
     });
 
-    it("tiny surplus", async () => {
+    it("tiny surplus, reverts with FailedGettingCollateralTokenDepositAmount", async () => {
       const { harness } = await deployHarness();
       await expect(
         harness.getCollateralTokenDepositAmountToReachTargetLeveragePublic(10n * SCALE, 1_000_000n, 999_999n, 0n),
-      ).to.be.revertedWithPanic(0x11);
+      ).to.be.revertedWithCustomError(harness, "FailedGettingCollateralTokenDepositAmount");
     });
 
-    it("with subsidy rounding up", async () => {
+    it("with subsidy rounding up, reverts with FailedGettingCollateralTokenDepositAmount", async () => {
       const { harness } = await deployHarness();
       await expect(
         harness.getCollateralTokenDepositAmountToReachTargetLeveragePublic(3n * SCALE, 1_000_000n, 750_000n, 3_333n),
-      ).to.be.revertedWithPanic(0x11);
+      ).to.be.revertedWithCustomError(harness, "FailedGettingCollateralTokenDepositAmount");
     });
   });
 

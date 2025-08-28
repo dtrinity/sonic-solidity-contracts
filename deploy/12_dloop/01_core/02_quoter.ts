@@ -39,18 +39,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const networkConfig = await getConfig(hre);
   const dloopConfig = networkConfig.dLoop;
 
-  // Ensure DLoopCoreLogic library is deployed (needed for linking)
-  const dloopCoreLogic = await hre.deployments.getOrNull("DLoopCoreLogic");
-
-  if (!dloopCoreLogic) {
-    await hre.deployments.deploy("DLoopCoreLogic", {
-      from: deployer,
-      contract: "DLoopCoreLogic",
-      args: [],
-      log: true,
-      autoMine: true,
-    });
-  }
+  // DLoopCoreLogic library should be deployed via dependency
 
   // Skip if no dLOOP configuration
   if (!dloopConfig) {
@@ -66,8 +55,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   return true;
 };
 
-func.tags = ["dloop", "core", "quoter"];
-func.dependencies = ["DLoopCoreLogic"];
+func.tags = ["dloop", "dloop-quoter"];
+func.dependencies = ["dloop-core-logic"];
 func.id = DLOOP_QUOTER_ID;
 
 export default func;

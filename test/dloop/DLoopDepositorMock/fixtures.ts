@@ -27,7 +27,6 @@ export interface DLoopMockFixture {
 
 export interface DLoopDepositorMockFixture {
   dLoopDepositorMock: DLoopDepositorMock;
-  flashLender: TestERC20FlashMintable;
   simpleDEXMock: SimpleDEXMock;
   accounts: HardhatEthersSigner[];
   deployer: HardhatEthersSigner;
@@ -70,7 +69,6 @@ export async function deployDLoopDepositorMockFixture(): Promise<{
 
   const dloopDepositorMockFixture: DLoopDepositorMockFixture = {
     dLoopDepositorMock,
-    flashLender,
     simpleDEXMock,
     accounts,
     deployer,
@@ -110,11 +108,6 @@ export async function deployDLoopMockLogic(): Promise<DLoopMockFixture> {
   await collateralToken.mint(mockPool, ethers.parseEther("1000000"));
   await debtToken.mint(mockPool, ethers.parseEther("1000000"));
 
-  // Deploy and link DLoopCoreLogic library before deploying DLoopCoreMock
-  const DLoopCoreLogicFactory = await ethers.getContractFactory("DLoopCoreLogic");
-  const dloopCoreLogicLib = await DLoopCoreLogicFactory.deploy();
-  await dloopCoreLogicLib.waitForDeployment();
-
   // Get the exact nonce for deployment and set up allowances correctly
   const currentNonce = await ethers.provider.getTransactionCount(deployer);
 
@@ -128,12 +121,8 @@ export async function deployDLoopMockLogic(): Promise<DLoopMockFixture> {
   await collateralToken.connect(accounts[0]).approve(contractAddress, ethers.MaxUint256);
   await debtToken.connect(accounts[0]).approve(contractAddress, ethers.MaxUint256);
 
-  // Now deploy the contract (linking the DLoopCoreLogic library)
-  const DLoopCoreMockFactory = await ethers.getContractFactory("DLoopCoreMock", {
-    libraries: {
-      "contracts/vaults/dloop/core/DLoopCoreLogic.sol:DLoopCoreLogic": await dloopCoreLogicLib.getAddress(),
-    },
-  });
+  // Now deploy the contract without library linking
+  const DLoopCoreMockFactory = await ethers.getContractFactory("DLoopCoreMock");
   const dloopMock = await DLoopCoreMockFactory.deploy(
     "Mock dLoop Vault",
     "mdLOOP",
@@ -172,7 +161,7 @@ export async function testSetup(
   dloopDepositorMockFixture: DLoopDepositorMockFixture,
 ): Promise<void> {
   const { dloopMock, collateralToken, debtToken, mockPool } = dloopCoreMockFixture;
-  const { flashLender, simpleDEXMock, user1, user2, user3 } = dloopDepositorMockFixture;
+  const { simpleDEXMock, user1, user2, user3 } = dloopDepositorMockFixture;
 
   // Set default prices
   await dloopMock.setMockPrice(await collateralToken.getAddress(), DEFAULT_PRICE);
@@ -222,8 +211,4 @@ export async function testSetup(
 
   // Set minimal execution slippage (0.1%)
   await simpleDEXMock.setExecutionSlippage(10); // 10 basis points = 0.1%
-
-  // Setup flash lender (mint tokens for flash loans)
-  // The flash lender is the debt token, so mint tokens to itself for flash loans
-  await flashLender.mint(await flashLender.getAddress(), ethers.parseEther("1000000"));
 }

@@ -60,16 +60,8 @@ describe("DLoopCoreDLend – Reward Compounding (vault shares as exchange asset)
     RewardsController = await ethers.getContractFactory("MockRewardsController");
     rewardsController = await RewardsController.deploy(await rewardSource.getAddress());
 
-    // DLoopCoreDLend harness deployment (link required DLoopCoreLogic library)
-    const DLoopCoreLogicFactory = await ethers.getContractFactory("DLoopCoreLogic");
-    const dloopCoreLogicLib = await DLoopCoreLogicFactory.deploy();
-    await dloopCoreLogicLib.waitForDeployment();
-
-    DLoopCoreDLendHarness = await ethers.getContractFactory("DLoopCoreDLendHarness", {
-      libraries: {
-        "contracts/vaults/dloop/core/DLoopCoreLogic.sol:DLoopCoreLogic": await dloopCoreLogicLib.getAddress(),
-      },
-    });
+    // DLoopCoreDLend harness deployment (no library linking needed)
+    DLoopCoreDLendHarness = await ethers.getContractFactory("DLoopCoreDLendHarness");
     dloop = await DLoopCoreDLendHarness.deploy(
       "DLend Vault",
       "DLV",

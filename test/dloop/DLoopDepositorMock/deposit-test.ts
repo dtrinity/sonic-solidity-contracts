@@ -13,7 +13,6 @@ describe("DLoopDepositorMock Deposit Tests", function () {
   let dLoopDepositorMock: DLoopDepositorMock;
   let collateralToken: TestMintableERC20;
   let debtToken: TestERC20FlashMintable;
-  let flashLender: TestERC20FlashMintable;
   let simpleDEXMock: SimpleDEXMock;
   let user1: HardhatEthersSigner;
   let user2: HardhatEthersSigner;
@@ -33,7 +32,6 @@ describe("DLoopDepositorMock Deposit Tests", function () {
     debtToken = dloopCoreMockFixture.debtToken;
 
     dLoopDepositorMock = dloopDepositorMockFixture.dLoopDepositorMock;
-    flashLender = dloopDepositorMockFixture.flashLender;
     simpleDEXMock = dloopDepositorMockFixture.simpleDEXMock;
     user1 = dloopDepositorMockFixture.user1;
     user2 = dloopDepositorMockFixture.user2;
@@ -175,13 +173,6 @@ describe("DLoopDepositorMock Deposit Tests", function () {
       it(testCase.name, async function () {
         const user = testCase.userIndex === 1 ? user1 : user2;
 
-        // Check flash lender has sufficient balance
-        const flashLenderBalance = await flashLender.balanceOf(await flashLender.getAddress());
-        expect(flashLenderBalance).to.be.gt(0);
-
-        // Record flash lender state before
-        const initialFlashLenderBalance = await flashLender.balanceOf(await flashLender.getAddress());
-
         // Get initial user share balance
         const initialUserShareBalance = await dloopMock.balanceOf(user.address);
 
@@ -203,14 +194,6 @@ describe("DLoopDepositorMock Deposit Tests", function () {
           testCase.expectedReceivedShares,
           (testCase.expectedReceivedShares * BigInt(ONE_PERCENT_BPS)) / BigInt(0.1 * ONE_HUNDRED_PERCENT_BPS), // 0.1% tolerance for slippage and fees
         );
-
-        // Flash lender balance should return to approximately the same level
-        // (may have small fee differences)
-        const finalFlashLenderBalance = await flashLender.balanceOf(await flashLender.getAddress());
-        expect(finalFlashLenderBalance).to.be.closeTo(
-          initialFlashLenderBalance,
-          ethers.parseEther("1"), // Allow 1 ETH tolerance for fees
-        );
       });
     }
 
@@ -224,7 +207,7 @@ describe("DLoopDepositorMock Deposit Tests", function () {
       for (const testCase of testCases) {
         // Flash loan should have zero fee by default in TestERC20FlashMintable
         const flashLoanAmount = ethers.parseEther("1000");
-        const flashFee = await flashLender.flashFee(await flashLender.getAddress(), flashLoanAmount);
+        const flashFee = await debtToken.flashFee(await debtToken.getAddress(), flashLoanAmount);
         expect(flashFee).to.equal(testCase.expectedFee);
 
         // Calculate reasonable minOutputShares

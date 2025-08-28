@@ -6,8 +6,8 @@ import { getConfig } from "../../../config/config";
 import { DLoopCoreConfig } from "../../../config/types";
 import { assertNotEmpty } from "../../../typescript/common/assert";
 import {
-  DLEND_STATIC_A_TOKEN_FACTORY_ID,
   DLOOP_CORE_DLEND_ID,
+  DLOOP_CORE_LOGIC_ID,
   DUSD_A_TOKEN_WRAPPER_ID,
   INCENTIVES_PROXY_ID,
   POOL_ADDRESSES_PROVIDER_ID,
@@ -143,7 +143,7 @@ async function deployDLoopCoreDLend(
     log: true,
     autoMine: true,
     libraries: {
-      DLoopCoreLogic: (await hre.deployments.get("DLoopCoreLogic")).address,
+      DLoopCoreLogic: (await hre.deployments.get(DLOOP_CORE_LOGIC_ID)).address,
     },
   });
 
@@ -160,18 +160,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const networkConfig = await getConfig(hre);
   const dloopConfig = networkConfig.dLoop;
 
-  // Ensure DLoopCoreLogic library is deployed (needed for linking)
-  const dloopCoreLogic = await hre.deployments.getOrNull("DLoopCoreLogic");
-
-  if (!dloopCoreLogic) {
-    await hre.deployments.deploy("DLoopCoreLogic", {
-      from: deployer,
-      contract: "DLoopCoreLogic",
-      args: [],
-      log: true,
-      autoMine: true,
-    });
-  }
+  // DLoopCoreLogic library should be deployed via dependency
 
   // Skip if no dLOOP configuration or no core vaults are defined
   if (!dloopConfig || !dloopConfig.coreVaults || Object.keys(dloopConfig.coreVaults).length === 0) {
@@ -206,12 +195,13 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   return true;
 };
 
-func.tags = ["dloop", "core", "dlend"];
+func.tags = ["dloop", "dloop-core", "dloop-core-dlend"];
 func.dependencies = [
-  POOL_ADDRESSES_PROVIDER_ID,
-  INCENTIVES_PROXY_ID,
-  POOL_DATA_PROVIDER_ID,
-  DLEND_STATIC_A_TOKEN_FACTORY_ID,
+  "dloop-core-logic",
+  "PoolAddressesProvider",
+  "dlend-periphery-post",
+  "PoolDataProvider",
+  "dlend-static-wrapper-factory",
   "dStableATokenWrappers",
 ];
 func.id = DLOOP_CORE_DLEND_ID;

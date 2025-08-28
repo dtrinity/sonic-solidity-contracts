@@ -409,22 +409,22 @@ export async function getConfig(_hre: HardhatRuntimeEnvironment): Promise<Config
       },
       depositors: {
         odos: {
-          router: "", // Odos doesn't work on localhost
+          router: "0x0000000000000000000000000000000000000000", // dummy address
         },
       },
       redeemers: {
         odos: {
-          router: "", // Odos doesn't work on localhost
+          router: "0x0000000000000000000000000000000000000000", // dummy address
         },
       },
       decreaseLeverage: {
         odos: {
-          router: "", // Odos doesn't work on localhost
+          router: "0x0000000000000000000000000000000000000000", // dummy address
         },
       },
       increaseLeverage: {
         odos: {
-          router: "", // Odos doesn't work on localhost
+          router: "0x0000000000000000000000000000000000000000", // dummy address
         },
       },
     },

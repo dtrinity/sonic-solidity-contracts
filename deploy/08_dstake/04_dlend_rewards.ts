@@ -248,7 +248,7 @@ func.runAtTheEnd = true;
 
 // Hard skip when everything is already configured on-chain
 func.skip = async (hre: HardhatRuntimeEnvironment): Promise<boolean> => {
-  const { deployments, ethers, getNamedAccounts } = hre;
+  const { deployments, ethers } = hre;
   const { getOrNull } = deployments;
 
   const config = await getConfig(hre);
