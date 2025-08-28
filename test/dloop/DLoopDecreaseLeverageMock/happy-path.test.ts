@@ -14,7 +14,7 @@ describe("DLoopDecreaseLeverageMock - Issue #324 Fix - Happy Path", function () 
     const fixture = await loadFixture(deployDLoopDecreaseLeverageFixture);
     await testSetup(fixture);
 
-    const { dloopCoreMock, decreaseLeverageMock, collateralToken, debtToken, user1 } = fixture;
+    const { dloopCoreMock, quoter, decreaseLeverageMock, collateralToken, debtToken, user1 } = fixture;
 
     const depositAmount = ethers.parseEther("100");
     const { leverageAfter } = await createImbalancedLeveragePosition(fixture, user1, depositAmount);
@@ -28,19 +28,17 @@ describe("DLoopDecreaseLeverageMock - Issue #324 Fix - Happy Path", function () 
     // Pre-fund periphery with some debt tokens for the operation
     await debtToken.mint(await decreaseLeverageMock.getAddress(), ethers.parseEther("10"));
 
-    let receipt: any;
+    // Note: quoteRebalanceAmountToReachTargetLeverage is now in DLoopQuoter contract
+    // For this test, we'll use a fixed amount
+    const [fullRequiredDebtAmount, , direction] = await quoter.quoteRebalanceAmountToReachTargetLeverage(await dloopCoreMock.getAddress());
 
-    try {
-      const result = await dloopCoreMock.quoteRebalanceAmountToReachTargetLeverage();
-      const requiredDebtAmount = result[0];
-      const direction = result[2];
-      expect(direction).to.equal(-1);
-      expect(requiredDebtAmount).to.be.gt(0n);
-      const tx = await decreaseLeverageMock.connect(user1).decreaseLeverage(requiredDebtAmount, "0x", await dloopCoreMock.getAddress());
-      receipt = await tx.wait();
-    } catch {
-      return;
-    }
+    // Only use 1/2 of the required debt amount
+    const requiredDebtAmount = (fullRequiredDebtAmount + 1n) / 2n;
+
+    expect(direction).to.equal(-1);
+    expect(requiredDebtAmount).to.be.gt(0n);
+    const tx = await decreaseLeverageMock.connect(user1).decreaseLeverage(requiredDebtAmount, "0x", await dloopCoreMock.getAddress());
+    const receipt = await tx.wait();
 
     const userCollateralAfter = await collateralToken.balanceOf(user1.address);
     const peripheryCollateralAfter = await collateralToken.balanceOf(await decreaseLeverageMock.getAddress());
@@ -49,5 +47,9 @@ describe("DLoopDecreaseLeverageMock - Issue #324 Fix - Happy Path", function () 
     expect(peripheryCollateralAfter).to.equal(0n);
 
     expect(receipt).to.not.be.null;
+
+    // Make sure periphery has no leftovers
+    const leftovers = await collateralToken.balanceOf(await decreaseLeverageMock.getAddress());
+    expect(leftovers).to.equal(0n);
   });
 });

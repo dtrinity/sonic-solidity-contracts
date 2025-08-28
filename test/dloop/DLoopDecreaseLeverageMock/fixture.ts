@@ -4,6 +4,7 @@ import { ethers } from "hardhat";
 import {
   DLoopCoreMock,
   DLoopDecreaseLeverageMock,
+  DLoopQuoter,
   SimpleDEXMock,
   TestERC20FlashMintable,
   TestMintableERC20,
@@ -21,6 +22,7 @@ export const DEBT_DECIMALS = 18;
 
 export interface DLoopDecreaseLeverageFixture {
   dloopCoreMock: DLoopCoreMock;
+  quoter: DLoopQuoter;
   decreaseLeverageMock: DLoopDecreaseLeverageMock;
   collateralToken: TestMintableERC20;
   debtToken: TestERC20FlashMintable;
@@ -62,11 +64,6 @@ export async function deployDLoopDecreaseLeverageFixture(): Promise<DLoopDecreas
   await collateralToken.mint(mockPool, ethers.parseEther("1000000"));
   await debtToken.mint(mockPool, ethers.parseEther("1000000"));
 
-  // Deploy and link DLoopCoreLogic library before deploying DLoopCoreMock
-  const DLoopCoreLogicFactory = await ethers.getContractFactory("DLoopCoreLogic");
-  const dloopCoreLogicLib = await DLoopCoreLogicFactory.deploy();
-  await dloopCoreLogicLib.waitForDeployment();
-
   // Get exact nonce for DLoopCoreMock deployment and set up allowances
   const currentNonce = await ethers.provider.getTransactionCount(deployer);
   const dloopCoreAddress = ethers.getCreateAddress({
@@ -78,12 +75,8 @@ export async function deployDLoopDecreaseLeverageFixture(): Promise<DLoopDecreas
   await collateralToken.connect(deployer).approve(dloopCoreAddress, ethers.MaxUint256);
   await debtToken.connect(deployer).approve(dloopCoreAddress, ethers.MaxUint256);
 
-  // Deploy DLoopCoreMock (linking the DLoopCoreLogic library)
-  const DLoopCoreMockFactory = await ethers.getContractFactory("DLoopCoreMock", {
-    libraries: {
-      "contracts/vaults/dloop/core/DLoopCoreLogic.sol:DLoopCoreLogic": await dloopCoreLogicLib.getAddress(),
-    },
-  });
+  // Deploy DLoopCoreMock without library linking
+  const DLoopCoreMockFactory = await ethers.getContractFactory("DLoopCoreMock");
   const dloopCoreMock = await DLoopCoreMockFactory.deploy(
     "Mock dLoop Vault",
     "mdLOOP",
@@ -105,8 +98,19 @@ export async function deployDLoopDecreaseLeverageFixture(): Promise<DLoopDecreas
     await simpleDEXMock.getAddress(),
   );
 
+  const dloopCoreLogicFactory = await ethers.getContractFactory("DLoopCoreLogic");
+  const dloopCoreLogic = await dloopCoreLogicFactory.deploy();
+
+  const DLoopQuoterFactory = await ethers.getContractFactory("DLoopQuoter", {
+    libraries: {
+      DLoopCoreLogic: await dloopCoreLogic.getAddress(),
+    },
+  });
+  const quoter = await DLoopQuoterFactory.deploy();
+
   return {
     dloopCoreMock: dloopCoreMock as unknown as DLoopCoreMock,
+    quoter,
     decreaseLeverageMock,
     collateralToken,
     debtToken,
