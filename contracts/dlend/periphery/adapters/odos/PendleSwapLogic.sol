@@ -75,7 +75,7 @@ library PendleSwapLogic {
      * @return result True if the token appears to be a PT token
      * @return sy The SY address if it's a PT token, zero address otherwise
      */
-    function isPTToken(address token) internal returns (bool result, address sy) {
+    function isPTToken(address token) internal view returns (bool result, address sy) {
         // Try to call SY() method - PT tokens should have this
         (bool success, bytes memory data) = token.staticcall(abi.encodeWithSignature("SY()"));
 
@@ -84,9 +84,8 @@ library PendleSwapLogic {
             sy = abi.decode(data, (address));
             result = sy != address(0);
 
-            if (result) {
-                emit PTTokenDetected(token, sy);
-            }
+            // Note: Events removed since this is now a view function
+            // PT token detection events can be emitted at higher level if needed
         }
     }
 
@@ -112,8 +111,14 @@ library PendleSwapLogic {
         // Execute Pendle swap via PendleSwapUtils library (PT → underlying)
         PendleSwapUtils.swapExactInput(ptToken, underlyingAsset, ptAmount, pendleRouter, swapData);
 
-        // Calculate actual underlying tokens received
+        // Calculate actual underlying tokens received with underflow protection
         uint256 underlyingBalanceAfter = IERC20(underlyingAsset).balanceOf(address(this));
+
+        // Protect against underflow: ensure balance after >= balance before
+        if (underlyingBalanceAfter < underlyingBalanceBefore) {
+            revert UnderlyingBalanceInsufficient(0, underlyingBalanceBefore - underlyingBalanceAfter);
+        }
+
         actualUnderlyingOut = underlyingBalanceAfter - underlyingBalanceBefore;
 
         emit PTSwapExecuted(ptToken, underlyingAsset, ptAmount, actualUnderlyingOut);
@@ -228,8 +233,13 @@ library PendleSwapLogic {
                 swapData.odosCalldata
             );
 
-            // Verify we actually received underlying tokens
+            // Verify we actually received underlying tokens with underflow protection
             uint256 underlyingBalanceAfterOdos = IERC20(swapData.underlyingAsset).balanceOf(address(this));
+
+            if (underlyingBalanceAfterOdos < underlyingBalanceBeforeOdos) {
+                revert IBaseOdosAdapterV2.OdosSwapFailed("Odos swap resulted in balance decrease");
+            }
+
             uint256 actualReceived = underlyingBalanceAfterOdos - underlyingBalanceBeforeOdos;
 
             if (actualReceived == 0) {
@@ -317,8 +327,13 @@ library PendleSwapLogic {
                 swapData.odosCalldata
             );
 
-            // Verify we received underlying tokens
+            // Verify we received underlying tokens with underflow protection
             uint256 underlyingBalanceAfter = IERC20(swapData.underlyingAsset).balanceOf(address(this));
+
+            if (underlyingBalanceAfter < underlyingBalanceBefore) {
+                revert IBaseOdosAdapterV2.OdosSwapFailed("Odos PT swap resulted in balance decrease");
+            }
+
             actualUnderlyingReceived = underlyingBalanceAfter - underlyingBalanceBefore;
         }
 
@@ -378,7 +393,7 @@ library PendleSwapLogic {
     function determineSwapType(
         address inputToken,
         address outputToken
-    ) internal returns (ISwapTypes.SwapType swapType) {
+    ) internal view returns (ISwapTypes.SwapType swapType) {
         (bool inputIsPT, ) = isPTToken(inputToken);
         (bool outputIsPT, ) = isPTToken(outputToken);
 

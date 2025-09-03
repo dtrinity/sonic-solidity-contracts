@@ -26,22 +26,19 @@ import { OdosSwapUtils } from "contracts/odos/OdosSwapUtils.sol";
 import { PendleSwapLogic } from "./PendleSwapLogic.sol";
 import { ISwapTypes } from "./interfaces/ISwapTypes.sol";
 import { SwapExecutorV2 } from "./SwapExecutorV2.sol";
-import { IPriceOracleGetter } from "contracts/dlend/core/interfaces/IPriceOracleGetter.sol";
+import { OracleValidation } from "./OracleValidation.sol";
 
 /**
  * @title BaseOdosSellAdapterV2
  * @notice Implements the logic for adaptive selling with multi-protocol support
  * @dev Provides composed swapping capabilities (Odos + Pendle) and direct Odos swapping
  */
-abstract contract BaseOdosSellAdapterV2 is BaseOdosSwapAdapter, IBaseOdosAdapterV2 {
+abstract contract BaseOdosSellAdapterV2 is BaseOdosSwapAdapter, OracleValidation, IBaseOdosAdapterV2 {
     /// @notice The address of the Odos Router
     IOdosRouterV2 public immutable odosRouter;
 
     /// @notice The address of the Pendle Router
     address public immutable pendleRouter;
-
-    /// @notice Oracle price deviation tolerance in basis points (500 = 5%)
-    uint256 public constant ORACLE_PRICE_TOLERANCE_BPS = 500;
 
     // Uses InvalidPTSwapData() from IBaseOdosAdapterV2
 
@@ -62,50 +59,14 @@ abstract contract BaseOdosSellAdapterV2 is BaseOdosSwapAdapter, IBaseOdosAdapter
         pendleRouter = _pendleRouter;
     }
 
+    // Oracle validation logic inherited from OracleValidation contract
+
     /**
-     * @dev Validates swap amounts against oracle prices to prevent MEV attacks
-     * @param tokenIn The input token address
-     * @param tokenOut The output token address
-     * @param amountIn The input amount for exact input swaps
-     * @param minAmountOut The minimum output amount expected
+     * @dev Implementation of virtual function from OracleValidation
+     * @return The addresses provider instance
      */
-    function _validateOraclePrice(
-        address tokenIn,
-        address tokenOut,
-        uint256 amountIn,
-        uint256 minAmountOut
-    ) internal view {
-        // Skip validation for same token swaps
-        if (tokenIn == tokenOut) return;
-
-        // Get oracle prices
-        IPriceOracleGetter oracle = IPriceOracleGetter(ADDRESSES_PROVIDER.getPriceOracle());
-        uint256 priceIn = oracle.getAssetPrice(tokenIn);
-        uint256 priceOut = oracle.getAssetPrice(tokenOut);
-
-        // Skip validation if either price is zero (oracle not configured)
-        if (priceIn == 0 || priceOut == 0) return;
-
-        // Get token decimals for proper calculation
-        uint256 decimalsIn = IERC20Detailed(tokenIn).decimals();
-        uint256 decimalsOut = IERC20Detailed(tokenOut).decimals();
-
-        // Calculate expected output amount using oracle prices
-        // expectedOut = (amountIn * priceIn * 10^decimalsOut) / (priceOut * 10^decimalsIn)
-        uint256 expectedAmountOut = (amountIn * priceIn * (10 ** decimalsOut)) / (priceOut * (10 ** decimalsIn));
-
-        // Calculate deviation: |expected - actual| / expected * 10000 (in BPS)
-        uint256 deviationBps;
-        if (expectedAmountOut > minAmountOut) {
-            deviationBps = ((expectedAmountOut - minAmountOut) * 10000) / expectedAmountOut;
-        } else {
-            deviationBps = ((minAmountOut - expectedAmountOut) * 10000) / expectedAmountOut;
-        }
-
-        // Revert if deviation exceeds tolerance
-        if (deviationBps > ORACLE_PRICE_TOLERANCE_BPS) {
-            revert OraclePriceDeviationExceeded(tokenIn, tokenOut, expectedAmountOut, minAmountOut, deviationBps);
-        }
+    function _getAddressesProvider() internal view override returns (IPoolAddressesProvider) {
+        return ADDRESSES_PROVIDER;
     }
 
     /**
@@ -129,7 +90,7 @@ abstract contract BaseOdosSellAdapterV2 is BaseOdosSwapAdapter, IBaseOdosAdapter
         address tokenOut = address(assetToSwapTo);
 
         // Validate swap amounts against oracle prices before execution
-        _validateOraclePrice(tokenIn, tokenOut, amountToSwap, minAmountToReceive);
+        _validateOraclePriceExactInput(tokenIn, tokenOut, amountToSwap, minAmountToReceive);
 
         // Check swap type using PendleSwapLogic
         ISwapTypes.SwapType swapType = PendleSwapLogic.determineSwapType(tokenIn, tokenOut);
