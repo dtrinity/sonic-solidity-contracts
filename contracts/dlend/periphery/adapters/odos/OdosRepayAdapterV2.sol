@@ -17,29 +17,24 @@
 
 pragma solidity ^0.8.20;
 
-import {DataTypes} from "contracts/dlend/core/protocol/libraries/types/DataTypes.sol";
-import {IOdosRepayAdapterV2} from "./interfaces/IOdosRepayAdapterV2.sol";
-import {BaseOdosBuyAdapterV2} from "./BaseOdosBuyAdapterV2.sol";
-import {SafeERC20} from "contracts/dlend/core/dependencies/openzeppelin/contracts/SafeERC20.sol";
-import {IERC20WithPermit} from "contracts/dlend/core/interfaces/IERC20WithPermit.sol";
-import {IOdosRouterV2} from "contracts/odos/interface/IOdosRouterV2.sol";
-import {IERC20} from "contracts/dlend/core/dependencies/openzeppelin/contracts/IERC20.sol";
-import {IERC20Detailed} from "contracts/dlend/core/dependencies/openzeppelin/contracts/IERC20Detailed.sol";
-import {IPoolAddressesProvider} from "contracts/dlend/core/interfaces/IPoolAddressesProvider.sol";
-import {ReentrancyGuard} from "../../dependencies/openzeppelin/ReentrancyGuard.sol";
-import {IAaveFlashLoanReceiver} from "../curve/interfaces/IAaveFlashLoanReceiver.sol";
+import { DataTypes } from "contracts/dlend/core/protocol/libraries/types/DataTypes.sol";
+import { IOdosRepayAdapterV2 } from "./interfaces/IOdosRepayAdapterV2.sol";
+import { BaseOdosBuyAdapterV2 } from "./BaseOdosBuyAdapterV2.sol";
+import { SafeERC20 } from "contracts/dlend/core/dependencies/openzeppelin/contracts/SafeERC20.sol";
+import { IERC20WithPermit } from "contracts/dlend/core/interfaces/IERC20WithPermit.sol";
+import { IOdosRouterV2 } from "contracts/odos/interface/IOdosRouterV2.sol";
+import { IERC20 } from "contracts/dlend/core/dependencies/openzeppelin/contracts/IERC20.sol";
+import { IERC20Detailed } from "contracts/dlend/core/dependencies/openzeppelin/contracts/IERC20Detailed.sol";
+import { IPoolAddressesProvider } from "contracts/dlend/core/interfaces/IPoolAddressesProvider.sol";
+import { ReentrancyGuard } from "../../dependencies/openzeppelin/ReentrancyGuard.sol";
+import { IAaveFlashLoanReceiver } from "../curve/interfaces/IAaveFlashLoanReceiver.sol";
 
 /**
  * @title OdosRepayAdapterV2
  * @notice Implements the logic for repaying a debt using a different asset as source
  * @dev Supports PT tokens through composed Pendle + Odos swaps
  */
-contract OdosRepayAdapterV2 is
-    BaseOdosBuyAdapterV2,
-    ReentrancyGuard,
-    IAaveFlashLoanReceiver,
-    IOdosRepayAdapterV2
-{
+contract OdosRepayAdapterV2 is BaseOdosBuyAdapterV2, ReentrancyGuard, IAaveFlashLoanReceiver, IOdosRepayAdapterV2 {
     using SafeERC20 for IERC20;
     using SafeERC20 for IERC20WithPermit;
 
@@ -52,14 +47,7 @@ contract OdosRepayAdapterV2 is
         IOdosRouterV2 _swapRouter,
         address _pendleRouter,
         address owner
-    )
-        BaseOdosBuyAdapterV2(
-            addressesProvider,
-            pool,
-            _swapRouter,
-            _pendleRouter
-        )
-    {
+    ) BaseOdosBuyAdapterV2(addressesProvider, pool, _swapRouter, _pendleRouter) {
         transferOwnership(owner);
         // set initial approval for all reserves
         address[] memory reserves = POOL.getReservesList();
@@ -83,9 +71,7 @@ contract OdosRepayAdapterV2 is
         );
 
         if (!repayParams.withFlashLoan) {
-            uint256 collateralBalanceBefore = IERC20(
-                repayParams.collateralAsset
-            ).balanceOf(address(this));
+            uint256 collateralBalanceBefore = IERC20(repayParams.collateralAsset).balanceOf(address(this));
             // Pull collateral aTokens from user and withdraw underlying to this contract
             uint256 collateralAmountReceived = _pullATokenAndWithdraw(
                 repayParams.collateralAsset,
@@ -104,35 +90,17 @@ contract OdosRepayAdapterV2 is
             );
 
             // Repay the debt
-            _conditionalRenewAllowance(
-                repayParams.debtAsset,
-                repayParams.repayAmount
-            );
-            POOL.repay(
-                repayParams.debtAsset,
-                repayParams.repayAmount,
-                repayParams.rateMode,
-                repayParams.user
-            );
+            _conditionalRenewAllowance(repayParams.debtAsset, repayParams.repayAmount);
+            POOL.repay(repayParams.debtAsset, repayParams.repayAmount, repayParams.rateMode, repayParams.user);
 
             // Supply on behalf of the user in case of excess of collateral asset after the swap
-            uint256 collateralBalanceAfter = IERC20(repayParams.collateralAsset)
-                .balanceOf(address(this));
-            uint256 collateralExcess = collateralBalanceAfter >
-                collateralBalanceBefore
+            uint256 collateralBalanceAfter = IERC20(repayParams.collateralAsset).balanceOf(address(this));
+            uint256 collateralExcess = collateralBalanceAfter > collateralBalanceBefore
                 ? collateralBalanceAfter - collateralBalanceBefore
                 : 0;
             if (collateralExcess > 0) {
-                _conditionalRenewAllowance(
-                    repayParams.collateralAsset,
-                    collateralExcess
-                );
-                _supply(
-                    repayParams.collateralAsset,
-                    collateralExcess,
-                    repayParams.user,
-                    REFERRER
-                );
+                _conditionalRenewAllowance(repayParams.collateralAsset, collateralExcess);
+                _supply(repayParams.collateralAsset, collateralExcess, repayParams.user, REFERRER);
             }
         } else {
             // Flashloan of the collateral asset to use for repayment
@@ -168,10 +136,10 @@ contract OdosRepayAdapterV2 is
             revert InitiatorMustBeThis(initiator, address(this));
         }
 
-        (
-            RepayParamsV2 memory repayParams,
-            PermitInput memory collateralATokenPermit
-        ) = abi.decode(params, (RepayParamsV2, PermitInput));
+        (RepayParamsV2 memory repayParams, PermitInput memory collateralATokenPermit) = abi.decode(
+            params,
+            (RepayParamsV2, PermitInput)
+        );
 
         address flashLoanAsset = assets[0];
         uint256 flashLoanAmount = amounts[0];
@@ -190,36 +158,18 @@ contract OdosRepayAdapterV2 is
         );
 
         // Repay the debt
-        _conditionalRenewAllowance(
-            repayParams.debtAsset,
-            repayParams.repayAmount
-        );
-        POOL.repay(
-            repayParams.debtAsset,
-            repayParams.repayAmount,
-            repayParams.rateMode,
-            repayParams.user
-        );
+        _conditionalRenewAllowance(repayParams.debtAsset, repayParams.repayAmount);
+        POOL.repay(repayParams.debtAsset, repayParams.repayAmount, repayParams.rateMode, repayParams.user);
 
         // Determine amount of flashloan asset sold in the swap
         uint256 balanceAfter = IERC20(flashLoanAsset).balanceOf(address(this));
-        uint256 amountSold = balanceBefore > balanceAfter
-            ? balanceBefore - balanceAfter
-            : 0;
+        uint256 amountSold = balanceBefore > balanceAfter ? balanceBefore - balanceAfter : 0;
 
         // Pull only the amount needed from the user to repay the flashloan: premium + amountSold
-        _pullATokenAndWithdraw(
-            flashLoanAsset,
-            repayParams.user,
-            flashLoanPremium + amountSold,
-            collateralATokenPermit
-        );
+        _pullATokenAndWithdraw(flashLoanAsset, repayParams.user, flashLoanPremium + amountSold, collateralATokenPermit);
 
         // Flashloan repayment
-        _conditionalRenewAllowance(
-            flashLoanAsset,
-            flashLoanAmount + flashLoanPremium
-        );
+        _conditionalRenewAllowance(flashLoanAsset, flashLoanAmount + flashLoanPremium);
         return true;
     }
 
@@ -238,10 +188,7 @@ contract OdosRepayAdapterV2 is
      * @param repayParams struct describing the repay swap
      * @param collateralATokenPermit optional permit for old collateral's aToken
      */
-    function _flash(
-        RepayParamsV2 memory repayParams,
-        PermitInput memory collateralATokenPermit
-    ) internal virtual {
+    function _flash(RepayParamsV2 memory repayParams, PermitInput memory collateralATokenPermit) internal virtual {
         bytes memory params = abi.encode(repayParams, collateralATokenPermit);
         address[] memory assets = new address[](1);
         assets[0] = repayParams.collateralAsset;
@@ -250,15 +197,7 @@ contract OdosRepayAdapterV2 is
         uint256[] memory interestRateModes = new uint256[](1);
         interestRateModes[0] = 0;
 
-        POOL.flashLoan(
-            address(this),
-            assets,
-            amounts,
-            interestRateModes,
-            address(this),
-            params,
-            REFERRER
-        );
+        POOL.flashLoan(address(this), assets, amounts, interestRateModes, address(this), params, REFERRER);
     }
 
     /**
@@ -269,15 +208,9 @@ contract OdosRepayAdapterV2 is
     /**
      * @dev Implementation of the reserve data getter from the base adapter
      */
-    function _getReserveData(
-        address asset
-    ) internal view override returns (address, address, address) {
+    function _getReserveData(address asset) internal view override returns (address, address, address) {
         DataTypes.ReserveData memory reserveData = POOL.getReserveData(asset);
-        return (
-            reserveData.variableDebtTokenAddress,
-            reserveData.stableDebtTokenAddress,
-            reserveData.aTokenAddress
-        );
+        return (reserveData.variableDebtTokenAddress, reserveData.stableDebtTokenAddress, reserveData.aTokenAddress);
     }
 
     /**
@@ -292,12 +225,7 @@ contract OdosRepayAdapterV2 is
     /**
      * @dev Implementation of the supply function from the base adapter
      */
-    function _supply(
-        address asset,
-        uint256 amount,
-        address to,
-        uint16 referralCode
-    ) internal override {
+    function _supply(address asset, uint256 amount, address to, uint16 referralCode) internal override {
         POOL.supply(asset, amount, to, referralCode);
     }
 
@@ -317,12 +245,9 @@ contract OdosRepayAdapterV2 is
         uint256 debtRepayAmount,
         address user
     ) internal view returns (uint256) {
-        (address vDebtToken, address sDebtToken, ) = _getReserveData(
-            address(debtAsset)
-        );
+        (address vDebtToken, address sDebtToken, ) = _getReserveData(address(debtAsset));
 
-        address debtToken = DataTypes.InterestRateMode(rateMode) ==
-            DataTypes.InterestRateMode.STABLE
+        address debtToken = DataTypes.InterestRateMode(rateMode) == DataTypes.InterestRateMode.STABLE
             ? sDebtToken
             : vDebtToken;
         uint256 currentDebt = IERC20(debtToken).balanceOf(user);
@@ -333,10 +258,7 @@ contract OdosRepayAdapterV2 is
             // Sanity check to ensure the passed value `debtRepayAmount` is less than the current debt
             // when repaying the exact amount
             if (debtRepayAmount > currentDebt) {
-                revert InsufficientOutputAfterComposedSwap(
-                    currentDebt,
-                    debtRepayAmount
-                );
+                revert InsufficientOutputAfterComposedSwap(currentDebt, debtRepayAmount);
             }
         }
 

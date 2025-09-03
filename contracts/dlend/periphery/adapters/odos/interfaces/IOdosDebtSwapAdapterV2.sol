@@ -17,7 +17,7 @@
 
 pragma solidity ^0.8.20;
 
-import {IBaseOdosAdapterV2} from "./IBaseOdosAdapterV2.sol";
+import { IBaseOdosAdapterV2 } from "./IBaseOdosAdapterV2.sol";
 
 /**
  * @title IOdosDebtSwapAdapterV2

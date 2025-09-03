@@ -17,26 +17,23 @@
 
 pragma solidity ^0.8.20;
 
-import {IERC20Detailed} from "contracts/dlend/core/dependencies/openzeppelin/contracts/IERC20Detailed.sol";
-import {IPoolAddressesProvider} from "contracts/dlend/core/interfaces/IPoolAddressesProvider.sol";
-import {IOdosRouterV2} from "contracts/odos/interface/IOdosRouterV2.sol";
-import {BaseOdosSwapAdapter} from "./BaseOdosSwapAdapter.sol";
-import {IBaseOdosAdapterV2} from "./interfaces/IBaseOdosAdapterV2.sol";
-import {OdosSwapUtils} from "contracts/odos/OdosSwapUtils.sol";
-import {PendleSwapLogic} from "./PendleSwapLogic.sol";
-import {ISwapTypes} from "./interfaces/ISwapTypes.sol";
-import {SwapExecutorV2} from "./SwapExecutorV2.sol";
-import {IPriceOracleGetter} from "contracts/dlend/core/interfaces/IPriceOracleGetter.sol";
+import { IERC20Detailed } from "contracts/dlend/core/dependencies/openzeppelin/contracts/IERC20Detailed.sol";
+import { IPoolAddressesProvider } from "contracts/dlend/core/interfaces/IPoolAddressesProvider.sol";
+import { IOdosRouterV2 } from "contracts/odos/interface/IOdosRouterV2.sol";
+import { BaseOdosSwapAdapter } from "./BaseOdosSwapAdapter.sol";
+import { IBaseOdosAdapterV2 } from "./interfaces/IBaseOdosAdapterV2.sol";
+import { OdosSwapUtils } from "contracts/odos/OdosSwapUtils.sol";
+import { PendleSwapLogic } from "./PendleSwapLogic.sol";
+import { ISwapTypes } from "./interfaces/ISwapTypes.sol";
+import { SwapExecutorV2 } from "./SwapExecutorV2.sol";
+import { IPriceOracleGetter } from "contracts/dlend/core/interfaces/IPriceOracleGetter.sol";
 
 /**
  * @title BaseOdosSellAdapterV2
  * @notice Implements the logic for adaptive selling with multi-protocol support
  * @dev Provides composed swapping capabilities (Odos + Pendle) and direct Odos swapping
  */
-abstract contract BaseOdosSellAdapterV2 is
-    BaseOdosSwapAdapter,
-    IBaseOdosAdapterV2
-{
+abstract contract BaseOdosSellAdapterV2 is BaseOdosSwapAdapter, IBaseOdosAdapterV2 {
     /// @notice The address of the Odos Router
     IOdosRouterV2 public immutable odosRouter;
 
@@ -68,7 +65,7 @@ abstract contract BaseOdosSellAdapterV2 is
     /**
      * @dev Validates swap amounts against oracle prices to prevent MEV attacks
      * @param tokenIn The input token address
-     * @param tokenOut The output token address  
+     * @param tokenOut The output token address
      * @param amountIn The input amount for exact input swaps
      * @param minAmountOut The minimum output amount expected
      */
@@ -95,8 +92,7 @@ abstract contract BaseOdosSellAdapterV2 is
 
         // Calculate expected output amount using oracle prices
         // expectedOut = (amountIn * priceIn * 10^decimalsOut) / (priceOut * 10^decimalsIn)
-        uint256 expectedAmountOut = (amountIn * priceIn * (10 ** decimalsOut)) / 
-                                   (priceOut * (10 ** decimalsIn));
+        uint256 expectedAmountOut = (amountIn * priceIn * (10 ** decimalsOut)) / (priceOut * (10 ** decimalsIn));
 
         // Calculate deviation: |expected - actual| / expected * 10000 (in BPS)
         uint256 deviationBps;
@@ -108,13 +104,7 @@ abstract contract BaseOdosSellAdapterV2 is
 
         // Revert if deviation exceeds tolerance
         if (deviationBps > ORACLE_PRICE_TOLERANCE_BPS) {
-            revert OraclePriceDeviationExceeded(
-                tokenIn,
-                tokenOut,
-                expectedAmountOut,
-                minAmountOut,
-                deviationBps
-            );
+            revert OraclePriceDeviationExceeded(tokenIn, tokenOut, expectedAmountOut, minAmountOut, deviationBps);
         }
     }
 
@@ -142,15 +132,12 @@ abstract contract BaseOdosSellAdapterV2 is
         _validateOraclePrice(tokenIn, tokenOut, amountToSwap, minAmountToReceive);
 
         // Check swap type using PendleSwapLogic
-        ISwapTypes.SwapType swapType = PendleSwapLogic.determineSwapType(
-            tokenIn,
-            tokenOut
-        );
+        ISwapTypes.SwapType swapType = PendleSwapLogic.determineSwapType(tokenIn, tokenOut);
 
         if (swapType == ISwapTypes.SwapType.REGULAR_SWAP) {
             // Regular swap - use direct Odos execution with leftover validation
             uint256 inputBalanceBefore = assetToSwapFrom.balanceOf(address(this));
-            
+
             uint256 swapResult = _executeDirectOdosExactInput(
                 tokenIn,
                 tokenOut,
@@ -161,10 +148,10 @@ abstract contract BaseOdosSellAdapterV2 is
 
             // Validate no leftover collateral remains after exact input swap
             uint256 inputBalanceAfter = assetToSwapFrom.balanceOf(address(this));
-            uint256 inputLeftoverAmount = inputBalanceAfter > inputBalanceBefore 
-                ? inputBalanceAfter - inputBalanceBefore 
+            uint256 inputLeftoverAmount = inputBalanceAfter > inputBalanceBefore
+                ? inputBalanceAfter - inputBalanceBefore
                 : 0;
-            
+
             if (inputLeftoverAmount > 0) {
                 revert LeftoverCollateralAfterSwap(tokenIn, inputLeftoverAmount);
             }
@@ -173,31 +160,20 @@ abstract contract BaseOdosSellAdapterV2 is
         }
 
         // PT token involved - use composed swap logic
-        uint256 ptInputBalanceBefore = assetToSwapFrom.balanceOf(
-            address(this)
-        );
+        uint256 ptInputBalanceBefore = assetToSwapFrom.balanceOf(address(this));
         if (ptInputBalanceBefore < amountToSwap) {
-            revert InsufficientBalanceBeforeSwap(
-                ptInputBalanceBefore,
-                amountToSwap
-            );
+            revert InsufficientBalanceBeforeSwap(ptInputBalanceBefore, amountToSwap);
         }
 
         // Execute composed swap with intelligent routing
-        amountReceived = _executeComposedSwapExactInput(
-            tokenIn,
-            tokenOut,
-            amountToSwap,
-            minAmountToReceive,
-            swapData
-        );
+        amountReceived = _executeComposedSwapExactInput(tokenIn, tokenOut, amountToSwap, minAmountToReceive, swapData);
 
         // Validate no leftover collateral remains after exact input swap
         uint256 ptInputBalanceAfter = assetToSwapFrom.balanceOf(address(this));
-        uint256 ptLeftoverAmount = ptInputBalanceAfter > ptInputBalanceBefore 
-            ? ptInputBalanceAfter - ptInputBalanceBefore 
+        uint256 ptLeftoverAmount = ptInputBalanceAfter > ptInputBalanceBefore
+            ? ptInputBalanceAfter - ptInputBalanceBefore
             : 0;
-        
+
         if (ptLeftoverAmount > 0) {
             revert LeftoverCollateralAfterSwap(tokenIn, ptLeftoverAmount);
         }

@@ -17,10 +17,10 @@
 
 pragma solidity ^0.8.20;
 
-import {PendleSwapLogic} from "./PendleSwapLogic.sol";
-import {OdosSwapUtils} from "contracts/odos/OdosSwapUtils.sol";
-import {IOdosRouterV2} from "contracts/odos/interface/IOdosRouterV2.sol";
-import {ISwapTypes} from "./interfaces/ISwapTypes.sol";
+import { PendleSwapLogic } from "./PendleSwapLogic.sol";
+import { OdosSwapUtils } from "contracts/odos/OdosSwapUtils.sol";
+import { IOdosRouterV2 } from "contracts/odos/interface/IOdosRouterV2.sol";
+import { ISwapTypes } from "./interfaces/ISwapTypes.sol";
 
 /**
  * @title SwapExecutorV2
@@ -78,14 +78,9 @@ library SwapExecutorV2 {
      * @param params The exact input swap parameters
      * @return actualOutputAmount Actual amount of output tokens received
      */
-    function executeSwapExactInput(
-        ExactInputParams memory params
-    ) internal returns (uint256 actualOutputAmount) {
+    function executeSwapExactInput(ExactInputParams memory params) internal returns (uint256 actualOutputAmount) {
         // Determine swap type using PendleSwapLogic
-        ISwapTypes.SwapType swapType = PendleSwapLogic.determineSwapType(
-            params.inputToken,
-            params.outputToken
-        );
+        ISwapTypes.SwapType swapType = PendleSwapLogic.determineSwapType(params.inputToken, params.outputToken);
 
         if (swapType == ISwapTypes.SwapType.REGULAR_SWAP) {
             // Regular Odos swap - swapData should be raw Odos calldata
@@ -101,10 +96,7 @@ library SwapExecutorV2 {
         }
 
         // PT token involved - decode PTSwapDataV2 and use PendleSwapLogic
-        PendleSwapLogic.PTSwapDataV2 memory ptSwapData = abi.decode(
-            params.swapData,
-            (PendleSwapLogic.PTSwapDataV2)
-        );
+        PendleSwapLogic.PTSwapDataV2 memory ptSwapData = abi.decode(params.swapData, (PendleSwapLogic.PTSwapDataV2));
 
         if (!PendleSwapLogic.validatePTSwapData(ptSwapData)) {
             revert InvalidSwapData();
@@ -157,14 +149,9 @@ library SwapExecutorV2 {
      * @param params The exact output swap parameters
      * @return actualInputAmount Actual amount of input tokens spent
      */
-    function executeSwapExactOutput(
-        ExactOutputParams memory params
-    ) internal returns (uint256 actualInputAmount) {
+    function executeSwapExactOutput(ExactOutputParams memory params) internal returns (uint256 actualInputAmount) {
         // Determine swap type using PendleSwapLogic
-        ISwapTypes.SwapType swapType = PendleSwapLogic.determineSwapType(
-            params.inputToken,
-            params.outputToken
-        );
+        ISwapTypes.SwapType swapType = PendleSwapLogic.determineSwapType(params.inputToken, params.outputToken);
 
         if (swapType == ISwapTypes.SwapType.REGULAR_SWAP) {
             // Regular Odos swap - swapData should be raw Odos calldata
@@ -180,10 +167,7 @@ library SwapExecutorV2 {
         }
 
         // PT token involved - decode PTSwapDataV2 and use PendleSwapLogic
-        PendleSwapLogic.PTSwapDataV2 memory ptSwapData = abi.decode(
-            params.swapData,
-            (PendleSwapLogic.PTSwapDataV2)
-        );
+        PendleSwapLogic.PTSwapDataV2 memory ptSwapData = abi.decode(params.swapData, (PendleSwapLogic.PTSwapDataV2));
 
         if (!PendleSwapLogic.validatePTSwapData(ptSwapData)) {
             revert InvalidSwapData();

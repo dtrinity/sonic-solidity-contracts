@@ -17,9 +17,9 @@
 
 pragma solidity ^0.8.20;
 
-import {IERC20WithPermit} from "contracts/dlend/core/interfaces/IERC20WithPermit.sol";
+import { IERC20WithPermit } from "contracts/dlend/core/interfaces/IERC20WithPermit.sol";
 
-import {IBaseOdosAdapter} from "./IBaseOdosAdapter.sol";
+import { IBaseOdosAdapter } from "./IBaseOdosAdapter.sol";
 
 /**
  * @title IBaseOdosAdapterV2

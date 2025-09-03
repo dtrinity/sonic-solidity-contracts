@@ -21,7 +21,7 @@ library PendleSwapUtils {
      * @notice Executes a generic Pendle swap operation using SDK-generated transaction data
      * @dev Pendle router treats all tokens equally - PT, underlying, or any other ERC20
      * @param tokenIn The input token being swapped
-     * @param tokenOut The output token being received  
+     * @param tokenOut The output token being received
      * @param amountIn Amount of input tokens to swap
      * @param router Pendle router contract address from Pendle SDK
      * @param swapData Transaction data from Pendle SDK
@@ -73,7 +73,7 @@ library PendleSwapUtils {
         // Execute Pendle swap using shared utility
         bool success;
         (success, result) = executePendleCall(router, swapData);
-        
+
         if (!success) {
             revert PendleSwapFailed();
         }
@@ -97,7 +97,7 @@ library PendleSwapUtils {
     ) internal returns (bool success, bytes memory result) {
         // Execute Pendle router call
         (success, result) = router.call(swapData);
-        
+
         if (!success && result.length > 0) {
             // Bubble up revert reason
             assembly {
@@ -105,7 +105,7 @@ library PendleSwapUtils {
                 revert(add(32, result), resultLength)
             }
         }
-        
+
         return (success, result);
     }
 }

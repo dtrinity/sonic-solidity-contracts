@@ -17,26 +17,23 @@
 
 pragma solidity ^0.8.20;
 
-import {IERC20Detailed} from "contracts/dlend/core/dependencies/openzeppelin/contracts/IERC20Detailed.sol";
-import {IPoolAddressesProvider} from "contracts/dlend/core/interfaces/IPoolAddressesProvider.sol";
-import {IOdosRouterV2} from "contracts/odos/interface/IOdosRouterV2.sol";
-import {BaseOdosSwapAdapter} from "./BaseOdosSwapAdapter.sol";
-import {IBaseOdosAdapterV2} from "./interfaces/IBaseOdosAdapterV2.sol";
-import {OdosSwapUtils} from "contracts/odos/OdosSwapUtils.sol";
-import {PendleSwapLogic} from "./PendleSwapLogic.sol";
-import {ISwapTypes} from "./interfaces/ISwapTypes.sol";
-import {SwapExecutorV2} from "./SwapExecutorV2.sol";
-import {IPriceOracleGetter} from "contracts/dlend/core/interfaces/IPriceOracleGetter.sol";
+import { IERC20Detailed } from "contracts/dlend/core/dependencies/openzeppelin/contracts/IERC20Detailed.sol";
+import { IPoolAddressesProvider } from "contracts/dlend/core/interfaces/IPoolAddressesProvider.sol";
+import { IOdosRouterV2 } from "contracts/odos/interface/IOdosRouterV2.sol";
+import { BaseOdosSwapAdapter } from "./BaseOdosSwapAdapter.sol";
+import { IBaseOdosAdapterV2 } from "./interfaces/IBaseOdosAdapterV2.sol";
+import { OdosSwapUtils } from "contracts/odos/OdosSwapUtils.sol";
+import { PendleSwapLogic } from "./PendleSwapLogic.sol";
+import { ISwapTypes } from "./interfaces/ISwapTypes.sol";
+import { SwapExecutorV2 } from "./SwapExecutorV2.sol";
+import { IPriceOracleGetter } from "contracts/dlend/core/interfaces/IPriceOracleGetter.sol";
 
 /**
  * @title BaseOdosBuyAdapterV2
  * @notice Implements the logic for adaptive buying with multi-protocol support
  * @dev Provides composed swapping capabilities (Odos + Pendle) and direct Odos swapping
  */
-abstract contract BaseOdosBuyAdapterV2 is
-    BaseOdosSwapAdapter,
-    IBaseOdosAdapterV2
-{
+abstract contract BaseOdosBuyAdapterV2 is BaseOdosSwapAdapter, IBaseOdosAdapterV2 {
     /// @notice The address of the Odos Router
     IOdosRouterV2 public immutable odosRouter;
 
@@ -88,23 +85,16 @@ abstract contract BaseOdosBuyAdapterV2 is
 
         // Calculate expected input amount using oracle prices
         // expectedIn = (exactAmountOut * priceOut * 10^decimalsIn) / (priceIn * 10^decimalsOut)
-        uint256 expectedAmountIn = (exactAmountOut * priceOut * (10 ** decimalsIn)) / 
-                                  (priceIn * (10 ** decimalsOut));
+        uint256 expectedAmountIn = (exactAmountOut * priceOut * (10 ** decimalsIn)) / (priceIn * (10 ** decimalsOut));
 
         // For exact output, we validate that maxAmountIn isn't excessively higher than expectedAmountIn
         // Calculate deviation: (maxAmountIn - expectedAmountIn) / expectedAmountIn * 10000 (in BPS)
         if (maxAmountIn > expectedAmountIn) {
             uint256 deviationBps = ((maxAmountIn - expectedAmountIn) * 10000) / expectedAmountIn;
-            
+
             // Revert if user is willing to pay too much more than oracle suggests
             if (deviationBps > ORACLE_PRICE_TOLERANCE_BPS) {
-                revert OraclePriceDeviationExceeded(
-                    tokenIn,
-                    tokenOut,
-                    expectedAmountIn,
-                    maxAmountIn,
-                    deviationBps
-                );
+                revert OraclePriceDeviationExceeded(tokenIn, tokenOut, expectedAmountIn, maxAmountIn, deviationBps);
             }
         }
         // Note: We don't validate if maxAmountIn < expectedAmountIn as the user might have better pricing
@@ -134,32 +124,17 @@ abstract contract BaseOdosBuyAdapterV2 is
         _validateOraclePriceExactOutput(tokenIn, tokenOut, maxAmountToSwap, amountToReceive);
 
         // Check swap type using PendleSwapLogic
-        ISwapTypes.SwapType swapType = PendleSwapLogic.determineSwapType(
-            tokenIn,
-            tokenOut
-        );
+        ISwapTypes.SwapType swapType = PendleSwapLogic.determineSwapType(tokenIn, tokenOut);
 
         if (swapType == ISwapTypes.SwapType.REGULAR_SWAP) {
             // Regular swap - use direct Odos execution
-            return
-                _executeDirectOdosExactOutput(
-                    tokenIn,
-                    tokenOut,
-                    maxAmountToSwap,
-                    amountToReceive,
-                    swapData
-                );
+            return _executeDirectOdosExactOutput(tokenIn, tokenOut, maxAmountToSwap, amountToReceive, swapData);
         }
 
         // PT token involved - use composed swap logic
-        uint256 balanceBeforeAssetFrom = assetToSwapFrom.balanceOf(
-            address(this)
-        );
+        uint256 balanceBeforeAssetFrom = assetToSwapFrom.balanceOf(address(this));
         if (balanceBeforeAssetFrom < maxAmountToSwap) {
-            revert InsufficientBalanceBeforeSwap(
-                balanceBeforeAssetFrom,
-                maxAmountToSwap
-            );
+            revert InsufficientBalanceBeforeSwap(balanceBeforeAssetFrom, maxAmountToSwap);
         }
 
         // Execute composed swap with intelligent routing
@@ -173,12 +148,12 @@ abstract contract BaseOdosBuyAdapterV2 is
 
         // Calculate the actual amount sold based on balance difference
         uint256 balanceAfterAssetFrom = assetToSwapFrom.balanceOf(address(this));
-        
+
         // Protect against underflow: ensure balance before >= balance after
         if (balanceBeforeAssetFrom < balanceAfterAssetFrom) {
             revert InsufficientBalanceBeforeSwap(balanceBeforeAssetFrom, balanceAfterAssetFrom);
         }
-        
+
         amountSold = balanceBeforeAssetFrom - balanceAfterAssetFrom;
 
         emit Bought(tokenIn, tokenOut, amountSold, actualAmountOut);

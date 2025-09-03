@@ -17,13 +17,13 @@
 
 pragma solidity ^0.8.20;
 
-import {IERC20} from "contracts/dlend/core/dependencies/openzeppelin/contracts/IERC20.sol";
-import {SafeERC20} from "contracts/dlend/core/dependencies/openzeppelin/contracts/SafeERC20.sol";
-import {PendleSwapUtils} from "contracts/pendle/PendleSwapUtils.sol";
-import {OdosSwapUtils} from "contracts/odos/OdosSwapUtils.sol";
-import {IOdosRouterV2} from "contracts/odos/interface/IOdosRouterV2.sol";
-import {ISwapTypes} from "./interfaces/ISwapTypes.sol";
-import {IBaseOdosAdapterV2} from "./interfaces/IBaseOdosAdapterV2.sol";
+import { IERC20 } from "contracts/dlend/core/dependencies/openzeppelin/contracts/IERC20.sol";
+import { SafeERC20 } from "contracts/dlend/core/dependencies/openzeppelin/contracts/SafeERC20.sol";
+import { PendleSwapUtils } from "contracts/pendle/PendleSwapUtils.sol";
+import { OdosSwapUtils } from "contracts/odos/OdosSwapUtils.sol";
+import { IOdosRouterV2 } from "contracts/odos/interface/IOdosRouterV2.sol";
+import { ISwapTypes } from "./interfaces/ISwapTypes.sol";
+import { IBaseOdosAdapterV2 } from "./interfaces/IBaseOdosAdapterV2.sol";
 
 /**
  * @title PendleSwapLogic
@@ -55,8 +55,6 @@ library PendleSwapLogic {
         uint256 finalOutputAmount
     );
 
-
-
     /**
      * @notice Data structure for PT swap parameters
      * @param isComposed True if this is a composed PT+Odos swap
@@ -79,9 +77,7 @@ library PendleSwapLogic {
      */
     function isPTToken(address token) internal returns (bool result, address sy) {
         // Try to call SY() method - PT tokens should have this
-        (bool success, bytes memory data) = token.staticcall(
-            abi.encodeWithSignature("SY()")
-        );
+        (bool success, bytes memory data) = token.staticcall(abi.encodeWithSignature("SY()"));
 
         // Check if call was successful and returned a valid address (not zero)
         if (success && data.length == 32) {
@@ -111,31 +107,16 @@ library PendleSwapLogic {
         bytes memory swapData
     ) internal returns (uint256 actualUnderlyingOut) {
         // Record underlying token balance before swap
-        uint256 underlyingBalanceBefore = IERC20(underlyingAsset).balanceOf(
-            address(this)
-        );
+        uint256 underlyingBalanceBefore = IERC20(underlyingAsset).balanceOf(address(this));
 
         // Execute Pendle swap via PendleSwapUtils library (PT → underlying)
-        PendleSwapUtils.swapExactInput(
-            ptToken,
-            underlyingAsset,
-            ptAmount,
-            pendleRouter,
-            swapData
-        );
+        PendleSwapUtils.swapExactInput(ptToken, underlyingAsset, ptAmount, pendleRouter, swapData);
 
         // Calculate actual underlying tokens received
-        uint256 underlyingBalanceAfter = IERC20(underlyingAsset).balanceOf(
-            address(this)
-        );
+        uint256 underlyingBalanceAfter = IERC20(underlyingAsset).balanceOf(address(this));
         actualUnderlyingOut = underlyingBalanceAfter - underlyingBalanceBefore;
 
-        emit PTSwapExecuted(
-            ptToken,
-            underlyingAsset,
-            ptAmount,
-            actualUnderlyingOut
-        );
+        emit PTSwapExecuted(ptToken, underlyingAsset, ptAmount, actualUnderlyingOut);
 
         return actualUnderlyingOut;
     }
@@ -194,12 +175,7 @@ library PendleSwapLogic {
             );
         }
 
-        emit ComposedSwapCompleted(
-            ptToken,
-            targetToken,
-            ptAmount,
-            actualTargetOut
-        );
+        emit ComposedSwapCompleted(ptToken, targetToken, ptAmount, actualTargetOut);
         return actualTargetOut;
     }
 
@@ -241,9 +217,7 @@ library PendleSwapLogic {
             }
 
             // Record balance before Odos swap for debugging
-            uint256 underlyingBalanceBeforeOdos = IERC20(
-                swapData.underlyingAsset
-            ).balanceOf(address(this));
+            uint256 underlyingBalanceBeforeOdos = IERC20(swapData.underlyingAsset).balanceOf(address(this));
 
             underlyingAmount = OdosSwapUtils.executeSwapOperation(
                 odosRouter,
@@ -255,29 +229,20 @@ library PendleSwapLogic {
             );
 
             // Verify we actually received underlying tokens
-            uint256 underlyingBalanceAfterOdos = IERC20(
-                swapData.underlyingAsset
-            ).balanceOf(address(this));
-            uint256 actualReceived = underlyingBalanceAfterOdos -
-                underlyingBalanceBeforeOdos;
+            uint256 underlyingBalanceAfterOdos = IERC20(swapData.underlyingAsset).balanceOf(address(this));
+            uint256 actualReceived = underlyingBalanceAfterOdos - underlyingBalanceBeforeOdos;
 
             if (actualReceived == 0) {
-                revert IBaseOdosAdapterV2.OdosSwapFailed(
-                    "Odos swap returned zero underlying tokens"
-                );
+                revert IBaseOdosAdapterV2.OdosSwapFailed("Odos swap returned zero underlying tokens");
             }
         }
 
         // Stage 2: underlying -> PT via Pendle
-        uint256 underlyingBalanceBefore = IERC20(swapData.underlyingAsset)
-            .balanceOf(address(this));
+        uint256 underlyingBalanceBefore = IERC20(swapData.underlyingAsset).balanceOf(address(this));
 
         // Verify we have sufficient underlying tokens
         if (underlyingBalanceBefore < underlyingAmount) {
-            revert UnderlyingBalanceInsufficient(
-                underlyingAmount,
-                underlyingBalanceBefore
-            );
+            revert UnderlyingBalanceInsufficient(underlyingAmount, underlyingBalanceBefore);
         }
 
         // Stage 2: underlying → PT via PendleSwapUtils
@@ -293,18 +258,8 @@ library PendleSwapLogic {
             revert InsufficientPTSwapOutput(minPTOut, actualPTOut);
         }
 
-        emit PTSwapExecuted(
-            swapData.underlyingAsset,
-            ptToken,
-            underlyingAmount,
-            actualPTOut
-        );
-        emit ComposedSwapCompleted(
-            sourceToken,
-            ptToken,
-            sourceAmount,
-            actualPTOut
-        );
+        emit PTSwapExecuted(swapData.underlyingAsset, ptToken, underlyingAmount, actualPTOut);
+        emit ComposedSwapCompleted(sourceToken, ptToken, sourceAmount, actualPTOut);
 
         return actualPTOut;
     }
@@ -333,7 +288,7 @@ library PendleSwapLogic {
         // Validate that this is a PT to PT swap
         (bool inputIsPT, ) = isPTToken(inputPTToken);
         (bool outputIsPT, ) = isPTToken(outputPTToken);
-        
+
         if (!inputIsPT || !outputIsPT) {
             revert InvalidPTToken(inputPTToken);
         }
@@ -351,8 +306,7 @@ library PendleSwapLogic {
         // Stage 1: PT input → underlying asset via Odos
         uint256 actualUnderlyingReceived;
         {
-            uint256 underlyingBalanceBefore = IERC20(swapData.underlyingAsset)
-                .balanceOf(address(this));
+            uint256 underlyingBalanceBefore = IERC20(swapData.underlyingAsset).balanceOf(address(this));
 
             OdosSwapUtils.executeSwapOperation(
                 odosRouter,
@@ -364,24 +318,15 @@ library PendleSwapLogic {
             );
 
             // Verify we received underlying tokens
-            uint256 underlyingBalanceAfter = IERC20(swapData.underlyingAsset)
-                .balanceOf(address(this));
-            actualUnderlyingReceived =
-                underlyingBalanceAfter - underlyingBalanceBefore;
+            uint256 underlyingBalanceAfter = IERC20(swapData.underlyingAsset).balanceOf(address(this));
+            actualUnderlyingReceived = underlyingBalanceAfter - underlyingBalanceBefore;
         }
 
         if (actualUnderlyingReceived == 0) {
-            revert IBaseOdosAdapterV2.OdosSwapFailed(
-                "Odos PT swap returned zero underlying tokens"
-            );
+            revert IBaseOdosAdapterV2.OdosSwapFailed("Odos PT swap returned zero underlying tokens");
         }
 
-        emit PTSwapExecuted(
-            inputPTToken,
-            swapData.underlyingAsset,
-            inputAmount,
-            actualUnderlyingReceived
-        );
+        emit PTSwapExecuted(inputPTToken, swapData.underlyingAsset, inputAmount, actualUnderlyingReceived);
 
         // Stage 2: underlying asset → PT output via PendleSwapUtils
         actualOutputAmount = PendleSwapUtils.swapExactInput(
@@ -393,24 +338,11 @@ library PendleSwapLogic {
         );
 
         if (actualOutputAmount < minOutputAmount) {
-            revert InsufficientPTSwapOutput(
-                minOutputAmount,
-                actualOutputAmount
-            );
+            revert InsufficientPTSwapOutput(minOutputAmount, actualOutputAmount);
         }
 
-        emit PTSwapExecuted(
-            swapData.underlyingAsset,
-            outputPTToken,
-            actualUnderlyingReceived,
-            actualOutputAmount
-        );
-        emit ComposedSwapCompleted(
-            inputPTToken,
-            outputPTToken,
-            inputAmount,
-            actualOutputAmount
-        );
+        emit PTSwapExecuted(swapData.underlyingAsset, outputPTToken, actualUnderlyingReceived, actualOutputAmount);
+        emit ComposedSwapCompleted(inputPTToken, outputPTToken, inputAmount, actualOutputAmount);
 
         return actualOutputAmount;
     }
@@ -420,9 +352,7 @@ library PendleSwapLogic {
      * @param swapData The PTSwapDataV2 struct to validate
      * @return isValid True if the swap data is valid
      */
-    function validatePTSwapData(
-        PTSwapDataV2 memory swapData
-    ) internal pure returns (bool isValid) {
+    function validatePTSwapData(PTSwapDataV2 memory swapData) internal pure returns (bool isValid) {
         if (!swapData.isComposed) {
             // For regular swaps, we just need odos calldata
             return swapData.odosCalldata.length > 0;

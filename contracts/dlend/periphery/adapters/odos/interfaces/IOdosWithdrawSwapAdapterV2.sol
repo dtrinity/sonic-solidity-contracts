@@ -17,7 +17,7 @@
 
 pragma solidity ^0.8.20;
 
-import {IBaseOdosAdapterV2} from "./IBaseOdosAdapterV2.sol";
+import { IBaseOdosAdapterV2 } from "./IBaseOdosAdapterV2.sol";
 
 /**
  * @title IOdosWithdrawSwapAdapterV2
@@ -50,8 +50,5 @@ interface IOdosWithdrawSwapAdapterV2 is IBaseOdosAdapterV2 {
      * @param withdrawSwapParams struct describing the withdraw swap
      * @param permitInput optional permit for collateral aToken
      */
-    function withdrawAndSwap(
-        WithdrawSwapParamsV2 memory withdrawSwapParams,
-        PermitInput memory permitInput
-    ) external;
+    function withdrawAndSwap(WithdrawSwapParamsV2 memory withdrawSwapParams, PermitInput memory permitInput) external;
 }
