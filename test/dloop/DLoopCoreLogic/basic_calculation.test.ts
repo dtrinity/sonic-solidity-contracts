@@ -2,7 +2,7 @@ import { expect } from "chai";
 import { ethers } from "hardhat";
 
 import type { DLoopCoreLogicHarness } from "../../../typechain-types/contracts/testing/dloop/DLoopCoreLogicHarness";
-import { ONE_PERCENT_BPS, TARGET_LEVERAGE_BPS } from "../../../typescript/common/bps_constants";
+import { ONE_PERCENT_BPS } from "../../../typescript/common/bps_constants";
 
 describe("DLoopCoreLogic - Basic Calculation Functions", () => {
   /**
@@ -110,7 +110,7 @@ describe("DLoopCoreLogic - Basic Calculation Functions", () => {
         name: "Should calculate 300% leverage (target)",
         collateral: ethers.parseEther("300"), // $300
         debt: ethers.parseEther("200"), // $200
-        expectedLeverage: BigInt(TARGET_LEVERAGE_BPS), // 300%
+        expectedLeverage: BigInt(300 * ONE_PERCENT_BPS), // 300%
       },
       {
         name: "Should calculate 500% leverage",
