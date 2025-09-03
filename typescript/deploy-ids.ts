@@ -82,6 +82,7 @@ export const PULL_REWARDS_TRANSFER_STRATEGY_ID = "PullRewardsTransferStrategy";
 export const ORACLE_AGGREGATOR_WRAPPER_BASE_ID = "oracle-aggregator-wrapper-base";
 
 // dLOOP
+export const DLOOP_CORE_LOGIC_ID = "DLoopCoreLogic";
 export const DLOOP_CORE_DLEND_ID = "DLoopCoreDLend";
 export const DLOOP_QUOTER_ID = "DLoopQuoter";
 

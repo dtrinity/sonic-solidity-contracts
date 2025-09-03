@@ -32,17 +32,8 @@ describe("DLoopCoreShortfallMock – 1-wei rounding shortfall", function () {
     await collateral.mint(mockPool.address, ethers.parseEther("100000"));
     await debt.mint(mockPool.address, ethers.parseEther("100000"));
 
-    // Deploy and link DLoopCoreLogic library before deploying DLoopCoreMock
-    const DLoopCoreLogicFactory = await ethers.getContractFactory("DLoopCoreLogic");
-    const dloopCoreLogicLib = await DLoopCoreLogicFactory.deploy();
-    await dloopCoreLogicLib.waitForDeployment();
-
-    // Deploy vault mock
-    const VaultFactory = await ethers.getContractFactory("DLoopCoreShortfallMock", {
-      libraries: {
-        "contracts/vaults/dloop/core/DLoopCoreLogic.sol:DLoopCoreLogic": await dloopCoreLogicLib.getAddress(),
-      },
-    });
+    // Deploy vault mock (DLoopCoreShortfallMock doesn't need DLoopCoreLogic)
+    const VaultFactory = await ethers.getContractFactory("DLoopCoreShortfallMock");
     const vault = (await VaultFactory.deploy(
       "Mock dLoop Vault – Shortfall",
       "mdLOOPS",

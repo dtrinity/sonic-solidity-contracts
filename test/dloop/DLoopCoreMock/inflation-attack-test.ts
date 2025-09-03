@@ -3,11 +3,10 @@ import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { ethers } from "hardhat";
 
-import { DLoopCoreMock, TestMintableERC20 } from "../../../typechain-types";
+import { DLoopCoreMock, DLoopQuoter, TestMintableERC20 } from "../../../typechain-types";
 import { deployDLoopMockFixture, testSetup } from "./fixture";
 
-// NOTE: Outdated scenario relative to current leverage logic; skip this legacy mock test suite
-describe.skip("DLoopCoreMock - Inflation Attack Tests", function () {
+describe("DLoopCoreMock - Inflation Attack Tests", function () {
   // Contract instances and addresses
   let dloopMock: DLoopCoreMock;
   let collateralToken: TestMintableERC20;
@@ -390,6 +389,7 @@ describe("IV. Real ERC-4626 share-inflation attack (supply on-behalf-of vault)",
 
 describe("V. Donation griefing causes DoS but no value theft", function () {
   let dloop: DLoopCoreMock;
+  let quoter: DLoopQuoter;
   let collateral: TestMintableERC20;
   let signers: HardhatEthersSigner[];
 
@@ -399,6 +399,7 @@ describe("V. Donation griefing causes DoS but no value theft", function () {
     dloop = fixture.dloopMock;
     collateral = fixture.collateralToken;
     signers = fixture.accounts;
+    quoter = fixture.quoter;
   });
 
   it("Attacker donation locks vault and prevents further interactions until rebalance", async function () {
@@ -449,7 +450,7 @@ describe("V. Donation griefing causes DoS but no value theft", function () {
     expect(await dloop.isTooImbalanced()).to.equal(true);
 
     // 2. Keeper queries required rebalance amount/direction
-    const [tokenAmount, , rawDirection] = await dloop.quoteRebalanceAmountToReachTargetLeverage();
+    const [tokenAmount, , rawDirection] = await quoter.quoteRebalanceAmountToReachTargetLeverage(dloop.getAddress());
     const direction = Number(rawDirection);
 
     // Sanity: direction should be non-zero while DoS is active

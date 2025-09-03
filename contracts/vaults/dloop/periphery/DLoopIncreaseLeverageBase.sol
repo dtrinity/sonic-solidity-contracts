@@ -137,7 +137,7 @@ abstract contract DLoopIncreaseLeverageBase is
         } else {
             // This case is free money, no need to have flash loan
             // The caller will receive all the borrowed debt tokens
-            _increaseLeverageWithoutFlashLoan(dLoopCore, currentCollateralTokenBalance);
+            _increaseLeverageWithoutFlashLoan(dLoopCore, rebalanceCollateralAmount);
         }
 
         // Verify leverage increased

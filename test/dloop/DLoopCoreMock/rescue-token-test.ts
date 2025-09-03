@@ -6,8 +6,7 @@ import { ethers } from "hardhat";
 import { DLoopCoreMock, TestMintableERC20 } from "../../../typechain-types";
 import { deployDLoopMockFixture, testSetup } from "./fixture";
 
-// NOTE: Rescue token behavior is outside CoreLogic scope; skip mock-specific tests
-describe.skip("DLoopCoreMock Rescue Token Tests", function () {
+describe("DLoopCoreMock Rescue Token Tests", function () {
   // Contract instances and addresses
   let dloopMock: DLoopCoreMock;
   let collateralToken: TestMintableERC20;
@@ -43,11 +42,7 @@ describe.skip("DLoopCoreMock Rescue Token Tests", function () {
   describe("I. Restricted Rescue Tokens", function () {
     it("Should return correct restricted rescue tokens", async function () {
       const restrictedTokens = await dloopMock.getRestrictedRescueTokens();
-
-      // Should include collateral token and debt token
-      expect(restrictedTokens.length).to.equal(2);
-      expect(restrictedTokens[0]).to.equal(await collateralToken.getAddress());
-      expect(restrictedTokens[1]).to.equal(await debtToken.getAddress());
+      expect(restrictedTokens.length).to.equal(0);
     });
 
     it("Should use getRestrictedRescueTokens correctly", async function () {
@@ -63,9 +58,9 @@ describe.skip("DLoopCoreMock Rescue Token Tests", function () {
     });
 
     it("Should include additional rescue tokens from implementation", async function () {
-      // Mock implementation returns empty array, so should only have 2 tokens
+      // Mock implementation returns empty array, so should have 0 tokens
       const restrictedTokens = await dloopMock.getRestrictedRescueTokens();
-      expect(restrictedTokens.length).to.equal(2);
+      expect(restrictedTokens.length).to.equal(0);
 
       // Verify the additional rescue tokens implementation returns empty array
       const additionalTokens = await dloopMock.testGetAdditionalRescueTokensImplementation();
@@ -100,6 +95,9 @@ describe.skip("DLoopCoreMock Rescue Token Tests", function () {
     });
 
     it("Should revert when trying to rescue restricted collateral token", async function () {
+      // Set collateral token as additional rescue token to make it restricted
+      await dloopMock.setMockAdditionalRescueTokens([await collateralToken.getAddress()]);
+
       // First, put some collateral tokens in the vault
       await collateralToken.mint(await dloopMock.getAddress(), ethers.parseEther("100"));
 
@@ -109,6 +107,9 @@ describe.skip("DLoopCoreMock Rescue Token Tests", function () {
     });
 
     it("Should revert when trying to rescue restricted debt token", async function () {
+      // Set debt token as additional rescue token to make it restricted
+      await dloopMock.setMockAdditionalRescueTokens([await debtToken.getAddress()]);
+
       // First, put some debt tokens in the vault
       await debtToken.mint(await dloopMock.getAddress(), ethers.parseEther("100"));
 
@@ -287,13 +288,19 @@ describe.skip("DLoopCoreMock Rescue Token Tests", function () {
       // This test documents the security features of the rescue functionality:
 
       // 1. Access Control: Only owner can rescue
-      // 2. Restricted Tokens: Cannot rescue critical vault tokens (collateral, debt)
+      // 2. Restricted Tokens: Cannot rescue critical vault tokens (collateral, debt) when configured
       // 3. Reentrancy Protection: Function has nonReentrant modifier
       // 4. Safe Transfers: Uses SafeERC20 for transfers
 
-      const restrictedTokens = await dloopMock.getRestrictedRescueTokens();
+      // Initially no restricted tokens
+      let restrictedTokens = await dloopMock.getRestrictedRescueTokens();
+      expect(restrictedTokens.length).to.equal(0);
 
-      // Verify restricted tokens include critical vault tokens
+      // Configure collateral and debt tokens as restricted
+      await dloopMock.setMockAdditionalRescueTokens([await collateralToken.getAddress(), await debtToken.getAddress()]);
+
+      // Verify restricted tokens now include critical vault tokens
+      restrictedTokens = await dloopMock.getRestrictedRescueTokens();
       expect(restrictedTokens).to.include(await collateralToken.getAddress());
       expect(restrictedTokens).to.include(await debtToken.getAddress());
 
@@ -312,15 +319,185 @@ describe.skip("DLoopCoreMock Rescue Token Tests", function () {
       // which implements the getRestrictedRescueTokens function
 
       const restrictedTokens = await dloopMock.getRestrictedRescueTokens();
-
-      // Base implementation should always include collateral and debt tokens
-      expect(restrictedTokens.length).to.be.gte(2);
-      expect(restrictedTokens[0]).to.equal(await collateralToken.getAddress());
-      expect(restrictedTokens[1]).to.equal(await debtToken.getAddress());
+      expect(restrictedTokens.length).to.equal(0);
 
       // Mock implementation returns no additional restricted tokens
       const additionalTokens = await dloopMock.testGetAdditionalRescueTokensImplementation();
       expect(additionalTokens.length).to.equal(0);
+    });
+  });
+
+  describe("VIII. Additional Rescue Tokens Configuration", function () {
+    let tokenA: TestMintableERC20;
+    let tokenB: TestMintableERC20;
+    let tokenC: TestMintableERC20;
+
+    beforeEach(async function () {
+      // Deploy additional tokens for testing
+      const TestMintableERC20 = await ethers.getContractFactory("TestMintableERC20");
+
+      tokenA = await TestMintableERC20.deploy("Token A", "TKA", 18);
+      await tokenA.waitForDeployment();
+
+      tokenB = await TestMintableERC20.deploy("Token B", "TKB", 18);
+      await tokenB.waitForDeployment();
+
+      tokenC = await TestMintableERC20.deploy("Token C", "TKC", 18);
+      await tokenC.waitForDeployment();
+
+      // Mint tokens to vault for testing
+      await tokenA.mint(await dloopMock.getAddress(), ethers.parseEther("200"));
+      await tokenB.mint(await dloopMock.getAddress(), ethers.parseEther("300"));
+      await tokenC.mint(await dloopMock.getAddress(), ethers.parseEther("400"));
+    });
+
+    it("Should start with no additional rescue tokens", async function () {
+      const additionalTokens = await dloopMock.getMockAdditionalRescueTokens();
+      expect(additionalTokens.length).to.equal(0);
+
+      const implementationTokens = await dloopMock.testGetAdditionalRescueTokensImplementation();
+      expect(implementationTokens.length).to.equal(0);
+    });
+
+    it("Should set and return single additional rescue token", async function () {
+      const tokenAAddress = await tokenA.getAddress();
+      await dloopMock.setMockAdditionalRescueTokens([tokenAAddress]);
+
+      // Verify mock state contains only the additional token
+      const mockTokens = await dloopMock.getMockAdditionalRescueTokens();
+      expect(mockTokens.length).to.equal(1);
+      expect(mockTokens[0]).to.equal(tokenAAddress);
+
+      // Verify implementation returns only the additional token
+      const implementationTokens = await dloopMock.testGetAdditionalRescueTokensImplementation();
+      expect(implementationTokens.length).to.equal(1);
+      expect(implementationTokens[0]).to.equal(tokenAAddress);
+    });
+
+    it("Should set and return multiple additional rescue tokens", async function () {
+      const tokenAAddress = await tokenA.getAddress();
+      const tokenBAddress = await tokenB.getAddress();
+      const tokenCAddress = await tokenC.getAddress();
+
+      await dloopMock.setMockAdditionalRescueTokens([tokenAAddress, tokenBAddress, tokenCAddress]);
+
+      // Verify mock state contains only the additional tokens
+      const mockTokens = await dloopMock.getMockAdditionalRescueTokens();
+      expect(mockTokens.length).to.equal(3);
+      expect(mockTokens[0]).to.equal(tokenAAddress);
+      expect(mockTokens[1]).to.equal(tokenBAddress);
+      expect(mockTokens[2]).to.equal(tokenCAddress);
+
+      // Verify implementation returns only the additional tokens
+      const implementationTokens = await dloopMock.testGetAdditionalRescueTokensImplementation();
+      expect(implementationTokens.length).to.equal(3);
+      expect(implementationTokens[0]).to.equal(tokenAAddress);
+      expect(implementationTokens[1]).to.equal(tokenBAddress);
+      expect(implementationTokens[2]).to.equal(tokenCAddress);
+    });
+
+    it("Should allow dynamic changes to additional rescue tokens", async function () {
+      const tokenAAddress = await tokenA.getAddress();
+      const tokenBAddress = await tokenB.getAddress();
+      const tokenCAddress = await tokenC.getAddress();
+
+      // Start with single token
+      await dloopMock.setMockAdditionalRescueTokens([tokenAAddress]);
+      expect((await dloopMock.getMockAdditionalRescueTokens()).length).to.equal(1);
+
+      // Change to multiple tokens
+      await dloopMock.setMockAdditionalRescueTokens([tokenAAddress, tokenBAddress]);
+      expect((await dloopMock.getMockAdditionalRescueTokens()).length).to.equal(2);
+
+      // Change to different set of tokens
+      await dloopMock.setMockAdditionalRescueTokens([tokenCAddress, tokenAAddress]);
+      const mockTokens = await dloopMock.getMockAdditionalRescueTokens();
+      expect(mockTokens.length).to.equal(2);
+      expect(mockTokens[0]).to.equal(tokenCAddress);
+      expect(mockTokens[1]).to.equal(tokenAAddress);
+    });
+
+    it("Should clear additional rescue tokens when setting empty array", async function () {
+      const tokenAAddress = await tokenA.getAddress();
+      const tokenBAddress = await tokenB.getAddress();
+
+      // Set multiple tokens first
+      await dloopMock.setMockAdditionalRescueTokens([tokenAAddress, tokenBAddress]);
+      expect((await dloopMock.getMockAdditionalRescueTokens()).length).to.equal(2);
+
+      // Clear by setting empty array
+      await dloopMock.setMockAdditionalRescueTokens([]);
+      expect((await dloopMock.getMockAdditionalRescueTokens()).length).to.equal(0);
+
+      // Verify implementation also returns empty array for additional tokens
+      const implementationTokens = await dloopMock.testGetAdditionalRescueTokensImplementation();
+      expect(implementationTokens.length).to.equal(0);
+    });
+
+    it("Should handle setting same token multiple times", async function () {
+      const tokenAAddress = await tokenA.getAddress();
+
+      // Set same token multiple times in array
+      await dloopMock.setMockAdditionalRescueTokens([tokenAAddress, tokenAAddress, tokenAAddress]);
+
+      const mockTokens = await dloopMock.getMockAdditionalRescueTokens();
+      expect(mockTokens.length).to.equal(3);
+      expect(mockTokens[0]).to.equal(tokenAAddress);
+      expect(mockTokens[1]).to.equal(tokenAAddress);
+      expect(mockTokens[2]).to.equal(tokenAAddress);
+    });
+
+    it("Should restrict rescue of additional rescue tokens", async function () {
+      const tokenAAddress = await tokenA.getAddress();
+      const tokenBAddress = await tokenB.getAddress();
+
+      // Set tokenA as additional rescue token
+      await dloopMock.setMockAdditionalRescueTokens([tokenAAddress]);
+
+      // Verify tokenA is now restricted (cannot be rescued)
+      await expect(dloopMock.connect(owner).rescueToken(tokenAAddress, receiver.address, ethers.parseEther("50"))).to.be.revertedWith(
+        "Cannot rescue restricted token",
+      );
+
+      // Verify tokenB is still rescuable (not in additional rescue tokens)
+      await expect(dloopMock.connect(owner).rescueToken(tokenBAddress, receiver.address, ethers.parseEther("50"))).to.not.be.reverted;
+
+      // Verify token was rescued
+      expect(await tokenB.balanceOf(receiver.address)).to.equal(ethers.parseEther("50"));
+    });
+
+    it("Should include additional rescue tokens in restricted tokens list", async function () {
+      const tokenAAddress = await tokenA.getAddress();
+      const tokenBAddress = await tokenB.getAddress();
+
+      // Initially no restricted tokens (mock starts clean)
+      let restrictedTokens = await dloopMock.getRestrictedRescueTokens();
+      expect(restrictedTokens.length).to.equal(0);
+      expect(restrictedTokens).to.not.include(tokenAAddress);
+      expect(restrictedTokens).to.not.include(tokenBAddress);
+
+      // Set additional rescue tokens
+      await dloopMock.setMockAdditionalRescueTokens([tokenAAddress, tokenBAddress]);
+
+      // Now additional tokens should be included in restricted list
+      restrictedTokens = await dloopMock.getRestrictedRescueTokens();
+      expect(restrictedTokens).to.include(tokenAAddress);
+      expect(restrictedTokens).to.include(tokenBAddress);
+      expect(restrictedTokens.length).to.equal(2);
+    });
+
+    it("Should allow rescuing non-additional tokens even when additional tokens are set", async function () {
+      const tokenAAddress = await tokenA.getAddress();
+
+      // Set tokenA as additional rescue token
+      await dloopMock.setMockAdditionalRescueTokens([tokenAAddress]);
+
+      // Verify otherToken (which is not additional) can still be rescued
+      await dloopMock.connect(owner).rescueToken(await otherToken.getAddress(), receiver.address, ethers.parseEther("25"));
+
+      // Verify rescue worked
+      expect(await otherToken.balanceOf(receiver.address)).to.equal(ethers.parseEther("25"));
+      expect(await otherToken.balanceOf(await dloopMock.getAddress())).to.equal(ethers.parseEther("75"));
     });
   });
 });

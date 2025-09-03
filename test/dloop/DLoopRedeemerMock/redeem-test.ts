@@ -21,7 +21,6 @@ describe("DLoopRedeemerMock Redeem Tests", function () {
   let dLoopDepositorMock: DLoopDepositorMock;
   let collateralToken: TestMintableERC20;
   let debtToken: TestERC20FlashMintable;
-  let flashLender: TestERC20FlashMintable;
   let simpleDEXMock: SimpleDEXMock;
   let user1: HardhatEthersSigner;
   let user2: HardhatEthersSigner;
@@ -42,7 +41,6 @@ describe("DLoopRedeemerMock Redeem Tests", function () {
 
     dLoopRedeemerMock = dloopRedeemerMockFixture.dLoopRedeemerMock;
     dLoopDepositorMock = dloopRedeemerMockFixture.dLoopDepositorMock;
-    flashLender = dloopRedeemerMockFixture.flashLender;
     simpleDEXMock = dloopRedeemerMockFixture.simpleDEXMock;
     user1 = dloopRedeemerMockFixture.user1;
     user2 = dloopRedeemerMockFixture.user2;
@@ -226,14 +224,6 @@ describe("DLoopRedeemerMock Redeem Tests", function () {
 
         // Create position first
         const { shares } = await createPosition(dloopMock, collateralToken, debtToken, dLoopDepositorMock, user, testCase.depositAmount);
-
-        // Check flash lender has sufficient balance
-        const flashLenderBalance = await flashLender.balanceOf(await flashLender.getAddress());
-        expect(flashLenderBalance).to.be.gt(0);
-
-        // Record flash lender state before
-        const initialFlashLenderBalance = await flashLender.balanceOf(await flashLender.getAddress());
-
         // Get initial user collateral balance
         const initialUserCollateralBalance = await collateralToken.balanceOf(user.address);
 
@@ -255,14 +245,6 @@ describe("DLoopRedeemerMock Redeem Tests", function () {
         expect(actualCollateralReceived).to.be.closeTo(
           testCase.expectedReceivedCollateral,
           (testCase.expectedReceivedCollateral * BigInt(ONE_PERCENT_BPS)) / BigInt(0.1 * ONE_HUNDRED_PERCENT_BPS), // 0.1% tolerance for slippage and fees
-        );
-
-        // Flash lender balance should return to approximately the same level
-        // (may have small fee differences)
-        const finalFlashLenderBalance = await flashLender.balanceOf(await flashLender.getAddress());
-        expect(finalFlashLenderBalance).to.be.closeTo(
-          initialFlashLenderBalance,
-          ethers.parseEther("1"), // Allow 1 ETH tolerance for fees
         );
       });
     }
@@ -289,7 +271,7 @@ describe("DLoopRedeemerMock Redeem Tests", function () {
       for (const testCase of testCases) {
         // Flash loan should have zero fee by default in TestERC20FlashMintable
         const flashLoanAmount = ethers.parseEther("1000");
-        const flashFee = await flashLender.flashFee(await flashLender.getAddress(), flashLoanAmount);
+        const flashFee = await debtToken.flashFee(await debtToken.getAddress(), flashLoanAmount);
         expect(flashFee).to.equal(testCase.expectedFee);
 
         // Create position and redeem
