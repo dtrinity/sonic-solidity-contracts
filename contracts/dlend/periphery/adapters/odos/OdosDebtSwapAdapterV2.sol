@@ -91,7 +91,7 @@ contract OdosDebtSwapAdapterV2 is
         DebtSwapParamsV2 memory debtSwapParams,
         CreditDelegationInput memory creditDelegationPermit,
         PermitInput memory collateralATokenPermit
-    ) external {
+    ) external nonReentrant {
         uint256 excessBefore = IERC20Detailed(debtSwapParams.newDebtAsset).balanceOf(address(this));
 
         // delegate credit

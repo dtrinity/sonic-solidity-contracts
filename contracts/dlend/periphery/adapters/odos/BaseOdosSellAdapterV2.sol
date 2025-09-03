@@ -99,6 +99,11 @@ abstract contract BaseOdosSellAdapterV2 is BaseOdosSwapAdapter, OracleValidation
             // Regular swap - use direct Odos execution with leftover validation
             uint256 inputBalanceBefore = assetToSwapFrom.balanceOf(address(this));
 
+            // Ensure we actually hold at least the declared exact input amount
+            if (inputBalanceBefore < amountToSwap) {
+                revert InsufficientBalanceBeforeSwap(inputBalanceBefore, amountToSwap);
+            }
+
             uint256 swapResult = _executeDirectOdosExactInput(
                 tokenIn,
                 tokenOut,
@@ -109,12 +114,9 @@ abstract contract BaseOdosSellAdapterV2 is BaseOdosSwapAdapter, OracleValidation
 
             // Validate no leftover collateral remains after exact input swap
             uint256 inputBalanceAfter = assetToSwapFrom.balanceOf(address(this));
-            uint256 inputLeftoverAmount = inputBalanceAfter > inputBalanceBefore
-                ? inputBalanceAfter - inputBalanceBefore
-                : 0;
-
-            if (inputLeftoverAmount > 0) {
-                revert LeftoverCollateralAfterSwap(tokenIn, inputLeftoverAmount);
+            uint256 expectedBalanceAfter = inputBalanceBefore - amountToSwap;
+            if (inputBalanceAfter > expectedBalanceAfter) {
+                revert LeftoverCollateralAfterSwap(tokenIn, inputBalanceAfter - expectedBalanceAfter);
             }
 
             return swapResult;
@@ -131,12 +133,9 @@ abstract contract BaseOdosSellAdapterV2 is BaseOdosSwapAdapter, OracleValidation
 
         // Validate no leftover collateral remains after exact input swap
         uint256 ptInputBalanceAfter = assetToSwapFrom.balanceOf(address(this));
-        uint256 ptLeftoverAmount = ptInputBalanceAfter > ptInputBalanceBefore
-            ? ptInputBalanceAfter - ptInputBalanceBefore
-            : 0;
-
-        if (ptLeftoverAmount > 0) {
-            revert LeftoverCollateralAfterSwap(tokenIn, ptLeftoverAmount);
+        uint256 expectedPTBalanceAfter = ptInputBalanceBefore - amountToSwap;
+        if (ptInputBalanceAfter > expectedPTBalanceAfter) {
+            revert LeftoverCollateralAfterSwap(tokenIn, ptInputBalanceAfter - expectedPTBalanceAfter);
         }
 
         emit Bought(tokenIn, tokenOut, amountToSwap, amountReceived);
