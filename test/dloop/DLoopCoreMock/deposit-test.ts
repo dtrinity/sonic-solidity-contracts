@@ -7,8 +7,7 @@ import { DLoopCoreMock, TestMintableERC20 } from "../../../typechain-types";
 import { ONE_HUNDRED_PERCENT_BPS, ONE_PERCENT_BPS } from "../../../typescript/common/bps_constants";
 import { deployDLoopMockFixture, TARGET_LEVERAGE_BPS, testSetup } from "./fixture";
 
-// NOTE: Deposit/maintain leverage scenarios are validated in CoreLogic maintain_leverage tests; skip duplication
-describe.skip("DLoopCoreMock Deposit Tests", function () {
+describe("DLoopCoreMock Deposit Tests", function () {
   // Contract instances and addresses
   let dloopMock: DLoopCoreMock;
   let collateralToken: TestMintableERC20;

@@ -1,7 +1,7 @@
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 import { ethers } from "hardhat";
 
-import { DLoopCoreMock, TestMintableERC20 } from "../../../typechain-types";
+import { DLoopCoreMock, DLoopQuoter, TestMintableERC20 } from "../../../typechain-types";
 import { ONE_PERCENT_BPS } from "../../../typescript/common/bps_constants";
 
 // Test constants
@@ -16,6 +16,7 @@ export const DEBT_DECIMALS = 18;
 
 export interface DLoopMockFixture {
   dloopMock: DLoopCoreMock;
+  quoter: DLoopQuoter;
   collateralToken: TestMintableERC20;
   debtToken: TestMintableERC20;
   mockPool: HardhatEthersSigner;
@@ -48,11 +49,6 @@ export async function deployDLoopMockFixture(): Promise<DLoopMockFixture> {
   await collateralToken.mint(mockPool, ethers.parseEther("1000000"));
   await debtToken.mint(mockPool, ethers.parseEther("1000000"));
 
-  // Deploy and link DLoopCoreLogic library before deploying DLoopCoreMock
-  const DLoopCoreLogicFactory = await ethers.getContractFactory("DLoopCoreLogic");
-  const dloopCoreLogicLib = await DLoopCoreLogicFactory.deploy();
-  await dloopCoreLogicLib.waitForDeployment();
-
   // Get the exact nonce for deployment and set up allowances correctly
   const currentNonce = await ethers.provider.getTransactionCount(deployer);
 
@@ -66,12 +62,8 @@ export async function deployDLoopMockFixture(): Promise<DLoopMockFixture> {
   await collateralToken.connect(accounts[0]).approve(contractAddress, ethers.MaxUint256);
   await debtToken.connect(accounts[0]).approve(contractAddress, ethers.MaxUint256);
 
-  // Now deploy the contract (linking the DLoopCoreLogic library)
-  const DLoopCoreMockFactory = await ethers.getContractFactory("DLoopCoreMock", {
-    libraries: {
-      "contracts/vaults/dloop/core/DLoopCoreLogic.sol:DLoopCoreLogic": await dloopCoreLogicLib.getAddress(),
-    },
-  });
+  // Now deploy the contract without library linking
+  const DLoopCoreMockFactory = await ethers.getContractFactory("DLoopCoreMock");
   const dloopMock = await DLoopCoreMockFactory.deploy(
     "Mock dLoop Vault",
     "mdLOOP",
@@ -86,8 +78,19 @@ export async function deployDLoopMockFixture(): Promise<DLoopMockFixture> {
     mockPool,
   );
 
+  const dloopCoreLogicFactory = await ethers.getContractFactory("DLoopCoreLogic");
+  const dloopCoreLogic = await dloopCoreLogicFactory.deploy();
+
+  const DLoopQuoterFactory = await ethers.getContractFactory("DLoopQuoter", {
+    libraries: {
+      DLoopCoreLogic: await dloopCoreLogic.getAddress(),
+    },
+  });
+  const quoter = await DLoopQuoterFactory.deploy();
+
   return {
     dloopMock: dloopMock as unknown as DLoopCoreMock,
+    quoter,
     collateralToken,
     debtToken,
     mockPool,
