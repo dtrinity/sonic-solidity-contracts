@@ -21,17 +21,17 @@ import "../interface/chainlink/IAggregatorV3Interface.sol";
 import "../interface/chainlink/IPriceFeedLegacy.sol";
 
 /**
- * @title ChainlinkDecimalConverterV2
- * @notice V2 converter between Chainlink price feeds with different decimal precisions
- * @dev Implements both AggregatorV3Interface and IPriceFeedLegacy interfaces
- * @dev Supports both upscaling (increasing precision) and downscaling (reducing precision)
+ * @title ChainlinkDecimalDownscaler
+ * @notice Dedicated downscaler for Chainlink price feeds - reduces decimal precision
+ * @dev Implements both AggregatorV3Interface and IPriceFeedLegacy for backwards compatibility
+ * @dev This contract is optimized for gas efficiency by only supporting downscaling operations
  */
-contract ChainlinkDecimalConverterV2 is AggregatorV3Interface, IPriceFeedLegacy {
+contract ChainlinkDecimalDownscaler is AggregatorV3Interface, IPriceFeedLegacy {
     /// @notice Original Chainlink price feed
     AggregatorV3Interface public immutable sourceFeed;
 
     /// @notice Legacy interface for the source feed (if supported)
-    IPriceFeedLegacy public immutable sourceFeedLegacy;
+    IPriceFeedLegacy private immutable sourceFeedLegacy;
 
     /// @notice Original decimals from the source feed
     uint8 public immutable sourceDecimals;
@@ -39,42 +39,34 @@ contract ChainlinkDecimalConverterV2 is AggregatorV3Interface, IPriceFeedLegacy 
     /// @notice Target decimals for price conversion
     uint8 public immutable override decimals;
 
-    /// @notice Whether we need to upscale (multiply) or downscale (divide)
-    bool public immutable isUpscaling;
-
     /// @notice Scaling factor to convert between source and target decimals
     int256 private immutable scalingFactor;
 
     /**
-     * @notice Constructor to initialize the V2 decimal converter
+     * @notice Error thrown when target decimals exceed source decimals
+     */
+    error InvalidDecimalsUpscaleNotSupported();
+
+    /**
+     * @notice Constructor to initialize the downscaling decimal converter
      * @param _sourceFeed Address of the source Chainlink price feed
-     * @param _targetDecimals Target decimal precision
+     * @param _targetDecimals Target decimal precision (must be less than or equal to source decimals)
      */
     constructor(address _sourceFeed, uint8 _targetDecimals) {
         sourceFeed = AggregatorV3Interface(_sourceFeed);
+        sourceFeedLegacy = IPriceFeedLegacy(_sourceFeed);
         sourceDecimals = sourceFeed.decimals();
         decimals = _targetDecimals;
 
-        // We'll attempt legacy interface calls at runtime with fallbacks
-        // This is more robust than trying to detect support at construction time
-        sourceFeedLegacy = IPriceFeedLegacy(_sourceFeed);
-
-        // Determine scaling direction and calculate factor
+        // We only support downscaling (reducing precision), not upscaling
         if (_targetDecimals > sourceDecimals) {
-            // Upscaling: multiply by 10^(targetDecimals - sourceDecimals)
-            isUpscaling = true;
-            uint8 decimalDifference = _targetDecimals - sourceDecimals;
-            scalingFactor = int256(10 ** decimalDifference);
-        } else if (_targetDecimals < sourceDecimals) {
-            // Downscaling: divide by 10^(sourceDecimals - targetDecimals)
-            isUpscaling = false;
-            uint8 decimalDifference = sourceDecimals - _targetDecimals;
-            scalingFactor = int256(10 ** decimalDifference);
-        } else {
-            // No scaling needed
-            isUpscaling = false;
-            scalingFactor = 1;
+            revert InvalidDecimalsUpscaleNotSupported();
         }
+
+        // Calculate the scaling factor to convert from source to target decimals
+        // For downscaling, we divide by 10^(sourceDecimals - targetDecimals)
+        uint8 decimalDifference = sourceDecimals - _targetDecimals;
+        scalingFactor = int256(10 ** decimalDifference);
     }
 
     /**
@@ -111,7 +103,7 @@ contract ChainlinkDecimalConverterV2 is AggregatorV3Interface, IPriceFeedLegacy 
         returns (uint80 roundId, int256 answer, uint256 startedAt, uint256 updatedAt, uint80 answeredInRound)
     {
         (roundId, answer, startedAt, updatedAt, answeredInRound) = sourceFeed.getRoundData(_roundId);
-        answer = _scalePrice(answer);
+        answer = answer / scalingFactor;
     }
 
     /**
@@ -129,7 +121,7 @@ contract ChainlinkDecimalConverterV2 is AggregatorV3Interface, IPriceFeedLegacy 
         returns (uint80 roundId, int256 answer, uint256 startedAt, uint256 updatedAt, uint80 answeredInRound)
     {
         (roundId, answer, startedAt, updatedAt, answeredInRound) = sourceFeed.latestRoundData();
-        answer = _scalePrice(answer);
+        answer = answer / scalingFactor;
     }
 
     /**
@@ -152,30 +144,11 @@ contract ChainlinkDecimalConverterV2 is AggregatorV3Interface, IPriceFeedLegacy 
      */
     function latestAnswer() external view override returns (int256) {
         try sourceFeedLegacy.latestAnswer() returns (int256 answer) {
-            return _scalePrice(answer);
+            return answer / scalingFactor;
         } catch {
             // Fall back to getting it from latestRoundData if legacy interface not supported
             (, int256 answer, , , ) = sourceFeed.latestRoundData();
-            return _scalePrice(answer);
-        }
-    }
-
-    /**
-     * @notice Internal function to scale price based on decimal conversion
-     * @param originalPrice The original price from the source feed
-     * @return scaledPrice The price adjusted to target decimals
-     */
-    function _scalePrice(int256 originalPrice) internal view returns (int256 scaledPrice) {
-        if (scalingFactor == 1) {
-            return originalPrice;
-        }
-
-        if (isUpscaling) {
-            // Multiply for upscaling (increasing precision)
-            scaledPrice = originalPrice * scalingFactor;
-        } else {
-            // Divide for downscaling (reducing precision)
-            scaledPrice = originalPrice / scalingFactor;
+            return answer / scalingFactor;
         }
     }
 }

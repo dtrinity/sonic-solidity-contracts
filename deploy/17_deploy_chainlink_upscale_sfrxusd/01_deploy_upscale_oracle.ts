@@ -10,18 +10,18 @@ const EXPECTED_SOURCE_DECIMALS = 8;
 const TARGET_DECIMALS = 18;
 
 /**
- * Deploys ChainlinkDecimalConverterV2 for sfrxUSD Redstone feed
+ * Deploys ChainlinkDecimalUpscaler for sfrxUSD Redstone feed
  * This converts the feed from 8 decimals to 18 decimals (upscaling)
  *
- * The deployment uses the new ChainlinkDecimalConverterV2 which supports:
- * - Both upscaling and downscaling
- * - Both IAggregatorV3Interface and IPriceFeedLegacy interfaces
- * - Automatic detection of legacy interface support
+ * The deployment uses the dedicated ChainlinkDecimalUpscaler which:
+ * - Only supports upscaling for better gas efficiency
+ * - Implements both IAggregatorV3Interface and IPriceFeedLegacy interfaces
+ * - Has runtime fallback for legacy interface support
  *
  * Feed details:
  * - Source: sfrxUSD Redstone feed at 0xebE443E20ADf302B59419648c4dbA0c7299cf1A2
  * - Direction: 8 decimals → 18 decimals (upscale by 10^10)
- * - Contract: ChainlinkDecimalConverterV2
+ * - Contract: ChainlinkDecimalUpscaler
  *
  * @param hre The Hardhat runtime environment.
  */
@@ -35,7 +35,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployer } = await hre.getNamedAccounts();
   const { deployments, ethers } = hre;
 
-  console.log(`🚀 Deploying ChainlinkDecimalConverterV2 for sfrxUSD upscaling...`);
+  console.log(`🚀 Deploying ChainlinkDecimalUpscaler for sfrxUSD upscaling...`);
   console.log(`   Source feed: ${SFRXUSD_REDSTONE_FEED_ADDRESS}`);
   console.log(`   Direction: ${EXPECTED_SOURCE_DECIMALS} → ${TARGET_DECIMALS} decimals`);
 
@@ -63,39 +63,33 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     console.log(`⚠️  Could not get feed description: ${error}`);
   }
 
-  // Deploy the ChainlinkDecimalConverterV2
-  console.log(`🔧 Deploying ChainlinkDecimalConverterV2...`);
+  // Deploy the ChainlinkDecimalUpscaler
+  console.log(`🔧 Deploying ChainlinkDecimalUpscaler...`);
   await deployments.deploy(SFRXUSD_UPSCALE_DECIMAL_CONVERTER_ID, {
     from: deployer,
     args: [SFRXUSD_REDSTONE_FEED_ADDRESS, TARGET_DECIMALS],
-    contract: "ChainlinkDecimalConverterV2",
+    contract: "ChainlinkDecimalUpscaler",
     autoMine: true,
     log: false,
   });
 
   // Get the deployment and verify
   const converterDeployment = await deployments.get(SFRXUSD_UPSCALE_DECIMAL_CONVERTER_ID);
-  const converter = await ethers.getContractAt("ChainlinkDecimalConverterV2", converterDeployment.address);
+  const converter = await ethers.getContractAt("ChainlinkDecimalUpscaler", converterDeployment.address);
 
   // Verify the converter configuration
   const targetDecimals = await converter.decimals();
   const converterSourceDecimals = await converter.sourceDecimals();
-  const isUpscaling = await converter.isUpscaling();
 
-  console.log(`✅ Deployed ChainlinkDecimalConverterV2: ${converterDeployment.address}`);
+  console.log(`✅ Deployed ChainlinkDecimalUpscaler: ${converterDeployment.address}`);
   console.log(`   Source decimals: ${converterSourceDecimals}`);
   console.log(`   Target decimals: ${targetDecimals}`);
-  console.log(`   Is upscaling: ${isUpscaling}`);
   console.log(
     `   Scaling factor: 10^${TARGET_DECIMALS - EXPECTED_SOURCE_DECIMALS} = ${10n ** BigInt(TARGET_DECIMALS - EXPECTED_SOURCE_DECIMALS)}`,
   );
 
   if (targetDecimals !== BigInt(TARGET_DECIMALS)) {
     throw new Error(`Converter has ${targetDecimals} decimals, expected ${TARGET_DECIMALS}`);
-  }
-
-  if (!isUpscaling) {
-    throw new Error(`Converter should be upscaling but isUpscaling is false`);
   }
 
   // Test the converter by getting a price (if available)
@@ -127,7 +121,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     console.log(`✅ Legacy interface methods working - Round: ${latestRound}, Answer: ${latestAnswer}`);
 
     // The V2 converter automatically falls back to modern interface if legacy fails
-    console.log(`🔗 Legacy methods successfully use fallback for non-legacy feeds`);
+    console.log(`🔗 Legacy methods successfully use runtime fallback for non-legacy feeds`);
   } catch (legacyError) {
     console.log(`❌ Legacy interface methods failed unexpectedly: ${legacyError}`);
     console.log(`   This suggests an issue with the fallback logic`);
