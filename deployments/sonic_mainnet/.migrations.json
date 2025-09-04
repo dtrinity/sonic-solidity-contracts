@@ -42,7 +42,6 @@
   "dLend:Incentives": 1744902741,
   "transfer_dstable_roles_to_multisig": 1744902851,
   "transfer_oracle_roles_to_multisig": 1744902867,
-  "dLend:OdosAdapters": 1744902885,
   "transfer_dlend_roles_to_multisig": 1744902902,
   "setup-wstkscusd-for-usd-redstone-composite-oracle-wrapper": 1746520589,
   "point-usd-oracle-aggregator-for-usd": 1746520591,
@@ -68,6 +67,8 @@
   "DLoopIncreaseLeverageOdos": 1751603734,
   "deploy_redeemer_with_fees": 1753850757,
   "transfer_dstake_roles_to_multisig": 1753851408,
+  "dLend:OdosAdapters": 1753836115,
   "1_setup_issuerv2": 1755241283,
-  "2_setup_redeemerv2": 1755241315
+  "2_setup_redeemerv2": 1755241315,
+  "dLend:OdosAdaptersV2": 1756969400
 }

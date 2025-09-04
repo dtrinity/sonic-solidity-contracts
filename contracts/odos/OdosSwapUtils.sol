@@ -2,8 +2,8 @@
 pragma solidity ^0.8.20;
 
 import "./interface/IOdosRouterV2.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 /**
  * @title OdosSwapUtils
@@ -37,8 +37,8 @@ library OdosSwapUtils {
     ) internal returns (uint256 actualAmountSpent) {
         uint256 outputBalanceBefore = IERC20(outputToken).balanceOf(address(this));
 
-        // Use forceApprove for external DEX router integration
-        IERC20(inputToken).forceApprove(address(router), maxIn);
+        // Use SafeERC20.forceApprove for external DEX router integration
+        SafeERC20.forceApprove(IERC20(inputToken), address(router), maxIn);
 
         (bool success, bytes memory result) = address(router).call(swapData);
         if (!success) {
@@ -62,6 +62,7 @@ library OdosSwapUtils {
             revert InsufficientOutput(exactOut, actualAmountReceived);
         }
 
+        // Reset approval to 0 after swap
         IERC20(inputToken).approve(address(router), 0);
 
         return actualAmountSpent;

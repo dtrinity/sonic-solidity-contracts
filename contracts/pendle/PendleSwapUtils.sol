@@ -18,47 +18,94 @@ library PendleSwapUtils {
     error PTApprovalFailed();
 
     /**
-     * @notice Executes a Pendle PT swap operation using SDK-generated transaction data
-     * @dev This function executes the swap and returns the actual amount spent from the swap result.
-     *      Underlying tokens go directly to the receiver specified in the Pendle SDK call data.
-     * @param ptToken The PT token being swapped
-     * @param ptAmount Amount of PT tokens to swap
+     * @notice Executes a generic Pendle swap operation using SDK-generated transaction data
+     * @dev Pendle router treats all tokens equally - PT, underlying, or any other ERC20
+     * @param tokenIn The input token being swapped
+     * @param tokenOut The output token being received
+     * @param amountIn Amount of input tokens to swap
      * @param router Pendle router contract address from Pendle SDK
      * @param swapData Transaction data from Pendle SDK
-     * @return amountSpent Actual amount spent from the Pendle swap result
+     * @return amountOut Actual amount of output tokens received
      */
-    function executePendleSwap(
-        address ptToken,
-        uint256 ptAmount,
+    function swapExactInput(
+        address tokenIn,
+        address tokenOut,
+        uint256 amountIn,
         address router,
         bytes memory swapData
-    ) internal returns (uint256 amountSpent) {
-        // Approve PT tokens to target contract
-        ERC20(ptToken).forceApprove(router, ptAmount);
+    ) internal returns (uint256 amountOut) {
+        // Record output balance before swap
+        uint256 outputBalanceBefore = ERC20(tokenOut).balanceOf(address(this));
+
+        // Execute swap with approval handling
+        _executeWithApproval(tokenIn, amountIn, router, swapData);
+
+        // Calculate actual tokens received using balance difference
+        uint256 outputBalanceAfter = ERC20(tokenOut).balanceOf(address(this));
+        amountOut = outputBalanceAfter - outputBalanceBefore;
+
+        return amountOut;
+    }
+
+    /**
+     * @notice Shared utility for Pendle router execution with approval handling
+     * @param inputToken Token to approve and potentially spend
+     * @param inputAmount Amount to approve
+     * @param router Pendle router contract address
+     * @param swapData Transaction data from Pendle SDK
+     * @return result The return data from the router call
+     */
+    function _executeWithApproval(
+        address inputToken,
+        uint256 inputAmount,
+        address router,
+        bytes memory swapData
+    ) private returns (bytes memory result) {
+        // Approve input tokens to Pendle router
+        SafeERC20.forceApprove(ERC20(inputToken), router, inputAmount);
 
         // Check if approval was successful
-        uint256 currentAllowance = ERC20(ptToken).allowance(address(this), router);
-        if (currentAllowance < ptAmount) {
+        uint256 currentAllowance = ERC20(inputToken).allowance(address(this), router);
+        if (currentAllowance < inputAmount) {
             revert PTApprovalFailed();
         }
 
-        // Execute Pendle SDK transaction
-        (bool success, bytes memory result) = router.call(swapData);
+        // Execute Pendle swap using shared utility
+        bool success;
+        (success, result) = executePendleCall(router, swapData);
+
         if (!success) {
-            // Decode the revert reason if present
-            if (result.length > 0) {
-                assembly {
-                    let resultLength := mload(result)
-                    revert(add(32, result), resultLength)
-                }
-            }
             revert PendleSwapFailed();
         }
 
-        assembly {
-            amountSpent := mload(add(result, 32))
+        // Reset approval to 0 after swap to avoid potential exploits
+        ERC20(inputToken).approve(router, 0);
+
+        return result;
+    }
+
+    /**
+     * @notice Executes generic Pendle swap with arbitrary calldata
+     * @param router Pendle router contract address
+     * @param swapData Transaction data from Pendle SDK
+     * @return success Whether the swap was successful
+     * @return result The return data from the swap
+     */
+    function executePendleCall(
+        address router,
+        bytes memory swapData
+    ) internal returns (bool success, bytes memory result) {
+        // Execute Pendle router call
+        (success, result) = router.call(swapData);
+
+        if (!success && result.length > 0) {
+            // Bubble up revert reason
+            assembly {
+                let resultLength := mload(result)
+                revert(add(32, result), resultLength)
+            }
         }
 
-        return amountSpent;
+        return (success, result);
     }
 }
