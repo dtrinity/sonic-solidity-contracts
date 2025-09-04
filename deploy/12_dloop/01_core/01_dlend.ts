@@ -196,14 +196,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 };
 
 func.tags = ["dloop", "dloop-core", "dloop-core-dlend"];
-func.dependencies = [
-  "dloop-core-logic",
-  "PoolAddressesProvider",
-  "dlend-periphery-post",
-  "PoolDataProvider",
-  "dlend-static-wrapper-factory",
-  "dStableATokenWrappers",
-];
+func.dependencies = ["dloop-core-logic"];
 func.id = DLOOP_CORE_DLEND_ID;
 
 export default func;
