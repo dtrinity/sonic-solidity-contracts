@@ -17,7 +17,7 @@
 
 pragma solidity ^0.8.20;
 
-import {IBaseCurveAdapter} from "./IBaseCurveAdapter.sol";
+import { IBaseCurveAdapter } from "./IBaseCurveAdapter.sol";
 
 /**
  * @title ICurveRepayAdapter
@@ -42,8 +42,5 @@ interface ICurveRepayAdapter is IBaseCurveAdapter {
      * @param repayParams struct describing the repay with collateral swap
      * @param collateralATokenPermit optional permit for collateral aToken
      */
-    function repayWithCollateral(
-        RepayParams memory repayParams,
-        PermitInput memory collateralATokenPermit
-    ) external;
+    function repayWithCollateral(RepayParams memory repayParams, PermitInput memory collateralATokenPermit) external;
 }

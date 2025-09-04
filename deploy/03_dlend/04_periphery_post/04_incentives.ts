@@ -41,18 +41,13 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     waitConfirmations: 1,
   });
 
-  const incentivesImplContract = await ethers.getContractAt(
-    "RewardsController",
-    incentivesImpl.address,
-  );
+  const incentivesImplContract = await ethers.getContractAt("RewardsController", incentivesImpl.address);
 
   // Initialize the implementation
   try {
     await incentivesImplContract.initialize(ZeroAddress);
   } catch (error: any) {
-    if (
-      error?.message.includes("Contract instance has already been initialized")
-    ) {
+    if (error?.message.includes("Contract instance has already been initialized")) {
       console.log("Incentives implementation already initialized");
     } else {
       throw Error(`Failed to initialize Incentives implementation: ${error}`);
@@ -60,29 +55,16 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   }
 
   // The Rewards Controller must be set at AddressesProvider with id keccak256("INCENTIVES_CONTROLLER")
-  const incentivesControllerId = ethers.keccak256(
-    ethers.toUtf8Bytes("INCENTIVES_CONTROLLER"),
-  );
+  const incentivesControllerId = ethers.keccak256(ethers.toUtf8Bytes("INCENTIVES_CONTROLLER"));
 
-  const isRewardsProxyPending =
-    (await addressesProviderInstance.getAddressFromID(
-      incentivesControllerId,
-    )) === ZeroAddress;
+  const isRewardsProxyPending = (await addressesProviderInstance.getAddressFromID(incentivesControllerId)) === ZeroAddress;
 
   if (isRewardsProxyPending) {
-    const proxyArtifact = await getExtendedArtifact(
-      "InitializableImmutableAdminUpgradeabilityProxy",
-    );
+    const proxyArtifact = await getExtendedArtifact("InitializableImmutableAdminUpgradeabilityProxy");
 
-    const _setRewardsAsProxyTx =
-      await addressesProviderInstance.setAddressAsProxy(
-        incentivesControllerId,
-        incentivesImpl.address,
-      );
+    const _setRewardsAsProxyTx = await addressesProviderInstance.setAddressAsProxy(incentivesControllerId, incentivesImpl.address);
 
-    const proxyAddress = await addressesProviderInstance.getAddressFromID(
-      incentivesControllerId,
-    );
+    const proxyAddress = await addressesProviderInstance.getAddressFromID(incentivesControllerId);
 
     await save(INCENTIVES_PROXY_ID, {
       ...proxyArtifact,
@@ -90,22 +72,15 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     });
   }
 
-  const incentivesProxyAddress = (
-    await deployments.getOrNull(INCENTIVES_PROXY_ID)
-  )?.address;
+  const incentivesProxyAddress = (await deployments.getOrNull(INCENTIVES_PROXY_ID))?.address;
 
   // Initialize EmissionManager with the rewards controller address
-  const emissionManagerContract = await ethers.getContractAt(
-    "EmissionManager",
-    emissionManager.address,
-  );
+  const emissionManagerContract = await ethers.getContractAt("EmissionManager", emissionManager.address);
 
   if (incentivesProxyAddress) {
     await emissionManagerContract.setRewardsController(incentivesProxyAddress);
   } else {
-    console.log(
-      "Warning: IncentivesProxy address is undefined, skipping setRewardsController",
-    );
+    console.log("Warning: IncentivesProxy address is undefined, skipping setRewardsController");
   }
 
   // Deploy Rewards Strategies
@@ -127,11 +102,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
 func.id = "dLend:Incentives";
 func.tags = ["dlend", "dlend-periphery-post"];
-func.dependencies = [
-  "dlend-core",
-  "dlend-periphery-pre",
-  "dlend-market",
-  "PoolAddressesProvider",
-];
+func.dependencies = ["dlend-core", "dlend-periphery-pre", "dlend-market", "PoolAddressesProvider"];
 
 export default func;

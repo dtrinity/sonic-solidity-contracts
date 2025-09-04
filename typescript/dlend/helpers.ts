@@ -8,17 +8,13 @@ import { Libraries } from "hardhat-deploy/types";
  * @param hre - Hardhat Runtime Environment
  * @returns The pool libraries
  */
-export async function getPoolLibraries(
-  hre: HardhatRuntimeEnvironment,
-): Promise<Libraries> {
+export async function getPoolLibraries(hre: HardhatRuntimeEnvironment): Promise<Libraries> {
   const supplyLibraryDeployedResult = await hre.deployments.get("SupplyLogic");
   const borrowLibraryDeployedResult = await hre.deployments.get("BorrowLogic");
-  const liquidationLibraryDeployedResult =
-    await hre.deployments.get("LiquidationLogic");
+  const liquidationLibraryDeployedResult = await hre.deployments.get("LiquidationLogic");
   const eModeLibraryDeployedResult = await hre.deployments.get("EModeLogic");
   const bridgeLibraryDeployedResult = await hre.deployments.get("BridgeLogic");
-  const flashLoanLogicDeployedResult =
-    await hre.deployments.get("FlashLoanLogic");
+  const flashLoanLogicDeployedResult = await hre.deployments.get("FlashLoanLogic");
   const poolLogicDeployedResult = await hre.deployments.get("PoolLogic");
 
   return {
@@ -42,9 +38,7 @@ export async function getPoolLibraries(
 export const chunk = <T>(arr: Array<T>, chunkSize: number): Array<Array<T>> => {
   return arr.reduce(
     (prevVal: any, currVal: any, currIndx: number, array: Array<T>) =>
-      !(currIndx % chunkSize)
-        ? prevVal.concat([array.slice(currIndx, currIndx + chunkSize)])
-        : prevVal,
+      !(currIndx % chunkSize) ? prevVal.concat([array.slice(currIndx, currIndx + chunkSize)]) : prevVal,
     [],
   );
 };
@@ -56,10 +50,7 @@ export const chunk = <T>(arr: Array<T>, chunkSize: number): Array<Array<T>> => {
  * @param blockNumber - The block number
  * @returns The timestamp of the block
  */
-export const getBlockTimestamp = async (
-  hre: HardhatRuntimeEnvironment,
-  blockNumber?: number,
-): Promise<number> => {
+export const getBlockTimestamp = async (hre: HardhatRuntimeEnvironment, blockNumber?: number): Promise<number> => {
   if (!blockNumber) {
     const block = await hre.ethers.provider.getBlock("latest");
 
@@ -82,21 +73,12 @@ export const getBlockTimestamp = async (
  * @param hre - Hardhat Runtime Environment
  * @returns - The close factor hard fork threshold (ie. 0.951234 means 95.1234%)
  */
-export async function getCloseFactorHFThreshold(
-  hre: HardhatRuntimeEnvironment,
-): Promise<number> {
-  const liquidationLibraryDeployedResult =
-    await hre.deployments.get("LiquidationLogic");
-  const liquidationLogicContract = await hre.ethers.getContractAt(
-    "LiquidationLogic",
-    liquidationLibraryDeployedResult.address,
-  );
-  const closeFactorHFThresholdRaw =
-    await liquidationLogicContract.CLOSE_FACTOR_HF_THRESHOLD();
+export async function getCloseFactorHFThreshold(hre: HardhatRuntimeEnvironment): Promise<number> {
+  const liquidationLibraryDeployedResult = await hre.deployments.get("LiquidationLogic");
+  const liquidationLogicContract = await hre.ethers.getContractAt("LiquidationLogic", liquidationLibraryDeployedResult.address);
+  const closeFactorHFThresholdRaw = await liquidationLogicContract.CLOSE_FACTOR_HF_THRESHOLD();
   // The CLOSE_FACTOR_HF_THRESHOLD is a fixed-point number with 18 decimals
   // The division is to make the closeFactorHFThreshold a number with 4 decimals
-  const closeFactorHFThreshold = BigNumber.from(closeFactorHFThresholdRaw)
-    .div(1e14)
-    .toNumber();
+  const closeFactorHFThreshold = BigNumber.from(closeFactorHFThresholdRaw).div(1e14).toNumber();
   return closeFactorHFThreshold / 1e4;
 }

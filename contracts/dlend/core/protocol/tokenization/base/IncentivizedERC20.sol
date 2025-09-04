@@ -17,16 +17,16 @@
 
 pragma solidity ^0.8.20;
 
-import {Context} from "../../../dependencies/openzeppelin/contracts/Context.sol";
-import {IERC20} from "../../../dependencies/openzeppelin/contracts/IERC20.sol";
-import {IERC20Detailed} from "../../../dependencies/openzeppelin/contracts/IERC20Detailed.sol";
-import {SafeCast} from "../../../dependencies/openzeppelin/contracts/SafeCast.sol";
-import {WadRayMath} from "../../libraries/math/WadRayMath.sol";
-import {Errors} from "../../libraries/helpers/Errors.sol";
-import {IAaveIncentivesController} from "../../../interfaces/IAaveIncentivesController.sol";
-import {IPoolAddressesProvider} from "../../../interfaces/IPoolAddressesProvider.sol";
-import {IPool} from "../../../interfaces/IPool.sol";
-import {IACLManager} from "../../../interfaces/IACLManager.sol";
+import { Context } from "../../../dependencies/openzeppelin/contracts/Context.sol";
+import { IERC20 } from "../../../dependencies/openzeppelin/contracts/IERC20.sol";
+import { IERC20Detailed } from "../../../dependencies/openzeppelin/contracts/IERC20Detailed.sol";
+import { SafeCast } from "../../../dependencies/openzeppelin/contracts/SafeCast.sol";
+import { WadRayMath } from "../../libraries/math/WadRayMath.sol";
+import { Errors } from "../../libraries/helpers/Errors.sol";
+import { IAaveIncentivesController } from "../../../interfaces/IAaveIncentivesController.sol";
+import { IPoolAddressesProvider } from "../../../interfaces/IPoolAddressesProvider.sol";
+import { IPool } from "../../../interfaces/IPool.sol";
+import { IACLManager } from "../../../interfaces/IACLManager.sol";
 
 /**
  * @title IncentivizedERC20
@@ -41,13 +41,8 @@ abstract contract IncentivizedERC20 is Context, IERC20Detailed {
      * @dev Only pool admin can call functions marked by this modifier.
      */
     modifier onlyPoolAdmin() {
-        IACLManager aclManager = IACLManager(
-            _addressesProvider.getACLManager()
-        );
-        require(
-            aclManager.isPoolAdmin(msg.sender),
-            Errors.CALLER_NOT_POOL_ADMIN
-        );
+        IACLManager aclManager = IACLManager(_addressesProvider.getACLManager());
+        require(aclManager.isPoolAdmin(msg.sender), Errors.CALLER_NOT_POOL_ADMIN);
         _;
     }
 
@@ -90,12 +85,7 @@ abstract contract IncentivizedERC20 is Context, IERC20Detailed {
      * @param tokenSymbol The symbol of the token
      * @param tokenDecimals The number of decimals of the token
      */
-    constructor(
-        IPool pool,
-        string memory tokenName,
-        string memory tokenSymbol,
-        uint8 tokenDecimals
-    ) {
+    constructor(IPool pool, string memory tokenName, string memory tokenSymbol, uint8 tokenDecimals) {
         _addressesProvider = pool.ADDRESSES_PROVIDER();
         _name = tokenName;
         _symbol = tokenSymbol;
@@ -124,9 +114,7 @@ abstract contract IncentivizedERC20 is Context, IERC20Detailed {
     }
 
     /// @inheritdoc IERC20
-    function balanceOf(
-        address account
-    ) public view virtual override returns (uint256) {
+    function balanceOf(address account) public view virtual override returns (uint256) {
         return _userState[account].balance;
     }
 
@@ -134,12 +122,7 @@ abstract contract IncentivizedERC20 is Context, IERC20Detailed {
      * @notice Returns the address of the Incentives Controller contract
      * @return The address of the Incentives Controller
      */
-    function getIncentivesController()
-        external
-        view
-        virtual
-        returns (IAaveIncentivesController)
-    {
+    function getIncentivesController() external view virtual returns (IAaveIncentivesController) {
         return _incentivesController;
     }
 
@@ -147,51 +130,32 @@ abstract contract IncentivizedERC20 is Context, IERC20Detailed {
      * @notice Sets a new Incentives Controller
      * @param controller the new Incentives controller
      */
-    function setIncentivesController(
-        IAaveIncentivesController controller
-    ) external onlyPoolAdmin {
+    function setIncentivesController(IAaveIncentivesController controller) external onlyPoolAdmin {
         _incentivesController = controller;
     }
 
     /// @inheritdoc IERC20
-    function transfer(
-        address recipient,
-        uint256 amount
-    ) external virtual override returns (bool) {
+    function transfer(address recipient, uint256 amount) external virtual override returns (bool) {
         uint128 castAmount = amount.toUint128();
         _transfer(_msgSender(), recipient, castAmount);
         return true;
     }
 
     /// @inheritdoc IERC20
-    function allowance(
-        address owner,
-        address spender
-    ) external view virtual override returns (uint256) {
+    function allowance(address owner, address spender) external view virtual override returns (uint256) {
         return _allowances[owner][spender];
     }
 
     /// @inheritdoc IERC20
-    function approve(
-        address spender,
-        uint256 amount
-    ) external virtual override returns (bool) {
+    function approve(address spender, uint256 amount) external virtual override returns (bool) {
         _approve(_msgSender(), spender, amount);
         return true;
     }
 
     /// @inheritdoc IERC20
-    function transferFrom(
-        address sender,
-        address recipient,
-        uint256 amount
-    ) external virtual override returns (bool) {
+    function transferFrom(address sender, address recipient, uint256 amount) external virtual override returns (bool) {
         uint128 castAmount = amount.toUint128();
-        _approve(
-            sender,
-            _msgSender(),
-            _allowances[sender][_msgSender()] - castAmount
-        );
+        _approve(sender, _msgSender(), _allowances[sender][_msgSender()] - castAmount);
         _transfer(sender, recipient, castAmount);
         return true;
     }
@@ -202,15 +166,8 @@ abstract contract IncentivizedERC20 is Context, IERC20Detailed {
      * @param addedValue The amount being added to the allowance
      * @return `true`
      */
-    function increaseAllowance(
-        address spender,
-        uint256 addedValue
-    ) external virtual returns (bool) {
-        _approve(
-            _msgSender(),
-            spender,
-            _allowances[_msgSender()][spender] + addedValue
-        );
+    function increaseAllowance(address spender, uint256 addedValue) external virtual returns (bool) {
+        _approve(_msgSender(), spender, _allowances[_msgSender()][spender] + addedValue);
         return true;
     }
 
@@ -220,15 +177,8 @@ abstract contract IncentivizedERC20 is Context, IERC20Detailed {
      * @param subtractedValue The amount being subtracted to the allowance
      * @return `true`
      */
-    function decreaseAllowance(
-        address spender,
-        uint256 subtractedValue
-    ) external virtual returns (bool) {
-        _approve(
-            _msgSender(),
-            spender,
-            _allowances[_msgSender()][spender] - subtractedValue
-        );
+    function decreaseAllowance(address spender, uint256 subtractedValue) external virtual returns (bool) {
+        _approve(_msgSender(), spender, _allowances[_msgSender()][spender] - subtractedValue);
         return true;
     }
 
@@ -238,11 +188,7 @@ abstract contract IncentivizedERC20 is Context, IERC20Detailed {
      * @param recipient The destination address
      * @param amount The amount getting transferred
      */
-    function _transfer(
-        address sender,
-        address recipient,
-        uint128 amount
-    ) internal virtual {
+    function _transfer(address sender, address recipient, uint128 amount) internal virtual {
         uint128 oldSenderBalance = _userState[sender].balance;
         _userState[sender].balance = oldSenderBalance - amount;
         uint128 oldRecipientBalance = _userState[recipient].balance;
@@ -251,17 +197,9 @@ abstract contract IncentivizedERC20 is Context, IERC20Detailed {
         IAaveIncentivesController incentivesControllerLocal = _incentivesController;
         if (address(incentivesControllerLocal) != address(0)) {
             uint256 currentTotalSupply = _totalSupply;
-            incentivesControllerLocal.handleAction(
-                sender,
-                currentTotalSupply,
-                oldSenderBalance
-            );
+            incentivesControllerLocal.handleAction(sender, currentTotalSupply, oldSenderBalance);
             if (sender != recipient) {
-                incentivesControllerLocal.handleAction(
-                    recipient,
-                    currentTotalSupply,
-                    oldRecipientBalance
-                );
+                incentivesControllerLocal.handleAction(recipient, currentTotalSupply, oldRecipientBalance);
             }
         }
     }
@@ -272,11 +210,7 @@ abstract contract IncentivizedERC20 is Context, IERC20Detailed {
      * @param spender The address approved for spending
      * @param amount The amount of tokens to approve spending of
      */
-    function _approve(
-        address owner,
-        address spender,
-        uint256 amount
-    ) internal virtual {
+    function _approve(address owner, address spender, uint256 amount) internal virtual {
         _allowances[owner][spender] = amount;
         emit Approval(owner, spender, amount);
     }

@@ -55,9 +55,7 @@ abstract contract OracleAware is AccessControl {
      * @notice Sets the oracle to use for collateral valuation
      * @param newOracle The new oracle to use
      */
-    function setOracle(
-        IPriceOracleGetter newOracle
-    ) public onlyRole(DEFAULT_ADMIN_ROLE) {
+    function setOracle(IPriceOracleGetter newOracle) public onlyRole(DEFAULT_ADMIN_ROLE) {
         if (newOracle.BASE_CURRENCY_UNIT() != baseCurrencyUnit) {
             revert IncorrectBaseCurrencyUnit(baseCurrencyUnit);
         }
@@ -72,9 +70,7 @@ abstract contract OracleAware is AccessControl {
      * @param _newBaseCurrencyUnit The new base currency unit to set
      * @dev Only used if the oracle's base currency unit changes
      */
-    function setBaseCurrencyUnit(
-        uint256 _newBaseCurrencyUnit
-    ) public onlyRole(DEFAULT_ADMIN_ROLE) {
+    function setBaseCurrencyUnit(uint256 _newBaseCurrencyUnit) public onlyRole(DEFAULT_ADMIN_ROLE) {
         baseCurrencyUnit = _newBaseCurrencyUnit;
     }
 }

@@ -1,0 +1,33 @@
+{
+    "editor.tabSize": 2,
+    "editor.insertSpaces": true,
+    "[json]": {
+        "editor.formatOnSave": true,
+        "editor.codeActionsOnSave": {
+            "source.fixAll.eslint": "explicit"
+        },
+        "files.insertFinalNewline": true
+    },
+    "[typescript]": {
+        "editor.formatOnSave": true,
+        "editor.codeActionsOnSave": {
+            "source.fixAll.eslint": "explicit"
+        }
+    },
+    "[javascript]": {
+        "editor.formatOnSave": true,
+        "editor.codeActionsOnSave": {
+            "source.fixAll.eslint": "explicit"
+        }
+    },
+    "typescript.format.insertSpaceAfterOpeningAndBeforeClosingEmptyBraces": false,
+    "[makefile]": {
+        "editor.insertSpaces": true,
+        "editor.tabSize": 4
+    },
+    "[solidity]": {
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "esbenp.prettier-vscode"
+    },
+    "makefile.configureOnOpen": false
+}

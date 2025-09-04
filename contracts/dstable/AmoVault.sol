@@ -37,6 +37,7 @@ interface IRecoverable {
  */
 abstract contract AmoVault is CollateralVault, IRecoverable, ReentrancyGuard {
     using SafeERC20 for IERC20;
+    using SafeERC20 for IMintableERC20;
     using Address for address payable;
 
     /* Core state */
@@ -68,7 +69,8 @@ abstract contract AmoVault is CollateralVault, IRecoverable, ReentrancyGuard {
         _grantRole(DEFAULT_ADMIN_ROLE, _admin);
         grantRole(COLLATERAL_WITHDRAWER_ROLE, _collateralWithdrawer);
         grantRole(RECOVERER_ROLE, _recoverer);
-        approveAmoManager();
+        // Use standard approve for trusted protocol token (dStable) and trusted protocol contract (AmoManager)
+        dstable.approve(address(amoManager), type(uint256).max);
     }
 
     /**
@@ -76,7 +78,20 @@ abstract contract AmoVault is CollateralVault, IRecoverable, ReentrancyGuard {
      * @dev Only callable by the contract owner or an account with the DEFAULT_ADMIN_ROLE
      */
     function approveAmoManager() public onlyRole(DEFAULT_ADMIN_ROLE) {
-        dstable.approve(address(amoManager), type(uint256).max);
+        dstable.forceApprove(address(amoManager), type(uint256).max);
+    }
+
+    /**
+     * @notice Updates the dStable allowance granted to the current AmoManager
+     * @dev Resets the existing allowance to 0 first to accommodate non-standard ERC20 tokens that require
+     *      the allowance to be set to zero before changing it.
+     * @param amount The new allowance amount to grant.
+     */
+    function setAmoManagerApproval(uint256 amount) public onlyRole(DEFAULT_ADMIN_ROLE) {
+        // Reset to zero first for safety with tokens that enforce the ERC20 race-condition mitigation
+        // Use standard approve for trusted protocol token (dStable) and trusted protocol contract (AmoManager)
+        dstable.approve(address(amoManager), 0);
+        dstable.approve(address(amoManager), amount);
     }
 
     /**
@@ -84,12 +99,11 @@ abstract contract AmoVault is CollateralVault, IRecoverable, ReentrancyGuard {
      * @param _newAmoManager The address of the new AmoManager
      * @dev Only callable by an account with the DEFAULT_ADMIN_ROLE
      */
-    function setAmoManager(
-        address _newAmoManager
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function setAmoManager(address _newAmoManager) external onlyRole(DEFAULT_ADMIN_ROLE) {
         if (_newAmoManager == address(0)) revert InvalidAmoManager();
 
-        // Reset allowance for old AMO manager
+        // Revoke allowance from the previous AmoManager to prevent it from spending vault funds
+        // Use standard approve for trusted protocol token (dStable) and trusted protocol contract (AmoManager)
         dstable.approve(address(amoManager), 0);
 
         // Set new AMO manager
@@ -107,11 +121,7 @@ abstract contract AmoVault is CollateralVault, IRecoverable, ReentrancyGuard {
      * @param to The address to send the tokens to
      * @param amount The amount of tokens to recover
      */
-    function recoverERC20(
-        address token,
-        address to,
-        uint256 amount
-    ) external onlyRole(RECOVERER_ROLE) nonReentrant {
+    function recoverERC20(address token, address to, uint256 amount) external onlyRole(RECOVERER_ROLE) nonReentrant {
         if (token == address(dstable) || isCollateralSupported(token)) {
             revert CannotRecoverVaultToken(token);
         }
@@ -123,10 +133,7 @@ abstract contract AmoVault is CollateralVault, IRecoverable, ReentrancyGuard {
      * @param to The address to send the ETH to
      * @param amount The amount of ETH to recover
      */
-    function recoverETH(
-        address to,
-        uint256 amount
-    ) external onlyRole(RECOVERER_ROLE) {
+    function recoverETH(address to, uint256 amount) external onlyRole(RECOVERER_ROLE) {
         payable(to).sendValue(amount);
     }
 

@@ -18,19 +18,15 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployer } = await hre.getNamedAccounts();
 
   // Get the addresses provider address
-  const { address: addressesProviderAddress } = await hre.deployments.get(
-    POOL_ADDRESSES_PROVIDER_ID,
-  );
+  const { address: addressesProviderAddress } = await hre.deployments.get(POOL_ADDRESSES_PROVIDER_ID);
 
   // Get the pool libraries
   const supplyLibraryDeployment = await hre.deployments.get(SUPPLY_LOGIC_ID);
   const borrowLibraryDeployment = await hre.deployments.get(BORROW_LOGIC_ID);
-  const liquidationLibraryDeployment =
-    await hre.deployments.get(LIQUIDATION_LOGIC_ID);
+  const liquidationLibraryDeployment = await hre.deployments.get(LIQUIDATION_LOGIC_ID);
   const eModeLibraryDeployment = await hre.deployments.get(EMODE_LOGIC_ID);
   const bridgeLibraryDeployment = await hre.deployments.get(BRIDGE_LOGIC_ID);
-  const flashLoanLogicDeployment =
-    await hre.deployments.get(FLASH_LOAN_LOGIC_ID);
+  const flashLoanLogicDeployment = await hre.deployments.get(FLASH_LOAN_LOGIC_ID);
   const poolLogicDeployment = await hre.deployments.get(POOL_LOGIC_ID);
 
   const commonLibraries = {
@@ -44,15 +40,12 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   };
 
   // Deploy L2 libraries
-  const calldataLogicDeployment = await hre.deployments.deploy(
-    CALLDATA_LOGIC_ID,
-    {
-      from: deployer,
-      args: [],
-      autoMine: true,
-      log: false,
-    },
-  );
+  const calldataLogicDeployment = await hre.deployments.deploy(CALLDATA_LOGIC_ID, {
+    from: deployer,
+    args: [],
+    autoMine: true,
+    log: false,
+  });
 
   // Deploy L2 supported Pool
   const poolDeployment = await hre.deployments.deploy(POOL_IMPL_ID, {
@@ -68,10 +61,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   });
 
   // Initialize implementation
-  const poolContract = await hre.ethers.getContractAt(
-    "Pool",
-    poolDeployment.address,
-  );
+  const poolContract = await hre.ethers.getContractAt("Pool", poolDeployment.address);
   await poolContract.initialize(addressesProviderAddress);
 
   console.log(`🏦 ${__filename.split("/").slice(-2).join("/")}: ✅`);

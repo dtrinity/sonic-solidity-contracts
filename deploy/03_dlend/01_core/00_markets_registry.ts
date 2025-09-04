@@ -23,5 +23,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
 func.id = "dLend:PoolAddressesProviderRegistry";
 func.tags = ["dlend", "dlend-core"];
+func.dependencies = ["ds", "dusd"];
 
 export default func;

@@ -9,7 +9,4 @@ alwaysApply: false
 - Ensure that tests cover both functionality and security considerations
 - You can lint first with `make lint`
 - You can run all tests with `make test`
-- You can run all deterministic tests with `make.ci`
-- You can run Solidity hardhat tests with `make test.hardhat`
-- You can run typescript unit tests with `make test.typescript.unit`
-- You can run typescript integration tests with `make test.typescript.integ`
+- Use `yarn hardhat test` when running Hardhat test instead of using `npx`

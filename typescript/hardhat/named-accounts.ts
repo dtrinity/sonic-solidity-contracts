@@ -11,21 +11,17 @@ export function getEnvPrivateKeys(network: string): string[] {
 
   switch (network) {
     case "sonic_testnet":
-      pks = [getPrivateKeyFromMnemonic(`testnet_deployer`)];
+      pks = [getPrivateKeyFromMnemonic(`testnet_deployer`), getPrivateKeyFromEnv(`testnet_deployer`)];
       break;
     case "sonic_mainnet":
-      pks = [getPrivateKeyFromMnemonic(`mainnet_deployer`)];
+      pks = [getPrivateKeyFromMnemonic(`mainnet_deployer`), getPrivateKeyFromEnv(`mainnet_deployer`)];
       break;
     default:
       throw new Error(`Unsupported network: ${network}`);
   }
 
   // Filter out Zero private keys
-  pks = pks.filter(
-    (pk) =>
-      pk !==
-      "0x0000000000000000000000000000000000000000000000000000000000000000",
-  );
+  pks = pks.filter((pk) => pk !== "0x0000000000000000000000000000000000000000000000000000000000000000");
 
   if (pks.length === 0) {
     console.log(`No private keys found for ${network} in the .env file`);
@@ -65,7 +61,7 @@ export function getPrivateKeyFromMnemonic(envNamePostfix: string): string {
 }
 
 /**
- * Get the private key from the environment variable
+ * Get the private key from the environment variable, mostly used for testing
  *
  * @param envNamePostfix - The postfix of the environment variable name (`PK_<POSTFIX>`) in the `.env` file
  * @returns The private key
@@ -75,7 +71,7 @@ export function getPrivateKeyFromEnv(envNamePostfix: string): string {
   const privateKey = process.env[envName];
 
   if (!privateKey || privateKey === "") {
-    console.log(`${envName} is not set in the .env file`);
+    // Do not print because private keys are second class citizens, mostly used for testing
     return "0x0000000000000000000000000000000000000000000000000000000000000000";
   }
   return privateKey;
@@ -111,6 +107,18 @@ export function getStandardNamedAccounts(): {
     user2: {
       hardhat: 2,
       localhost: 2,
+    },
+    user3: {
+      hardhat: 3,
+      localhost: 3,
+    },
+    user4: {
+      hardhat: 4,
+      localhost: 4,
+    },
+    user5: {
+      hardhat: 5,
+      localhost: 5,
     },
     /* eslint-enable camelcase -- Use camelcase for network config */
   };

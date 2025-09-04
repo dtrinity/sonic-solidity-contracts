@@ -40,11 +40,7 @@ interface IStreamable {
         uint256 stopTime
     );
 
-    event WithdrawFromStream(
-        uint256 indexed streamId,
-        address indexed recipient,
-        uint256 amount
-    );
+    event WithdrawFromStream(uint256 indexed streamId, address indexed recipient, uint256 amount);
 
     event CancelStream(
         uint256 indexed streamId,
@@ -54,10 +50,7 @@ interface IStreamable {
         uint256 recipientBalance
     );
 
-    function balanceOf(
-        uint256 streamId,
-        address who
-    ) external view returns (uint256 balance);
+    function balanceOf(uint256 streamId, address who) external view returns (uint256 balance);
 
     function getStream(
         uint256 streamId
@@ -83,10 +76,7 @@ interface IStreamable {
         uint256 stopTime
     ) external returns (uint256 streamId);
 
-    function withdrawFromStream(
-        uint256 streamId,
-        uint256 funds
-    ) external returns (bool);
+    function withdrawFromStream(uint256 streamId, uint256 funds) external returns (bool);
 
     function cancelStream(uint256 streamId) external returns (bool);
 

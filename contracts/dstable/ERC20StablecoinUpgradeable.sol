@@ -1,4 +1,20 @@
 // SPDX-License-Identifier: MIT
+/* ———————————————————————————————————————————————————————————————————————————————— *
+ *    _____     ______   ______     __     __   __     __     ______   __  __       *
+ *   /\  __-.  /\__  _\ /\  == \   /\ \   /\ "-.\ \   /\ \   /\__  _\ /\ \_\ \      *
+ *   \ \ \/\ \ \/_/\ \/ \ \  __<   \ \ \  \ \ \-.  \  \ \ \  \/_/\ \/ \ \____ \     *
+ *    \ \____-    \ \_\  \ \_\ \_\  \ \_\  \ \_\\\"\_\ \ \_\    \ \_\  \/\_____\    *
+ *     \/____/     \/_/   \/_/ /_/   \/_/   \/_/ \/_/   \/_/     \/_/   \/_____/    *
+ *                                                                                  *
+ * ————————————————————————————————— dtrinity.org ————————————————————————————————— *
+ *                                                                                  *
+ *                                         ▲                                        *
+ *                                        ▲ ▲                                       *
+ *                                                                                  *
+ * ———————————————————————————————————————————————————————————————————————————————— *
+ * dTRINITY Protocol: https://github.com/dtrinity                                   *
+ * ———————————————————————————————————————————————————————————————————————————————— */
+
 pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
@@ -21,18 +37,15 @@ contract ERC20StablecoinUpgradeable is
     bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
 
-    string private _name;
-    string private _symbol;
+    string private _tokenName;
+    string private _tokenSymbol;
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
         _disableInitializers();
     }
 
-    function initialize(
-        string memory initialName,
-        string memory initialSymbol
-    ) public initializer {
+    function initialize(string memory initialName, string memory initialSymbol) public initializer {
         __ERC20_init(initialName, initialSymbol);
         __ERC20Burnable_init();
         __Pausable_init();
@@ -40,11 +53,11 @@ contract ERC20StablecoinUpgradeable is
         __ERC20Permit_init(initialName);
         __ERC20FlashMint_init();
 
-        _name = initialName;
-        _symbol = initialSymbol;
-
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _grantRole(PAUSER_ROLE, msg.sender);
+
+        _tokenName = initialName;
+        _tokenSymbol = initialSymbol;
     }
 
     // By convention all dStable tokens have 18 decimals on all chains
@@ -64,41 +77,29 @@ contract ERC20StablecoinUpgradeable is
         _mint(to, amount);
     }
 
-    /**
-     * @dev Updates the token name
-     * @param newName The new name to set
-     */
-    function setNameAndSymbol(
-        string memory newName,
-        string memory newSymbol
-    ) public onlyRole(DEFAULT_ADMIN_ROLE) {
-        _name = newName;
-        _symbol = newSymbol;
-    }
-
-    /**
-     * @dev Returns the name of the token
-     */
-    function name() public view virtual override returns (string memory) {
-        return _name;
-    }
-
-    /**
-     * @dev Returns the symbol of the token
-     */
-    function symbol() public view virtual override returns (string memory) {
-        return _symbol;
-    }
-
     function _update(
         address from,
         address to,
         uint256 value
-    )
-        internal
-        override(ERC20Upgradeable, ERC20PausableUpgradeable)
-        whenNotPaused
-    {
+    ) internal override(ERC20Upgradeable, ERC20PausableUpgradeable) whenNotPaused {
         super._update(from, to, value);
+    }
+
+    function setNameAndSymbol(string memory newName, string memory newSymbol) public onlyRole(DEFAULT_ADMIN_ROLE) {
+        _tokenName = newName;
+        _tokenSymbol = newSymbol;
+    }
+
+    function name() public view virtual override returns (string memory) {
+        return _tokenName;
+    }
+
+    function symbol() public view virtual override returns (string memory) {
+        return _tokenSymbol;
+    }
+
+    // Ensure EIP712 domain uses the latest name
+    function _EIP712Name() internal view override returns (string memory) {
+        return _tokenName;
     }
 }

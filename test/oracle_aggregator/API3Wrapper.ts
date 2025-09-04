@@ -1,17 +1,15 @@
 import { expect } from "chai";
-import hre, { getNamedAccounts, ethers } from "hardhat";
+import hre, { ethers, getNamedAccounts } from "hardhat";
 import { Address } from "hardhat-deploy/types";
+
+import { getConfig } from "../../config/config";
+import { API3Wrapper } from "../../typechain-types";
+import { ORACLE_AGGREGATOR_PRICE_DECIMALS } from "../../typescript/oracle_aggregator/constants";
 import {
   getOracleAggregatorFixture,
-  OracleAggregatorFixtureResult,
   getRandomItemFromList,
+  OracleAggregatorFixtureResult,
 } from "./fixtures";
-import { getConfig } from "../../config/config";
-import {
-  API3Wrapper,
-  API3WrapperWithThresholding,
-} from "../../typechain-types";
-import { ORACLE_AGGREGATOR_PRICE_DECIMALS } from "../../typescript/oracle_aggregator/constants";
 
 const API3_HEARTBEAT_SECONDS = 86400; // 24 hours
 
@@ -36,13 +34,21 @@ describe("API3Wrapper", () => {
   });
 });
 
+/**
+ *
+ * @param currency
+ * @param root0
+ * @param root0.deployer
+ * @param root0.user1
+ * @param root0.user2
+ */
 async function runTestsForCurrency(
   currency: string,
   {
     deployer,
     user1,
     user2,
-  }: { deployer: Address; user1: Address; user2: Address }
+  }: { deployer: Address; user1: Address; user2: Address },
 ) {
   describe(`API3Wrapper for ${currency}`, () => {
     let fixtureResult: OracleAggregatorFixtureResult;
@@ -95,16 +101,17 @@ async function runTestsForCurrency(
         if (Object.keys(fixtureResult.assets.api3PlainAssets).length === 0) {
           this.skip();
         }
+
         // Test pricing for plain assets
         for (const [address, _asset] of Object.entries(
-          fixtureResult.assets.api3PlainAssets
+          fixtureResult.assets.api3PlainAssets,
         )) {
           const { price, isAlive } = await api3Wrapper.getPriceInfo(address);
 
           // The price should be non-zero
           expect(price).to.be.gt(
             0,
-            `Price for asset ${address} should be greater than 0`
+            `Price for asset ${address} should be greater than 0`,
           );
           expect(isAlive).to.be.true,
             `Price for asset ${address} should be alive`;
@@ -113,7 +120,7 @@ async function runTestsForCurrency(
           const directPrice = await api3Wrapper.getAssetPrice(address);
           expect(directPrice).to.equal(
             price,
-            `Direct price should match price info for ${address}`
+            `Direct price should match price info for ${address}`,
           );
         }
       });
@@ -132,6 +139,7 @@ async function runTestsForCurrency(
       it("should handle stale prices correctly", async function () {
         // NOTE: Keep this check as it uses getRandomItemFromList
         const plainAssets = Object.keys(fixtureResult.assets.api3PlainAssets);
+
         if (plainAssets.length === 0) {
           this.skip();
         }
@@ -149,6 +157,7 @@ async function runTestsForCurrency(
         // Set a stale price
         const price = ethers.parseUnits("1", ORACLE_AGGREGATOR_PRICE_DECIMALS);
         const currentBlock = await ethers.provider.getBlock("latest");
+
         if (!currentBlock) {
           throw new Error("Failed to get current block");
         }
@@ -163,7 +172,7 @@ async function runTestsForCurrency(
 
         // getAssetPrice should revert
         await expect(
-          api3Wrapper.getAssetPrice(testAsset)
+          api3Wrapper.getAssetPrice(testAsset),
         ).to.be.revertedWithCustomError(api3Wrapper, "PriceIsStale");
       });
     });
@@ -180,7 +189,7 @@ async function runTestsForCurrency(
         // Remove the proxy by setting it to zero address
         await api3Wrapper.setProxy(newAsset, ethers.ZeroAddress);
         expect(await api3Wrapper.assetToProxy(newAsset)).to.equal(
-          ethers.ZeroAddress
+          ethers.ZeroAddress,
         );
       });
 
@@ -192,11 +201,11 @@ async function runTestsForCurrency(
         const oracleManagerRole = await api3Wrapper.ORACLE_MANAGER_ROLE();
 
         await expect(
-          api3Wrapper.connect(unauthorizedSigner).setProxy(newAsset, proxy)
+          api3Wrapper.connect(unauthorizedSigner).setProxy(newAsset, proxy),
         )
           .to.be.revertedWithCustomError(
             api3Wrapper,
-            "AccessControlUnauthorizedAccount"
+            "AccessControlUnauthorizedAccount",
           )
           .withArgs(user2, oracleManagerRole);
       });

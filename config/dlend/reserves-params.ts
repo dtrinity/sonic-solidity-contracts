@@ -1,4 +1,5 @@
 import {
+  rateStrategyDUSD,
   rateStrategyHighLiquidityStable,
   rateStrategyHighLiquidityVolatile,
   rateStrategyMediumLiquidityStable,
@@ -11,7 +12,7 @@ const baseDStableConfig: IReserveParams = {
   strategy: rateStrategyHighLiquidityStable,
   // CAUTION: If LTV is > 0, people may loop and dillute other borrowers
   baseLTVAsCollateral: "0", // 0 Don't allow dStable as collateral to prevent subsidy syphoning
-  liquidationThreshold: "9000", // 9500 bps = 95%
+  liquidationThreshold: "9000", // 9000 bps = 90%, must be non-zero to allow reserve updates
   liquidationBonus: "10500", // 10500 bps = 105%, amount over 100% is the fee portion
   liquidationProtocolFee: "7000", // 7000 bps = 70%
   borrowingEnabled: true,
@@ -28,6 +29,7 @@ const baseDStableConfig: IReserveParams = {
 
 export const strategyDUSD: IReserveParams = {
   ...baseDStableConfig,
+  strategy: rateStrategyDUSD,
   supplyCap: "2500000", // Specific to dUSD
 };
 
@@ -48,7 +50,7 @@ export const strategyWETH: IReserveParams = {
   reserveDecimals: "18",
   aTokenImpl: eContractid.AToken,
   reserveFactor: "1000",
-  supplyCap: "300",
+  supplyCap: "500",
   borrowCap: "0",
   debtCeiling: "0",
   borrowableIsolation: false,
@@ -103,4 +105,29 @@ export const strategyETHLST: IReserveParams = {
   borrowCap: "0",
   debtCeiling: "0",
   borrowableIsolation: false,
+};
+
+export const strategyscETH: IReserveParams = {
+  ...strategyETHLST,
+  supplyCap: "500",
+};
+
+export const strategywstkscETH: IReserveParams = {
+  ...strategyETHLST,
+  supplyCap: "200",
+};
+
+export const strategyPTaUSDC: IReserveParams = {
+  ...baseYieldBearingStablecoinConfig,
+  supplyCap: "1000000",
+};
+
+export const strategyPTwstkscUSD: IReserveParams = {
+  ...baseYieldBearingStablecoinConfig,
+  supplyCap: "1000000",
+};
+
+export const strategywOS: IReserveParams = {
+  ...baseYieldBearingStablecoinConfig,
+  supplyCap: "500000",
 };

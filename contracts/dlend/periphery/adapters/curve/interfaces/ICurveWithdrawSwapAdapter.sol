@@ -17,7 +17,7 @@
 
 pragma solidity ^0.8.20;
 
-import {IBaseCurveAdapter} from "./IBaseCurveAdapter.sol";
+import { IBaseCurveAdapter } from "./IBaseCurveAdapter.sol";
 
 /**
  * @title ICurveWithdrawSwapAdapter
@@ -40,8 +40,5 @@ interface ICurveWithdrawSwapAdapter is IBaseCurveAdapter {
      * @param withdrawSwapParams struct describing the withdraw swap
      * @param permitInput optional permit for collateral aToken
      */
-    function withdrawAndSwap(
-        WithdrawSwapParams memory withdrawSwapParams,
-        PermitInput memory permitInput
-    ) external;
+    function withdrawAndSwap(WithdrawSwapParams memory withdrawSwapParams, PermitInput memory permitInput) external;
 }

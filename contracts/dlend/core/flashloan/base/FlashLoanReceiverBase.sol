@@ -17,9 +17,9 @@
 
 pragma solidity ^0.8.20;
 
-import {IFlashLoanReceiver} from "../interfaces/IFlashLoanReceiver.sol";
-import {IPoolAddressesProvider} from "../../interfaces/IPoolAddressesProvider.sol";
-import {IPool} from "../../interfaces/IPool.sol";
+import { IFlashLoanReceiver } from "../interfaces/IFlashLoanReceiver.sol";
+import { IPoolAddressesProvider } from "../../interfaces/IPoolAddressesProvider.sol";
+import { IPool } from "../../interfaces/IPool.sol";
 
 /**
  * @title FlashLoanReceiverBase

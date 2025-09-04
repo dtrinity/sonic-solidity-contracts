@@ -18,6 +18,7 @@
 pragma solidity ^0.8.20;
 
 import "./CollateralVault.sol";
+import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
 
 /**
  * @title CollateralHolderVault
@@ -28,14 +29,8 @@ contract CollateralHolderVault is CollateralVault {
     using EnumerableSet for EnumerableSet.AddressSet;
 
     /* Errors */
-    error CannotWithdrawMoreValueThanDeposited(
-        uint256 requestedAmount,
-        uint256 maxAmount
-    );
-    error ToCollateralAmountBelowMin(
-        uint256 toCollateralAmount,
-        uint256 toMinCollateral
-    );
+    error CannotWithdrawMoreValueThanDeposited(uint256 requestedAmount, uint256 maxAmount);
+    error ToCollateralAmountBelowMin(uint256 toCollateralAmount, uint256 toMinCollateral);
 
     constructor(IPriceOracleGetter oracle) CollateralVault(oracle) {}
 
@@ -53,32 +48,17 @@ contract CollateralHolderVault is CollateralVault {
         uint256 toCollateralAmount,
         address toCollateral
     ) public onlyRole(COLLATERAL_STRATEGY_ROLE) {
-        // We must take in a collateral that is supported
-        require(
-            _supportedCollaterals.contains(toCollateral),
-            "Unsupported collateral"
-        );
-        uint256 maxAmount = maxExchangeAmount(
-            fromCollateralAmount,
-            fromCollateral,
-            toCollateral
-        );
+        // The collateral being received by the vault (fromCollateral) must still be supported
+        // `toCollateral` may have been de-listed (disallowed) in order to let the vault gradually
+        // swap it out, so we intentionally do NOT enforce the check on `toCollateral`.
+        require(_supportedCollaterals.contains(fromCollateral), "Unsupported collateral");
+        uint256 maxAmount = maxExchangeAmount(fromCollateralAmount, fromCollateral, toCollateral);
         if (toCollateralAmount > maxAmount) {
-            revert CannotWithdrawMoreValueThanDeposited(
-                toCollateralAmount,
-                maxAmount
-            );
+            revert CannotWithdrawMoreValueThanDeposited(toCollateralAmount, maxAmount);
         }
 
-        IERC20Metadata(fromCollateral).safeTransferFrom(
-            msg.sender,
-            address(this),
-            fromCollateralAmount
-        );
-        IERC20Metadata(toCollateral).safeTransfer(
-            msg.sender,
-            toCollateralAmount
-        );
+        IERC20Metadata(fromCollateral).safeTransferFrom(msg.sender, address(this), fromCollateralAmount);
+        IERC20Metadata(toCollateral).safeTransfer(msg.sender, toCollateralAmount);
     }
 
     /**
@@ -95,23 +75,11 @@ contract CollateralHolderVault is CollateralVault {
         address toCollateral,
         uint256 toMinCollateral
     ) public onlyRole(COLLATERAL_STRATEGY_ROLE) {
-        uint256 toCollateralAmount = maxExchangeAmount(
-            fromCollateralAmount,
-            fromCollateral,
-            toCollateral
-        );
+        uint256 toCollateralAmount = maxExchangeAmount(fromCollateralAmount, fromCollateral, toCollateral);
         if (toCollateralAmount < toMinCollateral) {
-            revert ToCollateralAmountBelowMin(
-                toCollateralAmount,
-                toMinCollateral
-            );
+            revert ToCollateralAmountBelowMin(toCollateralAmount, toMinCollateral);
         }
-        exchangeCollateral(
-            fromCollateralAmount,
-            fromCollateral,
-            toCollateralAmount,
-            toCollateral
-        );
+        exchangeCollateral(fromCollateralAmount, fromCollateral, toCollateralAmount, toCollateral);
     }
 
     /**
@@ -130,16 +98,16 @@ contract CollateralHolderVault is CollateralVault {
         uint256 fromCollateralPrice = oracle.getAssetPrice(fromCollateral);
         uint256 toCollateralPrice = oracle.getAssetPrice(toCollateral);
 
-        uint8 fromCollateralDecimals = IERC20Metadata(fromCollateral)
-            .decimals();
+        uint8 fromCollateralDecimals = IERC20Metadata(fromCollateral).decimals();
         uint8 toCollateralDecimals = IERC20Metadata(toCollateral).decimals();
 
-        uint256 fromCollateralBaseValue = (fromCollateralPrice *
-            fromCollateralAmount) / (10 ** fromCollateralDecimals);
+        uint256 fromCollateralBaseValue = Math.mulDiv(
+            fromCollateralPrice,
+            fromCollateralAmount,
+            10 ** fromCollateralDecimals
+        );
 
-        toCollateralAmount =
-            (fromCollateralBaseValue * (10 ** toCollateralDecimals)) /
-            toCollateralPrice;
+        toCollateralAmount = Math.mulDiv(fromCollateralBaseValue, 10 ** toCollateralDecimals, toCollateralPrice);
 
         return toCollateralAmount;
     }

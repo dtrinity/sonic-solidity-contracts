@@ -17,14 +17,14 @@
 
 pragma solidity ^0.8.20;
 
-import {IERC20} from "contracts/dlend/core/dependencies/openzeppelin/contracts/IERC20.sol";
-import {SafeERC20} from "contracts/dlend/periphery/treasury/libs/SafeERC20.sol";
-import {IERC20Detailed} from "contracts/dlend/core/dependencies/openzeppelin/contracts/IERC20Detailed.sol";
-import {IERC20WithPermit} from "contracts/dlend/core/interfaces/IERC20WithPermit.sol";
-import {IPoolAddressesProvider} from "contracts/dlend/core/interfaces/IPoolAddressesProvider.sol";
-import {IPool} from "contracts/dlend/core/interfaces/IPool.sol";
-import {Ownable} from "contracts/dlend/core/dependencies/openzeppelin/contracts/Ownable.sol";
-import {IBaseCurveAdapter} from "contracts/dlend/periphery/adapters/curve/interfaces/IBaseCurveAdapter.sol";
+import { IERC20 } from "contracts/dlend/core/dependencies/openzeppelin/contracts/IERC20.sol";
+import { SafeERC20 } from "contracts/dlend/periphery/treasury/libs/SafeERC20.sol";
+import { IERC20Detailed } from "contracts/dlend/core/dependencies/openzeppelin/contracts/IERC20Detailed.sol";
+import { IERC20WithPermit } from "contracts/dlend/core/interfaces/IERC20WithPermit.sol";
+import { IPoolAddressesProvider } from "contracts/dlend/core/interfaces/IPoolAddressesProvider.sol";
+import { IPool } from "contracts/dlend/core/interfaces/IPool.sol";
+import { Ownable } from "contracts/dlend/core/dependencies/openzeppelin/contracts/Ownable.sol";
+import { IBaseCurveAdapter } from "contracts/dlend/periphery/adapters/curve/interfaces/IBaseCurveAdapter.sol";
 
 /**
  * @title BaseCurveSwapAdapter
@@ -57,9 +57,7 @@ abstract contract BaseCurveSwapAdapter is Ownable, IBaseCurveAdapter {
      * @return address The address of the StableDebtToken, sToken
      * @return address The address of the aToken
      */
-    function _getReserveData(
-        address asset
-    ) internal view virtual returns (address, address, address);
+    function _getReserveData(address asset) internal view virtual returns (address, address, address);
 
     /**
      * @dev Supply an amount of asset to the Aave Pool
@@ -68,12 +66,7 @@ abstract contract BaseCurveSwapAdapter is Ownable, IBaseCurveAdapter {
      * @param to The address receiving the aTokens
      * @param referralCode The referral code to pass to Aave
      */
-    function _supply(
-        address asset,
-        uint256 amount,
-        address to,
-        uint16 referralCode
-    ) internal virtual;
+    function _supply(address asset, uint256 amount, address to, uint16 referralCode) internal virtual;
 
     /**
      * @dev Pull the ATokens from the user and withdraws the underlying asset from the Aave Pool
@@ -105,8 +98,7 @@ abstract contract BaseCurveSwapAdapter is Ownable, IBaseCurveAdapter {
 
         uint256 aTokenBalanceBefore = IERC20(aToken).balanceOf(address(this));
         IERC20(aToken).safeTransferFrom(user, address(this), amount);
-        uint256 aTokenBalanceDiff = IERC20(aToken).balanceOf(address(this)) -
-            aTokenBalanceBefore;
+        uint256 aTokenBalanceDiff = IERC20(aToken).balanceOf(address(this)) - aTokenBalanceBefore;
 
         POOL.withdraw(reserve, aTokenBalanceDiff, address(this));
         return aTokenBalanceDiff;
@@ -117,16 +109,9 @@ abstract contract BaseCurveSwapAdapter is Ownable, IBaseCurveAdapter {
      * @param asset The address of the asset
      * @param minAmount The minimum required allowance to the Aave Pool
      */
-    function _conditionalRenewAllowance(
-        address asset,
-        uint256 minAmount
-    ) internal {
-        uint256 allowance = IERC20(asset).allowance(
-            address(this),
-            address(POOL)
-        );
+    function _conditionalRenewAllowance(address asset, uint256 minAmount) internal {
+        uint256 allowance = IERC20(asset).allowance(address(this), address(POOL));
         if (allowance < minAmount) {
-            IERC20(asset).safeApprove(address(POOL), 0);
             IERC20(asset).safeApprove(address(POOL), type(uint256).max);
         }
     }

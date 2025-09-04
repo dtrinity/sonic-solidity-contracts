@@ -1,5 +1,6 @@
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
+
 import { getConfig } from "../config/config";
 import { isMainnet } from "../typescript/hardhat/deploy";
 
@@ -27,7 +28,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     // An initial supply is minted to the deployer during contract deployment
 
     console.log(
-      `Deployed ${symbol} (${tokenConfig.name}) at ${deployed.address}`
+      `Deployed ${symbol} (${tokenConfig.name}) at ${deployed.address}`,
     );
   }
 

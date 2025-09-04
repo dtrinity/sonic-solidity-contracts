@@ -21,6 +21,7 @@ import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+import "@openzeppelin/contracts/utils/math/Math.sol";
 
 import "contracts/common/IAaveOracle.sol";
 import "./OracleAware.sol";
@@ -44,12 +45,9 @@ abstract contract CollateralVault is AccessControl, OracleAware {
 
     /* Roles */
 
-    bytes32 public constant COLLATERAL_MANAGER_ROLE =
-        keccak256("COLLATERAL_MANAGER_ROLE");
-    bytes32 public constant COLLATERAL_STRATEGY_ROLE =
-        keccak256("COLLATERAL_STRATEGY_ROLE");
-    bytes32 public constant COLLATERAL_WITHDRAWER_ROLE =
-        keccak256("COLLATERAL_WITHDRAWER_ROLE");
+    bytes32 public constant COLLATERAL_MANAGER_ROLE = keccak256("COLLATERAL_MANAGER_ROLE");
+    bytes32 public constant COLLATERAL_STRATEGY_ROLE = keccak256("COLLATERAL_STRATEGY_ROLE");
+    bytes32 public constant COLLATERAL_WITHDRAWER_ROLE = keccak256("COLLATERAL_WITHDRAWER_ROLE");
 
     /* Errors */
     error UnsupportedCollateral(address collateralAsset);
@@ -65,9 +63,7 @@ abstract contract CollateralVault is AccessControl, OracleAware {
      * @dev Grants all roles to the contract deployer initially
      * @param oracle The price oracle to use for collateral valuation
      */
-    constructor(
-        IPriceOracleGetter oracle
-    ) OracleAware(oracle, oracle.BASE_CURRENCY_UNIT()) {
+    constructor(IPriceOracleGetter oracle) OracleAware(oracle, oracle.BASE_CURRENCY_UNIT()) {
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender); // This is the super admin
         grantRole(COLLATERAL_MANAGER_ROLE, msg.sender);
         grantRole(COLLATERAL_WITHDRAWER_ROLE, msg.sender);
@@ -86,11 +82,7 @@ abstract contract CollateralVault is AccessControl, OracleAware {
             revert UnsupportedCollateral(collateralAsset);
         }
 
-        IERC20Metadata(collateralAsset).safeTransferFrom(
-            msg.sender,
-            address(this),
-            collateralAmount
-        );
+        IERC20Metadata(collateralAsset).safeTransferFrom(msg.sender, address(this), collateralAmount);
     }
 
     /* Withdrawal */
@@ -100,10 +92,7 @@ abstract contract CollateralVault is AccessControl, OracleAware {
      * @param collateralAmount The amount of collateral to withdraw
      * @param collateralAsset The address of the collateral asset
      */
-    function withdraw(
-        uint256 collateralAmount,
-        address collateralAsset
-    ) public onlyRole(COLLATERAL_WITHDRAWER_ROLE) {
+    function withdraw(uint256 collateralAmount, address collateralAsset) public onlyRole(COLLATERAL_WITHDRAWER_ROLE) {
         return _withdraw(msg.sender, collateralAmount, collateralAsset);
     }
 
@@ -127,15 +116,8 @@ abstract contract CollateralVault is AccessControl, OracleAware {
      * @param collateralAmount The amount of collateral to withdraw
      * @param collateralAsset The address of the collateral asset
      */
-    function _withdraw(
-        address withdrawer,
-        uint256 collateralAmount,
-        address collateralAsset
-    ) internal {
-        IERC20Metadata(collateralAsset).safeTransfer(
-            withdrawer,
-            collateralAmount
-        );
+    function _withdraw(address withdrawer, uint256 collateralAmount, address collateralAsset) internal {
+        IERC20Metadata(collateralAsset).safeTransfer(withdrawer, collateralAmount);
     }
 
     /* Collateral Info */
@@ -152,13 +134,10 @@ abstract contract CollateralVault is AccessControl, OracleAware {
      * @param asset The address of the asset
      * @return baseValue The base value of the asset
      */
-    function assetValueFromAmount(
-        uint256 assetAmount,
-        address asset
-    ) public view returns (uint256 baseValue) {
+    function assetValueFromAmount(uint256 assetAmount, address asset) public view returns (uint256 baseValue) {
         uint256 assetPrice = oracle.getAssetPrice(asset);
         uint8 assetDecimals = IERC20Metadata(asset).decimals();
-        return (assetPrice * assetAmount) / (10 ** assetDecimals);
+        return Math.mulDiv(assetPrice, assetAmount, 10 ** assetDecimals);
     }
 
     /**
@@ -167,13 +146,10 @@ abstract contract CollateralVault is AccessControl, OracleAware {
      * @param asset The address of the asset
      * @return assetAmount The amount of the asset
      */
-    function assetAmountFromValue(
-        uint256 baseValue,
-        address asset
-    ) public view returns (uint256 assetAmount) {
+    function assetAmountFromValue(uint256 baseValue, address asset) public view returns (uint256 assetAmount) {
         uint256 assetPrice = oracle.getAssetPrice(asset);
         uint8 assetDecimals = IERC20Metadata(asset).decimals();
-        return (baseValue * (10 ** assetDecimals)) / assetPrice;
+        return Math.mulDiv(baseValue, 10 ** assetDecimals, assetPrice);
     }
 
     /* Collateral management */
@@ -182,9 +158,7 @@ abstract contract CollateralVault is AccessControl, OracleAware {
      * @notice Allows a new collateral asset
      * @param collateralAsset The address of the collateral asset
      */
-    function allowCollateral(
-        address collateralAsset
-    ) public onlyRole(COLLATERAL_MANAGER_ROLE) {
+    function allowCollateral(address collateralAsset) public onlyRole(COLLATERAL_MANAGER_ROLE) {
         if (_supportedCollaterals.contains(collateralAsset)) {
             revert CollateralAlreadyAllowed(collateralAsset);
         }
@@ -202,9 +176,7 @@ abstract contract CollateralVault is AccessControl, OracleAware {
      * @dev Requires at least one collateral asset to remain supported
      * @param collateralAsset The address of the collateral asset to disallow
      */
-    function disallowCollateral(
-        address collateralAsset
-    ) public onlyRole(COLLATERAL_MANAGER_ROLE) {
+    function disallowCollateral(address collateralAsset) public onlyRole(COLLATERAL_MANAGER_ROLE) {
         if (!_supportedCollaterals.contains(collateralAsset)) {
             revert CollateralNotSupported(collateralAsset);
         }
@@ -223,9 +195,7 @@ abstract contract CollateralVault is AccessControl, OracleAware {
      * @param collateralAsset The address of the collateral asset to check
      * @return bool True if the asset is supported, false otherwise
      */
-    function isCollateralSupported(
-        address collateralAsset
-    ) public view returns (bool) {
+    function isCollateralSupported(address collateralAsset) public view returns (bool) {
         return _supportedCollaterals.contains(collateralAsset);
     }
 
@@ -242,19 +212,17 @@ abstract contract CollateralVault is AccessControl, OracleAware {
      * @dev Iterates through all supported collaterals and sums their base values
      * @return uint256 The total value in base
      */
-    function _totalValueOfSupportedCollaterals()
-        internal
-        view
-        returns (uint256)
-    {
+    function _totalValueOfSupportedCollaterals() internal view returns (uint256) {
         uint256 totalBaseValue = 0;
         for (uint256 i = 0; i < _supportedCollaterals.length(); i++) {
             address collateral = _supportedCollaterals.at(i);
             uint256 collateralPrice = oracle.getAssetPrice(collateral);
             uint8 collateralDecimals = IERC20Metadata(collateral).decimals();
-            uint256 collateralValue = (collateralPrice *
-                IERC20Metadata(collateral).balanceOf(address(this))) /
-                (10 ** collateralDecimals);
+            uint256 collateralValue = Math.mulDiv(
+                collateralPrice,
+                IERC20Metadata(collateral).balanceOf(address(this)),
+                10 ** collateralDecimals
+            );
             totalBaseValue += collateralValue;
         }
         return totalBaseValue;

@@ -1,9 +1,9 @@
+import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 import { expect } from "chai";
 import hre, { ethers } from "hardhat";
-import { dLendFixture, DLendFixtureResult } from "./fixtures";
-import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
+
 import { AaveProtocolDataProvider } from "../../typechain-types";
-import { getTokenContractForSymbol } from "../../typescript/token/utils";
+import { dLendFixture, DLendFixtureResult } from "./fixtures";
 
 describe("dLEND AaveProtocolDataProvider", () => {
   let deployerSigner: SignerWithAddress;
@@ -28,19 +28,19 @@ describe("dLEND AaveProtocolDataProvider", () => {
 
     // Find a non-dStable collateral asset
     collateralAsset = Object.keys(fixture.assets).find(
-      (asset) => fixture.assets[asset].ltv !== BigInt(0)
+      (asset) => fixture.assets[asset].ltv !== BigInt(0),
     )!;
 
     if (!dStableAsset || !collateralAsset) {
       throw new Error(
-        "Could not find required test assets in fixture: need dStable and collateral"
+        "Could not find required test assets in fixture: need dStable and collateral",
       );
     }
 
     // Supply the dStable asset from deployer to ensure initial liquidity is present for testing
     const dStableToken = await hre.ethers.getContractAt(
       "TestERC20",
-      dStableAsset
+      dStableAsset,
     );
     const dStableSupplyAmount = ethers.parseUnits("1000", 18);
     await dStableToken
@@ -58,14 +58,14 @@ describe("dLEND AaveProtocolDataProvider", () => {
       const assetInfo = fixture.assets[collateralAsset];
       const token = await hre.ethers.getContractAt(
         "TestERC20",
-        collateralAsset
+        collateralAsset,
       );
       const decimals = await token.decimals();
 
       expect(config.decimals).to.equal(decimals);
       expect(config.ltv).to.equal(assetInfo.ltv);
       expect(config.liquidationThreshold).to.equal(
-        assetInfo.liquidationThreshold
+        assetInfo.liquidationThreshold,
       );
       expect(config.ltv).to.be.gt(0); // Collateral should have LTV > 0
       expect(config.liquidationThreshold).to.be.gte(config.ltv);
@@ -80,14 +80,14 @@ describe("dLEND AaveProtocolDataProvider", () => {
       const assetInfo = fixture.assets[dStableAsset];
       const token = await hre.ethers.getContractAt(
         "ERC20StablecoinUpgradeable",
-        dStableAsset
+        dStableAsset,
       );
       const decimals = await token.decimals();
 
       expect(config.decimals).to.equal(decimals);
       expect(config.ltv).to.equal(0); // dStable LTV must be 0
       expect(config.liquidationThreshold).to.equal(
-        assetInfo.liquidationThreshold
+        assetInfo.liquidationThreshold,
       );
       expect(config.borrowingEnabled).to.be.true; // dStables should be borrowable
       expect(config.isActive).to.be.true;
@@ -103,10 +103,10 @@ describe("dLEND AaveProtocolDataProvider", () => {
 
       expect(addresses.aTokenAddress).to.equal(assetInfo.aToken);
       expect(addresses.stableDebtTokenAddress).to.equal(
-        assetInfo.stableDebtToken
+        assetInfo.stableDebtToken,
       );
       expect(addresses.variableDebtTokenAddress).to.equal(
-        assetInfo.variableDebtToken
+        assetInfo.variableDebtToken,
       );
     });
 
@@ -117,10 +117,10 @@ describe("dLEND AaveProtocolDataProvider", () => {
 
       expect(addresses.aTokenAddress).to.equal(assetInfo.aToken);
       expect(addresses.stableDebtTokenAddress).to.equal(
-        assetInfo.stableDebtToken
+        assetInfo.stableDebtToken,
       );
       expect(addresses.variableDebtTokenAddress).to.equal(
-        assetInfo.variableDebtToken
+        assetInfo.variableDebtToken,
       );
     });
   });
@@ -134,41 +134,41 @@ describe("dLEND AaveProtocolDataProvider", () => {
 
       // Verify a known collateral asset is present
       const collateralReserve = allReserves.find(
-        (r) => r.tokenAddress === collateralAsset
+        (r) => r.tokenAddress === collateralAsset,
       );
       expect(collateralReserve).to.not.be.undefined;
       expect(collateralReserve?.symbol).to.equal(
-        fixture.assets[collateralAsset].symbol
+        fixture.assets[collateralAsset].symbol,
       );
 
       // Verify a known dStable asset is present
       const dStableReserve = allReserves.find(
-        (r) => r.tokenAddress === dStableAsset
+        (r) => r.tokenAddress === dStableAsset,
       );
       expect(dStableReserve).to.not.be.undefined;
       expect(dStableReserve?.symbol).to.equal(
-        fixture.assets[dStableAsset].symbol
+        fixture.assets[dStableAsset].symbol,
       );
     });
 
     it("should return correct data for all aTokens", async () => {
       const allATokens = await dataProvider.getAllATokens();
       const expectedATokensCount = Object.keys(
-        fixture.contracts.aTokens
+        fixture.contracts.aTokens,
       ).length;
 
       expect(allATokens.length).to.equal(expectedATokensCount);
 
       // Verify a known collateral aToken is present
       const collateralATokenInfo = allATokens.find(
-        (t) => t.tokenAddress === fixture.assets[collateralAsset].aToken
+        (t) => t.tokenAddress === fixture.assets[collateralAsset].aToken,
       );
       expect(collateralATokenInfo).to.not.be.undefined;
       // Potential improvement: Check symbol if AToken symbol follows a standard pattern
 
       // Verify a known dStable aToken is present
       const dStableATokenInfo = allATokens.find(
-        (t) => t.tokenAddress === fixture.assets[dStableAsset].aToken
+        (t) => t.tokenAddress === fixture.assets[dStableAsset].aToken,
       );
       expect(dStableATokenInfo).to.not.be.undefined;
     });
@@ -189,7 +189,7 @@ describe("dLEND AaveProtocolDataProvider", () => {
 
       const dUsdToken = await hre.ethers.getContractAt(
         "TestERC20",
-        dStableAsset
+        dStableAsset,
       );
       const aToken = fixture.contracts.aTokens[dStableAsset];
       const aTokenAddress = await aToken.getAddress();
@@ -201,34 +201,34 @@ describe("dLEND AaveProtocolDataProvider", () => {
 
       expect(totalAToken).to.equal(
         aTokenTotalSupply,
-        "Value at index 2 (totalAToken) should match aToken total supply"
+        "Value at index 2 (totalAToken) should match aToken total supply",
       );
       expect(totalAToken).to.be.closeTo(
         actualATokenBalance,
         ethers.parseUnits("0.01", 18),
-        "Value at index 2 (totalAToken) should be close to aToken underlying balance"
+        "Value at index 2 (totalAToken) should be close to aToken underlying balance",
       );
 
       expect(totalStableDebt).to.equal(
         0,
-        "Value at index 3 (totalStableDebt) should be 0"
+        "Value at index 3 (totalStableDebt) should be 0",
       );
       expect(totalVariableDebt).to.equal(
         0,
-        "Value at index 4 (totalVariableDebt) should be 0"
+        "Value at index 4 (totalVariableDebt) should be 0",
       );
 
       expect(liquidityRate).to.be.gte(
         0,
-        "Value at index 5 (liquidityRate) should be >= 0"
+        "Value at index 5 (liquidityRate) should be >= 0",
       );
       expect(variableBorrowRate).to.be.gte(
         0,
-        "Value at index 6 (variableBorrowRate) should be >= 0"
+        "Value at index 6 (variableBorrowRate) should be >= 0",
       );
       expect(stableBorrowRate).to.be.gte(
         0,
-        "Value at index 7 (stableBorrowRate) should be >= 0"
+        "Value at index 7 (stableBorrowRate) should be >= 0",
       );
     });
 
@@ -252,11 +252,11 @@ describe("dLEND AaveProtocolDataProvider", () => {
     it("should return correct data for a user who supplied initial liquidity", async () => {
       const userData = await dataProvider.getUserReserveData(
         dStableAsset,
-        deployerSigner.address
+        deployerSigner.address,
       );
       const aToken = fixture.contracts.aTokens[dStableAsset];
       const expectedATokenBalance = await aToken.balanceOf(
-        deployerSigner.address
+        deployerSigner.address,
       );
 
       expect(userData.currentATokenBalance).to.equal(expectedATokenBalance);
@@ -273,7 +273,7 @@ describe("dLEND AaveProtocolDataProvider", () => {
     it("should return zero values for a user with no position in a reserve", async () => {
       const userData = await dataProvider.getUserReserveData(
         collateralAsset,
-        user1Signer.address
+        user1Signer.address,
       );
 
       expect(userData.currentATokenBalance).to.equal(0);

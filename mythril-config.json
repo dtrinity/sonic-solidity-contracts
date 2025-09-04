@@ -1,0 +1,12 @@
+{
+  "remappings": [
+    "@openzeppelin/contracts/=node_modules/@openzeppelin/contracts/",
+    "@openzeppelin/contracts-upgradeable/=node_modules/@openzeppelin/contracts-upgradeable/",
+    "@rari-capital/solmate/=node_modules/@rari-capital/solmate/"
+  ],
+  "optimizer": {
+    "enabled": true,
+    "runs": 200
+  },
+  "viaIR": true
+}

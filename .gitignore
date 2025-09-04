@@ -19,6 +19,18 @@ node_modules
 # Hardhat Ignition default folder for deployments against a local node
 ignition/deployments/chain-31337
 
+# Script outputs
+contract-addresses_*.md
+nsloc.md
+
 # Certora
 certora # python virtual environment
 .certora_internal
+
+.DS_Store
+
+# Slither analysis reports
+reports/slither/
+
+# Mythril analysis reports
+reports/mythril/

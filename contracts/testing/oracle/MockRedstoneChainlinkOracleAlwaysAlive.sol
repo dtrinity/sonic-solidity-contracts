@@ -17,7 +17,7 @@
 
 pragma solidity ^0.8.20;
 
-import {IPriceFeed} from "../../oracle_aggregator/interface/chainlink/IPriceFeed.sol";
+import { IPriceFeed } from "../../oracle_aggregator/interface/chainlink/IPriceFeed.sol";
 
 contract MockRedstoneChainlinkOracleAlwaysAlive is IPriceFeed {
     int256 private mockPrice;
@@ -25,6 +25,10 @@ contract MockRedstoneChainlinkOracleAlwaysAlive is IPriceFeed {
 
     constructor() {
         mockRoundId = 1;
+    }
+
+    function decimals() external pure override returns (uint8) {
+        return 8;
     }
 
     function setMock(int256 _price) external {
@@ -36,20 +40,8 @@ contract MockRedstoneChainlinkOracleAlwaysAlive is IPriceFeed {
         external
         view
         override
-        returns (
-            uint80 roundId,
-            int256 answer,
-            uint256 startedAt,
-            uint256 updatedAt,
-            uint80 answeredInRound
-        )
+        returns (uint80 roundId, int256 answer, uint256 startedAt, uint256 updatedAt, uint80 answeredInRound)
     {
-        return (
-            mockRoundId,
-            mockPrice,
-            block.timestamp,
-            block.timestamp,
-            mockRoundId
-        );
+        return (mockRoundId, mockPrice, block.timestamp, block.timestamp, mockRoundId);
     }
 }

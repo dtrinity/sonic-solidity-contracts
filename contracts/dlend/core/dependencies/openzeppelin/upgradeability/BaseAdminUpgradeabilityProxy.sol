@@ -40,8 +40,7 @@ contract BaseAdminUpgradeabilityProxy is BaseUpgradeabilityProxy {
      * This is the keccak-256 hash of "eip1967.proxy.admin" subtracted by 1, and is
      * validated in the constructor.
      */
-    bytes32 internal constant ADMIN_SLOT =
-        0xb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b5d6103;
+    bytes32 internal constant ADMIN_SLOT = 0xb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b5d6103;
 
     /**
      * @dev Modifier to check whether the `msg.sender` is the admin.
@@ -76,10 +75,7 @@ contract BaseAdminUpgradeabilityProxy is BaseUpgradeabilityProxy {
      * @param newAdmin Address to transfer proxy administration to.
      */
     function changeAdmin(address newAdmin) external ifAdmin {
-        require(
-            newAdmin != address(0),
-            "Cannot change the admin of a proxy to the zero address"
-        );
+        require(newAdmin != address(0), "Cannot change the admin of a proxy to the zero address");
         emit AdminChanged(_admin(), newAdmin);
         _setAdmin(newAdmin);
     }
@@ -102,10 +98,7 @@ contract BaseAdminUpgradeabilityProxy is BaseUpgradeabilityProxy {
      * It should include the signature and the parameters of the function to be called, as described in
      * https://solidity.readthedocs.io/en/v0.4.24/abi-spec.html#function-selector-and-argument-encoding.
      */
-    function upgradeToAndCall(
-        address newImplementation,
-        bytes calldata data
-    ) external payable ifAdmin {
+    function upgradeToAndCall(address newImplementation, bytes calldata data) external payable ifAdmin {
         _upgradeTo(newImplementation);
         (bool success, ) = newImplementation.delegatecall(data);
         require(success);
@@ -138,10 +131,7 @@ contract BaseAdminUpgradeabilityProxy is BaseUpgradeabilityProxy {
      * @dev Only fall back when the sender is not the admin.
      */
     function _willFallback() internal virtual override {
-        require(
-            msg.sender != _admin(),
-            "Cannot call fallback function from the proxy admin"
-        );
+        require(msg.sender != _admin(), "Cannot call fallback function from the proxy admin");
         super._willFallback();
     }
 }

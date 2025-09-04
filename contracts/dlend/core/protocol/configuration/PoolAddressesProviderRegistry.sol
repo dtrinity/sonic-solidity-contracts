@@ -17,9 +17,9 @@
 
 pragma solidity ^0.8.20;
 
-import {Ownable} from "../../dependencies/openzeppelin/contracts/Ownable.sol";
-import {Errors} from "../libraries/helpers/Errors.sol";
-import {IPoolAddressesProviderRegistry} from "../../interfaces/IPoolAddressesProviderRegistry.sol";
+import { Ownable } from "../../dependencies/openzeppelin/contracts/Ownable.sol";
+import { Errors } from "../libraries/helpers/Errors.sol";
+import { IPoolAddressesProviderRegistry } from "../../interfaces/IPoolAddressesProviderRegistry.sol";
 
 /**
  * @title PoolAddressesProviderRegistry
@@ -28,10 +28,7 @@ import {IPoolAddressesProviderRegistry} from "../../interfaces/IPoolAddressesPro
  * @dev Used for indexing purposes of Aave protocol's markets. The id assigned to a PoolAddressesProvider refers to the
  * market it is connected with, for example with `1` for the Aave main market and `2` for the next created.
  */
-contract PoolAddressesProviderRegistry is
-    Ownable,
-    IPoolAddressesProviderRegistry
-{
+contract PoolAddressesProviderRegistry is Ownable, IPoolAddressesProviderRegistry {
     // Map of address provider ids (addressesProvider => id)
     mapping(address => uint256) private _addressesProviderToId;
     // Map of id to address provider (id => addressesProvider)
@@ -50,29 +47,15 @@ contract PoolAddressesProviderRegistry is
     }
 
     /// @inheritdoc IPoolAddressesProviderRegistry
-    function getAddressesProvidersList()
-        external
-        view
-        override
-        returns (address[] memory)
-    {
+    function getAddressesProvidersList() external view override returns (address[] memory) {
         return _addressesProvidersList;
     }
 
     /// @inheritdoc IPoolAddressesProviderRegistry
-    function registerAddressesProvider(
-        address provider,
-        uint256 id
-    ) external override onlyOwner {
+    function registerAddressesProvider(address provider, uint256 id) external override onlyOwner {
         require(id != 0, Errors.INVALID_ADDRESSES_PROVIDER_ID);
-        require(
-            _idToAddressesProvider[id] == address(0),
-            Errors.INVALID_ADDRESSES_PROVIDER_ID
-        );
-        require(
-            _addressesProviderToId[provider] == 0,
-            Errors.ADDRESSES_PROVIDER_ALREADY_ADDED
-        );
+        require(_idToAddressesProvider[id] == address(0), Errors.INVALID_ADDRESSES_PROVIDER_ID);
+        require(_addressesProviderToId[provider] == 0, Errors.ADDRESSES_PROVIDER_ALREADY_ADDED);
 
         _addressesProviderToId[provider] = id;
         _idToAddressesProvider[id] = provider;
@@ -82,13 +65,8 @@ contract PoolAddressesProviderRegistry is
     }
 
     /// @inheritdoc IPoolAddressesProviderRegistry
-    function unregisterAddressesProvider(
-        address provider
-    ) external override onlyOwner {
-        require(
-            _addressesProviderToId[provider] != 0,
-            Errors.ADDRESSES_PROVIDER_NOT_REGISTERED
-        );
+    function unregisterAddressesProvider(address provider) external override onlyOwner {
+        require(_addressesProviderToId[provider] != 0, Errors.ADDRESSES_PROVIDER_NOT_REGISTERED);
         uint256 oldId = _addressesProviderToId[provider];
         _idToAddressesProvider[oldId] = address(0);
         _addressesProviderToId[provider] = 0;
@@ -99,16 +77,12 @@ contract PoolAddressesProviderRegistry is
     }
 
     /// @inheritdoc IPoolAddressesProviderRegistry
-    function getAddressesProviderIdByAddress(
-        address addressesProvider
-    ) external view override returns (uint256) {
+    function getAddressesProviderIdByAddress(address addressesProvider) external view override returns (uint256) {
         return _addressesProviderToId[addressesProvider];
     }
 
     /// @inheritdoc IPoolAddressesProviderRegistry
-    function getAddressesProviderAddressById(
-        uint256 id
-    ) external view override returns (address) {
+    function getAddressesProviderAddressById(uint256 id) external view override returns (address) {
         return _idToAddressesProvider[id];
     }
 

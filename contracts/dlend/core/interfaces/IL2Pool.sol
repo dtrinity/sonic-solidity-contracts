@@ -94,11 +94,7 @@ interface IL2Pool {
      * @param s The S parameter of ERC712 permit sig
      * @return The final amount repaid
      */
-    function repayWithPermit(
-        bytes32 args,
-        bytes32 r,
-        bytes32 s
-    ) external returns (uint256);
+    function repayWithPermit(bytes32 args, bytes32 r, bytes32 s) external returns (uint256);
 
     /**
      * @notice Calldata efficient wrapper of the repayWithATokens function
