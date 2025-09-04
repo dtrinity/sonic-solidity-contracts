@@ -112,12 +112,8 @@ abstract contract BaseOdosSellAdapterV2 is BaseOdosSwapAdapter, OracleValidation
                 swapData
             );
 
-            // Validate no leftover collateral remains after exact input swap
-            uint256 inputBalanceAfter = assetToSwapFrom.balanceOf(address(this));
-            uint256 expectedBalanceAfter = inputBalanceBefore - amountToSwap;
-            if (inputBalanceAfter > expectedBalanceAfter) {
-                revert LeftoverCollateralAfterSwap(tokenIn, inputBalanceAfter - expectedBalanceAfter);
-            }
+            // Note: Leftover collateral handling moved to individual adapter contracts
+            // Each adapter can decide whether to re-supply excess or handle differently
 
             return swapResult;
         }
@@ -131,12 +127,7 @@ abstract contract BaseOdosSellAdapterV2 is BaseOdosSwapAdapter, OracleValidation
         // Execute composed swap with intelligent routing
         amountReceived = _executeComposedSwapExactInput(tokenIn, tokenOut, amountToSwap, minAmountToReceive, swapData);
 
-        // Validate no leftover collateral remains after exact input swap
-        uint256 ptInputBalanceAfter = assetToSwapFrom.balanceOf(address(this));
-        uint256 expectedPTBalanceAfter = ptInputBalanceBefore - amountToSwap;
-        if (ptInputBalanceAfter > expectedPTBalanceAfter) {
-            revert LeftoverCollateralAfterSwap(tokenIn, ptInputBalanceAfter - expectedPTBalanceAfter);
-        }
+        // Note: Leftover collateral handling moved to individual adapter contracts
 
         emit Bought(tokenIn, tokenOut, amountToSwap, amountReceived);
         return amountReceived;

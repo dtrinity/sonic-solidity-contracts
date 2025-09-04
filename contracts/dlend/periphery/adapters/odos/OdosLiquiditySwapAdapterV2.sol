@@ -88,7 +88,7 @@ contract OdosLiquiditySwapAdapterV2 is
             (, , address aToken) = _getReserveData(liquiditySwapParams.collateralAsset);
             uint256 balance = IERC20(aToken).balanceOf(liquiditySwapParams.user);
 
-            liquiditySwapParams.collateralAmountToSwap = balance - liquiditySwapParams.allBalanceOffset;
+            liquiditySwapParams.collateralAmountToSwap = balance;
         }
 
         // true if flashloan is needed to swap liquidity
@@ -174,6 +174,9 @@ contract OdosLiquiditySwapAdapterV2 is
         LiquiditySwapParamsV2 memory liquiditySwapParams,
         PermitInput memory collateralATokenPermit
     ) internal returns (uint256) {
+        // Record balance before pulling collateral for leftover calculation
+        uint256 collateralBalanceBefore = IERC20(liquiditySwapParams.collateralAsset).balanceOf(address(this));
+
         uint256 collateralAmountReceived = _pullATokenAndWithdraw(
             liquiditySwapParams.collateralAsset,
             liquiditySwapParams.user,
@@ -193,6 +196,16 @@ contract OdosLiquiditySwapAdapterV2 is
         // supply the received asset(newCollateralAsset) from swap to the Aave Pool
         _conditionalRenewAllowance(liquiditySwapParams.newCollateralAsset, amountReceived);
         _supply(liquiditySwapParams.newCollateralAsset, amountReceived, liquiditySwapParams.user, REFERRER);
+
+        // Handle leftover collateral by re-supplying to pool (similar to RepayAdapterV2 pattern)
+        uint256 collateralBalanceAfter = IERC20(liquiditySwapParams.collateralAsset).balanceOf(address(this));
+        uint256 collateralExcess = collateralBalanceAfter > collateralBalanceBefore
+            ? collateralBalanceAfter - collateralBalanceBefore
+            : 0;
+        if (collateralExcess > 0) {
+            _conditionalRenewAllowance(liquiditySwapParams.collateralAsset, collateralExcess);
+            _supply(liquiditySwapParams.collateralAsset, collateralExcess, liquiditySwapParams.user, REFERRER);
+        }
 
         return amountReceived;
     }

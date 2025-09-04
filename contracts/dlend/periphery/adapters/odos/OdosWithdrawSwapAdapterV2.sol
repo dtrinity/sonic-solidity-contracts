@@ -35,6 +35,9 @@ import { IERC20 } from "contracts/dlend/core/dependencies/openzeppelin/contracts
 contract OdosWithdrawSwapAdapterV2 is BaseOdosSellAdapterV2, ReentrancyGuard, IOdosWithdrawSwapAdapterV2 {
     using SafeERC20 for IERC20;
 
+    // unique identifier to track usage via events
+    uint16 public constant REFERRER = 43983; // Different from other V2 adapters
+
     constructor(
         IPoolAddressesProvider addressesProvider,
         address pool,
@@ -77,6 +80,9 @@ contract OdosWithdrawSwapAdapterV2 is BaseOdosSellAdapterV2, ReentrancyGuard, IO
             withdrawSwapParams.oldAssetAmount = balance;
         }
 
+        // Record balance before pulling assets for leftover calculation
+        uint256 oldAssetBalanceBefore = IERC20(withdrawSwapParams.oldAsset).balanceOf(address(this));
+
         // pulls liquidity asset from the user and withdraw
         _pullATokenAndWithdraw(
             withdrawSwapParams.oldAsset,
@@ -93,6 +99,16 @@ contract OdosWithdrawSwapAdapterV2 is BaseOdosSellAdapterV2, ReentrancyGuard, IO
             withdrawSwapParams.minAmountToReceive,
             withdrawSwapParams.swapData
         );
+
+        // Handle leftover old asset by re-supplying to pool (in case swap used less than expected)
+        uint256 oldAssetBalanceAfter = IERC20(withdrawSwapParams.oldAsset).balanceOf(address(this));
+        uint256 oldAssetExcess = oldAssetBalanceAfter > oldAssetBalanceBefore
+            ? oldAssetBalanceAfter - oldAssetBalanceBefore
+            : 0;
+        if (oldAssetExcess > 0) {
+            _conditionalRenewAllowance(withdrawSwapParams.oldAsset, oldAssetExcess);
+            _supply(withdrawSwapParams.oldAsset, oldAssetExcess, withdrawSwapParams.user, REFERRER);
+        }
 
         // transfer new asset to the user
         IERC20(withdrawSwapParams.newAsset).safeTransfer(withdrawSwapParams.user, amountReceived);
