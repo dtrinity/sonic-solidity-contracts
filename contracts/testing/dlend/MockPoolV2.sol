@@ -12,6 +12,9 @@ contract MockPoolV2 {
     mapping(address => DataTypes.ReserveData) private _reserves;
     address[] private _reservesList;
 
+    // Mock balances for aTokens (for testing balance queries)
+    mapping(address => mapping(address => uint256)) public aTokenBalances;
+
     /**
      * @notice Set reserve data for an asset
      * @param asset The asset address
@@ -180,5 +183,25 @@ contract MockPoolV2 {
         onBehalfOf;
         params;
         referralCode;
+    }
+
+    /**
+     * @notice Set mock aToken balance for user (for testing)
+     * @param user The user address
+     * @param aToken The aToken address
+     * @param balance The balance to set
+     */
+    function setATokenBalance(address user, address aToken, uint256 balance) external {
+        aTokenBalances[user][aToken] = balance;
+    }
+
+    /**
+     * @notice Get mock aToken balance (for testing)
+     * @param user The user address
+     * @param aToken The aToken address
+     * @return The balance
+     */
+    function getATokenBalance(address user, address aToken) external view returns (uint256) {
+        return aTokenBalances[user][aToken];
     }
 }
