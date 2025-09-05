@@ -42,6 +42,9 @@ export interface Config {
   readonly dPool?: {
     [key: string]: DPoolInstanceConfig; // e.g., dUSD-USDC_Curve
   };
+  readonly nativeMintingGateways?: {
+    [key: string]: NativeMintingGatewayConfig; // e.g., wS_dS_Gateway
+  };
 }
 
 // Configuration for mocking infrastructure on local and test networks
@@ -316,4 +319,14 @@ export interface ChainlinkCompositeAggregatorConfig {
   readonly fixedPriceInBase1: bigint; // Fixed price for sourceFeed1 when threshold is exceeded (e.g., 100000000n for 1.00)
   readonly lowerThresholdInBase2: bigint; // Lower threshold for sourceFeed2 (e.g., 98000000n for 0.98)
   readonly fixedPriceInBase2: bigint; // Fixed price for sourceFeed2 when threshold is exceeded (e.g., 100000000n for 1.00)
+}
+
+// --- Native Minting Gateway Types ---
+
+export interface NativeMintingGatewayConfig {
+  readonly name: string; // Human-readable name (e.g., "wS to dS Gateway")
+  readonly wNativeToken: Address; // Address of wrapped native token (e.g., wS)
+  readonly dStableIssuer: Address; // Address of the IssuerV2 contract
+  readonly dStableToken: Address; // Address of the dStable token (e.g., dS)
+  readonly initialOwner: Address; // Initial owner of the gateway contract
 }
