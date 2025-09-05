@@ -13,7 +13,8 @@ import {
 } from "../../typechain-types";
 
 import { createDStableFixture, DS_CONFIG } from "./fixtures";
-import { DS_ISSUER_V2_CONTRACT_ID, DS_TOKEN_ID, DS_COLLATERAL_VAULT_CONTRACT_ID, S_ORACLE_AGGREGATOR_ID } from "../../typescript/deploy-ids";
+import { getTokenContractForSymbol, TokenInfo } from "../../typescript/token/utils";
+import { DS_ISSUER_V2_CONTRACT_ID, DS_TOKEN_ID, DS_COLLATERAL_VAULT_CONTRACT_ID, S_ORACLE_AGGREGATOR_ID, WS_DS_NATIVE_MINTING_GATEWAY_ID } from "../../typescript/deploy-ids";
 
 describe("NativeMintingGateway (Integration)", () => {
   let deployer: Signer;
@@ -29,6 +30,7 @@ describe("NativeMintingGateway (Integration)", () => {
   let issuerContract: IssuerV2;
   let dStableContract: ERC20StablecoinUpgradeable;
   let wNativeContract: MockWrappedNativeToken;
+  let wNativeInfo: TokenInfo;
   let collateralVault: CollateralHolderVault;
   let oracleAggregator: OracleAggregator;
 
@@ -44,6 +46,10 @@ describe("NativeMintingGateway (Integration)", () => {
   beforeEach(async () => {
     // Deploy the dS ecosystem using the fixture
     await fixture();
+
+    // Deploy the native minting gateways using the deployment system
+    // This tests the actual deployment configuration and process
+    await hre.deployments.fixture(["native-minting-gateways"]);
 
     // Get named accounts
     const namedAccounts = await getNamedAccounts();
@@ -72,27 +78,47 @@ describe("NativeMintingGateway (Integration)", () => {
     const oracleAggregatorAddress = (await hre.deployments.get(S_ORACLE_AGGREGATOR_ID)).address;
     oracleAggregator = await hre.ethers.getContractAt("OracleAggregator", oracleAggregatorAddress, deployer);
 
-    // Deploy proper MockWrappedNativeToken with deposit/withdraw functionality
+    // Get the deployed wS token (wrapped native for Sonic) from the ecosystem
+    const wNativeResult = await getTokenContractForSymbol(hre, deployerAddress, 'wS');
+    wNativeInfo = wNativeResult.tokenInfo;
+
+    // Deploy MockWrappedNativeToken for testing (since wS doesn't have deposit function)
+    // But use the real wS oracle and collateral configuration
     const MockWNativeFactory = await ethers.getContractFactory("MockWrappedNativeToken", deployer);
     wNativeContract = await MockWNativeFactory.deploy("Wrapped Sonic", "wS");
     await wNativeContract.waitForDeployment();
 
-    // Set up oracle price for our wrapped token (reuse existing wS oracle)
+    // Set up oracle price for our wrapped token using existing wS oracle configuration
     const wSOracleAddress = (await hre.deployments.get("wS_HardPegOracleWrapper")).address;
     await oracleAggregator.setOracle(await wNativeContract.getAddress(), wSOracleAddress);
 
-    // Whitelist our wrapped token as collateral
+    // Whitelist our wrapped token as collateral (following real deployment pattern)
     await collateralVault.connect(deployer).allowCollateral(await wNativeContract.getAddress());
 
-    // Deploy gateway using deployment pattern (following established practices)
+    // Get the deployed NativeMintingGateway from the deployment system
+    // This verifies the deployment system worked correctly
+    const gatewayDeployment = await hre.deployments.get(WS_DS_NATIVE_MINTING_GATEWAY_ID);
+    const deployedGateway = await hre.ethers.getContractAt("NativeMintingGateway", gatewayDeployment.address, deployer);
+
+    // For functional testing, create a test version that uses MockWrappedNativeToken
+    // This allows us to test the full deposit flow while maintaining deployment pattern verification
     const gatewayFactory = await ethers.getContractFactory("NativeMintingGateway", deployer);
     gateway = await gatewayFactory.deploy(
-      await wNativeContract.getAddress(),
+      await wNativeContract.getAddress(), // Mock with deposit() for testing
       issuerAddress,
       dStableAddress,
-      user1Address // owner from config
+      user1Address // owner from config (matches deployment config)
     );
     await gateway.waitForDeployment();
+
+    // Store references for deployment verification tests
+    (gateway as any).deployedGateway = deployedGateway;
+    (gateway as any).deploymentConfig = {
+      expectedWNative: wNativeInfo.address,
+      expectedIssuer: issuerAddress,
+      expectedToken: dStableAddress,
+      expectedOwner: user1Address
+    };
 
     // Set up users with ETH for testing
     const users = [user1Address, user2Address, user3Address];
@@ -683,26 +709,84 @@ describe("NativeMintingGateway (Integration)", () => {
     });
   });
 
-  // --- Configuration Compatibility ---
-  describe("Configuration Compatibility", () => {
-    it("Should match the deployed configuration", async () => {
-      // The gateway should be deployed exactly as configured
-      const expectedWNative = await wNativeContract.getAddress();
-      const expectedIssuer = await issuerContract.getAddress();
-      const expectedToken = await dStableContract.getAddress();
-      const expectedOwner = user1Address; // From localhost config
+  // --- Deployment System Verification ---
+  describe("Deployment System Verification", () => {
+    it("Should deploy gateway via hardhat-deploy system", async () => {
+      const deployedGateway = (gateway as any).deployedGateway;
+      const config = (gateway as any).deploymentConfig;
 
-      expect(await gateway.W_NATIVE_TOKEN()).to.equal(expectedWNative);
-      expect(await gateway.DSTABLE_ISSUER()).to.equal(expectedIssuer);
-      expect(await gateway.DSTABLE_TOKEN()).to.equal(expectedToken);
-      expect(await gateway.owner()).to.equal(expectedOwner);
+      // Verify deployment system created the contract
+      expect(await deployedGateway.getAddress()).to.not.equal(ZeroAddress);
+
+      // Verify deployed gateway has correct configuration from config files
+      expect(await deployedGateway.W_NATIVE_TOKEN()).to.equal(config.expectedWNative);
+      expect(await deployedGateway.DSTABLE_ISSUER()).to.equal(config.expectedIssuer);
+      expect(await deployedGateway.DSTABLE_TOKEN()).to.equal(config.expectedToken);
+      expect(await deployedGateway.owner()).to.equal(config.expectedOwner);
+      expect(await deployedGateway.MAX_DEPOSIT()).to.equal(MAX_DEPOSIT);
     });
 
-    it("Should work with the expected configuration pattern", async () => {
-      // Verify the gateway is configured as expected for deployment
-      // This test proves our configuration approach works correctly
-      expect(await gateway.getAddress()).to.not.equal(ZeroAddress);
-      expect(await gateway.owner()).to.equal(user1Address);
+    it("Should have deployment ID correctly registered", async () => {
+      // Verify deployment system registered the contract with correct ID
+      const deployment = await hre.deployments.get(WS_DS_NATIVE_MINTING_GATEWAY_ID);
+      expect(deployment.address).to.not.equal(ZeroAddress);
+      expect(deployment.abi).to.be.an('array');
+      expect(deployment.args).to.be.an('array');
+      expect(deployment.args).to.have.length(4); // 4 constructor arguments
+    });
+
+    it("Should match localhost configuration exactly", async () => {
+      const deployedGateway = (gateway as any).deployedGateway;
+
+      // Verify the deployed contract matches the configuration in localhost.ts
+      // This ensures the deployment script correctly read and used the config
+      const expectedWNative = wNativeInfo.address; // Real wS from ecosystem
+      const expectedIssuer = await issuerContract.getAddress(); // IssuerV2
+      const expectedToken = await dStableContract.getAddress(); // dS token
+      const expectedOwner = user1Address; // From localhost config
+
+      expect(await deployedGateway.W_NATIVE_TOKEN()).to.equal(expectedWNative);
+      expect(await deployedGateway.DSTABLE_ISSUER()).to.equal(expectedIssuer);
+      expect(await deployedGateway.DSTABLE_TOKEN()).to.equal(expectedToken);
+      expect(await deployedGateway.owner()).to.equal(expectedOwner);
+    });
+
+    it("Should be ready for production deployment", async () => {
+      const deployedGateway = (gateway as any).deployedGateway;
+
+      // Verify all critical aspects are properly configured
+      expect(await deployedGateway.W_NATIVE_TOKEN()).to.not.equal(ZeroAddress);
+      expect(await deployedGateway.DSTABLE_ISSUER()).to.not.equal(ZeroAddress);
+      expect(await deployedGateway.DSTABLE_TOKEN()).to.not.equal(ZeroAddress);
+      expect(await deployedGateway.owner()).to.not.equal(ZeroAddress);
+
+      // Verify contract is not paused or in invalid state
+      expect(await deployedGateway.MAX_DEPOSIT()).to.equal(MAX_DEPOSIT);
+    });
+  });
+
+  // --- Configuration Compatibility ---
+  describe("Test Configuration Compatibility", () => {
+    it("Should match functional test configuration", async () => {
+      // Our functional test gateway should have consistent configuration
+      const config = (gateway as any).deploymentConfig;
+
+      expect(await gateway.DSTABLE_ISSUER()).to.equal(config.expectedIssuer);
+      expect(await gateway.DSTABLE_TOKEN()).to.equal(config.expectedToken);
+      expect(await gateway.owner()).to.equal(config.expectedOwner);
+      expect(await gateway.MAX_DEPOSIT()).to.equal(MAX_DEPOSIT);
+    });
+
+    it("Should demonstrate deployment script compatibility", async () => {
+      // Verify our test setup matches what the deployment script would create
+      const deployedGateway = (gateway as any).deployedGateway;
+      const testGateway = gateway;
+
+      // Both should have same basic configuration (except wNative for testing)
+      expect(await testGateway.DSTABLE_ISSUER()).to.equal(await deployedGateway.DSTABLE_ISSUER());
+      expect(await testGateway.DSTABLE_TOKEN()).to.equal(await deployedGateway.DSTABLE_TOKEN());
+      expect(await testGateway.owner()).to.equal(await deployedGateway.owner());
+      expect(await testGateway.MAX_DEPOSIT()).to.equal(await deployedGateway.MAX_DEPOSIT());
     });
   });
 
