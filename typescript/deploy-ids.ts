@@ -45,6 +45,9 @@ export const DS_AMO_MANAGER_ID = "dS_AmoManager";
 export const DS_HARD_PEG_ORACLE_WRAPPER_ID = "dS_HardPegOracleWrapper";
 export const WS_HARD_PEG_ORACLE_WRAPPER_ID = "wS_HardPegOracleWrapper";
 
+// Native Minting Gateways
+export const WS_DS_NATIVE_MINTING_GATEWAY_ID = "wSDSGateway";
+
 // dLEND
 export const TREASURY_PROXY_ID = "TreasuryProxy";
 export const TREASURY_CONTROLLER_ID = "TreasuryController";
