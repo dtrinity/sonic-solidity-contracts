@@ -17,7 +17,7 @@
 
 pragma solidity ^0.8.20;
 
-import { DLoopDepositorBase, ERC20, IERC3156FlashLender } from "../../DLoopDepositorBase.sol";
+import { DLoopDepositorBase, ERC20, IERC3156FlashLender, SharedLogic, DLoopCoreBase } from "../../DLoopDepositorBase.sol";
 import { OdosSwapLogic, IOdosRouterV2 } from "./OdosSwapLogic.sol";
 
 /**
@@ -26,6 +26,8 @@ import { OdosSwapLogic, IOdosRouterV2 } from "./OdosSwapLogic.sol";
  */
 contract DLoopDepositorOdos is DLoopDepositorBase {
     IOdosRouterV2 public immutable odosRouter;
+    error InputTokenBalanceDoesNotDecreaseAfterSwap(uint256 inputTokenBalanceBefore, uint256 inputTokenBalanceAfter);
+    error LeveragedCollateralAmountLessThanAssets(uint256 leveragedCollateralAmount, uint256 assets);
 
     /**
      * @dev Constructor for the DLoopDepositorOdos contract
@@ -34,6 +36,31 @@ contract DLoopDepositorOdos is DLoopDepositorBase {
      */
     constructor(IERC3156FlashLender _flashLender, IOdosRouterV2 _odosRouter) DLoopDepositorBase(_flashLender) {
         odosRouter = _odosRouter;
+    }
+
+    /**
+     * @dev Estimates the amount of collateral token to swap for the flash loan
+     *      This method is specific for Odos venue only, as we cannot do exact output swap with Odos wrapper,
+     *      thus we can only relies on the quote to make sure the output amount is as expected
+     * @param assets Amount of assets
+     * @param minOutputShares Minimum output shares
+     * @param dLoopCore Address of the DLoopCore contract
+     * @return amount Amount of collateral token to swap for the flash loan
+     */
+    function estimateFlashLoanSwapOutputCollateralAmount(
+        uint256 assets,
+        uint256 minOutputShares,
+        DLoopCoreBase dLoopCore
+    ) public view returns (uint256) {
+        uint256 leveragedCollateralAmount = SharedLogic.getLeveragedCollateralAmountWithSlippage(
+            assets,
+            minOutputShares,
+            dLoopCore
+        );
+        if (leveragedCollateralAmount < assets) {
+            revert LeveragedCollateralAmountLessThanAssets(leveragedCollateralAmount, assets);
+        }
+        return leveragedCollateralAmount - assets;
     }
 
     /**
@@ -57,16 +84,24 @@ contract DLoopDepositorOdos is DLoopDepositorBase {
         uint256 deadline,
         bytes memory dStableToUnderlyingSwapData
     ) internal override returns (uint256) {
-        return
-            OdosSwapLogic.swapExactOutput(
-                inputToken,
-                outputToken,
-                amountOut,
-                amountInMaximum,
-                receiver,
-                deadline,
-                dStableToUnderlyingSwapData,
-                odosRouter
-            );
+        // We check the actual spent amount of input token here, as the returned amount from Odos wrapper is not reliable
+        uint256 inputTokenBalanceBefore = inputToken.balanceOf(address(this));
+        OdosSwapLogic.swapExactOutput(
+            inputToken,
+            outputToken,
+            amountOut,
+            amountInMaximum,
+            receiver,
+            deadline,
+            dStableToUnderlyingSwapData,
+            odosRouter
+        );
+        uint256 inputTokenBalanceAfter = inputToken.balanceOf(address(this));
+
+        if (inputTokenBalanceAfter >= inputTokenBalanceBefore) {
+            revert InputTokenBalanceDoesNotDecreaseAfterSwap(inputTokenBalanceBefore, inputTokenBalanceAfter);
+        }
+
+        return inputTokenBalanceBefore - inputTokenBalanceAfter;
     }
 }
