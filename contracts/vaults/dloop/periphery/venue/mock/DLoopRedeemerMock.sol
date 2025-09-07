@@ -41,6 +41,14 @@ contract DLoopRedeemerMock is DLoopRedeemerBase {
     }
 
     /**
+     * @dev The difference tolerance for the swapped output amount
+     * @return differenceTolerance The difference tolerance amount
+     */
+    function swappedOutputDifferenceToleranceAmount(uint256) public pure override returns (uint256) {
+        return 0;
+    }
+
+    /**
      * @dev Swaps an exact amount of output tokens for the minimum input tokens using SimpleDEXMock
      */
     function _swapExactOutputImplementation(

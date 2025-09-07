@@ -41,6 +41,14 @@ contract DLoopDepositorMock is DLoopDepositorBase {
     }
 
     /**
+     * @dev The difference tolerance for the swapped output amount
+     * @return differenceTolerance The difference tolerance amount
+     */
+    function swappedOutputDifferenceToleranceAmount(uint256) public pure override returns (uint256) {
+        return 0;
+    }
+
+    /**
      * @dev Get the leveraged assets for a given deposit amount and dLoopCore (for testing)
      * @param depositAmount The amount of deposit amount
      * @param dLoopCore The dLoopCore contract

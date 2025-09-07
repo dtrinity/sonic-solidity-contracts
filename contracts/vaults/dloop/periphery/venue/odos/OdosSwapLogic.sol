@@ -20,6 +20,7 @@ pragma solidity ^0.8.20;
 import { ERC20, SafeERC20 } from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 import { IOdosRouterV2 } from "contracts/odos/interface/IOdosRouterV2.sol";
 import { OdosSwapUtils } from "contracts/odos/OdosSwapUtils.sol";
+import { BasisPointConstants } from "contracts/common/BasisPointConstants.sol";
 
 /**
  * @title OdosSwapLogic
@@ -27,6 +28,17 @@ import { OdosSwapUtils } from "contracts/odos/OdosSwapUtils.sol";
  */
 library OdosSwapLogic {
     using SafeERC20 for ERC20;
+
+    uint256 public constant DIFFERENCE_TOLERANCE_BPS = BasisPointConstants.ONE_PERCENT_BPS;
+
+    /**
+     * @dev The difference tolerance for the swapped output amount
+     * @param expectedOutputAmount Expected output amount
+     * @return differenceTolerance The difference tolerance amount
+     */
+    function swappedOutputDifferenceToleranceAmount(uint256 expectedOutputAmount) internal pure returns (uint256) {
+        return expectedOutputAmount * DIFFERENCE_TOLERANCE_BPS / BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
+    }
 
     /**
      * @dev Swaps an exact amount of output tokens for input tokens using Odos router

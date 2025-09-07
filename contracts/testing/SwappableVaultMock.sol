@@ -17,6 +17,14 @@ contract SwappableVaultMock is SwappableVault {
     string private _revertMessage;
 
     /**
+     * @dev The difference tolerance for the swapped output amount
+     * @return differenceTolerance The difference tolerance amount
+     */
+    function swappedOutputDifferenceToleranceAmount(uint256) public pure override returns (uint256) {
+        return 0;
+    }
+
+    /**
      * @dev Set the amount in that will be returned by the swap implementation
      */
     function setAmountInToReturn(uint256 amountIn) external {
