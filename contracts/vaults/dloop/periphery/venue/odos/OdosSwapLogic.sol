@@ -21,6 +21,15 @@ import { ERC20, SafeERC20 } from "@openzeppelin/contracts/token/ERC20/extensions
 import { IOdosRouterV2 } from "contracts/odos/interface/IOdosRouterV2.sol";
 import { OdosSwapUtils } from "contracts/odos/OdosSwapUtils.sol";
 import { BasisPointConstants } from "contracts/common/BasisPointConstants.sol";
+import { OdosSwapUtils as OdosSwapUtilsDebug } from "contracts/odos/OdosSwapUtilsDebug.sol";
+
+struct SwapExactOutputVariables {
+    uint256 balanceBefore;
+    uint256 balanceAfter;
+    uint256 amountSpent;
+    uint256 actualReceived;
+    uint256 surplus;
+}
 
 /**
  * @title OdosSwapLogic
@@ -51,7 +60,7 @@ library OdosSwapLogic {
      * @param odosRouter Odos router instance
      * @return uint256 Amount of input tokens used
      */
-    function swapExactOutput(
+    function _swapExactOutputWithBreakPoint(
         ERC20 inputToken,
         ERC20 outputToken,
         uint256 amountOut,
@@ -59,38 +68,105 @@ library OdosSwapLogic {
         address receiver,
         uint256, // deadline, not used in Odos
         bytes memory swapData,
-        IOdosRouterV2 odosRouter
-    ) external returns (uint256) {
+        IOdosRouterV2 odosRouter,
+        uint256 breakPoint
+    ) internal returns (uint256) {
+        SwapExactOutputVariables memory vars;
+
         // Measure the contract’s balance, not the receiver’s, because Odos router sends the
         // output tokens to the caller (i.e. this contract). We refund any surplus afterwards.
-        uint256 balanceBefore = ERC20(outputToken).balanceOf(address(this));
+        vars.balanceBefore = ERC20(outputToken).balanceOf(address(this));
+
+        require(breakPoint != 60001, "60001");
 
         // Use the OdosSwapUtils library to execute the swap
-        uint256 amountSpent = OdosSwapUtils.executeSwapOperation(
+        vars.amountSpent = OdosSwapUtilsDebug.executeSwapOperationWithBreakPoint(
             odosRouter,
             address(inputToken),
             address(outputToken),
             amountInMaximum,
             amountOut,
-            swapData
+            swapData,
+            breakPoint
         );
 
-        uint256 balanceAfter = ERC20(outputToken).balanceOf(address(this));
+        require(breakPoint != 60002, "60002");
+    
+        {
+            vars.balanceAfter = ERC20(outputToken).balanceOf(address(this));
+            vars.actualReceived = vars.balanceAfter - vars.balanceBefore;
 
-        uint256 actualReceived = balanceAfter - balanceBefore;
+            // Safety check – OdosSwapUtils should already revert if insufficient, but double-check.
+            if (vars.actualReceived < amountOut) {
+                revert("INSUFFICIENT_OUTPUT");
+            }
 
-        // Safety check – OdosSwapUtils should already revert if insufficient, but double-check.
-        if (actualReceived < amountOut) {
-            revert("INSUFFICIENT_OUTPUT");
+            vars.surplus = vars.actualReceived - amountOut;
+
+            // Transfer surplus to receiver when receiver is not this contract and surplus exists
+            if (vars.surplus > 0 && receiver != address(this)) {
+                ERC20(outputToken).safeTransfer(receiver, vars.surplus);
+            }
         }
 
-        uint256 surplus = actualReceived - amountOut;
+        return vars.amountSpent;
+    }
 
-        // Transfer surplus to receiver when receiver is not this contract and surplus exists
-        if (surplus > 0 && receiver != address(this)) {
-            ERC20(outputToken).safeTransfer(receiver, surplus);
-        }
+    /**
+     * @dev Swaps an exact amount of output tokens for input tokens using Odos router
+     * @param inputToken Input token to be swapped
+     * @param outputToken Output token to receive (used for validating the swap direction)
+     * @param amountOut Exact amount of output tokens to receive
+     * @param amountInMaximum Maximum amount of input tokens to spend
+     * @param receiver Address to receive the output tokens (not used directly in Odos, but kept for interface consistency)
+     * @param swapData Encoded swap data for Odos router
+     * @param odosRouter Odos router instance
+     * @return uint256 Amount of input tokens used
+     */
+    function swapExactOutput(
+        ERC20 inputToken,
+        ERC20 outputToken,
+        uint256 amountOut,
+        uint256 amountInMaximum,
+        address receiver,
+        uint256 deadline, // deadline, not used in Odos
+        bytes memory swapData,
+        IOdosRouterV2 odosRouter
+    ) external returns (uint256) {
+        return _swapExactOutputWithBreakPoint(
+            inputToken,
+            outputToken,
+            amountOut,
+            amountInMaximum,
+            receiver,
+            deadline,
+            swapData,
+            odosRouter,
+            0
+        );
+    }
 
-        return amountSpent;
+    function swapExactOutputWithBreakPoint(
+        ERC20 inputToken,
+        ERC20 outputToken,
+        uint256 amountOut,
+        uint256 amountInMaximum,
+        address receiver,
+        uint256 deadline,
+        bytes memory swapData,
+        IOdosRouterV2 odosRouter,
+        uint256 breakPoint
+    ) external returns (uint256) {
+        return _swapExactOutputWithBreakPoint(
+            inputToken,
+            outputToken,
+            amountOut,
+            amountInMaximum,
+            receiver,
+            deadline,
+            swapData,
+            odosRouter,
+            breakPoint
+        );
     }
 }

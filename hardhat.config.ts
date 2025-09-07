@@ -54,6 +54,26 @@ const config: HardhatUserConfig = {
           viaIR: true,
         },
       },
+      "contracts/odos/OdosSwapUtilsDebug.sol": {
+        version: "0.8.20",
+        settings: {
+          optimizer: {
+            enabled: true,
+            runs: 200,
+          },
+          viaIR: true,
+        },
+      },
+      "contracts/vaults/dloop/periphery/venue/odos/OdosSwapLogic.sol": {
+        version: "0.8.20",
+        settings: {
+          optimizer: {
+            enabled: true,
+            runs: 200,
+          },
+          viaIR: true,
+        },
+      },
       "contracts/vaults/dloop/core/DLoopQuoter.sol": {
         version: "0.8.20",
         settings: {
