@@ -34,8 +34,6 @@ abstract contract SwappableVault {
 
     uint256 public constant BALANCE_DIFF_TOLERANCE = 1;
 
-    uint256 public breakPoint2;
-
     /* Virtual functions */
 
     /**
@@ -92,10 +90,6 @@ abstract contract SwappableVault {
         uint256 inputTokenBalanceBefore = inputToken.balanceOf(address(this));
         uint256 outputTokenBalanceBefore = outputToken.balanceOf(address(this));
 
-        require(breakPoint2 != 40001, string.concat("40001: amountOut:", uint256ToString(amountOut)));
-
-        setBreakPoint2(breakPoint2);
-
         // Perform the swap
         uint256 amountIn = _swapExactOutputImplementation(
             inputToken,
@@ -106,15 +100,11 @@ abstract contract SwappableVault {
             deadline,
             extraData
         );
-
-        require(breakPoint2 != 40002, "40002");
-
         uint256 inputTokenBalanceAfter = inputToken.balanceOf(address(this));
         uint256 outputTokenBalanceAfter = outputToken.balanceOf(address(this));
 
         // Input token: if decreased, ensure not over max and within tolerance of amountIn
         {
-            require(breakPoint2 != 40003, "40003");
             Compare.BalanceCheckResult memory inCheck = Compare.checkBalanceDelta(
                 inputTokenBalanceBefore,
                 inputTokenBalanceAfter,
@@ -122,19 +112,16 @@ abstract contract SwappableVault {
                 BALANCE_DIFF_TOLERANCE,
                 Compare.BalanceDirection.Decrease
             );
-            require(breakPoint2 != 40004, "40004");
             if (inCheck.directionOk) {
                 // First check: ensure we don't spend more than the maximum allowed
                 if (inCheck.observedDelta > amountInMaximum) {
                     revert SpentInputTokenAmountGreaterThanAmountInMaximum(inCheck.observedDelta, amountInMaximum);
                 }
-                require(breakPoint2 != 40005, string.concat("40005: amountIn:", uint256ToString(amountIn),",amountInMaximum:", uint256ToString(amountInMaximum),",observedDelta:", uint256ToString(inCheck.observedDelta), "BALANCE_DIFF_TOLERANCE:", uint256ToString(BALANCE_DIFF_TOLERANCE),",inputTokenBalanceBefore:", uint256ToString(inputTokenBalanceBefore),",inputTokenBalanceAfter:", uint256ToString(inputTokenBalanceAfter)));
                 // Second check: ensure spent amount matches returned amount within tolerance
                 if (!inCheck.toleranceOk) {
                     revert SpentInputTokenAmountNotEqualReturnedAmountIn(inCheck.observedDelta, amountIn);
                 }
             }
-            require(breakPoint2 != 40006, "40006");
             // If not decreased, no checks needed (not a risk for the caller)
         }
 
@@ -148,42 +135,14 @@ abstract contract SwappableVault {
                 BALANCE_DIFF_TOLERANCE + differenceTolerance,
                 Compare.BalanceDirection.Increase
             );
-            require(breakPoint2 != 40008, "40008");
             if (!outCheck.directionOk) {
                 revert OutputTokenBalanceNotIncreasedAfterSwap(outputTokenBalanceBefore, outputTokenBalanceAfter);
             }
-            require(breakPoint2 != 40009, string.concat("40009: amountOut:", uint256ToString(amountOut),",observedDelta:", uint256ToString(outCheck.observedDelta),",BALANCE_DIFF_TOLERANCE:", uint256ToString(BALANCE_DIFF_TOLERANCE),",outputTokenBalanceBefore:", uint256ToString(outputTokenBalanceBefore),",outputTokenBalanceAfter:", uint256ToString(outputTokenBalanceAfter),",inDelta:", uint256ToString(inputTokenBalanceBefore - inputTokenBalanceAfter)));
             if (!outCheck.toleranceOk) {
                 revert ReceivedOutputTokenAmountNotEqualAmountOut(outCheck.observedDelta, amountOut);
             }
-            require(breakPoint2 != 40010, "40010");
         }
 
         return amountIn;
-    }
-
-    function uint256ToString(uint256 _i) internal pure returns (string memory) {
-        if (_i == 0) {
-            return "0";
-        }
-        uint256 j = _i;
-        uint256 length;
-        while (j != 0) {
-            length++;
-            j /= 10;
-        }
-
-        bytes memory bstr = new bytes(length);
-        uint256 k = length;
-        j = _i;
-        while (j != 0) {
-            bstr[--k] = bytes1(uint8(48 + (j % 10)));
-            j /= 10;
-        }
-        return string(bstr);
-    }
-
-    function setBreakPoint2(uint256 _breakPoint2) public {
-        breakPoint2 = _breakPoint2;
     }
 }

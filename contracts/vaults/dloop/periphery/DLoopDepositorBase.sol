@@ -57,8 +57,6 @@ abstract contract DLoopDepositorBase is
 
     IERC3156FlashLender public immutable flashLender;
 
-    uint256 public breakPoint;
-
     /* Errors */
 
     error UnknownLender(address msgSender, address flashLender);
@@ -102,10 +100,6 @@ abstract contract DLoopDepositorBase is
      */
     constructor(IERC3156FlashLender _flashLender) Ownable(msg.sender) {
         flashLender = _flashLender;
-    }
-
-    function setBreakPoint(uint256 _breakPoint) public {
-        breakPoint = _breakPoint;
     }
 
     /* RescuableVault Override */
@@ -177,8 +171,6 @@ abstract contract DLoopDepositorBase is
             dLoopCore
         );
 
-        require(breakPoint != 8123, string.concat("8123: leveragedCollateralAmount:", uint256ToString(leveragedCollateralAmount),",assets:", uint256ToString(assets),",minOutputShares:", uint256ToString(minOutputShares)));
-
         // Create the flash loan params data
         FlashLoanParams memory params = FlashLoanParams(
             receiver,
@@ -204,12 +196,8 @@ abstract contract DLoopDepositorBase is
             revert FlashLenderNotSameAsDebtToken(address(flashLender), address(debtToken));
         }
 
-        require(breakPoint != 10010, "10010");
-
         // The main logic will be done in the onFlashLoan function
         flashLender.flashLoan(this, address(debtToken), maxFlashLoanAmount, data);
-
-        require(breakPoint != 10011, "10011");
 
         // The received debt token after deposit was used to repay the flash loan
 
@@ -218,8 +206,6 @@ abstract contract DLoopDepositorBase is
         if (sharesAfterDeposit <= sharesBeforeDeposit) {
             revert SharesNotIncreasedAfterFlashLoan(sharesBeforeDeposit, sharesAfterDeposit);
         }
-
-        require(breakPoint != 10012, "10012");
 
         // Finalize deposit and transfer shares
         return
@@ -270,10 +256,6 @@ abstract contract DLoopDepositorBase is
         // Calculate and validate the required additional collateral amount
         uint256 requiredAdditionalCollateralAmount = _calculateRequiredAdditionalCollateral(flashLoanParams);
 
-        require(breakPoint != 20006, string.concat("20006: requiredAdditionalCollateralAmount:", uint256ToString(requiredAdditionalCollateralAmount)));
-
-        setBreakPoint2(breakPoint);
-
         /**
          * Swap the flash loan debt token to the collateral token
          *
@@ -291,8 +273,6 @@ abstract contract DLoopDepositorBase is
             flashLoanParams.debtTokenToCollateralSwapData
         );
 
-        require(breakPoint != 20007, "20007");
-
         // Execute deposit and validate debt token received
         _executeDepositAndValidate(
             flashLoanParams,
@@ -301,8 +281,6 @@ abstract contract DLoopDepositorBase is
             debtTokenAmountUsedInSwap,
             flashLoanFee
         );
-
-        require(breakPoint != 20008, "20008");
 
         // Return the success bytes
         return FLASHLOAN_CALLBACK;
@@ -350,7 +328,6 @@ abstract contract DLoopDepositorBase is
     ) internal {
         // This value is used to check if the debt token balance increased after the deposit
         uint256 debtTokenBalanceBeforeDeposit = debtToken.balanceOf(address(this));
-        uint256 collateralTokenBalanceBeforeDeposit = collateralToken.balanceOf(address(this));
 
         /**
          * Deposit the collateral token to the core vault
@@ -365,7 +342,6 @@ abstract contract DLoopDepositorBase is
 
         // Debt token balance after deposit, which is used to sanity check the debt token balance increased after the deposit
         uint256 debtTokenBalanceAfterDeposit = debtToken.balanceOf(address(this));
-        uint256 collateralTokenBalanceAfterDeposit = collateralToken.balanceOf(address(this));
 
         // Make sure to receive the debt token from the core vault to repay the flash loan
         if (debtTokenBalanceAfterDeposit <= debtTokenBalanceBeforeDeposit) {
@@ -378,23 +354,6 @@ abstract contract DLoopDepositorBase is
         // Calculate the debt token received after the deposit
         uint256 debtTokenReceivedAfterDeposit = debtTokenBalanceAfterDeposit - debtTokenBalanceBeforeDeposit;
 
-        uint256 collateralTokenDeposited = collateralTokenBalanceBeforeDeposit - collateralTokenBalanceAfterDeposit;
-
-        require(breakPoint != 30004, string.concat(
-            "30004: debtTokenBalanceAfterDeposit:",
-            uint256ToString(debtTokenBalanceAfterDeposit),
-            ",debtTokenBalanceBeforeDeposit:",
-            uint256ToString(debtTokenBalanceBeforeDeposit),
-            ",debtTokenReceivedAfterDeposit:",
-            uint256ToString(debtTokenReceivedAfterDeposit),
-            ",debtTokenAmountUsedInSwap:",
-            uint256ToString(debtTokenAmountUsedInSwap),
-            ",flashLoanFee:",
-            uint256ToString(flashLoanFee),
-            ",collateralTokenDeposited:",
-            uint256ToString(collateralTokenDeposited)
-        ));
-
         // Make sure the debt token received after the deposit is not less than the debt token used in the swap
         // to allow repaying the flash loan
         if (debtTokenReceivedAfterDeposit < debtTokenAmountUsedInSwap + flashLoanFee) {
@@ -404,8 +363,6 @@ abstract contract DLoopDepositorBase is
                 flashLoanFee
             );
         }
-
-        require(breakPoint != 30005, "30005");
     }
 
     /**
@@ -438,8 +395,6 @@ abstract contract DLoopDepositorBase is
             revert ReceivedSharesNotMetMinReceiveAmount(shares, minOutputShares);
         }
 
-        require(breakPoint != 10013, "10013");
-
         // There is no leftover collateral token, as all swapped collateral token
         // (using flash loaned debt token) is used to deposit to the core contract
 
@@ -450,12 +405,8 @@ abstract contract DLoopDepositorBase is
             emit LeftoverDebtTokensTransferred(address(debtToken), leftoverAmount, receiver);
         }
 
-        require(breakPoint != 10014, "10014");
-
         // Transfer the minted shares to the receiver
         SafeERC20.safeTransfer(dLoopCore, receiver, shares);
-
-        require(breakPoint != 10015, "10015");
     }
 
     /* Data encoding/decoding helpers */

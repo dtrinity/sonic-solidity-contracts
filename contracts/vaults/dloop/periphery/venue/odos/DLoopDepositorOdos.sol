@@ -86,7 +86,7 @@ contract DLoopDepositorOdos is DLoopDepositorBase {
     ) internal override returns (uint256) {
         // We check the actual spent amount of input token here, as the returned amount from Odos wrapper is not reliable
         uint256 inputTokenBalanceBefore = inputToken.balanceOf(address(this));
-        OdosSwapLogic.swapExactOutputWithBreakPoint(
+        OdosSwapLogic.swapExactOutput(
             inputToken,
             outputToken,
             amountOut,
@@ -94,8 +94,7 @@ contract DLoopDepositorOdos is DLoopDepositorBase {
             receiver,
             deadline,
             dStableToUnderlyingSwapData,
-            odosRouter,
-            breakPoint
+            odosRouter
         );
         uint256 inputTokenBalanceAfter = inputToken.balanceOf(address(this));
 
