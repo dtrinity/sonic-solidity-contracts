@@ -41,6 +41,16 @@ contract DLoopDepositorMock is DLoopDepositorBase {
     }
 
     /**
+     * @dev Get the leveraged assets for a given deposit amount and dLoopCore (for testing)
+     * @param depositAmount The amount of deposit amount
+     * @param dLoopCore The dLoopCore contract
+     * @return leveragedAssets The leveraged assets
+     */
+    function testGetLeveragedAssets(uint256 depositAmount, DLoopCoreBase dLoopCore) public view returns (uint256) {
+        return SharedLogic.getLeveragedAssets(depositAmount, dLoopCore);
+    }
+
+    /**
      * @dev Swaps an exact amount of output tokens for the minimum input tokens using Odos
      */
     function _swapExactOutputImplementation(
