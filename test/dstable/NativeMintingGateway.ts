@@ -1,5 +1,5 @@
 import { expect } from "chai";
-import hre, { ethers, getNamedAccounts, } from "hardhat";
+import hre, { ethers, getNamedAccounts } from "hardhat";
 import { Signer, parseEther, ZeroAddress } from "ethers";
 import { Address } from "hardhat-deploy/types";
 
@@ -14,7 +14,13 @@ import {
 
 import { createDStableFixture, DS_CONFIG } from "./fixtures";
 import { getTokenContractForSymbol, TokenInfo } from "../../typescript/token/utils";
-import { DS_ISSUER_V2_CONTRACT_ID, DS_TOKEN_ID, DS_COLLATERAL_VAULT_CONTRACT_ID, S_ORACLE_AGGREGATOR_ID, WS_DS_NATIVE_MINTING_GATEWAY_ID } from "../../typescript/deploy-ids";
+import {
+  DS_ISSUER_V2_CONTRACT_ID,
+  DS_TOKEN_ID,
+  DS_COLLATERAL_VAULT_CONTRACT_ID,
+  S_ORACLE_AGGREGATOR_ID,
+  WS_DS_NATIVE_MINTING_GATEWAY_ID,
+} from "../../typescript/deploy-ids";
 
 describe("NativeMintingGateway (Integration)", () => {
   let deployer: Signer;
@@ -38,7 +44,7 @@ describe("NativeMintingGateway (Integration)", () => {
   const depositAmount = parseEther("1.0");
   const minDStableLow = parseEther("0.5"); // Low minimum to succeed
   const minDStableHigh = parseEther("10000"); // High minimum to test slippage
-  const MAX_DEPOSIT = parseEther("1000000"); // From contract constant
+  // MAX_DEPOSIT removed in contract
 
   // Use the dS fixture to deploy full ecosystem
   const fixture = createDStableFixture(DS_CONFIG);
@@ -53,12 +59,7 @@ describe("NativeMintingGateway (Integration)", () => {
 
     // Get named accounts
     const namedAccounts = await getNamedAccounts();
-    ({
-      deployer: deployerAddress,
-      user1: user1Address,
-      user2: user2Address,
-      user3: user3Address
-    } = namedAccounts);
+    ({ deployer: deployerAddress, user1: user1Address, user2: user2Address, user3: user3Address } = namedAccounts);
 
     deployer = await ethers.getSigner(deployerAddress);
     user1 = await ethers.getSigner(user1Address);
@@ -79,7 +80,7 @@ describe("NativeMintingGateway (Integration)", () => {
     oracleAggregator = await hre.ethers.getContractAt("OracleAggregator", oracleAggregatorAddress, deployer);
 
     // Get the deployed wS token (wrapped native for Sonic) from the ecosystem
-    const wNativeResult = await getTokenContractForSymbol(hre, deployerAddress, 'wS');
+    const wNativeResult = await getTokenContractForSymbol(hre, deployerAddress, "wS");
     wNativeInfo = wNativeResult.tokenInfo;
 
     // Deploy MockWrappedNativeToken for testing (since wS doesn't have deposit function)
@@ -107,7 +108,7 @@ describe("NativeMintingGateway (Integration)", () => {
       await wNativeContract.getAddress(), // Mock with deposit() for testing
       issuerAddress,
       dStableAddress,
-      user1Address // owner from config (matches deployment config)
+      user1Address, // owner from config (matches deployment config)
     );
     await gateway.waitForDeployment();
 
@@ -117,7 +118,7 @@ describe("NativeMintingGateway (Integration)", () => {
       expectedWNative: wNativeInfo.address,
       expectedIssuer: issuerAddress,
       expectedToken: dStableAddress,
-      expectedOwner: user1Address
+      expectedOwner: user1Address,
     };
 
     // Set up users with ETH for testing
@@ -170,22 +171,24 @@ describe("NativeMintingGateway (Integration)", () => {
 
         // Gateway should not hold any tokens after successful operation
         expect(gatewayNativeBalanceAfter).to.equal(gatewayNativeBalanceBefore, "Gateway should not hold native tokens");
-        expect(gatewayWNativeBalanceAfter).to.equal(gatewayWNativeBalanceBefore, "Gateway should not hold wrapped tokens");
-        expect(gatewayDStableBalanceAfter).to.equal(gatewayDStableBalanceBefore, "Gateway should not hold dStable tokens");
+        expect(gatewayWNativeBalanceAfter).to.equal(
+          gatewayWNativeBalanceBefore,
+          "Gateway should not hold wrapped tokens",
+        );
+        expect(gatewayDStableBalanceAfter).to.equal(
+          gatewayDStableBalanceBefore,
+          "Gateway should not hold dStable tokens",
+        );
 
         // Check events were emitted correctly
-        await expect(tx)
-          .to.emit(gateway, "NativeWrapped")
-          .withArgs(user1Address, depositAmount, depositAmount);
+        await expect(tx).to.emit(gateway, "NativeWrapped").withArgs(user1Address, depositAmount, depositAmount);
 
         await expect(tx)
           .to.emit(gateway, "TokenIssued")
           .withArgs(user1Address, await wNativeContract.getAddress(), depositAmount, dStableReceived);
 
         // Verify wrapped token deposit event
-        await expect(tx)
-          .to.emit(wNativeContract, "Deposit")
-          .withArgs(gatewayAddress, depositAmount);
+        await expect(tx).to.emit(wNativeContract, "Deposit").withArgs(gatewayAddress, depositAmount);
       });
 
       it("Should handle multiple sequential deposits correctly", async () => {
@@ -214,9 +217,7 @@ describe("NativeMintingGateway (Integration)", () => {
         const deposits = [parseEther("1.0"), parseEther("1.5"), parseEther("0.8")];
 
         // Record initial balances
-        const initialBalances = await Promise.all(
-          userAddresses.map(addr => dStableContract.balanceOf(addr))
-        );
+        const initialBalances = await Promise.all(userAddresses.map((addr) => dStableContract.balanceOf(addr)));
 
         // Execute deposits for each user
         for (let i = 0; i < users.length; i++) {
@@ -224,9 +225,7 @@ describe("NativeMintingGateway (Integration)", () => {
         }
 
         // Verify all users received tokens
-        const finalBalances = await Promise.all(
-          userAddresses.map(addr => dStableContract.balanceOf(addr))
-        );
+        const finalBalances = await Promise.all(userAddresses.map((addr) => dStableContract.balanceOf(addr)));
 
         for (let i = 0; i < users.length; i++) {
           const received = finalBalances[i] - initialBalances[i];
@@ -240,31 +239,20 @@ describe("NativeMintingGateway (Integration)", () => {
   // --- Input Validation Tests ---
   describe("Input Validation", () => {
     it("Should revert if zero value is sent", async () => {
-      await expect(
-        gateway.connect(user1).depositAndMint(minDStableLow, { value: 0 })
-      ).to.be.revertedWithCustomError(gateway, "ZeroDeposit");
+      await expect(gateway.connect(user1).depositAndMint(minDStableLow, { value: 0 })).to.be.revertedWithCustomError(
+        gateway,
+        "ZeroDeposit",
+      );
     });
 
     it("Should revert if minDStable is zero", async () => {
-      await expect(
-        gateway.connect(user1).depositAndMint(0, { value: depositAmount })
-      ).to.be.revertedWithCustomError(gateway, "InvalidMinDStable");
+      await expect(gateway.connect(user1).depositAndMint(0, { value: depositAmount })).to.be.revertedWithCustomError(
+        gateway,
+        "InvalidMinDStable",
+      );
     });
 
-    it("Should revert if deposit exceeds maximum", async () => {
-      const excessiveAmount = MAX_DEPOSIT + parseEther("1");
-      const balanceNeeded = excessiveAmount + parseEther("10");
-
-      await hre.network.provider.send("hardhat_setBalance", [
-        user1Address,
-        `0x${balanceNeeded.toString(16)}`,
-      ]);
-
-      await expect(
-        gateway.connect(user1).depositAndMint(minDStableLow, { value: excessiveAmount })
-      ).to.be.revertedWithCustomError(gateway, "ExceedsMaxDeposit")
-        .withArgs(excessiveAmount, MAX_DEPOSIT);
-    });
+    // Removed: max deposit check (contract no longer enforces MAX_DEPOSIT)
 
     it("Should handle existing wrapped token balances correctly", async () => {
       const existingBalance = parseEther("0.5");
@@ -302,9 +290,7 @@ describe("NativeMintingGateway (Integration)", () => {
       const userBalanceBefore = await ethers.provider.getBalance(user1Address);
 
       // Transaction should fail and return funds
-      await expect(
-        gateway.connect(user1).depositAndMint(minDStableLow, { value: depositAmount })
-      ).to.be.reverted;
+      await expect(gateway.connect(user1).depositAndMint(minDStableLow, { value: depositAmount })).to.be.reverted;
 
       const userBalanceAfter = await ethers.provider.getBalance(user1Address);
       const balanceChange = userBalanceBefore - userBalanceAfter;
@@ -314,18 +300,13 @@ describe("NativeMintingGateway (Integration)", () => {
       expect(balanceChange).to.be.gt(0);
     });
 
-    it("Should emit TransactionFailed event on issuer failure", async () => {
+    it("Should revert with IssuerOperationFailed on issuer failure", async () => {
       const governanceSigner = await ethers.getSigner(user1Address);
       await issuerContract.connect(governanceSigner).setAssetMintingPause(await wNativeContract.getAddress(), true);
 
-      // The transaction will revert, but we can check that it would emit the event
-      // by examining the revert behavior
       await expect(
-        gateway.connect(user1).depositAndMint(minDStableLow, { value: depositAmount })
+        gateway.connect(user1).depositAndMint(minDStableLow, { value: depositAmount }),
       ).to.be.revertedWithCustomError(gateway, "IssuerOperationFailed");
-
-      // Note: TransactionFailed event is emitted before the revert in the contract
-      // The revert happens as intended to return funds to user
     });
   });
 
@@ -338,11 +319,8 @@ describe("NativeMintingGateway (Integration)", () => {
         const owner = await gateway.owner();
         const ownerSigner = await ethers.getSigner(owner);
 
-        // Send native tokens to gateway via receive function
-        await user1.sendTransaction({
-          to: gatewayAddress,
-          value: rescueAmount,
-        });
+        // Set gateway native balance directly since receive() now reverts
+        await hre.network.provider.send("hardhat_setBalance", [gatewayAddress, `0x${rescueAmount.toString(16)}`]);
 
         const ownerBalanceBefore = await ethers.provider.getBalance(owner);
         const gatewayBalanceBefore = await ethers.provider.getBalance(gatewayAddress);
@@ -364,7 +342,7 @@ describe("NativeMintingGateway (Integration)", () => {
 
       it("Should revert if called by non-owner", async () => {
         await expect(
-          gateway.connect(user2).rescueNative() // user2 is not owner
+          gateway.connect(user2).rescueNative(), // user2 is not owner
         ).to.be.revertedWithCustomError(gateway, "OwnableUnauthorizedAccount");
       });
 
@@ -429,7 +407,7 @@ describe("NativeMintingGateway (Integration)", () => {
 
       it("Should revert if called by non-owner", async () => {
         await expect(
-          gateway.connect(user2).rescueTokens(wNativeContract.getAddress()) // user2 is not owner
+          gateway.connect(user2).rescueTokens(wNativeContract.getAddress()), // user2 is not owner
         ).to.be.revertedWithCustomError(gateway, "OwnableUnauthorizedAccount");
       });
 
@@ -437,50 +415,21 @@ describe("NativeMintingGateway (Integration)", () => {
         const owner = await gateway.owner();
         const ownerSigner = await ethers.getSigner(owner);
 
-        await expect(
-          gateway.connect(ownerSigner).rescueTokens(wNativeContract.getAddress())
-        ).to.not.be.reverted;
+        await expect(gateway.connect(ownerSigner).rescueTokens(wNativeContract.getAddress())).to.not.be.reverted;
       });
     });
   });
 
   // --- Receive Fallback Tests ---
   describe("receive", () => {
-    it("Should accept native tokens sent directly", async () => {
-      const sendAmount = parseEther("0.5");
-      const gatewayAddress = await gateway.getAddress();
-      const initialBalance = await ethers.provider.getBalance(gatewayAddress);
-
-      await expect(
-        user1.sendTransaction({
-          to: gatewayAddress,
-          value: sendAmount,
-        })
-      ).to.not.be.reverted;
-
-      const finalBalance = await ethers.provider.getBalance(gatewayAddress);
-      expect(finalBalance - initialBalance).to.equal(sendAmount);
-    });
-
-    it("Should not automatically process tokens sent via receive", async () => {
+    it("Should revert on direct native transfers", async () => {
       const sendAmount = parseEther("0.5");
       const gatewayAddress = await gateway.getAddress();
 
-      const userDStableBalanceBefore = await dStableContract.balanceOf(user1Address);
-      const gatewayWNativeBalanceBefore = await wNativeContract.balanceOf(gatewayAddress);
-
-      // Send native tokens directly
-      await user1.sendTransaction({
-        to: gatewayAddress,
-        value: sendAmount,
-      });
-
-      const userDStableBalanceAfter = await dStableContract.balanceOf(user1Address);
-      const gatewayWNativeBalanceAfter = await wNativeContract.balanceOf(gatewayAddress);
-
-      // No processing should occur
-      expect(userDStableBalanceAfter).to.equal(userDStableBalanceBefore);
-      expect(gatewayWNativeBalanceAfter).to.equal(gatewayWNativeBalanceBefore);
+      await expect(user1.sendTransaction({ to: gatewayAddress, value: sendAmount })).to.be.revertedWithCustomError(
+        gateway,
+        "DirectNativeTransferNotAllowed",
+      );
     });
   });
 
@@ -507,7 +456,7 @@ describe("NativeMintingGateway (Integration)", () => {
       expect(await gateway.W_NATIVE_TOKEN()).to.equal(await wNativeContract.getAddress());
       expect(await gateway.DSTABLE_ISSUER()).to.equal(await issuerContract.getAddress());
       expect(await gateway.DSTABLE_TOKEN()).to.equal(await dStableContract.getAddress());
-      expect(await gateway.MAX_DEPOSIT()).to.equal(MAX_DEPOSIT);
+      // MAX_DEPOSIT removed; no assertion
     });
   });
 
@@ -517,9 +466,7 @@ describe("NativeMintingGateway (Integration)", () => {
       // This test verifies that our MockWrappedNativeToken enables proper testing
       // The MockWrappedNativeToken has deposit() and withdraw() functions
 
-      await expect(
-        gateway.connect(user1).depositAndMint(minDStableLow, { value: depositAmount })
-      ).to.not.be.reverted;
+      await expect(gateway.connect(user1).depositAndMint(minDStableLow, { value: depositAmount })).to.not.be.reverted;
 
       // Verify we actually received dStable tokens
       const userBalance = await dStableContract.balanceOf(user1Address);
@@ -560,30 +507,17 @@ describe("NativeMintingGateway (Integration)", () => {
 
   // --- Security Tests ---
   describe("Security Features", () => {
-    it("Should enforce maximum deposit limits", async () => {
-      const excessiveAmount = MAX_DEPOSIT + parseEther("1");
-      const balanceNeeded = excessiveAmount + parseEther("10"); // Extra for gas
-
-      // Give user enough funds for the test
-      await hre.network.provider.send("hardhat_setBalance", [
-        user1Address,
-        `0x${balanceNeeded.toString(16)}`,
-      ]);
-
-      await expect(
-        gateway.connect(user1).depositAndMint(minDStableLow, { value: excessiveAmount })
-      ).to.be.revertedWithCustomError(gateway, "ExceedsMaxDeposit")
-        .withArgs(excessiveAmount, MAX_DEPOSIT);
-    });
-
+    // Removed: maximum deposit limit test
     it("Should prevent unauthorized access to rescue functions", async () => {
-      await expect(
-        gateway.connect(user2).rescueNative()
-      ).to.be.revertedWithCustomError(gateway, "OwnableUnauthorizedAccount");
+      await expect(gateway.connect(user2).rescueNative()).to.be.revertedWithCustomError(
+        gateway,
+        "OwnableUnauthorizedAccount",
+      );
 
-      await expect(
-        gateway.connect(user2).rescueTokens(wNativeContract.getAddress())
-      ).to.be.revertedWithCustomError(gateway, "OwnableUnauthorizedAccount");
+      await expect(gateway.connect(user2).rescueTokens(wNativeContract.getAddress())).to.be.revertedWithCustomError(
+        gateway,
+        "OwnableUnauthorizedAccount",
+      );
     });
 
     it("Should be protected against reentrancy", async () => {
@@ -617,7 +551,7 @@ describe("NativeMintingGateway (Integration)", () => {
       const issuerOracleAddress = await issuerContract.oracle();
       const oracle = await hre.ethers.getContractAt(
         "contracts/common/IAaveOracle.sol:IPriceOracleGetter",
-        issuerOracleAddress
+        issuerOracleAddress,
       );
 
       // Verify oracle can provide price for wS
@@ -632,24 +566,24 @@ describe("NativeMintingGateway (Integration)", () => {
       // Test each custom error exists and can be triggered appropriately
 
       // ZeroDeposit
-      await expect(
-        gateway.connect(user1).depositAndMint(minDStableLow, { value: 0 })
-      ).to.be.revertedWithCustomError(gateway, "ZeroDeposit");
+      await expect(gateway.connect(user1).depositAndMint(minDStableLow, { value: 0 })).to.be.revertedWithCustomError(
+        gateway,
+        "ZeroDeposit",
+      );
 
       // InvalidMinDStable
-      await expect(
-        gateway.connect(user1).depositAndMint(0, { value: depositAmount })
-      ).to.be.revertedWithCustomError(gateway, "InvalidMinDStable");
+      await expect(gateway.connect(user1).depositAndMint(0, { value: depositAmount })).to.be.revertedWithCustomError(
+        gateway,
+        "InvalidMinDStable",
+      );
 
       // ExceedsMaxDeposit (when user has sufficient balance)
       await hre.network.provider.send("hardhat_setBalance", [
         user1Address,
-        `0x${(MAX_DEPOSIT * 2n).toString(16)}`,
+        `0x${(parseEther("1000000") * 2n).toString(16)}`,
       ]);
 
-      await expect(
-        gateway.connect(user1).depositAndMint(minDStableLow, { value: MAX_DEPOSIT + 1n })
-      ).to.be.revertedWithCustomError(gateway, "ExceedsMaxDeposit");
+      // Removed: ExceedsMaxDeposit check
     });
 
     it("Should handle external contract failures gracefully", async () => {
@@ -686,8 +620,7 @@ describe("NativeMintingGateway (Integration)", () => {
 
     it("Should have security features enabled", async () => {
       // Verify security constants
-      expect(await gateway.MAX_DEPOSIT()).to.equal(parseEther("1000000"));
-
+      // MAX_DEPOSIT removed
       // Verify access control
       const owner = await gateway.owner();
       expect(owner).to.equal(user1Address); // From localhost config
@@ -705,7 +638,7 @@ describe("NativeMintingGateway (Integration)", () => {
       // Should have all required events
       expect(interfaceFragment.hasEvent("NativeWrapped")).to.be.true;
       expect(interfaceFragment.hasEvent("TokenIssued")).to.be.true;
-      expect(interfaceFragment.hasEvent("TransactionFailed")).to.be.true;
+      // TransactionFailed event removed
     });
   });
 
@@ -723,15 +656,15 @@ describe("NativeMintingGateway (Integration)", () => {
       expect(await deployedGateway.DSTABLE_ISSUER()).to.equal(config.expectedIssuer);
       expect(await deployedGateway.DSTABLE_TOKEN()).to.equal(config.expectedToken);
       expect(await deployedGateway.owner()).to.equal(config.expectedOwner);
-      expect(await deployedGateway.MAX_DEPOSIT()).to.equal(MAX_DEPOSIT);
+      // MAX_DEPOSIT removed
     });
 
     it("Should have deployment ID correctly registered", async () => {
       // Verify deployment system registered the contract with correct ID
       const deployment = await hre.deployments.get(WS_DS_NATIVE_MINTING_GATEWAY_ID);
       expect(deployment.address).to.not.equal(ZeroAddress);
-      expect(deployment.abi).to.be.an('array');
-      expect(deployment.args).to.be.an('array');
+      expect(deployment.abi).to.be.an("array");
+      expect(deployment.args).to.be.an("array");
       expect(deployment.args).to.have.length(4); // 4 constructor arguments
     });
 
@@ -761,7 +694,7 @@ describe("NativeMintingGateway (Integration)", () => {
       expect(await deployedGateway.owner()).to.not.equal(ZeroAddress);
 
       // Verify contract is not paused or in invalid state
-      expect(await deployedGateway.MAX_DEPOSIT()).to.equal(MAX_DEPOSIT);
+      // MAX_DEPOSIT removed
     });
   });
 
@@ -774,7 +707,7 @@ describe("NativeMintingGateway (Integration)", () => {
       expect(await gateway.DSTABLE_ISSUER()).to.equal(config.expectedIssuer);
       expect(await gateway.DSTABLE_TOKEN()).to.equal(config.expectedToken);
       expect(await gateway.owner()).to.equal(config.expectedOwner);
-      expect(await gateway.MAX_DEPOSIT()).to.equal(MAX_DEPOSIT);
+      // MAX_DEPOSIT removed
     });
 
     it("Should demonstrate deployment script compatibility", async () => {
@@ -786,7 +719,7 @@ describe("NativeMintingGateway (Integration)", () => {
       expect(await testGateway.DSTABLE_ISSUER()).to.equal(await deployedGateway.DSTABLE_ISSUER());
       expect(await testGateway.DSTABLE_TOKEN()).to.equal(await deployedGateway.DSTABLE_TOKEN());
       expect(await testGateway.owner()).to.equal(await deployedGateway.owner());
-      expect(await testGateway.MAX_DEPOSIT()).to.equal(await deployedGateway.MAX_DEPOSIT());
+      // MAX_DEPOSIT removed
     });
   });
 
@@ -835,17 +768,13 @@ describe("NativeMintingGateway (Integration)", () => {
 
       // Test global pause
       await issuerContract.connect(governanceSigner).pauseMinting();
-      await expect(
-        gateway.connect(user1).depositAndMint(minDStableLow, { value: depositAmount })
-      ).to.be.reverted;
+      await expect(gateway.connect(user1).depositAndMint(minDStableLow, { value: depositAmount })).to.be.reverted;
 
       // Unpause and test asset-specific pause
       await issuerContract.connect(governanceSigner).unpauseMinting();
       await issuerContract.connect(governanceSigner).setAssetMintingPause(await wNativeContract.getAddress(), true);
 
-      await expect(
-        gateway.connect(user1).depositAndMint(minDStableLow, { value: depositAmount })
-      ).to.be.reverted;
+      await expect(gateway.connect(user1).depositAndMint(minDStableLow, { value: depositAmount })).to.be.reverted;
     });
 
     it("Should interact correctly with collateral vault", async () => {
@@ -866,7 +795,7 @@ describe("NativeMintingGateway (Integration)", () => {
       const receipt = await tx.wait();
 
       // Extract dStable amount from TokenIssued event
-      const tokenIssuedLog = receipt!.logs.find(log => {
+      const tokenIssuedLog = receipt!.logs.find((log) => {
         try {
           const parsed = gateway.interface.parseLog(log as any);
           return parsed?.name === "TokenIssued";
@@ -881,9 +810,7 @@ describe("NativeMintingGateway (Integration)", () => {
       const dStableAmount = parsedEvent!.args[3];
 
       // Verify all events
-      await expect(tx)
-        .to.emit(gateway, "NativeWrapped")
-        .withArgs(user1Address, depositAmount, depositAmount);
+      await expect(tx).to.emit(gateway, "NativeWrapped").withArgs(user1Address, depositAmount, depositAmount);
 
       await expect(tx)
         .to.emit(gateway, "TokenIssued")
@@ -895,4 +822,4 @@ describe("NativeMintingGateway (Integration)", () => {
         .withArgs(await gateway.getAddress(), depositAmount);
     });
   });
-}); 
+});

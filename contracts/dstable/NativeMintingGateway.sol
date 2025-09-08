@@ -1,6 +1,20 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
+/* ———————————————————————————————————————————————————————————————————————————————— *
+ *    _____     ______   ______     __     __   __     __     ______   __  __       *
+ *   /\  __-.  /\__  _\ /\  == \   /\ \   /\ "-.\ \   /\ \   /\__  _\ /\ \_\ \      *
+ *   \ \ \/\ \ \/_/\ \/ \ \  __<   \ \ \  \ \ \-.  \  \ \ \  \/_/\ \/ \ \____ \     *
+ *    \ \____-    \ \_\  \ \_\ \_\  \ \_\  \ \_\\"\_\  \ \_\    \ \_\  \/\_____\    *
+ *     \/____/     \/_/   \/_/ /_/   \/_/   \/_/ \/_/   \/_/     \/_/   \/_____/    *
+ *                                                                                  *
+ * ————————————————————————————————— dtrinity.org ————————————————————————————————— *
+ *                                                                                  *
+ *                                         ▲                                        *
+ *                                        ▲ ▲                                       *
+ *                                                                                  *
+ * ———————————————————————————————————————————————————————————————————————————————— */
+
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
@@ -10,81 +24,28 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 
 /**
  * @title Minimal interface for the wrapped native token (e.g., wS)
- * @dev Includes standard ERC20 and the payable deposit function.
- *      The deposit function should wrap native tokens 1:1 and emit appropriate events.
+ * @dev Includes standard ERC20 and the payable deposit function. Must be 1:1 with native.
  */
 interface IwNative is IERC20 {
-    /// @notice Deposits native tokens and mints equivalent wrapped tokens to the caller
-    /// @dev Should maintain 1:1 parity between native and wrapped tokens
     function deposit() external payable;
 }
 
 /**
  * @title Minimal interface for the dStable IssuerV2 contract
- * @dev Contains the function needed by the gateway.
- *      The IssuerV2 is responsible for oracle pricing, collateral validation, and dStable minting.
- *      Includes pausable functionality and asset-specific minting controls.
+ * @dev Only the function needed by this gateway.
  */
 interface IIssuer {
-    /**
-     * @notice Issues dStable tokens in exchange for collateral from the caller
-     * @param collateralAmount The amount of collateral to deposit
-     * @param collateralAsset The address of the collateral asset
-     * @param minDStable The minimum amount of dStable to receive, used for slippage protection
-     * @dev The IssuerV2 pulls collateral from msg.sender and mints dStable to msg.sender.
-     *      May revert if:
-     *      - Oracle price is stale or unavailable
-     *      - Collateral amount would result in less than minDStable
-     *      - Collateral asset is not supported
-     *      - System is globally paused (whenNotPaused)
-     *      - Asset-specific minting is paused (assetMintingPaused)
-     */
     function issue(uint256 collateralAmount, address collateralAsset, uint256 minDStable) external;
 }
 
 /**
  * @title Interface for the dStable token
- * @dev Assumed to be compatible with standard ERC20 functions.
- *      The gateway primarily needs balanceOf and transfer functionality.
- *      Must support SafeERC20 operations for secure transfers.
  */
-interface IDStable is IERC20 {
-    // No extra functions needed beyond standard IERC20 for this gateway's core logic
-    // The token should properly implement ERC20 with return values for transfer operations
-}
+interface IDStable is IERC20 {}
 
 /**
  * @title NativeMintingGateway
- * @notice Gateway contract that enables users to deposit native network tokens (e.g., S on Sonic)
- *         and receive dStable tokens (e.g., dS) in return through the dStable Issuer.
- *
- * @dev Architecture:
- *      1. Wraps native tokens into ERC20 representation (e.g., wS)
- *      2. Approves and calls the dStable Issuer with wrapped tokens as collateral
- *      3. Transfers received dStable tokens back to the user
- *
- *      Security Features:
- *      - Reentrancy protection via OpenZeppelin ReentrancyGuard
- *      - Input validation with configurable deposit limits
- *      - Safe ERC20 operations throughout
- *      - Proper balance tracking to handle existing token balances
- *      - Comprehensive error handling with descriptive messages
- *      - Transaction reverts automatically return msg.value to users when operations fail
- *
- *      Gas Optimizations:
- *      - Optimized balance reads: only after successful minting (saves ~2.5k gas on failures)
- *      - No custom txId generation (saves ~300 gas per transaction)
- *      - Efficient event emissions for monitoring and debugging
- *      - Optimized storage access patterns
- *      - Try-catch error handling for cleaner failures
- *
- *      Risk Considerations:
- *      - Relies on external oracle pricing from the Issuer
- *      - Subject to slippage based on market conditions
- *      - Maximum deposit limits help prevent large single transactions
- *
- * @author Stably Protocol Team
- * @custom:security-contact security@stably.io
+ * @notice Wraps native tokens and mints the corresponding dStable via IssuerV2, forwarding to the user.
  */
 contract NativeMintingGateway is ReentrancyGuard, Ownable {
     using SafeERC20 for IERC20;
@@ -98,9 +59,6 @@ contract NativeMintingGateway is ReentrancyGuard, Ownable {
     address public immutable DSTABLE_ISSUER;
     /// @notice The address of the dStable token contract (e.g., dS).
     address public immutable DSTABLE_TOKEN;
-
-    /// @notice Maximum native token amount that can be deposited in a single transaction
-    uint256 public constant MAX_DEPOSIT = 1_000_000 ether; // Adjust based on requirements
 
     // --- Events ---
 
@@ -122,26 +80,14 @@ contract NativeMintingGateway is ReentrancyGuard, Ownable {
         uint256 stablecoinAmount
     );
 
-    /// @notice Emitted when a transaction fails to issue any tokens
-    /// @param user The address of the user who attempted the transaction
-    /// @param collateralAmount The amount of collateral that was processed
-    /// @param reason A string describing why no tokens were issued
-    event TransactionFailed(address indexed user, uint256 collateralAmount, string reason);
-
     // --- Errors ---
 
     /// @notice Reverted when a user attempts to deposit zero native tokens.
     error ZeroDeposit();
-    /// @notice Reverted when deposit amount exceeds maximum allowed.
-    /// @param amount The attempted deposit amount
-    /// @param maxAmount The maximum allowed deposit amount
-    error ExceedsMaxDeposit(uint256 amount, uint256 maxAmount);
     /// @notice Reverted when minDStable is zero (no slippage protection).
     error InvalidMinDStable();
     /// @notice Reverted when a constructor argument is the zero address.
     error ZeroAddress();
-    /// @notice Reverted if the ERC20 approve call fails.
-    error ApproveFailed();
     /// @notice Reverted if the balance check after wrapping fails.
     /// @param expected The expected wrapped amount
     /// @param actual The actual wrapped amount received
@@ -150,6 +96,8 @@ contract NativeMintingGateway is ReentrancyGuard, Ownable {
     error NoTokensIssued();
     /// @notice Reverted when the issuer operation fails.
     error IssuerOperationFailed();
+    /// @notice Reverted on direct native token transfers to this contract.
+    error DirectNativeTransferNotAllowed();
 
     // --- Constructor ---
 
@@ -202,7 +150,6 @@ contract NativeMintingGateway is ReentrancyGuard, Ownable {
     function depositAndMint(uint256 _minDStable) external payable nonReentrant {
         uint256 nativeAmount = msg.value;
         if (nativeAmount == 0) revert ZeroDeposit();
-        if (nativeAmount > MAX_DEPOSIT) revert ExceedsMaxDeposit(nativeAmount, MAX_DEPOSIT);
         if (_minDStable == 0) revert InvalidMinDStable();
 
         address user = msg.sender;
@@ -216,7 +163,7 @@ contract NativeMintingGateway is ReentrancyGuard, Ownable {
 
         // Verify we received the expected amount of wrapped tokens
         uint256 wrappedAmount = wNativeBalanceAfter - wNativeBalanceBefore;
-        if (wrappedAmount < nativeAmount) {
+        if (wrappedAmount != nativeAmount) {
             revert WrapFailed(nativeAmount, wrappedAmount);
         }
 
@@ -237,8 +184,7 @@ contract NativeMintingGateway is ReentrancyGuard, Ownable {
             uint256 dStableIssuedAmount = dStableBalanceAfter - dStableBalanceBefore;
 
             if (dStableIssuedAmount == 0) {
-                emit TransactionFailed(user, wrappedAmount, "No tokens issued by Issuer");
-                revert NoTokensIssued(); // Transaction revert automatically returns msg.value to user
+                revert NoTokensIssued();
             }
 
             // Emit success event
@@ -247,9 +193,7 @@ contract NativeMintingGateway is ReentrancyGuard, Ownable {
             // 4. Transfer the received dStable from this contract to the original user
             dStableContract.safeTransfer(user, dStableIssuedAmount);
         } catch {
-            // On failure, no need to read balance again - saves gas vs original approach
-            emit TransactionFailed(user, wrappedAmount, "Issuer operation failed");
-            revert IssuerOperationFailed(); // Transaction revert automatically returns msg.value to user
+            revert IssuerOperationFailed();
         }
     }
 
@@ -285,14 +229,9 @@ contract NativeMintingGateway is ReentrancyGuard, Ownable {
     // --- Receive Fallback ---
 
     /**
-     * @notice Allows the contract to receive native tokens directly (e.g., via simple transfer)
-     * @dev This is a safety mechanism to prevent contract reverts when native tokens are sent directly.
-     *      However, users should use depositAndMint() for proper functionality.
-     *
-     *      IMPORTANT:
-     *      - Native tokens sent via this function will NOT be wrapped or used to mint dStable
-     *      - These tokens will remain in the contract and require emergency withdrawal
-     *      - Failed depositAndMint() transactions automatically return funds via revert
+     * @notice Disallow direct native transfers. Users must call depositAndMint().
      */
-    receive() external payable {}
+    receive() external payable {
+        revert DirectNativeTransferNotAllowed();
+    }
 }
