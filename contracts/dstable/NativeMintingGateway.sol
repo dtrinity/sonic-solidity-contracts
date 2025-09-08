@@ -60,25 +60,7 @@ contract NativeMintingGateway is ReentrancyGuard, Ownable {
     /// @notice The address of the dStable token contract (e.g., dS).
     address public immutable DSTABLE_TOKEN;
 
-    // --- Events ---
-
-    /// @notice Emitted when native tokens are wrapped
-    /// @param user The address of the user who initiated the transaction
-    /// @param nativeAmount The amount of native tokens wrapped
-    /// @param wrappedAmount The amount of wrapped tokens received
-    event NativeWrapped(address indexed user, uint256 nativeAmount, uint256 wrappedAmount);
-
-    /// @notice Emitted when dStable tokens are successfully issued
-    /// @param user The address of the user who received the tokens
-    /// @param collateral The address of the collateral token used
-    /// @param collateralAmount The amount of collateral used
-    /// @param stablecoinAmount The amount of dStable tokens issued
-    event TokenIssued(
-        address indexed user,
-        address indexed collateral,
-        uint256 collateralAmount,
-        uint256 stablecoinAmount
-    );
+    // No events emitted; downstream protocols (wNative, IssuerV2, token) already emit relevant events.
 
     // --- Errors ---
 
@@ -167,7 +149,7 @@ contract NativeMintingGateway is ReentrancyGuard, Ownable {
             revert WrapFailed(nativeAmount, wrappedAmount);
         }
 
-        emit NativeWrapped(user, nativeAmount, wrappedAmount);
+        // Downstream wrapper emits its own Deposit event
 
         // 2. Safely approve dStable Issuer to spend the wrapped token
         // Use SafeERC20's forceApprove to handle tokens that don't return boolean
@@ -187,8 +169,7 @@ contract NativeMintingGateway is ReentrancyGuard, Ownable {
                 revert NoTokensIssued();
             }
 
-            // Emit success event
-            emit TokenIssued(user, W_NATIVE_TOKEN, wrappedAmount, dStableIssuedAmount);
+            // Downstream protocols emit their own events for accounting
 
             // 4. Transfer the received dStable from this contract to the original user
             dStableContract.safeTransfer(user, dStableIssuedAmount);

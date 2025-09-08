@@ -180,12 +180,7 @@ describe("NativeMintingGateway (Integration)", () => {
           "Gateway should not hold dStable tokens",
         );
 
-        // Check events were emitted correctly
-        await expect(tx).to.emit(gateway, "NativeWrapped").withArgs(user1Address, depositAmount, depositAmount);
-
-        await expect(tx)
-          .to.emit(gateway, "TokenIssued")
-          .withArgs(user1Address, await wNativeContract.getAddress(), depositAmount, dStableReceived);
+        // Downstream contracts emit their own events; gateway does not emit
 
         // Verify wrapped token deposit event
         await expect(tx).to.emit(wNativeContract, "Deposit").withArgs(gatewayAddress, depositAmount);
@@ -630,14 +625,10 @@ describe("NativeMintingGateway (Integration)", () => {
       // All the security features we implemented should be present
       const interfaceFragment = gateway.interface;
 
-      // Should have all required functions
+      // Should have required functions
       expect(interfaceFragment.hasFunction("depositAndMint")).to.be.true;
       expect(interfaceFragment.hasFunction("rescueNative")).to.be.true;
       expect(interfaceFragment.hasFunction("rescueTokens")).to.be.true;
-
-      // Should have all required events
-      expect(interfaceFragment.hasEvent("NativeWrapped")).to.be.true;
-      expect(interfaceFragment.hasEvent("TokenIssued")).to.be.true;
       // TransactionFailed event removed
     });
   });
@@ -785,41 +776,6 @@ describe("NativeMintingGateway (Integration)", () => {
       const vaultBalanceAfter = await wNativeContract.balanceOf(await collateralVault.getAddress());
 
       expect(vaultBalanceAfter - vaultBalanceBefore).to.equal(depositAmount);
-    });
-  });
-
-  // --- Event Testing ---
-  describe("Event Emissions", () => {
-    it("Should emit all events correctly for successful deposit", async () => {
-      const tx = await gateway.connect(user1).depositAndMint(minDStableLow, { value: depositAmount });
-      const receipt = await tx.wait();
-
-      // Extract dStable amount from TokenIssued event
-      const tokenIssuedLog = receipt!.logs.find((log) => {
-        try {
-          const parsed = gateway.interface.parseLog(log as any);
-          return parsed?.name === "TokenIssued";
-        } catch {
-          return false;
-        }
-      });
-
-      expect(tokenIssuedLog).to.not.be.undefined;
-
-      const parsedEvent = gateway.interface.parseLog(tokenIssuedLog as any);
-      const dStableAmount = parsedEvent!.args[3];
-
-      // Verify all events
-      await expect(tx).to.emit(gateway, "NativeWrapped").withArgs(user1Address, depositAmount, depositAmount);
-
-      await expect(tx)
-        .to.emit(gateway, "TokenIssued")
-        .withArgs(user1Address, await wNativeContract.getAddress(), depositAmount, dStableAmount);
-
-      // Should also emit deposit event from wrapped token
-      await expect(tx)
-        .to.emit(wNativeContract, "Deposit")
-        .withArgs(await gateway.getAddress(), depositAmount);
     });
   });
 });

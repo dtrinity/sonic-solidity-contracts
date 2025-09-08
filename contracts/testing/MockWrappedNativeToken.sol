@@ -9,7 +9,6 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
  * @dev Implements both ERC20 and wrapped native token functionality with deposit/withdraw
  */
 contract MockWrappedNativeToken is ERC20 {
-    
     event Deposit(address indexed account, uint256 amount);
     event Withdrawal(address indexed account, uint256 amount);
 
@@ -32,7 +31,7 @@ contract MockWrappedNativeToken is ERC20 {
     function withdraw(uint256 amount) external {
         require(amount > 0, "Must withdraw some tokens");
         require(balanceOf(msg.sender) >= amount, "Insufficient wrapped token balance");
-        
+
         _burn(msg.sender, amount);
         payable(msg.sender).transfer(amount);
         emit Withdrawal(msg.sender, amount);
