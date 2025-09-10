@@ -17,7 +17,8 @@
 
 pragma solidity ^0.8.20;
 
-import { DLoopRedeemerBase, ERC20, IERC3156FlashLender } from "../../DLoopRedeemerBase.sol";
+import { DLoopRedeemerBase, ERC20, IERC3156FlashLender, DLoopCoreBase } from "../../DLoopRedeemerBase.sol";
+import { DLoopCoreLogic } from "../../../core/DLoopCoreLogic.sol";
 import { OdosSwapLogic, IOdosRouterV2 } from "./OdosSwapLogic.sol";
 
 /**
@@ -26,6 +27,9 @@ import { OdosSwapLogic, IOdosRouterV2 } from "./OdosSwapLogic.sol";
  */
 contract DLoopRedeemerOdos is DLoopRedeemerBase {
     IOdosRouterV2 public immutable odosRouter;
+
+    /* Errors */
+    error InputTokenBalanceDoesNotDecreaseAfterSwap(uint256 inputTokenBalanceBefore, uint256 inputTokenBalanceAfter);
 
     /**
      * @dev Constructor for the DLoopRedeemerOdos contract
@@ -45,6 +49,40 @@ contract DLoopRedeemerOdos is DLoopRedeemerBase {
         uint256 expectedOutputAmount
     ) public pure override returns (uint256) {
         return OdosSwapLogic.swappedOutputDifferenceToleranceAmount(expectedOutputAmount);
+    }
+
+    /**
+     * @dev Estimates the amount of debt token to swap for the flash loan
+     *      This method is specific for Odos venue only, as we cannot do exact output swap with Odos wrapper,
+     *      thus we can only relies on the quote to make sure the output amount is as expected
+     * @param shares Amount of shares to redeem
+     * @param dLoopCore Address of the DLoopCore contract
+     * @return estimatedRepaidDebtTokenAmount Amount of debt token to swap for the flash loan
+     */
+    function estimateFlashLoanSwapOutputDebtAmount(
+        uint256 shares,
+        DLoopCoreBase dLoopCore
+    ) public view returns (uint256) {
+        uint256 collateralTokenToWithdraw = dLoopCore.previewRedeem(shares);
+
+        // Get the current leverage before repaying the debt (IMPORTANT: this is the leverage before repaying the debt)
+        // It is used to calculate the expected withdrawable amount that keeps the current leverage
+        uint256 leverageBpsBeforeRepayDebt = dLoopCore.getCurrentLeverageBps();
+
+        ERC20 collateralToken = ERC20(dLoopCore.collateralToken());
+        ERC20 debtToken = ERC20(dLoopCore.debtToken());
+
+        // Get the amount of debt token to repay to keep the current leverage
+        uint256 estimatedRepaidDebtTokenAmount = DLoopCoreLogic.getRepayAmountThatKeepCurrentLeverage(
+            collateralTokenToWithdraw,
+            leverageBpsBeforeRepayDebt,
+            collateralToken.decimals(),
+            dLoopCore.getAssetPriceFromOracle(address(collateralToken)),
+            debtToken.decimals(),
+            dLoopCore.getAssetPriceFromOracle(address(debtToken))
+        );
+
+        return estimatedRepaidDebtTokenAmount;
     }
 
     /**
