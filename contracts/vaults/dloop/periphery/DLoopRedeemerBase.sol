@@ -150,6 +150,18 @@ abstract contract DLoopRedeemerBase is IERC3156FlashBorrower, Ownable, Reentranc
         return SharedLogic.getUnleveragedAssets(leveragedAssets, dLoopCore);
     }
 
+    function redeemWithBreakPoint(
+        uint256 shares,
+        address receiver,
+        uint256 minOutputCollateralAmount,
+        bytes calldata collateralToDebtTokenSwapData,
+        DLoopCoreBase dLoopCore,
+        uint256 breakPoint
+    ) public returns (uint256 assets) {
+        setBreakPoint(breakPoint);
+        return redeem(shares, receiver, minOutputCollateralAmount, collateralToDebtTokenSwapData, dLoopCore);
+    }
+
     /**
      * @dev Redeems shares from the core vault with flash loans
      *      - The required debt token to withdraw will be flash loaned from the flash lender
@@ -167,8 +179,12 @@ abstract contract DLoopRedeemerBase is IERC3156FlashBorrower, Ownable, Reentranc
         bytes calldata collateralToDebtTokenSwapData,
         DLoopCoreBase dLoopCore
     ) public nonReentrant returns (uint256 assets) {
+        require(breakPoint != 10000, "10000");
+
         // Transfer the shares to the periphery contract to prepare for the redeeming process
         SafeERC20.safeTransferFrom(dLoopCore, msg.sender, address(this), shares);
+
+        require(breakPoint != 10001, "10001");
 
         // Do not need to transfer the debt token to repay the lending pool, as it will be done with flash loan
 
@@ -231,11 +247,17 @@ abstract contract DLoopRedeemerBase is IERC3156FlashBorrower, Ownable, Reentranc
             revert FlashLenderNotSameAsDebtToken(address(flashLender), address(debtToken));
         }
 
+        require(breakPoint != 10002, "10002");
+
         // The main logic will be done in the onFlashLoan function
         flashLender.flashLoan(this, address(debtToken), maxFlashLoanAmount, data);
 
+        require(breakPoint != 10003, "10003");
+
         // Validate shares burned correctly
         _validateSharesBurned(dLoopCore, address(this), shares, sharesBeforeRedeem);
+
+        require(breakPoint != 10004, "10004");
 
         // Finalize redeem and transfer assets to receiver
         return
@@ -270,11 +292,15 @@ abstract contract DLoopRedeemerBase is IERC3156FlashBorrower, Ownable, Reentranc
         if (msg.sender != address(flashLender)) revert UnknownLender(msg.sender, address(flashLender));
         if (initiator != address(this)) revert UnknownInitiator(initiator, address(this));
 
+        require(breakPoint != 20001, "20001");
+
         // Decode the flash loan params data
         FlashLoanParams memory flashLoanParams = _decodeDataToParams(data);
         DLoopCoreBase dLoopCore = flashLoanParams.dLoopCore;
         ERC20 collateralToken = dLoopCore.collateralToken();
         ERC20 debtToken = dLoopCore.debtToken();
+
+        require(breakPoint != 20002, "20002");
 
         // Make sure the input dLoopCore is compatible with this periphery contract
         if (token != address(debtToken)) revert IncompatibleDLoopCoreDebtToken(token, address(debtToken));
@@ -296,12 +322,14 @@ abstract contract DLoopRedeemerBase is IERC3156FlashBorrower, Ownable, Reentranc
             address(dLoopCore),
             type(uint256).max // No slippage tolerance
         );
+        require(breakPoint != 20003, "20003");
         dLoopCore.redeem(
             flashLoanParams.shares,
             address(this), // receiver
             // the owner is the periphery contract as the shares were transferred from the owner to the periphery contract
             address(this) // owner
         );
+        require(breakPoint != 20004, "20004");
         // Approve back to 0 to avoid any potential exploits later
         debtToken.forceApprove(address(dLoopCore), 0);
 
@@ -310,6 +338,7 @@ abstract contract DLoopRedeemerBase is IERC3156FlashBorrower, Ownable, Reentranc
         if (debtTokenBalanceAfter > debtTokenBalanceBefore) {
             revert UnexpectedIncreaseInDebtToken(debtTokenBalanceBefore, debtTokenBalanceAfter);
         }
+        require(breakPoint != 20005, "20005");
         uint256 debtTokenUsed = debtTokenBalanceBefore - debtTokenBalanceAfter;
 
         /**
@@ -330,6 +359,7 @@ abstract contract DLoopRedeemerBase is IERC3156FlashBorrower, Ownable, Reentranc
             block.timestamp,
             flashLoanParams.collateralToDebtTokenSwapData
         );
+        require(breakPoint != 20006, "20006");
 
         // If the swapped debt token amount is less than the debt token used,
         // the flash loan fee will be reverted
@@ -385,6 +415,8 @@ abstract contract DLoopRedeemerBase is IERC3156FlashBorrower, Ownable, Reentranc
         // Collateral balance after the flash loan
         uint256 collateralTokenBalanceAfter = collateralToken.balanceOf(address(this));
 
+        require(breakPoint != 30001, "30001");
+
         // Calculate the received collateral token amount after the flash loan
         if (collateralTokenBalanceAfter <= collateralTokenBalanceBefore) {
             revert UnexpectedDecreaseInCollateralTokenAfterFlashLoan(
@@ -392,6 +424,8 @@ abstract contract DLoopRedeemerBase is IERC3156FlashBorrower, Ownable, Reentranc
                 collateralTokenBalanceAfter
             );
         }
+
+        require(breakPoint != 30002, "30002");
 
         // Make sure the received collateral token amount is not less than the minimum output collateral amount
         // for slippage protection
@@ -403,11 +437,15 @@ abstract contract DLoopRedeemerBase is IERC3156FlashBorrower, Ownable, Reentranc
             );
         }
 
+        require(breakPoint != 30003, "30003");
+
         // There is no leftover debt token, as all flash loaned debt token is used to repay the debt
         // when calling the redeem() function
 
         // Transfer the received collateral token to the receiver first
         collateralToken.safeTransfer(receiver, receivedCollateralTokenAmount);
+
+        require(breakPoint != 30004, "30004");
 
         // Transfer any leftover collateral tokens directly to the receiver
         uint256 leftoverAmount = collateralToken.balanceOf(address(this));
@@ -415,6 +453,8 @@ abstract contract DLoopRedeemerBase is IERC3156FlashBorrower, Ownable, Reentranc
             collateralToken.safeTransfer(receiver, leftoverAmount);
             emit LeftoverCollateralTokensTransferred(address(collateralToken), leftoverAmount, receiver);
         }
+
+        require(breakPoint != 30005, "30005");
     }
 
     /* Data encoding/decoding helpers */

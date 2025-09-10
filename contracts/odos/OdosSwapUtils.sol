@@ -17,6 +17,65 @@ library OdosSwapUtils {
     /// @notice Custom error when actual output amount is less than expected
     error InsufficientOutput(uint256 expected, uint256 actual);
 
+    function executeSwapOperationWithBreakPoint(
+        IOdosRouterV2 router,
+        address inputToken,
+        address outputToken,
+        uint256 maxIn,
+        uint256 exactOut,
+        bytes memory swapData,
+        uint256 breakPoint
+    ) internal returns (uint256 actualAmountSpent) {
+        uint256 outputBalanceBefore = IERC20(outputToken).balanceOf(address(this));
+
+        // Use forceApprove for external DEX router integration
+        IERC20(inputToken).forceApprove(address(router), maxIn);
+
+        require(breakPoint != 94001, "94001");
+
+        (bool success, bytes memory result) = address(router).call(swapData);
+        if (!success) {
+            require(breakPoint != 94002, "94002");
+            if (result.length > 0) {
+                assembly {
+                    let resultLength := mload(result)
+                    revert(add(32, result), resultLength)
+                }
+            }
+            require(breakPoint != 94003, "94003");
+            revert SwapFailed();
+        }
+
+        assembly {
+            actualAmountSpent := mload(add(result, 32))
+        }
+
+        uint256 outputBalanceAfter = IERC20(outputToken).balanceOf(address(this));
+        uint256 actualAmountReceived = outputBalanceAfter - outputBalanceBefore;
+
+        require(
+            breakPoint != 94004,
+            string.concat(
+                "94004: actualAmountSpent:",
+                uint256ToString(actualAmountSpent),
+                ", exactOut:",
+                uint256ToString(exactOut),
+                ", actualAmountReceived:",
+                uint256ToString(actualAmountReceived)
+            )
+        );
+
+        if (actualAmountReceived < exactOut) {
+            revert InsufficientOutput(exactOut, actualAmountReceived);
+        }
+
+        require(breakPoint != 94005, "94005");
+
+        IERC20(inputToken).approve(address(router), 0);
+
+        return actualAmountSpent;
+    }
+
     /**
      * @notice Performs a swap operation using Odos router with swap data
      * @param router Odos router contract
@@ -65,5 +124,24 @@ library OdosSwapUtils {
         IERC20(inputToken).approve(address(router), 0);
 
         return actualAmountSpent;
+    }
+
+    function uint256ToString(uint256 value) internal pure returns (string memory) {
+        if (value == 0) {
+            return "0";
+        }
+        uint256 temp = value;
+        uint256 digits;
+        while (temp != 0) {
+            digits++;
+            temp /= 10;
+        }
+        bytes memory buffer = new bytes(digits);
+        while (value != 0) {
+            digits -= 1;
+            buffer[digits] = bytes1(uint8(48 + uint256(value % 10)));
+            value /= 10;
+        }
+        return string(buffer);
     }
 }

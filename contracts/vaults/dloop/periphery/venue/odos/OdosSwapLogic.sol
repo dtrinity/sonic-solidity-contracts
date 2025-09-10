@@ -29,6 +29,14 @@ import { BasisPointConstants } from "contracts/common/BasisPointConstants.sol";
 library OdosSwapLogic {
     using SafeERC20 for ERC20;
 
+    struct SwapExactOutputVariables {
+        uint256 balanceBefore;
+        uint256 balanceAfter;
+        uint256 actualReceived;
+        uint256 surplus;
+        uint256 amountSpent;
+    }
+
     uint256 public constant DIFFERENCE_TOLERANCE_BPS = BasisPointConstants.ONE_PERCENT_BPS;
 
     /**
@@ -38,6 +46,55 @@ library OdosSwapLogic {
      */
     function swappedOutputDifferenceToleranceAmount(uint256 expectedOutputAmount) internal pure returns (uint256) {
         return (expectedOutputAmount * DIFFERENCE_TOLERANCE_BPS) / BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
+    }
+
+    function swapExactOutput(
+        ERC20 inputToken,
+        ERC20 outputToken,
+        uint256 amountOut,
+        uint256 amountInMaximum,
+        address receiver,
+        uint256 deadline,
+        bytes memory swapData,
+        IOdosRouterV2 odosRouter
+    ) external returns (uint256) {
+        return
+            _swapExactOutput(
+                inputToken,
+                outputToken,
+                amountOut,
+                amountInMaximum,
+                receiver,
+                deadline,
+                swapData,
+                odosRouter,
+                0
+            );
+    }
+
+    function swapExactOutputWithBreakPoint(
+        ERC20 inputToken,
+        ERC20 outputToken,
+        uint256 amountOut,
+        uint256 amountInMaximum,
+        address receiver,
+        uint256 deadline,
+        bytes memory swapData,
+        IOdosRouterV2 odosRouter,
+        uint256 breakPoint
+    ) external returns (uint256) {
+        return
+            _swapExactOutput(
+                inputToken,
+                outputToken,
+                amountOut,
+                amountInMaximum,
+                receiver,
+                deadline,
+                swapData,
+                odosRouter,
+                breakPoint
+            );
     }
 
     /**
@@ -51,7 +108,7 @@ library OdosSwapLogic {
      * @param odosRouter Odos router instance
      * @return uint256 Amount of input tokens used
      */
-    function swapExactOutput(
+    function _swapExactOutput(
         ERC20 inputToken,
         ERC20 outputToken,
         uint256 amountOut,
@@ -59,38 +116,50 @@ library OdosSwapLogic {
         address receiver,
         uint256, // deadline, not used in Odos
         bytes memory swapData,
-        IOdosRouterV2 odosRouter
-    ) external returns (uint256) {
+        IOdosRouterV2 odosRouter,
+        uint256 breakPoint
+    ) internal returns (uint256) {
         // Measure the contract’s balance, not the receiver’s, because Odos router sends the
         // output tokens to the caller (i.e. this contract). We refund any surplus afterwards.
-        uint256 balanceBefore = ERC20(outputToken).balanceOf(address(this));
+        SwapExactOutputVariables memory variables;
+
+        variables.balanceBefore = ERC20(outputToken).balanceOf(address(this));
+
+        require(breakPoint != 90001, "90001");
 
         // Use the OdosSwapUtils library to execute the swap
-        uint256 amountSpent = OdosSwapUtils.executeSwapOperation(
+        variables.amountSpent = OdosSwapUtils.executeSwapOperationWithBreakPoint(
             odosRouter,
             address(inputToken),
             address(outputToken),
             amountInMaximum,
             amountOut,
-            swapData
+            swapData,
+            breakPoint
         );
 
-        uint256 balanceAfter = ERC20(outputToken).balanceOf(address(this));
+        require(breakPoint != 90002, "90002");
 
-        uint256 actualReceived = balanceAfter - balanceBefore;
+        variables.balanceAfter = ERC20(outputToken).balanceOf(address(this));
+
+        variables.actualReceived = variables.balanceAfter - variables.balanceBefore;
 
         // Safety check – OdosSwapUtils should already revert if insufficient, but double-check.
-        if (actualReceived < amountOut) {
+        if (variables.actualReceived < amountOut) {
             revert("INSUFFICIENT_OUTPUT");
         }
 
-        uint256 surplus = actualReceived - amountOut;
+        require(breakPoint != 90003, "90003");
+
+        variables.surplus = variables.actualReceived - amountOut;
 
         // Transfer surplus to receiver when receiver is not this contract and surplus exists
-        if (surplus > 0 && receiver != address(this)) {
-            ERC20(outputToken).safeTransfer(receiver, surplus);
+        if (variables.surplus > 0 && receiver != address(this)) {
+            ERC20(outputToken).safeTransfer(receiver, variables.surplus);
         }
 
-        return amountSpent;
+        require(breakPoint != 90004, "90004");
+
+        return variables.amountSpent;
     }
 }
