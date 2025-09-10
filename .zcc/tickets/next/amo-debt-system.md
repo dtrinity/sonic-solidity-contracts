@@ -10,7 +10,7 @@ Priority: High
 Unify AMO operations under AmoManagerV2, covering both: (1) stable AMO dUSD mint/burn and (2) collateral AMO borrow/repay. Use a single, hard‑pegged $1 debt token for unified accounting. Debt is minted to a CollateralVault for both operations. Collateral AMO flows enforce value conservation atomically; stable AMO flows mint/burn dUSD in lockstep with debt mint/burn. The debt token must be priceable by the oracle so that CollateralVault can value it.
 
 Key properties
-- Debt token: 18 decimals, name “dTRINITY AMO Debt”, symbol “amo-debt”.
+- Debt token: 18 decimals, name “dTRINITY AMO Receipt, symbol “amo-dUSD”.
 - Transfer‑restricted via an allowlist; only allowlisted holders (vaults, manager if needed) can hold/transfer; regular users cannot receive or redeem it.
 - Oracle support: price fixed to 1 base unit to make the token measurable by CollateralVault.
 - AmoManagerV2: atomic borrow/repay with invariant checks (revert on violation), and atomic stable AMO mint/burn paired with debt mint/burn. Configurable `AMO_MULTISIG` by admin; supports arbitrary allowlisted endpoints (wallets/contracts).

@@ -74,14 +74,13 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
     // Configure oracle to return base currency unit (1.0) for debt token
     const baseCurrencyUnit = await oracle.BASE_CURRENCY_UNIT();
-    const priceDecimals = await oracle.PRICE_DECIMALS();
     const fixedPrice = baseCurrencyUnit; // 1.0 in base units
 
     try {
       const currentPrice = await oracle.getAssetPrice(debtTokenDeployment.address);
 
       if (currentPrice !== fixedPrice) {
-        console.log(`    Setting debt token price to ${ethers.formatUnits(fixedPrice, priceDecimals)}`);
+        console.log(`    Setting debt token price to base unit`);
 
         // Note: This assumes the oracle has a method to set prices (for mock oracles)
         // In production, this would be handled differently depending on the oracle implementation
@@ -226,40 +225,40 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       console.log(`    ✅ AMO Manager V2 already allowlisted on debt token`);
     }
 
-    // 6. Add vault to AMO Manager V2 allowed vaults
-    if (!(await amoManager.isVaultAllowed(collateralVaultDeployment.address))) {
+    // 6. Set the single collateral vault on AMO Manager V2
+    if ((await amoManager.collateralVault()) !== collateralVaultDeployment.address) {
       const complete = await executor.tryOrQueue(
         async () => {
-          await amoManager.setVaultAllowed(collateralVaultDeployment.address, true);
-          console.log(`    ✅ Added vault to AMO Manager V2 allowed vaults`);
+          await amoManager.setCollateralVault(collateralVaultDeployment.address);
+          console.log(`    ✅ Set collateral vault on AMO Manager V2`);
         },
         () => ({
           to: amoManagerDeployment.address,
           value: "0",
-          data: amoManager.interface.encodeFunctionData("setVaultAllowed", [collateralVaultDeployment.address, true]),
+          data: amoManager.interface.encodeFunctionData("setCollateralVault", [collateralVaultDeployment.address]),
         }),
       );
       if (!complete) allOperationsComplete = false;
     } else {
-      console.log(`    ✅ Vault already allowed in AMO Manager V2`);
+      console.log(`    ✅ Collateral vault already configured on AMO Manager V2`);
     }
 
-    // 7. Add governance multisig to AMO Manager V2 allowed endpoints
-    if (!(await amoManager.isEndpointAllowed(governanceMultisig))) {
+    // 7. Add governance multisig to AMO Manager V2 allowed AMO wallets
+    if (!(await amoManager.isAmoWalletAllowed(governanceMultisig))) {
       const complete = await executor.tryOrQueue(
         async () => {
-          await amoManager.setEndpointAllowed(governanceMultisig, true);
-          console.log(`    ✅ Added governance multisig to AMO Manager V2 allowed endpoints`);
+          await amoManager.setAmoWalletAllowed(governanceMultisig, true);
+          console.log(`    ✅ Added governance wallet to AMO Manager V2 allowed wallets`);
         },
         () => ({
           to: amoManagerDeployment.address,
           value: "0",
-          data: amoManager.interface.encodeFunctionData("setEndpointAllowed", [governanceMultisig, true]),
+          data: amoManager.interface.encodeFunctionData("setAmoWalletAllowed", [governanceMultisig, true]),
         }),
       );
       if (!complete) allOperationsComplete = false;
     } else {
-      console.log(`    ✅ Governance multisig already allowed as endpoint in AMO Manager V2`);
+      console.log(`    ✅ Governance wallet already allowed in AMO Manager V2`);
     }
 
     console.log(`  ⚖️  Adding debt token as supported collateral...`);

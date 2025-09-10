@@ -30,16 +30,16 @@ describe("AmoManagerV2 and AmoDebtToken - Deployment Test", () => {
   let deployer: Address;
   let user1: Address;
   let user2: Address;
-  let amoMultisig: Address;
+  let amoWallet: Address;
 
   before(async () => {
     ({ deployer, user1, user2 } = await getNamedAccounts());
-    amoMultisig = user1; // Use user1 as AMO multisig for tests
+    amoWallet = user1; // Use user1 as AMO wallet for tests
   });
 
   // Run tests for each dStable configuration
   dstableConfigs.forEach((config) => {
-    runDeploymentTestsForDStable(config, { deployer, user1, user2, amoMultisig });
+    runDeploymentTestsForDStable(config, { deployer, user1, user2, amoWallet });
   });
 });
 
@@ -52,8 +52,8 @@ function runDeploymentTestsForDStable(
     deployer,
     user1,
     user2,
-    amoMultisig,
-  }: { deployer: Address; user1: Address; user2: Address; amoMultisig: Address },
+    amoWallet,
+  }: { deployer: Address; user1: Address; user2: Address; amoWallet: Address },
 ) {
   describe(`AMO V2 Deployment Validation for ${config.symbol}`, () => {
     let amoDebtToken: AmoDebtToken;
@@ -158,12 +158,13 @@ function runDeploymentTestsForDStable(
 
       it("should have correct AmoManagerV2 configuration", async function () {
         const networkConfig = await getConfig(hre);
-        const expectedMultisig = networkConfig.walletAddresses.governanceMultisig;
+        const expectedWallet = networkConfig.walletAddresses.governanceMultisig;
         
-        expect(await amoManagerV2.amoMultisig()).to.equal(expectedMultisig);
+        expect(await amoManagerV2.amoWallet()).to.equal(expectedWallet);
         expect(await amoManagerV2.debtToken()).to.equal(amoDebtTokenAddress);
         expect(await amoManagerV2.dstable()).to.equal(await dstableContract.getAddress());
         expect(await amoManagerV2.tolerance()).to.equal(hre.ethers.parseUnits("1", 18));
+        expect(await amoManagerV2.collateralVault()).to.equal(await collateralVaultContract.getAddress());
       });
     });
 
@@ -186,10 +187,10 @@ function runDeploymentTestsForDStable(
         const AMO_MANAGER_ROLE = await amoManagerV2.AMO_MANAGER_ROLE();
 
         const networkConfig = await getConfig(hre);
-        const expectedMultisig = networkConfig.walletAddresses.governanceMultisig;
+        const expectedWallet = networkConfig.walletAddresses.governanceMultisig;
 
         // Check that governance multisig has AMO manager role
-        expect(await amoManagerV2.hasRole(AMO_MANAGER_ROLE, expectedMultisig)).to.be.true;
+        expect(await amoManagerV2.hasRole(AMO_MANAGER_ROLE, expectedWallet)).to.be.true;
 
         // Check that deployer has admin role (will be migrated to governance later)
         expect(await amoManagerV2.hasRole(DEFAULT_ADMIN_ROLE, deployer)).to.be.true;
@@ -224,13 +225,10 @@ function runDeploymentTestsForDStable(
       it("should have correct AmoManagerV2 allowlists", async function () {
         const vaultAddress = await collateralVaultContract.getAddress();
         const networkConfig = await getConfig(hre);
-        const expectedMultisig = networkConfig.walletAddresses.governanceMultisig;
+        const expectedWallet = networkConfig.walletAddresses.governanceMultisig;
 
-        // Check that collateral vault is in allowed vaults
-        expect(await amoManagerV2.isVaultAllowed(vaultAddress)).to.be.true;
-        
-        // Check that governance multisig is in allowed endpoints
-        expect(await amoManagerV2.isEndpointAllowed(expectedMultisig)).to.be.true;
+        // Check that governance wallet is in allowed AMO wallets
+        expect(await amoManagerV2.isAmoWalletAllowed(expectedWallet)).to.be.true;
       });
 
       it("should have debt token as supported collateral in vault", async function () {
@@ -272,10 +270,10 @@ function runDeploymentTestsForDStable(
         const amount = hre.ethers.parseUnits("100", dstableInfo.decimals);
         
         try {
-          await amoManagerV2.connect(amoManagerSigner).increaseAmoSupply(amount);
+          await amoManagerV2.connect(amoManagerSigner).increaseAmoSupply(amount, governanceMultisig);
           
           // Verify the operation worked
-          const managerBalance = await dstableContract.balanceOf(amoManagerV2Address);
+          const managerBalance = await dstableContract.balanceOf(governanceMultisig);
           const debtSupply = await amoDebtToken.totalSupply();
           
           expect(managerBalance).to.equal(amount);
@@ -302,16 +300,13 @@ function runDeploymentTestsForDStable(
       });
 
       it("should return correct allowlist data from view functions", async function () {
-        const allowedVaults = await amoManagerV2.getAllowedVaults();
-        const allowedEndpoints = await amoManagerV2.getAllowedEndpoints();
+        const allowedWallets = await amoManagerV2.getAllowedAmoWallets();
         const debtAllowlist = await amoDebtToken.getAllowlist();
 
-        expect(allowedVaults.length).to.be.gte(1);
-        expect(allowedEndpoints.length).to.be.gte(1);
+        expect(allowedWallets.length).to.be.gte(1);
         expect(debtAllowlist.length).to.be.gte(2); // vault + manager
         
-        expect(await amoManagerV2.getAllowedVaultsLength()).to.equal(allowedVaults.length);
-        expect(await amoManagerV2.getAllowedEndpointsLength()).to.equal(allowedEndpoints.length);
+        expect(await amoManagerV2.getAllowedAmoWalletsLength()).to.equal(allowedWallets.length);
         expect(await amoDebtToken.getAllowlistLength()).to.equal(debtAllowlist.length);
       });
     });

@@ -77,13 +77,18 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     console.log(`  🏛️ Deploying ${amoConfig.name} AMO Manager V2...`);
 
     // Initial configuration
-    const amoMultisig = config.walletAddresses.governanceMultisig;
-    const tolerance = ethers.parseUnits("1", 18); // 1 base unit tolerance
+    const amoWallet = config.walletAddresses.governanceMultisig;
 
     const amoManagerDeployment = await deploy(amoConfig.amoManagerV2Id, {
       from: deployer,
       contract: "AmoManagerV2",
-      args: [oracleDeployment.address, debtTokenDeployment.address, tokenDeployment.address, amoMultisig, tolerance],
+      args: [
+        oracleDeployment.address,
+        debtTokenDeployment.address,
+        tokenDeployment.address,
+        amoWallet,
+        collateralVaultDeployment.address,
+      ],
       log: true,
       autoMine: true,
     });

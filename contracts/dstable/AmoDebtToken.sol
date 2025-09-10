@@ -136,6 +136,15 @@ contract AmoDebtToken is ERC20, AccessControl {
     }
 
     /**
+     * @notice Burns debt tokens held by the caller
+     * @param amount The amount of tokens to burn
+     * @dev Only callable by AMO_BORROWER_ROLE. Intended for manager after withdrawing debt tokens
+     */
+    function burn(uint256 amount) public onlyRole(AMO_BORROWER_ROLE) {
+        _burn(msg.sender, amount);
+    }
+
+    /**
      * @notice Override _update to enforce allowlist restrictions
      * @param from The address tokens are transferred from (zero address for minting)
      * @param to The address tokens are transferred to (zero address for burning)

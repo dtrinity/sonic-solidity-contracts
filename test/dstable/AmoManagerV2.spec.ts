@@ -30,16 +30,16 @@ describe("AmoManagerV2 and AmoDebtToken", () => {
   let deployer: Address;
   let user1: Address;
   let user2: Address;
-  let amoMultisig: Address;
+  let amoWallet: Address;
 
   before(async () => {
     ({ deployer, user1, user2 } = await getNamedAccounts());
-    amoMultisig = user1; // Use user1 as AMO multisig for tests
+    amoWallet = user1; // Use user1 as AMO wallet for tests
   });
 
   // Run tests for each dStable configuration
   dstableConfigs.forEach((config) => {
-    runTestsForDStable(config, { deployer, user1, user2, amoMultisig });
+    runTestsForDStable(config, { deployer, user1, user2, amoWallet });
   });
 });
 
@@ -52,8 +52,8 @@ function runTestsForDStable(
     deployer,
     user1,
     user2,
-    amoMultisig,
-  }: { deployer: Address; user1: Address; user2: Address; amoMultisig: Address },
+    amoWallet,
+  }: { deployer: Address; user1: Address; user2: Address; amoWallet: Address },
 ) {
   describe(`AMO Debt System for ${config.symbol}`, () => {
     let amoDebtToken: AmoDebtToken;
@@ -109,7 +109,10 @@ function runTestsForDStable(
         "AmoDebtToken",
         await hre.ethers.getSigner(deployer),
       );
-      amoDebtToken = (await AmoDebtTokenFactory.deploy()) as AmoDebtToken;
+      amoDebtToken = (await AmoDebtTokenFactory.deploy(
+        "dTRINITY AMO Receipt",
+        `amo-${config.symbol}`,
+      )) as AmoDebtToken;
       await amoDebtToken.waitForDeployment();
 
       // Deploy AmoManagerV2
@@ -117,12 +120,14 @@ function runTestsForDStable(
         "AmoManagerV2",
         await hre.ethers.getSigner(deployer),
       );
+      const collateralVaultAddress = await collateralVaultContract.getAddress();
       amoManagerV2 = (await AmoManagerV2Factory.deploy(
         await oracleAggregatorContract.getAddress(),
         await amoDebtToken.getAddress(),
         await dstableContract.getAddress(),
-        amoMultisig,
+        amoWallet,
         0, // tolerance = 0 for precise tests
+        collateralVaultAddress,
       )) as AmoManagerV2;
       await amoManagerV2.waitForDeployment();
 
@@ -136,7 +141,7 @@ function runTestsForDStable(
       // Grant roles to AmoManagerV2
       await amoDebtToken.grantRole(amoMinterRole, await amoManagerV2.getAddress());
       await amoDebtToken.grantRole(amoBorrowerRole, await amoManagerV2.getAddress());
-      await amoManagerV2.grantRole(amoManagerRole, amoMultisig);
+      await amoManagerV2.grantRole(amoManagerRole, amoWallet);
       await collateralVaultContract.grantRole(
         collateralWithdrawerRole,
         await amoManagerV2.getAddress(),
@@ -149,8 +154,7 @@ function runTestsForDStable(
       // Set up allowlists
       await amoDebtToken.setAllowlisted(await collateralVaultContract.getAddress(), true);
       await amoDebtToken.setAllowlisted(await amoManagerV2.getAddress(), true);
-      await amoManagerV2.setVaultAllowed(await collateralVaultContract.getAddress(), true);
-      await amoManagerV2.setEndpointAllowed(amoMultisig, true);
+      await amoManagerV2.setAmoWalletAllowed(amoWallet, true);
 
       // Add debt token as supported collateral in vault (for invariant checks)
       await collateralVaultContract.allowCollateral(await amoDebtToken.getAddress());
@@ -174,14 +178,14 @@ function runTestsForDStable(
         collateralTokens.set(tokenInfo.symbol, contract);
         collateralInfos.set(tokenInfo.symbol, tokenInfo);
 
-        // Fund deployer and amoMultisig with collateral tokens
+        // Fund deployer and amoWallet with collateral tokens
         const amount = hre.ethers.parseUnits("10000", tokenInfo.decimals);
         if ("mint" in contract && typeof contract.mint === "function") {
           await contract.mint(deployer, amount);
-          await contract.mint(amoMultisig, amount);
+          await contract.mint(amoWallet, amount);
         } else {
           await contract.transfer(deployer, amount);
-          await contract.transfer(amoMultisig, amount);
+          await contract.transfer(amoWallet, amount);
         }
 
         // Fund collateral vault with initial collateral for testing
@@ -423,46 +427,40 @@ function runTestsForDStable(
     describe("AmoManagerV2", () => {
       describe("Basic Properties", () => {
         it("should have correct initial configuration", async function () {
-          expect(await amoManagerV2.amoMultisig()).to.equal(amoMultisig);
+          expect(await amoManagerV2.amoWallet()).to.equal(amoWallet);
           expect(await amoManagerV2.debtToken()).to.equal(await amoDebtToken.getAddress());
           expect(await amoManagerV2.dstable()).to.equal(await dstableContract.getAddress());
           expect(await amoManagerV2.tolerance()).to.equal(0);
+          expect(await amoManagerV2.collateralVault()).to.equal(await collateralVaultContract.getAddress());
         });
 
         it("should have correct role assignments", async function () {
           expect(await amoManagerV2.hasRole(defaultAdminRole, deployer)).to.be.true;
-          expect(await amoManagerV2.hasRole(amoManagerRole, amoMultisig)).to.be.true;
+          expect(await amoManagerV2.hasRole(amoManagerRole, amoWallet)).to.be.true;
         });
 
         it("should have correct allowlist setup", async function () {
-          expect(await amoManagerV2.isVaultAllowed(
-            await collateralVaultContract.getAddress()
-          )).to.be.true;
-          expect(await amoManagerV2.isEndpointAllowed(amoMultisig)).to.be.true;
+          expect(await amoManagerV2.isAmoWalletAllowed(amoWallet)).to.be.true;
         });
       });
 
       describe("Stable AMO Operations", () => {
         it("should increase AMO supply atomically", async function () {
           const amount = hre.ethers.parseUnits("1000", dstableInfo.decimals);
-          const amoManagerSigner = await hre.ethers.getSigner(amoMultisig);
+          const amoManagerSigner = await hre.ethers.getSigner(amoWallet);
 
           const initialDstableSupply = await dstableContract.totalSupply();
           const initialDebtSupply = await amoDebtToken.totalSupply();
-          const initialManagerBalance = await dstableContract.balanceOf(
-            await amoManagerV2.getAddress()
-          );
+          const initialWalletBalance = await dstableContract.balanceOf(amoWallet);
 
-          await amoManagerV2.connect(amoManagerSigner).increaseAmoSupply(amount);
+          await amoManagerV2.connect(amoManagerSigner).increaseAmoSupply(amount, amoWallet);
 
           const finalDstableSupply = await dstableContract.totalSupply();
           const finalDebtSupply = await amoDebtToken.totalSupply();
-          const finalManagerBalance = await dstableContract.balanceOf(
-            await amoManagerV2.getAddress()
-          );
+          const finalWalletBalance = await dstableContract.balanceOf(amoWallet);
 
-          // Check dUSD was minted to manager
-          expect(finalManagerBalance - initialManagerBalance).to.equal(amount);
+          // Check dUSD was minted to AMO wallet
+          expect(finalWalletBalance - initialWalletBalance).to.equal(amount);
           expect(finalDstableSupply - initialDstableSupply).to.equal(amount);
 
           // Check equal debt was minted to vault
@@ -476,28 +474,28 @@ function runTestsForDStable(
 
         it("should decrease AMO supply atomically", async function () {
           const amount = hre.ethers.parseUnits("1000", dstableInfo.decimals);
-          const amoManagerSigner = await hre.ethers.getSigner(amoMultisig);
+          const amoManagerSigner = await hre.ethers.getSigner(amoWallet);
 
           // First increase supply
-          await amoManagerV2.connect(amoManagerSigner).increaseAmoSupply(amount);
+          await amoManagerV2.connect(amoManagerSigner).increaseAmoSupply(amount, amoWallet);
 
           const initialDstableSupply = await dstableContract.totalSupply();
           const initialDebtSupply = await amoDebtToken.totalSupply();
-          const initialManagerBalance = await dstableContract.balanceOf(
-            await amoManagerV2.getAddress()
-          );
+          const initialWalletBalance = await dstableContract.balanceOf(amoWallet);
 
           // Then decrease supply
-          await amoManagerV2.connect(amoManagerSigner).decreaseAmoSupply(amount);
+          // Approve manager to pull dUSD
+          const amoWalletSigner = await hre.ethers.getSigner(amoWallet);
+          await dstableContract.connect(amoWalletSigner).approve(await amoManagerV2.getAddress(), amount);
+
+          await amoManagerV2.connect(amoManagerSigner).decreaseAmoSupply(amount, amoWallet);
 
           const finalDstableSupply = await dstableContract.totalSupply();
           const finalDebtSupply = await amoDebtToken.totalSupply();
-          const finalManagerBalance = await dstableContract.balanceOf(
-            await amoManagerV2.getAddress()
-          );
+          const finalWalletBalance = await dstableContract.balanceOf(amoWallet);
 
-          // Check dUSD was burned from manager
-          expect(initialManagerBalance - finalManagerBalance).to.equal(amount);
+          // Check dUSD was burned by pulling from wallet
+          expect(initialWalletBalance - finalWalletBalance).to.equal(amount);
           expect(initialDstableSupply - finalDstableSupply).to.equal(amount);
 
           // Check equal debt was burned from vault
@@ -514,34 +512,34 @@ function runTestsForDStable(
           const nonManagerSigner = await hre.ethers.getSigner(user2);
 
           await expect(
-            amoManagerV2.connect(nonManagerSigner).increaseAmoSupply(amount),
+            amoManagerV2.connect(nonManagerSigner).increaseAmoSupply(amount, amoWallet),
           ).to.be.revertedWithCustomError(
             amoManagerV2,
             "AccessControlUnauthorizedAccount",
           );
 
           await expect(
-            amoManagerV2.connect(nonManagerSigner).decreaseAmoSupply(amount),
+            amoManagerV2.connect(nonManagerSigner).decreaseAmoSupply(amount, amoWallet),
           ).to.be.revertedWithCustomError(
             amoManagerV2,
             "AccessControlUnauthorizedAccount",
           );
         });
 
-        it("should revert when no vaults are allowed", async function () {
+        it("should revert when AMO wallet is not allowlisted", async function () {
           const amount = hre.ethers.parseUnits("1000", dstableInfo.decimals);
-          const amoManagerSigner = await hre.ethers.getSigner(amoMultisig);
+          const amoManagerSigner = await hre.ethers.getSigner(amoWallet);
 
-          // Remove all allowed vaults
-          await amoManagerV2.setVaultAllowed(
-            await collateralVaultContract.getAddress(),
-            false
-          );
+          // Remove wallet from allowlist
+          await amoManagerV2.setAmoWalletAllowed(amoWallet, false);
 
           await expect(
-            amoManagerV2.connect(amoManagerSigner).increaseAmoSupply(amount),
-          ).to.be.revertedWithCustomError(amoManagerV2, "UnsupportedVault")
-            .withArgs(hre.ethers.ZeroAddress);
+            amoManagerV2.connect(amoManagerSigner).increaseAmoSupply(amount, amoWallet),
+          ).to.be.revertedWithCustomError(amoManagerV2, "UnsupportedAmoWallet")
+            .withArgs(amoWallet);
+
+          // Re-allow for subsequent tests
+          await amoManagerV2.setAmoWalletAllowed(amoWallet, true);
         });
       });
 
@@ -558,20 +556,18 @@ function runTestsForDStable(
           describe(`Collateral operations with ${symbol}`, () => {
             it(`should borrow ${symbol} with invariant preservation`, async function () {
               const { collateralToken, collateralInfo, amount } = await setupCollateralTest(symbol);
-              const amoManagerSigner = await hre.ethers.getSigner(amoMultisig);
-              const vaultAddress = await collateralVaultContract.getAddress();
+              const amoManagerSigner = await hre.ethers.getSigner(amoWallet);
 
               // Record pre-borrow state
               const preVaultValue = await collateralVaultContract.totalValue();
               const preDebtSupply = await amoDebtToken.totalSupply();
-              const preEndpointBalance = await collateralToken.balanceOf(amoMultisig);
+              const preEndpointBalance = await collateralToken.balanceOf(amoWallet);
 
               // Perform borrow
               await amoManagerV2
                 .connect(amoManagerSigner)
                 .borrowTo(
-                  vaultAddress,
-                  amoMultisig,
+                  amoWallet,
                   await collateralToken.getAddress(),
                   amount
                 );
@@ -579,7 +575,7 @@ function runTestsForDStable(
               // Record post-borrow state
               const postVaultValue = await collateralVaultContract.totalValue();
               const postDebtSupply = await amoDebtToken.totalSupply();
-              const postEndpointBalance = await collateralToken.balanceOf(amoMultisig);
+              const postEndpointBalance = await collateralToken.balanceOf(amoWallet);
 
               // Check collateral was transferred to endpoint
               expect(postEndpointBalance - preEndpointBalance).to.equal(amount);
@@ -602,36 +598,33 @@ function runTestsForDStable(
 
             it(`should repay ${symbol} with invariant preservation`, async function () {
               const { collateralToken, collateralInfo, amount } = await setupCollateralTest(symbol);
-              const amoManagerSigner = await hre.ethers.getSigner(amoMultisig);
-              const vaultAddress = await collateralVaultContract.getAddress();
+              const amoManagerSigner = await hre.ethers.getSigner(amoWallet);
 
               // First borrow some collateral
               await amoManagerV2
                 .connect(amoManagerSigner)
                 .borrowTo(
-                  vaultAddress,
-                  amoMultisig,
+                  amoWallet,
                   await collateralToken.getAddress(),
                   amount
                 );
 
               // Approve manager to spend collateral
-              const amoMultisigSigner = await hre.ethers.getSigner(amoMultisig);
+              const amoWalletSigner2 = await hre.ethers.getSigner(amoWallet);
               await collateralToken
-                .connect(amoMultisigSigner)
+                .connect(amoWalletSigner2)
                 .approve(await amoManagerV2.getAddress(), amount);
 
               // Record pre-repay state
               const preVaultValue = await collateralVaultContract.totalValue();
               const preDebtSupply = await amoDebtToken.totalSupply();
-              const preEndpointBalance = await collateralToken.balanceOf(amoMultisig);
+              const preEndpointBalance = await collateralToken.balanceOf(amoWallet);
 
               // Perform repay
               await amoManagerV2
                 .connect(amoManagerSigner)
                 .repayFrom(
-                  vaultAddress,
-                  amoMultisig,
+                  amoWallet,
                   await collateralToken.getAddress(),
                   amount
                 );
@@ -639,7 +632,7 @@ function runTestsForDStable(
               // Record post-repay state
               const postVaultValue = await collateralVaultContract.totalValue();
               const postDebtSupply = await amoDebtToken.totalSupply();
-              const postEndpointBalance = await collateralToken.balanceOf(amoMultisig);
+              const postEndpointBalance = await collateralToken.balanceOf(amoWallet);
 
               // Check collateral was transferred from endpoint
               expect(preEndpointBalance - postEndpointBalance).to.equal(amount);
@@ -666,21 +659,20 @@ function runTestsForDStable(
               
               // Check if token supports permit (has the permit function)
               try {
-                await collateralToken.nonces(amoMultisig);
+                await collateralToken.nonces(amoWallet);
               } catch {
                 console.log(`Skipping permit test for ${symbol} - no permit support`);
                 return;
               }
 
-              const amoManagerSigner = await hre.ethers.getSigner(amoMultisig);
+              const amoManagerSigner = await hre.ethers.getSigner(amoWallet);
               const vaultAddress = await collateralVaultContract.getAddress();
 
               // First borrow some collateral
               await amoManagerV2
                 .connect(amoManagerSigner)
                 .borrowTo(
-                  vaultAddress,
-                  amoMultisig,
+                  amoWallet,
                   await collateralToken.getAddress(),
                   amount
                 );
@@ -699,8 +691,8 @@ function runTestsForDStable(
                 await amoManagerV2
                   .connect(amoManagerSigner)
                   .repayWithPermit(
-                    vaultAddress,
-                    amoMultisig,
+                    amoWallet,
+                    amoWallet,
                     await collateralToken.getAddress(),
                     amount,
                     deadline,
@@ -719,7 +711,7 @@ function runTestsForDStable(
         it("should emit Borrowed event", async function () {
           const symbol = collateralTokens.keys().next().value;
           const { collateralToken, collateralInfo, amount } = await setupCollateralTest(symbol);
-          const amoManagerSigner = await hre.ethers.getSigner(amoMultisig);
+          const amoManagerSigner = await hre.ethers.getSigner(amoWallet);
           const vaultAddress = await collateralVaultContract.getAddress();
 
           const assetValue = await collateralVaultContract.assetValueFromAmount(
@@ -732,16 +724,15 @@ function runTestsForDStable(
             amoManagerV2
               .connect(amoManagerSigner)
               .borrowTo(
-                vaultAddress,
-                amoMultisig,
+                amoWallet,
                 await collateralToken.getAddress(),
                 amount
               )
           )
             .to.emit(amoManagerV2, "Borrowed")
             .withArgs(
-              vaultAddress,
-              amoMultisig,
+              await collateralVaultContract.getAddress(),
+              amoWallet,
               await collateralToken.getAddress(),
               amount,
               expectedDebtAmount
@@ -751,23 +742,22 @@ function runTestsForDStable(
         it("should emit Repaid event", async function () {
           const symbol = collateralTokens.keys().next().value;
           const { collateralToken, collateralInfo, amount } = await setupCollateralTest(symbol);
-          const amoManagerSigner = await hre.ethers.getSigner(amoMultisig);
+          const amoManagerSigner = await hre.ethers.getSigner(amoWallet);
           const vaultAddress = await collateralVaultContract.getAddress();
 
           // First borrow
           await amoManagerV2
             .connect(amoManagerSigner)
             .borrowTo(
-              vaultAddress,
-              amoMultisig,
+              amoWallet,
               await collateralToken.getAddress(),
               amount
             );
 
           // Approve and repay
-          const amoMultisigSigner = await hre.ethers.getSigner(amoMultisig);
+          const amoWalletSigner2 = await hre.ethers.getSigner(amoWallet);
           await collateralToken
-            .connect(amoMultisigSigner)
+            .connect(amoWalletSigner2)
             .approve(await amoManagerV2.getAddress(), amount);
 
           const assetValue = await collateralVaultContract.assetValueFromAmount(
@@ -780,16 +770,15 @@ function runTestsForDStable(
             amoManagerV2
               .connect(amoManagerSigner)
               .repayFrom(
-                vaultAddress,
-                amoMultisig,
+                amoWallet,
                 await collateralToken.getAddress(),
                 amount
               )
           )
             .to.emit(amoManagerV2, "Repaid")
             .withArgs(
-              vaultAddress,
-              amoMultisig,
+              await collateralVaultContract.getAddress(),
+              amoWallet,
               await collateralToken.getAddress(),
               amount,
               expectedDebtAmount
@@ -803,7 +792,7 @@ function runTestsForDStable(
 
           await expect(amoManagerV2.setAmoMultisig(newMultisig))
             .to.emit(amoManagerV2, "AmoMultisigSet")
-            .withArgs(amoMultisig, newMultisig);
+            .withArgs(amoWallet, newMultisig);
 
           expect(await amoManagerV2.amoMultisig()).to.equal(newMultisig);
         });
@@ -893,7 +882,7 @@ function runTestsForDStable(
         it("should revert borrow with unsupported vault", async function () {
           const symbol = collateralTokens.keys().next().value;
           const { collateralToken, amount } = await setupCollateralTest(symbol);
-          const amoManagerSigner = await hre.ethers.getSigner(amoMultisig);
+          const amoManagerSigner = await hre.ethers.getSigner(amoWallet);
           const unsupportedVault = user2;
 
           await expect(
@@ -901,7 +890,6 @@ function runTestsForDStable(
               .connect(amoManagerSigner)
               .borrowTo(
                 unsupportedVault,
-                amoMultisig,
                 await collateralToken.getAddress(),
                 amount
               )
@@ -913,7 +901,7 @@ function runTestsForDStable(
         it("should revert borrow with unsupported endpoint", async function () {
           const symbol = collateralTokens.keys().next().value;
           const { collateralToken, amount } = await setupCollateralTest(symbol);
-          const amoManagerSigner = await hre.ethers.getSigner(amoMultisig);
+          const amoManagerSigner = await hre.ethers.getSigner(amoWallet);
           const vaultAddress = await collateralVaultContract.getAddress();
           const unsupportedEndpoint = user2;
 
@@ -932,7 +920,7 @@ function runTestsForDStable(
         });
 
         it("should revert borrow with unsupported collateral", async function () {
-          const amoManagerSigner = await hre.ethers.getSigner(amoMultisig);
+          const amoManagerSigner = await hre.ethers.getSigner(amoWallet);
           const vaultAddress = await collateralVaultContract.getAddress();
           const amount = hre.ethers.parseUnits("100", 18);
 
@@ -944,8 +932,7 @@ function runTestsForDStable(
               .connect(amoManagerSigner)
               .borrowTo(
                 vaultAddress,
-                amoMultisig,
-                unsupportedCollateral,
+                await dstableContract.getAddress(),
                 amount
               )
           )
@@ -956,7 +943,7 @@ function runTestsForDStable(
         it("should handle tolerance checks properly", async function () {
           const symbol = collateralTokens.keys().next().value;
           const { collateralToken, amount } = await setupCollateralTest(symbol);
-          const amoManagerSigner = await hre.ethers.getSigner(amoMultisig);
+          const amoManagerSigner = await hre.ethers.getSigner(amoWallet);
           const vaultAddress = await collateralVaultContract.getAddress();
 
           // Set a very small tolerance
@@ -967,7 +954,6 @@ function runTestsForDStable(
             .connect(amoManagerSigner)
             .borrowTo(
               vaultAddress,
-              amoMultisig,
               await collateralToken.getAddress(),
               amount
             );
@@ -977,7 +963,7 @@ function runTestsForDStable(
         });
 
         it("should handle zero amounts gracefully", async function () {
-          const amoManagerSigner = await hre.ethers.getSigner(amoMultisig);
+          const amoManagerSigner = await hre.ethers.getSigner(amoWallet);
 
           // Zero stable AMO operations should work
           await amoManagerV2.connect(amoManagerSigner).increaseAmoSupply(0);
@@ -992,7 +978,6 @@ function runTestsForDStable(
             .connect(amoManagerSigner)
             .borrowTo(
               vaultAddress,
-              amoMultisig,
               await collateralToken.getAddress(),
               0
             );
@@ -1010,7 +995,7 @@ function runTestsForDStable(
 
           expect(allowedVaults).to.include(await collateralVaultContract.getAddress());
           expect(allowedVaults).to.include(user1);
-          expect(allowedEndpoints).to.include(amoMultisig);
+          expect(allowedEndpoints).to.include(amoWallet);
           expect(allowedEndpoints).to.include(user2);
 
           expect(await amoManagerV2.getAllowedVaultsLength()).to.be.gte(2);
@@ -1035,7 +1020,7 @@ function runTestsForDStable(
 
         it("should return total debt supply", async function () {
           const amount = hre.ethers.parseUnits("1000", dstableInfo.decimals);
-          const amoManagerSigner = await hre.ethers.getSigner(amoMultisig);
+          const amoManagerSigner = await hre.ethers.getSigner(amoWallet);
 
           expect(await amoManagerV2.totalDebtSupply()).to.equal(0);
 

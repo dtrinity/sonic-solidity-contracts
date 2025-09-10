@@ -21,6 +21,7 @@ import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 
 import "./OracleAware.sol";
@@ -39,11 +40,11 @@ contract AmoManagerV2 is OracleAware, ReentrancyGuard {
 
     /* Core state */
 
-    address public amoMultisig;
+    address public amoWallet;
     AmoDebtToken public immutable debtToken;
     IMintableERC20 public immutable dstable;
-    EnumerableSet.AddressSet private _allowedVaults;
-    EnumerableSet.AddressSet private _allowedEndpoints;
+    address public collateralVault;
+    EnumerableSet.AddressSet private _allowedAmoWallets;
     uint256 public tolerance;
 
     /* Roles */
@@ -54,54 +55,64 @@ contract AmoManagerV2 is OracleAware, ReentrancyGuard {
 
     event Borrowed(
         address indexed vault,
-        address indexed endpoint,
+        address indexed wallet,
         address indexed asset,
         uint256 collateralAmount,
         uint256 debtMinted
     );
     event Repaid(
         address indexed vault,
-        address indexed endpoint,
+        address indexed wallet,
         address indexed asset,
         uint256 collateralAmount,
         uint256 debtBurned
     );
-    event AmoMultisigSet(address indexed oldMultisig, address indexed newMultisig);
-    event VaultAllowedSet(address indexed vault, bool allowed);
-    event EndpointAllowedSet(address indexed endpoint, bool allowed);
+    event AmoWalletSet(address indexed oldWallet, address indexed newWallet);
+    event CollateralVaultSet(address indexed oldVault, address indexed newVault);
+    event AmoWalletAllowedSet(address indexed wallet, bool allowed);
     event ToleranceSet(uint256 oldTolerance, uint256 newTolerance);
 
     /* Errors */
 
     error UnsupportedVault(address vault);
     error UnsupportedCollateral(address asset);
-    error UnsupportedEndpoint(address endpoint);
+    error UnsupportedAmoWallet(address wallet);
     error InvariantViolation(uint256 pre, uint256 post);
-    error InvalidMultisig(address multisig);
+    error InvalidWallet(address wallet);
+    error CollateralVaultNotSet();
+    error SlippageDebtMintTooLow(uint256 actualDebtMinted, uint256 minDebtMinted);
+    error SlippageDebtBurnTooHigh(uint256 actualDebtBurned, uint256 maxDebtBurned);
+    error DebtTokenProhibited();
 
     /**
      * @notice Initializes the AmoManagerV2 contract
      * @param _oracle The oracle for price feeds
      * @param _debtToken The AMO debt token for unified accounting
      * @param _dstable The dUSD stablecoin token
-     * @param _amoMultisig The initial AMO multisig address
-     * @param _tolerance The tolerance for value conservation checks (in base units)
+     * @param _amoWallet The initial AMO wallet address
+     * @param _collateralVault The single accounting collateral vault address
      */
     constructor(
         IPriceOracleGetter _oracle,
         AmoDebtToken _debtToken,
         IMintableERC20 _dstable,
-        address _amoMultisig,
-        uint256 _tolerance
+        address _amoWallet,
+        address _collateralVault
     ) OracleAware(_oracle, _oracle.BASE_CURRENCY_UNIT()) {
         debtToken = _debtToken;
         dstable = _dstable;
-        tolerance = _tolerance;
+        // Auto-set tolerance to 1 base currency unit
+        tolerance = baseCurrencyUnit;
 
-        if (_amoMultisig == address(0)) {
-            revert InvalidMultisig(_amoMultisig);
+        if (_amoWallet == address(0)) {
+            revert InvalidWallet(_amoWallet);
         }
-        amoMultisig = _amoMultisig;
+        amoWallet = _amoWallet;
+
+        if (_collateralVault == address(0)) {
+            revert UnsupportedVault(_collateralVault);
+        }
+        collateralVault = _collateralVault;
 
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
     }
@@ -109,151 +120,181 @@ contract AmoManagerV2 is OracleAware, ReentrancyGuard {
     /* Stable AMO Operations */
 
     /**
-     * @notice Increases AMO supply by minting dUSD and equal debt tokens atomically
+     * @notice Increases AMO supply by minting dUSD to a wallet and equal debt tokens to the vault atomically
      * @param amount The amount of dUSD to mint (debt tokens minted will equal this in base value)
-     * @dev Only callable by AMO_MANAGER_ROLE. Mints dUSD to this contract and debt to accounting vault
+     * @param wallet The AMO wallet to receive minted dUSD
+     * @dev Only callable by AMO_MANAGER_ROLE. Uses the single accounting vault
      */
-    function increaseAmoSupply(uint256 amount) external onlyRole(AMO_MANAGER_ROLE) nonReentrant {
+    function increaseAmoSupply(uint256 amount, address wallet) external onlyRole(AMO_MANAGER_ROLE) nonReentrant {
         // Convert dUSD amount to base value for debt token minting
         uint256 debtAmount = baseToDebtUnits(dstableAmountToBaseValue(amount));
 
-        // Must have at least one allowed vault to receive debt tokens
-        if (_allowedVaults.length() == 0) {
-            revert UnsupportedVault(address(0));
+        if (collateralVault == address(0)) {
+            revert CollateralVaultNotSet();
+        }
+        if (!_allowedAmoWallets.contains(wallet)) {
+            revert UnsupportedAmoWallet(wallet);
         }
 
-        // Get the first allowed vault as accounting vault
-        address accountingVault = _allowedVaults.at(0);
-
         // Mint debt tokens to the accounting vault
-        debtToken.mintToVault(accountingVault, debtAmount);
+        debtToken.mintToVault(collateralVault, debtAmount);
 
-        // Mint dUSD to this contract
-        dstable.mint(address(this), amount);
+        // Mint dUSD to the AMO wallet
+        dstable.mint(wallet, amount);
     }
 
     /**
-     * @notice Decreases AMO supply by burning dUSD and equal debt tokens atomically
+     * @notice Decreases AMO supply by pulling dUSD from a wallet and burning equal debt tokens atomically
      * @param amount The amount of dUSD to burn (debt tokens burned will equal this in base value)
-     * @dev Only callable by AMO_MANAGER_ROLE. Burns dUSD from this contract and debt from accounting vault
+     * @param wallet The AMO wallet to pull dUSD from (must approve manager)
+     * @dev Only callable by AMO_MANAGER_ROLE. Withdraws debt tokens from vault to manager then burns
      */
-    function decreaseAmoSupply(uint256 amount) external onlyRole(AMO_MANAGER_ROLE) nonReentrant {
+    function decreaseAmoSupply(uint256 amount, address wallet) external onlyRole(AMO_MANAGER_ROLE) nonReentrant {
         // Convert dUSD amount to base value for debt token burning
         uint256 debtAmount = baseToDebtUnits(dstableAmountToBaseValue(amount));
 
-        // Must have at least one allowed vault to burn debt tokens from
-        if (_allowedVaults.length() == 0) {
-            revert UnsupportedVault(address(0));
+        if (collateralVault == address(0)) {
+            revert CollateralVaultNotSet();
+        }
+        if (!_allowedAmoWallets.contains(wallet)) {
+            revert UnsupportedAmoWallet(wallet);
         }
 
-        // Get the first allowed vault as accounting vault
-        address accountingVault = _allowedVaults.at(0);
+        // Pull dUSD from the AMO wallet to this manager (requires prior approval)
+        IERC20Metadata(address(dstable)).safeTransferFrom(wallet, address(this), amount);
 
-        // Burn dUSD from this contract
-        dstable.burnFrom(address(this), amount);
+        // Burn dUSD from manager's own balance
+        dstable.burn(amount);
 
-        // Burn debt tokens from the accounting vault
-        debtToken.burnFromVault(accountingVault, debtAmount);
+        // Withdraw debt tokens from the vault to this manager and burn them
+        CollateralVault(collateralVault).withdrawTo(address(this), debtAmount, address(debtToken));
+        debtToken.burn(debtAmount);
     }
 
     /* Collateral AMO Operations */
 
     /**
      * @notice Borrows collateral from vault to endpoint with invariant checks
-     * @param vault The collateral vault to borrow from
-     * @param endpoint The endpoint to receive the borrowed collateral
+     * @param wallet The AMO wallet to receive the borrowed collateral
      * @param asset The collateral asset to borrow
      * @param amount The amount of collateral to borrow
      * @dev Enforces value conservation: vault total value must remain unchanged within tolerance
      */
     function borrowTo(
-        address vault,
-        address endpoint,
+        address wallet,
         address asset,
-        uint256 amount
+        uint256 amount,
+        uint256 minDebtMinted
     ) external onlyRole(AMO_MANAGER_ROLE) nonReentrant {
         // Validate inputs
-        if (!_allowedVaults.contains(vault)) {
-            revert UnsupportedVault(vault);
+        if (collateralVault == address(0)) {
+            revert CollateralVaultNotSet();
         }
-        if (!_allowedEndpoints.contains(endpoint)) {
-            revert UnsupportedEndpoint(endpoint);
+        if (!_allowedAmoWallets.contains(wallet)) {
+            revert UnsupportedAmoWallet(wallet);
         }
-        if (!CollateralVault(vault).isCollateralSupported(asset)) {
+        if (!CollateralVault(collateralVault).isCollateralSupported(asset)) {
             revert UnsupportedCollateral(asset);
         }
 
         // Record pre-operation vault value
-        uint256 preValue = CollateralVault(vault).totalValue();
+        uint256 preValue = CollateralVault(collateralVault).totalValue();
 
         // Calculate debt amount to mint (equal to asset value)
-        uint256 assetValue = CollateralVault(vault).assetValueFromAmount(amount, asset);
+        uint256 assetValue = CollateralVault(collateralVault).assetValueFromAmount(amount, asset);
         uint256 debtAmount = baseToDebtUnits(assetValue);
 
+        // Slippage: ensure we mint at least the caller's minimum expected debt
+        if (debtAmount < minDebtMinted) {
+            revert SlippageDebtMintTooLow(debtAmount, minDebtMinted);
+        }
+
         // Mint debt tokens to the vault
-        debtToken.mintToVault(vault, debtAmount);
+        debtToken.mintToVault(collateralVault, debtAmount);
 
         // Withdraw collateral to endpoint
-        CollateralVault(vault).withdrawTo(endpoint, amount, asset);
+        CollateralVault(collateralVault).withdrawTo(wallet, amount, asset);
 
         // Record post-operation vault value
-        uint256 postValue = CollateralVault(vault).totalValue();
+        uint256 postValue = CollateralVault(collateralVault).totalValue();
 
-        // Enforce invariant: total value should be conserved within tolerance
-        if (!_withinTolerance(preValue, postValue)) {
+        // Invariant (single-sided): vault must not lose more than tolerance
+        if (postValue + tolerance < preValue) {
             revert InvariantViolation(preValue, postValue);
         }
 
-        emit Borrowed(vault, endpoint, asset, amount, debtAmount);
+        emit Borrowed(collateralVault, wallet, asset, amount, debtAmount);
     }
 
     /**
      * @notice Repays borrowed collateral from endpoint to vault with invariant checks
-     * @param vault The collateral vault to repay to
-     * @param endpoint The endpoint providing the collateral for repayment
+     * @param wallet The AMO wallet providing the collateral for repayment
      * @param asset The collateral asset being repaid
      * @param amount The amount of collateral to repay
      * @dev Enforces value conservation: vault total value must remain unchanged within tolerance
      */
     function repayFrom(
-        address vault,
-        address endpoint,
+        address wallet,
         address asset,
-        uint256 amount
+        uint256 amount,
+        uint256 maxDebtBurned
     ) public onlyRole(AMO_MANAGER_ROLE) nonReentrant {
         // Validate inputs
-        if (!_allowedVaults.contains(vault)) {
-            revert UnsupportedVault(vault);
+        if (collateralVault == address(0)) {
+            revert CollateralVaultNotSet();
         }
-        if (!_allowedEndpoints.contains(endpoint)) {
-            revert UnsupportedEndpoint(endpoint);
+        if (!_allowedAmoWallets.contains(wallet)) {
+            revert UnsupportedAmoWallet(wallet);
         }
-        if (!CollateralVault(vault).isCollateralSupported(asset)) {
+        if (!CollateralVault(collateralVault).isCollateralSupported(asset)) {
             revert UnsupportedCollateral(asset);
         }
 
         // Record pre-operation vault value
-        uint256 preValue = CollateralVault(vault).totalValue();
-
-        // Transfer collateral from endpoint to vault
-        IERC20Metadata(asset).safeTransferFrom(endpoint, vault, amount);
+        uint256 preValue = CollateralVault(collateralVault).totalValue();
 
         // Calculate debt amount to burn (equal to asset value)
-        uint256 assetValue = CollateralVault(vault).assetValueFromAmount(amount, asset);
+        uint256 assetValue = CollateralVault(collateralVault).assetValueFromAmount(amount, asset);
         uint256 debtAmount = baseToDebtUnits(assetValue);
 
-        // Burn debt tokens from the vault
-        debtToken.burnFromVault(vault, debtAmount);
+        // Slippage: ensure we do not burn more than caller's maximum
+        if (debtAmount > maxDebtBurned) {
+            revert SlippageDebtBurnTooHigh(debtAmount, maxDebtBurned);
+        }
+
+        // Transfer collateral from endpoint to vault
+        IERC20Metadata(asset).safeTransferFrom(wallet, collateralVault, amount);
+
+        // Withdraw debt tokens from the vault to this manager and burn them
+        CollateralVault(collateralVault).withdrawTo(address(this), debtAmount, address(debtToken));
+        debtToken.burn(debtAmount);
 
         // Record post-operation vault value
-        uint256 postValue = CollateralVault(vault).totalValue();
+        uint256 postValue = CollateralVault(collateralVault).totalValue();
 
-        // Enforce invariant: total value should be conserved within tolerance
-        if (!_withinTolerance(preValue, postValue)) {
+        // Invariant (single-sided): vault must not lose more than tolerance
+        if (postValue + tolerance < preValue) {
             revert InvariantViolation(preValue, postValue);
         }
 
-        emit Repaid(vault, endpoint, asset, amount, debtAmount);
+        emit Repaid(collateralVault, wallet, asset, amount, debtAmount);
+    }
+
+    /**
+     * @notice Repay using EIP-2612 permit for collateral tokens that support it
+     */
+    function repayWithPermit(
+        address wallet,
+        address asset,
+        uint256 amount,
+        uint256 maxDebtBurned,
+        uint256 deadline,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external onlyRole(AMO_MANAGER_ROLE) nonReentrant {
+        IERC20Permit(asset).permit(wallet, address(this), amount, deadline, v, r, s);
+        repayFrom(wallet, asset, amount, maxDebtBurned);
     }
 
     /* Helper Functions */
@@ -292,47 +333,46 @@ contract AmoManagerV2 is OracleAware, ReentrancyGuard {
     /* Admin Functions */
 
     /**
-     * @notice Sets the AMO multisig address
-     * @param newMultisig The new multisig address
+     * @notice Sets the AMO wallet address
+     * @param newWallet The new wallet address
      * @dev Only callable by DEFAULT_ADMIN_ROLE
      */
-    function setAmoMultisig(address newMultisig) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        if (newMultisig == address(0)) {
-            revert InvalidMultisig(newMultisig);
+    function setAmoWallet(address newWallet) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        if (newWallet == address(0)) {
+            revert InvalidWallet(newWallet);
         }
-        address oldMultisig = amoMultisig;
-        amoMultisig = newMultisig;
-        emit AmoMultisigSet(oldMultisig, newMultisig);
+        address oldWallet = amoWallet;
+        amoWallet = newWallet;
+        emit AmoWalletSet(oldWallet, newWallet);
     }
 
     /**
-     * @notice Sets vault allowed status
-     * @param vault The vault address
-     * @param allowed Whether the vault should be allowed
+     * @notice Sets the single accounting collateral vault
+     * @param newVault The new collateral vault address
      * @dev Only callable by DEFAULT_ADMIN_ROLE
      */
-    function setVaultAllowed(address vault, bool allowed) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        if (allowed) {
-            _allowedVaults.add(vault);
-        } else {
-            _allowedVaults.remove(vault);
+    function setCollateralVault(address newVault) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        if (newVault == address(0)) {
+            revert UnsupportedVault(newVault);
         }
-        emit VaultAllowedSet(vault, allowed);
+        address oldVault = collateralVault;
+        collateralVault = newVault;
+        emit CollateralVaultSet(oldVault, newVault);
     }
 
     /**
-     * @notice Sets endpoint allowed status
-     * @param endpoint The endpoint address
-     * @param allowed Whether the endpoint should be allowed
+     * @notice Sets AMO wallet allowed status
+     * @param wallet The AMO wallet address
+     * @param allowed Whether the wallet should be allowed
      * @dev Only callable by DEFAULT_ADMIN_ROLE
      */
-    function setEndpointAllowed(address endpoint, bool allowed) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function setAmoWalletAllowed(address wallet, bool allowed) external onlyRole(DEFAULT_ADMIN_ROLE) {
         if (allowed) {
-            _allowedEndpoints.add(endpoint);
+            _allowedAmoWallets.add(wallet);
         } else {
-            _allowedEndpoints.remove(endpoint);
+            _allowedAmoWallets.remove(wallet);
         }
-        emit EndpointAllowedSet(endpoint, allowed);
+        emit AmoWalletAllowedSet(wallet, allowed);
     }
 
     /**
@@ -349,53 +389,49 @@ contract AmoManagerV2 is OracleAware, ReentrancyGuard {
     /* View Functions */
 
     /**
-     * @notice Returns all allowed vaults
-     * @return Array of allowed vault addresses
+     * @notice Returns all allowed AMO wallets
+     * @return Array of allowed wallet addresses
      */
-    function getAllowedVaults() external view returns (address[] memory) {
-        return _allowedVaults.values();
+    function getAllowedAmoWallets() external view returns (address[] memory) {
+        return _allowedAmoWallets.values();
     }
 
     /**
-     * @notice Returns all allowed endpoints
-     * @return Array of allowed endpoint addresses
+     * @notice Checks if an AMO wallet is allowed
+     * @param wallet The wallet address to check
+     * @return Whether the wallet is allowed
      */
-    function getAllowedEndpoints() external view returns (address[] memory) {
-        return _allowedEndpoints.values();
+    function isAmoWalletAllowed(address wallet) external view returns (bool) {
+        return _allowedAmoWallets.contains(wallet);
     }
 
     /**
-     * @notice Checks if a vault is allowed
-     * @param vault The vault address to check
-     * @return Whether the vault is allowed
+     * @notice Returns the number of allowed AMO wallets
+     * @return The count of allowed wallets
      */
-    function isVaultAllowed(address vault) external view returns (bool) {
-        return _allowedVaults.contains(vault);
+    function getAllowedAmoWalletsLength() external view returns (uint256) {
+        return _allowedAmoWallets.length();
     }
 
     /**
-     * @notice Checks if an endpoint is allowed
-     * @param endpoint The endpoint address to check
-     * @return Whether the endpoint is allowed
+     * @notice DEPRECATED: kept for ABI stability (always returns false)
      */
-    function isEndpointAllowed(address endpoint) external view returns (bool) {
-        return _allowedEndpoints.contains(endpoint);
+    function isEndpointAllowed(address) external pure returns (bool) {
+        return false;
     }
 
     /**
-     * @notice Returns the number of allowed vaults
-     * @return The count of allowed vaults
+     * @notice DEPRECATED: kept for ABI stability (always returns 0)
      */
-    function getAllowedVaultsLength() external view returns (uint256) {
-        return _allowedVaults.length();
+    function getAllowedVaultsLength() external pure returns (uint256) {
+        return 0;
     }
 
     /**
-     * @notice Returns the number of allowed endpoints
-     * @return The count of allowed endpoints
+     * @notice DEPRECATED: kept for ABI stability (always returns 0)
      */
-    function getAllowedEndpointsLength() external view returns (uint256) {
-        return _allowedEndpoints.length();
+    function getAllowedEndpointsLength() external pure returns (uint256) {
+        return 0;
     }
 
     /**
