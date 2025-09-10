@@ -64,12 +64,9 @@
   "transfer_dstake_roles_to_multisig": 1753851408,
   "1_setup_issuerv2": 1755241283,
   "2_setup_redeemerv2": 1755241315,
-  "DLoopCoreLogic": 1757011376,
-  "DLoopCoreDLend": 1757011432,
-  "DLoopQuoter": 1757011439,
-  "DLoopRedeemerOdos": 1757011455,
-  "DLoopDecreaseLeverageOdos": 1757011463,
-  "DLoopIncreaseLeverageOdos": 1757011466,
-  "OdosSwapLogic": 1757276450,
-  "DLoopDepositorOdos": 1757276470
+  "OdosSwapLogic": 1757485929,
+  "DLoopDepositorOdos": 1757485934,
+  "DLoopRedeemerOdos": 1757485937,
+  "DLoopDecreaseLeverageOdos": 1757485941,
+  "DLoopIncreaseLeverageOdos": 1757485945
 }
