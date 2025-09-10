@@ -41,7 +41,9 @@ contract DLoopIncreaseLeverageOdos is DLoopIncreaseLeverageBase {
      * @param expectedOutputAmount Expected output amount
      * @return differenceTolerance The difference tolerance amount
      */
-    function swappedOutputDifferenceToleranceAmount(uint256 expectedOutputAmount) public pure override returns (uint256) {
+    function swappedOutputDifferenceToleranceAmount(
+        uint256 expectedOutputAmount
+    ) public pure override returns (uint256) {
         return OdosSwapLogic.swappedOutputDifferenceToleranceAmount(expectedOutputAmount);
     }
 

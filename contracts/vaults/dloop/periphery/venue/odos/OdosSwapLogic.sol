@@ -37,7 +37,7 @@ library OdosSwapLogic {
      * @return differenceTolerance The difference tolerance amount
      */
     function swappedOutputDifferenceToleranceAmount(uint256 expectedOutputAmount) internal pure returns (uint256) {
-        return expectedOutputAmount * DIFFERENCE_TOLERANCE_BPS / BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
+        return (expectedOutputAmount * DIFFERENCE_TOLERANCE_BPS) / BasisPointConstants.ONE_HUNDRED_PERCENT_BPS;
     }
 
     /**
