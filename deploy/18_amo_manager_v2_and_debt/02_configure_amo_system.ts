@@ -70,41 +70,27 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     const amoManager = await ethers.getContractAt("AmoManagerV2", amoManagerDeployment.address, deployerSigner);
     const debtToken = await ethers.getContractAt("AmoDebtToken", debtTokenDeployment.address, deployerSigner);
 
-    console.log(`  📊 Setting up oracle price feed for debt token...`);
+    console.log(`  📊 Verifying oracle price feed for debt token...`);
 
-    // Configure oracle to return base currency unit (1.0) for debt token
+    // Verify that the HardPegOracleWrapper is set up for the debt token
     const baseCurrencyUnit = await oracle.BASE_CURRENCY_UNIT();
-    const fixedPrice = baseCurrencyUnit; // 1.0 in base units
+    const expectedPrice = baseCurrencyUnit; // Should be 1.0 in base units
 
     try {
       const currentPrice = await oracle.getAssetPrice(debtTokenDeployment.address);
 
-      if (currentPrice !== fixedPrice) {
-        console.log(`    Setting debt token price to base unit`);
-
-        // Note: This assumes the oracle has a method to set prices (for mock oracles)
-        // In production, this would be handled differently depending on the oracle implementation
-        if (oracle.interface.hasFunction("setAssetPrice")) {
-          const complete = await executor.tryOrQueue(
-            async () => {
-              await oracle.setAssetPrice(debtTokenDeployment.address, fixedPrice);
-              console.log(`    ✅ Debt token oracle price set`);
-            },
-            () => ({
-              to: oracleDeployment.address,
-              value: "0",
-              data: oracle.interface.encodeFunctionData("setAssetPrice", [debtTokenDeployment.address, fixedPrice]),
-            }),
-          );
-          if (!complete) allOperationsComplete = false;
-        } else {
-          console.log(`    ℹ️  Oracle doesn't support setAssetPrice - manual configuration required`);
-        }
+      if (currentPrice === expectedPrice) {
+        console.log(`    ✅ Debt token oracle price correctly set to 1.0`);
       } else {
-        console.log(`    ✅ Debt token oracle price already set correctly`);
+        console.log(`    ⚠️  Debt token price is ${currentPrice}, expected ${expectedPrice}`);
+        console.log(`    ℹ️  Run the debt token oracle deployment script first`);
       }
-    } catch (error) {
-      console.log(`    ⚠️  Could not check oracle price, assuming it needs to be set: ${error}`);
+    } catch (error: any) {
+      if (error.message?.includes("OracleNotSet")) {
+        console.log(`    ⚠️  Oracle not set for debt token - run oracle deployment script first`);
+      } else {
+        console.log(`    ⚠️  Could not check oracle price: ${error.message || error}`);
+      }
     }
 
     console.log(`  🔐 Setting up roles and permissions...`);

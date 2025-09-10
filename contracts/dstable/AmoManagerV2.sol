@@ -27,7 +27,7 @@ import "@openzeppelin/contracts/utils/math/Math.sol";
 import "./OracleAware.sol";
 import "./CollateralVault.sol";
 import "./AmoDebtToken.sol";
-import "contracts/common/IMintableERC20.sol";
+import "../common/IMintableERC20.sol";
 
 /**
  * @title AmoManagerV2
@@ -101,8 +101,9 @@ contract AmoManagerV2 is OracleAware, ReentrancyGuard {
     ) OracleAware(_oracle, _oracle.BASE_CURRENCY_UNIT()) {
         debtToken = _debtToken;
         dstable = _dstable;
-        // Auto-set tolerance to 1 base currency unit
-        tolerance = baseCurrencyUnit;
+        // Set tolerance to 1 wei - the smallest possible rounding error
+        // This is sufficient since all operations use the same decimals (18)
+        tolerance = 1;
 
         if (_amoWallet == address(0)) {
             revert InvalidWallet(_amoWallet);

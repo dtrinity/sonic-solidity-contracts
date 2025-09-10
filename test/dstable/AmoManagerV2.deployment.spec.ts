@@ -145,8 +145,8 @@ function runDeploymentTestsForDStable(
         expect(await amoManagerV2.amoWallet()).to.equal(expectedWallet);
         expect(await amoManagerV2.debtToken()).to.equal(amoDebtTokenAddress);
         expect(await amoManagerV2.dstable()).to.equal(await dstableContract.getAddress());
-        // tolerance defaults to baseCurrencyUnit
-        expect(await amoManagerV2.tolerance()).to.equal(await amoManagerV2.baseCurrencyUnit());
+        // tolerance defaults to 1 wei for minimal rounding errors
+        expect(await amoManagerV2.tolerance()).to.equal(1n);
         expect(await amoManagerV2.collateralVault()).to.equal(await collateralVaultContract.getAddress());
       });
     });

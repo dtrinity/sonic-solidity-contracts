@@ -162,4 +162,20 @@ contract AmoDebtToken is ERC20, AccessControl {
 
         super._update(from, to, value);
     }
+    
+    /**
+     * @notice Override transferFrom to also check msg.sender allowlist
+     * @param from The address to transfer tokens from
+     * @param to The address to transfer tokens to
+     * @param value The amount of tokens to transfer
+     * @return Success boolean
+     * @dev Reverts if msg.sender is not allowlisted
+     */
+    function transferFrom(address from, address to, uint256 value) public override returns (bool) {
+        // Check that msg.sender (the spender) is also allowlisted
+        if (!_allowlist.contains(msg.sender)) {
+            revert NotAllowlisted(msg.sender);
+        }
+        return super.transferFrom(from, to, value);
+    }
 }
