@@ -67,9 +67,9 @@
   "DLoopCoreLogic": 1757011376,
   "DLoopCoreDLend": 1757011432,
   "DLoopQuoter": 1757011439,
+  "DLoopRedeemerOdos": 1757011455,
   "DLoopDecreaseLeverageOdos": 1757011463,
   "DLoopIncreaseLeverageOdos": 1757011466,
-  "DLoopDepositorOdos": 1757276470,
-  "OdosSwapLogic": 1757405255,
-  "DLoopRedeemerOdos": 1757405262
+  "OdosSwapLogic": 1757276450,
+  "DLoopDepositorOdos": 1757276470
 }

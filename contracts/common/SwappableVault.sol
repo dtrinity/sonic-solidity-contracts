@@ -32,13 +32,7 @@ abstract contract SwappableVault {
     error OutputTokenBalanceNotIncreasedAfterSwap(uint256 outputTokenBalanceBefore, uint256 outputTokenBalanceAfter);
     error SpentInputTokenAmountNotEqualReturnedAmountIn(uint256 spentInputTokenAmount, uint256 returnedAmountIn);
 
-    uint256 public breakPoint;
-
     uint256 public constant BALANCE_DIFF_TOLERANCE = 1;
-
-    function setBreakPoint(uint256 newBreakPoint) internal {
-        breakPoint = newBreakPoint;
-    }
 
     /* Virtual functions */
 
@@ -96,8 +90,6 @@ abstract contract SwappableVault {
         uint256 inputTokenBalanceBefore = inputToken.balanceOf(address(this));
         uint256 outputTokenBalanceBefore = outputToken.balanceOf(address(this));
 
-        require(breakPoint != 80001, "80001");
-
         // Perform the swap
         uint256 amountIn = _swapExactOutputImplementation(
             inputToken,
@@ -108,9 +100,6 @@ abstract contract SwappableVault {
             deadline,
             extraData
         );
-
-        require(breakPoint != 80002, "80002");
-
         uint256 inputTokenBalanceAfter = inputToken.balanceOf(address(this));
         uint256 outputTokenBalanceAfter = outputToken.balanceOf(address(this));
 
@@ -128,15 +117,6 @@ abstract contract SwappableVault {
                 if (inCheck.observedDelta > amountInMaximum) {
                     revert SpentInputTokenAmountGreaterThanAmountInMaximum(inCheck.observedDelta, amountInMaximum);
                 }
-                require(
-                    breakPoint != 80003,
-                    string.concat(
-                        "80003: inCheck.observedDelta:",
-                        uint256ToString(inCheck.observedDelta),
-                        ", amountIn:",
-                        uint256ToString(amountIn)
-                    )
-                );
                 // Second check: ensure spent amount matches returned amount within tolerance
                 if (!inCheck.toleranceOk) {
                     revert SpentInputTokenAmountNotEqualReturnedAmountIn(inCheck.observedDelta, amountIn);
@@ -158,39 +138,11 @@ abstract contract SwappableVault {
             if (!outCheck.directionOk) {
                 revert OutputTokenBalanceNotIncreasedAfterSwap(outputTokenBalanceBefore, outputTokenBalanceAfter);
             }
-            require(
-                breakPoint != 80004,
-                string.concat(
-                    "80004: outCheck.observedDelta:",
-                    uint256ToString(outCheck.observedDelta),
-                    ", amountOut:",
-                    uint256ToString(amountOut)
-                )
-            );
             if (!outCheck.toleranceOk) {
                 revert ReceivedOutputTokenAmountNotEqualAmountOut(outCheck.observedDelta, amountOut);
             }
         }
 
         return amountIn;
-    }
-
-    function uint256ToString(uint256 value) internal pure returns (string memory) {
-        if (value == 0) {
-            return "0";
-        }
-        uint256 temp = value;
-        uint256 digits;
-        while (temp != 0) {
-            digits++;
-            temp /= 10;
-        }
-        bytes memory buffer = new bytes(digits);
-        while (value != 0) {
-            digits -= 1;
-            buffer[digits] = bytes1(uint8(48 + uint256(value % 10)));
-            value /= 10;
-        }
-        return string(buffer);
     }
 }
