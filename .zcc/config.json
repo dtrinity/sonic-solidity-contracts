@@ -1,0 +1,6 @@
+{
+  "enableHooks": true,
+  "enableFuzzyMatching": true,
+  "ticketSystem": true,
+  "defaultMode": "autonomous-project-manager"
+}

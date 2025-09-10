@@ -33,6 +33,8 @@ export const DUSD_ISSUER_V2_CONTRACT_ID = "dUSD_IssuerV2";
 export const DUSD_REDEEMER_CONTRACT_ID = "dUSD_Redeemer";
 export const DUSD_COLLATERAL_VAULT_CONTRACT_ID = "dUSD_CollateralHolderVault";
 export const DUSD_AMO_MANAGER_ID = "dUSD_AmoManager";
+export const DUSD_AMO_MANAGER_V2_ID = "dUSD_AmoManagerV2";
+export const DUSD_AMO_DEBT_TOKEN_ID = "dUSD_AmoDebtToken";
 export const DUSD_HARD_PEG_ORACLE_WRAPPER_ID = "dUSD_HardPegOracleWrapper";
 
 // dS
@@ -42,6 +44,8 @@ export const DS_ISSUER_V2_CONTRACT_ID = "dS_IssuerV2";
 export const DS_REDEEMER_CONTRACT_ID = "dS_Redeemer";
 export const DS_COLLATERAL_VAULT_CONTRACT_ID = "dS_CollateralHolderVault";
 export const DS_AMO_MANAGER_ID = "dS_AmoManager";
+export const DS_AMO_MANAGER_V2_ID = "dS_AmoManagerV2";
+export const DS_AMO_DEBT_TOKEN_ID = "dS_AmoDebtToken";
 export const DS_HARD_PEG_ORACLE_WRAPPER_ID = "dS_HardPegOracleWrapper";
 export const WS_HARD_PEG_ORACLE_WRAPPER_ID = "wS_HardPegOracleWrapper";
 
