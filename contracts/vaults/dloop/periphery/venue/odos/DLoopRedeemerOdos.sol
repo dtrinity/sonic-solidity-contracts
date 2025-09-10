@@ -59,16 +59,25 @@ contract DLoopRedeemerOdos is DLoopRedeemerBase {
         uint256 deadline,
         bytes memory underlyingToDStableSwapData
     ) internal override returns (uint256) {
-        return
-            OdosSwapLogic.swapExactOutput(
-                inputToken,
-                outputToken,
-                amountOut,
-                amountInMaximum,
-                receiver,
-                deadline,
-                underlyingToDStableSwapData,
-                odosRouter
-            );
+        // We check the actual spent amount of input token here, as the returned amount from Odos wrapper is not reliable
+        uint256 inputTokenBalanceBefore = inputToken.balanceOf(address(this));
+        OdosSwapLogic.swapExactOutputWithBreakPoint(
+            inputToken,
+            outputToken,
+            amountOut,
+            amountInMaximum,
+            receiver,
+            deadline,
+            underlyingToDStableSwapData,
+            odosRouter,
+            breakPoint
+        );
+        uint256 inputTokenBalanceAfter = inputToken.balanceOf(address(this));
+
+        if (inputTokenBalanceAfter >= inputTokenBalanceBefore) {
+            revert InputTokenBalanceDoesNotDecreaseAfterSwap(inputTokenBalanceBefore, inputTokenBalanceAfter);
+        }
+
+        return inputTokenBalanceBefore - inputTokenBalanceAfter;
     }
 }
