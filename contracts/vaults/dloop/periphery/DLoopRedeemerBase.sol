@@ -86,6 +86,8 @@ abstract contract DLoopRedeemerBase is IERC3156FlashBorrower, Ownable, Reentranc
         address indexed receiver
     );
 
+    event LeftoverDebtTokensTransferred(address indexed debtToken, uint256 amount, address indexed receiver);
+
     /* Structs */
 
     struct FlashLoanParams {
@@ -167,6 +169,18 @@ abstract contract DLoopRedeemerBase is IERC3156FlashBorrower, Ownable, Reentranc
         bytes calldata collateralToDebtTokenSwapData,
         DLoopCoreBase dLoopCore
     ) public nonReentrant returns (uint256 assets) {
+        ERC20 collateralToken = dLoopCore.collateralToken();
+        ERC20 debtToken = dLoopCore.debtToken();
+
+        SharedLogic.TokenBalancesBeforeAfter memory collateralTokenBalancesBeforeAfter;
+        SharedLogic.TokenBalancesBeforeAfter memory debtTokenBalancesBeforeAfter;
+
+        // Track the token balances before the deposit
+        collateralTokenBalancesBeforeAfter.token = collateralToken;
+        collateralTokenBalancesBeforeAfter.tokenBalanceBefore = collateralToken.balanceOf(address(this));
+        debtTokenBalancesBeforeAfter.token = debtToken;
+        debtTokenBalancesBeforeAfter.tokenBalanceBefore = debtToken.balanceOf(address(this));
+
         // Transfer the shares to the periphery contract to prepare for the redeeming process
         SafeERC20.safeTransferFrom(dLoopCore, msg.sender, address(this), shares);
 
@@ -210,15 +224,10 @@ abstract contract DLoopRedeemerBase is IERC3156FlashBorrower, Ownable, Reentranc
         // Create the flash loan params data
         FlashLoanParams memory params = FlashLoanParams(shares, collateralToDebtTokenSwapData, dLoopCore);
         bytes memory data = _encodeParamsToData(params);
-        ERC20 collateralToken = dLoopCore.collateralToken();
-        ERC20 debtToken = dLoopCore.debtToken();
         uint256 maxFlashLoanAmount = flashLender.maxFlashLoan(address(debtToken));
 
         // This value is used to calculate the shares burned after the flash loan
         uint256 sharesBeforeRedeem = dLoopCore.balanceOf(address(this));
-
-        // This value is used to calculate the received collateral token amount after the flash loan
-        uint256 collateralTokenBalanceBefore = collateralToken.balanceOf(address(this));
 
         // Approve the flash lender to spend the flash loan amount of debt token from this contract
         debtToken.forceApprove(
@@ -237,12 +246,16 @@ abstract contract DLoopRedeemerBase is IERC3156FlashBorrower, Ownable, Reentranc
         // Validate shares burned correctly
         _validateSharesBurned(dLoopCore, address(this), shares, sharesBeforeRedeem);
 
+        // Track the token balances after the redeem
+        collateralTokenBalancesBeforeAfter.tokenBalanceAfter = collateralToken.balanceOf(address(this));
+        debtTokenBalancesBeforeAfter.tokenBalanceAfter = debtToken.balanceOf(address(this));
+
         // Finalize redeem and transfer assets to receiver
         return
             _finalizeRedeemAndTransfer(
-                collateralToken,
+                collateralTokenBalancesBeforeAfter,
+                debtTokenBalancesBeforeAfter,
                 receiver,
-                collateralTokenBalanceBefore,
                 minOutputCollateralAmount
             );
     }
@@ -370,50 +383,77 @@ abstract contract DLoopRedeemerBase is IERC3156FlashBorrower, Ownable, Reentranc
 
     /**
      * @dev Finalizes redeem by validating shares and transferring assets to receiver
-     * @param collateralToken The collateral token
+     * @param collateralTokenBalancesBeforeAfter Collateral token balances before and after the redeem
+     * @param debtTokenBalancesBeforeAfter Debt token balances before and after the redeem
      * @param receiver Address to receive the assets
-     * @param collateralTokenBalanceBefore Collateral balance before redeem
      * @param minOutputCollateralAmount Minimum output collateral amount
      * @return receivedCollateralTokenAmount Amount of collateral tokens received
      */
     function _finalizeRedeemAndTransfer(
-        ERC20 collateralToken,
+        SharedLogic.TokenBalancesBeforeAfter memory collateralTokenBalancesBeforeAfter,
+        SharedLogic.TokenBalancesBeforeAfter memory debtTokenBalancesBeforeAfter,
         address receiver,
-        uint256 collateralTokenBalanceBefore,
         uint256 minOutputCollateralAmount
     ) internal returns (uint256 receivedCollateralTokenAmount) {
-        // Collateral balance after the flash loan
-        uint256 collateralTokenBalanceAfter = collateralToken.balanceOf(address(this));
+        // Slippage protection
+        {
+            // Calculate the received collateral token amount after the flash loan
+            if (
+                collateralTokenBalancesBeforeAfter.tokenBalanceAfter <=
+                collateralTokenBalancesBeforeAfter.tokenBalanceBefore
+            ) {
+                revert UnexpectedDecreaseInCollateralTokenAfterFlashLoan(
+                    collateralTokenBalancesBeforeAfter.tokenBalanceBefore,
+                    collateralTokenBalancesBeforeAfter.tokenBalanceAfter
+                );
+            }
 
-        // Calculate the received collateral token amount after the flash loan
-        if (collateralTokenBalanceAfter <= collateralTokenBalanceBefore) {
-            revert UnexpectedDecreaseInCollateralTokenAfterFlashLoan(
-                collateralTokenBalanceBefore,
-                collateralTokenBalanceAfter
-            );
+            // Make sure the received collateral token amount is not less than the minimum output collateral amount
+            // for slippage protection
+            receivedCollateralTokenAmount =
+                collateralTokenBalancesBeforeAfter.tokenBalanceAfter -
+                collateralTokenBalancesBeforeAfter.tokenBalanceBefore;
+            if (receivedCollateralTokenAmount < minOutputCollateralAmount) {
+                revert WithdrawnCollateralTokenAmountNotMetMinReceiveAmount(
+                    receivedCollateralTokenAmount,
+                    minOutputCollateralAmount
+                );
+            }
         }
-
-        // Make sure the received collateral token amount is not less than the minimum output collateral amount
-        // for slippage protection
-        receivedCollateralTokenAmount = collateralTokenBalanceAfter - collateralTokenBalanceBefore;
-        if (receivedCollateralTokenAmount < minOutputCollateralAmount) {
-            revert WithdrawnCollateralTokenAmountNotMetMinReceiveAmount(
-                receivedCollateralTokenAmount,
-                minOutputCollateralAmount
-            );
-        }
-
-        // There is no leftover debt token, as all flash loaned debt token is used to repay the debt
-        // when calling the redeem() function
-
-        // Transfer the received collateral token to the receiver first
-        collateralToken.safeTransfer(receiver, receivedCollateralTokenAmount);
 
         // Transfer any leftover collateral tokens directly to the receiver
-        uint256 leftoverAmount = collateralToken.balanceOf(address(this));
-        if (leftoverAmount > 0) {
-            collateralToken.safeTransfer(receiver, leftoverAmount);
-            emit LeftoverCollateralTokensTransferred(address(collateralToken), leftoverAmount, receiver);
+        {
+            (uint256 leftoverAmount, bool success) = SharedLogic.transferLeftoverTokens(
+                collateralTokenBalancesBeforeAfter,
+                receiver
+            );
+            if (success) {
+                emit LeftoverCollateralTokensTransferred(
+                    address(collateralTokenBalancesBeforeAfter.token),
+                    leftoverAmount,
+                    receiver
+                );
+            } else {
+                revert UnexpectedDecreaseInCollateralToken(
+                    collateralTokenBalancesBeforeAfter.tokenBalanceBefore,
+                    collateralTokenBalancesBeforeAfter.tokenBalanceAfter
+                );
+            }
+        }
+
+        // Transfer any leftover debt tokens directly to the receiver
+        {
+            (uint256 leftoverDebtTokenAmount, bool success) = SharedLogic.transferLeftoverTokens(
+                debtTokenBalancesBeforeAfter,
+                receiver
+            );
+            if (success) {
+                emit LeftoverDebtTokensTransferred(
+                    address(debtTokenBalancesBeforeAfter.token),
+                    leftoverDebtTokenAmount,
+                    receiver
+                );
+            }
         }
     }
 

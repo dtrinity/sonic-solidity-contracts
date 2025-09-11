@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
+import { ERC20, SafeERC20 } from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 import { DLoopCoreBase } from "../../core/DLoopCoreBase.sol";
 import { DLoopCoreLogic } from "../../core/DLoopCoreLogic.sol";
 import { BasisPointConstants } from "contracts/common/BasisPointConstants.sol";
@@ -11,10 +12,20 @@ import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
  * @dev Shared utility functions for dLoop periphery contracts
  */
 library SharedLogic {
+    using SafeERC20 for ERC20;
+
     /* Errors */
 
     error EstimatedOverallSlippageBpsCannotExceedOneHundredPercent(uint256 estimatedOverallSlippageBps);
     error EstimatedSharesLessThanMinOutputShares(uint256 currentEstimatedShares, uint256 minOutputShares);
+
+    /* Structs */
+
+    struct TokenBalancesBeforeAfter {
+        ERC20 token;
+        uint256 tokenBalanceBefore;
+        uint256 tokenBalanceAfter;
+    }
 
     /**
      * @dev Gets the leveraged assets for a given assets and dLoopCore
@@ -141,5 +152,27 @@ library SharedLogic {
                 BasisPointConstants.ONE_HUNDRED_PERCENT_BPS,
                 currentEstimatedShares
             );
+    }
+
+    /**
+     * @dev Transfers any leftover tokens to the receiver
+     * @param tokenBalancesBeforeAfter Token balances before and after the operation
+     * @param receiver Address to receive the leftover tokens
+     * @return leftoverAmount Amount of leftover tokens
+     * @return success Whether the transfer was successful
+     */
+    function transferLeftoverTokens(
+        SharedLogic.TokenBalancesBeforeAfter memory tokenBalancesBeforeAfter,
+        address receiver
+    ) internal returns (uint256, bool) {
+        (bool success, uint256 leftoverAmount) = Math.trySub(
+            tokenBalancesBeforeAfter.tokenBalanceAfter,
+            tokenBalancesBeforeAfter.tokenBalanceBefore
+        );
+        if (success && leftoverAmount > 0) {
+            tokenBalancesBeforeAfter.token.safeTransfer(receiver, leftoverAmount);
+            return (leftoverAmount, success);
+        }
+        return (0, false);
     }
 }

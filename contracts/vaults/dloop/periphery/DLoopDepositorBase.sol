@@ -29,6 +29,7 @@ import { RescuableVault } from "contracts/common/RescuableVault.sol";
 import { BasisPointConstants } from "contracts/common/BasisPointConstants.sol";
 import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
 import { SharedLogic } from "./helper/SharedLogic.sol";
+import { Compare } from "contracts/common/Compare.sol";
 
 /**
  * @title DLoopDepositorBase
@@ -83,6 +84,12 @@ abstract contract DLoopDepositorBase is
     /* Events */
 
     event LeftoverDebtTokensTransferred(address indexed debtToken, uint256 amount, address indexed receiver);
+
+    event LeftoverCollateralTokensTransferred(
+        address indexed collateralToken,
+        uint256 amount,
+        address indexed receiver
+    );
 
     /* Structs */
 
@@ -160,6 +167,15 @@ abstract contract DLoopDepositorBase is
         ERC20 collateralToken = dLoopCore.collateralToken();
         ERC20 debtToken = dLoopCore.debtToken();
 
+        SharedLogic.TokenBalancesBeforeAfter memory collateralTokenBalancesBeforeAfter;
+        SharedLogic.TokenBalancesBeforeAfter memory debtTokenBalancesBeforeAfter;
+
+        // Track the token balances before the deposit
+        collateralTokenBalancesBeforeAfter.token = collateralToken;
+        collateralTokenBalancesBeforeAfter.tokenBalanceBefore = collateralToken.balanceOf(address(this));
+        debtTokenBalancesBeforeAfter.token = debtToken;
+        debtTokenBalancesBeforeAfter.tokenBalanceBefore = debtToken.balanceOf(address(this));
+
         // Transfer the collateral token to the vault (need the allowance before calling this function)
         // The remaining amount of collateral token will be flash loaned from the flash lender
         // to reach the leveraged amount
@@ -207,11 +223,18 @@ abstract contract DLoopDepositorBase is
             revert SharesNotIncreasedAfterFlashLoan(sharesBeforeDeposit, sharesAfterDeposit);
         }
 
+        // Update the token balances before and after the deposit
+        collateralTokenBalancesBeforeAfter.tokenBalanceAfter = collateralToken.balanceOf(address(this));
+        debtTokenBalancesBeforeAfter.tokenBalanceAfter = debtToken.balanceOf(address(this));
+
         // Finalize deposit and transfer shares
         return
             _finalizeDepositAndTransfer(
                 dLoopCore,
+                collateralToken,
                 debtToken,
+                collateralTokenBalancesBeforeAfter,
+                debtTokenBalancesBeforeAfter,
                 receiver,
                 sharesBeforeDeposit,
                 sharesAfterDeposit,
@@ -368,7 +391,10 @@ abstract contract DLoopDepositorBase is
     /**
      * @dev Finalizes deposit by validating shares and transferring to receiver
      * @param dLoopCore The dLoopCore contract
+     * @param collateralToken The collateral token
      * @param debtToken The debt token
+     * @param collateralTokenBalancesBeforeAfter Collateral token balances before and after the deposit
+     * @param debtTokenBalancesBeforeAfter Debt token balances before and after the deposit
      * @param receiver Address to receive the shares
      * @param sharesBeforeDeposit Shares before deposit
      * @param sharesAfterDeposit Shares after deposit
@@ -377,7 +403,10 @@ abstract contract DLoopDepositorBase is
      */
     function _finalizeDepositAndTransfer(
         DLoopCoreBase dLoopCore,
+        ERC20 collateralToken,
         ERC20 debtToken,
+        SharedLogic.TokenBalancesBeforeAfter memory collateralTokenBalancesBeforeAfter,
+        SharedLogic.TokenBalancesBeforeAfter memory debtTokenBalancesBeforeAfter,
         address receiver,
         uint256 sharesBeforeDeposit,
         uint256 sharesAfterDeposit,
@@ -399,10 +428,29 @@ abstract contract DLoopDepositorBase is
         // (using flash loaned debt token) is used to deposit to the core contract
 
         // Transfer any leftover debt tokens directly to the receiver
-        uint256 leftoverAmount = debtToken.balanceOf(address(this));
-        if (leftoverAmount > 0) {
-            debtToken.safeTransfer(receiver, leftoverAmount);
-            emit LeftoverDebtTokensTransferred(address(debtToken), leftoverAmount, receiver);
+        {
+            (uint256 leftoverDebtTokenAmount, bool success) = SharedLogic.transferLeftoverTokens(
+                debtTokenBalancesBeforeAfter,
+                receiver
+            );
+            if (success) {
+                emit LeftoverDebtTokensTransferred(address(debtToken), leftoverDebtTokenAmount, receiver);
+            }
+        }
+
+        // Transfer any leftover collateral tokens directly to the receiver
+        {
+            (uint256 leftoverCollateralTokenAmount, bool success) = SharedLogic.transferLeftoverTokens(
+                collateralTokenBalancesBeforeAfter,
+                receiver
+            );
+            if (success) {
+                emit LeftoverCollateralTokensTransferred(
+                    address(collateralToken),
+                    leftoverCollateralTokenAmount,
+                    receiver
+                );
+            }
         }
 
         // Transfer the minted shares to the receiver

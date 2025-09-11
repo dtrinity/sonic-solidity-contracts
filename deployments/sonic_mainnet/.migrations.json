@@ -65,8 +65,11 @@
   "1_setup_issuerv2": 1755241283,
   "2_setup_redeemerv2": 1755241315,
   "OdosSwapLogic": 1757485929,
-  "DLoopDepositorOdos": 1757485934,
-  "DLoopRedeemerOdos": 1757485937,
   "DLoopDecreaseLeverageOdos": 1757485941,
-  "DLoopIncreaseLeverageOdos": 1757485945
+  "DLoopIncreaseLeverageOdos": 1757485945,
+  "DLoopCoreLogic": 1757492866,
+  "DLoopCoreDLend": 1757492869,
+  "DLoopQuoter": 1757492869,
+  "DLoopDepositorOdos": 1757581126,
+  "DLoopRedeemerOdos": 1757581130
 }
