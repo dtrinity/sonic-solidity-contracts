@@ -231,8 +231,6 @@ abstract contract DLoopDepositorBase is
         return
             _finalizeDepositAndTransfer(
                 dLoopCore,
-                collateralToken,
-                debtToken,
                 collateralTokenBalancesBeforeAfter,
                 debtTokenBalancesBeforeAfter,
                 receiver,
@@ -391,8 +389,6 @@ abstract contract DLoopDepositorBase is
     /**
      * @dev Finalizes deposit by validating shares and transferring to receiver
      * @param dLoopCore The dLoopCore contract
-     * @param collateralToken The collateral token
-     * @param debtToken The debt token
      * @param collateralTokenBalancesBeforeAfter Collateral token balances before and after the deposit
      * @param debtTokenBalancesBeforeAfter Debt token balances before and after the deposit
      * @param receiver Address to receive the shares
@@ -403,8 +399,6 @@ abstract contract DLoopDepositorBase is
      */
     function _finalizeDepositAndTransfer(
         DLoopCoreBase dLoopCore,
-        ERC20 collateralToken,
-        ERC20 debtToken,
         SharedLogic.TokenBalancesBeforeAfter memory collateralTokenBalancesBeforeAfter,
         SharedLogic.TokenBalancesBeforeAfter memory debtTokenBalancesBeforeAfter,
         address receiver,
@@ -412,21 +406,6 @@ abstract contract DLoopDepositorBase is
         uint256 sharesAfterDeposit,
         uint256 minOutputShares
     ) internal returns (uint256 shares) {
-        /**
-         * Make sure the shares minted is not less than the minimum output shares
-         * for slippage protection
-         *
-         * We only perform slippage protection outside of the flash loan callback
-         * as we only need to care about the last state after the flash loan
-         */
-        shares = sharesAfterDeposit - sharesBeforeDeposit;
-        if (shares < minOutputShares) {
-            revert ReceivedSharesNotMetMinReceiveAmount(shares, minOutputShares);
-        }
-
-        // There is no leftover collateral token, as all swapped collateral token
-        // (using flash loaned debt token) is used to deposit to the core contract
-
         // Transfer any leftover debt tokens directly to the receiver
         {
             (uint256 leftoverDebtTokenAmount, bool success) = SharedLogic.transferLeftoverTokens(
@@ -434,7 +413,11 @@ abstract contract DLoopDepositorBase is
                 receiver
             );
             if (success) {
-                emit LeftoverDebtTokensTransferred(address(debtToken), leftoverDebtTokenAmount, receiver);
+                emit LeftoverDebtTokensTransferred(
+                    address(debtTokenBalancesBeforeAfter.token),
+                    leftoverDebtTokenAmount,
+                    receiver
+                );
             }
         }
 
@@ -446,11 +429,23 @@ abstract contract DLoopDepositorBase is
             );
             if (success) {
                 emit LeftoverCollateralTokensTransferred(
-                    address(collateralToken),
+                    address(collateralTokenBalancesBeforeAfter.token),
                     leftoverCollateralTokenAmount,
                     receiver
                 );
             }
+        }
+
+        /**
+         * Make sure the shares minted is not less than the minimum output shares
+         * for slippage protection
+         *
+         * We only perform slippage protection outside of the flash loan callback
+         * as we only need to care about the last state after the flash loan
+         */
+        shares = sharesAfterDeposit - sharesBeforeDeposit;
+        if (shares < minOutputShares) {
+            revert ReceivedSharesNotMetMinReceiveAmount(shares, minOutputShares);
         }
 
         // Transfer the minted shares to the receiver

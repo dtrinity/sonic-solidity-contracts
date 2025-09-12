@@ -395,11 +395,10 @@ abstract contract DLoopRedeemerBase is IERC3156FlashBorrower, Ownable, Reentranc
         address receiver,
         uint256 minOutputCollateralAmount
     ) internal returns (uint256 receivedCollateralTokenAmount) {
-        // Slippage protection
+        // Transfer any leftover collateral tokens directly to the receiver
         {
-            // Calculate the received collateral token amount after the flash loan
             if (
-                collateralTokenBalancesBeforeAfter.tokenBalanceAfter <=
+                collateralTokenBalancesBeforeAfter.tokenBalanceAfter <
                 collateralTokenBalancesBeforeAfter.tokenBalanceBefore
             ) {
                 revert UnexpectedDecreaseInCollateralTokenAfterFlashLoan(
@@ -408,37 +407,29 @@ abstract contract DLoopRedeemerBase is IERC3156FlashBorrower, Ownable, Reentranc
                 );
             }
 
-            // Make sure the received collateral token amount is not less than the minimum output collateral amount
-            // for slippage protection
+            // Now we know the collateral token balance increased after the flash loan
+            // so we can calculate the received collateral token amount
             receivedCollateralTokenAmount =
                 collateralTokenBalancesBeforeAfter.tokenBalanceAfter -
                 collateralTokenBalancesBeforeAfter.tokenBalanceBefore;
+
+            // Slippage protection
             if (receivedCollateralTokenAmount < minOutputCollateralAmount) {
                 revert WithdrawnCollateralTokenAmountNotMetMinReceiveAmount(
                     receivedCollateralTokenAmount,
                     minOutputCollateralAmount
                 );
             }
-        }
 
-        // Transfer any leftover collateral tokens directly to the receiver
-        {
-            (uint256 leftoverAmount, bool success) = SharedLogic.transferLeftoverTokens(
-                collateralTokenBalancesBeforeAfter,
+            // Transfer the received collateral token to the receiver
+            collateralTokenBalancesBeforeAfter.token.safeTransfer(receiver, receivedCollateralTokenAmount);
+
+            // This leftover amount includes the positive slippage in collateral token during swapping and the actual withdrawn collateral token amount
+            emit LeftoverCollateralTokensTransferred(
+                address(collateralTokenBalancesBeforeAfter.token),
+                receivedCollateralTokenAmount,
                 receiver
             );
-            if (success) {
-                emit LeftoverCollateralTokensTransferred(
-                    address(collateralTokenBalancesBeforeAfter.token),
-                    leftoverAmount,
-                    receiver
-                );
-            } else {
-                revert UnexpectedDecreaseInCollateralToken(
-                    collateralTokenBalancesBeforeAfter.tokenBalanceBefore,
-                    collateralTokenBalancesBeforeAfter.tokenBalanceAfter
-                );
-            }
         }
 
         // Transfer any leftover debt tokens directly to the receiver
