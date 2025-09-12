@@ -58,17 +58,17 @@ contract DLoopDecreaseLeverageOdos is DLoopDecreaseLeverageBase {
         address receiver,
         uint256 deadline,
         bytes memory collateralToDebtTokenSwapData
-    ) internal override returns (uint256) {
-        return
-            OdosSwapLogic.swapExactOutput(
-                inputToken,
-                outputToken,
-                amountOut,
-                amountInMaximum,
-                receiver,
-                deadline,
-                collateralToDebtTokenSwapData,
-                odosRouter
-            );
+    ) internal override {
+        // Do not need to track the spent input token amount, it will be checked in the SwappableVault contract
+        OdosSwapLogic.swapExactOutput(
+            inputToken,
+            outputToken,
+            amountOut,
+            amountInMaximum,
+            receiver,
+            deadline,
+            collateralToDebtTokenSwapData,
+            odosRouter
+        );
     }
 }

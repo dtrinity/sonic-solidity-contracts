@@ -28,9 +28,6 @@ import { OdosSwapLogic, IOdosRouterV2 } from "./OdosSwapLogic.sol";
 contract DLoopRedeemerOdos is DLoopRedeemerBase {
     IOdosRouterV2 public immutable odosRouter;
 
-    /* Errors */
-    error InputTokenBalanceDoesNotDecreaseAfterSwap(uint256 inputTokenBalanceBefore, uint256 inputTokenBalanceAfter);
-
     /**
      * @dev Constructor for the DLoopRedeemerOdos contract
      * @param _flashLender Address of the flash loan provider
@@ -96,9 +93,8 @@ contract DLoopRedeemerOdos is DLoopRedeemerBase {
         address receiver,
         uint256 deadline,
         bytes memory underlyingToDStableSwapData
-    ) internal override returns (uint256) {
-        // We check the actual spent amount of input token here, as the returned amount from Odos wrapper is not reliable
-        uint256 inputTokenBalanceBefore = inputToken.balanceOf(address(this));
+    ) internal override {
+        // Do not need to track the spent input token amount, it will be checked in the SwappableVault contract
         OdosSwapLogic.swapExactOutput(
             inputToken,
             outputToken,
@@ -109,12 +105,5 @@ contract DLoopRedeemerOdos is DLoopRedeemerBase {
             underlyingToDStableSwapData,
             odosRouter
         );
-        uint256 inputTokenBalanceAfter = inputToken.balanceOf(address(this));
-
-        if (inputTokenBalanceAfter >= inputTokenBalanceBefore) {
-            revert InputTokenBalanceDoesNotDecreaseAfterSwap(inputTokenBalanceBefore, inputTokenBalanceAfter);
-        }
-
-        return inputTokenBalanceBefore - inputTokenBalanceAfter;
     }
 }

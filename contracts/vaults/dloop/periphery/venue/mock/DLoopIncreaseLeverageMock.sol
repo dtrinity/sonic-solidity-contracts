@@ -62,17 +62,16 @@ contract DLoopIncreaseLeverageMock is DLoopIncreaseLeverageBase {
         address receiver,
         uint256, // deadline
         bytes memory // debtTokenToCollateralSwapData
-    ) internal override returns (uint256) {
+    ) internal override {
         // Approve the SimpleDEXMock to spend the input token
         inputToken.forceApprove(address(simpleDEXMock), amountInMaximum);
 
-        return
-            simpleDEXMock.executeSwapExactOutput(
-                IERC20Metadata(address(inputToken)),
-                IERC20Metadata(address(outputToken)),
-                amountOut,
-                amountInMaximum,
-                receiver
-            );
+        simpleDEXMock.executeSwapExactOutput(
+            IERC20Metadata(address(inputToken)),
+            IERC20Metadata(address(outputToken)),
+            amountOut,
+            amountInMaximum,
+            receiver
+        );
     }
 }

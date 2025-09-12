@@ -69,20 +69,19 @@ contract DLoopDepositorMock is DLoopDepositorBase {
         address receiver,
         uint256, // deadline
         bytes memory // dStableToUnderlyingSwapData
-    ) internal override returns (uint256) {
+    ) internal override {
         // Mock contract: Approve the SimpleDEXMock to spend the input token for testing
         require(
             inputToken.approve(address(simpleDEXMock), amountInMaximum),
             "Approve simpleDEXMock to spend input token failed"
         );
 
-        return
-            simpleDEXMock.executeSwapExactOutput(
-                IERC20Metadata(address(inputToken)),
-                IERC20Metadata(address(outputToken)),
-                amountOut,
-                amountInMaximum,
-                receiver
-            );
+        simpleDEXMock.executeSwapExactOutput(
+            IERC20Metadata(address(inputToken)),
+            IERC20Metadata(address(outputToken)),
+            amountOut,
+            amountInMaximum,
+            receiver
+        );
     }
 }

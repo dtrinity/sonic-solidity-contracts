@@ -26,7 +26,6 @@ import { OdosSwapLogic, IOdosRouterV2 } from "./OdosSwapLogic.sol";
  */
 contract DLoopDepositorOdos is DLoopDepositorBase {
     IOdosRouterV2 public immutable odosRouter;
-    error InputTokenBalanceDoesNotDecreaseAfterSwap(uint256 inputTokenBalanceBefore, uint256 inputTokenBalanceAfter);
     error LeveragedCollateralAmountLessThanAssets(uint256 leveragedCollateralAmount, uint256 assets);
 
     /**
@@ -85,9 +84,8 @@ contract DLoopDepositorOdos is DLoopDepositorBase {
         address receiver,
         uint256 deadline,
         bytes memory dStableToUnderlyingSwapData
-    ) internal override returns (uint256) {
-        // We check the actual spent amount of input token here, as the returned amount from Odos wrapper is not reliable
-        uint256 inputTokenBalanceBefore = inputToken.balanceOf(address(this));
+    ) internal override {
+        // Do not need to track the spent input token amount, it will be checked in the SwappableVault contract
         OdosSwapLogic.swapExactOutput(
             inputToken,
             outputToken,
@@ -98,12 +96,5 @@ contract DLoopDepositorOdos is DLoopDepositorBase {
             dStableToUnderlyingSwapData,
             odosRouter
         );
-        uint256 inputTokenBalanceAfter = inputToken.balanceOf(address(this));
-
-        if (inputTokenBalanceAfter >= inputTokenBalanceBefore) {
-            revert InputTokenBalanceDoesNotDecreaseAfterSwap(inputTokenBalanceBefore, inputTokenBalanceAfter);
-        }
-
-        return inputTokenBalanceBefore - inputTokenBalanceAfter;
     }
 }

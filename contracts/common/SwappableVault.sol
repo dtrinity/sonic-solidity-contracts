@@ -45,7 +45,6 @@ abstract contract SwappableVault {
      * @param receiver Address to receive the output assets
      * @param deadline Deadline for the swap
      * @param extraData Additional data for the swap
-     * @return amountIn Amount of input assets used for the swap
      */
     function _swapExactOutputImplementation(
         ERC20 inputToken,
@@ -55,7 +54,7 @@ abstract contract SwappableVault {
         address receiver,
         uint256 deadline,
         bytes memory extraData
-    ) internal virtual returns (uint256);
+    ) internal virtual;
 
     /**
      * @dev The difference tolerance for the swapped output amount
@@ -76,7 +75,7 @@ abstract contract SwappableVault {
      * @param receiver Address to receive the output assets
      * @param deadline Deadline for the swap
      * @param extraData Additional data for the swap
-     * @return amountIn Amount of input assets used for the swap
+     * @return spentInputTokenAmount Amount of input assets used for the swap
      */
     function _swapExactOutput(
         ERC20 inputToken,
@@ -86,12 +85,13 @@ abstract contract SwappableVault {
         address receiver,
         uint256 deadline,
         bytes memory extraData
-    ) internal returns (uint256) {
+    ) internal returns (uint256 spentInputTokenAmount) {
+        // Track the balances before the swap
         uint256 inputTokenBalanceBefore = inputToken.balanceOf(address(this));
         uint256 outputTokenBalanceBefore = outputToken.balanceOf(address(this));
 
         // Perform the swap
-        uint256 amountIn = _swapExactOutputImplementation(
+        _swapExactOutputImplementation(
             inputToken,
             outputToken,
             amountOut,
@@ -100,34 +100,27 @@ abstract contract SwappableVault {
             deadline,
             extraData
         );
+
+        // Track the balances after the swap
         uint256 inputTokenBalanceAfter = inputToken.balanceOf(address(this));
         uint256 outputTokenBalanceAfter = outputToken.balanceOf(address(this));
 
-        // Input token: if decreased, ensure not over max and within tolerance of amountIn
-        {
-            Compare.BalanceCheckResult memory inCheck = Compare.checkBalanceDelta(
-                inputTokenBalanceBefore,
-                inputTokenBalanceAfter,
-                amountIn,
-                BALANCE_DIFF_TOLERANCE,
-                Compare.BalanceDirection.Decrease
-            );
-            if (inCheck.directionOk) {
-                // First check: ensure we don't spend more than the maximum allowed
-                if (inCheck.observedDelta > amountInMaximum) {
-                    revert SpentInputTokenAmountGreaterThanAmountInMaximum(inCheck.observedDelta, amountInMaximum);
-                }
-                // Second check: ensure spent amount matches returned amount within tolerance
-                if (!inCheck.toleranceOk) {
-                    revert SpentInputTokenAmountNotEqualReturnedAmountIn(inCheck.observedDelta, amountIn);
-                }
+        // Input token: ensure the spent amount is not over max and within tolerance of amountIn
+        if (inputTokenBalanceAfter < inputTokenBalanceBefore) {
+            // Now we know the input token balance decreased after the swap, thus we can calculate the spent amount
+            spentInputTokenAmount = inputTokenBalanceBefore - inputTokenBalanceAfter;
+            // Slippage protection
+            if (spentInputTokenAmount > amountInMaximum) {
+                revert SpentInputTokenAmountGreaterThanAmountInMaximum(spentInputTokenAmount, amountInMaximum);
             }
-            // If not decreased, no checks needed (not a risk for the caller)
+        } else {
+            spentInputTokenAmount = 0;
         }
 
         // Output token: must increase and be within tolerance of amountOut
         {
             uint256 differenceTolerance = swappedOutputDifferenceToleranceAmount(amountOut);
+
             Compare.BalanceCheckResult memory outCheck = Compare.checkBalanceDelta(
                 outputTokenBalanceBefore,
                 outputTokenBalanceAfter,
@@ -143,6 +136,6 @@ abstract contract SwappableVault {
             }
         }
 
-        return amountIn;
+        return spentInputTokenAmount;
     }
 }
