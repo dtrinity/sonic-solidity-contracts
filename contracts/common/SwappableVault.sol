@@ -57,6 +57,13 @@ abstract contract SwappableVault {
         bytes memory extraData
     ) internal virtual returns (uint256);
 
+    /**
+     * @dev The difference tolerance for the swapped output amount
+     * @param expectedOutputAmount Expected output amount
+     * @return differenceTolerance The difference tolerance amount
+     */
+    function swappedOutputDifferenceToleranceAmount(uint256 expectedOutputAmount) public virtual returns (uint256);
+
     /* Swap functions */
 
     /**
@@ -120,11 +127,12 @@ abstract contract SwappableVault {
 
         // Output token: must increase and be within tolerance of amountOut
         {
+            uint256 differenceTolerance = swappedOutputDifferenceToleranceAmount(amountOut);
             Compare.BalanceCheckResult memory outCheck = Compare.checkBalanceDelta(
                 outputTokenBalanceBefore,
                 outputTokenBalanceAfter,
                 amountOut,
-                BALANCE_DIFF_TOLERANCE,
+                BALANCE_DIFF_TOLERANCE + differenceTolerance,
                 Compare.BalanceDirection.Increase
             );
             if (!outCheck.directionOk) {

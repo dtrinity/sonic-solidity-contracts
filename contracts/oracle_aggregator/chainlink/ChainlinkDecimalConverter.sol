@@ -25,6 +25,5 @@ import "./ChainlinkDecimalDownscaler.sol";
  * @dev This contract is deprecated. Use ChainlinkDecimalDownscaler for new deployments
  */
 contract ChainlinkDecimalConverter is ChainlinkDecimalDownscaler {
-    constructor(address _sourceFeed, uint8 _targetDecimals) 
-        ChainlinkDecimalDownscaler(_sourceFeed, _targetDecimals) {}
+    constructor(address _sourceFeed, uint8 _targetDecimals) ChainlinkDecimalDownscaler(_sourceFeed, _targetDecimals) {}
 }
