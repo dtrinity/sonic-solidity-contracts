@@ -4,6 +4,9 @@ import { Address } from "hardhat-deploy/types";
 
 import { getConfig } from "../../config/config";
 
+const BASE_DECIMALS = 8n;
+const BASE_UNIT = 10n ** BASE_DECIMALS;
+
 describe("ERC4626RateProviderThirdFeedWrapperWithThresholding", () => {
   let deployer: Address;
 
@@ -69,7 +72,7 @@ async function runTestsForCurrency(
         "ERC4626RateProviderThirdFeedWrapperWithThresholding",
         signer,
       );
-      wrapper = await Factory.deploy(BASE_CURRENCY_EXPECTED, BASE_UNIT);
+      wrapper = await Factory.deploy(BASE_CURRENCY_EXPECTED, BASE_UNIT.toString());
       await wrapper.waitForDeployment();
 
       // Deploy a mock ERC20 token to use as asset
@@ -346,7 +349,7 @@ async function runTestsForCurrency(
       it("should allow stale third feed when timeout is increased", async function () {
         // Increase stale timeout to 1 day
         await wrapper.setStaleTimeout(24 * 3600); // 24 hours
-        
+
         // Set third feed to be stale (updated 2 hours ago, but within 24 hour limit)
         const staleTimestamp = Math.floor(Date.now() / 1000) - 7200; // 2 hours ago
         await thirdFeed.setUpdatedAt(staleTimestamp);
@@ -358,7 +361,7 @@ async function runTestsForCurrency(
       it("should disable stale checks when timeout is set to 0", async function () {
         // Disable stale checks
         await wrapper.setStaleTimeout(0);
-        
+
         // Set third feed to be very stale (updated 1 week ago)
         const staleTimestamp = Math.floor(Date.now() / 1000) - (7 * 24 * 3600); // 1 week ago
         await thirdFeed.setUpdatedAt(staleTimestamp);
@@ -385,18 +388,18 @@ async function runTestsForCurrency(
     describe("Stale timeout management", () => {
       it("should allow ORACLE_MANAGER to update stale timeout", async function () {
         const newTimeout = 12 * 3600; // 12 hours
-        
+
         await expect(wrapper.setStaleTimeout(newTimeout))
           .to.emit(wrapper, "StaleTimeoutUpdated")
           .withArgs(3600, newTimeout); // Default is 3600 (1 hour)
-        
+
         expect(await wrapper.staleTimeoutSeconds()).to.equal(newTimeout);
       });
 
       it("should revert when non-ORACLE_MANAGER tries to update stale timeout", async function () {
         const [, unauthorized] = await ethers.getSigners();
         const role = await wrapper.ORACLE_MANAGER_ROLE();
-        
+
         await expect(wrapper.connect(unauthorized).setStaleTimeout(7200))
           .to.be.revertedWithCustomError(wrapper, "AccessControlUnauthorizedAccount")
           .withArgs(await unauthorized.getAddress(), role);
@@ -404,7 +407,7 @@ async function runTestsForCurrency(
 
       it("should revert when setting timeout greater than 30 days", async function () {
         const tooLongTimeout = 31 * 24 * 3600; // 31 days
-        
+
         await expect(wrapper.setStaleTimeout(tooLongTimeout))
           .to.be.revertedWithCustomError(wrapper, "InvalidStaleTimeout");
       });
@@ -413,7 +416,7 @@ async function runTestsForCurrency(
         await expect(wrapper.setStaleTimeout(0))
           .to.emit(wrapper, "StaleTimeoutUpdated")
           .withArgs(3600, 0);
-        
+
         expect(await wrapper.staleTimeoutSeconds()).to.equal(0);
       });
     });
