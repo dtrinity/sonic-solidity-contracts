@@ -40,7 +40,6 @@ contract AmoManagerV2 is OracleAware, ReentrancyGuard {
 
     /* Core state */
 
-    address public amoWallet;
     AmoDebtToken public immutable debtToken;
     IMintableERC20 public immutable dstable;
     address public collateralVault;
@@ -67,7 +66,6 @@ contract AmoManagerV2 is OracleAware, ReentrancyGuard {
         uint256 collateralAmount,
         uint256 debtBurned
     );
-    event AmoWalletSet(address indexed oldWallet, address indexed newWallet);
     event CollateralVaultSet(address indexed oldVault, address indexed newVault);
     event AmoWalletAllowedSet(address indexed wallet, bool allowed);
     event ToleranceSet(uint256 oldTolerance, uint256 newTolerance);
@@ -77,38 +75,28 @@ contract AmoManagerV2 is OracleAware, ReentrancyGuard {
     error UnsupportedVault(address vault);
     error UnsupportedCollateral(address asset);
     error UnsupportedAmoWallet(address wallet);
+    error DebtTokenProhibited();
     error InvariantViolation(uint256 pre, uint256 post);
-    error InvalidWallet(address wallet);
-    error CollateralVaultNotSet();
     error SlippageDebtMintTooLow(uint256 actualDebtMinted, uint256 minDebtMinted);
     error SlippageDebtBurnTooHigh(uint256 actualDebtBurned, uint256 maxDebtBurned);
-    error DebtTokenProhibited();
 
     /**
      * @notice Initializes the AmoManagerV2 contract
      * @param _oracle The oracle for price feeds
      * @param _debtToken The AMO debt token for unified accounting
      * @param _dstable The dUSD stablecoin token
-     * @param _amoWallet The initial AMO wallet address
      * @param _collateralVault The single accounting collateral vault address
      */
     constructor(
         IPriceOracleGetter _oracle,
         AmoDebtToken _debtToken,
         IMintableERC20 _dstable,
-        address _amoWallet,
         address _collateralVault
     ) OracleAware(_oracle, _oracle.BASE_CURRENCY_UNIT()) {
         debtToken = _debtToken;
         dstable = _dstable;
-        // Set tolerance to 1 wei - the smallest possible rounding error
-        // This is sufficient since all operations use the same decimals (18)
+        // Set tolerance to 1 base unit to allow for minimal rounding differences independent of decimals
         tolerance = 1;
-
-        if (_amoWallet == address(0)) {
-            revert InvalidWallet(_amoWallet);
-        }
-        amoWallet = _amoWallet;
 
         if (_collateralVault == address(0)) {
             revert UnsupportedVault(_collateralVault);
@@ -130,9 +118,6 @@ contract AmoManagerV2 is OracleAware, ReentrancyGuard {
         // Convert dUSD amount to base value for debt token minting
         uint256 debtAmount = baseToDebtUnits(dstableAmountToBaseValue(amount));
 
-        if (collateralVault == address(0)) {
-            revert CollateralVaultNotSet();
-        }
         if (!_allowedAmoWallets.contains(wallet)) {
             revert UnsupportedAmoWallet(wallet);
         }
@@ -154,9 +139,6 @@ contract AmoManagerV2 is OracleAware, ReentrancyGuard {
         // Convert dUSD amount to base value for debt token burning
         uint256 debtAmount = baseToDebtUnits(dstableAmountToBaseValue(amount));
 
-        if (collateralVault == address(0)) {
-            revert CollateralVaultNotSet();
-        }
         if (!_allowedAmoWallets.contains(wallet)) {
             revert UnsupportedAmoWallet(wallet);
         }
@@ -188,14 +170,14 @@ contract AmoManagerV2 is OracleAware, ReentrancyGuard {
         uint256 minDebtMinted
     ) external onlyRole(AMO_MANAGER_ROLE) nonReentrant {
         // Validate inputs
-        if (collateralVault == address(0)) {
-            revert CollateralVaultNotSet();
-        }
         if (!_allowedAmoWallets.contains(wallet)) {
             revert UnsupportedAmoWallet(wallet);
         }
         if (!CollateralVault(collateralVault).isCollateralSupported(asset)) {
             revert UnsupportedCollateral(asset);
+        }
+        if (asset == address(debtToken)) {
+            revert DebtTokenProhibited();
         }
 
         // Record pre-operation vault value
@@ -241,14 +223,14 @@ contract AmoManagerV2 is OracleAware, ReentrancyGuard {
         uint256 maxDebtBurned
     ) public onlyRole(AMO_MANAGER_ROLE) nonReentrant {
         // Validate inputs
-        if (collateralVault == address(0)) {
-            revert CollateralVaultNotSet();
-        }
         if (!_allowedAmoWallets.contains(wallet)) {
             revert UnsupportedAmoWallet(wallet);
         }
         if (!CollateralVault(collateralVault).isCollateralSupported(asset)) {
             revert UnsupportedCollateral(asset);
+        }
+        if (asset == address(debtToken)) {
+            revert DebtTokenProhibited();
         }
 
         // Record pre-operation vault value
@@ -320,32 +302,7 @@ contract AmoManagerV2 is OracleAware, ReentrancyGuard {
         return Math.mulDiv(dstableAmount, baseCurrencyUnit, 10 ** dstableDecimals);
     }
 
-    /**
-     * @notice Checks if two values are within tolerance
-     * @param value1 First value
-     * @param value2 Second value
-     * @return Whether the values are within tolerance
-     */
-    function _withinTolerance(uint256 value1, uint256 value2) internal view returns (bool) {
-        uint256 diff = value1 > value2 ? value1 - value2 : value2 - value1;
-        return diff <= tolerance;
-    }
-
     /* Admin Functions */
-
-    /**
-     * @notice Sets the AMO wallet address
-     * @param newWallet The new wallet address
-     * @dev Only callable by DEFAULT_ADMIN_ROLE
-     */
-    function setAmoWallet(address newWallet) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        if (newWallet == address(0)) {
-            revert InvalidWallet(newWallet);
-        }
-        address oldWallet = amoWallet;
-        amoWallet = newWallet;
-        emit AmoWalletSet(oldWallet, newWallet);
-    }
 
     /**
      * @notice Sets the single accounting collateral vault

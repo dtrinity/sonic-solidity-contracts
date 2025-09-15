@@ -118,15 +118,14 @@ function runTestsForDStable(
         oracleAggregatorAddress,
         await amoDebtToken.getAddress(),
         dstableInfo.address,
-        amoWallet,
         collateralVaultAddress,
       )) as AmoManagerV2;
       await amoManagerV2.waitForDeployment();
 
       // Set up roles
       defaultAdminRole = await amoDebtToken.DEFAULT_ADMIN_ROLE();
-      amoMinterRole = await amoDebtToken.AMO_MINTER_ROLE();
-      amoBorrowerRole = await amoDebtToken.AMO_BORROWER_ROLE();
+      amoMinterRole = await amoDebtToken.AMO_DECREASE_ROLE();
+      amoBorrowerRole = await amoDebtToken.AMO_INCREASE_ROLE();
       amoManagerRole = await amoManagerV2.AMO_MANAGER_ROLE();
       collateralWithdrawerRole = await collateralVaultContract.COLLATERAL_WITHDRAWER_ROLE();
 
@@ -438,7 +437,6 @@ function runTestsForDStable(
     describe("AmoManagerV2", () => {
       describe("Basic Properties", () => {
         it("should have correct initial configuration", async function () {
-          expect(await amoManagerV2.amoWallet()).to.equal(amoWallet);
           expect(await amoManagerV2.debtToken()).to.equal(await amoDebtToken.getAddress());
           expect(await amoManagerV2.dstable()).to.equal(await dstableContract.getAddress());
           // Tolerance defaults to 1 wei for minimal rounding errors
@@ -587,11 +585,10 @@ function runTestsForDStable(
               const expectedDebtAmount = await amoManagerV2.baseToDebtUnits(assetValue);
               expect(postDebtSupply - preDebtSupply).to.equal(expectedDebtAmount);
 
-              // Check invariant: vault value should be conserved (within tolerance)
+              // Check one-sided invariant: vault must not lose more than tolerance
               const tolerance = await amoManagerV2.tolerance();
-              const diff =
-                postVaultValue > preVaultValue ? postVaultValue - preVaultValue : preVaultValue - postVaultValue;
-              expect(diff).to.be.lte(tolerance);
+              const loss = postVaultValue < preVaultValue ? preVaultValue - postVaultValue : 0n;
+              expect(loss).to.be.lte(tolerance);
             });
 
             it(`should repay ${symbol} with invariant preservation`, async function () {
@@ -633,11 +630,10 @@ function runTestsForDStable(
               const expectedDebtAmount = await amoManagerV2.baseToDebtUnits(assetValue);
               expect(preDebtSupply - postDebtSupply).to.equal(expectedDebtAmount);
 
-              // Check invariant: vault value should be conserved (within tolerance)
+              // Check one-sided invariant: vault must not lose more than tolerance
               const tolerance = await amoManagerV2.tolerance();
-              const diff =
-                postVaultValue > preVaultValue ? postVaultValue - preVaultValue : preVaultValue - postVaultValue;
-              expect(diff).to.be.lte(tolerance);
+              const loss = postVaultValue < preVaultValue ? preVaultValue - postVaultValue : 0n;
+              expect(loss).to.be.lte(tolerance);
             });
 
             it(`should support repayWithPermit for ${symbol}`, async function () {
@@ -754,25 +750,6 @@ function runTestsForDStable(
       });
 
       describe("Admin Functions", () => {
-        it("should allow admin to set AMO wallet", async function () {
-          const currentWallet = await amoManagerV2.amoWallet();
-          const newWallet = user2;
-
-          await expect(amoManagerV2.setAmoWallet(newWallet))
-            .to.emit(amoManagerV2, "AmoWalletSet")
-            .withArgs(currentWallet, newWallet);
-
-          expect(await amoManagerV2.amoWallet()).to.equal(newWallet);
-
-          // restore for subsequent tests
-          await amoManagerV2.setAmoWallet(currentWallet);
-        });
-
-        it("should prevent setting zero address as wallet", async function () {
-          await expect(amoManagerV2.setAmoWallet(hre.ethers.ZeroAddress))
-            .to.be.revertedWithCustomError(amoManagerV2, "InvalidWallet")
-            .withArgs(hre.ethers.ZeroAddress);
-        });
 
         it("should allow admin to manage allowed AMO wallets", async function () {
           await expect(amoManagerV2.setAmoWalletAllowed(user2, true))
@@ -801,11 +778,6 @@ function runTestsForDStable(
 
         it("should prevent non-admin from admin functions", async function () {
           const nonAdminSigner = await hre.ethers.getSigner(user1);
-
-          await expect(amoManagerV2.connect(nonAdminSigner).setAmoWallet(user2)).to.be.revertedWithCustomError(
-            amoManagerV2,
-            "AccessControlUnauthorizedAccount",
-          );
 
           await expect(
             amoManagerV2.connect(nonAdminSigner).setAmoWalletAllowed(user2, true),
@@ -854,6 +826,91 @@ function runTestsForDStable(
           )
             .to.be.revertedWithCustomError(amoManagerV2, "UnsupportedCollateral")
             .withArgs(unsupportedCollateral);
+        });
+
+        it("should revert borrowTo with insufficient minDebtMinted (slippage protection)", async function () {
+          const symbol = collateralTokens.keys().next().value;
+          const { collateralToken, amount } = await setupCollateralTest(symbol);
+          const amoManagerSigner = await hre.ethers.getSigner(amoWallet);
+
+          // Calculate expected debt
+          const assetValue = await collateralVaultContract.assetValueFromAmount(
+            amount,
+            await collateralToken.getAddress()
+          );
+          const expectedDebtAmount = await amoManagerV2.baseToDebtUnits(assetValue);
+
+          // Set minDebtMinted to expectedDebt + 1 to trigger slippage error
+          const minDebtMinted = expectedDebtAmount + 1n;
+
+          await expect(
+            amoManagerV2
+              .connect(amoManagerSigner)
+              .borrowTo(amoWallet, await collateralToken.getAddress(), amount, minDebtMinted),
+          )
+            .to.be.revertedWithCustomError(amoManagerV2, "SlippageDebtMintTooLow")
+            .withArgs(expectedDebtAmount, minDebtMinted);
+        });
+
+        it("should revert repayFrom with insufficient maxDebtBurned (slippage protection)", async function () {
+          const symbol = collateralTokens.keys().next().value;
+          const { collateralToken, amount } = await setupCollateralTest(symbol);
+          const amoManagerSigner = await hre.ethers.getSigner(amoWallet);
+
+          // First borrow some collateral
+          await amoManagerV2
+            .connect(amoManagerSigner)
+            .borrowTo(amoWallet, await collateralToken.getAddress(), amount, 0);
+
+          // Approve manager to spend collateral
+          const amoWalletSigner2 = await hre.ethers.getSigner(amoWallet);
+          await collateralToken.connect(amoWalletSigner2).approve(await amoManagerV2.getAddress(), amount);
+
+          // Calculate expected debt burn
+          const assetValue = await collateralVaultContract.assetValueFromAmount(
+            amount,
+            await collateralToken.getAddress()
+          );
+          const expectedDebtAmount = await amoManagerV2.baseToDebtUnits(assetValue);
+
+          // Set maxDebtBurned to expectedDebt - 1 to trigger slippage error
+          const maxDebtBurned = expectedDebtAmount - 1n;
+
+          await expect(
+            amoManagerV2
+              .connect(amoManagerSigner)
+              .repayFrom(amoWallet, await collateralToken.getAddress(), amount, maxDebtBurned),
+          )
+            .to.be.revertedWithCustomError(amoManagerV2, "SlippageDebtBurnTooHigh")
+            .withArgs(expectedDebtAmount, maxDebtBurned);
+        });
+
+        it("should revert when attempting to use debt token as asset in borrowTo", async function () {
+          const amoManagerSigner = await hre.ethers.getSigner(amoWallet);
+          const amount = hre.ethers.parseUnits("100", 18);
+          const debtTokenAddress = await amoDebtToken.getAddress();
+
+          // The debt token is explicitly prohibited even if it's considered supported collateral
+          // This provides an additional safeguard against using debt tokens in AMO operations
+          await expect(
+            amoManagerV2.connect(amoManagerSigner).borrowTo(amoWallet, debtTokenAddress, amount, 0),
+          )
+            .to.be.revertedWithCustomError(amoManagerV2, "DebtTokenProhibited");
+        });
+
+        it("should revert when attempting to use debt token as asset in repayFrom", async function () {
+          const amoManagerSigner = await hre.ethers.getSigner(amoWallet);
+          const amount = hre.ethers.parseUnits("100", 18);
+          const debtTokenAddress = await amoDebtToken.getAddress();
+
+          // The debt token is explicitly prohibited even if it's considered supported collateral
+          // This provides an additional safeguard against using debt tokens in AMO operations
+          await expect(
+            amoManagerV2
+              .connect(amoManagerSigner)
+              .repayFrom(amoWallet, debtTokenAddress, amount, hre.ethers.MaxUint256),
+          )
+            .to.be.revertedWithCustomError(amoManagerV2, "DebtTokenProhibited");
         });
 
         it("should handle tolerance checks properly", async function () {

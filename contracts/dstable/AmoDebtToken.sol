@@ -37,8 +37,8 @@ contract AmoDebtToken is ERC20, AccessControl {
 
     /* Roles */
 
-    bytes32 public constant AMO_MINTER_ROLE = keccak256("AMO_MINTER_ROLE");
-    bytes32 public constant AMO_BORROWER_ROLE = keccak256("AMO_BORROWER_ROLE");
+    bytes32 public constant AMO_DECREASE_ROLE = keccak256("AMO_DECREASE_ROLE");
+    bytes32 public constant AMO_INCREASE_ROLE = keccak256("AMO_INCREASE_ROLE");
 
     /* Events */
 
@@ -113,9 +113,9 @@ contract AmoDebtToken is ERC20, AccessControl {
      * @notice Mints debt tokens to an allowlisted vault
      * @param vault The vault address to mint tokens to
      * @param amount The amount of tokens to mint
-     * @dev Only callable by AMO_MINTER_ROLE and vault must be allowlisted
+     * @dev Only callable by AMO_DECREASE_ROLE and vault must be allowlisted
      */
-    function mintToVault(address vault, uint256 amount) public onlyRole(AMO_MINTER_ROLE) {
+    function mintToVault(address vault, uint256 amount) public onlyRole(AMO_DECREASE_ROLE) {
         if (!_allowlist.contains(vault)) {
             revert InvalidVault(vault);
         }
@@ -126,9 +126,9 @@ contract AmoDebtToken is ERC20, AccessControl {
      * @notice Burns debt tokens from an allowlisted vault
      * @param vault The vault address to burn tokens from
      * @param amount The amount of tokens to burn
-     * @dev Only callable by AMO_BORROWER_ROLE and vault must be allowlisted
+     * @dev Only callable by AMO_INCREASE_ROLE and vault must be allowlisted
      */
-    function burnFromVault(address vault, uint256 amount) public onlyRole(AMO_BORROWER_ROLE) {
+    function burnFromVault(address vault, uint256 amount) public onlyRole(AMO_INCREASE_ROLE) {
         if (!_allowlist.contains(vault)) {
             revert InvalidVault(vault);
         }
@@ -138,9 +138,9 @@ contract AmoDebtToken is ERC20, AccessControl {
     /**
      * @notice Burns debt tokens held by the caller
      * @param amount The amount of tokens to burn
-     * @dev Only callable by AMO_BORROWER_ROLE. Intended for manager after withdrawing debt tokens
+     * @dev Only callable by AMO_INCREASE_ROLE. Intended for manager after withdrawing debt tokens
      */
-    function burn(uint256 amount) public onlyRole(AMO_BORROWER_ROLE) {
+    function burn(uint256 amount) public onlyRole(AMO_INCREASE_ROLE) {
         _burn(msg.sender, amount);
     }
 

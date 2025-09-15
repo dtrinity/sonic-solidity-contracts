@@ -76,9 +76,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     // Step 2: Deploy AMO Manager V2
     console.log(`  🏛️ Deploying ${amoConfig.name} AMO Manager V2...`);
 
-    // Initial configuration
-    const amoWallet = config.walletAddresses.governanceMultisig;
-
     const amoManagerDeployment = await deploy(amoConfig.amoManagerV2Id, {
       from: deployer,
       contract: "AmoManagerV2",
@@ -86,7 +83,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
         oracleDeployment.address,
         debtTokenDeployment.address,
         tokenDeployment.address,
-        amoWallet,
         collateralVaultDeployment.address,
       ],
       log: true,

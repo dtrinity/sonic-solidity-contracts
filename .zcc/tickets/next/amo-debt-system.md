@@ -56,8 +56,9 @@ Functional
     - `increaseAmoSupply(amount)`: mint debt tokens of equal value into the accounting vault; mint `amount` dUSD directly from the dUSD token (AmoManagerV2 holds MINTER_ROLE) to itself or a whitelisted AMO endpoint. Invariant: minted dUSD equals minted debt.
     - `decreaseAmoSupply(amount)`: burn dUSD held by the manager and burn equal debt from the accounting vault. Invariant: burned dUSD equals burned debt.
   - Collateral AMO (atomic):
-    - Borrow: require endpoint/vault allowlisted and `vault.isCollateralSupported(asset)`; pre = `vault.totalValue()`; mint debt equal to `assetValueFromAmount`; `vault.withdrawTo(endpoint, amount, asset)`; post = `vault.totalValue()`; enforce `|pre - post| <= tolerance`.
-    - Repay: require endpoint/vault allowlisted and `vault.isCollateralSupported(asset)`; pre = `vault.totalValue()`; `transferFrom(endpoint -> vault, amount)`; burn debt equal to `assetValueFromAmount`; post = `vault.totalValue()`; enforce `|pre - post| <= tolerance`.
+    - Borrow: require endpoint/vault allowlisted and `vault.isCollateralSupported(asset)`; pre = `vault.totalValue()`; mint debt equal to `assetValueFromAmount`; `vault.withdrawTo(endpoint, amount, asset)`; post = `vault.totalValue()`; enforce one-sided non-loss invariant: `post + tolerance >= pre` (allows vault to gain value but limits loss).
+    - Repay: require endpoint/vault allowlisted and `vault.isCollateralSupported(asset)`; pre = `vault.totalValue()`; `transferFrom(endpoint -> vault, amount)`; burn debt equal to `assetValueFromAmount`; post = `vault.totalValue()`; enforce one-sided non-loss invariant: `post + tolerance >= pre` (allows vault to gain value but limits loss).
+    - The one-sided invariant allows for benign scenarios where the vault can gain value (e.g., rounding asymmetry, intra-transaction oracle price updates) while preventing unauthorized value extraction.
     - Provide optional `repayWithPermit` overload for EIP‑2612 tokens; otherwise Safe batch (approve + repay) achieves single user‑level tx.
   - Views:
     - Optional telemetry only (e.g., expose total debt in base or per-endpoint counters). Core correctness relies solely on debt token supply and collateral/vault invariants.
@@ -80,12 +81,14 @@ Admin/Config
 
 - `contracts/dstable/AmoDebtToken.sol`
   - Inherit: OpenZeppelin `ERC20`, `AccessControl`.
-  - Roles: `DEFAULT_ADMIN_ROLE`, `AMO_MINTER_ROLE`, `AMO_BORROWER_ROLE`.
+  - Roles: `DEFAULT_ADMIN_ROLE`, `AMO_DECREASE_ROLE` (replaces AMO_MINTER_ROLE), `AMO_INCREASE_ROLE` (replaces AMO_BORROWER_ROLE).
+  - Note: Role renames for clarity - AMO_DECREASE_ROLE mints debt tokens (decreases AMO position), AMO_INCREASE_ROLE burns debt tokens (increases AMO position).
   - Allowlist: `EnumerableSet.AddressSet` for holders; only allowlisted can be sender or receiver in `_update` (applies to `transfer` and `transferFrom` regardless of allowances).
   - API:
     - `setAllowlisted(address, bool)` only admin.
-    - `mintToVault(address vault, uint256 amount)` only `AMO_MINTER_ROLE` and allowlisted `vault`.
-    - `burnFromVault(address vault, uint256 amount)` only `AMO_BORROWER_ROLE` and allowlisted `vault`.
+    - `mintToVault(address vault, uint256 amount)` only `AMO_DECREASE_ROLE` and allowlisted `vault`.
+    - `burnFromVault(address vault, uint256 amount)` only `AMO_INCREASE_ROLE` and allowlisted `vault`.
+    - `burn(uint256 amount)` only `AMO_INCREASE_ROLE` for manager to burn debt from its own balance.
   - Errors: `NotAllowlisted(address)`, `OnlyMinter()`, `OnlyBorrower()`, `InvalidVault(address)`.
   - Notes: Do not implement EIP‑2612 unless needed; keep minimal.
 

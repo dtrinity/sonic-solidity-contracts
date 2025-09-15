@@ -96,41 +96,41 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     console.log(`  🔐 Setting up roles and permissions...`);
 
     // 1. Grant roles on debt token to AMO Manager V2
-    const AMO_MINTER_ROLE = await debtToken.AMO_MINTER_ROLE();
-    const AMO_BORROWER_ROLE = await debtToken.AMO_BORROWER_ROLE();
+    const AMO_DECREASE_ROLE = await debtToken.AMO_DECREASE_ROLE();
+    const AMO_INCREASE_ROLE = await debtToken.AMO_INCREASE_ROLE();
 
-    if (!(await debtToken.hasRole(AMO_MINTER_ROLE, amoManagerDeployment.address))) {
+    if (!(await debtToken.hasRole(AMO_DECREASE_ROLE, amoManagerDeployment.address))) {
       const complete = await executor.tryOrQueue(
         async () => {
-          await debtToken.grantRole(AMO_MINTER_ROLE, amoManagerDeployment.address);
-          console.log(`    ✅ Granted AMO_MINTER_ROLE to AMO Manager V2`);
+          await debtToken.grantRole(AMO_DECREASE_ROLE, amoManagerDeployment.address);
+          console.log(`    ✅ Granted AMO_DECREASE_ROLE to AMO Manager V2`);
         },
         () => ({
           to: debtTokenDeployment.address,
           value: "0",
-          data: debtToken.interface.encodeFunctionData("grantRole", [AMO_MINTER_ROLE, amoManagerDeployment.address]),
+          data: debtToken.interface.encodeFunctionData("grantRole", [AMO_DECREASE_ROLE, amoManagerDeployment.address]),
         }),
       );
       if (!complete) allOperationsComplete = false;
     } else {
-      console.log(`    ✅ AMO_MINTER_ROLE already granted to AMO Manager V2`);
+      console.log(`    ✅ AMO_DECREASE_ROLE already granted to AMO Manager V2`);
     }
 
-    if (!(await debtToken.hasRole(AMO_BORROWER_ROLE, amoManagerDeployment.address))) {
+    if (!(await debtToken.hasRole(AMO_INCREASE_ROLE, amoManagerDeployment.address))) {
       const complete = await executor.tryOrQueue(
         async () => {
-          await debtToken.grantRole(AMO_BORROWER_ROLE, amoManagerDeployment.address);
-          console.log(`    ✅ Granted AMO_BORROWER_ROLE to AMO Manager V2`);
+          await debtToken.grantRole(AMO_INCREASE_ROLE, amoManagerDeployment.address);
+          console.log(`    ✅ Granted AMO_INCREASE_ROLE to AMO Manager V2`);
         },
         () => ({
           to: debtTokenDeployment.address,
           value: "0",
-          data: debtToken.interface.encodeFunctionData("grantRole", [AMO_BORROWER_ROLE, amoManagerDeployment.address]),
+          data: debtToken.interface.encodeFunctionData("grantRole", [AMO_INCREASE_ROLE, amoManagerDeployment.address]),
         }),
       );
       if (!complete) allOperationsComplete = false;
     } else {
-      console.log(`    ✅ AMO_BORROWER_ROLE already granted to AMO Manager V2`);
+      console.log(`    ✅ AMO_INCREASE_ROLE already granted to AMO Manager V2`);
     }
 
     // 2. Grant MINTER_ROLE on dStable to AMO Manager V2

@@ -139,10 +139,6 @@ function runDeploymentTestsForDStable(
       });
 
       it("should have correct AmoManagerV2 configuration", async function () {
-        const networkConfig1 = await getConfig(hre);
-        const expectedWallet = networkConfig1.walletAddresses.governanceMultisig;
-
-        expect(await amoManagerV2.amoWallet()).to.equal(expectedWallet);
         expect(await amoManagerV2.debtToken()).to.equal(amoDebtTokenAddress);
         expect(await amoManagerV2.dstable()).to.equal(await dstableContract.getAddress());
         // tolerance defaults to 1 wei for minimal rounding errors
@@ -154,12 +150,12 @@ function runDeploymentTestsForDStable(
     describe("Role Configuration Validation", () => {
       it("should have correct roles on AmoDebtToken", async function () {
         const DEFAULT_ADMIN_ROLE = await amoDebtToken.DEFAULT_ADMIN_ROLE();
-        const AMO_MINTER_ROLE = await amoDebtToken.AMO_MINTER_ROLE();
-        const AMO_BORROWER_ROLE = await amoDebtToken.AMO_BORROWER_ROLE();
+        const AMO_DECREASE_ROLE = await amoDebtToken.AMO_DECREASE_ROLE();
+        const AMO_INCREASE_ROLE = await amoDebtToken.AMO_INCREASE_ROLE();
 
-        // Check that AMO Manager V2 has minter and borrower roles
-        expect(await amoDebtToken.hasRole(AMO_MINTER_ROLE, amoManagerV2Address)).to.be.true;
-        expect(await amoDebtToken.hasRole(AMO_BORROWER_ROLE, amoManagerV2Address)).to.be.true;
+        // Check that AMO Manager V2 has decrease and increase roles
+        expect(await amoDebtToken.hasRole(AMO_DECREASE_ROLE, amoManagerV2Address)).to.be.true;
+        expect(await amoDebtToken.hasRole(AMO_INCREASE_ROLE, amoManagerV2Address)).to.be.true;
 
         // Check that governance has admin role after migration step
         const networkConfig2 = await getConfig(hre);
