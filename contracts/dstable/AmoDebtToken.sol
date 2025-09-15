@@ -162,7 +162,7 @@ contract AmoDebtToken is ERC20, AccessControl {
 
         super._update(from, to, value);
     }
-    
+
     /**
      * @notice Override transferFrom to also check msg.sender allowlist
      * @param from The address to transfer tokens from

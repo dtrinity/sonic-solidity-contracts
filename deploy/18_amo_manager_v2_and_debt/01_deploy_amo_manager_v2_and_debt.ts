@@ -1,7 +1,6 @@
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
 
-import { getConfig } from "../../config/config";
 import {
   DS_AMO_DEBT_TOKEN_ID,
   DS_AMO_MANAGER_V2_ID,
@@ -16,11 +15,9 @@ import {
 } from "../../typescript/deploy-ids";
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
-  const { deployments, getNamedAccounts, ethers } = hre;
+  const { deployments, getNamedAccounts } = hre;
   const { deploy } = deployments;
   const { deployer } = await getNamedAccounts();
-
-  const config = await getConfig(hre);
 
   console.log(`\n≻ ${__filename.split("/").slice(-2).join("/")}: executing...`);
 

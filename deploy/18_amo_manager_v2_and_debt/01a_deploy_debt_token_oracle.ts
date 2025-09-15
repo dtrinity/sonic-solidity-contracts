@@ -1,20 +1,18 @@
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
 
-import { getConfig } from "../../config/config";
 import {
-  DUSD_AMO_DEBT_TOKEN_ID,
   DS_AMO_DEBT_TOKEN_ID,
-  USD_ORACLE_AGGREGATOR_ID,
-  S_ORACLE_AGGREGATOR_ID,
-  DUSD_HARD_PEG_ORACLE_WRAPPER_ID,
   DS_HARD_PEG_ORACLE_WRAPPER_ID,
+  DUSD_AMO_DEBT_TOKEN_ID,
+  DUSD_HARD_PEG_ORACLE_WRAPPER_ID,
+  S_ORACLE_AGGREGATOR_ID,
+  USD_ORACLE_AGGREGATOR_ID,
 } from "../../typescript/deploy-ids";
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployments, ethers } = hre;
   const { deployer } = await hre.getNamedAccounts();
-  const config = await getConfig(hre);
 
   console.log(`\n≻ ${__filename.split("/").slice(-2).join("/")}: executing...`);
 
@@ -39,10 +37,11 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
     // Get the existing HardPegOracleWrapper deployment
     let hardPegDeployment;
+
     try {
       hardPegDeployment = await deployments.get(amoConfig.hardPegOracleId);
       console.log(`  ✅ Using existing HardPegOracleWrapper at ${hardPegDeployment.address}`);
-    } catch (error) {
+    } catch {
       console.log(`  ⚠️  HardPegOracleWrapper ${amoConfig.hardPegOracleId} not found`);
       console.log(`     Please ensure the dStable deployment has been run first`);
       continue;
@@ -73,7 +72,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     // Set the HardPegOracleWrapper as the oracle for the debt token
     try {
       const currentOracle = await oracleAggregator.assetOracles(debtTokenDeployment.address);
-      
+
       if (currentOracle === hardPegDeployment.address) {
         console.log(`  ✅ HardPegOracleWrapper already set for ${amoConfig.name} debt token`);
       } else {
@@ -86,7 +85,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       // Verify the price is correct
       const price = await oracleAggregator.getAssetPrice(debtTokenDeployment.address);
       const baseCurrencyUnit = await oracleAggregator.BASE_CURRENCY_UNIT();
-      
+
       if (price === baseCurrencyUnit) {
         console.log(`  ✅ Verified: ${amoConfig.name} debt token price is correctly set to 1.0`);
       } else {
