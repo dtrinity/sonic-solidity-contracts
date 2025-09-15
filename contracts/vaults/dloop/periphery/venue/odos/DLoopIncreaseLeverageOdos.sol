@@ -48,6 +48,18 @@ contract DLoopIncreaseLeverageOdos is DLoopIncreaseLeverageBase {
     }
 
     /**
+     * @dev Estimates the amount of collateral token to swap for the flash loan (swap from debt token to collateral token)
+     *      In this flow, we need to swap from the flashloaned debt tokens to collateral tokens
+     * @param rebalanceCollateralAmount The amount of collateral token to rebalance
+     * @return amount Amount of collateral token received from the swap
+     */
+    function estimateFlashLoanSwapOutputCollateralAmount(
+        uint256 rebalanceCollateralAmount
+    ) public pure returns (uint256) {
+        return rebalanceCollateralAmount;
+    }
+
+    /**
      * @dev Swaps an exact amount of output tokens for the minimum input tokens using Odos
      */
     function _swapExactOutputImplementation(
