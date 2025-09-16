@@ -87,7 +87,7 @@ describe("DLoopDepositorMock Deposit Tests", function () {
         const user = testCase.userIndex === 1 ? user1 : testCase.userIndex === 2 ? user2 : user3;
 
         // Calculate expected values
-        const expectedLeveragedAssets = await dLoopDepositorMock.getLeveragedAssets(testCase.depositAmount, dloopMock);
+        const expectedLeveragedAssets = await dLoopDepositorMock.testGetLeveragedAssets(testCase.depositAmount, dloopMock);
         const expectedShares = await dloopMock.convertToShares(expectedLeveragedAssets);
         const minOutputShares = await dLoopDepositorMock.calculateMinOutputShares(
           testCase.depositAmount,
@@ -404,7 +404,7 @@ describe("DLoopDepositorMock Deposit Tests", function () {
 
       for (const testCase of slippageTests) {
         // Get leveraged amount and estimated shares
-        const leveragedAmount = await dLoopDepositorMock.getLeveragedAssets(testCase.depositAmount, dloopMock);
+        const leveragedAmount = await dLoopDepositorMock.testGetLeveragedAssets(testCase.depositAmount, dloopMock);
         const estimatedShares = await dloopMock.previewDeposit(leveragedAmount);
 
         // Set minimum shares that would require negative slippage
@@ -655,7 +655,7 @@ describe("DLoopDepositorMock Deposit Tests", function () {
       const inputAssets = ethers.parseEther("10");
       const expectedLeveraged = (inputAssets * leverageBps) / BigInt(ONE_HUNDRED_PERCENT_BPS);
 
-      const actualLeveraged = await dLoopDepositorMock.getLeveragedAssets(inputAssets, dloopMock);
+      const actualLeveraged = await dLoopDepositorMock.testGetLeveragedAssets(inputAssets, dloopMock);
 
       expect(actualLeveraged).to.equal(expectedLeveraged);
     });

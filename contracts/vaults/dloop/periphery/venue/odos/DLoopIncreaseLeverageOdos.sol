@@ -37,6 +37,29 @@ contract DLoopIncreaseLeverageOdos is DLoopIncreaseLeverageBase {
     }
 
     /**
+     * @dev The difference tolerance for the swapped output amount
+     * @param expectedOutputAmount Expected output amount
+     * @return differenceTolerance The difference tolerance amount
+     */
+    function swappedOutputDifferenceToleranceAmount(
+        uint256 expectedOutputAmount
+    ) public pure override returns (uint256) {
+        return OdosSwapLogic.swappedOutputDifferenceToleranceAmount(expectedOutputAmount);
+    }
+
+    /**
+     * @dev Estimates the amount of collateral token to swap for the flash loan (swap from debt token to collateral token)
+     *      In this flow, we need to swap from the flashloaned debt tokens to collateral tokens
+     * @param rebalanceCollateralAmount The amount of collateral token to rebalance
+     * @return amount Amount of collateral token received from the swap
+     */
+    function estimateFlashLoanSwapOutputCollateralAmount(
+        uint256 rebalanceCollateralAmount
+    ) public pure returns (uint256) {
+        return rebalanceCollateralAmount;
+    }
+
+    /**
      * @dev Swaps an exact amount of output tokens for the minimum input tokens using Odos
      */
     function _swapExactOutputImplementation(
@@ -47,17 +70,17 @@ contract DLoopIncreaseLeverageOdos is DLoopIncreaseLeverageBase {
         address receiver,
         uint256 deadline,
         bytes memory debtTokenToCollateralSwapData
-    ) internal override returns (uint256) {
-        return
-            OdosSwapLogic.swapExactOutput(
-                inputToken,
-                outputToken,
-                amountOut,
-                amountInMaximum,
-                receiver,
-                deadline,
-                debtTokenToCollateralSwapData,
-                odosRouter
-            );
+    ) internal override {
+        // Do not need to track the spent input token amount, it will be checked in the SwappableVault contract
+        OdosSwapLogic.swapExactOutput(
+            inputToken,
+            outputToken,
+            amountOut,
+            amountInMaximum,
+            receiver,
+            deadline,
+            debtTokenToCollateralSwapData,
+            odosRouter
+        );
     }
 }

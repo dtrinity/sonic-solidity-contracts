@@ -44,6 +44,14 @@ contract DLoopIncreaseLeverageMock is DLoopIncreaseLeverageBase {
     }
 
     /**
+     * @dev The difference tolerance for the swapped output amount
+     * @return differenceTolerance The difference tolerance amount
+     */
+    function swappedOutputDifferenceToleranceAmount(uint256) public pure override returns (uint256) {
+        return 0;
+    }
+
+    /**
      * @dev Swaps an exact amount of output tokens for the minimum input tokens using SimpleDEXMock
      */
     function _swapExactOutputImplementation(
@@ -54,17 +62,16 @@ contract DLoopIncreaseLeverageMock is DLoopIncreaseLeverageBase {
         address receiver,
         uint256, // deadline
         bytes memory // debtTokenToCollateralSwapData
-    ) internal override returns (uint256) {
+    ) internal override {
         // Approve the SimpleDEXMock to spend the input token
         inputToken.forceApprove(address(simpleDEXMock), amountInMaximum);
 
-        return
-            simpleDEXMock.executeSwapExactOutput(
-                IERC20Metadata(address(inputToken)),
-                IERC20Metadata(address(outputToken)),
-                amountOut,
-                amountInMaximum,
-                receiver
-            );
+        simpleDEXMock.executeSwapExactOutput(
+            IERC20Metadata(address(inputToken)),
+            IERC20Metadata(address(outputToken)),
+            amountOut,
+            amountInMaximum,
+            receiver
+        );
     }
 }
