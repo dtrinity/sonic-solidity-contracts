@@ -48,7 +48,8 @@ contract AmoManagerV2 is OracleAware, ReentrancyGuard {
 
     /* Roles */
 
-    bytes32 public constant AMO_MANAGER_ROLE = keccak256("AMO_MANAGER_ROLE");
+    bytes32 public constant AMO_INCREASE_ROLE = keccak256("AMO_INCREASE_ROLE");
+    bytes32 public constant AMO_DECREASE_ROLE = keccak256("AMO_DECREASE_ROLE");
 
     /* Events */
 
@@ -112,36 +113,65 @@ contract AmoManagerV2 is OracleAware, ReentrancyGuard {
      * @notice Increases AMO supply by minting dUSD to a wallet and equal debt tokens to the vault atomically
      * @param amount The amount of dUSD to mint (debt tokens minted will equal this in base value)
      * @param wallet The AMO wallet to receive minted dUSD
-     * @dev Only callable by AMO_MANAGER_ROLE. Uses the single accounting vault
+     * @dev Only callable by AMO_INCREASE_ROLE. Ensures debt minted equals dUSD value
      */
-    function increaseAmoSupply(uint256 amount, address wallet) external onlyRole(AMO_MANAGER_ROLE) nonReentrant {
-        // Convert dUSD amount to base value for debt token minting
-        uint256 debtAmount = baseToDebtUnits(dstableAmountToBaseValue(amount));
-
+    function increaseAmoSupply(uint256 amount, address wallet) external onlyRole(AMO_INCREASE_ROLE) nonReentrant {
+        // Validate inputs
         if (!_allowedAmoWallets.contains(wallet)) {
             revert UnsupportedAmoWallet(wallet);
         }
+
+        // Convert dUSD amount to base value for debt token minting
+        uint256 dstableBaseValue = dstableAmountToBaseValue(amount);
+        uint256 debtAmount = baseToDebtUnits(dstableBaseValue);
+
+        // Record initial supplies
+        uint256 preDebtSupply = debtToken.totalSupply();
+        uint256 preDstableSupply = dstable.totalSupply();
 
         // Mint debt tokens to the accounting vault
         debtToken.mintToVault(collateralVault, debtAmount);
 
         // Mint dUSD to the AMO wallet
         dstable.mint(wallet, amount);
+
+        // Verify the supplies increased correctly
+        uint256 postDebtSupply = debtToken.totalSupply();
+        uint256 postDstableSupply = dstable.totalSupply();
+
+        // Invariant: debt token increase must match dUSD increase in base value terms
+        uint256 actualDebtIncrease = postDebtSupply - preDebtSupply;
+        uint256 actualDstableIncrease = postDstableSupply - preDstableSupply;
+        uint256 expectedDebtFromDstable = baseToDebtUnits(dstableAmountToBaseValue(actualDstableIncrease));
+
+        // Allow for minimal rounding difference
+        if (
+            actualDebtIncrease + tolerance < expectedDebtFromDstable ||
+            actualDebtIncrease > expectedDebtFromDstable + tolerance
+        ) {
+            revert InvariantViolation(expectedDebtFromDstable, actualDebtIncrease);
+        }
     }
 
     /**
      * @notice Decreases AMO supply by pulling dUSD from a wallet and burning equal debt tokens atomically
      * @param amount The amount of dUSD to burn (debt tokens burned will equal this in base value)
      * @param wallet The AMO wallet to pull dUSD from (must approve manager)
-     * @dev Only callable by AMO_MANAGER_ROLE. Withdraws debt tokens from vault to manager then burns
+     * @dev Only callable by AMO_DECREASE_ROLE. Ensures debt burned equals dUSD value
      */
-    function decreaseAmoSupply(uint256 amount, address wallet) external onlyRole(AMO_MANAGER_ROLE) nonReentrant {
-        // Convert dUSD amount to base value for debt token burning
-        uint256 debtAmount = baseToDebtUnits(dstableAmountToBaseValue(amount));
-
+    function decreaseAmoSupply(uint256 amount, address wallet) external onlyRole(AMO_DECREASE_ROLE) nonReentrant {
+        // Validate inputs
         if (!_allowedAmoWallets.contains(wallet)) {
             revert UnsupportedAmoWallet(wallet);
         }
+
+        // Convert dUSD amount to base value for debt token burning
+        uint256 dstableBaseValue = dstableAmountToBaseValue(amount);
+        uint256 debtAmount = baseToDebtUnits(dstableBaseValue);
+
+        // Record initial supplies
+        uint256 preDebtSupply = debtToken.totalSupply();
+        uint256 preDstableSupply = dstable.totalSupply();
 
         // Pull dUSD from the AMO wallet to this manager (requires prior approval)
         IERC20Metadata(address(dstable)).safeTransferFrom(wallet, address(this), amount);
@@ -152,6 +182,23 @@ contract AmoManagerV2 is OracleAware, ReentrancyGuard {
         // Withdraw debt tokens from the vault to this manager and burn them
         CollateralVault(collateralVault).withdrawTo(address(this), debtAmount, address(debtToken));
         debtToken.burn(debtAmount);
+
+        // Verify the supplies decreased correctly
+        uint256 postDebtSupply = debtToken.totalSupply();
+        uint256 postDstableSupply = dstable.totalSupply();
+
+        // Invariant: debt token decrease must match dUSD decrease in base value terms
+        uint256 actualDebtDecrease = preDebtSupply - postDebtSupply;
+        uint256 actualDstableDecrease = preDstableSupply - postDstableSupply;
+        uint256 expectedDebtFromDstable = baseToDebtUnits(dstableAmountToBaseValue(actualDstableDecrease));
+
+        // Allow for minimal rounding difference
+        if (
+            actualDebtDecrease + tolerance < expectedDebtFromDstable ||
+            actualDebtDecrease > expectedDebtFromDstable + tolerance
+        ) {
+            revert InvariantViolation(expectedDebtFromDstable, actualDebtDecrease);
+        }
     }
 
     /* Collateral AMO Operations */
@@ -168,7 +215,7 @@ contract AmoManagerV2 is OracleAware, ReentrancyGuard {
         address asset,
         uint256 amount,
         uint256 minDebtMinted
-    ) external onlyRole(AMO_MANAGER_ROLE) nonReentrant {
+    ) external onlyRole(AMO_INCREASE_ROLE) nonReentrant {
         // Validate inputs
         if (!_allowedAmoWallets.contains(wallet)) {
             revert UnsupportedAmoWallet(wallet);
@@ -221,7 +268,7 @@ contract AmoManagerV2 is OracleAware, ReentrancyGuard {
         address asset,
         uint256 amount,
         uint256 maxDebtBurned
-    ) public onlyRole(AMO_MANAGER_ROLE) nonReentrant {
+    ) public onlyRole(AMO_DECREASE_ROLE) nonReentrant {
         // Validate inputs
         if (!_allowedAmoWallets.contains(wallet)) {
             revert UnsupportedAmoWallet(wallet);
@@ -275,7 +322,7 @@ contract AmoManagerV2 is OracleAware, ReentrancyGuard {
         uint8 v,
         bytes32 r,
         bytes32 s
-    ) external onlyRole(AMO_MANAGER_ROLE) nonReentrant {
+    ) external onlyRole(AMO_DECREASE_ROLE) nonReentrant {
         IERC20Permit(asset).permit(wallet, address(this), amount, deadline, v, r, s);
         repayFrom(wallet, asset, amount, maxDebtBurned);
     }
@@ -369,27 +416,6 @@ contract AmoManagerV2 is OracleAware, ReentrancyGuard {
      */
     function getAllowedAmoWalletsLength() external view returns (uint256) {
         return _allowedAmoWallets.length();
-    }
-
-    /**
-     * @notice DEPRECATED: kept for ABI stability (always returns false)
-     */
-    function isEndpointAllowed(address) external pure returns (bool) {
-        return false;
-    }
-
-    /**
-     * @notice DEPRECATED: kept for ABI stability (always returns 0)
-     */
-    function getAllowedVaultsLength() external pure returns (uint256) {
-        return 0;
-    }
-
-    /**
-     * @notice DEPRECATED: kept for ABI stability (always returns 0)
-     */
-    function getAllowedEndpointsLength() external pure returns (uint256) {
-        return 0;
     }
 
     /**

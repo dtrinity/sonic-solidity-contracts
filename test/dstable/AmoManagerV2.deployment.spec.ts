@@ -165,13 +165,15 @@ function runDeploymentTestsForDStable(
 
       it("should have correct roles on AmoManagerV2", async function () {
         const DEFAULT_ADMIN_ROLE = await amoManagerV2.DEFAULT_ADMIN_ROLE();
-        const AMO_MANAGER_ROLE = await amoManagerV2.AMO_MANAGER_ROLE();
+        const AMO_INCREASE_ROLE = await amoManagerV2.AMO_INCREASE_ROLE();
+        const AMO_DECREASE_ROLE = await amoManagerV2.AMO_DECREASE_ROLE();
 
         const networkConfig3 = await getConfig(hre);
         const expectedWallet = networkConfig3.walletAddresses.governanceMultisig;
 
-        // Check that governance multisig has AMO manager role
-        expect(await amoManagerV2.hasRole(AMO_MANAGER_ROLE, expectedWallet)).to.be.true;
+        // Check that governance multisig has both AMO roles
+        expect(await amoManagerV2.hasRole(AMO_INCREASE_ROLE, expectedWallet)).to.be.true;
+        expect(await amoManagerV2.hasRole(AMO_DECREASE_ROLE, expectedWallet)).to.be.true;
 
         // Check that governance has admin role after migration step
         const networkConfig4 = await getConfig(hre);
