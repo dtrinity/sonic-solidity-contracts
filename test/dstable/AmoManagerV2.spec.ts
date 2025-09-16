@@ -56,8 +56,7 @@ function runTestsForDStable(
     let defaultAdminRole: string;
     let amoIncreaseRole: string;
     let amoDecreaseRole: string;
-    let amoMinterRole: string;
-    let amoBorrowerRole: string;
+    let amoManagerRole: string;
     let collateralWithdrawerRole: string;
 
     // Set up fixture for this specific dStable configuration
@@ -125,18 +124,15 @@ function runTestsForDStable(
 
       // Set up roles
       defaultAdminRole = await amoDebtToken.DEFAULT_ADMIN_ROLE();
-      amoMinterRole = await amoDebtToken.AMO_DECREASE_ROLE();
-      amoBorrowerRole = await amoDebtToken.AMO_INCREASE_ROLE();
+      amoManagerRole = await amoDebtToken.AMO_MANAGER_ROLE();
       amoIncreaseRole = await amoManagerV2.AMO_INCREASE_ROLE();
       amoDecreaseRole = await amoManagerV2.AMO_DECREASE_ROLE();
       collateralWithdrawerRole = await collateralVaultContract.COLLATERAL_WITHDRAWER_ROLE();
 
       // Grant roles to AmoManagerV2
-      await amoDebtToken.grantRole(amoMinterRole, await amoManagerV2.getAddress());
-      await amoDebtToken.grantRole(amoBorrowerRole, await amoManagerV2.getAddress());
+      await amoDebtToken.grantRole(amoManagerRole, await amoManagerV2.getAddress());
       // Also grant roles to deployer for direct token tests below
-      await amoDebtToken.grantRole(amoMinterRole, deployer);
-      await amoDebtToken.grantRole(amoBorrowerRole, deployer);
+      await amoDebtToken.grantRole(amoManagerRole, deployer);
       await amoManagerV2.grantRole(amoIncreaseRole, amoWallet);
       await amoManagerV2.grantRole(amoDecreaseRole, amoWallet);
       await collateralVaultContract.grantRole(collateralWithdrawerRole, await amoManagerV2.getAddress());
@@ -166,10 +162,7 @@ function runTestsForDStable(
       // Grant ORACLE_MANAGER_ROLE to deployer and set the oracle
       const oracleManagerRole = await oracleAggregatorContract.ORACLE_MANAGER_ROLE();
       await oracleAggregatorContract.grantRole(oracleManagerRole, deployer);
-      await oracleAggregatorContract.setOracle(
-        await amoDebtToken.getAddress(),
-        await hardPegOracle.getAddress(),
-      );
+      await oracleAggregatorContract.setOracle(await amoDebtToken.getAddress(), await hardPegOracle.getAddress());
 
       // Add debt token as supported collateral in the vault
       await collateralVaultContract.allowCollateral(await amoDebtToken.getAddress());
@@ -218,8 +211,7 @@ function runTestsForDStable(
 
         it("should have correct role assignments", async function () {
           expect(await amoDebtToken.hasRole(defaultAdminRole, deployer)).to.be.true;
-          expect(await amoDebtToken.hasRole(amoMinterRole, await amoManagerV2.getAddress())).to.be.true;
-          expect(await amoDebtToken.hasRole(amoBorrowerRole, await amoManagerV2.getAddress())).to.be.true;
+          expect(await amoDebtToken.hasRole(amoManagerRole, await amoManagerV2.getAddress())).to.be.true;
         });
       });
 
@@ -754,7 +746,6 @@ function runTestsForDStable(
       });
 
       describe("Admin Functions", () => {
-
         it("should allow admin to manage allowed AMO wallets", async function () {
           await expect(amoManagerV2.setAmoWalletAllowed(user2, true))
             .to.emit(amoManagerV2, "AmoWalletAllowedSet")
@@ -796,9 +787,7 @@ function runTestsForDStable(
 
       describe("Error Cases and Edge Conditions", () => {
         it("should revert when trying to set vault to zero address", async function () {
-          await expect(
-            amoManagerV2.setCollateralVault(hre.ethers.ZeroAddress)
-          )
+          await expect(amoManagerV2.setCollateralVault(hre.ethers.ZeroAddress))
             .to.be.revertedWithCustomError(amoManagerV2, "UnsupportedVault")
             .withArgs(hre.ethers.ZeroAddress);
         });
@@ -825,9 +814,7 @@ function runTestsForDStable(
           // Use debt token address as unsupported collateral (it's not added to vault's supported collaterals)
           const unsupportedCollateral = await dstableContract.getAddress();
 
-          await expect(
-            amoManagerV2.connect(amoManagerSigner).borrowTo(amoWallet, unsupportedCollateral, amount, 0),
-          )
+          await expect(amoManagerV2.connect(amoManagerSigner).borrowTo(amoWallet, unsupportedCollateral, amount, 0))
             .to.be.revertedWithCustomError(amoManagerV2, "UnsupportedCollateral")
             .withArgs(unsupportedCollateral);
         });
@@ -840,7 +827,7 @@ function runTestsForDStable(
           // Calculate expected debt
           const assetValue = await collateralVaultContract.assetValueFromAmount(
             amount,
-            await collateralToken.getAddress()
+            await collateralToken.getAddress(),
           );
           const expectedDebtAmount = await amoManagerV2.baseToDebtUnits(assetValue);
 
@@ -873,7 +860,7 @@ function runTestsForDStable(
           // Calculate expected debt burn
           const assetValue = await collateralVaultContract.assetValueFromAmount(
             amount,
-            await collateralToken.getAddress()
+            await collateralToken.getAddress(),
           );
           const expectedDebtAmount = await amoManagerV2.baseToDebtUnits(assetValue);
 
@@ -898,8 +885,7 @@ function runTestsForDStable(
           // This provides an additional safeguard against using debt tokens in AMO operations
           await expect(
             amoManagerV2.connect(amoManagerSigner).borrowTo(amoWallet, debtTokenAddress, amount, 0),
-          )
-            .to.be.revertedWithCustomError(amoManagerV2, "DebtTokenProhibited");
+          ).to.be.revertedWithCustomError(amoManagerV2, "DebtTokenProhibited");
         });
 
         it("should revert when attempting to use debt token as asset in repayFrom", async function () {
@@ -913,8 +899,7 @@ function runTestsForDStable(
             amoManagerV2
               .connect(amoManagerSigner)
               .repayFrom(amoWallet, debtTokenAddress, amount, hre.ethers.MaxUint256),
-          )
-            .to.be.revertedWithCustomError(amoManagerV2, "DebtTokenProhibited");
+          ).to.be.revertedWithCustomError(amoManagerV2, "DebtTokenProhibited");
         });
 
         it("should handle tolerance checks properly", async function () {
@@ -932,11 +917,11 @@ function runTestsForDStable(
 
           // Verify the operation succeeded
           expect(await amoDebtToken.totalSupply()).to.be.gt(0);
-          
+
           // Verify vault value is preserved within tolerance
           const vaultValue = await collateralVaultContract.totalValue();
           const debtValue = await amoDebtToken.totalSupply(); // Since it's pegged at 1:1 with base
-          
+
           // The vault should have roughly equal value (collateral withdrawn = debt minted)
           expect(vaultValue).to.be.gte(0); // Vault still has value
         });

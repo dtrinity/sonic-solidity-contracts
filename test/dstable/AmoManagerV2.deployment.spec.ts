@@ -150,12 +150,10 @@ function runDeploymentTestsForDStable(
     describe("Role Configuration Validation", () => {
       it("should have correct roles on AmoDebtToken", async function () {
         const DEFAULT_ADMIN_ROLE = await amoDebtToken.DEFAULT_ADMIN_ROLE();
-        const AMO_DECREASE_ROLE = await amoDebtToken.AMO_DECREASE_ROLE();
-        const AMO_INCREASE_ROLE = await amoDebtToken.AMO_INCREASE_ROLE();
+        const AMO_MANAGER_ROLE = await amoDebtToken.AMO_MANAGER_ROLE();
 
         // Check that AMO Manager V2 has decrease and increase roles
-        expect(await amoDebtToken.hasRole(AMO_DECREASE_ROLE, amoManagerV2Address)).to.be.true;
-        expect(await amoDebtToken.hasRole(AMO_INCREASE_ROLE, amoManagerV2Address)).to.be.true;
+        expect(await amoDebtToken.hasRole(AMO_MANAGER_ROLE, amoManagerV2Address)).to.be.true;
 
         // Check that governance has admin role after migration step
         const networkConfig2 = await getConfig(hre);

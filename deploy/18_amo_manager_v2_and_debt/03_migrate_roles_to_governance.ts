@@ -3,7 +3,12 @@ import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
 
 import { getConfig } from "../../config/config";
-import { DS_AMO_DEBT_TOKEN_ID, DS_AMO_MANAGER_V2_ID, DUSD_AMO_DEBT_TOKEN_ID, DUSD_AMO_MANAGER_V2_ID } from "../../typescript/deploy-ids";
+import {
+  DS_AMO_DEBT_TOKEN_ID,
+  DS_AMO_MANAGER_V2_ID,
+  DUSD_AMO_DEBT_TOKEN_ID,
+  DUSD_AMO_MANAGER_V2_ID,
+} from "../../typescript/deploy-ids";
 import { ensureDefaultAdminExistsAndRevokeFrom } from "../../typescript/hardhat/access_control";
 import { GovernanceExecutor } from "../../typescript/hardhat/governance";
 
@@ -132,8 +137,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       contractName: "AmoDebtToken",
       roles: [
         { name: "DEFAULT_ADMIN_ROLE", hash: ZERO_BYTES_32 },
-        { name: "AMO_DECREASE_ROLE", hash: undefined }, // Will be fetched dynamically
-        { name: "AMO_INCREASE_ROLE", hash: undefined },
+        { name: "AMO_MANAGER_ROLE", hash: undefined },
       ],
     },
     {
@@ -142,8 +146,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       contractName: "AmoDebtToken",
       roles: [
         { name: "DEFAULT_ADMIN_ROLE", hash: ZERO_BYTES_32 },
-        { name: "AMO_DECREASE_ROLE", hash: undefined },
-        { name: "AMO_INCREASE_ROLE", hash: undefined },
+        { name: "AMO_MANAGER_ROLE", hash: undefined },
       ],
     },
     {
