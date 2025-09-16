@@ -152,7 +152,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       contractName: "AmoManagerV2",
       roles: [
         { name: "DEFAULT_ADMIN_ROLE", hash: ZERO_BYTES_32 },
-        { name: "AMO_MANAGER_ROLE", hash: undefined },
+        { name: "AMO_INCREASE_ROLE", hash: undefined },
+        { name: "AMO_DECREASE_ROLE", hash: undefined },
       ],
     },
     {
@@ -161,7 +162,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       contractName: "AmoManagerV2",
       roles: [
         { name: "DEFAULT_ADMIN_ROLE", hash: ZERO_BYTES_32 },
-        { name: "AMO_MANAGER_ROLE", hash: undefined },
+        { name: "AMO_INCREASE_ROLE", hash: undefined },
+        { name: "AMO_DECREASE_ROLE", hash: undefined },
       ],
     },
   ];

@@ -54,7 +54,8 @@ function runTestsForDStable(
 
     // Roles
     let defaultAdminRole: string;
-    let amoManagerRole: string;
+    let amoIncreaseRole: string;
+    let amoDecreaseRole: string;
     let amoMinterRole: string;
     let amoBorrowerRole: string;
     let collateralWithdrawerRole: string;
@@ -126,7 +127,8 @@ function runTestsForDStable(
       defaultAdminRole = await amoDebtToken.DEFAULT_ADMIN_ROLE();
       amoMinterRole = await amoDebtToken.AMO_DECREASE_ROLE();
       amoBorrowerRole = await amoDebtToken.AMO_INCREASE_ROLE();
-      amoManagerRole = await amoManagerV2.AMO_MANAGER_ROLE();
+      amoIncreaseRole = await amoManagerV2.AMO_INCREASE_ROLE();
+      amoDecreaseRole = await amoManagerV2.AMO_DECREASE_ROLE();
       collateralWithdrawerRole = await collateralVaultContract.COLLATERAL_WITHDRAWER_ROLE();
 
       // Grant roles to AmoManagerV2
@@ -135,7 +137,8 @@ function runTestsForDStable(
       // Also grant roles to deployer for direct token tests below
       await amoDebtToken.grantRole(amoMinterRole, deployer);
       await amoDebtToken.grantRole(amoBorrowerRole, deployer);
-      await amoManagerV2.grantRole(amoManagerRole, amoWallet);
+      await amoManagerV2.grantRole(amoIncreaseRole, amoWallet);
+      await amoManagerV2.grantRole(amoDecreaseRole, amoWallet);
       await collateralVaultContract.grantRole(collateralWithdrawerRole, await amoManagerV2.getAddress());
 
       // Grant MINTER_ROLE on dStable to AmoManagerV2
@@ -446,7 +449,8 @@ function runTestsForDStable(
 
         it("should have correct role assignments", async function () {
           expect(await amoManagerV2.hasRole(defaultAdminRole, deployer)).to.be.true;
-          expect(await amoManagerV2.hasRole(amoManagerRole, amoWallet)).to.be.true;
+          expect(await amoManagerV2.hasRole(amoIncreaseRole, amoWallet)).to.be.true;
+          expect(await amoManagerV2.hasRole(amoDecreaseRole, amoWallet)).to.be.true;
         });
 
         it("should have correct allowlist setup", async function () {
