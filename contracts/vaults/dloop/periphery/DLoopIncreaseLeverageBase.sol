@@ -307,6 +307,9 @@ abstract contract DLoopIncreaseLeverageBase is
             address(debtToken)
         );
 
+        // Multiply by 2 to avoid overflow issue
+        requiredFlashLoanAmount *= 2;
+
         // Check if flash loan amount is available
         uint256 maxFlashLoanAmount = flashLender.maxFlashLoan(address(debtToken)) / 10; // Only flash loan 1/10 of the max amount to avoid overflow issue
         if (requiredFlashLoanAmount > maxFlashLoanAmount) {
