@@ -17,6 +17,7 @@ export interface Config {
   readonly dLend: DLendConfig;
   readonly odos?: {
     readonly router: string;
+    readonly pendleRouter?: string;
   };
   readonly pendle?: PendleConfig;
   readonly dLoop: {
