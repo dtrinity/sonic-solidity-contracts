@@ -2,7 +2,7 @@ import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
 
 import { getConfig } from "../../../config/config";
-import { POOL_ADDRESSES_PROVIDER_ID, POOL_DATA_PROVIDER_ID } from "../../../typescript/deploy-ids";
+import { POOL_ADDRESS_PROVIDER_REGISTRY_ID, POOL_ADDRESSES_PROVIDER_ID, POOL_DATA_PROVIDER_ID } from "../../../typescript/deploy-ids";
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployer } = await hre.getNamedAccounts();
@@ -33,7 +33,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   // 3. Add AddressesProvider to Registry
   const registryContract = await hre.ethers.getContractAt(
     "PoolAddressesProviderRegistry",
-    (await hre.deployments.get("PoolAddressesProviderRegistry")).address,
+    (await hre.deployments.get(POOL_ADDRESS_PROVIDER_REGISTRY_ID)).address,
     await hre.ethers.getSigner(deployer),
   );
 
@@ -63,7 +63,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 };
 
 // This script can only be run successfully once per market (the deployment on each network will be in a dedicated directory), core version
-func.id = `PoolAddressesProvider`;
+func.id = POOL_ADDRESSES_PROVIDER_ID;
 func.tags = ["dlend", "dlend-market"];
 func.dependencies = ["dlend-core", "dlend-periphery-pre"];
 

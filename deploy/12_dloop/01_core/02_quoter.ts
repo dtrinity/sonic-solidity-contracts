@@ -2,7 +2,7 @@ import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
 
 import { getConfig } from "../../../config/config";
-import { DLOOP_QUOTER_ID } from "../../../typescript/deploy-ids";
+import { DLOOP_CORE_LOGIC_ID, DLOOP_QUOTER_ID } from "../../../typescript/deploy-ids";
 
 /**
  * Deploy DLoopQuoter contract
@@ -21,7 +21,7 @@ async function deployDLoopQuoter(hre: HardhatRuntimeEnvironment, deployer: strin
     log: true,
     autoMine: true,
     libraries: {
-      DLoopCoreLogic: (await hre.deployments.get("DLoopCoreLogic")).address,
+      DLoopCoreLogic: (await hre.deployments.get(DLOOP_CORE_LOGIC_ID)).address,
     },
   });
 

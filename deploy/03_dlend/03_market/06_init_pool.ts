@@ -68,15 +68,32 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   const flashLoanPremium = config.dLend.flashLoanPremium;
 
-  // Set total Flash Loan Premium
-  const updateFlashloanPremiumTotalResponse = await poolConfiguratorContract.updateFlashloanPremiumTotal(flashLoanPremium.total);
-  await updateFlashloanPremiumTotalResponse.wait();
+  // Get Pool contract to check current flash loan premium values
+  const poolContract = await hre.ethers.getContractAt("Pool", poolAddressProviderAddress, signer);
 
-  // Set protocol Flash Loan Premium
-  const updateFlashloanPremiumToProtocolResponse = await poolConfiguratorContract.updateFlashloanPremiumToProtocol(
-    flashLoanPremium.protocol,
-  );
-  await updateFlashloanPremiumToProtocolResponse.wait();
+  // Check and set total Flash Loan Premium
+  const currentTotalPremium = await poolContract.FLASHLOAN_PREMIUM_TOTAL();
+
+  if (currentTotalPremium.toString() !== flashLoanPremium.total.toString()) {
+    const updateFlashloanPremiumTotalResponse = await poolConfiguratorContract.updateFlashloanPremiumTotal(flashLoanPremium.total);
+    await updateFlashloanPremiumTotalResponse.wait();
+    console.log(`Updated flash loan premium total from ${currentTotalPremium} to ${flashLoanPremium.total}`);
+  } else {
+    console.log(`Flash loan premium total already set to ${flashLoanPremium.total}. Skipping.`);
+  }
+
+  // Check and set protocol Flash Loan Premium
+  const currentProtocolPremium = await poolContract.FLASHLOAN_PREMIUM_TO_PROTOCOL();
+
+  if (currentProtocolPremium.toString() !== flashLoanPremium.protocol.toString()) {
+    const updateFlashloanPremiumToProtocolResponse = await poolConfiguratorContract.updateFlashloanPremiumToProtocol(
+      flashLoanPremium.protocol,
+    );
+    await updateFlashloanPremiumToProtocolResponse.wait();
+    console.log(`Updated flash loan premium to protocol from ${currentProtocolPremium} to ${flashLoanPremium.protocol}`);
+  } else {
+    console.log(`Flash loan premium to protocol already set to ${flashLoanPremium.protocol}. Skipping.`);
+  }
 
   console.log(`🏦 ${__filename.split("/").slice(-2).join("/")}: ✅`);
 
