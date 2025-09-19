@@ -5,12 +5,7 @@ import { DeployFunction } from "hardhat-deploy/types";
 import { getConfig } from "../../config/config";
 import { DLendRewardManagerConfig, DStakeInstanceConfig } from "../../config/types";
 import { DStakeRewardManagerDLend } from "../../typechain-types";
-import {
-  EMISSION_MANAGER_ID,
-  INCENTIVES_PROXY_ID,
-  POOL_ADDRESSES_PROVIDER_ID,
-  POOL_DATA_PROVIDER_ID,
-} from "../../typescript/deploy-ids";
+import { EMISSION_MANAGER_ID, INCENTIVES_PROXY_ID, POOL_ADDRESSES_PROVIDER_ID, POOL_DATA_PROVIDER_ID } from "../../typescript/deploy-ids";
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployments, getNamedAccounts } = hre;
@@ -29,6 +24,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   const ensureIncentivesProxyAddress = async (): Promise<string> => {
     const existing = await getOrNull(INCENTIVES_PROXY_ID);
+
     if (existing?.address && existing.address !== ethers.ZeroAddress) {
       return existing.address;
     }
@@ -189,9 +185,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     const deployerIsOwner = emissionOwner.toLowerCase() === deployer.toLowerCase();
 
     if (deployerIsOwner && currentRewardsController.toLowerCase() !== incentivesProxyAddress.toLowerCase()) {
-      const tx = await emissionManager
-        .connect(deployerSigner)
-        .setRewardsController(incentivesProxyAddress);
+      const tx = await emissionManager.connect(deployerSigner).setRewardsController(incentivesProxyAddress);
       await tx.wait();
     }
 

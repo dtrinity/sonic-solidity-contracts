@@ -2,12 +2,7 @@ import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
 
 import { getConfig } from "../../config/config";
-import {
-  ACL_MANAGER_ID,
-  EMISSION_MANAGER_ID,
-  POOL_ADDRESSES_PROVIDER_ID,
-  RESERVES_SETUP_HELPER_ID,
-} from "../../typescript/deploy-ids";
+import { ACL_MANAGER_ID, EMISSION_MANAGER_ID, POOL_ADDRESSES_PROVIDER_ID, RESERVES_SETUP_HELPER_ID } from "../../typescript/deploy-ids";
 import { ZERO_BYTES_32 } from "../../typescript/dlend/constants";
 import { isMainnet } from "../../typescript/hardhat/deploy";
 
@@ -43,11 +38,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       console.log(`\n  📄 DLEND ACL ROLES`);
 
       const aclManagerContract = await ethers.getContractAt("ACLManager", aclManager.address, deployerSigner);
-      const addressesProviderContract = await ethers.getContractAt(
-        "PoolAddressesProvider",
-        addressesProvider.address,
-        deployerSigner,
-      );
+      const addressesProviderContract = await ethers.getContractAt("PoolAddressesProvider", addressesProvider.address, deployerSigner);
 
       // Set ACL admin on AddressesProvider
       const currentAclAdmin = await addressesProviderContract.getACLAdmin();
@@ -128,11 +119,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     if (emissionManager) {
       console.log(`\n  📄 EMISSION MANAGER ROLES`);
 
-      const emissionManagerContract = await ethers.getContractAt(
-        "EmissionManager",
-        emissionManager.address,
-        deployerSigner,
-      );
+      const emissionManagerContract = await ethers.getContractAt("EmissionManager", emissionManager.address, deployerSigner);
 
       const currentOwner = await emissionManagerContract.owner();
 
@@ -158,11 +145,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     if (reservesSetupHelper) {
       console.log(`\n  📄 RESERVES SETUP HELPER OWNERSHIP`);
 
-      const reservesSetupHelperContract = await ethers.getContractAt(
-        "ReservesSetupHelper",
-        reservesSetupHelper.address,
-        deployerSigner,
-      );
+      const reservesSetupHelperContract = await ethers.getContractAt("ReservesSetupHelper", reservesSetupHelper.address, deployerSigner);
 
       const currentOwner = await reservesSetupHelperContract.owner();
 

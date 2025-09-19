@@ -63,10 +63,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const proxyMissing = proxyAddress === ZeroAddress;
 
   if (proxyMissing) {
-    const setRewardsAsProxyTx = await addressesProviderInstance.setAddressAsProxy(
-      incentivesControllerId,
-      incentivesImpl.address,
-    );
+    const setRewardsAsProxyTx = await addressesProviderInstance.setAddressAsProxy(incentivesControllerId, incentivesImpl.address);
     await setRewardsAsProxyTx.wait();
     proxyAddress = await addressesProviderInstance.getAddressFromID(incentivesControllerId);
   }

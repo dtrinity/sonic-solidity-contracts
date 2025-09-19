@@ -52,9 +52,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     if (currentOracle.toLowerCase() !== api3WrapperWithThresholdingAddress.toLowerCase()) {
       const tx = await oracleAggregator.setOracle(assetAddress, api3WrapperWithThresholdingAddress);
       await tx.wait();
-      console.log(
-        `Set API3 wrapper with thresholding for asset ${assetAddress} to ${api3WrapperWithThresholdingAddress}`,
-      );
+      console.log(`Set API3 wrapper with thresholding for asset ${assetAddress} to ${api3WrapperWithThresholdingAddress}`);
     } else {
       console.log(
         `API3 wrapper with thresholding for asset ${assetAddress} already set to ${api3WrapperWithThresholdingAddress}. Skipping.`,
@@ -81,13 +79,9 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     if (currentOracle.toLowerCase() !== api3CompositeWrapperAddress.toLowerCase()) {
       const tx = await oracleAggregator.setOracle(typedFeedConfig.feedAsset, api3CompositeWrapperAddress);
       await tx.wait();
-      console.log(
-        `Set composite API3 wrapper for asset ${typedFeedConfig.feedAsset} to ${api3CompositeWrapperAddress}`,
-      );
+      console.log(`Set composite API3 wrapper for asset ${typedFeedConfig.feedAsset} to ${api3CompositeWrapperAddress}`);
     } else {
-      console.log(
-        `Composite API3 wrapper for asset ${typedFeedConfig.feedAsset} already set to ${api3CompositeWrapperAddress}. Skipping.`,
-      );
+      console.log(`Composite API3 wrapper for asset ${typedFeedConfig.feedAsset} already set to ${api3CompositeWrapperAddress}. Skipping.`);
     }
   }
 
