@@ -57,27 +57,35 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   // The Rewards Controller must be set at AddressesProvider with id keccak256("INCENTIVES_CONTROLLER")
   const incentivesControllerId = ethers.keccak256(ethers.toUtf8Bytes("INCENTIVES_CONTROLLER"));
 
-  const isRewardsProxyPending = (await addressesProviderInstance.getAddressFromID(incentivesControllerId)) === ZeroAddress;
+  const proxyArtifact = await getExtendedArtifact("InitializableImmutableAdminUpgradeabilityProxy");
 
-  if (isRewardsProxyPending) {
-    const proxyArtifact = await getExtendedArtifact("InitializableImmutableAdminUpgradeabilityProxy");
+  let proxyAddress = await addressesProviderInstance.getAddressFromID(incentivesControllerId);
+  const proxyMissing = proxyAddress === ZeroAddress;
 
-    const _setRewardsAsProxyTx = await addressesProviderInstance.setAddressAsProxy(incentivesControllerId, incentivesImpl.address);
-
-    const proxyAddress = await addressesProviderInstance.getAddressFromID(incentivesControllerId);
-
-    await save(INCENTIVES_PROXY_ID, {
-      ...proxyArtifact,
-      address: proxyAddress,
-    });
+  if (proxyMissing) {
+    const setRewardsAsProxyTx = await addressesProviderInstance.setAddressAsProxy(
+      incentivesControllerId,
+      incentivesImpl.address,
+    );
+    await setRewardsAsProxyTx.wait();
+    proxyAddress = await addressesProviderInstance.getAddressFromID(incentivesControllerId);
   }
 
-  const incentivesProxyAddress = (await deployments.getOrNull(INCENTIVES_PROXY_ID))?.address;
+  if (proxyAddress === ZeroAddress) {
+    throw new Error("Incentives proxy is still unset in PoolAddressesProvider after setup");
+  }
+
+  await save(INCENTIVES_PROXY_ID, {
+    ...proxyArtifact,
+    address: proxyAddress,
+  });
+
+  const incentivesProxyAddress = proxyAddress;
 
   // Initialize EmissionManager with the rewards controller address
   const emissionManagerContract = await ethers.getContractAt("EmissionManager", emissionManager.address);
 
-  if (incentivesProxyAddress) {
+  if (incentivesProxyAddress && incentivesProxyAddress !== ZeroAddress) {
     await emissionManagerContract.setRewardsController(incentivesProxyAddress);
   } else {
     console.log("Warning: IncentivesProxy address is undefined, skipping setRewardsController");
