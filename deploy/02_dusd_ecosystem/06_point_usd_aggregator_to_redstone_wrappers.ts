@@ -36,24 +36,49 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       console.warn(`[oracle-setup] Skipping setOracle for invalid/missing plain asset address: '${assetAddress}'`);
       continue;
     }
-    await oracleAggregator.setOracle(assetAddress, redstoneWrapperAddress);
-    console.log(`Set plain Redstone wrapper for asset ${assetAddress} to ${redstoneWrapperAddress}`);
+    const currentOracle = await oracleAggregator.assetOracles(assetAddress);
+
+    if (currentOracle.toLowerCase() !== redstoneWrapperAddress.toLowerCase()) {
+      const tx = await oracleAggregator.setOracle(assetAddress, redstoneWrapperAddress);
+      await tx.wait();
+      console.log(`Set plain Redstone wrapper for asset ${assetAddress} to ${redstoneWrapperAddress}`);
+    } else {
+      console.log(`Plain Redstone wrapper for asset ${assetAddress} already set to ${redstoneWrapperAddress}. Skipping.`);
+    }
   }
 
   // Set Redstone oracle wrappers with thresholding
   const thresholdFeeds = config.oracleAggregators.USD.redstoneOracleAssets?.redstoneOracleWrappersWithThresholding || {};
 
   for (const [assetAddress, _config] of Object.entries(thresholdFeeds)) {
-    await oracleAggregator.setOracle(assetAddress, redstoneWrapperWithThresholdingAddress);
-    console.log(`Set Redstone wrapper with thresholding for asset ${assetAddress} to ${redstoneWrapperWithThresholdingAddress}`);
+    const currentOracle = await oracleAggregator.assetOracles(assetAddress);
+
+    if (currentOracle.toLowerCase() !== redstoneWrapperWithThresholdingAddress.toLowerCase()) {
+      const tx = await oracleAggregator.setOracle(assetAddress, redstoneWrapperWithThresholdingAddress);
+      await tx.wait();
+      console.log(`Set Redstone wrapper with thresholding for asset ${assetAddress} to ${redstoneWrapperWithThresholdingAddress}`);
+    } else {
+      console.log(
+        `Redstone wrapper with thresholding for asset ${assetAddress} already set to ${redstoneWrapperWithThresholdingAddress}. Skipping.`,
+      );
+    }
   }
 
   // Set composite Redstone wrapper for assets
   const compositeFeeds = config.oracleAggregators.USD.redstoneOracleAssets?.compositeRedstoneOracleWrappersWithThresholding || {};
 
   for (const [_assetAddress, feedConfig] of Object.entries(compositeFeeds)) {
-    await oracleAggregator.setOracle(feedConfig.feedAsset, redstoneCompositeWrapperAddress);
-    console.log(`Set composite Redstone wrapper for asset ${feedConfig.feedAsset} to ${redstoneCompositeWrapperAddress}`);
+    const currentOracle = await oracleAggregator.assetOracles(feedConfig.feedAsset);
+
+    if (currentOracle.toLowerCase() !== redstoneCompositeWrapperAddress.toLowerCase()) {
+      const tx = await oracleAggregator.setOracle(feedConfig.feedAsset, redstoneCompositeWrapperAddress);
+      await tx.wait();
+      console.log(`Set composite Redstone wrapper for asset ${feedConfig.feedAsset} to ${redstoneCompositeWrapperAddress}`);
+    } else {
+      console.log(
+        `Composite Redstone wrapper for asset ${feedConfig.feedAsset} already set to ${redstoneCompositeWrapperAddress}. Skipping.`,
+      );
+    }
   }
 
   console.log(`🔮 ${__filename.split("/").slice(-2).join("/")}: ✅`);

@@ -32,16 +32,32 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const plainFeeds = config.oracleAggregators.USD.api3OracleAssets.plainApi3OracleWrappers || {};
 
   for (const [assetAddress, _source] of Object.entries(plainFeeds)) {
-    await oracleAggregator.setOracle(assetAddress, api3WrapperAddress);
-    console.log(`Set plain API3 wrapper for asset ${assetAddress} to ${api3WrapperAddress}`);
+    const currentOracle = await oracleAggregator.assetOracles(assetAddress);
+
+    if (currentOracle.toLowerCase() !== api3WrapperAddress.toLowerCase()) {
+      const tx = await oracleAggregator.setOracle(assetAddress, api3WrapperAddress);
+      await tx.wait();
+      console.log(`Set plain API3 wrapper for asset ${assetAddress} to ${api3WrapperAddress}`);
+    } else {
+      console.log(`Plain API3 wrapper for asset ${assetAddress} already set to ${api3WrapperAddress}. Skipping.`);
+    }
   }
 
   // Set API3 wrapper with thresholding for assets
   const thresholdFeeds = config.oracleAggregators.USD.api3OracleAssets.api3OracleWrappersWithThresholding || {};
 
   for (const [assetAddress, _config] of Object.entries(thresholdFeeds)) {
-    await oracleAggregator.setOracle(assetAddress, api3WrapperWithThresholdingAddress);
-    console.log(`Set API3 wrapper with thresholding for asset ${assetAddress} to ${api3WrapperWithThresholdingAddress}`);
+    const currentOracle = await oracleAggregator.assetOracles(assetAddress);
+
+    if (currentOracle.toLowerCase() !== api3WrapperWithThresholdingAddress.toLowerCase()) {
+      const tx = await oracleAggregator.setOracle(assetAddress, api3WrapperWithThresholdingAddress);
+      await tx.wait();
+      console.log(`Set API3 wrapper with thresholding for asset ${assetAddress} to ${api3WrapperWithThresholdingAddress}`);
+    } else {
+      console.log(
+        `API3 wrapper with thresholding for asset ${assetAddress} already set to ${api3WrapperWithThresholdingAddress}. Skipping.`,
+      );
+    }
   }
 
   // Set composite API3 wrapper for assets
@@ -58,8 +74,15 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       fixedPriceInBase2: bigint;
     };
 
-    await oracleAggregator.setOracle(typedFeedConfig.feedAsset, api3CompositeWrapperAddress);
-    console.log(`Set composite API3 wrapper for asset ${typedFeedConfig.feedAsset} to ${api3CompositeWrapperAddress}`);
+    const currentOracle = await oracleAggregator.assetOracles(typedFeedConfig.feedAsset);
+
+    if (currentOracle.toLowerCase() !== api3CompositeWrapperAddress.toLowerCase()) {
+      const tx = await oracleAggregator.setOracle(typedFeedConfig.feedAsset, api3CompositeWrapperAddress);
+      await tx.wait();
+      console.log(`Set composite API3 wrapper for asset ${typedFeedConfig.feedAsset} to ${api3CompositeWrapperAddress}`);
+    } else {
+      console.log(`Composite API3 wrapper for asset ${typedFeedConfig.feedAsset} already set to ${api3CompositeWrapperAddress}. Skipping.`);
+    }
   }
 
   console.log(`🔮 ${__filename.split("/").slice(-2).join("/")}: ✅`);
