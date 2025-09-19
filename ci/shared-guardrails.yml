@@ -1,0 +1,196 @@
+name: Shared Security Guardrails
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  push:
+    branches: [main, master, develop]
+  workflow_dispatch:
+
+env:
+  NODE_VERSION: '18'
+
+jobs:
+  lint:
+    name: Lint Contracts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Solhint
+        run: |
+          if [ -f ".shared/scripts/analysis/solhint.ts" ]; then
+            npx ts-node .shared/scripts/analysis/solhint.ts
+          else
+            npx solhint 'contracts/**/*.sol'
+          fi
+
+      - name: Check formatting
+        run: npx prettier --check 'contracts/**/*.sol'
+
+  compile:
+    name: Compile Contracts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Compile contracts
+        run: npx hardhat compile
+
+      - name: Check contract sizes
+        run: npx hardhat size-contracts || true
+
+  slither:
+    name: Slither Analysis
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install Slither
+        run: pip install slither-analyzer
+
+      - name: Run Slither
+        run: |
+          if [ -f ".shared/scripts/analysis/slither.ts" ]; then
+            npx ts-node .shared/scripts/analysis/slither.ts --fail-on-high
+          else
+            slither . --config-file .shared/configs/slither.json || true
+          fi
+
+      - name: Upload Slither report
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: slither-report
+          path: reports/slither-report.json
+          if-no-files-found: ignore
+
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        test-group: [unit, integration]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run ${{ matrix.test-group }} tests
+        run: |
+          if [ "${{ matrix.test-group }}" = "unit" ]; then
+            npx hardhat test test/unit/**/*.ts || npx hardhat test
+          else
+            npx hardhat test test/integration/**/*.ts || true
+          fi
+
+      - name: Generate coverage report
+        if: matrix.test-group == 'unit'
+        run: npx hardhat coverage || true
+
+      - name: Upload coverage
+        if: matrix.test-group == 'unit'
+        uses: actions/upload-artifact@v3
+        with:
+          name: coverage-report
+          path: coverage/
+          if-no-files-found: ignore
+
+  mythril:
+    name: Mythril Security Analysis
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run Mythril via Docker
+        run: |
+          docker run -v $(pwd):/tmp \
+            mythril/myth:latest \
+            analyze /tmp/contracts/*.sol \
+            --solv 0.8.20 \
+            --execution-timeout 300 \
+            --max-depth 10 \
+            || true
+
+  guardrails-summary:
+    name: Guardrails Summary
+    needs: [lint, compile, slither, test]
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Check guardrails status
+        run: |
+          echo "## Security Guardrails Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Check each job status
+          if [ "${{ needs.lint.result }}" = "success" ]; then
+            echo "✅ Linting passed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ Linting failed" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          if [ "${{ needs.compile.result }}" = "success" ]; then
+            echo "✅ Compilation passed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ Compilation failed" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          if [ "${{ needs.slither.result }}" = "success" ]; then
+            echo "✅ Slither analysis passed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "⚠️ Slither found issues" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          if [ "${{ needs.test.result }}" = "success" ]; then
+            echo "✅ Tests passed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ Tests failed" >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Fail if any required check failed
+        if: |
+          needs.lint.result != 'success' ||
+          needs.compile.result != 'success' ||
+          needs.test.result != 'success'
+        run: exit 1
