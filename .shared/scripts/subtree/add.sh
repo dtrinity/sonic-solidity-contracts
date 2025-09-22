@@ -72,7 +72,15 @@ if [ $? -eq 0 ]; then
   # Set up git hooks
   echo -e "${BLUE}Setting up git hooks...${NC}"
   if [ -f "$PREFIX/scripts/setup.ts" ]; then
-    npx ts-node "$PREFIX/scripts/setup.ts" --hooks
+    TS_NODE_BIN="node_modules/.bin/ts-node"
+    if [ -x "$TS_NODE_BIN" ]; then
+      "$TS_NODE_BIN" "$PREFIX/scripts/setup.ts" --hooks
+    elif command -v ts-node >/dev/null 2>&1; then
+      ts-node "$PREFIX/scripts/setup.ts" --hooks
+    else
+      echo -e "${YELLOW}ts-node is not available in PATH; skipping automatic hook setup.${NC}"
+      echo -e "${YELLOW}You can run '$PREFIX/scripts/setup.ts --hooks' manually once ts-node is installed.${NC}"
+    fi
   else
     # Manual hook setup
     if [ -f "$PREFIX/hooks/pre-commit" ]; then

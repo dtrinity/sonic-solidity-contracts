@@ -1,6 +1,7 @@
 import { execSync, ExecSyncOptions } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
+import { createRequire } from 'module';
 import { logger } from './logger';
 
 export interface ExecResult {
@@ -46,11 +47,25 @@ export function isCommandAvailable(command: string): boolean {
 export function findProjectRoot(startDir: string = process.cwd()): string {
   let currentDir = startDir;
 
-  while (currentDir !== path.parse(currentDir).root) {
-    if (fs.existsSync(path.join(currentDir, 'package.json'))) {
-      return currentDir;
+  while (true) {
+    const packagePath = path.join(currentDir, 'package.json');
+    if (fs.existsSync(packagePath)) {
+      try {
+        const content = JSON.parse(fs.readFileSync(packagePath, 'utf8')) as { name?: string };
+        if (content.name !== '@dtrinity/shared-hardhat-tools') {
+          return currentDir;
+        }
+      } catch (error) {
+        logger.debug(`Failed to inspect package.json at ${packagePath}:`, error);
+        return currentDir;
+      }
     }
-    currentDir = path.dirname(currentDir);
+
+    const parent = path.dirname(currentDir);
+    if (parent === currentDir) {
+      break;
+    }
+    currentDir = parent;
   }
 
   return startDir;
@@ -114,4 +129,17 @@ export function getSolidityFiles(dir: string = 'contracts'): string[] {
 
   walkDir(fullPath);
   return files;
+}
+/**
+ * Load a module using the project's node resolution (prefers project dependencies).
+ */
+export function loadProjectModule<T = any>(moduleName: string, projectRoot?: string): T | null {
+  const root = projectRoot ?? findProjectRoot();
+  try {
+    const requireFromProject = createRequire(path.join(root, 'package.json'));
+    return requireFromProject(moduleName) as T;
+  } catch (error) {
+    logger.debug(`Failed to load module '${moduleName}' from ${root}:`, error);
+    return null;
+  }
 }

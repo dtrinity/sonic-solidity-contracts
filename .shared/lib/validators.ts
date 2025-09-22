@@ -1,5 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
+import { findProjectRoot } from './utils';
 
 export interface ValidationResult {
   valid: boolean;
@@ -45,7 +46,7 @@ export function validateHardhatProject(): ValidationResult {
     warnings: []
   };
 
-  const projectRoot = process.cwd();
+  const projectRoot = findProjectRoot();
 
   // Check for required files
   const requiredFiles = ['hardhat.config.ts', 'hardhat.config.js'];

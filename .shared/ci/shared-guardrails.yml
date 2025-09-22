@@ -29,7 +29,12 @@ jobs:
       - name: Run Solhint
         run: |
           if [ -f ".shared/scripts/analysis/solhint.ts" ]; then
-            npx ts-node .shared/scripts/analysis/solhint.ts
+            if [ -x "node_modules/.bin/ts-node" ]; then
+              node_modules/.bin/ts-node .shared/scripts/analysis/solhint.ts
+            else
+              echo "ts-node binary not found; falling back to solhint CLI"
+              npx solhint 'contracts/**/*.sol'
+            fi
           else
             npx solhint 'contracts/**/*.sol'
           fi
@@ -84,7 +89,12 @@ jobs:
       - name: Run Slither
         run: |
           if [ -f ".shared/scripts/analysis/slither.ts" ]; then
-            npx ts-node .shared/scripts/analysis/slither.ts --fail-on-high
+            if [ -x "node_modules/.bin/ts-node" ]; then
+              node_modules/.bin/ts-node .shared/scripts/analysis/slither.ts --fail-on-high
+            else
+              echo "ts-node binary not found; falling back to slither CLI"
+              slither . --config-file .shared/configs/slither.json || true
+            fi
           else
             slither . --config-file .shared/configs/slither.json || true
           fi

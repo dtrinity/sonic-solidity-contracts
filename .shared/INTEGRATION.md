@@ -14,31 +14,61 @@ git subtree add --prefix=.shared https://github.com/dtrinity/shared-hardhat-tool
 
 # Install as local package
 npm install file:./.shared
+
+# The shared package ships with ts-node/typescript, so this step ensures the CLI
+# is available without extra dependencies in the consuming repo.
+
+# Run the setup script with a minimal phase to verify the integration and add
+# baseline npm scripts.
+node_modules/.bin/ts-node .shared/scripts/setup.ts --package-scripts
+
+# The setup script performs preflight validation (git repo, .shared subtree,
+# hardhat.config.* present, readable package.json) before making changes. Add
+# --hooks, --configs, or --ci when you're ready to install those assets.
 ```
 
 ### 2. Test Basic Functionality
 
+> The commands below call `node_modules/.bin/ts-node` explicitly so they use the
+> bundled runtime without relying on global installs. If your environment adds
+> `node_modules/.bin` to `PATH`, you can drop the prefix.
+
 ```bash
 # Test that the package is accessible
-npx ts-node -e "const tools = require('@dtrinity/shared-hardhat-tools'); console.log('Tools loaded:', Object.keys(tools));"
+node_modules/.bin/ts-node -e "const tools = require('@dtrinity/shared-hardhat-tools'); console.log('Tools loaded:', Object.keys(tools));"
 
 # Test a simple script
-npx ts-node .shared/scripts/analysis/solhint.ts --help 2>/dev/null || echo "Script executable"
+node_modules/.bin/ts-node .shared/scripts/analysis/solhint.ts --help 2>/dev/null || echo "Script executable"
+
+# Optional: lint a narrow slice (requires repo ESLint deps)
+node_modules/.bin/ts-node .shared/scripts/linting/eslint.ts --pattern 'typescript/**/*.ts' --quiet || true
+
+# Optional: guardrail dry run (skip heavy checks at first)
+node_modules/.bin/ts-node .shared/scripts/guardrails/check.ts --skip-prettier --skip-solhint || true
+
+# Optional: ensure Slither is available (installs via pipx/pip if missing)
+node_modules/.bin/ts-node .shared/scripts/analysis/install-slither.ts || true
+
+# Optional: run the shared Slither default preset (mirrors Sonic's Makefile target)
+node_modules/.bin/ts-node .shared/scripts/analysis/slither.ts default || true
 ```
+Run these from the repository root so guardrail validation can find `package.json` and `hardhat.config.*`. Expect non-zero exits when formatting issues are discovered—that simply means the guards are working.
+
 
 ### 3. Conservative Integration Steps
 
 Start with these minimal changes:
 
 #### A. Add Package Scripts (package.json)
-```json
-{
-  "scripts": {
-    "analyze:shared": "ts-node .shared/scripts/analysis/run-all.ts",
-    "shared:update": "bash .shared/scripts/subtree/update.sh"
-  }
-}
+```bash
+node_modules/.bin/ts-node .shared/scripts/setup.ts --package-scripts
 ```
+
+The setup script adds or normalizes the shared baseline (`analyze:shared`, `lint:*`, `guardrails:check`, `shared:update`).
+If any script already exists with custom behavior, the tool reports it as a manual follow-up instead of overwriting.
+The lint entries assume the project already includes ESLint/Prettier (most repos do). Start with small `--pattern`
+scopes or the `--skip-prettier` flag when introducing them to an older codebase.
+
 
 #### B. Optional: Copy One Config
 ```bash
@@ -56,7 +86,7 @@ ls -la .shared/
 npm ls @dtrinity/shared-hardhat-tools
 
 # Test a command (non-destructive)
-npx ts-node .shared/scripts/analysis/solhint.ts --quiet --max-warnings 0 || true
+node_modules/.bin/ts-node .shared/scripts/analysis/solhint.ts --quiet --max-warnings 0 || true
 ```
 
 ## Important Context for AI Agents
@@ -66,12 +96,14 @@ npx ts-node .shared/scripts/analysis/solhint.ts --quiet --max-warnings 0 || true
 - ❌ Do not install git hooks initially
 - ❌ Do not modify CI/CD workflows yet
 - ❌ Do not run security scans that might fail the build
+- ❌ Do not run repo-wide Prettier/guardrail suites on the first pass (start with targeted patterns or skip flags)
 
 ### DO on First Integration:
 - ✅ Add subtree at .shared
 - ✅ Install as npm dependency
-- ✅ Add 1-2 non-invasive npm scripts
+- ✅ Run `node_modules/.bin/ts-node .shared/scripts/setup.ts --package-scripts`
 - ✅ Test that imports work
+- ✅ Dry-run shared linting/guardrail scripts with conservative options (patterns, --skip-prettier, --skip-solhint)
 - ✅ Commit changes with clear message
 
 ### Testing Commands (Safe)
@@ -86,10 +118,16 @@ ls .shared/scripts/analysis/
 npx tsc --noEmit --project .shared/tsconfig.json
 
 # Test imports
-npx ts-node -e "
+node_modules/.bin/ts-node -e "
 const { logger, configLoader } = require('@dtrinity/shared-hardhat-tools');
 logger.info('Shared tools integrated successfully');
 "
+
+# Try ESLint on a narrow slice
+node_modules/.bin/ts-node .shared/scripts/linting/eslint.ts --pattern 'typescript/**/*.ts' --quiet || true
+
+# Guardrail dry run (skips heavy checks)
+node_modules/.bin/ts-node .shared/scripts/guardrails/check.ts --skip-prettier --skip-solhint || true
 ```
 
 ### Network-Specific Considerations
@@ -115,13 +153,23 @@ npm uninstall @dtrinity/shared-hardhat-tools
 
 Once minimal integration is verified, consider:
 
-- [ ] Set up git hooks: `npx ts-node .shared/scripts/setup.ts --hooks`
+- [ ] Set up git hooks: `node_modules/.bin/ts-node .shared/scripts/setup.ts --hooks`
+  - Pre-commit executes guardrails and staged-file heuristics; enable Prettier with `SHARED_HARDHAT_PRE_COMMIT_PRETTIER=1` and contract compilation with `SHARED_HARDHAT_PRE_COMMIT_COMPILE=1` when you want them enforced locally.
+  - Pre-push reruns guardrails, optionally runs tests (`SHARED_HARDHAT_PRE_PUSH_TEST=1`) or a custom command (`SHARED_HARDHAT_PRE_PUSH_TEST_CMD="yarn test --runInBand"`), enables Prettier with `SHARED_HARDHAT_PRE_PUSH_PRETTIER=1`, and requires Slither only on `main`/`master`/`develop`.
 - [ ] Add shared CI workflow: `cp .shared/ci/shared-guardrails.yml .github/workflows/`
 - [ ] Configure network-specific overrides
 - [ ] Run full security analysis: `npm run analyze:shared`
 - [ ] Document in project README
 
 ## Troubleshooting for AI Agents
+
+### Error: `Guardrail checks aborted: project validation failed.`
+**Cause**: Guardrails were executed from inside `.shared/` or the repository lacks a `hardhat.config.*` file in its root.
+**Solution**: Run the command from the project root and confirm the Hardhat config lives alongside `package.json`.
+
+### Error: `Tooling error: Required tool 'prettier' is not installed`
+**Cause**: The consuming repo does not have the expected linting dependency installed.
+**Solution**: Install missing devDependencies (e.g., `npm install -D prettier prettier-plugin-solidity`), then re-run.
 
 ### Error: "Cannot find module '@dtrinity/shared-hardhat-tools'"
 **Solution**: Run `npm install file:./.shared`
@@ -130,7 +178,7 @@ Once minimal integration is verified, consider:
 **Solution**: Directory exists, either remove it or use different prefix
 
 ### Error: "ts-node: command not found"
-**Solution**: Ensure ts-node is installed: `npm install -D ts-node typescript`
+**Solution**: Re-run `npm install` so the shared subtree's dependencies (which include ts-node and typescript) are installed. If you're testing ad-hoc without updating package.json, prefix commands with `node_modules/.bin/ts-node` from the shared directory so the bundled CLI is used.
 
 ### Error: Compilation errors in shared tools
 **Solution**: Check TypeScript version compatibility: `npx tsc --version`
