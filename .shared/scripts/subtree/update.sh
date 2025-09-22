@@ -1,102 +1,150 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
-# Script to update the shared-hardhat-tools subtree
+# Update the shared-hardhat-tools subtree with predictable, opt-in side effects.
 
-set -e
+set -euo pipefail
 
-# Colors for output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m' # No Color
-
-# Configuration
 REPO_URL="https://github.com/dtrinity/shared-hardhat-tools.git"
-DEFAULT_PREFIX=".shared"
-DEFAULT_BRANCH="main"
+PREFIX=".shared"
+BRANCH="main"
+ALLOW_DIRTY=0
+AUTO_STASH=0
 
-# Parse arguments
-PREFIX="${1:-$DEFAULT_PREFIX}"
-BRANCH="${2:-$DEFAULT_BRANCH}"
+BLUE='\033[0;34m'
+GREEN='\033[0;32m'
+RED='\033[0;31m'
+YELLOW='\033[1;33m'
+NC='\033[0m'
 
-echo -e "${BLUE}Updating shared-hardhat-tools subtree...${NC}"
+usage() {
+  cat <<'USAGE'
+Usage: update.sh [options]
 
-# Check if we're in a git repository
-if ! git rev-parse --git-dir > /dev/null 2>&1; then
-  echo -e "${RED}Error: Not in a git repository${NC}"
-  exit 1
-fi
+Update the shared-hardhat-tools subtree. By default the script requires a clean
+worktree and performs only the git subtree pull, leaving dependency installs
+and setup steps to the caller.
 
-# Check if the subtree directory exists
-if [ ! -d "$PREFIX" ]; then
-  echo -e "${RED}Error: Subtree directory '$PREFIX' does not exist${NC}"
-  echo "Run the add script first: $PREFIX/scripts/subtree/add.sh"
-  exit 1
-fi
+Options:
+  --prefix <path>       Location of the subtree (default: .shared)
+  --branch <ref>        Remote branch or tag to pull (default: main)
+  --repo-url <url>      Override the source repository URL
+  --allow-dirty         Skip the clean-worktree check (use with care)
+  --stash               Automatically stash and restore local changes
+  -h, --help            Show this help message
 
-# Check for uncommitted changes
-if ! git diff-index --quiet HEAD --; then
-  echo -e "${YELLOW}Warning: You have uncommitted changes${NC}"
-  read -p "Do you want to stash them and continue? (y/N): " -n 1 -r
-  echo
-  if [[ $REPLY =~ ^[Yy]$ ]]; then
-    git stash push -m "Before shared-hardhat-tools subtree update"
-    STASHED=true
-  else
-    echo -e "${RED}Aborted: Please commit or stash your changes first${NC}"
+Stashing or bypassing safety checks is opt-in to prevent accidental data loss.
+USAGE
+}
+
+log() {
+  printf '%b\n' "$1"
+}
+
+ensure_git_repo() {
+  if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    log "${RED}Error:${NC} This command must be run inside a git repository."
     exit 1
   fi
-fi
+}
 
-# Pull the latest changes
-echo -e "${BLUE}Pulling latest changes from $REPO_URL...${NC}"
-git subtree pull --prefix="$PREFIX" "$REPO_URL" "$BRANCH" --squash
+ensure_subtree_exists() {
+  local repo_root="$1"
+  if [[ ! -d "$repo_root/$PREFIX" ]]; then
+    log "${RED}Error:${NC} Directory '$PREFIX' does not exist in this repository. Run add.sh first."
+    exit 1
+  fi
+}
 
-if [ $? -eq 0 ]; then
-  echo -e "${GREEN}Successfully updated shared-hardhat-tools${NC}"
-
-  # Reinstall dependencies in case package.json changed
-  if [ -f "$PREFIX/package.json" ]; then
-    echo -e "${BLUE}Reinstalling shared tool dependencies...${NC}"
-    npm install
+stash_changes_if_needed() {
+  if [[ -z $(git status --porcelain) ]]; then
+    return
   fi
 
-  # Update git hooks
-  echo -e "${BLUE}Updating git hooks...${NC}"
-  if [ -f "$PREFIX/hooks/pre-commit" ]; then
-    cp "$PREFIX/hooks/pre-commit" .git/hooks/pre-commit
-    chmod +x .git/hooks/pre-commit
-    echo -e "${GREEN}Updated pre-commit hook${NC}"
-  fi
-  if [ -f "$PREFIX/hooks/pre-push" ]; then
-    cp "$PREFIX/hooks/pre-push" .git/hooks/pre-push
-    chmod +x .git/hooks/pre-push
-    echo -e "${GREEN}Updated pre-push hook${NC}"
+  if [[ "$AUTO_STASH" -eq 1 ]]; then
+    log "${YELLOW}Warning:${NC} Stashing local changes before subtree update."
+    git stash push -u -m "shared-hardhat-tools subtree update" >/dev/null
+    STASHED=1
+    return
   fi
 
-  # Show what changed
-  echo
-  echo -e "${BLUE}Changes in this update:${NC}"
-  git log -1 --oneline
-
-  # Restore stashed changes if any
-  if [ "${STASHED:-false}" = true ]; then
-    echo -e "${BLUE}Restoring stashed changes...${NC}"
-    git stash pop
+  if [[ "$ALLOW_DIRTY" -eq 1 ]]; then
+    log "${YELLOW}Warning:${NC} Proceeding with dirty worktree (requested via --allow-dirty)."
+    return
   fi
 
-  echo
-  echo -e "${GREEN}Update complete!${NC}"
-
-else
-  echo -e "${RED}Failed to update subtree${NC}"
-
-  # Restore stashed changes if any
-  if [ "${STASHED:-false}" = true ]; then
-    echo -e "${BLUE}Restoring stashed changes...${NC}"
-    git stash pop
-  fi
-
+  log "${RED}Error:${NC} Working tree has uncommitted changes. Commit, stash manually, or re-run with --stash/--allow-dirty."
   exit 1
-fi
+}
+
+restore_stash_if_needed() {
+  if [[ "${STASHED:-0}" -eq 1 ]]; then
+    log "${BLUE}Restoring stashed changes...${NC}"
+    if ! git stash pop >/dev/null; then
+      log "${YELLOW}Warning:${NC} Failed to apply stashed changes automatically. Use 'git stash list' to recover them manually."
+    fi
+  fi
+}
+
+run_git_subtree_pull() {
+  git subtree pull --prefix="$PREFIX" "$REPO_URL" "$BRANCH" --squash
+}
+
+main() {
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --prefix)
+        PREFIX="$2"
+        shift 2
+        ;;
+      --branch)
+        BRANCH="$2"
+        shift 2
+        ;;
+      --repo-url)
+        REPO_URL="$2"
+        shift 2
+        ;;
+      --allow-dirty)
+        ALLOW_DIRTY=1
+        shift
+        ;;
+      --stash)
+        AUTO_STASH=1
+        shift
+        ;;
+      -h|--help)
+        usage
+        exit 0
+        ;;
+      *)
+        log "${RED}Error:${NC} Unknown argument '$1'."
+        usage
+        exit 1
+        ;;
+    esac
+  done
+
+  ensure_git_repo
+
+  local repo_root
+  repo_root=$(git rev-parse --show-toplevel)
+  cd "$repo_root"
+
+  ensure_subtree_exists "$repo_root"
+  stash_changes_if_needed
+  trap restore_stash_if_needed EXIT
+
+  log "${BLUE}Pulling updates for ${PREFIX} from ${REPO_URL} (${BRANCH})...${NC}"
+  run_git_subtree_pull
+
+  log "${GREEN}Subtree updated successfully.${NC}"
+  log ""
+  log "Next steps:"
+  log "  - Review changes in '$PREFIX' and update your project as needed."
+  log "  - Run 'npm install' if package.json was modified."
+  log "  - Execute 'node_modules/.bin/ts-node ${PREFIX}/scripts/setup.ts' to re-sync shared defaults if required."
+  log ""
+  log "Use --stash to temporarily save local changes or --allow-dirty to bypass the safety check."
+}
+
+main "$@"

@@ -27,6 +27,11 @@ node_modules/.bin/ts-node .shared/scripts/setup.ts --package-scripts
 # --hooks, --configs, or --ci when you're ready to install those assets.
 ```
 
+> Prefer automation over manual flags? When you have access to this repository
+> locally, `bash path/to/scripts/subtree/add.sh --help` prints the non-
+> interactive wrapper that enforces a clean worktree and requires
+> `--force-remove` before replacing an existing `.shared` directory.
+
 ### 2. Test Basic Functionality
 
 > The commands below call `node_modules/.bin/ts-node` explicitly so they use the
@@ -51,6 +56,9 @@ node_modules/.bin/ts-node .shared/scripts/analysis/install-slither.ts || true
 
 # Optional: run the shared Slither default preset (mirrors Sonic's Makefile target)
 node_modules/.bin/ts-node .shared/scripts/analysis/slither.ts default || true
+
+# Optional: confirm deploy scripts reference shared IDs (provide custom paths if needed)
+node_modules/.bin/ts-node .shared/scripts/deployments/find-hardcoded-deploy-ids.ts --quiet || true
 ```
 Run these from the repository root so guardrail validation can find `package.json` and `hardhat.config.*`. Expect non-zero exits when formatting issues are discovered—that simply means the guards are working.
 
@@ -90,6 +98,21 @@ node_modules/.bin/ts-node .shared/scripts/analysis/solhint.ts --quiet --max-warn
 ```
 
 ## Important Context for AI Agents
+
+### Updating the Subtree Safely
+
+```bash
+# Default: requires a clean worktree
+bash .shared/scripts/subtree/update.sh
+
+# Common helpers
+bash .shared/scripts/subtree/update.sh --stash       # auto-stash + restore
+bash .shared/scripts/subtree/update.sh --allow-dirty # bypass the safety check entirely
+```
+
+> The helper intentionally skips package installs and hook syncing. After a
+> pull, review the diff, run your package manager if `package.json` changed,
+> and re-run the setup script for any phases that should pick up new assets.
 
 ### DO NOT on First Integration:
 - ❌ Do not overwrite existing configurations
@@ -156,10 +179,16 @@ Once minimal integration is verified, consider:
 - [ ] Set up git hooks: `node_modules/.bin/ts-node .shared/scripts/setup.ts --hooks`
   - Pre-commit executes guardrails and staged-file heuristics; enable Prettier with `SHARED_HARDHAT_PRE_COMMIT_PRETTIER=1` and contract compilation with `SHARED_HARDHAT_PRE_COMMIT_COMPILE=1` when you want them enforced locally.
   - Pre-push reruns guardrails, optionally runs tests (`SHARED_HARDHAT_PRE_PUSH_TEST=1`) or a custom command (`SHARED_HARDHAT_PRE_PUSH_TEST_CMD="yarn test --runInBand"`), enables Prettier with `SHARED_HARDHAT_PRE_PUSH_PRETTIER=1`, and requires Slither only on `main`/`master`/`develop`.
-- [ ] Add shared CI workflow: `cp .shared/ci/shared-guardrails.yml .github/workflows/`
+- [ ] Add shared CI workflow: `cp .shared/ci/shared-guardrails.yml .github/workflows/` (runs lint + sanity checks, Hardhat compile, and tests with a summary step)
+- [ ] Configure the deploy ID sanity check (`sanity:deploy-ids` npm script or direct call with repo-specific `--deploy-ids/--deploy-root` arguments)
 - [ ] Configure network-specific overrides
 - [ ] Run full security analysis: `npm run analyze:shared`
 - [ ] Document in project README
+
+> Tip: repos that store deploy IDs outside the default `typescript/deploy-ids.ts`
+> path should add a `sanity:deploy-ids` npm script that forwards the correct
+> `--deploy-ids`/`--deploy-root` options so CI can execute the check without
+> additional configuration.
 
 ## Troubleshooting for AI Agents
 

@@ -15,6 +15,7 @@
     "lint:prettier": "ts-node scripts/linting/prettier.ts",
     "lint:all": "ts-node scripts/linting/run-all.ts",
     "analyze:all": "ts-node scripts/analysis/run-all.ts",
+    "sanity:deploy-ids": "ts-node scripts/deployments/find-hardcoded-deploy-ids.ts",
     "guardrails:check": "ts-node scripts/guardrails/check.ts",
     "subtree:update": "bash scripts/subtree/update.sh",
     "setup": "ts-node scripts/setup.ts"

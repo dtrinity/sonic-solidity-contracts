@@ -37,6 +37,11 @@ node_modules/.bin/ts-node .shared/scripts/setup.ts --package-scripts --configs
 > with `node_modules/.bin/` to ensure the bundled binary is used.
 ```
 
+> Need stricter guardrails? `scripts/subtree/add.sh` wraps the git command with
+> clean-worktree checks and requires explicit `--force-remove` before replacing
+> an existing `.shared` directory. Run `bash path/to/scripts/subtree/add.sh --help`
+> for usage and available safety flags.
+
 ### Manual Installation
 
 1. Clone this repository into your project:
@@ -101,6 +106,26 @@ npm run --prefix .shared solhint
 npm run --prefix .shared slither -- --network mainnet
 ```
 
+### Sanity Checks
+
+```bash
+# Detect hard-coded deployment IDs in deploy scripts
+npm run --prefix .shared sanity:deploy-ids
+
+# Generate a JSON report alongside the check
+node_modules/.bin/ts-node .shared/scripts/deployments/find-hardcoded-deploy-ids.ts --report reports/deploy-ids.json
+
+# Override defaults when a repo stores deploy IDs elsewhere
+node_modules/.bin/ts-node .shared/scripts/deployments/find-hardcoded-deploy-ids.ts \
+  --deploy-ids packages/core/deploy-ids.ts \
+  --deploy-root deploy/scripts --extensions .ts,.js
+```
+
+The sanity checker looks for constants exported from `deploy-ids.ts` (or a path
+you provide) and flags deploy scripts that inline the literal value instead of
+using the shared constant. Use `--report` to emit machine-readable findings for
+CI summaries or downstream tooling.
+
 ### Running Linting Checks
 
 ```bash
@@ -155,12 +180,21 @@ runs with `SHARED_HARDHAT_PRE_PUSH_TEST=1` or customize the command via
 ### Updating Shared Tools
 
 ```bash
-# Update subtree to latest version
+# Update subtree to latest version (requires clean worktree by default)
 bash .shared/scripts/subtree/update.sh
+
+# Opt-in helpers for common workflows
+bash .shared/scripts/subtree/update.sh --stash       # auto-stash + restore
+bash .shared/scripts/subtree/update.sh --allow-dirty # bypass clean check entirely
 
 # Or use npm script if configured
 npm run shared:update
 ```
+
+> The helper never runs package installs or git hook sync automatically. After
+> updating, review the diff, run your package manager if `package.json` moved,
+> and re-run `node_modules/.bin/ts-node .shared/scripts/setup.ts` for any phases
+> that need to pick up new assets.
 
 ## Configuration
 
@@ -196,6 +230,13 @@ jobs:
   shared-guardrails:
     uses: ./.shared/ci/shared-guardrails.yml
 ```
+
+The shared workflow runs three focused jobs—lint & sanity checks (including the
+deploy ID detector), Hardhat compilation, and tests—before publishing a status
+summary. If your deploy IDs live somewhere other than `typescript/deploy-ids.ts`
+and `deploy/`, add a `sanity:deploy-ids` npm script that invokes the shared
+checker with the appropriate `--deploy-ids`/`--deploy-root` arguments so CI can
+continue to enforce the invariant.
 
 ### Custom Integration
 
