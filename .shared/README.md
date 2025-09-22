@@ -9,6 +9,7 @@ Centralized development tools and security guardrails for dTrinity Hardhat proje
 - 🔒 **Security Guardrails**: Pre-commit and pre-push hooks
 - 🚀 **CI/CD Templates**: GitHub Actions workflows for automated checks
 - 📦 **TypeScript Support**: Full TypeScript implementation with ts-node
+- 🧩 **Deployment Helpers**: Shared checks for deploy IDs, address reports, oracle inventories, and nSLOC metrics
 - 🔄 **Easy Updates**: Simple subtree update mechanism
 
 ## Installation
@@ -65,6 +66,24 @@ npm install
 # ts-node and typescript ship with the shared package, so no extra installs are required
 ```
 
+### End-to-End Subtree Workflow
+
+#### First-Time Integration
+
+1. **Prepare the repo** – ensure the worktree is clean and Hardhat compiles locally. Decide where the subtree should live (the examples below assume `.shared`).
+2. **Add the subtree** – run `bash scripts/subtree/add.sh --repo-url https://github.com/dtrinity/shared-hardhat-tools.git --branch main --prefix .shared`. The helper aborts if the target directory exists unless you pass `--force-remove`.
+3. **Install the package** – execute `npm install file:./.shared` (or the equivalent `yarn/pnpm` command). This pulls in the bundled `ts-node` runtime automatically.
+4. **Run a minimal setup pass** – start with `node_modules/.bin/ts-node .shared/scripts/setup.ts --package-scripts` to add the shared npm scripts and surface any preflight issues. Add `--hooks`, `--configs`, or `--ci` once you are ready to opt in.
+5. **Smoke-test the integration** – run targeted checks (`lint:eslint`, `sanity:deploy-ids`, `guardrails:check --skip-prettier`) to confirm the shared tooling executes inside the consumer repository before committing the subtree.
+
+#### Updating to the Latest Version
+
+1. **Sync from the source repo** – from the network repository, call `bash .shared/scripts/subtree/update.sh --repo-url ../shared-hardhat-tools --branch main` (or point at the upstream URL). Add `--stash` if you have local changes you want preserved.
+2. **Install dependency updates** – rerun your package manager if `package.json` or lockfiles changed inside `.shared`.
+3. **Re-run setup for affected phases** – `node_modules/.bin/ts-node .shared/scripts/setup.ts --package-scripts --hooks --configs` ensures new defaults land without overwriting local overrides.
+4. **Validate guardrails** – execute `npm run --prefix .shared test` and a representative guardrail command (`npm run --prefix .shared guardrails:check -- --fail-fast`) before merging the subtree update.
+5. **Commit intentionally** – commit only the `.shared` diff (and any follow-up package manager updates) with context so downstream reviewers understand the bump.
+
 ### What the Setup Script Does
 
 Running `node_modules/.bin/ts-node .shared/scripts/setup.ts` performs a preflight check to verify the repository:
@@ -112,6 +131,27 @@ npm run --prefix .shared slither -- --network mainnet
 # Detect hard-coded deployment IDs in deploy scripts
 npm run --prefix .shared sanity:deploy-ids
 
+# Remove deployment artifacts that match one or more keywords (dry run by default)
+npm run --prefix .shared sanity:deploy-clean -- \
+  --network mainnet \
+  --keywords Vault Alpha \
+  --dry-run
+
+# Emit a markdown or JSON summary of contract addresses for a network
+npm run --prefix .shared sanity:deploy-addresses -- \
+  --network mainnet \
+  --output reports/contract-addresses.md
+
+# Aggregate oracle addresses by category (customisable via --category/--exclude)
+npm run --prefix .shared sanity:oracle-addresses -- \
+  --network mainnet \
+  --category Chainlink=Chainlink \
+  --exclude Chainlink=Mock \
+  --output reports/oracle-addresses.json --json
+
+# Generate a normalized SLOC report for all Solidity contracts
+npm run --prefix .shared metrics:nsloc
+
 # Generate a JSON report alongside the check
 node_modules/.bin/ts-node .shared/scripts/deployments/find-hardcoded-deploy-ids.ts --report reports/deploy-ids.json
 
@@ -124,7 +164,13 @@ node_modules/.bin/ts-node .shared/scripts/deployments/find-hardcoded-deploy-ids.
 The sanity checker looks for constants exported from `deploy-ids.ts` (or a path
 you provide) and flags deploy scripts that inline the literal value instead of
 using the shared constant. Use `--report` to emit machine-readable findings for
-CI summaries or downstream tooling.
+CI summaries or downstream tooling. `sanity:deploy-clean` supports safe
+dry-runs (`--dry-run`) and operates on alternate deployment roots via
+`--deployments-dir`. The contract and oracle reporters emit markdown by default;
+pass `--json` to integrate with automation, or provide categories with
+`--category Name=Pattern1,Pattern2` and optional exclusions such as
+`--exclude Name=PatternToSkip`. `metrics:nsloc` stores a markdown summary at
+`reports/nsloc.md` unless you override `--output`.
 
 ### Running Linting Checks
 
@@ -247,6 +293,14 @@ continue to enforce the invariant.
     npm run --prefix .shared analyze:all --fail-fast
 ```
 
+### Recommended CI Wiring
+
+1. **Reference the shared workflow** – keep the workflow in the repo via the setup script (`--ci`) so `uses: ./.shared/ci/shared-guardrails.yml` always matches the subtree contents.
+2. **Verify shared scripts** – ensure `npm run guardrails:check`, `sanity:deploy-ids`, and the `lint:*` entries exist (or have repo-specific equivalents) before enabling the workflow. The setup script reports gaps without overwriting customized commands.
+3. **Install shared dependencies** – run `npm install file:./.shared` or `yarn add file:./.shared` in CI so the bundled `ts-node` runtime is present when the workflow calls TypeScript scripts.
+4. **Publish artifacts** – keep `reports/` ignored locally; the workflow uploads its contents automatically for debugging failed runs.
+5. **Extend downstream** – add repo-specific jobs (deployments, simulations) in the same workflow once the shared guardrails path is passing consistently.
+
 ## Directory Structure
 
 ```
@@ -281,12 +335,40 @@ npm run --prefix .shared slither -- --network sonic
 npm run --prefix .shared slither -- --network ethereum
 ```
 
+## Release Cadence
+
+Shared-hardhat-tools should publish incremental updates on a predictable rhythm so network repositories can plan their subtree refreshes:
+
+1. **Batch changes every week** – merge improvements into `main` behind feature branches, keeping the WIP checklist up to date.
+2. **Dogfood in Sonic** – sync `.shared` into `sonic-solidity-contracts@test-shared-tools-integration`, run `npm test` and representative guardrail scripts, and record any manual steps uncovered.
+3. **Tag and announce** – once Sonic passes, create a semantic tag (`git tag v1.X.Y && git push origin v1.X.Y`) and share a short change log (docs, scripts touched, required downstream actions).
+4. **Propagate downstream** – open subtree update PRs for each Hardhat repo, linking to the release notes and highlighting follow-up commands (`setup.ts` phases, new scripts).
+5. **Archive learnings** – update `WIP.md` with the release summary and close the loop on lingering TODOs before starting the next batch.
+
+### Multi-Repo Validation Flow
+
+- Run the shared validation matrix before tagging to ensure guardrails still pass in every Hardhat repo.
+- Defaults cover `lint`, `compile`, and `test`; add `--task` flags or per-repo overrides to widen or narrow the sweep.
+- Use `--install` (or per-repo `install: true`) when the matrix should refresh dependencies ahead of execution.
+- Emit a JSON report alongside release notes so downstream owners can see which repos were exercised and how long each task took.
+
+```bash
+# Quick check: validate Sonic only
+npm run validate:matrix -- --repo sonic=../sonic-solidity-contracts
+
+# Config-driven run covering multiple repos
+npm run validate:matrix -- --config configs/validation.sample.json --install --report reports/validation.json
+```
+
+- The optional config file (`configs/validation.sample.json`) documents the expected shape: a shared task list plus repo-specific `path`, `tasks`, `install`, and `commands` overrides.
+- Commands auto-detect `npm`, `yarn`, or `pnpm` and stop after the first failure so you can triage before cascading updates further downstream.
+
 ## Contributing
 
 To contribute to shared tools:
 
 1. Clone this repository directly
-2. Make changes and test locally
+2. Make changes and run `npm test` to ensure type-checks and smoke tests pass
 3. Create a pull request
 4. After merge, network repos can update their subtrees
 

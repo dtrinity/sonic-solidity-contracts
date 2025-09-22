@@ -16,11 +16,11 @@ Shared toolkit needs cleanup before production adoption: missing entrypoints ref
 - [x] Rewrite git hooks to handle directories correctly (`hooks/pre-commit:24`), drop references to missing files (e.g. `.shared/scripts/testing/run-tests.ts`), and make compile/test steps opt-in or guarded. *(Hooks now shell out through shared guardrails with robust path handling, optional compile/test gates via env vars, and no references to missing scripts.)*
 - [x] Ensure analysis scripts write configs to temporary locations and clean them up (`scripts/analysis/slither.ts`). *(Slither now writes shared configs to mkdtemp directories and removes them after execution.)*
 - [x] Make subtree helpers non-interactive and side-effect free by default (no prompts, no auto `npm install`, no hook copying). Provide flags for destructive actions. *(Rebuilt add/update helpers with clean-worktree guards, explicit `--force-remove`/`--stash` toggles, and documentation updates.)*
-- [ ] Harden `ci/shared-guardrails.yml`: install required tooling, ensure `reports/` directory exists, and gate steps on tool availability.
-- [ ] Add basic test coverage or linting to this repo (e.g. `npm run test` stub) so changes can be validated before publishing.
-- [ ] Migrate guardrail scripts and utilities shared across repos (e.g. `scripts/analysis/find-hardcoded-deploy-ids.ts`, deployment helpers) into this package with coverage.
-- [ ] Flesh out integration docs with end-to-end subtree add/update instructions, CI wiring guidance, and a lightweight release cadence for propagating changes downstream.
-- [ ] Define and document a multi-repo validation flow (e.g. super-monorepo or scripted check) to confirm guardrails run consistently before promoting updates.
+- [x] Harden `ci/shared-guardrails.yml`: install required tooling, ensure `reports/` directory exists, and gate steps on tool availability. *(Trimmed workflow to lint+sanity/compile/test stages, added cross-PM install logic, deploy ID check, report uploads, and failure-tolerant fallbacks when shared scripts are absent.)*
+- [x] Add basic test coverage or linting to this repo (e.g. `npm run test` stub) so changes can be validated before publishing. *(Added `npm test` to run type-checks and smoke tests for config loading, validators, and utility helpers.)*
+- [x] Migrate guardrail scripts and utilities shared across repos (e.g. `scripts/analysis/find-hardcoded-deploy-ids.ts`, deployment helpers) into this package with coverage. *(Converted deployment helpers to TypeScript CLIs, added test coverage, and exposed npm scripts for cleanup, address/oracle summaries, and nSLOC reports.)*
+- [x] Flesh out integration docs with end-to-end subtree add/update instructions, CI wiring guidance, and a lightweight release cadence for propagating changes downstream. *(Expanded README/INTEGRATION with lifecycle runbooks, CI wiring checklist, and release cadence playbook.)*
+- [x] Define and document a multi-repo validation flow (e.g. super-monorepo or scripted check) to confirm guardrails run consistently before promoting updates. *(Added `scripts/guardrails/validate-matrix.ts`, sample config, and docs covering the lint/compile/test sweep + reporting.)*
 
 # Notes
 - Keep integration docs aligned with the new behavior (INTEGRATION.md, README).

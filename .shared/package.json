@@ -14,11 +14,18 @@
     "lint:eslint": "ts-node scripts/linting/eslint.ts",
     "lint:prettier": "ts-node scripts/linting/prettier.ts",
     "lint:all": "ts-node scripts/linting/run-all.ts",
+    "lint:types": "tsc --noEmit",
     "analyze:all": "ts-node scripts/analysis/run-all.ts",
     "sanity:deploy-ids": "ts-node scripts/deployments/find-hardcoded-deploy-ids.ts",
+    "sanity:deploy-clean": "ts-node scripts/deployments/clean-deployments.ts",
+    "sanity:deploy-addresses": "ts-node scripts/deployments/print-contract-addresses.ts",
+    "sanity:oracle-addresses": "ts-node scripts/deployments/print-oracle-sources.ts",
+    "metrics:nsloc": "ts-node scripts/deployments/nsloc.ts",
     "guardrails:check": "ts-node scripts/guardrails/check.ts",
+    "validate:matrix": "ts-node scripts/guardrails/validate-matrix.ts",
     "subtree:update": "bash scripts/subtree/update.sh",
-    "setup": "ts-node scripts/setup.ts"
+    "setup": "ts-node scripts/setup.ts",
+    "test": "tsc --noEmit && ts-node scripts/tests/run.ts"
   },
   "keywords": [
     "hardhat",
@@ -37,6 +44,7 @@
     "chalk": "^4.1.2",
     "commander": "^11.0.0",
     "glob": "^10.3.0",
+    "solidity-code-metrics": "^0.0.28",
     "ts-node": "^10.9.0",
     "typescript": "^5.0.0"
   },

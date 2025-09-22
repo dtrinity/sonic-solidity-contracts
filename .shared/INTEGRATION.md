@@ -59,6 +59,16 @@ node_modules/.bin/ts-node .shared/scripts/analysis/slither.ts default || true
 
 # Optional: confirm deploy scripts reference shared IDs (provide custom paths if needed)
 node_modules/.bin/ts-node .shared/scripts/deployments/find-hardcoded-deploy-ids.ts --quiet || true
+
+# Optional: dry-run deployment cleanup (keywords match migrations entries + filenames)
+node_modules/.bin/ts-node .shared/scripts/deployments/clean-deployments.ts --network mainnet --keywords Vault --dry-run || true
+
+# Optional: summarize deployment addresses or oracle sources
+node_modules/.bin/ts-node .shared/scripts/deployments/print-contract-addresses.ts --network mainnet || true
+node_modules/.bin/ts-node .shared/scripts/deployments/print-oracle-sources.ts --network mainnet --json || true
+
+# Optional: generate an nSLOC report (writes to reports/nsloc.md by default)
+node_modules/.bin/ts-node .shared/scripts/deployments/nsloc.ts || true
 ```
 Run these from the repository root so guardrail validation can find `package.json` and `hardhat.config.*`. Expect non-zero exits when formatting issues are discovered—that simply means the guards are working.
 
@@ -97,6 +107,32 @@ npm ls @dtrinity/shared-hardhat-tools
 node_modules/.bin/ts-node .shared/scripts/analysis/solhint.ts --quiet --max-warnings 0 || true
 ```
 
+## End-to-End Subtree Lifecycle
+
+### First Integration Runbook
+
+1. **Start clean** – abort if `git status --short` is non-empty. Fix compilation locally so guardrails have a stable baseline.
+2. **Add the subtree** – prefer the wrapper: `bash scripts/subtree/add.sh --repo-url https://github.com/dtrinity/shared-hardhat-tools.git --branch main --prefix .shared`. Pass `--force-remove` only when replacing an existing directory after backing it up.
+3. **Install the package** – `npm install file:./.shared` (or the equivalent `yarn/pnpm` command) so the bundled `ts-node` runtime is available.
+4. **Run the setup preflight** – execute `node_modules/.bin/ts-node .shared/scripts/setup.ts --package-scripts` to add baseline npm scripts and surface missing prerequisites. Expand to `--hooks`, `--configs`, or `--ci` in follow-up passes when stakeholders sign off.
+5. **Take a smoke-test lap** – run `npm run --prefix .shared lint:eslint -- --pattern 'hardhat.config.ts'`, `npm run --prefix .shared sanity:deploy-ids -- --quiet`, and `npm run --prefix .shared guardrails:check -- --skip-prettier --skip-solhint` to confirm the shared tooling works in situ before committing.
+
+### Updating the Subtree
+
+1. **Fetch the latest source** – from within the network repo, run `bash .shared/scripts/subtree/update.sh --repo-url ../shared-hardhat-tools --branch main`. Add `--stash` if local changes need to be preserved.
+2. **Reinstall if needed** – if `.shared/package.json` or lockfiles changed, rerun your package manager so the new dependencies land.
+3. **Re-apply setup phases** – execute `node_modules/.bin/ts-node .shared/scripts/setup.ts --package-scripts --hooks --configs --ci` (use only the phases you rely on) to pick up new defaults without clobbering overrides.
+4. **Validate guardrails** – `npm run --prefix .shared test` plus a targeted guardrail command (`npm run --prefix .shared guardrails:check -- --fail-fast`) ensures the update behaves before opening a PR.
+5. **Commit with intent** – stage the `.shared` diff (and any lockfile changes), write a commit message that points to the shared repo tag or commit, and describe any manual steps consumers must perform.
+
+### Post-Update Validation
+
+After large updates, capture a quick status report in the PR description:
+- Which commands were executed (lint, sanity checks, tests)
+- Whether `reports/` artifacts were reviewed
+- Any environment variables that had to be toggled
+- Follow-ups uncovered for downstream documentation or tooling
+
 ## Important Context for AI Agents
 
 ### Updating the Subtree Safely
@@ -113,6 +149,14 @@ bash .shared/scripts/subtree/update.sh --allow-dirty # bypass the safety check e
 > The helper intentionally skips package installs and hook syncing. After a
 > pull, review the diff, run your package manager if `package.json` changed,
 > and re-run the setup script for any phases that should pick up new assets.
+
+### CI Wiring Checklist
+
+1. **Ensure scripts exist** – confirm `package.json` exposes `guardrails:check`, `sanity:deploy-ids`, and the shared `lint:*` entries (or capture repo-specific equivalents). The setup script reports anything missing.
+2. **Install the shared package in CI** – add `npm install file:./.shared` (or `yarn add file:./.shared`) before calling the guardrail workflow so `ts-node` is on the PATH.
+3. **Reference the shared workflow** – commit `.github/workflows/security.yml` that points to `uses: ./.shared/ci/shared-guardrails.yml`. The setup script’s `--ci` flag can place the workflow stub for you.
+4. **Keep reports tidy** – ensure `reports/` is ignored locally; CI will upload artifacts automatically. Download them when diagnosing failing runs.
+5. **Stack extra jobs** – add repo-specific jobs (deployments, simulations) after the shared guardrails job, or run the shared workflow from a parent pipeline for consistency across repos.
 
 ### DO NOT on First Integration:
 - ❌ Do not overwrite existing configurations
@@ -172,6 +216,30 @@ git commit -m "Remove shared tools for debugging"
 npm uninstall @dtrinity/shared-hardhat-tools
 ```
 
+## Release Cadence & Propagation
+
+1. **Batch changes weekly** – keep `shared-hardhat-tools` improvements on feature branches, then merge into `main` once smoke tests pass locally (`npm test`).
+2. **Dogfood in Sonic** – refresh the `.shared` subtree inside `sonic-solidity-contracts@test-shared-tools-integration`, install dependencies, and run `npm test`, `npm run --prefix .shared guardrails:check -- --fail-fast`, and at least one Slither preset. Note any manual tweaks required.
+3. **Tag the release** – when Sonic is clean, tag the shared repo (`git tag v1.X.Y && git push origin v1.X.Y`) and jot down a short summary (changed scripts, new docs, required env vars).
+4. **Cascade across networks** – open PRs (or provide commands) for every Hardhat repo: `bash .shared/scripts/subtree/update.sh --repo-url https://github.com/dtrinity/shared-hardhat-tools.git --branch main`, rerun `setup.ts`, and attach the release notes.
+5. **Record the outcome** – update `WIP.md` with the tag, dogfooding notes, and any follow-ups discovered so the next cycle starts with context.
+
+### Multi-Repo Validation Flow
+
+- Before announcing a release, run `npm run validate:matrix` so lint, compile, and test commands pass on every Hardhat repo.
+- The CLI accepts repeated `--repo name=/path/to/repo` flags or a config file (`configs/validation.sample.json`) with shared defaults and per-repo overrides.
+- Add `--task` to change the global task list, `--command lint="yarn lint"` to override specific commands, and `--install` (or repo-level `install: true`) to reinstall dependencies first.
+- Provide `--report reports/validation.json` to emit a machine-readable summary with durations, exit codes, and skip reasons for release notes.
+- The script auto-detects npm/yarn/pnpm and stops after the first failure for a repo so you can triage issues before syncing other networks.
+
+```bash
+# Validate Sonic only
+npm run validate:matrix -- --repo sonic=../sonic-solidity-contracts
+
+# Drive the run from a config file and record a summary
+npm run validate:matrix -- --config configs/validation.sample.json --install --report reports/validation.json
+```
+
 ## Full Integration Checklist (For Later)
 
 Once minimal integration is verified, consider:
@@ -181,6 +249,11 @@ Once minimal integration is verified, consider:
   - Pre-push reruns guardrails, optionally runs tests (`SHARED_HARDHAT_PRE_PUSH_TEST=1`) or a custom command (`SHARED_HARDHAT_PRE_PUSH_TEST_CMD="yarn test --runInBand"`), enables Prettier with `SHARED_HARDHAT_PRE_PUSH_PRETTIER=1`, and requires Slither only on `main`/`master`/`develop`.
 - [ ] Add shared CI workflow: `cp .shared/ci/shared-guardrails.yml .github/workflows/` (runs lint + sanity checks, Hardhat compile, and tests with a summary step)
 - [ ] Configure the deploy ID sanity check (`sanity:deploy-ids` npm script or direct call with repo-specific `--deploy-ids/--deploy-root` arguments)
+- [ ] Use the deployment helpers when needed:
+  - `sanity:deploy-clean` for pruning migrations + artifact files
+  - `sanity:deploy-addresses` to produce contract/address reports
+  - `sanity:oracle-addresses` to capture oracle inventories (customise with `--category`/`--exclude`)
+  - `metrics:nsloc` for lightweight Solidity metrics snapshots
 - [ ] Configure network-specific overrides
 - [ ] Run full security analysis: `npm run analyze:shared`
 - [ ] Document in project README
