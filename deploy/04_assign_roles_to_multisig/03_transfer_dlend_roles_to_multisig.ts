@@ -2,7 +2,7 @@ import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
 
 import { getConfig } from "../../config/config";
-import { ACL_MANAGER_ID, EMISSION_MANAGER_ID, POOL_ADDRESSES_PROVIDER_ID } from "../../typescript/deploy-ids";
+import { ACL_MANAGER_ID, EMISSION_MANAGER_ID, POOL_ADDRESSES_PROVIDER_ID, RESERVES_SETUP_HELPER_ID } from "../../typescript/deploy-ids";
 import { ZERO_BYTES_32 } from "../../typescript/dlend/constants";
 import { isMainnet } from "../../typescript/hardhat/deploy";
 
@@ -140,7 +140,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   // Transfer ReservesSetupHelper ownership
   try {
-    const reservesSetupHelper = await deployments.getOrNull("ReservesSetupHelper");
+    const reservesSetupHelper = await deployments.getOrNull(RESERVES_SETUP_HELPER_ID);
 
     if (reservesSetupHelper) {
       console.log(`\n  📄 RESERVES SETUP HELPER OWNERSHIP`);
