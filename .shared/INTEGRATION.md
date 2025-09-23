@@ -27,6 +27,17 @@ node_modules/.bin/ts-node .shared/scripts/setup.ts --package-scripts
 # --hooks, --configs, or --ci when you're ready to install those assets.
 ```
 
+#### Hook up the shared Makefile
+
+Add the following to the repository `Makefile` (create one if it does not exist):
+
+```make
+# shared targets live here; define project-specific targets after this line
+include .shared/Makefile
+```
+
+The include injects the common `make lint`, `make lint.ci`, `make slither`, and guardrail helper targets so teams keep familiar workflows while relying on the shared TypeScript tooling.
+
 > Prefer automation over manual flags? When you have access to this repository
 > locally, `bash path/to/scripts/subtree/add.sh --help` prints the non-
 > interactive wrapper that enforces a clean worktree and requires
