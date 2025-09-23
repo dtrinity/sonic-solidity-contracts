@@ -5,11 +5,11 @@ import { DeployFunction } from "hardhat-deploy/types";
 import { getConfig } from "../../config/config";
 import { DLendRewardManagerConfig, DStakeInstanceConfig } from "../../config/types";
 import { DStakeRewardManagerDLend } from "../../typechain-types";
-import { EMISSION_MANAGER_ID, INCENTIVES_PROXY_ID, POOL_DATA_PROVIDER_ID } from "../../typescript/deploy-ids";
+import { EMISSION_MANAGER_ID, INCENTIVES_PROXY_ID, POOL_ADDRESSES_PROVIDER_ID, POOL_DATA_PROVIDER_ID } from "../../typescript/deploy-ids";
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployments, getNamedAccounts } = hre;
-  const { deploy, get } = deployments;
+  const { deploy, get, getOrNull, getExtendedArtifact, save } = deployments;
   const { deployer } = await getNamedAccounts();
 
   // Collect instructions for any manual actions required when the deployer lacks permissions.
@@ -22,6 +22,33 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     return;
   }
 
+  const ensureIncentivesProxyAddress = async (): Promise<string> => {
+    const existing = await getOrNull(INCENTIVES_PROXY_ID);
+
+    if (existing?.address && existing.address !== ethers.ZeroAddress) {
+      return existing.address;
+    }
+
+    const providerDeployment = await get(POOL_ADDRESSES_PROVIDER_ID);
+    const addressesProvider = await ethers.getContractAt("PoolAddressesProvider", providerDeployment.address);
+    const incentivesControllerId = ethers.keccak256(ethers.toUtf8Bytes("INCENTIVES_CONTROLLER"));
+    const proxyAddress = await addressesProvider.getAddressFromID(incentivesControllerId);
+
+    if (!proxyAddress || proxyAddress === ethers.ZeroAddress) {
+      throw new Error("Incentives proxy not registered in PoolAddressesProvider");
+    }
+
+    const proxyArtifact = await getExtendedArtifact("InitializableImmutableAdminUpgradeabilityProxy");
+    await save(INCENTIVES_PROXY_ID, {
+      ...proxyArtifact,
+      address: proxyAddress,
+    });
+
+    return proxyAddress;
+  };
+
+  const incentivesProxyAddress = await ensureIncentivesProxyAddress();
+
   // --- Validation Loop ---
   for (const instanceKey in config.dStake) {
     const instanceConfig = config.dStake[instanceKey] as DStakeInstanceConfig;
@@ -33,8 +60,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
     // Fetch required addresses *within* the deploy script execution flow,
     // ensuring dependencies have been run.
-    const incentivesProxyDeployment = await deployments.get(INCENTIVES_PROXY_ID);
-
     // Fetch the AaveProtocolDataProvider and get the aToken address for this instance's underlying stablecoin
     const underlyingStablecoinAddress = instanceConfig.dStable;
     const poolDataProviderDeployment = await deployments.get(POOL_DATA_PROVIDER_ID);
@@ -59,8 +84,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       managedVaultAsset === ethers.ZeroAddress ||
       !aTokenAddress ||
       aTokenAddress === ethers.ZeroAddress ||
-      !incentivesProxyDeployment.address ||
-      incentivesProxyDeployment.address === ethers.ZeroAddress ||
+      !incentivesProxyAddress ||
+      incentivesProxyAddress === ethers.ZeroAddress ||
       !treasury ||
       treasury === ethers.ZeroAddress
     ) {
@@ -68,7 +93,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       let missing = [];
       if (!managedVaultAsset || managedVaultAsset === ethers.ZeroAddress) missing.push("managedVaultAsset");
       if (!aTokenAddress || aTokenAddress === ethers.ZeroAddress) missing.push("dLendAssetToClaimFor (aToken)");
-      if (!incentivesProxyDeployment.address || incentivesProxyDeployment.address === ethers.ZeroAddress)
+      if (!incentivesProxyAddress || incentivesProxyAddress === ethers.ZeroAddress)
         missing.push("dLendRewardsController (IncentivesProxy)");
       if (!treasury || treasury === ethers.ZeroAddress) missing.push("treasury");
 
@@ -113,8 +138,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     const targetStaticATokenWrapperAddress = rewardManagerConfig.managedVaultAsset;
     const underlyingStablecoinAddress = instanceConfig.dStable; // from parent DStakeInstanceConfig
 
-    const incentivesProxyDeployment = await deployments.get(INCENTIVES_PROXY_ID);
-
     const poolDataProviderDeployment = await deployments.get(POOL_DATA_PROVIDER_ID);
     const poolDataProviderContract = await ethers.getContractAt("AaveProtocolDataProvider", poolDataProviderDeployment.address);
     const reserveTokens = await poolDataProviderContract.getReserveTokensAddresses(underlyingStablecoinAddress);
@@ -130,7 +153,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     const deployArgs = [
       dStakeCollateralVaultAddress,
       dStakeRouterAddress,
-      incentivesProxyDeployment.address, // dLendRewardsController
+      incentivesProxyAddress, // dLendRewardsController
       targetStaticATokenWrapperAddress, // targetStaticATokenWrapper
       dLendAssetToClaimForAddress, // dLendAssetToClaimFor (the actual aToken)
       rewardManagerConfig.treasury,
@@ -153,10 +176,30 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     const emissionManagerDeployment = await deployments.get(EMISSION_MANAGER_ID);
     const emissionManager = await ethers.getContractAt("EmissionManager", emissionManagerDeployment.address);
 
+    // Ensure the rewards controller pointer is up to date before attempting any mutations.
+    const currentRewardsController = await emissionManager.getRewardsController();
+
     // Attempt to authorize this manager as a claimer via EmissionManager only if the deployer is the owner.
     const emissionOwner = await emissionManager.owner();
 
-    if (emissionOwner.toLowerCase() === deployer.toLowerCase()) {
+    const deployerIsOwner = emissionOwner.toLowerCase() === deployer.toLowerCase();
+
+    if (deployerIsOwner && currentRewardsController.toLowerCase() !== incentivesProxyAddress.toLowerCase()) {
+      const tx = await emissionManager.connect(deployerSigner).setRewardsController(incentivesProxyAddress);
+      await tx.wait();
+    }
+
+    const rewardsControllerNow = await emissionManager.getRewardsController();
+    const rewardsControllerMatches = rewardsControllerNow.toLowerCase() === incentivesProxyAddress.toLowerCase();
+
+    if (!rewardsControllerMatches) {
+      manualActions.push(
+        `EmissionManager (${emissionManagerDeployment.address}).setRewardsController(${incentivesProxyAddress}) before setClaimer(${targetStaticATokenWrapperAddress}, ${deployment.address})`,
+      );
+      continue;
+    }
+
+    if (deployerIsOwner) {
       const tx = await emissionManager.connect(deployerSigner).setClaimer(targetStaticATokenWrapperAddress, deployment.address);
       await tx.wait();
     } else {
