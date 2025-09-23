@@ -1,0 +1,19 @@
+{
+  "tasks": ["lint", "compile", "test"],
+  "install": false,
+  "repos": [
+    {
+      "name": "sonic",
+      "path": "../sonic-solidity-contracts",
+      "install": true
+    },
+    {
+      "name": "gamma",
+      "path": "../gamma-hardhat",
+      "commands": {
+        "compile": "npm run build",
+        "test": "npm run test:integration"
+      }
+    }
+  ]
+}

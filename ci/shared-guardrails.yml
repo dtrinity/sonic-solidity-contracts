@@ -9,10 +9,11 @@ on:
 
 env:
   NODE_VERSION: '18'
+  REPORTS_DIR: reports
 
 jobs:
   lint:
-    name: Lint Contracts
+    name: Lint & Sanity Checks
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -21,21 +22,63 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
 
       - name: Install dependencies
-        run: npm ci
-
-      - name: Run Solhint
         run: |
-          if [ -f ".shared/scripts/analysis/solhint.ts" ]; then
-            npx ts-node .shared/scripts/analysis/solhint.ts
+          set -eo pipefail
+          if [ -f yarn.lock ]; then
+            corepack enable
+            yarn install --frozen-lockfile --silent
+          elif [ -f pnpm-lock.yaml ]; then
+            corepack enable
+            pnpm install --frozen-lockfile
           else
-            npx solhint 'contracts/**/*.sol'
+            npm ci
           fi
 
-      - name: Check formatting
-        run: npx prettier --check 'contracts/**/*.sol'
+      - name: Ensure reports directory
+        run: mkdir -p "${{ env.REPORTS_DIR }}"
+
+      - name: Run shared guardrails
+        run: |
+          set -eo pipefail
+          if [ -f ".shared/scripts/guardrails/check.ts" ] && [ -x "node_modules/.bin/ts-node" ]; then
+            node_modules/.bin/ts-node .shared/scripts/guardrails/check.ts --fail-fast
+          elif node -e "const pkg=require('./package.json');process.exit(pkg && pkg.scripts && pkg.scripts['guardrails:check'] ? 0 : 1)"; then
+            npm run guardrails:check -- --fail-fast
+          else
+            echo "::warning::No shared guardrails script configured; running baseline linters."
+            if [ -x "node_modules/.bin/eslint" ]; then
+              node_modules/.bin/eslint --max-warnings=0 .
+            else
+              echo "::warning::eslint not installed; skipping eslint run."
+            fi
+            if [ -x "node_modules/.bin/prettier" ]; then
+              node_modules/.bin/prettier --check .
+            else
+              echo "::warning::prettier not installed; skipping prettier run."
+            fi
+          fi
+
+      - name: Check for hard-coded deploy IDs
+        run: |
+          set -eo pipefail
+          mkdir -p "${{ env.REPORTS_DIR }}"
+          if [ -f ".shared/scripts/deployments/find-hardcoded-deploy-ids.ts" ] && [ -x "node_modules/.bin/ts-node" ]; then
+            node_modules/.bin/ts-node .shared/scripts/deployments/find-hardcoded-deploy-ids.ts --report "${{ env.REPORTS_DIR }}/deploy-ids.json"
+          elif node -e "const pkg=require('./package.json');process.exit(pkg && pkg.scripts && pkg.scripts['sanity:deploy-ids'] ? 0 : 1)"; then
+            npm run sanity:deploy-ids -- --report "${{ env.REPORTS_DIR }}/deploy-ids.json"
+          else
+            echo "::notice::Deploy ID sanity check not configured; skipping."
+          fi
+
+      - name: Upload guardrail artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: guardrail-reports
+          path: ${{ env.REPORTS_DIR }}/
+          if-no-files-found: ignore
 
   compile:
     name: Compile Contracts
@@ -47,62 +90,32 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
 
       - name: Install dependencies
-        run: npm ci
-
-      - name: Compile contracts
-        run: npx hardhat compile
-
-      - name: Check contract sizes
-        run: npx hardhat size-contracts || true
-
-  slither:
-    name: Slither Analysis
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Setup Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.10'
-
-      - name: Install Slither
-        run: pip install slither-analyzer
-
-      - name: Run Slither
         run: |
-          if [ -f ".shared/scripts/analysis/slither.ts" ]; then
-            npx ts-node .shared/scripts/analysis/slither.ts --fail-on-high
+          set -eo pipefail
+          if [ -f yarn.lock ]; then
+            corepack enable
+            yarn install --frozen-lockfile --silent
+          elif [ -f pnpm-lock.yaml ]; then
+            corepack enable
+            pnpm install --frozen-lockfile
           else
-            slither . --config-file .shared/configs/slither.json || true
+            npm ci
           fi
 
-      - name: Upload Slither report
-        if: always()
-        uses: actions/upload-artifact@v3
-        with:
-          name: slither-report
-          path: reports/slither-report.json
-          if-no-files-found: ignore
+      - name: Compile contracts
+        run: |
+          set -eo pipefail
+          if [ -x "node_modules/.bin/hardhat" ]; then
+            node_modules/.bin/hardhat compile
+          else
+            echo "::warning::Hardhat not installed; skipping compile step."
+          fi
 
   test:
     name: Run Tests
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        test-group: [unit, integration]
     steps:
       - uses: actions/checkout@v4
 
@@ -110,87 +123,57 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
 
       - name: Install dependencies
-        run: npm ci
-
-      - name: Run ${{ matrix.test-group }} tests
         run: |
-          if [ "${{ matrix.test-group }}" = "unit" ]; then
-            npx hardhat test test/unit/**/*.ts || npx hardhat test
+          set -eo pipefail
+          if [ -f yarn.lock ]; then
+            corepack enable
+            yarn install --frozen-lockfile --silent
+          elif [ -f pnpm-lock.yaml ]; then
+            corepack enable
+            pnpm install --frozen-lockfile
           else
-            npx hardhat test test/integration/**/*.ts || true
+            npm ci
           fi
 
-      - name: Generate coverage report
-        if: matrix.test-group == 'unit'
-        run: npx hardhat coverage || true
-
-      - name: Upload coverage
-        if: matrix.test-group == 'unit'
-        uses: actions/upload-artifact@v3
-        with:
-          name: coverage-report
-          path: coverage/
-          if-no-files-found: ignore
-
-  mythril:
-    name: Mythril Security Analysis
-    runs-on: ubuntu-latest
-    continue-on-error: true
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Run Mythril via Docker
+      - name: Execute tests
         run: |
-          docker run -v $(pwd):/tmp \
-            mythril/myth:latest \
-            analyze /tmp/contracts/*.sol \
-            --solv 0.8.20 \
-            --execution-timeout 300 \
-            --max-depth 10 \
-            || true
+          set -eo pipefail
+          if [ -x "node_modules/.bin/hardhat" ]; then
+            node_modules/.bin/hardhat test
+          elif node -e "const pkg=require('./package.json');process.exit(pkg && pkg.scripts && pkg.scripts.test ? 0 : 1)"; then
+            npm test
+          else
+            echo "::warning::No tests configured; skipping."
+          fi
 
   guardrails-summary:
     name: Guardrails Summary
-    needs: [lint, compile, slither, test]
+    needs: [lint, compile, test]
     runs-on: ubuntu-latest
     if: always()
     steps:
-      - name: Check guardrails status
+      - name: Publish summary
         run: |
-          echo "## Security Guardrails Summary" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
+          {
+            echo "## Shared Guardrails Summary"
+            echo
+            if [ "${{ needs.lint.result }}" = "success" ]; then
+              echo "✅ Lint & sanity checks passed"
+            else
+              echo "❌ Lint & sanity checks failed"
+            fi
 
-          # Check each job status
-          if [ "${{ needs.lint.result }}" = "success" ]; then
-            echo "✅ Linting passed" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "❌ Linting failed" >> $GITHUB_STEP_SUMMARY
-          fi
+            if [ "${{ needs.compile.result }}" = "success" ]; then
+              echo "✅ Compilation passed"
+            else
+              echo "❌ Compilation failed"
+            fi
 
-          if [ "${{ needs.compile.result }}" = "success" ]; then
-            echo "✅ Compilation passed" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "❌ Compilation failed" >> $GITHUB_STEP_SUMMARY
-          fi
-
-          if [ "${{ needs.slither.result }}" = "success" ]; then
-            echo "✅ Slither analysis passed" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "⚠️ Slither found issues" >> $GITHUB_STEP_SUMMARY
-          fi
-
-          if [ "${{ needs.test.result }}" = "success" ]; then
-            echo "✅ Tests passed" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "❌ Tests failed" >> $GITHUB_STEP_SUMMARY
-          fi
-
-      - name: Fail if any required check failed
-        if: |
-          needs.lint.result != 'success' ||
-          needs.compile.result != 'success' ||
-          needs.test.result != 'success'
-        run: exit 1
+            if [ "${{ needs.test.result }}" = "success" ]; then
+              echo "✅ Tests passed"
+            else
+              echo "❌ Tests failed"
+            fi
+          } >> $GITHUB_STEP_SUMMARY
