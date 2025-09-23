@@ -62,7 +62,6 @@ describe("DStakeRouterDLend – surplus < 1 share withdraw DoS", function () {
   it("Withdrawal should succeed (test will FAIL on current code)", async function () {
     // Act + Assert: attempt to withdraw – this **should** succeed after fix
     const withdrawAmount = parseUnits("100", dStableDecimals);
-    await expect(DStakeTokenInst.connect(deployer).withdraw(withdrawAmount, deployer.address, deployer.address)).to.not
-      .be.reverted; // The pre-fix implementation reverts, so this spec fails.
+    await expect(DStakeTokenInst.connect(deployer).withdraw(withdrawAmount, deployer.address, deployer.address)).to.not.be.reverted; // The pre-fix implementation reverts, so this spec fails.
   });
 });

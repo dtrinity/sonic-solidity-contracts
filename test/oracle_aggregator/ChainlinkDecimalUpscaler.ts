@@ -80,18 +80,20 @@ describe("ChainlinkDecimalUpscaler", () => {
       const targetDecimals = 6; // Less than source decimals
       const UpscalerFactory = await ethers.getContractFactory("ChainlinkDecimalUpscaler");
 
-      await expect(
-        UpscalerFactory.deploy(await mockAggregator.getAddress(), targetDecimals),
-      ).to.be.revertedWithCustomError(UpscalerFactory, "InvalidDecimalsDownscaleNotSupported");
+      await expect(UpscalerFactory.deploy(await mockAggregator.getAddress(), targetDecimals)).to.be.revertedWithCustomError(
+        UpscalerFactory,
+        "InvalidDecimalsDownscaleNotSupported",
+      );
     });
 
     it("should revert when attempting no scaling (same decimals)", async () => {
       const targetDecimals = 8; // Equal to source decimals
       const UpscalerFactory = await ethers.getContractFactory("ChainlinkDecimalUpscaler");
 
-      await expect(
-        UpscalerFactory.deploy(await mockAggregator.getAddress(), targetDecimals),
-      ).to.be.revertedWithCustomError(UpscalerFactory, "InvalidDecimalsDownscaleNotSupported");
+      await expect(UpscalerFactory.deploy(await mockAggregator.getAddress(), targetDecimals)).to.be.revertedWithCustomError(
+        UpscalerFactory,
+        "InvalidDecimalsDownscaleNotSupported",
+      );
     });
 
     it("should handle legacy interface correctly with runtime fallback", async () => {

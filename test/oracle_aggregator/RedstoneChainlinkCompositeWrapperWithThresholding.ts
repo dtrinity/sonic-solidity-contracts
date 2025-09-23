@@ -39,10 +39,7 @@ describe("RedstoneChainlinkCompositeWrapperWithThresholding", () => {
  * @param root0.user1
  * @param root0.user2
  */
-async function runTestsForCurrency(
-  currency: string,
-  { deployer, user1, user2 }: { deployer: Address; user1: Address; user2: Address },
-) {
+async function runTestsForCurrency(currency: string, { deployer, user1, user2 }: { deployer: Address; user1: Address; user2: Address }) {
   describe(`RedstoneChainlinkCompositeWrapperWithThresholding for ${currency}`, () => {
     let fixtureResult: OracleAggregatorFixtureResult;
     let redstoneChainlinkCompositeWrapperWithThresholding: RedstoneChainlinkCompositeWrapperWithThresholding;
@@ -52,8 +49,7 @@ async function runTestsForCurrency(
       fixtureResult = await fixture();
 
       // Get contract instances from the fixture
-      redstoneChainlinkCompositeWrapperWithThresholding =
-        fixtureResult.contracts.redstoneChainlinkCompositeWrapperWithThresholding;
+      redstoneChainlinkCompositeWrapperWithThresholding = fixtureResult.contracts.redstoneChainlinkCompositeWrapperWithThresholding;
 
       // Set the base currency for use in tests
       this.baseCurrency = currency;
@@ -123,11 +119,9 @@ async function runTestsForCurrency(
 
         // Convert to 8 decimals for mock
         const mockPrice1Above8Decimals =
-          (price1Above * BigInt(10) ** BigInt(CHAINLINK_FEED_DECIMALS)) /
-          BigInt(10) ** BigInt(ORACLE_AGGREGATOR_PRICE_DECIMALS);
+          (price1Above * BigInt(10) ** BigInt(CHAINLINK_FEED_DECIMALS)) / BigInt(10) ** BigInt(ORACLE_AGGREGATOR_PRICE_DECIMALS);
         const mockPrice2Above8Decimals =
-          (price2Above * BigInt(10) ** BigInt(CHAINLINK_FEED_DECIMALS)) /
-          BigInt(10) ** BigInt(ORACLE_AGGREGATOR_PRICE_DECIMALS);
+          (price2Above * BigInt(10) ** BigInt(CHAINLINK_FEED_DECIMALS)) / BigInt(10) ** BigInt(ORACLE_AGGREGATOR_PRICE_DECIMALS);
 
         await mockFeed1.setMock(mockPrice1Above8Decimals);
         await mockFeed2.setMock(mockPrice2Above8Decimals);
@@ -136,8 +130,7 @@ async function runTestsForCurrency(
           await redstoneChainlinkCompositeWrapperWithThresholding.getPriceInfo(testAsset);
 
         // Both prices should be fixed
-        const expectedPriceAbove =
-          (fixedPrice1 * fixedPrice2) / ethers.parseUnits("1", ORACLE_AGGREGATOR_PRICE_DECIMALS);
+        const expectedPriceAbove = (fixedPrice1 * fixedPrice2) / ethers.parseUnits("1", ORACLE_AGGREGATOR_PRICE_DECIMALS);
         expect(priceWithBothAbove).to.equal(expectedPriceAbove);
         expect(isAliveWithBothAbove).to.be.true;
 
@@ -146,16 +139,13 @@ async function runTestsForCurrency(
 
         // Convert to 8 decimals for mock
         const mockPrice1Below8Decimals =
-          (price1Below * BigInt(10) ** BigInt(CHAINLINK_FEED_DECIMALS)) /
-          BigInt(10) ** BigInt(ORACLE_AGGREGATOR_PRICE_DECIMALS);
+          (price1Below * BigInt(10) ** BigInt(CHAINLINK_FEED_DECIMALS)) / BigInt(10) ** BigInt(ORACLE_AGGREGATOR_PRICE_DECIMALS);
         await mockFeed1.setMock(mockPrice1Below8Decimals);
 
-        const { price: priceWithOneBelow } =
-          await redstoneChainlinkCompositeWrapperWithThresholding.getPriceInfo(testAsset);
+        const { price: priceWithOneBelow } = await redstoneChainlinkCompositeWrapperWithThresholding.getPriceInfo(testAsset);
 
         // Price1 should be unchanged (0.95) while price2 is fixed at 1.00
-        const expectedPriceOneBelow =
-          (price1Below * fixedPrice2) / ethers.parseUnits("1", ORACLE_AGGREGATOR_PRICE_DECIMALS);
+        const expectedPriceOneBelow = (price1Below * fixedPrice2) / ethers.parseUnits("1", ORACLE_AGGREGATOR_PRICE_DECIMALS);
         expect(priceWithOneBelow).to.equal(expectedPriceOneBelow);
       });
 
@@ -247,19 +237,11 @@ async function runTestsForCurrency(
             .connect(unauthorizedSigner)
             .addCompositeFeed(testAsset, feed1, feed2, 0, 0, 0, 0),
         )
-          .to.be.revertedWithCustomError(
-            redstoneChainlinkCompositeWrapperWithThresholding,
-            "AccessControlUnauthorizedAccount",
-          )
+          .to.be.revertedWithCustomError(redstoneChainlinkCompositeWrapperWithThresholding, "AccessControlUnauthorizedAccount")
           .withArgs(user2, oracleManagerRole);
 
-        await expect(
-          redstoneChainlinkCompositeWrapperWithThresholding.connect(unauthorizedSigner).removeCompositeFeed(testAsset),
-        )
-          .to.be.revertedWithCustomError(
-            redstoneChainlinkCompositeWrapperWithThresholding,
-            "AccessControlUnauthorizedAccount",
-          )
+        await expect(redstoneChainlinkCompositeWrapperWithThresholding.connect(unauthorizedSigner).removeCompositeFeed(testAsset))
+          .to.be.revertedWithCustomError(redstoneChainlinkCompositeWrapperWithThresholding, "AccessControlUnauthorizedAccount")
           .withArgs(user2, oracleManagerRole);
       });
     });

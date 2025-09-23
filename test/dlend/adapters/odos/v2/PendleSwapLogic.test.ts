@@ -81,10 +81,7 @@ describe("PendleSwapLogic", function () {
     it("should return PT_TO_REGULAR for PT token to regular token", async function () {
       const { pendleLogicHarness, ptTokenA, tokenB } = fixture;
 
-      const swapType = await pendleLogicHarness.determineSwapType(
-        await ptTokenA.getAddress(),
-        await tokenB.getAddress(),
-      );
+      const swapType = await pendleLogicHarness.determineSwapType(await ptTokenA.getAddress(), await tokenB.getAddress());
 
       expect(swapType).to.equal(1); // SwapType.PT_TO_REGULAR
     });
@@ -92,10 +89,7 @@ describe("PendleSwapLogic", function () {
     it("should return REGULAR_TO_PT for regular token to PT token", async function () {
       const { pendleLogicHarness, tokenA, ptTokenB } = fixture;
 
-      const swapType = await pendleLogicHarness.determineSwapType(
-        await tokenA.getAddress(),
-        await ptTokenB.getAddress(),
-      );
+      const swapType = await pendleLogicHarness.determineSwapType(await tokenA.getAddress(), await ptTokenB.getAddress());
 
       expect(swapType).to.equal(2); // SwapType.REGULAR_TO_PT
     });
@@ -103,10 +97,7 @@ describe("PendleSwapLogic", function () {
     it("should return PT_TO_PT for PT token to PT token", async function () {
       const { pendleLogicHarness, ptTokenA, ptTokenB } = fixture;
 
-      const swapType = await pendleLogicHarness.determineSwapType(
-        await ptTokenA.getAddress(),
-        await ptTokenB.getAddress(),
-      );
+      const swapType = await pendleLogicHarness.determineSwapType(await ptTokenA.getAddress(), await ptTokenB.getAddress());
 
       expect(swapType).to.equal(3); // SwapType.PT_TO_PT
     });
@@ -387,14 +378,8 @@ describe("PendleSwapLogic", function () {
       expect(sy1).to.equal(await syTokenA.getAddress());
 
       // Test that determineSwapType is also view now
-      const swapType1 = await pendleLogicHarness.determineSwapType(
-        await ptTokenA.getAddress(),
-        await fixture.tokenB.getAddress(),
-      );
-      const swapType2 = await pendleLogicHarness.determineSwapType(
-        await ptTokenA.getAddress(),
-        await fixture.tokenB.getAddress(),
-      );
+      const swapType1 = await pendleLogicHarness.determineSwapType(await ptTokenA.getAddress(), await fixture.tokenB.getAddress());
+      const swapType2 = await pendleLogicHarness.determineSwapType(await ptTokenA.getAddress(), await fixture.tokenB.getAddress());
 
       expect(swapType1).to.equal(swapType2); // Consistent view results
       expect(swapType1).to.equal(1); // PT_TO_REGULAR

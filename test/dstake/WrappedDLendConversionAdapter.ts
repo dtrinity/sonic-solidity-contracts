@@ -48,11 +48,7 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
       wrapperToken = out.vaultAssetToken;
       adapterAddress = out.adapterAddress;
       // get the full adapter contract for WrappedDLendConversionAdapter
-      adapter = (await ethers.getContractAt(
-        "WrappedDLendConversionAdapter",
-        adapterAddress,
-        deployer,
-      )) as WrappedDLendConversionAdapter;
+      adapter = (await ethers.getContractAt("WrappedDLendConversionAdapter", adapterAddress, deployer)) as WrappedDLendConversionAdapter;
       collateralVault = out.collateralVault as unknown as DStakeCollateralVault;
       collateralVaultAddress = await collateralVault.getAddress();
 
@@ -72,11 +68,7 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
 
       // Grant MINTER_ROLE to deployer so we can mint dStable
       const dStableAddress = await dStableToken.getAddress();
-      stable = (await ethers.getContractAt(
-        "ERC20StablecoinUpgradeable",
-        dStableAddress,
-        deployer,
-      )) as ERC20StablecoinUpgradeable;
+      stable = (await ethers.getContractAt("ERC20StablecoinUpgradeable", dStableAddress, deployer)) as ERC20StablecoinUpgradeable;
       const minterRole = await stable.MINTER_ROLE();
       await stable.grantRole(minterRole, deployer.address);
 
@@ -102,10 +94,7 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
 
     describe("convertToVaultAsset", function () {
       it("should revert if dStableAmount is 0", async function () {
-        await expect(adapter.connect(user1).convertToVaultAsset(0)).to.be.revertedWithCustomError(
-          adapter,
-          "InvalidAmount",
-        );
+        await expect(adapter.connect(user1).convertToVaultAsset(0)).to.be.revertedWithCustomError(adapter, "InvalidAmount");
       });
 
       it("should revert if user has insufficient dStable balance", async function () {
@@ -152,10 +141,7 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
 
     describe("convertFromVaultAsset", function () {
       it("should revert if vaultAssetAmount is 0", async function () {
-        await expect(adapter.connect(user1).convertFromVaultAsset(0)).to.be.revertedWithCustomError(
-          adapter,
-          "InvalidAmount",
-        );
+        await expect(adapter.connect(user1).convertFromVaultAsset(0)).to.be.revertedWithCustomError(adapter, "InvalidAmount");
       });
 
       it("should revert if user has insufficient wrappedDLendToken balance", async function () {

@@ -38,10 +38,7 @@ describe("API3WrapperWithThresholding", () => {
  * @param root0.user1
  * @param root0.user2
  */
-async function runTestsForCurrency(
-  currency: string,
-  { deployer, user1, user2 }: { deployer: Address; user1: Address; user2: Address },
-) {
+async function runTestsForCurrency(currency: string, { deployer, user1, user2 }: { deployer: Address; user1: Address; user2: Address }) {
   describe(`API3WrapperWithThresholding for ${currency}`, () => {
     let fixtureResult: OracleAggregatorFixtureResult;
     let api3WrapperWithThresholding: API3WrapperWithThresholding;
@@ -114,11 +111,7 @@ async function runTestsForCurrency(
           await api3WrapperWithThresholding.setProxy(testAsset, await mockOracle.getAddress());
 
           // Use the threshold config from the fixture
-          await api3WrapperWithThresholding.setThresholdConfig(
-            testAsset,
-            assetData.lowerThreshold,
-            assetData.fixedPrice,
-          );
+          await api3WrapperWithThresholding.setThresholdConfig(testAsset, assetData.lowerThreshold, assetData.fixedPrice);
 
           // Set a price above threshold (e.g., fixed price + 1%)
           const priceAboveThreshold = assetData.fixedPrice + assetData.fixedPrice / 100n;
@@ -153,11 +146,7 @@ async function runTestsForCurrency(
           await api3WrapperWithThresholding.setProxy(testAsset, await mockOracle.getAddress());
 
           // Use the threshold config from the fixture
-          await api3WrapperWithThresholding.setThresholdConfig(
-            testAsset,
-            assetData.lowerThreshold,
-            assetData.fixedPrice,
-          );
+          await api3WrapperWithThresholding.setThresholdConfig(testAsset, assetData.lowerThreshold, assetData.fixedPrice);
 
           // Set a price below threshold (e.g., threshold - 1%)
           const priceBelowThreshold = assetData.lowerThreshold - assetData.lowerThreshold / 100n;
@@ -264,11 +253,7 @@ async function runTestsForCurrency(
         const unauthorizedSigner = await ethers.getSigner(user2);
         const oracleManagerRole = await api3WrapperWithThresholding.ORACLE_MANAGER_ROLE();
 
-        await expect(
-          api3WrapperWithThresholding
-            .connect(unauthorizedSigner)
-            .setThresholdConfig(testAsset, lowerThreshold, fixedPrice),
-        )
+        await expect(api3WrapperWithThresholding.connect(unauthorizedSigner).setThresholdConfig(testAsset, lowerThreshold, fixedPrice))
           .to.be.revertedWithCustomError(api3WrapperWithThresholding, "AccessControlUnauthorizedAccount")
           .withArgs(user2, oracleManagerRole);
       });

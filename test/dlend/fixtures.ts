@@ -114,10 +114,7 @@ async function setupDLendFixture(): Promise<DLendFixtureResult> {
     // Get token contracts
     aTokens[asset] = await hre.ethers.getContractAt("AToken", reserveData.aTokenAddress);
     stableDebtTokens[asset] = await hre.ethers.getContractAt("StableDebtToken", reserveData.stableDebtTokenAddress);
-    variableDebtTokens[asset] = await hre.ethers.getContractAt(
-      "VariableDebtToken",
-      reserveData.variableDebtTokenAddress,
-    );
+    variableDebtTokens[asset] = await hre.ethers.getContractAt("VariableDebtToken", reserveData.variableDebtTokenAddress);
 
     // Store asset configuration
     assets[asset] = {
@@ -149,11 +146,7 @@ async function setupDLendFixture(): Promise<DLendFixtureResult> {
   const usdOracle = await hre.ethers.getContractAt("OracleAggregator", usdOracleAddress);
 
   // Get collateral token (sfrxUSD) for dUSD
-  const { contract: usdCollateralToken, tokenInfo: usdCollateralInfo } = await getTokenContractForSymbol(
-    hre,
-    deployer,
-    "sfrxUSD",
-  );
+  const { contract: usdCollateralToken, tokenInfo: usdCollateralInfo } = await getTokenContractForSymbol(hre, deployer, "sfrxUSD");
   const { contract: dUsdToken, tokenInfo: dUsdInfo } = await getTokenContractForSymbol(hre, deployer, "dUSD");
 
   // Mint dUSD
@@ -175,11 +168,7 @@ async function setupDLendFixture(): Promise<DLendFixtureResult> {
   const sOracle = await hre.ethers.getContractAt("OracleAggregator", sOracleAddress);
 
   // Get collateral token (stS) for dS
-  const { contract: sCollateralToken, tokenInfo: sCollateralInfo } = await getTokenContractForSymbol(
-    hre,
-    deployer,
-    "stS",
-  );
+  const { contract: sCollateralToken, tokenInfo: sCollateralInfo } = await getTokenContractForSymbol(hre, deployer, "stS");
   const { contract: dSToken, tokenInfo: dSInfo } = await getTokenContractForSymbol(hre, deployer, "dS");
 
   // Mint dS

@@ -21,11 +21,7 @@ describe("ERC20StablecoinUpgradeable", () => {
 
     // Get the deployed dUSD contract
     const dUSDAddress = (await hre.deployments.get(DUSD_CONFIG.symbol)).address;
-    stablecoinContract = await hre.ethers.getContractAt(
-      "ERC20StablecoinUpgradeable",
-      dUSDAddress,
-      await hre.ethers.getSigner(deployer),
-    );
+    stablecoinContract = await hre.ethers.getContractAt("ERC20StablecoinUpgradeable", dUSDAddress, await hre.ethers.getSigner(deployer));
   });
 
   describe("Initialization", () => {
@@ -67,9 +63,10 @@ describe("ERC20StablecoinUpgradeable", () => {
       await stablecoinContract.connect(await hre.ethers.getSigner(user1)).mint(user2, mintAmount);
 
       // User2 should not be able to mint
-      await expect(
-        stablecoinContract.connect(await hre.ethers.getSigner(user2)).mint(user1, mintAmount),
-      ).to.be.revertedWithCustomError(stablecoinContract, "AccessControlUnauthorizedAccount");
+      await expect(stablecoinContract.connect(await hre.ethers.getSigner(user2)).mint(user1, mintAmount)).to.be.revertedWithCustomError(
+        stablecoinContract,
+        "AccessControlUnauthorizedAccount",
+      );
 
       // Verify minted amount
       const balance = await stablecoinContract.balanceOf(user2);
@@ -89,9 +86,10 @@ describe("ERC20StablecoinUpgradeable", () => {
       assert.isTrue(await stablecoinContract.paused());
 
       // User2 should not be able to unpause
-      await expect(
-        stablecoinContract.connect(await hre.ethers.getSigner(user2)).unpause(),
-      ).to.be.revertedWithCustomError(stablecoinContract, "AccessControlUnauthorizedAccount");
+      await expect(stablecoinContract.connect(await hre.ethers.getSigner(user2)).unpause()).to.be.revertedWithCustomError(
+        stablecoinContract,
+        "AccessControlUnauthorizedAccount",
+      );
 
       // User1 should be able to unpause
       await stablecoinContract.connect(await hre.ethers.getSigner(user1)).unpause();

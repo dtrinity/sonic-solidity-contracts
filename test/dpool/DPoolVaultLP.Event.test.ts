@@ -55,9 +55,7 @@ describe("DPoolVaultLP – Withdraw event", () => {
     const tx = await vault.connect(user).withdraw(netAssets, user.address, user.address);
 
     // Expect event to emit **net** assets
-    await expect(tx)
-      .to.emit(vault, "Withdraw")
-      .withArgs(user.address, user.address, user.address, netAssets, sharesNeeded);
+    await expect(tx).to.emit(vault, "Withdraw").withArgs(user.address, user.address, user.address, netAssets, sharesNeeded);
 
     // Validate token transfer amount == net assets
     const balanceAfter: bigint = await token.balanceOf(user.address);

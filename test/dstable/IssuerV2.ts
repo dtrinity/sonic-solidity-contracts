@@ -2,14 +2,7 @@ import { assert, expect } from "chai";
 import hre, { getNamedAccounts } from "hardhat";
 import { Address } from "hardhat-deploy/types";
 
-import {
-  AmoManager,
-  CollateralHolderVault,
-  IssuerV2,
-  OracleAggregator,
-  TestERC20,
-  TestMintableERC20,
-} from "../../typechain-types";
+import { AmoManager, CollateralHolderVault, IssuerV2, OracleAggregator, TestERC20, TestMintableERC20 } from "../../typechain-types";
 import { ORACLE_AGGREGATOR_PRICE_DECIMALS } from "../../typescript/oracle_aggregator/constants";
 import { getTokenContractForSymbol, TokenInfo } from "../../typescript/token/utils";
 import { createDStableFixture, DS_CONFIG, DStableFixtureConfig, DUSD_CONFIG } from "./fixtures";
@@ -97,11 +90,7 @@ dstableConfigs.forEach((config) => {
       );
 
       const amoManagerAddress = (await hre.deployments.get(config.amoManagerId)).address;
-      amoManagerContract = await hre.ethers.getContractAt(
-        "AmoManager",
-        amoManagerAddress,
-        await hre.ethers.getSigner(deployer),
-      );
+      amoManagerContract = await hre.ethers.getContractAt("AmoManager", amoManagerAddress, await hre.ethers.getSigner(deployer));
 
       // Get the oracle aggregator based on the dStable configuration
       const oracleAggregatorAddress = (await hre.deployments.get(config.oracleAggregatorId)).address;
@@ -180,13 +169,9 @@ dstableConfigs.forEach((config) => {
           const vaultBalanceBefore = await collateralContract.balanceOf(await collateralVaultContract.getAddress());
           const userDstableBalanceBefore = await dstableContract.balanceOf(user1);
 
-          await collateralContract
-            .connect(await hre.ethers.getSigner(user1))
-            .approve(await issuerV2.getAddress(), collateralAmount);
+          await collateralContract.connect(await hre.ethers.getSigner(user1)).approve(await issuerV2.getAddress(), collateralAmount);
 
-          await issuerV2
-            .connect(await hre.ethers.getSigner(user1))
-            .issue(collateralAmount, collateralInfo.address, minDStable);
+          await issuerV2.connect(await hre.ethers.getSigner(user1)).issue(collateralAmount, collateralInfo.address, minDStable);
 
           const vaultBalanceAfter = await collateralContract.balanceOf(await collateralVaultContract.getAddress());
           const userDstableBalanceAfter = await dstableContract.balanceOf(user1);
@@ -214,9 +199,7 @@ dstableConfigs.forEach((config) => {
 
           const collateralAmount = hre.ethers.parseUnits("100", collateralInfo.decimals);
 
-          await expect(
-            issuerV2.connect(await hre.ethers.getSigner(user1)).issue(collateralAmount, collateralInfo.address, 0),
-          )
+          await expect(issuerV2.connect(await hre.ethers.getSigner(user1)).issue(collateralAmount, collateralInfo.address, 0))
             .to.be.revertedWithCustomError(issuerV2, "AssetMintingPaused")
             .withArgs(collateralInfo.address);
 
@@ -243,13 +226,9 @@ dstableConfigs.forEach((config) => {
           dstableInfo.address,
         );
 
-        await collateralContract
-          .connect(await hre.ethers.getSigner(user1))
-          .approve(await issuerV2.getAddress(), collateralAmount);
+        await collateralContract.connect(await hre.ethers.getSigner(user1)).approve(await issuerV2.getAddress(), collateralAmount);
 
-        await issuerV2
-          .connect(await hre.ethers.getSigner(user1))
-          .issue(collateralAmount, collateralInfo.address, expectedDstableAmount);
+        await issuerV2.connect(await hre.ethers.getSigner(user1)).issue(collateralAmount, collateralInfo.address, expectedDstableAmount);
 
         const amoSupply = hre.ethers.parseUnits("500", dstableInfo.decimals);
         await issuerV2.increaseAmoSupply(amoSupply);
@@ -278,11 +257,7 @@ dstableConfigs.forEach((config) => {
 
         const actualDstableAmount = await issuerV2.baseValueToDstableAmount(baseValue);
 
-        assert.equal(
-          actualDstableAmount,
-          expectedDstableAmount,
-          `Base value to ${config.symbol} conversion is incorrect`,
-        );
+        assert.equal(actualDstableAmount, expectedDstableAmount, `Base value to ${config.symbol} conversion is incorrect`);
       });
 
       it("reverts when issuing with unsupported collateral", async function () {
@@ -304,11 +279,7 @@ dstableConfigs.forEach((config) => {
           .connect(await hre.ethers.getSigner(user1))
           .approve(await issuerV2.getAddress(), unsupportedAmount);
 
-        await expect(
-          issuerV2
-            .connect(await hre.ethers.getSigner(user1))
-            .issue(unsupportedAmount, unsupportedCollateralInfo.address, 0),
-        )
+        await expect(issuerV2.connect(await hre.ethers.getSigner(user1)).issue(unsupportedAmount, unsupportedCollateralInfo.address, 0))
           .to.be.revertedWithCustomError(issuerV2, "UnsupportedCollateral")
           .withArgs(unsupportedCollateralInfo.address);
       });
@@ -320,9 +291,7 @@ dstableConfigs.forEach((config) => {
         const collateralInfo = collateralInfos.get(collateralSymbol) as TokenInfo;
 
         // user1 should not have permission
-        await expect(
-          issuerV2.connect(await hre.ethers.getSigner(user1)).setAssetMintingPause(collateralInfo.address, true),
-        )
+        await expect(issuerV2.connect(await hre.ethers.getSigner(user1)).setAssetMintingPause(collateralInfo.address, true))
           .to.be.revertedWithCustomError(issuerV2, "AccessControlUnauthorizedAccount")
           .withArgs(user1, await issuerV2.PAUSER_ROLE());
 
@@ -339,9 +308,7 @@ dstableConfigs.forEach((config) => {
         const collateralInfo = collateralInfos.get(collateralSymbol) as TokenInfo;
 
         const collateralAmount = hre.ethers.parseUnits("10", collateralInfo.decimals);
-        await collateralContract
-          .connect(await hre.ethers.getSigner(user1))
-          .approve(await issuerV2.getAddress(), collateralAmount);
+        await collateralContract.connect(await hre.ethers.getSigner(user1)).approve(await issuerV2.getAddress(), collateralAmount);
 
         // Pause by deployer (has PAUSER_ROLE)
         await issuerV2.pauseMinting();
@@ -350,10 +317,7 @@ dstableConfigs.forEach((config) => {
           issuerV2.connect(await hre.ethers.getSigner(user1)).issue(collateralAmount, collateralInfo.address, 0),
         ).to.be.revertedWithCustomError(issuerV2, "EnforcedPause");
 
-        await expect(issuerV2.issueUsingExcessCollateral(user2, 1n)).to.be.revertedWithCustomError(
-          issuerV2,
-          "EnforcedPause",
-        );
+        await expect(issuerV2.issueUsingExcessCollateral(user2, 1n)).to.be.revertedWithCustomError(issuerV2, "EnforcedPause");
 
         await expect(issuerV2.increaseAmoSupply(1n)).to.be.revertedWithCustomError(issuerV2, "EnforcedPause");
 
@@ -380,16 +344,8 @@ dstableConfigs.forEach((config) => {
         const finalAmoBalance = await dstableContract.balanceOf(await amoManagerContract.getAddress());
         const finalAmoSupply = await amoManagerContract.totalAmoSupply();
 
-        assert.equal(
-          finalAmoBalance - initialAmoBalance,
-          amoSupply,
-          "AMO Manager balance did not increase by the expected amount",
-        );
-        assert.equal(
-          finalAmoSupply - initialAmoSupply,
-          amoSupply,
-          "AMO supply did not increase by the expected amount",
-        );
+        assert.equal(finalAmoBalance - initialAmoBalance, amoSupply, "AMO Manager balance did not increase by the expected amount");
+        assert.equal(finalAmoSupply - initialAmoSupply, amoSupply, "AMO supply did not increase by the expected amount");
       });
 
       it(`issueUsingExcessCollateral respects collateral limits for ${config.symbol}`, async function () {
@@ -424,16 +380,8 @@ dstableConfigs.forEach((config) => {
         const finalCirculatingDstable = await issuerV2.circulatingDstable();
         const finalReceiverBalance = await dstableContract.balanceOf(receiver);
 
-        assert.equal(
-          finalCirculatingDstable - initialCirculatingDstable,
-          amountToMint,
-          "Circulating dStable was not increased correctly",
-        );
-        assert.equal(
-          finalReceiverBalance - initialReceiverBalance,
-          amountToMint,
-          "Receiver balance was not increased correctly",
-        );
+        assert.equal(finalCirculatingDstable - initialCirculatingDstable, amountToMint, "Circulating dStable was not increased correctly");
+        assert.equal(finalReceiverBalance - initialReceiverBalance, amountToMint, "Receiver balance was not increased correctly");
       });
     });
   });

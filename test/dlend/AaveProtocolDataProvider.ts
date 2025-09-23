@@ -37,9 +37,7 @@ describe("dLEND AaveProtocolDataProvider", () => {
     const dStableToken = await hre.ethers.getContractAt("TestERC20", dStableAsset);
     const dStableSupplyAmount = ethers.parseUnits("1000", 18);
     await dStableToken.connect(deployerSigner).approve(await fixture.contracts.pool.getAddress(), dStableSupplyAmount);
-    await fixture.contracts.pool
-      .connect(deployerSigner)
-      .supply(dStableAsset, dStableSupplyAmount, deployerSigner.address, 0);
+    await fixture.contracts.pool.connect(deployerSigner).supply(dStableAsset, dStableSupplyAmount, deployerSigner.address, 0);
   });
 
   describe("Reserve Configuration Data (`getReserveConfigurationData`)", () => {
@@ -151,10 +149,7 @@ describe("dLEND AaveProtocolDataProvider", () => {
       // Check returned values based on the *actual* contract signature
       expect(unbacked).to.equal(0, "Value at index 0 (unbacked) should be 0");
 
-      expect(totalAToken).to.equal(
-        aTokenTotalSupply,
-        "Value at index 2 (totalAToken) should match aToken total supply",
-      );
+      expect(totalAToken).to.equal(aTokenTotalSupply, "Value at index 2 (totalAToken) should match aToken total supply");
       expect(totalAToken).to.be.closeTo(
         actualATokenBalance,
         ethers.parseUnits("0.01", 18),

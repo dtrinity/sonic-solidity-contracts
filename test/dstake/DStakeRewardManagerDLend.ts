@@ -144,10 +144,7 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
         expect(hasDefaultAdminRole).to.be.true;
 
         // Check that deployer no longer has DEFAULT_ADMIN_ROLE
-        const deployerHasDefaultAdminRole = await rewardManagerContract.hasRole(
-          defaultAdminRole,
-          deployerSigner.address,
-        );
+        const deployerHasDefaultAdminRole = await rewardManagerContract.hasRole(defaultAdminRole, deployerSigner.address);
         expect(deployerHasDefaultAdminRole).to.be.false;
 
         // Check REWARDS_MANAGER_ROLE for the admin account
@@ -156,10 +153,7 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
         expect(hasRewardsManagerRole).to.be.true;
 
         // Check that deployer no longer has REWARDS_MANAGER_ROLE
-        const deployerHasRewardsManagerRole = await rewardManagerContract.hasRole(
-          rewardsManagerRole,
-          deployerSigner.address,
-        );
+        const deployerHasRewardsManagerRole = await rewardManagerContract.hasRole(rewardsManagerRole, deployerSigner.address);
         expect(deployerHasRewardsManagerRole).to.be.false;
       });
     });
@@ -179,9 +173,10 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
 
       it("reverts when updating to zero address", async function () {
         // Admin signer setting to zero address should revert with ZeroAddress
-        await expect(
-          rewardManager.connect(adminSigner).setDLendRewardsController(ethers.ZeroAddress),
-        ).to.be.revertedWithCustomError(rewardManager, "ZeroAddress");
+        await expect(rewardManager.connect(adminSigner).setDLendRewardsController(ethers.ZeroAddress)).to.be.revertedWithCustomError(
+          rewardManager,
+          "ZeroAddress",
+        );
       });
 
       it("reverts when non-admin tries to update controller", async function () {

@@ -31,10 +31,7 @@ async function runTestsForCurrency(currency: string, { deployer }: { deployer: A
 
     beforeEach(async function () {
       const [signer] = await ethers.getSigners();
-      const Factory = await ethers.getContractFactory(
-        "ChainlinkSafeRateProviderCompositeWrapperWithThresholding",
-        signer,
-      );
+      const Factory = await ethers.getContractFactory("ChainlinkSafeRateProviderCompositeWrapperWithThresholding", signer);
       wrapper = await Factory.deploy(ethers.ZeroAddress, BASE_UNIT);
       await wrapper.waitForDeployment();
 
@@ -165,9 +162,7 @@ async function runTestsForCurrency(currency: string, { deployer }: { deployer: A
 
       it("removes a feed and then getPriceInfo reverts with FeedNotSet", async function () {
         await wrapper.removeCompositeFeed(assetKey);
-        await expect(wrapper.getPriceInfo(assetKey))
-          .to.be.revertedWithCustomError(wrapper, "FeedNotSet")
-          .withArgs(assetKey);
+        await expect(wrapper.getPriceInfo(assetKey)).to.be.revertedWithCustomError(wrapper, "FeedNotSet").withArgs(assetKey);
       });
     });
   });

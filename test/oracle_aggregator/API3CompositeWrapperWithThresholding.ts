@@ -38,10 +38,7 @@ describe("API3CompositeWrapperWithThresholding", () => {
  * @param root0.user1
  * @param root0.user2
  */
-async function runTestsForCurrency(
-  currency: string,
-  { deployer, user1, user2 }: { deployer: Address; user1: Address; user2: Address },
-) {
+async function runTestsForCurrency(currency: string, { deployer, user1, user2 }: { deployer: Address; user1: Address; user2: Address }) {
   describe(`API3CompositeWrapperWithThresholding for ${currency}`, () => {
     let fixtureResult: OracleAggregatorFixtureResult;
     let api3CompositeWrapperWithThresholding: API3CompositeWrapperWithThresholding;
@@ -146,8 +143,7 @@ async function runTestsForCurrency(
           await api3CompositeWrapperWithThresholding.getPriceInfo(testAsset);
 
         // Both prices should be fixed
-        const expectedPriceAbove =
-          (fixedPrice1 * fixedPrice2) / ethers.parseUnits("1", ORACLE_AGGREGATOR_PRICE_DECIMALS);
+        const expectedPriceAbove = (fixedPrice1 * fixedPrice2) / ethers.parseUnits("1", ORACLE_AGGREGATOR_PRICE_DECIMALS);
         expect(priceWithBothAbove).to.equal(expectedPriceAbove);
         expect(isAliveWithBothAbove).to.be.true;
 
@@ -158,8 +154,7 @@ async function runTestsForCurrency(
         const { price: priceWithOneBelow } = await api3CompositeWrapperWithThresholding.getPriceInfo(testAsset);
 
         // Price1 should be unchanged (0.95) while price2 is fixed at 1.00
-        const expectedPriceOneBelow =
-          (price1Below * fixedPrice2) / ethers.parseUnits("1", ORACLE_AGGREGATOR_PRICE_DECIMALS);
+        const expectedPriceOneBelow = (price1Below * fixedPrice2) / ethers.parseUnits("1", ORACLE_AGGREGATOR_PRICE_DECIMALS);
         expect(priceWithOneBelow).to.equal(expectedPriceOneBelow);
       });
 
@@ -285,9 +280,7 @@ async function runTestsForCurrency(
         const oracleManagerRole = await api3CompositeWrapperWithThresholding.ORACLE_MANAGER_ROLE();
 
         await expect(
-          api3CompositeWrapperWithThresholding
-            .connect(unauthorizedSigner)
-            .addCompositeFeed(testAsset, proxy1, proxy2, 0, 0, 0, 0),
+          api3CompositeWrapperWithThresholding.connect(unauthorizedSigner).addCompositeFeed(testAsset, proxy1, proxy2, 0, 0, 0, 0),
         )
           .to.be.revertedWithCustomError(api3CompositeWrapperWithThresholding, "AccessControlUnauthorizedAccount")
           .withArgs(user2, oracleManagerRole);

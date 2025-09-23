@@ -67,10 +67,7 @@ async function main() {
     await ethers.getSigner(deployer),
   );
 
-  const _setRewardsAsProxyTx = await addressesProviderInstance.setAddressAsProxy(
-    incentivesControllerId,
-    incentivesImpl.address,
-  );
+  const _setRewardsAsProxyTx = await addressesProviderInstance.setAddressAsProxy(incentivesControllerId, incentivesImpl.address);
 
   console.log("Set Rewards Controller as proxy at tx ", _setRewardsAsProxyTx.hash);
 

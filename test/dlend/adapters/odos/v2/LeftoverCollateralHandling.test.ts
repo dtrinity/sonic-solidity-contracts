@@ -140,13 +140,7 @@ describe("V2 Adapters - Leftover Collateral Handling", function () {
       const outputAmount = ethers.parseEther("1500");
 
       // Configure mock router for partial consumption
-      await odosRouter.setSwapBehaviour(
-        await tokenA.getAddress(),
-        await tokenB.getAddress(),
-        actualSwapAmount,
-        outputAmount,
-        false,
-      );
+      await odosRouter.setSwapBehaviour(await tokenA.getAddress(), await tokenB.getAddress(), actualSwapAmount, outputAmount, false);
 
       const swapData = createOdosSwapData(odosRouter);
 
@@ -240,8 +234,7 @@ describe("V2 Adapters - Leftover Collateral Handling", function () {
       const collateralBalanceBefore = ethers.parseEther("100");
       const collateralBalanceAfter = ethers.parseEther("150"); // Some excess
 
-      const collateralExcess =
-        collateralBalanceAfter > collateralBalanceBefore ? collateralBalanceAfter - collateralBalanceBefore : 0n;
+      const collateralExcess = collateralBalanceAfter > collateralBalanceBefore ? collateralBalanceAfter - collateralBalanceBefore : 0n;
 
       expect(collateralExcess).to.equal(ethers.parseEther("50"));
 

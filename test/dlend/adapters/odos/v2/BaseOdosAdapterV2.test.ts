@@ -153,13 +153,7 @@ describe("BaseOdosAdapterV2 - Pure Logic Tests", function () {
           ),
         )
           .to.be.revertedWithCustomError(baseAdapterHarness, "OraclePriceDeviationExceeded")
-          .withArgs(
-            await tokenA.getAddress(),
-            await tokenB.getAddress(),
-            expectedAmountIn,
-            maxAmountIn,
-            expectedDeviationBps,
-          );
+          .withArgs(await tokenA.getAddress(), await tokenB.getAddress(), expectedAmountIn, maxAmountIn, expectedDeviationBps);
       });
     });
   });
@@ -178,10 +172,7 @@ describe("BaseOdosAdapterV2 - Pure Logic Tests", function () {
       const { pendleLogicHarness, ptTokenA, tokenB } = fixture;
 
       // Test that determineSwapType correctly identifies PT tokens
-      const swapType = await pendleLogicHarness.determineSwapType(
-        await ptTokenA.getAddress(),
-        await tokenB.getAddress(),
-      );
+      const swapType = await pendleLogicHarness.determineSwapType(await ptTokenA.getAddress(), await tokenB.getAddress());
 
       expect(swapType).to.equal(1); // SwapType.PT_TO_REGULAR
     });
@@ -247,8 +238,7 @@ describe("BaseOdosAdapterV2 - Pure Logic Tests", function () {
       expect(isBalanceSufficient).to.be.false; // Should detect insufficient balance
 
       // Note: Oracle validation may trigger first in actual execution
-      await expect(baseAdapterHarness.executeAdaptiveBuy(tokenA, tokenB, excessiveAmount, outputAmount, "0x")).to.be
-        .reverted; // Should revert (either oracle or balance error)
+      await expect(baseAdapterHarness.executeAdaptiveBuy(tokenA, tokenB, excessiveAmount, outputAmount, "0x")).to.be.reverted; // Should revert (either oracle or balance error)
     });
 
     it("should validate balance calculations don't underflow", async function () {
@@ -325,16 +315,10 @@ describe("BaseOdosAdapterV2 - Pure Logic Tests", function () {
       const { pendleLogicHarness, tokenA, ptTokenA } = fixture;
 
       // Test mixed token types
-      const regularToRegular = await pendleLogicHarness.determineSwapType(
-        await tokenA.getAddress(),
-        await tokenA.getAddress(),
-      );
+      const regularToRegular = await pendleLogicHarness.determineSwapType(await tokenA.getAddress(), await tokenA.getAddress());
       expect(regularToRegular).to.equal(0); // REGULAR_SWAP
 
-      const regularToPT = await pendleLogicHarness.determineSwapType(
-        await tokenA.getAddress(),
-        await ptTokenA.getAddress(),
-      );
+      const regularToPT = await pendleLogicHarness.determineSwapType(await tokenA.getAddress(), await ptTokenA.getAddress());
       expect(regularToPT).to.equal(2); // REGULAR_TO_PT
     });
 

@@ -200,9 +200,7 @@ describe("RewardClaimable", function () {
 
       const tx = await mockVault.setExchangeThreshold(newThreshold);
 
-      await expect(tx)
-        .to.emit(mockVault, "ExchangeThresholdUpdated")
-        .withArgs(DEFAULT_EXCHANGE_THRESHOLD, newThreshold);
+      await expect(tx).to.emit(mockVault, "ExchangeThresholdUpdated").withArgs(DEFAULT_EXCHANGE_THRESHOLD, newThreshold);
 
       expect(await mockVault.exchangeThreshold()).to.equal(newThreshold);
     });
@@ -215,10 +213,7 @@ describe("RewardClaimable", function () {
     });
 
     it("Should revert if exchange threshold is zero", async function () {
-      await expect(mockVault.connect(admin).setExchangeThreshold(0n)).to.be.revertedWithCustomError(
-        mockVault,
-        "ZeroExchangeThreshold",
-      );
+      await expect(mockVault.connect(admin).setExchangeThreshold(0n)).to.be.revertedWithCustomError(mockVault, "ZeroExchangeThreshold");
     });
   });
 
@@ -247,10 +242,7 @@ describe("RewardClaimable", function () {
         await mockVault.addRewardToken(token, testCase.emissionAmounts[i]);
 
         // Reset balances and mint to vault
-        await tokenContract.burn(
-          await mockVault.getAddress(),
-          await tokenContract.balanceOf(await mockVault.getAddress()),
-        );
+        await tokenContract.burn(await mockVault.getAddress(), await tokenContract.balanceOf(await mockVault.getAddress()));
         await tokenContract.mint(await mockVault.getAddress(), testCase.initialBalances[i]);
       }
 
@@ -327,9 +319,7 @@ describe("RewardClaimable", function () {
     describe("Should only allow to compound when reaching the exchange threshold", async function () {
       it("Should revert if below threshold", async function () {
         await mockVault.connect(admin).setExchangeThreshold(ethers.parseEther("2"));
-        await expect(
-          mockVault.connect(user).compoundRewards(ethers.parseEther("1"), rewardTokens, await user.getAddress()),
-        )
+        await expect(mockVault.connect(user).compoundRewards(ethers.parseEther("1"), rewardTokens, await user.getAddress()))
           .to.be.revertedWithCustomError(mockVault, "ExchangeAmountTooLow")
           .withArgs(ethers.parseEther("1"), ethers.parseEther("2"));
       });
@@ -340,9 +330,9 @@ describe("RewardClaimable", function () {
         const amountToCompound = ethers.parseEther("2");
 
         // Make sure have enough allowance to spend from the spender to the vault
-        expect(
-          await exchangeAsset.allowance(await user.getAddress(), await mockVault.getAddress()),
-        ).to.be.greaterThanOrEqual(amountToCompound);
+        expect(await exchangeAsset.allowance(await user.getAddress(), await mockVault.getAddress())).to.be.greaterThanOrEqual(
+          amountToCompound,
+        );
 
         await mockVault.connect(user).compoundRewards(amountToCompound, rewardTokens, await user.getAddress());
       });
@@ -350,9 +340,7 @@ describe("RewardClaimable", function () {
 
     it("Should revert on invalid reward token", async function () {
       const invalidToken = await exchangeAsset.getAddress();
-      await expect(mockVault.claimRewards([invalidToken], await user.getAddress())).to.be.revertedWith(
-        "Invalid reward token",
-      );
+      await expect(mockVault.claimRewards([invalidToken], await user.getAddress())).to.be.revertedWith("Invalid reward token");
     });
   });
 
@@ -392,9 +380,9 @@ describe("RewardClaimable", function () {
       expect(await mockVault.treasury()).to.equal(await treasury.getAddress());
 
       // Make sure have enough allowance to spend from the spender to the vault
-      expect(
-        await exchangeAsset.allowance(await user.getAddress(), await mockVault.getAddress()),
-      ).to.be.greaterThanOrEqual(amountToCompound);
+      expect(await exchangeAsset.allowance(await user.getAddress(), await mockVault.getAddress())).to.be.greaterThanOrEqual(
+        amountToCompound,
+      );
 
       // Perform compound
       await mockVault.connect(user).compoundRewards(amountToCompound, rewardTokenAddresses, await user.getAddress());
@@ -412,10 +400,8 @@ describe("RewardClaimable", function () {
       const expectedUserReward2 = expectedReward2 - expectedTreasuryFee2;
 
       // Verify treasury received the fees
-      const actualTreasuryFee1 =
-        (await rewardToken1.balanceOf(await treasury.getAddress())) - initialTreasuryBalances[0];
-      const actualTreasuryFee2 =
-        (await rewardToken2.balanceOf(await treasury.getAddress())) - initialTreasuryBalances[1];
+      const actualTreasuryFee1 = (await rewardToken1.balanceOf(await treasury.getAddress())) - initialTreasuryBalances[0];
+      const actualTreasuryFee2 = (await rewardToken2.balanceOf(await treasury.getAddress())) - initialTreasuryBalances[1];
 
       expect(actualTreasuryFee1).to.equal(expectedTreasuryFee1);
       expect(actualTreasuryFee2).to.equal(expectedTreasuryFee2);
@@ -482,10 +468,8 @@ describe("RewardClaimable", function () {
       const expectedUserReward2 = expectedReward2;
 
       // Verify treasury received the fees
-      const actualTreasuryFee1 =
-        (await rewardToken1.balanceOf(await treasury.getAddress())) - initialTreasuryBalances[0];
-      const actualTreasuryFee2 =
-        (await rewardToken2.balanceOf(await treasury.getAddress())) - initialTreasuryBalances[1];
+      const actualTreasuryFee1 = (await rewardToken1.balanceOf(await treasury.getAddress())) - initialTreasuryBalances[0];
+      const actualTreasuryFee2 = (await rewardToken2.balanceOf(await treasury.getAddress())) - initialTreasuryBalances[1];
 
       expect(actualTreasuryFee1).to.equal(expectedTreasuryFee1);
       expect(actualTreasuryFee2).to.equal(expectedTreasuryFee2);
@@ -506,11 +490,7 @@ describe("RewardClaimable", function () {
       await mockVault.setExchangeThreshold(threshold);
       const belowThreshold = threshold - 1n;
 
-      await expect(
-        mockVault
-          .connect(user)
-          .compoundRewards(belowThreshold, [await rewardToken1.getAddress()], await user.getAddress()),
-      )
+      await expect(mockVault.connect(user).compoundRewards(belowThreshold, [await rewardToken1.getAddress()], await user.getAddress()))
         .to.be.revertedWithCustomError(mockVault, "ExchangeAmountTooLow")
         .withArgs(belowThreshold, threshold);
     });

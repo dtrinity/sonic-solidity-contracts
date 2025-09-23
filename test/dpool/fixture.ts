@@ -51,14 +51,8 @@ export async function DPoolUSDCFixture(): Promise<DPoolFixtureResult> {
 
   // Connect to contracts
   const vault = (await ethers.getContractAt("DPoolVaultCurveLP", vaultDeployment.address)) as DPoolVaultCurveLP;
-  const periphery = (await ethers.getContractAt(
-    "DPoolCurvePeriphery",
-    peripheryDeployment.address,
-  )) as DPoolCurvePeriphery;
-  const curvePool = (await ethers.getContractAt(
-    "ICurveStableSwapNG",
-    curvePoolDeployment.address,
-  )) as ICurveStableSwapNG;
+  const periphery = (await ethers.getContractAt("DPoolCurvePeriphery", peripheryDeployment.address)) as DPoolCurvePeriphery;
+  const curvePool = (await ethers.getContractAt("ICurveStableSwapNG", curvePoolDeployment.address)) as ICurveStableSwapNG;
   const baseAssetToken = (await ethers.getContractAt(
     "@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20",
     usdcDeployment.address,
@@ -110,14 +104,8 @@ export async function DPoolfrxUSDFixture(): Promise<DPoolFixtureResult> {
 
   // Connect to contracts
   const vault = (await ethers.getContractAt("DPoolVaultCurveLP", vaultDeployment.address)) as DPoolVaultCurveLP;
-  const periphery = (await ethers.getContractAt(
-    "DPoolCurvePeriphery",
-    peripheryDeployment.address,
-  )) as DPoolCurvePeriphery;
-  const curvePool = (await ethers.getContractAt(
-    "ICurveStableSwapNG",
-    curvePoolDeployment.address,
-  )) as ICurveStableSwapNG;
+  const periphery = (await ethers.getContractAt("DPoolCurvePeriphery", peripheryDeployment.address)) as DPoolCurvePeriphery;
+  const curvePool = (await ethers.getContractAt("ICurveStableSwapNG", curvePoolDeployment.address)) as ICurveStableSwapNG;
   const baseAssetToken = (await ethers.getContractAt(
     "@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20",
     frxUSDDeployment.address,
@@ -160,12 +148,7 @@ export async function DPoolfrxUSDFixture(): Promise<DPoolFixtureResult> {
  * @param amount
  * @param funder
  */
-export async function fundUserWithTokens(
-  token: IERC20,
-  user: SignerWithAddress,
-  amount: bigint,
-  funder: SignerWithAddress,
-): Promise<void> {
+export async function fundUserWithTokens(token: IERC20, user: SignerWithAddress, amount: bigint, funder: SignerWithAddress): Promise<void> {
   await token.connect(funder).transfer(user.address, amount);
 }
 
@@ -177,12 +160,7 @@ export async function fundUserWithTokens(
  * @param spender
  * @param amount
  */
-export async function approveToken(
-  token: IERC20,
-  user: SignerWithAddress,
-  spender: string,
-  amount: bigint,
-): Promise<void> {
+export async function approveToken(token: IERC20, user: SignerWithAddress, spender: string, amount: bigint): Promise<void> {
   await token.connect(user).approve(spender, amount);
 }
 
@@ -193,11 +171,7 @@ export async function approveToken(
  * @param user
  * @param lpAmount
  */
-export async function depositLPToVault(
-  vault: DPoolVaultCurveLP,
-  user: SignerWithAddress,
-  lpAmount: bigint,
-): Promise<void> {
+export async function depositLPToVault(vault: DPoolVaultCurveLP, user: SignerWithAddress, lpAmount: bigint): Promise<void> {
   await vault.connect(user).deposit(lpAmount, user.address);
 }
 
@@ -208,11 +182,7 @@ export async function depositLPToVault(
  * @param user
  * @param assets
  */
-export async function withdrawLPFromVault(
-  vault: DPoolVaultCurveLP,
-  user: SignerWithAddress,
-  assets: bigint,
-): Promise<void> {
+export async function withdrawLPFromVault(vault: DPoolVaultCurveLP, user: SignerWithAddress, assets: bigint): Promise<void> {
   await vault.connect(user).withdraw(assets, user.address, user.address);
 }
 
@@ -223,11 +193,7 @@ export async function withdrawLPFromVault(
  * @param user
  * @param shares
  */
-export async function redeemFromVault(
-  vault: DPoolVaultCurveLP,
-  user: SignerWithAddress,
-  shares: bigint,
-): Promise<void> {
+export async function redeemFromVault(vault: DPoolVaultCurveLP, user: SignerWithAddress, shares: bigint): Promise<void> {
   await vault.connect(user).redeem(shares, user.address, user.address);
 }
 

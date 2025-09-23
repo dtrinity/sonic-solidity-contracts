@@ -126,10 +126,7 @@ describe("Pendle SDK Functions", function () {
         const marketInfo = await getPTMarketInfo(tokenInfo.address, SONIC_CHAIN_ID);
 
         // Verify the API data matches our fixture data
-        expect(marketInfo.marketAddress.toLowerCase()).to.equal(
-          tokenInfo.market.toLowerCase(),
-          `Market address mismatch for ${tokenName}`,
-        );
+        expect(marketInfo.marketAddress.toLowerCase()).to.equal(tokenInfo.market.toLowerCase(), `Market address mismatch for ${tokenName}`);
 
         expect(marketInfo.underlyingAsset.toLowerCase()).to.equal(
           tokenInfo.underlyingToken.toLowerCase(),

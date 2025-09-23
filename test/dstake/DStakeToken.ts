@@ -168,9 +168,7 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
 
       describe("setRouter", () => {
         it("Should allow admin to set router", async () => {
-          await expect(DStakeToken.connect(user1).setRouter(user1.address))
-            .to.emit(DStakeToken, "RouterSet")
-            .withArgs(user1.address);
+          await expect(DStakeToken.connect(user1).setRouter(user1.address)).to.emit(DStakeToken, "RouterSet").withArgs(user1.address);
           expect(await DStakeToken.router()).to.equal(user1.address);
         });
 
@@ -182,10 +180,7 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
         });
 
         it("Should revert if setting router to zero", async () => {
-          await expect(DStakeToken.connect(user1).setRouter(ZeroAddress)).to.be.revertedWithCustomError(
-            DStakeToken,
-            "ZeroAddress",
-          );
+          await expect(DStakeToken.connect(user1).setRouter(ZeroAddress)).to.be.revertedWithCustomError(DStakeToken, "ZeroAddress");
         });
       });
 
@@ -200,9 +195,7 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
 
       describe("setWithdrawalFee", () => {
         it("Should allow fee manager to set withdrawal fee", async () => {
-          await expect(DStakeToken.connect(user1).setWithdrawalFee(100))
-            .to.emit(DStakeToken, "WithdrawalFeeSet")
-            .withArgs(100);
+          await expect(DStakeToken.connect(user1).setWithdrawalFee(100)).to.emit(DStakeToken, "WithdrawalFeeSet").withArgs(100);
           expect(await DStakeToken.withdrawalFeeBps()).to.equal(100);
         });
 
@@ -214,10 +207,7 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
         });
 
         it("Should revert if fee exceeds maxWithdrawalFeeBps", async () => {
-          await expect(DStakeToken.connect(user1).setWithdrawalFee(10001)).to.be.revertedWithCustomError(
-            DStakeToken,
-            "InvalidFeeBps",
-          );
+          await expect(DStakeToken.connect(user1).setWithdrawalFee(10001)).to.be.revertedWithCustomError(DStakeToken, "InvalidFeeBps");
         });
 
         it("Should allow setting fee to 0", async () => {
@@ -312,10 +302,7 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
         it("should revert if router not set", async () => {
           await stable.mint(user1.address, assetsToDeposit);
           await dStableToken.connect(user1).approve(await fresh.getAddress(), assetsToDeposit);
-          await expect(fresh.connect(user1).deposit(assetsToDeposit, user1.address)).to.be.revertedWithCustomError(
-            fresh,
-            "ZeroAddress",
-          );
+          await expect(fresh.connect(user1).deposit(assetsToDeposit, user1.address)).to.be.revertedWithCustomError(fresh, "ZeroAddress");
         });
 
         // zero-asset deposit allowed by default OpenZeppelin behavior

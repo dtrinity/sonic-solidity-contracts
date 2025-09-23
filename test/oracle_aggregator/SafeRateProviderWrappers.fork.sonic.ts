@@ -48,10 +48,7 @@ describe("SafeRateProvider Wrappers on Sonic Fork", () => {
     );
 
     // Deploy ChainlinkSafeRateProviderCompositeWrapperWithThresholding
-    const ChainlinkFactory = await ethers.getContractFactory(
-      "ChainlinkSafeRateProviderCompositeWrapperWithThresholding",
-      signer,
-    );
+    const ChainlinkFactory = await ethers.getContractFactory("ChainlinkSafeRateProviderCompositeWrapperWithThresholding", signer);
     chainlinkWrapper = await ChainlinkFactory.deploy(ethers.ZeroAddress, BASE_UNIT);
     await chainlinkWrapper.waitForDeployment();
 

@@ -59,24 +59,14 @@ async function main() {
   }
 
   // Get contract instances
-  const poolDataProvider = (await ethers.getContractAt(
-    "IPoolDataProvider",
-    poolDataProviderAddress,
-  )) as IPoolDataProvider;
+  const poolDataProvider = (await ethers.getContractAt("IPoolDataProvider", poolDataProviderAddress)) as IPoolDataProvider;
 
-  const poolConfigurator = (await ethers.getContractAt(
-    "IPoolConfigurator",
-    poolConfiguratorAddress,
-    deployerSigner,
-  )) as IPoolConfigurator;
+  const poolConfigurator = (await ethers.getContractAt("IPoolConfigurator", poolConfiguratorAddress, deployerSigner)) as IPoolConfigurator;
 
   const aclManager = await ethers.getContractAt("IACLManager", aclManagerAddress);
 
   // Get pool contract from the addresses provider to access getReservesList
-  const poolAddressesProvider = await ethers.getContractAt(
-    "IPoolAddressesProvider",
-    allDeployments["PoolAddressesProvider"]?.address,
-  );
+  const poolAddressesProvider = await ethers.getContractAt("IPoolAddressesProvider", allDeployments["PoolAddressesProvider"]?.address);
   const poolAddress = await poolAddressesProvider.getPool();
   const pool = (await ethers.getContractAt("IPool", poolAddress)) as IPool;
 

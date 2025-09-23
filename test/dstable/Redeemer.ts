@@ -2,15 +2,7 @@ import { assert, expect } from "chai";
 import hre, { getNamedAccounts } from "hardhat";
 import { Address } from "hardhat-deploy/types";
 
-import {
-  AmoManager,
-  CollateralHolderVault,
-  Issuer,
-  OracleAggregator,
-  Redeemer,
-  TestERC20,
-  TestMintableERC20,
-} from "../../typechain-types";
+import { AmoManager, CollateralHolderVault, Issuer, OracleAggregator, Redeemer, TestERC20, TestMintableERC20 } from "../../typechain-types";
 import { getTokenContractForSymbol, TokenInfo } from "../../typescript/token/utils";
 import { createDStableFixture, DS_CONFIG, DStableFixtureConfig, DUSD_CONFIG } from "./fixtures";
 
@@ -81,11 +73,7 @@ dstableConfigs.forEach((config) => {
       ({ deployer, user1, user2 } = await getNamedAccounts());
 
       const redeemerAddress = (await hre.deployments.get(config.redeemerContractId)).address;
-      redeemerContract = await hre.ethers.getContractAt(
-        "Redeemer",
-        redeemerAddress,
-        await hre.ethers.getSigner(deployer),
-      );
+      redeemerContract = await hre.ethers.getContractAt("Redeemer", redeemerAddress, await hre.ethers.getSigner(deployer));
 
       const issuerAddress = (await hre.deployments.get(config.issuerContractId)).address;
       issuerContract = await hre.ethers.getContractAt("Issuer", issuerAddress, await hre.ethers.getSigner(deployer));
@@ -98,11 +86,7 @@ dstableConfigs.forEach((config) => {
       );
 
       const amoManagerAddress = (await hre.deployments.get(config.amoManagerId)).address;
-      amoManagerContract = await hre.ethers.getContractAt(
-        "AmoManager",
-        amoManagerAddress,
-        await hre.ethers.getSigner(deployer),
-      );
+      amoManagerContract = await hre.ethers.getContractAt("AmoManager", amoManagerAddress, await hre.ethers.getSigner(deployer));
 
       const oracleAggregatorAddress = (await hre.deployments.get(config.oracleAggregatorId)).address;
       oracleAggregatorContract = await hre.ethers.getContractAt(
@@ -128,9 +112,7 @@ dstableConfigs.forEach((config) => {
 
         // Approve collateral for issuer
         const userAmount = hre.ethers.parseUnits("500", result.tokenInfo.decimals);
-        await result.contract
-          .connect(await hre.ethers.getSigner(user1))
-          .approve(await issuerContract.getAddress(), userAmount);
+        await result.contract.connect(await hre.ethers.getSigner(user1)).approve(await issuerContract.getAddress(), userAmount);
 
         // Calculate minimum dStable amount to receive (with 5% slippage)
         const expectedDstableAmount = await issuerContract.baseValueToDstableAmount(
@@ -139,9 +121,7 @@ dstableConfigs.forEach((config) => {
         const minAmount = (expectedDstableAmount * 95n) / 100n; // 5% slippage
 
         // Issue dStable tokens to user1 using collateral - use the full approved amount
-        await issuerContract
-          .connect(await hre.ethers.getSigner(user1))
-          .issue(userAmount, result.tokenInfo.address, minAmount);
+        await issuerContract.connect(await hre.ethers.getSigner(user1)).issue(userAmount, result.tokenInfo.address, minAmount);
       }
 
       // Grant REDEMPTION_MANAGER_ROLE to user1
@@ -176,23 +156,15 @@ dstableConfigs.forEach((config) => {
 
           const userDstableBalanceBefore = await dstableContract.balanceOf(user1);
           const userCollateralBalanceBefore = await collateralContract.balanceOf(user1);
-          const vaultCollateralBalanceBefore = await collateralContract.balanceOf(
-            await collateralVaultContract.getAddress(),
-          );
+          const vaultCollateralBalanceBefore = await collateralContract.balanceOf(await collateralVaultContract.getAddress());
 
-          await dstableContract
-            .connect(await hre.ethers.getSigner(user1))
-            .approve(await redeemerContract.getAddress(), redeemAmount);
+          await dstableContract.connect(await hre.ethers.getSigner(user1)).approve(await redeemerContract.getAddress(), redeemAmount);
 
-          await redeemerContract
-            .connect(await hre.ethers.getSigner(user1))
-            .redeem(redeemAmount, collateralInfo.address, minCollateralOut);
+          await redeemerContract.connect(await hre.ethers.getSigner(user1)).redeem(redeemAmount, collateralInfo.address, minCollateralOut);
 
           const userDstableBalanceAfter = await dstableContract.balanceOf(user1);
           const userCollateralBalanceAfter = await collateralContract.balanceOf(user1);
-          const vaultCollateralBalanceAfter = await collateralContract.balanceOf(
-            await collateralVaultContract.getAddress(),
-          );
+          const vaultCollateralBalanceAfter = await collateralContract.balanceOf(await collateralVaultContract.getAddress());
 
           assert.equal(
             (userDstableBalanceBefore - userDstableBalanceAfter).toString(),
@@ -200,10 +172,7 @@ dstableConfigs.forEach((config) => {
             "User's dStable balance should decrease by the redeemed amount",
           );
 
-          assert.isTrue(
-            userCollateralBalanceAfter > userCollateralBalanceBefore,
-            "User should receive collateral tokens",
-          );
+          assert.isTrue(userCollateralBalanceAfter > userCollateralBalanceBefore, "User should receive collateral tokens");
 
           assert.isTrue(
             userCollateralBalanceAfter - userCollateralBalanceBefore >= minCollateralOut,
@@ -234,14 +203,10 @@ dstableConfigs.forEach((config) => {
           const redeemAmount = userDstableBalance + 1n; // More than the user has
           const minCollateralOut = 1n; // Any non-zero value
 
-          await dstableContract
-            .connect(await hre.ethers.getSigner(user1))
-            .approve(await redeemerContract.getAddress(), redeemAmount);
+          await dstableContract.connect(await hre.ethers.getSigner(user1)).approve(await redeemerContract.getAddress(), redeemAmount);
 
           await expect(
-            redeemerContract
-              .connect(await hre.ethers.getSigner(user1))
-              .redeem(redeemAmount, collateralInfo.address, minCollateralOut),
+            redeemerContract.connect(await hre.ethers.getSigner(user1)).redeem(redeemAmount, collateralInfo.address, minCollateralOut),
           ).to.be.reverted;
         });
 
@@ -265,9 +230,7 @@ dstableConfigs.forEach((config) => {
           // Set an unrealistically high minimum (2x the expected amount)
           const unrealistically_high_min_collateral = expectedCollateralAmount * 2n;
 
-          await dstableContract
-            .connect(await hre.ethers.getSigner(user1))
-            .approve(await redeemerContract.getAddress(), redeemAmount);
+          await dstableContract.connect(await hre.ethers.getSigner(user1)).approve(await redeemerContract.getAddress(), redeemAmount);
 
           await expect(
             redeemerContract
@@ -296,9 +259,7 @@ dstableConfigs.forEach((config) => {
       });
 
       it("allows setting collateral vault only by admin", async function () {
-        await expect(
-          redeemerContract.connect(await hre.ethers.getSigner(user1)).setCollateralVault(hre.ethers.ZeroAddress),
-        ).to.be.reverted;
+        await expect(redeemerContract.connect(await hre.ethers.getSigner(user1)).setCollateralVault(hre.ethers.ZeroAddress)).to.be.reverted;
       });
 
       it("allows admin to grant REDEMPTION_MANAGER_ROLE", async function () {

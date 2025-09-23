@@ -33,13 +33,7 @@ describe("BaseOdosSellAdapter", function () {
     const adapterAddr = await adapter.getAddress();
     await mint(tokenIn, adapterAddr, parseUnits("10000", 18));
     await mint(tokenOut, await router.getAddress(), amountReceived);
-    await router.setSwapBehaviour(
-      await tokenIn.getAddress(),
-      await tokenOut.getAddress(),
-      amountSpent,
-      amountReceived,
-      false,
-    );
+    await router.setSwapBehaviour(await tokenIn.getAddress(), await tokenOut.getAddress(), amountSpent, amountReceived, false);
     const swapData = router.interface.encodeFunctionData("performSwap");
 
     const balanceInBefore = await tokenIn.balanceOf(adapterAddr);
@@ -78,23 +72,11 @@ describe("BaseOdosSellAdapter", function () {
     // Only mint 500 tokens but try to swap 1500
     await mint(tokenIn, await adapter.getAddress(), parseUnits("500", 18));
     await mint(tokenOut, await router.getAddress(), amountReceived);
-    await router.setSwapBehaviour(
-      await tokenIn.getAddress(),
-      await tokenOut.getAddress(),
-      amountSpent,
-      amountReceived,
-      false,
-    );
+    await router.setSwapBehaviour(await tokenIn.getAddress(), await tokenOut.getAddress(), amountSpent, amountReceived, false);
     const swapData = router.interface.encodeFunctionData("performSwap");
 
     await expect(
-      (adapter as any).sell(
-        await tokenIn.getAddress(),
-        await tokenOut.getAddress(),
-        amountToSwap,
-        minAmountToReceive,
-        swapData,
-      ),
+      (adapter as any).sell(await tokenIn.getAddress(), await tokenOut.getAddress(), amountToSwap, minAmountToReceive, swapData),
     ).to.be.revertedWithCustomError(adapter, "InsufficientBalanceBeforeSwap");
   });
 
@@ -108,23 +90,11 @@ describe("BaseOdosSellAdapter", function () {
 
     await mint(tokenIn, await adapter.getAddress(), parseUnits("10000", 18));
     await mint(tokenOut, await router.getAddress(), amountReceived);
-    await router.setSwapBehaviour(
-      await tokenIn.getAddress(),
-      await tokenOut.getAddress(),
-      amountSpent,
-      amountReceived,
-      false,
-    );
+    await router.setSwapBehaviour(await tokenIn.getAddress(), await tokenOut.getAddress(), amountSpent, amountReceived, false);
     const swapData = router.interface.encodeFunctionData("performSwap");
 
     await expect(
-      (adapter as any).sell(
-        await tokenIn.getAddress(),
-        await tokenOut.getAddress(),
-        amountToSwap,
-        minAmountToReceive,
-        swapData,
-      ),
+      (adapter as any).sell(await tokenIn.getAddress(), await tokenOut.getAddress(), amountToSwap, minAmountToReceive, swapData),
     ).to.be.revertedWithCustomError(adapter, "InsufficientOutput");
   });
 });

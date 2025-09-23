@@ -38,10 +38,7 @@ async function main() {
     if (adminRole) {
       console.log(`  - Transfer DEFAULT_ADMIN_ROLE to governance and renounce from deployer`);
       addedOperations += 2;
-      opsForContract.push(
-        `grantRole(DEFAULT_ADMIN_ROLE)->${governance}`,
-        `renounceRole(DEFAULT_ADMIN_ROLE)->${deployer}`,
-      );
+      opsForContract.push(`grantRole(DEFAULT_ADMIN_ROLE)->${governance}`, `renounceRole(DEFAULT_ADMIN_ROLE)->${deployer}`);
     }
 
     if (opsForContract.length > 0) {
@@ -84,9 +81,7 @@ async function main() {
       input: process.stdin,
       output: process.stdout,
     });
-    const answer: string = await new Promise((resolve) =>
-      rl.question("\nProceed to execute on-chain migrations? (yes/no): ", resolve),
-    );
+    const answer: string = await new Promise((resolve) => rl.question("\nProceed to execute on-chain migrations? (yes/no): ", resolve));
     rl.close();
     if (answer.trim().toLowerCase() !== "yes") {
       console.log("Aborted by user.");

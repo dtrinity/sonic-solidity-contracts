@@ -2,14 +2,7 @@ import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 import { expect } from "chai";
 import { ethers, getNamedAccounts } from "hardhat";
 
-import {
-  DStakeCollateralVault,
-  DStakeRouterDLend,
-  DStakeToken,
-  ERC20,
-  IDStableConversionAdapter,
-  IERC20,
-} from "../../typechain-types";
+import { DStakeCollateralVault, DStakeRouterDLend, DStakeToken, ERC20, IDStableConversionAdapter, IERC20 } from "../../typechain-types";
 import { ERC20StablecoinUpgradeable } from "../../typechain-types/contracts/dstable/ERC20StablecoinUpgradeable";
 import { IStaticATokenLM } from "../../typechain-types/contracts/vaults/atoken_wrapper/interfaces/IStaticATokenLM";
 import { createDStakeFixture, DStakeFixtureConfig, SDS_CONFIG, SDUSD_CONFIG } from "./fixture";
@@ -106,10 +99,7 @@ STAKE_CONFIGS.forEach((cfg) => {
       expect(finalVaultAssetBalance).to.equal(expectedVaultAssetAmount);
 
       // Verify AAVE aToken minted via wrapper
-      const staticWrapper = (await ethers.getContractAt(
-        "IStaticATokenLM",
-        vaultAssetAddress,
-      )) as unknown as IStaticATokenLM;
+      const staticWrapper = (await ethers.getContractAt("IStaticATokenLM", vaultAssetAddress)) as unknown as IStaticATokenLM;
       const aTokenAddress = await staticWrapper.aToken();
       const aTokenContract = (await ethers.getContractAt(
         "@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20",

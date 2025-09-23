@@ -40,25 +40,13 @@ describe("BaseOdosBuyAdapter - Surplus Handling", function () {
     await mint(tokenOut, await router.getAddress(), amountReceived);
 
     // Configure router behavior
-    await router.setSwapBehaviour(
-      await tokenIn.getAddress(),
-      await tokenOut.getAddress(),
-      amountSpent,
-      amountReceived,
-      false,
-    );
+    await router.setSwapBehaviour(await tokenIn.getAddress(), await tokenOut.getAddress(), amountSpent, amountReceived, false);
 
     const adapterBalanceBefore = await tokenOut.balanceOf(adapterAddr);
 
     // Act - call buy function
     const swapData = router.interface.encodeFunctionData("performSwap");
-    const result = await adapter.buy(
-      await tokenIn.getAddress(),
-      await tokenOut.getAddress(),
-      maxAmountToSwap,
-      amountToReceive,
-      swapData,
-    );
+    const result = await adapter.buy(await tokenIn.getAddress(), await tokenOut.getAddress(), maxAmountToSwap, amountToReceive, swapData);
 
     // Assert
     const adapterBalanceAfter = await tokenOut.balanceOf(adapterAddr);
@@ -95,25 +83,13 @@ describe("BaseOdosBuyAdapter - Surplus Handling", function () {
     await mint(tokenIn, adapterAddr, parseUnits("10000", 18));
     await mint(tokenOut, await router.getAddress(), amountReceived);
 
-    await router.setSwapBehaviour(
-      await tokenIn.getAddress(),
-      await tokenOut.getAddress(),
-      amountSpent,
-      amountReceived,
-      false,
-    );
+    await router.setSwapBehaviour(await tokenIn.getAddress(), await tokenOut.getAddress(), amountSpent, amountReceived, false);
 
     const adapterBalanceBefore = await tokenOut.balanceOf(adapterAddr);
 
     // Act
     const swapData = router.interface.encodeFunctionData("performSwap");
-    await adapter.buy(
-      await tokenIn.getAddress(),
-      await tokenOut.getAddress(),
-      maxAmountToSwap,
-      amountToReceive,
-      swapData,
-    );
+    await adapter.buy(await tokenIn.getAddress(), await tokenOut.getAddress(), maxAmountToSwap, amountToReceive, swapData);
 
     // Assert
     const adapterBalanceAfter = await tokenOut.balanceOf(adapterAddr);
@@ -143,25 +119,13 @@ describe("BaseOdosBuyAdapter - Surplus Handling", function () {
     await mint(tokenIn, adapterAddr, parseUnits("10000", 18));
     await mint(tokenOut, await router.getAddress(), amountReceived);
 
-    await router.setSwapBehaviour(
-      await tokenIn.getAddress(),
-      await tokenOut.getAddress(),
-      amountSpent,
-      amountReceived,
-      false,
-    );
+    await router.setSwapBehaviour(await tokenIn.getAddress(), await tokenOut.getAddress(), amountSpent, amountReceived, false);
 
     const adapterBalanceBefore = await tokenOut.balanceOf(adapterAddr);
 
     // Act
     const swapData = router.interface.encodeFunctionData("performSwap");
-    await adapter.buy(
-      await tokenIn.getAddress(),
-      await tokenOut.getAddress(),
-      maxAmountToSwap,
-      amountToReceive,
-      swapData,
-    );
+    await adapter.buy(await tokenIn.getAddress(), await tokenOut.getAddress(), maxAmountToSwap, amountToReceive, swapData);
 
     // Assert
     const adapterBalanceAfter = await tokenOut.balanceOf(adapterAddr);

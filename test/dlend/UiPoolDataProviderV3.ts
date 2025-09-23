@@ -51,9 +51,7 @@ describe("dLEND UiPoolDataProviderV3", () => {
 
     // Approve and supply the dStable to the pool
     await dStableToken.connect(deployerSigner).approve(await fixture.contracts.pool.getAddress(), dStableSupplyAmount);
-    await fixture.contracts.pool
-      .connect(deployerSigner)
-      .supply(dStableAsset, dStableSupplyAmount, deployerSigner.address, 0);
+    await fixture.contracts.pool.connect(deployerSigner).supply(dStableAsset, dStableSupplyAmount, deployerSigner.address, 0);
   });
 
   describe("getReservesList", () => {
@@ -126,9 +124,7 @@ describe("dLEND UiPoolDataProviderV3", () => {
       await collateralToken.connect(user1Signer).approve(fixture.contracts.pool, collateralAmount);
 
       // Supply collateral
-      await fixture.contracts.pool
-        .connect(user1Signer)
-        .supply(collateralAsset, collateralAmount, user1Signer.address, 0);
+      await fixture.contracts.pool.connect(user1Signer).supply(collateralAsset, collateralAmount, user1Signer.address, 0);
 
       // Enable collateral
       await fixture.contracts.pool.connect(user1Signer).setUserUseReserveAsCollateral(collateralAsset, true);
@@ -137,10 +133,7 @@ describe("dLEND UiPoolDataProviderV3", () => {
       await fixture.contracts.pool.connect(user1Signer).borrow(dStableAsset, borrowAmount, 2, 0, user1Signer.address);
 
       // Get user data
-      const [userReservesData, userEmodeCategoryId] = await uiPoolDataProvider.getUserReservesData(
-        addressesProvider,
-        user1Signer.address,
-      );
+      const [userReservesData, userEmodeCategoryId] = await uiPoolDataProvider.getUserReservesData(addressesProvider, user1Signer.address);
 
       const collateralReserveData = userReservesData.find((r) => r.underlyingAsset === collateralAsset);
       const dStableReserveData = userReservesData.find((r) => r.underlyingAsset === dStableAsset);
@@ -153,10 +146,7 @@ describe("dLEND UiPoolDataProviderV3", () => {
     });
 
     it("should return zero/default data for a user with no positions", async () => {
-      const [userReservesData, userEmodeCategoryId] = await uiPoolDataProvider.getUserReservesData(
-        addressesProvider,
-        user1Signer.address,
-      );
+      const [userReservesData, userEmodeCategoryId] = await uiPoolDataProvider.getUserReservesData(addressesProvider, user1Signer.address);
 
       for (const reserveData of userReservesData) {
         expect(reserveData.scaledATokenBalance).to.equal(0);

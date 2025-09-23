@@ -27,10 +27,7 @@ import {
  * @param amount
  */
 async function approveLPTokens(curvePool: any, user: any, spender: string, amount: bigint) {
-  const lpToken = await ethers.getContractAt(
-    "@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20",
-    await curvePool.getAddress(),
-  );
+  const lpToken = await ethers.getContractAt("@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20", await curvePool.getAddress());
   await (lpToken.connect(user) as any).approve(spender, amount);
 }
 
@@ -477,42 +474,24 @@ describe("dPOOL Integration Tests", function () {
       // USDC pool operations
       await fundUserWithTokens(usdcFixture.baseAssetToken, usdcFixture.user1, usdcAmount, usdcFixture.deployer);
       await fundUserWithTokens(usdcFixture.otherAssetToken, usdcFixture.user1, usdsAmount, usdcFixture.deployer);
-      await usdcFixture.baseAssetToken
-        .connect(usdcFixture.user1)
-        .approve(await usdcFixture.curvePool.getAddress(), usdcAmount);
-      await usdcFixture.otherAssetToken
-        .connect(usdcFixture.user1)
-        .approve(await usdcFixture.curvePool.getAddress(), usdsAmount);
+      await usdcFixture.baseAssetToken.connect(usdcFixture.user1).approve(await usdcFixture.curvePool.getAddress(), usdcAmount);
+      await usdcFixture.otherAssetToken.connect(usdcFixture.user1).approve(await usdcFixture.curvePool.getAddress(), usdsAmount);
       await addLiquidityToCurvePool(usdcFixture.curvePool, usdcFixture.user1, usdcAmount, usdsAmount);
 
       const usdcLPBalance = await getLPTokenBalance(usdcFixture.curvePool, usdcFixture.user1);
-      await approveLPTokens(
-        usdcFixture.curvePool,
-        usdcFixture.user1,
-        await usdcFixture.vault.getAddress(),
-        usdcLPBalance,
-      );
+      await approveLPTokens(usdcFixture.curvePool, usdcFixture.user1, await usdcFixture.vault.getAddress(), usdcLPBalance);
       await depositLPToVault(usdcFixture.vault, usdcFixture.user1, usdcLPBalance);
 
       // frxUSD pool operations
       const frxUSDAmount = parseUnits("1000", 18);
       await fundUserWithTokens(frxUSDFixture.baseAssetToken, frxUSDFixture.user1, frxUSDAmount, frxUSDFixture.deployer);
       await fundUserWithTokens(frxUSDFixture.otherAssetToken, frxUSDFixture.user1, usdcAmount, frxUSDFixture.deployer);
-      await frxUSDFixture.baseAssetToken
-        .connect(frxUSDFixture.user1)
-        .approve(await frxUSDFixture.curvePool.getAddress(), frxUSDAmount);
-      await frxUSDFixture.otherAssetToken
-        .connect(frxUSDFixture.user1)
-        .approve(await frxUSDFixture.curvePool.getAddress(), usdcAmount);
+      await frxUSDFixture.baseAssetToken.connect(frxUSDFixture.user1).approve(await frxUSDFixture.curvePool.getAddress(), frxUSDAmount);
+      await frxUSDFixture.otherAssetToken.connect(frxUSDFixture.user1).approve(await frxUSDFixture.curvePool.getAddress(), usdcAmount);
       await addLiquidityToCurvePool(frxUSDFixture.curvePool, frxUSDFixture.user1, frxUSDAmount, usdcAmount);
 
       const frxUSDLPBalance = await getLPTokenBalance(frxUSDFixture.curvePool, frxUSDFixture.user1);
-      await approveLPTokens(
-        frxUSDFixture.curvePool,
-        frxUSDFixture.user1,
-        await frxUSDFixture.vault.getAddress(),
-        frxUSDLPBalance,
-      );
+      await approveLPTokens(frxUSDFixture.curvePool, frxUSDFixture.user1, await frxUSDFixture.vault.getAddress(), frxUSDLPBalance);
       await depositLPToVault(frxUSDFixture.vault, frxUSDFixture.user1, frxUSDLPBalance);
 
       // Both pools should work independently

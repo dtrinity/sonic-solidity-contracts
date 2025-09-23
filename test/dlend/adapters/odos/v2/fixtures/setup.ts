@@ -67,10 +67,7 @@ export async function deployOdosV2TestFixture(): Promise<OdosV2TestFixture> {
 
   // Deploy addresses provider with pool and oracle addresses
   const MockPoolAddressesProviderFactory = await ethers.getContractFactory("MockPoolAddressesProvider");
-  const addressesProvider = await MockPoolAddressesProviderFactory.deploy(
-    await pool.getAddress(),
-    await priceOracle.getAddress(),
-  );
+  const addressesProvider = await MockPoolAddressesProviderFactory.deploy(await pool.getAddress(), await priceOracle.getAddress());
 
   // Deploy test tokens
   const TestMintableERC20Factory = await ethers.getContractFactory("TestMintableERC20");
@@ -125,20 +122,8 @@ export async function deployOdosV2TestFixture(): Promise<OdosV2TestFixture> {
  * Setup test environment with token balances and approvals
  */
 export async function setupTestEnvironment(fixture: OdosV2TestFixture) {
-  const {
-    deployer,
-    user1,
-    user2,
-    tokenA,
-    tokenB,
-    ptTokenA,
-    ptTokenB,
-    syTokenA,
-    syTokenB,
-    odosRouter,
-    pendleRouter,
-    baseAdapterHarness,
-  } = fixture;
+  const { deployer, user1, user2, tokenA, tokenB, ptTokenA, ptTokenB, syTokenA, syTokenB, odosRouter, pendleRouter, baseAdapterHarness } =
+    fixture;
 
   const initialMintAmount = ethers.parseEther("1000000");
 

@@ -28,11 +28,7 @@ dstableConfigs.forEach((config) => {
       ({ deployer, user1, user2 } = await getNamedAccounts());
 
       const vaultAddress = (await hre.deployments.get(config.collateralVaultContractId)).address;
-      collateralVaultContract = await hre.ethers.getContractAt(
-        "CollateralHolderVault",
-        vaultAddress,
-        await hre.ethers.getSigner(deployer),
-      );
+      collateralVaultContract = await hre.ethers.getContractAt("CollateralHolderVault", vaultAddress, await hre.ethers.getSigner(deployer));
 
       // Get the oracle aggregator based on the dStable configuration
       const oracleAggregatorAddress = (await hre.deployments.get(config.oracleAggregatorId)).address;
@@ -113,9 +109,7 @@ dstableConfigs.forEach((config) => {
           const vaultBalanceBefore = await collateralContract.balanceOf(await collateralVaultContract.getAddress());
           const userBalanceBefore = await collateralContract.balanceOf(user1);
 
-          await collateralVaultContract
-            .connect(await hre.ethers.getSigner(user1))
-            .deposit(depositAmount, collateralInfo.address);
+          await collateralVaultContract.connect(await hre.ethers.getSigner(user1)).deposit(depositAmount, collateralInfo.address);
 
           const vaultBalanceAfter = await collateralContract.balanceOf(await collateralVaultContract.getAddress());
           const userBalanceAfter = await collateralContract.balanceOf(user1);
@@ -177,9 +171,7 @@ dstableConfigs.forEach((config) => {
 
         // Allow for a small rounding error due to fixed-point math
         const difference =
-          actualTotalValue > expectedTotalValue
-            ? actualTotalValue - expectedTotalValue
-            : expectedTotalValue - actualTotalValue;
+          actualTotalValue > expectedTotalValue ? actualTotalValue - expectedTotalValue : expectedTotalValue - actualTotalValue;
 
         const acceptableError = 10n; // Small error margin for fixed-point calculations
 
@@ -206,8 +198,7 @@ dstableConfigs.forEach((config) => {
         const calculatedValue = await collateralVaultContract.assetValueFromAmount(assetAmount, collateralInfo.address);
 
         // Allow for a small rounding error due to fixed-point math
-        const amountDifference =
-          assetAmount > expectedAssetAmount ? assetAmount - expectedAssetAmount : expectedAssetAmount - assetAmount;
+        const amountDifference = assetAmount > expectedAssetAmount ? assetAmount - expectedAssetAmount : expectedAssetAmount - assetAmount;
 
         const valueDifference = calculatedValue > baseValue ? calculatedValue - baseValue : baseValue - calculatedValue;
 
@@ -247,24 +238,14 @@ dstableConfigs.forEach((config) => {
         const vaultBalanceBefore = await collateralContract.balanceOf(await collateralVaultContract.getAddress());
         const user1BalanceBefore = await collateralContract.balanceOf(user1);
 
-        await collateralVaultContract
-          .connect(await hre.ethers.getSigner(user2))
-          .withdrawTo(user1, withdrawAmount, collateralInfo.address);
+        await collateralVaultContract.connect(await hre.ethers.getSigner(user2)).withdrawTo(user1, withdrawAmount, collateralInfo.address);
 
         const vaultBalanceAfter = await collateralContract.balanceOf(await collateralVaultContract.getAddress());
         const user1BalanceAfter = await collateralContract.balanceOf(user1);
 
-        assert.equal(
-          vaultBalanceBefore - vaultBalanceAfter,
-          withdrawAmount,
-          "Vault balance should decrease by withdraw amount",
-        );
+        assert.equal(vaultBalanceBefore - vaultBalanceAfter, withdrawAmount, "Vault balance should decrease by withdraw amount");
 
-        assert.equal(
-          user1BalanceAfter - user1BalanceBefore,
-          withdrawAmount,
-          "User1 balance should increase by withdraw amount",
-        );
+        assert.equal(user1BalanceAfter - user1BalanceBefore, withdrawAmount, "User1 balance should increase by withdraw amount");
       });
 
       it("prevents unauthorized withdrawals", async function () {
@@ -282,9 +263,7 @@ dstableConfigs.forEach((config) => {
         const withdrawAmount = hre.ethers.parseUnits("50", collateralInfo.decimals);
 
         await expect(
-          collateralVaultContract
-            .connect(await hre.ethers.getSigner(user1))
-            .withdrawTo(user1, withdrawAmount, collateralInfo.address),
+          collateralVaultContract.connect(await hre.ethers.getSigner(user1)).withdrawTo(user1, withdrawAmount, collateralInfo.address),
         ).to.be.reverted;
       });
     });
@@ -333,9 +312,7 @@ dstableConfigs.forEach((config) => {
           const fromAmount = hre.ethers.parseUnits("10", toInfo.decimals);
 
           // user1 approves vault to pull the unsupported token (they still hold it)
-          await toContract
-            .connect(await hre.ethers.getSigner(user1))
-            .approve(await collateralVaultContract.getAddress(), fromAmount);
+          await toContract.connect(await hre.ethers.getSigner(user1)).approve(await collateralVaultContract.getAddress(), fromAmount);
 
           await expect(
             collateralVaultContract.connect(await hre.ethers.getSigner(user1)).exchangeCollateral(
@@ -352,16 +329,10 @@ dstableConfigs.forEach((config) => {
           const fromAmount = hre.ethers.parseUnits("50", fromInfo.decimals);
 
           // Calculate how much toCollateral user1 should receive
-          const toAmount: bigint = await collateralVaultContract.maxExchangeAmount(
-            fromAmount,
-            fromInfo.address,
-            toInfo.address,
-          );
+          const toAmount: bigint = await collateralVaultContract.maxExchangeAmount(fromAmount, fromInfo.address, toInfo.address);
 
           // Approve transfer of fromCollateral to vault
-          await fromContract
-            .connect(await hre.ethers.getSigner(user1))
-            .approve(await collateralVaultContract.getAddress(), fromAmount);
+          await fromContract.connect(await hre.ethers.getSigner(user1)).approve(await collateralVaultContract.getAddress(), fromAmount);
 
           // Record balances before
           const userFromBefore = await fromContract.balanceOf(user1);

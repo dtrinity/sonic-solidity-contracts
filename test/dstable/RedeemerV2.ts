@@ -2,14 +2,7 @@ import { assert, expect } from "chai";
 import hre, { getNamedAccounts } from "hardhat";
 import { Address } from "hardhat-deploy/types";
 
-import {
-  CollateralHolderVault,
-  IssuerV2,
-  OracleAggregator,
-  RedeemerV2,
-  TestERC20,
-  TestMintableERC20,
-} from "../../typechain-types";
+import { CollateralHolderVault, IssuerV2, OracleAggregator, RedeemerV2, TestERC20, TestMintableERC20 } from "../../typechain-types";
 import { ONE_HUNDRED_PERCENT_BPS } from "../../typescript/common/bps_constants";
 import {
   DS_REDEEMER_CONTRACT_ID,
@@ -66,22 +59,14 @@ dstableConfigs.forEach((config) => {
       ({ deployer, user1 } = await getNamedAccounts());
 
       const vaultAddress = (await hre.deployments.get(config.collateralVaultContractId)).address;
-      collateralVault = await hre.ethers.getContractAt(
-        "CollateralHolderVault",
-        vaultAddress,
-        await hre.ethers.getSigner(deployer),
-      );
+      collateralVault = await hre.ethers.getContractAt("CollateralHolderVault", vaultAddress, await hre.ethers.getSigner(deployer));
 
       const oracleAddress = (await hre.deployments.get(config.oracleAggregatorId)).address;
       oracle = await hre.ethers.getContractAt("OracleAggregator", oracleAddress, await hre.ethers.getSigner(deployer));
 
       // IssuerV2 from deployments
       const issuerAddress = (await hre.deployments.get(config.issuerContractId)).address;
-      issuer = (await hre.ethers.getContractAt(
-        "IssuerV2",
-        issuerAddress,
-        await hre.ethers.getSigner(deployer),
-      )) as unknown as IssuerV2;
+      issuer = (await hre.ethers.getContractAt("IssuerV2", issuerAddress, await hre.ethers.getSigner(deployer))) as unknown as IssuerV2;
 
       // Token
       const { contract, tokenInfo } = await getTokenContractForSymbol(hre, deployer, config.symbol);
@@ -171,9 +156,10 @@ dstableConfigs.forEach((config) => {
       await dstable.connect(await hre.ethers.getSigner(user1)).approve(await redeemer.getAddress(), amount);
 
       await redeemer.pauseRedemption();
-      await expect(
-        redeemer.connect(await hre.ethers.getSigner(user1)).redeem(amount, info.address, 0),
-      ).to.be.revertedWithCustomError(redeemer, "EnforcedPause");
+      await expect(redeemer.connect(await hre.ethers.getSigner(user1)).redeem(amount, info.address, 0)).to.be.revertedWithCustomError(
+        redeemer,
+        "EnforcedPause",
+      );
 
       await redeemer.unpauseRedemption();
 
@@ -216,17 +202,13 @@ dstableConfigs.forEach((config) => {
       );
       const minOut = (expected * 95n) / 100n;
 
-      const userBalBefore = await (
-        await hre.ethers.getContractAt("TestERC20", info.address, await hre.ethers.getSigner(deployer))
-      )
+      const userBalBefore = await (await hre.ethers.getContractAt("TestERC20", info.address, await hre.ethers.getSigner(deployer)))
         .connect(await hre.ethers.getSigner(user1))
         .balanceOf(user1);
 
       await redeemer.connect(await hre.ethers.getSigner(user1)).redeem(amount, info.address, minOut);
 
-      const userBalAfter = await (
-        await hre.ethers.getContractAt("TestERC20", info.address, await hre.ethers.getSigner(deployer))
-      )
+      const userBalAfter = await (await hre.ethers.getContractAt("TestERC20", info.address, await hre.ethers.getSigner(deployer)))
         .connect(await hre.ethers.getSigner(user1))
         .balanceOf(user1);
 
@@ -259,9 +241,7 @@ dstableConfigs.forEach((config) => {
 
         const tx = await redeemer.connect(userSigner).redeem(redeemAmount, collateralInfo.address, 0);
 
-        await expect(tx)
-          .to.emit(redeemer, "Redemption")
-          .withArgs(user1, collateralInfo.address, redeemAmount, expectedNet, expectedFee);
+        await expect(tx).to.emit(redeemer, "Redemption").withArgs(user1, collateralInfo.address, redeemAmount, expectedNet, expectedFee);
 
         const userAfter = await collateralToken.balanceOf(user1);
         const feeAfter = await collateralToken.balanceOf(feeReceiver);
@@ -307,8 +287,7 @@ dstableConfigs.forEach((config) => {
       });
 
       it("reverts when non-admin tries to set fee receiver", async function () {
-        await expect(redeemer.connect(await hre.ethers.getSigner(user1)).setFeeReceiver(await redeemer.getAddress())).to
-          .be.reverted;
+        await expect(redeemer.connect(await hre.ethers.getSigner(user1)).setFeeReceiver(await redeemer.getAddress())).to.be.reverted;
       });
 
       it("allows admin to set default redemption fee and enforces max", async function () {
@@ -316,10 +295,7 @@ dstableConfigs.forEach((config) => {
         assert.equal((await redeemer.defaultRedemptionFeeBps()).toString(), "200");
 
         const maxPlusOne = (await redeemer.MAX_FEE_BPS()) + 1n;
-        await expect(redeemer.setDefaultRedemptionFee(maxPlusOne)).to.be.revertedWithCustomError(
-          redeemer,
-          "FeeTooHigh",
-        );
+        await expect(redeemer.setDefaultRedemptionFee(maxPlusOne)).to.be.revertedWithCustomError(redeemer, "FeeTooHigh");
       });
 
       it("allows admin to set collateral-specific fee and enforces max", async function () {
@@ -328,9 +304,10 @@ dstableConfigs.forEach((config) => {
         await redeemer.setCollateralRedemptionFee(collateralInfo.address, 300); // 3%
         assert.equal((await redeemer.collateralRedemptionFeeBps(collateralInfo.address)).toString(), "300");
         const maxPlusOne = (await redeemer.MAX_FEE_BPS()) + 1n;
-        await expect(
-          redeemer.setCollateralRedemptionFee(collateralInfo.address, maxPlusOne),
-        ).to.be.revertedWithCustomError(redeemer, "FeeTooHigh");
+        await expect(redeemer.setCollateralRedemptionFee(collateralInfo.address, maxPlusOne)).to.be.revertedWithCustomError(
+          redeemer,
+          "FeeTooHigh",
+        );
       });
 
       it("supports clearing per-asset override (0 bps override -> clear -> fallback to default)", async function () {
@@ -365,11 +342,7 @@ dstableConfigs.forEach((config) => {
         const userAfter0 = await collateralToken.balanceOf(user1);
         const feeAfter0 = await collateralToken.balanceOf(feeReceiver);
 
-        assert.equal(
-          userAfter0 - userBefore0,
-          expectedNet0,
-          "user should receive full collateral under 0 bps override",
-        );
+        assert.equal(userAfter0 - userBefore0, expectedNet0, "user should receive full collateral under 0 bps override");
         assert.equal(feeAfter0 - feeBefore0, expectedFee0, "fee receiver should not receive fee under 0 bps override");
 
         // Clear override -> should fallback to default
@@ -392,16 +365,8 @@ dstableConfigs.forEach((config) => {
         const userAfter2 = await collateralToken.balanceOf(user1);
         const feeAfter2 = await collateralToken.balanceOf(feeReceiver);
 
-        assert.equal(
-          userAfter2 - userBefore2,
-          expectedNet2,
-          "user should receive net amount after default fee once override cleared",
-        );
-        assert.equal(
-          feeAfter2 - feeBefore2,
-          expectedFee2,
-          "fee receiver should receive default fee once override cleared",
-        );
+        assert.equal(userAfter2 - userBefore2, expectedNet2, "user should receive net amount after default fee once override cleared");
+        assert.equal(feeAfter2 - feeBefore2, expectedFee2, "fee receiver should receive default fee once override cleared");
       });
     });
   });

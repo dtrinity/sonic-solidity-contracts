@@ -3,14 +3,7 @@ import { expect } from "chai";
 import hre, { ethers, getNamedAccounts, network } from "hardhat";
 
 import { getConfig } from "../../config/config";
-import {
-  DStakeCollateralVault,
-  DStakeRouterDLend,
-  DStakeToken,
-  ERC20,
-  IDStableConversionAdapter,
-  IERC20,
-} from "../../typechain-types";
+import { DStakeCollateralVault, DStakeRouterDLend, DStakeToken, ERC20, IDStableConversionAdapter, IERC20 } from "../../typechain-types";
 import { IPool } from "../../typechain-types/contracts/dlend/core/interfaces/IPool";
 import { ERC20StablecoinUpgradeable } from "../../typechain-types/contracts/dstable/ERC20StablecoinUpgradeable";
 import { TestERC20 } from "../../typechain-types/contracts/testing/token/TestERC20";
@@ -74,11 +67,7 @@ STAKE_CONFIGS.forEach((cfg) => {
       // Locate static wrapper and pool contracts
       staticWrapper = (await ethers.getContractAt("StaticATokenLM", vaultAssetAddress, deployer)) as StaticATokenLM;
       poolAddress = await staticWrapper.POOL();
-      pool = (await ethers.getContractAt(
-        "contracts/dlend/core/interfaces/IPool.sol:IPool",
-        poolAddress,
-        deployer,
-      )) as unknown as IPool;
+      pool = (await ethers.getContractAt("contracts/dlend/core/interfaces/IPool.sol:IPool", poolAddress, deployer)) as unknown as IPool;
     });
 
     it("should accrue yield over time, improve exchange rate, and allow correct withdrawals", async function () {
@@ -91,15 +80,9 @@ STAKE_CONFIGS.forEach((cfg) => {
 
       // Setup small borrow to generate interest for lenders
       const globalConfig = await getConfig(hre);
-      const dStableCollaterals = globalConfig.dStables[cfg.dStableSymbol].collaterals.filter(
-        (addr) => addr !== ethers.ZeroAddress,
-      );
+      const dStableCollaterals = globalConfig.dStables[cfg.dStableSymbol].collaterals.filter((addr) => addr !== ethers.ZeroAddress);
       const collateralAsset = dStableCollaterals[dStableCollaterals.length - 1];
-      const collateralToken = (await ethers.getContractAt(
-        "TestERC20",
-        collateralAsset,
-        deployer,
-      )) as unknown as TestERC20;
+      const collateralToken = (await ethers.getContractAt("TestERC20", collateralAsset, deployer)) as unknown as TestERC20;
       const colDecimals = await collateralToken.decimals();
       const collateralDeposit = ethers.parseUnits("125", colDecimals);
       // Approve and deposit collateral
@@ -159,9 +142,7 @@ STAKE_CONFIGS.forEach((cfg) => {
 
       // Drain pool liquidity by borrowing all available dStable
       const globalConfig = await getConfig(hre);
-      const dStableCollaterals = globalConfig.dStables[cfg.dStableSymbol].collaterals.filter(
-        (addr) => addr !== ethers.ZeroAddress,
-      );
+      const dStableCollaterals = globalConfig.dStables[cfg.dStableSymbol].collaterals.filter((addr) => addr !== ethers.ZeroAddress);
       const collateralAsset = dStableCollaterals[dStableCollaterals.length - 1];
       const collateralToken = (await ethers.getContractAt("TestERC20", collateralAsset, deployer)) as TestERC20;
       const colDecimals = await collateralToken.decimals();

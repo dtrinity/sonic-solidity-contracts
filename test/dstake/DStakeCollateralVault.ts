@@ -3,14 +3,7 @@ import { expect } from "chai";
 import { ZeroAddress } from "ethers"; // Import ZeroAddress
 import { ethers, getNamedAccounts } from "hardhat";
 
-import {
-  DStakeCollateralVault,
-  DStakeRouterDLend,
-  DStakeToken,
-  ERC20,
-  IDStableConversionAdapter,
-  IERC20,
-} from "../../typechain-types";
+import { DStakeCollateralVault, DStakeRouterDLend, DStakeToken, ERC20, IDStableConversionAdapter, IERC20 } from "../../typechain-types";
 import { ERC20StablecoinUpgradeable } from "../../typechain-types/contracts/dstable/ERC20StablecoinUpgradeable";
 import { createDStakeFixture, DSTAKE_CONFIGS, DStakeFixtureConfig } from "./fixture"; // Use the specific fixture and import DSTAKE_CONFIGS
 
@@ -71,11 +64,7 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
       DStakeTokenAddress = await DStakeToken.getAddress();
       dStableTokenAddress = await dStableToken.getAddress();
       // Get the native stablecoin contract to grant mint role
-      stable = (await ethers.getContractAt(
-        "ERC20StablecoinUpgradeable",
-        dStableTokenAddress,
-        deployer,
-      )) as ERC20StablecoinUpgradeable;
+      stable = (await ethers.getContractAt("ERC20StablecoinUpgradeable", dStableTokenAddress, deployer)) as ERC20StablecoinUpgradeable;
       // Grant MINTER_ROLE to deployer so tests can mint dStable
       const minterRole = await stable.MINTER_ROLE();
       await stable.grantRole(minterRole, deployer.address);
@@ -83,10 +72,7 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
       routerAddress = await router.getAddress();
 
       if (vaultAssetAddress !== ZeroAddress && vaultAssetToken) {
-        const tempVaultAsset = await ethers.getContractAt(
-          "@openzeppelin/contracts/token/ERC20/ERC20.sol:ERC20",
-          vaultAssetAddress,
-        );
+        const tempVaultAsset = await ethers.getContractAt("@openzeppelin/contracts/token/ERC20/ERC20.sol:ERC20", vaultAssetAddress);
         vaultAssetDecimals = await tempVaultAsset.decimals();
       } else {
         vaultAssetDecimals = 18n;
@@ -149,10 +135,7 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
       });
 
       it("Should revert if setting router to zero address", async function () {
-        await expect(collateralVault.connect(user1).setRouter(ZeroAddress)).to.be.revertedWithCustomError(
-          collateralVault,
-          "ZeroAddress",
-        );
+        await expect(collateralVault.connect(user1).setRouter(ZeroAddress)).to.be.revertedWithCustomError(collateralVault, "ZeroAddress");
       });
 
       it("Should set and replace the router correctly, managing ROUTER_ROLE", async function () {
@@ -165,9 +148,7 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
         expect(await collateralVault.hasRole(routerRole, newRouterAddress)).to.be.true;
         expect(await collateralVault.hasRole(routerRole, routerAddress)).to.be.false;
 
-        await expect(collateralVault.connect(user1).setRouter(routerAddress))
-          .to.emit(collateralVault, "RouterSet")
-          .withArgs(routerAddress);
+        await expect(collateralVault.connect(user1).setRouter(routerAddress)).to.emit(collateralVault, "RouterSet").withArgs(routerAddress);
         expect(await collateralVault.router()).to.equal(routerAddress);
         expect(await collateralVault.hasRole(routerRole, routerAddress)).to.be.true;
         expect(await collateralVault.hasRole(routerRole, newRouterAddress)).to.be.false;
@@ -207,12 +188,12 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
         if ((await vaultAssetToken.balanceOf(collateralVaultAddress)) < amountToSend) this.skip();
 
         const recipient = user1.address;
-        await expect(
-          collateralVault.connect(user1).sendAsset(vaultAssetAddress, amountToSend, recipient),
-        ).to.be.revertedWithCustomError(collateralVault, "AccessControlUnauthorizedAccount");
+        await expect(collateralVault.connect(user1).sendAsset(vaultAssetAddress, amountToSend, recipient)).to.be.revertedWithCustomError(
+          collateralVault,
+          "AccessControlUnauthorizedAccount",
+        );
 
-        await expect(collateralVault.connect(routerSigner).sendAsset(vaultAssetAddress, amountToSend, recipient)).to.not
-          .be.reverted;
+        await expect(collateralVault.connect(routerSigner).sendAsset(vaultAssetAddress, amountToSend, recipient)).to.not.be.reverted;
       });
 
       it("Should transfer asset correctly", async function () {
@@ -236,8 +217,7 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
         const vaultBalance = await vaultAssetToken.balanceOf(collateralVaultAddress);
         const attemptToSend = vaultBalance + parseUnits("1", vaultAssetDecimals);
 
-        await expect(collateralVault.connect(routerSigner).sendAsset(vaultAssetAddress, attemptToSend, recipient)).to.be
-          .reverted;
+        await expect(collateralVault.connect(routerSigner).sendAsset(vaultAssetAddress, attemptToSend, recipient)).to.be.reverted;
       });
 
       it("Should revert if asset is not supported", async function () {
@@ -316,9 +296,7 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
 
         // Send all vault asset back to deployer
         const vaultBalanceForRemoval = await vaultAssetToken.balanceOf(collateralVaultAddress);
-        await collateralVault
-          .connect(routerSigner)
-          .sendAsset(vaultAssetAddress, vaultBalanceForRemoval, deployer.address);
+        await collateralVault.connect(routerSigner).sendAsset(vaultAssetAddress, vaultBalanceForRemoval, deployer.address);
         expect(await collateralVault.totalValueInDStable()).to.equal(0);
 
         await router.connect(user1).removeAdapter(vaultAssetAddress);
@@ -441,15 +419,15 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
         });
 
         it("Should revert with zero address receiver", async function () {
-          await expect(
-            collateralVault.connect(user1).rescueToken(mockTokenAddress, ZeroAddress, testAmount),
-          ).to.be.revertedWithCustomError(collateralVault, "ZeroAddress");
+          await expect(collateralVault.connect(user1).rescueToken(mockTokenAddress, ZeroAddress, testAmount)).to.be.revertedWithCustomError(
+            collateralVault,
+            "ZeroAddress",
+          );
         });
 
         it("Should handle rescue when token balance is insufficient", async function () {
           const excessiveAmount = testAmount * 2n;
-          await expect(collateralVault.connect(user1).rescueToken(mockTokenAddress, user1.address, excessiveAmount)).to
-            .be.reverted;
+          await expect(collateralVault.connect(user1).rescueToken(mockTokenAddress, user1.address, excessiveAmount)).to.be.reverted;
         });
       });
 
@@ -480,9 +458,10 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
         });
 
         it("Should only allow DEFAULT_ADMIN_ROLE to call rescueETH", async function () {
-          await expect(
-            collateralVault.connect(user2).rescueETH(user2.address, ethAmount),
-          ).to.be.revertedWithCustomError(collateralVault, "AccessControlUnauthorizedAccount");
+          await expect(collateralVault.connect(user2).rescueETH(user2.address, ethAmount)).to.be.revertedWithCustomError(
+            collateralVault,
+            "AccessControlUnauthorizedAccount",
+          );
         });
 
         it("Should revert with zero address receiver", async function () {
@@ -620,8 +599,7 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
             const vaultBalance = await vaultAssetToken.balanceOf(collateralVaultAddress);
 
             if (vaultBalance > 0n) {
-              await expect(collateralVault.connect(user1).rescueToken(vaultAssetAddress, user1.address, 1n)).to.not.be
-                .reverted;
+              await expect(collateralVault.connect(user1).rescueToken(vaultAssetAddress, user1.address, 1n)).to.not.be.reverted;
             }
 
             // Add adapter to make it supported

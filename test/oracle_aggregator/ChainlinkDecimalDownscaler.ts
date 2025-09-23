@@ -90,9 +90,10 @@ describe("ChainlinkDecimalDownscaler", () => {
       const targetDecimals = 12; // Greater than source decimals
       const ConverterFactory = await ethers.getContractFactory("ChainlinkDecimalDownscaler");
 
-      await expect(
-        ConverterFactory.deploy(await mockAggregator.getAddress(), targetDecimals),
-      ).to.be.revertedWithCustomError(ConverterFactory, "InvalidDecimalsUpscaleNotSupported");
+      await expect(ConverterFactory.deploy(await mockAggregator.getAddress(), targetDecimals)).to.be.revertedWithCustomError(
+        ConverterFactory,
+        "InvalidDecimalsUpscaleNotSupported",
+      );
     });
 
     it("should handle legacy interface correctly with runtime fallback", async () => {

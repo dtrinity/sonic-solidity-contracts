@@ -3,14 +3,7 @@ import { time } from "@nomicfoundation/hardhat-toolbox/network-helpers";
 import { expect } from "chai";
 import hre, { ethers } from "hardhat";
 
-import {
-  AToken,
-  ERC20StablecoinUpgradeable,
-  Pool,
-  StaticATokenFactory,
-  StaticATokenLM,
-  TestERC20,
-} from "../../typechain-types";
+import { AToken, ERC20StablecoinUpgradeable, Pool, StaticATokenFactory, StaticATokenLM, TestERC20 } from "../../typechain-types";
 import { dLendFixture, DLendFixtureResult } from "./fixtures";
 
 describe("StaticATokenFactory & StaticATokenLM", () => {
@@ -152,8 +145,7 @@ describe("StaticATokenFactory & StaticATokenLM", () => {
       const requiredCollateralValueBaseBuffered: bigint = (requiredCollateralValueBase * num120) / num100;
 
       const tenPowCollateralDec: bigint = BigInt(10) ** BigInt(user2CollateralDecimals);
-      const requiredCollateralAmount: bigint =
-        (requiredCollateralValueBaseBuffered * tenPowCollateralDec) / collateralPrice;
+      const requiredCollateralAmount: bigint = (requiredCollateralValueBaseBuffered * tenPowCollateralDec) / collateralPrice;
 
       const oneUnitBuffer: bigint = ethers.parseUnits("1", user2CollateralDecimals);
       const user2CollateralAmount: bigint = requiredCollateralAmount + oneUnitBuffer;
@@ -201,8 +193,7 @@ describe("StaticATokenFactory & StaticATokenLM", () => {
       // Check Wrapper aToken Balance (Should DECREASE by underlying value withdrawn)
       const wrapperATokenBalanceAfter_Test1 = await aToken.balanceOf(staticTokenAddress);
       const expectedWrapperBalanceAfter_Test1 = wrapperATokenBalanceBefore - expectedUnderlyingOut;
-      const wrapperTolerance_Test1 =
-        (expectedWrapperBalanceAfter_Test1 > 0 ? expectedWrapperBalanceAfter_Test1 : 1n) / 1_000_000n + 1n;
+      const wrapperTolerance_Test1 = (expectedWrapperBalanceAfter_Test1 > 0 ? expectedWrapperBalanceAfter_Test1 : 1n) / 1_000_000n + 1n;
       expect(wrapperATokenBalanceAfter_Test1).to.be.closeTo(expectedWrapperBalanceAfter_Test1, wrapperTolerance_Test1);
     });
 
@@ -288,8 +279,7 @@ describe("StaticATokenFactory & StaticATokenLM", () => {
       // Check Wrapper aToken Balance (Should DECREASE by underlying value withdrawn)
       const wrapperATokenBalanceAfter_Test2 = await aToken.balanceOf(staticTokenAddress);
       const expectedWrapperBalanceAfter_Test2 = wrapperATokenBalanceBefore_Test2 - previewAmount;
-      const wrapperTolerance_Test2 =
-        (expectedWrapperBalanceAfter_Test2 > 0 ? expectedWrapperBalanceAfter_Test2 : 1n) / 1_000_000n + 1n;
+      const wrapperTolerance_Test2 = (expectedWrapperBalanceAfter_Test2 > 0 ? expectedWrapperBalanceAfter_Test2 : 1n) / 1_000_000n + 1n;
       expect(wrapperATokenBalanceAfter_Test2).to.be.closeTo(expectedWrapperBalanceAfter_Test2, wrapperTolerance_Test2);
     });
 
@@ -366,8 +356,7 @@ describe("StaticATokenFactory & StaticATokenLM", () => {
 
       const wrapperATokenBalanceAfter_Test3 = await aToken.balanceOf(staticTokenAddress);
       const expectedWrapperBalanceAfter_Test3 = wrapperATokenBalanceBefore_Test3 - assetsToWithdraw;
-      const wrapperTolerance_Test3 =
-        (expectedWrapperBalanceAfter_Test3 > 0 ? expectedWrapperBalanceAfter_Test3 : 1n) / 1_000_000n + 1n;
+      const wrapperTolerance_Test3 = (expectedWrapperBalanceAfter_Test3 > 0 ? expectedWrapperBalanceAfter_Test3 : 1n) / 1_000_000n + 1n;
       expect(wrapperATokenBalanceAfter_Test3).to.be.closeTo(expectedWrapperBalanceAfter_Test3, wrapperTolerance_Test3);
 
       const deployerUnderlyingBalanceAfter = await underlyingToken.balanceOf(deployer.address);
@@ -421,10 +410,7 @@ describe("StaticATokenFactory & StaticATokenLM", () => {
 
       // Wrapper should hold the deposited aTokens
       const wrapperATokenBalanceAfterDeposit = await aToken.balanceOf(staticTokenAddress);
-      expect(wrapperATokenBalanceAfterDeposit).to.be.closeTo(
-        wrapperATokenBalanceBeforeDeposit + aTokenAmountReceived,
-        tolerance,
-      );
+      expect(wrapperATokenBalanceAfterDeposit).to.be.closeTo(wrapperATokenBalanceBeforeDeposit + aTokenAmountReceived, tolerance);
 
       // --- Step 4: Redeem static tokens (minted in Step 2) for aTokens ---
       const aTokenBalanceBeforeRedeem = await aToken.balanceOf(deployer.address);
@@ -489,8 +475,7 @@ describe("StaticATokenFactory & StaticATokenLM", () => {
       // --- Step 4: Compare shares minted ---
       // The amounts deposited (aTokenAmountReceived vs depositAmount) might differ slightly,
       // and the rate might change. So use closeTo.
-      const tolerance =
-        (sharesFromUnderlying > sharesFromAToken ? sharesFromUnderlying : sharesFromAToken) / 1_000_000n + 1n;
+      const tolerance = (sharesFromUnderlying > sharesFromAToken ? sharesFromUnderlying : sharesFromAToken) / 1_000_000n + 1n;
       expect(sharesFromUnderlying).to.be.closeTo(sharesFromAToken, tolerance);
 
       // --- Step 5: Cleanup (redeem remaining) ---

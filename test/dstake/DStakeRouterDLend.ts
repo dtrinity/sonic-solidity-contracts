@@ -2,13 +2,7 @@ import { expect } from "chai";
 import { ZeroAddress } from "ethers";
 import { ethers, getNamedAccounts } from "hardhat";
 
-import {
-  DStakeCollateralVault,
-  DStakeRouterDLend,
-  DStakeToken,
-  IDStableConversionAdapter,
-  IERC20,
-} from "../../typechain-types";
+import { DStakeCollateralVault, DStakeRouterDLend, DStakeToken, IDStableConversionAdapter, IERC20 } from "../../typechain-types";
 import { ERC20StablecoinUpgradeable } from "../../typechain-types/contracts/dstable/ERC20StablecoinUpgradeable";
 import { DStakeRouterDLend__factory } from "../../typechain-types/factories/contracts/vaults/dstake/DStakeRouterDLend__factory";
 import { createDStakeFixture, DSTAKE_CONFIGS, DStakeFixtureConfig } from "./fixture";
@@ -68,14 +62,8 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
 
       it("should revert constructor if any address is zero", async function () {
         const factory = new DStakeRouterDLend__factory(deployerSigner);
-        await expect(factory.deploy(ZeroAddress, await collateralVault.getAddress())).to.be.revertedWithCustomError(
-          factory,
-          "ZeroAddress",
-        );
-        await expect(factory.deploy(await DStakeToken.getAddress(), ZeroAddress)).to.be.revertedWithCustomError(
-          factory,
-          "ZeroAddress",
-        );
+        await expect(factory.deploy(ZeroAddress, await collateralVault.getAddress())).to.be.revertedWithCustomError(factory, "ZeroAddress");
+        await expect(factory.deploy(await DStakeToken.getAddress(), ZeroAddress)).to.be.revertedWithCustomError(factory, "ZeroAddress");
       });
 
       it("should grant DEFAULT_ADMIN_ROLE to initialAdmin", async function () {
@@ -115,9 +103,10 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
           router,
           "ZeroAddress",
         );
-        await expect(
-          router.connect(user1Signer).addAdapter(vaultAssetAddress, ZeroAddress),
-        ).to.be.revertedWithCustomError(router, "ZeroAddress");
+        await expect(router.connect(user1Signer).addAdapter(vaultAssetAddress, ZeroAddress)).to.be.revertedWithCustomError(
+          router,
+          "ZeroAddress",
+        );
       });
 
       it("admin can remove an adapter", async function () {
@@ -149,9 +138,10 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
 
       it("cannot set defaultDepositVaultAsset for unregistered asset", async function () {
         const nonVaultAsset = await dStableToken.getAddress();
-        await expect(
-          router.connect(user1Signer).setDefaultDepositVaultAsset(nonVaultAsset),
-        ).to.be.revertedWithCustomError(router, "AdapterNotFound");
+        await expect(router.connect(user1Signer).setDefaultDepositVaultAsset(nonVaultAsset)).to.be.revertedWithCustomError(
+          router,
+          "AdapterNotFound",
+        );
       });
     });
 
@@ -239,10 +229,7 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
         await dStableToken.connect(DStakeTokenSigner).approve(routerAddress, depositAmount);
 
         // Expect revert
-        await expect(router.connect(DStakeTokenSigner).deposit(depositAmount)).to.be.revertedWithCustomError(
-          router,
-          "SlippageCheckFailed",
-        );
+        await expect(router.connect(DStakeTokenSigner).deposit(depositAmount)).to.be.revertedWithCustomError(router, "SlippageCheckFailed");
       });
 
       it("non-DStakeToken cannot call withdraw", async function () {
@@ -256,10 +243,7 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
         await router.connect(DStakeTokenSigner).deposit(depositAmount);
         const initial = await dStableToken.balanceOf(user1Addr);
         // Check event emission and balance
-        await expect(router.connect(DStakeTokenSigner).withdraw(depositAmount, user1Addr, user1Addr)).to.emit(
-          router,
-          "Withdrawn",
-        );
+        await expect(router.connect(DStakeTokenSigner).withdraw(depositAmount, user1Addr, user1Addr)).to.emit(router, "Withdrawn");
         const finalBal = await dStableToken.balanceOf(user1Addr);
         expect(finalBal - initial).to.equal(depositAmount);
       });
@@ -343,43 +327,23 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
 
       it("non-exchanger cannot call exchangeAssetsUsingAdapters", async function () {
         await expect(
-          (router.connect(user2Signer) as any).exchangeAssetsUsingAdapters(
-            vaultAssetAddress,
-            vaultAssetAddress,
-            exchangeAmount,
-            0,
-          ),
+          (router.connect(user2Signer) as any).exchangeAssetsUsingAdapters(vaultAssetAddress, vaultAssetAddress, exchangeAmount, 0),
         ).to.be.reverted;
       });
 
       it("reverts if adapter not found", async function () {
         await expect(
-          (router.connect(user1Signer) as any).exchangeAssetsUsingAdapters(
-            ZeroAddress,
-            vaultAssetAddress,
-            exchangeAmount,
-            0,
-          ),
+          (router.connect(user1Signer) as any).exchangeAssetsUsingAdapters(ZeroAddress, vaultAssetAddress, exchangeAmount, 0),
         ).to.be.revertedWithCustomError(router, "AdapterNotFound");
         await expect(
-          (router.connect(user1Signer) as any).exchangeAssetsUsingAdapters(
-            vaultAssetAddress,
-            ZeroAddress,
-            exchangeAmount,
-            0,
-          ),
+          (router.connect(user1Signer) as any).exchangeAssetsUsingAdapters(vaultAssetAddress, ZeroAddress, exchangeAmount, 0),
         ).to.be.revertedWithCustomError(router, "AdapterNotFound");
       });
 
       it("can exchange assets via adapters and emits event", async function () {
         // Check event emission and balances
         await expect(
-          (router.connect(user1Signer) as any).exchangeAssetsUsingAdapters(
-            vaultAssetAddress,
-            vaultAssetAddress,
-            exchangeAmount,
-            0,
-          ),
+          (router.connect(user1Signer) as any).exchangeAssetsUsingAdapters(vaultAssetAddress, vaultAssetAddress, exchangeAmount, 0),
         ).to.emit(router, "Exchanged");
         expect(await vaultAssetToken.balanceOf(collateralVaultAddress)).to.equal(depositAmount);
       });
@@ -420,15 +384,14 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
       });
 
       it("non-exchanger cannot call exchangeAssets", async function () {
-        await expect(
-          router.connect(user2Signer).exchangeAssets(vaultAssetAddress, vaultAssetAddress, exchangeAmount, 0),
-        ).to.be.reverted;
+        await expect(router.connect(user2Signer).exchangeAssets(vaultAssetAddress, vaultAssetAddress, exchangeAmount, 0)).to.be.reverted;
       });
 
       it("reverts on zero input amount", async function () {
-        await expect(
-          router.connect(user1Signer).exchangeAssets(vaultAssetAddress, vaultAssetAddress, 0, 0),
-        ).to.be.revertedWithCustomError(router, "InconsistentState");
+        await expect(router.connect(user1Signer).exchangeAssets(vaultAssetAddress, vaultAssetAddress, 0, 0)).to.be.revertedWithCustomError(
+          router,
+          "InconsistentState",
+        );
       });
 
       it("reverts if adapter not found", async function () {
@@ -443,9 +406,7 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
       it("reverts on slippage check failure", async function () {
         const [, invalidToAmount] = await adapter.previewConvertToVaultAsset(depositAmount);
         await expect(
-          router
-            .connect(user1Signer)
-            .exchangeAssets(vaultAssetAddress, vaultAssetAddress, exchangeAmount, invalidToAmount + BigInt(1)),
+          router.connect(user1Signer).exchangeAssets(vaultAssetAddress, vaultAssetAddress, exchangeAmount, invalidToAmount + BigInt(1)),
         ).to.be.revertedWithCustomError(router, "SlippageCheckFailed");
       });
 
@@ -455,9 +416,7 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
         const initial = await vaultAssetToken.balanceOf(user1Addr);
         // Check event emission and balances
         await expect(
-          router
-            .connect(user1Signer)
-            .exchangeAssets(vaultAssetAddress, vaultAssetAddress, exchangeAmount, expectedToVault),
+          router.connect(user1Signer).exchangeAssets(vaultAssetAddress, vaultAssetAddress, exchangeAmount, expectedToVault),
         ).to.emit(router, "Exchanged");
         expect(await vaultAssetToken.balanceOf(user1Addr)).to.equal(initial);
       });

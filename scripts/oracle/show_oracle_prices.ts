@@ -96,9 +96,7 @@ async function dumpAggregatorPrices(): Promise<void> {
     // Chainlink composite wrappers (simple map asset->config)
     addKeys(aggConfig.chainlinkCompositeWrapperAggregator);
 
-    const tokenAddressMap: Record<string, string> = Object.entries(
-      (config.tokenAddresses ?? {}) as Record<string, any>,
-    ).reduce(
+    const tokenAddressMap: Record<string, string> = Object.entries((config.tokenAddresses ?? {}) as Record<string, any>).reduce(
       (acc, [symbol, addr]) => {
         if (addr) acc[(addr as string).toLowerCase()] = symbol;
         return acc;
@@ -162,10 +160,7 @@ async function main(): Promise<void> {
       const aggregator = await ethers.getContractAt(AGGREGATOR_ABI, address);
 
       // These calls are read-only and inexpensive
-      const [decimals, description] = await Promise.all([
-        aggregator.decimals(),
-        aggregator.description().catch(() => ""),
-      ]);
+      const [decimals, description] = await Promise.all([aggregator.decimals(), aggregator.description().catch(() => "")]);
 
       // latestRoundData returns (uint80,int256,uint256,uint256,uint80)
       const [, answer, , updatedAt] = await aggregator.latestRoundData();

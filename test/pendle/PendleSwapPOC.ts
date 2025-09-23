@@ -84,10 +84,7 @@ describe("PendleSwapPOC - Mainnet Integration", function () {
 
       try {
         // Step 1: Get PT token balance
-        const ptContract = await ethers.getContractAt(
-          "@openzeppelin/contracts/token/ERC20/ERC20.sol:ERC20",
-          ptToken.address,
-        );
+        const ptContract = await ethers.getContractAt("@openzeppelin/contracts/token/ERC20/ERC20.sol:ERC20", ptToken.address);
         const ptBalance = await ptContract.balanceOf(deployer.address);
         console.log(`Deployer PT balance: ${ethers.formatUnits(ptBalance, ptToken.decimals)}`);
 
@@ -152,16 +149,11 @@ describe("PendleSwapPOC - Mainnet Integration", function () {
         // Step 6: Check results
         console.log(`\nStep 6: Checking results...`);
         const newPtBalance = await ptContract.balanceOf(deployer.address);
-        const underlyingContract = await ethers.getContractAt(
-          "@openzeppelin/contracts/token/ERC20/ERC20.sol:ERC20",
-          ptToken.asset,
-        );
+        const underlyingContract = await ethers.getContractAt("@openzeppelin/contracts/token/ERC20/ERC20.sol:ERC20", ptToken.asset);
         const underlyingBalanceAfter = await underlyingContract.balanceOf(deployer.address);
 
         console.log(`PT tokens after swap: ${ethers.formatUnits(newPtBalance, ptToken.decimals)}`);
-        console.log(
-          `Underlying tokens received: ${ethers.formatUnits(underlyingBalanceAfter, await underlyingContract.decimals())}`,
-        );
+        console.log(`Underlying tokens received: ${ethers.formatUnits(underlyingBalanceAfter, await underlyingContract.decimals())}`);
 
         // Calculate PT tokens used and verify swap occurred
         const ptTokensUsed = ptBalance - newPtBalance;

@@ -3,15 +3,7 @@ import hre, { getNamedAccounts } from "hardhat";
 import { Address } from "hardhat-deploy/types";
 
 import { getConfig } from "../../config/config";
-import {
-  AmoManager,
-  CollateralVault,
-  IssuerV2,
-  MockAmoVault,
-  OracleAggregator,
-  TestERC20,
-  TestMintableERC20,
-} from "../../typechain-types";
+import { AmoManager, CollateralVault, IssuerV2, MockAmoVault, OracleAggregator, TestERC20, TestMintableERC20 } from "../../typechain-types";
 import { getTokenContractForAddress, getTokenContractForSymbol, TokenInfo } from "../../typescript/token/utils";
 import { createDStableAmoFixture, DS_CONFIG, DStableFixtureConfig, DUSD_CONFIG } from "./fixtures";
 
@@ -68,21 +60,13 @@ async function runTestsForDStable(
       ({ deployer, user1, user2 } = await getNamedAccounts());
 
       const amoManagerAddress = (await hre.deployments.get(config.amoManagerId)).address;
-      amoManagerContract = await hre.ethers.getContractAt(
-        "AmoManager",
-        amoManagerAddress,
-        await hre.ethers.getSigner(deployer),
-      );
+      amoManagerContract = await hre.ethers.getContractAt("AmoManager", amoManagerAddress, await hre.ethers.getSigner(deployer));
 
       const issuerAddress = (await hre.deployments.get(config.issuerContractId)).address;
       issuerContract = await hre.ethers.getContractAt("IssuerV2", issuerAddress, await hre.ethers.getSigner(deployer));
 
       // Get dStable contract using symbol - we know this is always TestMintableERC20
-      ({ contract: dstableContract, tokenInfo: dstableInfo } = await getTokenContractForSymbol(
-        hre,
-        deployer,
-        config.symbol,
-      ));
+      ({ contract: dstableContract, tokenInfo: dstableInfo } = await getTokenContractForSymbol(hre, deployer, config.symbol));
 
       // Get the oracle aggregator based on the dStable configuration
       const oracleAggregatorAddress = (await hre.deployments.get(config.oracleAggregatorId)).address;
@@ -94,11 +78,7 @@ async function runTestsForDStable(
 
       // Get the deployed MockAmoVault
       const mockAmoVaultAddress = (await hre.deployments.get("MockAmoVault")).address;
-      mockAmoVault = await hre.ethers.getContractAt(
-        "MockAmoVault",
-        mockAmoVaultAddress,
-        await hre.ethers.getSigner(deployer),
-      );
+      mockAmoVault = await hre.ethers.getContractAt("MockAmoVault", mockAmoVaultAddress, await hre.ethers.getSigner(deployer));
 
       // Get the collateral vault
       collateralVaultContract = await hre.ethers.getContractAt(
@@ -216,11 +196,7 @@ async function runTestsForDStable(
         const finalVaultBalance = await dstableContract.balanceOf(amoVault);
 
         assert.equal(finalAmoSupply.toString(), initialAmoSupply.toString(), "Total AMO supply should not change");
-        assert.equal(
-          finalVaultBalance - initialVaultBalance,
-          allocateAmount,
-          "Vault balance should increase by allocated amount",
-        );
+        assert.equal(finalVaultBalance - initialVaultBalance, allocateAmount, "Vault balance should increase by allocated amount");
       });
 
       it("cannot allocate to an inactive vault", async function () {
@@ -292,11 +268,7 @@ async function runTestsForDStable(
           params: [amoVault],
         });
 
-        assert.equal(
-          initialVaultBalance - finalVaultBalance,
-          deallocateAmount,
-          "Vault balance should decrease by deallocated amount",
-        );
+        assert.equal(initialVaultBalance - finalVaultBalance, deallocateAmount, "Vault balance should decrease by deallocated amount");
         assert.equal(
           finalAmoManagerBalance - initialAmoManagerBalance,
           deallocateAmount,
@@ -341,10 +313,7 @@ async function runTestsForDStable(
         await ensureVaultDisabled(vault);
 
         // Check if vault is initially inactive
-        await expect(amoManagerContract.allocateAmo(vault, 1n)).to.be.revertedWithCustomError(
-          amoManagerContract,
-          "InactiveAmoVault",
-        );
+        await expect(amoManagerContract.allocateAmo(vault, 1n)).to.be.revertedWithCustomError(amoManagerContract, "InactiveAmoVault");
 
         await amoManagerContract.enableAmoVault(vault);
 
@@ -378,20 +347,14 @@ async function runTestsForDStable(
         const vault = await mockAmoVault.getAddress();
         await ensureVaultEnabled(vault);
 
-        await expect(amoManagerContract.enableAmoVault(vault)).to.be.revertedWithCustomError(
-          amoManagerContract,
-          "AmoVaultAlreadyEnabled",
-        );
+        await expect(amoManagerContract.enableAmoVault(vault)).to.be.revertedWithCustomError(amoManagerContract, "AmoVaultAlreadyEnabled");
       });
 
       it("cannot disable an already disabled vault", async function () {
         const vault = await mockAmoVault.getAddress();
         await ensureVaultDisabled(vault);
 
-        await expect(amoManagerContract.disableAmoVault(vault)).to.be.revertedWithCustomError(
-          amoManagerContract,
-          "InactiveAmoVault",
-        );
+        await expect(amoManagerContract.disableAmoVault(vault)).to.be.revertedWithCustomError(amoManagerContract, "InactiveAmoVault");
       });
     });
 
@@ -408,11 +371,7 @@ async function runTestsForDStable(
         const finalTotalSupply = await dstableContract.totalSupply();
 
         assert.equal(initialAmoSupply - finalAmoSupply, burnAmount, "AMO supply should decrease by burn amount");
-        assert.equal(
-          initialTotalSupply - finalTotalSupply,
-          burnAmount,
-          "dStable total supply should decrease by burn amount",
-        );
+        assert.equal(initialTotalSupply - finalTotalSupply, burnAmount, "dStable total supply should decrease by burn amount");
       });
 
       it("cannot decrease AMO supply more than available", async function () {
@@ -466,19 +425,11 @@ async function runTestsForDStable(
         // Transfer collateral to the AMO vault from deployer
         await testCollateralToken.transfer(amoVault, collateralAmount);
 
-        const initialHoldingVaultBalance = await testCollateralToken.balanceOf(
-          await collateralVaultContract.getAddress(),
-        );
+        const initialHoldingVaultBalance = await testCollateralToken.balanceOf(await collateralVaultContract.getAddress());
 
-        await amoManagerContract.transferFromAmoVaultToHoldingVault(
-          amoVault,
-          await testCollateralToken.getAddress(),
-          collateralAmount,
-        );
+        await amoManagerContract.transferFromAmoVaultToHoldingVault(amoVault, await testCollateralToken.getAddress(), collateralAmount);
 
-        const finalHoldingVaultBalance = await testCollateralToken.balanceOf(
-          await collateralVaultContract.getAddress(),
-        );
+        const finalHoldingVaultBalance = await testCollateralToken.balanceOf(await collateralVaultContract.getAddress());
 
         expect(finalHoldingVaultBalance - initialHoldingVaultBalance).to.equal(collateralAmount);
       });
@@ -494,11 +445,7 @@ async function runTestsForDStable(
 
         const initialAmoVaultBalance = await testCollateralToken.balanceOf(amoVault);
 
-        await amoManagerContract.transferFromHoldingVaultToAmoVault(
-          amoVault,
-          await testCollateralToken.getAddress(),
-          collateralAmount,
-        );
+        await amoManagerContract.transferFromHoldingVaultToAmoVault(amoVault, await testCollateralToken.getAddress(), collateralAmount);
 
         const finalAmoVaultBalance = await testCollateralToken.balanceOf(amoVault);
 
@@ -537,11 +484,7 @@ async function runTestsForDStable(
         const initialHoldingBalance = await testCollateralToken.balanceOf(await collateralVaultContract.getAddress());
 
         // Withdraw collateral from the (now inactive) vault
-        await amoManagerContract.transferFromAmoVaultToHoldingVault(
-          amoVault,
-          await testCollateralToken.getAddress(),
-          collateralAmount,
-        );
+        await amoManagerContract.transferFromAmoVaultToHoldingVault(amoVault, await testCollateralToken.getAddress(), collateralAmount);
 
         // Check vault remains inactive
         expect(await amoManagerContract.isAmoActive(amoVault)).to.be.false;
@@ -575,11 +518,7 @@ async function runTestsForDStable(
         const collateralInDstable = await amoManagerContract.baseValueToDstableAmount(collateralBaseValue);
 
         await expect(
-          amoManagerContract.transferFromAmoVaultToHoldingVault(
-            amoVault,
-            await testCollateralToken.getAddress(),
-            collateralAmount,
-          ),
+          amoManagerContract.transferFromAmoVaultToHoldingVault(amoVault, await testCollateralToken.getAddress(), collateralAmount),
         )
           .to.emit(amoManagerContract, "AllocationSurplus")
           .withArgs(amoVault, collateralInDstable);
@@ -655,12 +594,7 @@ async function runTestsForDStable(
         const initialRecipientBalance = await testCollateralToken.balanceOf(recipient);
 
         // Try to withdraw profits
-        await amoManagerContract.withdrawProfits(
-          mockAmoVault,
-          recipient,
-          await testCollateralToken.getAddress(),
-          profitAmount,
-        );
+        await amoManagerContract.withdrawProfits(mockAmoVault, recipient, await testCollateralToken.getAddress(), profitAmount);
 
         const finalRecipientBalance = await testCollateralToken.balanceOf(recipient);
 
@@ -685,12 +619,7 @@ async function runTestsForDStable(
         await testCollateralToken.transfer(amoVault, availableAmount);
 
         await expect(
-          amoManagerContract.withdrawProfits(
-            mockAmoVault,
-            recipient,
-            await testCollateralToken.getAddress(),
-            withdrawAmount,
-          ),
+          amoManagerContract.withdrawProfits(mockAmoVault, recipient, await testCollateralToken.getAddress(), withdrawAmount),
         ).to.be.revertedWithCustomError(amoManagerContract, "InsufficientProfits");
       });
     });
@@ -704,8 +633,7 @@ async function runTestsForDStable(
         const convertedBaseValue = await amoManagerContract.dstableAmountToBaseValue(dstableAmount);
 
         // Allow for small rounding errors
-        const difference =
-          convertedBaseValue > baseValue ? convertedBaseValue - baseValue : baseValue - convertedBaseValue;
+        const difference = convertedBaseValue > baseValue ? convertedBaseValue - baseValue : baseValue - convertedBaseValue;
         const acceptableError = (baseValue * 1n) / 100n; // 1% error margin
 
         expect(difference).to.be.lte(acceptableError, "Base value conversion should be within acceptable error margin");
@@ -720,15 +648,10 @@ async function runTestsForDStable(
 
         // Allow for small rounding errors
         const difference =
-          convertedDstableAmount > dstableAmount
-            ? convertedDstableAmount - dstableAmount
-            : dstableAmount - convertedDstableAmount;
+          convertedDstableAmount > dstableAmount ? convertedDstableAmount - dstableAmount : dstableAmount - convertedDstableAmount;
         const acceptableError = (dstableAmount * 1n) / 100n; // 1% error margin
 
-        expect(difference).to.be.lte(
-          acceptableError,
-          "dStable amount conversion should be within acceptable error margin",
-        );
+        expect(difference).to.be.lte(acceptableError, "dStable amount conversion should be within acceptable error margin");
       });
     });
 
@@ -745,9 +668,10 @@ async function runTestsForDStable(
         const newCollateralVault = user1;
         const nonAdmin = await hre.ethers.getSigner(user2);
 
-        await expect(
-          amoManagerContract.connect(nonAdmin).setCollateralVault(newCollateralVault),
-        ).to.be.revertedWithCustomError(amoManagerContract, "AccessControlUnauthorizedAccount");
+        await expect(amoManagerContract.connect(nonAdmin).setCollateralVault(newCollateralVault)).to.be.revertedWithCustomError(
+          amoManagerContract,
+          "AccessControlUnauthorizedAccount",
+        );
       });
     });
 

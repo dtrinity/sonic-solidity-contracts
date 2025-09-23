@@ -1,11 +1,7 @@
 import { BigNumberish } from "ethers";
 import hre, { ethers } from "hardhat";
 
-import {
-  POOL_ADDRESSES_PROVIDER_ID,
-  POOL_CONFIGURATOR_PROXY_ID,
-  RESERVES_SETUP_HELPER_ID,
-} from "../../typescript/deploy-ids";
+import { POOL_ADDRESSES_PROVIDER_ID, POOL_CONFIGURATOR_PROXY_ID, RESERVES_SETUP_HELPER_ID } from "../../typescript/deploy-ids";
 import { getConfig } from "../../config/config";
 import { eContractid, IInterestRateStrategyParams, IReserveParams } from "../../config/dlend/types";
 import { chunk } from "../../typescript/dlend/helpers";
@@ -102,14 +98,9 @@ const main = async (): Promise<void> => {
   for (const reserve in newReserveConfigs) {
     const reserveData = newReserveConfigs[reserve];
 
-    const { address: newReserveDeploymentAddress } = await hre.deployments.get(
-      `ReserveStrategy-${reserveData.strategy.name}`,
-    );
+    const { address: newReserveDeploymentAddress } = await hre.deployments.get(`ReserveStrategy-${reserveData.strategy.name}`);
 
-    await configuratorContract.setReserveInterestRateStrategyAddress(
-      reservesAddresses[reserve],
-      newReserveDeploymentAddress,
-    );
+    await configuratorContract.setReserveInterestRateStrategyAddress(reservesAddresses[reserve], newReserveDeploymentAddress);
   }
 
   /*  Set up reserve configs */

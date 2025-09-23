@@ -75,10 +75,7 @@ describe("SwapExecutorV2 - Pure Logic Tests", function () {
       };
 
       // Should revert due to invalid swap data validation
-      await expect(swapExecutorHarness.executeSwapExactInput(params)).to.be.revertedWithCustomError(
-        swapExecutorHarness,
-        "InvalidSwapData",
-      );
+      await expect(swapExecutorHarness.executeSwapExactInput(params)).to.be.revertedWithCustomError(swapExecutorHarness, "InvalidSwapData");
     });
   });
 
@@ -252,10 +249,7 @@ describe("SwapExecutorV2 - Pure Logic Tests", function () {
       expect(type2).to.equal(1); // PT_TO_REGULAR
 
       // Results should be consistent
-      const type1Again = await pendleLogicHarness.determineSwapType(
-        await tokenA.getAddress(),
-        await tokenB.getAddress(),
-      );
+      const type1Again = await pendleLogicHarness.determineSwapType(await tokenA.getAddress(), await tokenB.getAddress());
       expect(type1Again).to.equal(type1);
     });
   });

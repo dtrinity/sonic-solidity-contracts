@@ -164,32 +164,14 @@ describe("StaticATokenLM – Signature malleability guard", () => {
     await expect(
       (staticToken as any)
         .connect(relayer)
-        .metaDeposit(
-          depositor.address,
-          depositor.address,
-          depositAmount,
-          0,
-          true,
-          deadline,
-          permitPlaceholder,
-          sigParamsMal,
-        ),
+        .metaDeposit(depositor.address, depositor.address, depositAmount, 0, true, deadline, permitPlaceholder, sigParamsMal),
     ).to.be.reverted;
 
     // Canonical tx should succeed
     await expect(
       (staticToken as any)
         .connect(relayer)
-        .metaDeposit(
-          depositor.address,
-          depositor.address,
-          depositAmount,
-          0,
-          true,
-          deadline,
-          permitPlaceholder,
-          sigParamsGood,
-        ),
+        .metaDeposit(depositor.address, depositor.address, depositAmount, 0, true, deadline, permitPlaceholder, sigParamsGood),
     ).to.emit(staticToken, "Deposit");
   });
 });

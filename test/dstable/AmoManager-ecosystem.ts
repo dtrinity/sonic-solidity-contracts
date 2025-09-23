@@ -57,11 +57,7 @@ dstableConfigs.forEach((config) => {
       );
 
       const amoManagerAddress = await issuerContract.amoManager();
-      amoManagerContract = await hre.ethers.getContractAt(
-        "AmoManager",
-        amoManagerAddress,
-        await hre.ethers.getSigner(deployer),
-      );
+      amoManagerContract = await hre.ethers.getContractAt("AmoManager", amoManagerAddress, await hre.ethers.getSigner(deployer));
 
       // Get the oracle aggregator
       const oracleAggregatorAddress = (await hre.deployments.get(config.oracleAggregatorId)).address;
@@ -78,11 +74,7 @@ dstableConfigs.forEach((config) => {
 
       // Create a new MockAmoVault for testing
       const mockAmoVaultAddress = (await hre.deployments.get("MockAmoVault")).address;
-      mockAmoVaultContract = await hre.ethers.getContractAt(
-        "MockAmoVault",
-        mockAmoVaultAddress,
-        await hre.ethers.getSigner(deployer),
-      );
+      mockAmoVaultContract = await hre.ethers.getContractAt("MockAmoVault", mockAmoVaultAddress, await hre.ethers.getSigner(deployer));
 
       // Verify the MockAmoVault is set up correctly
       expect(await mockAmoVaultContract.dstable()).to.equal(dstableInfo.address);
@@ -103,10 +95,7 @@ dstableConfigs.forEach((config) => {
       await amoManagerContract.enableAmoVault(await mockAmoVaultContract.getAddress());
 
       // Assign COLLATERAL_WITHDRAWER_ROLE to the AmoManager for both vaults
-      await mockAmoVaultContract.grantRole(
-        await mockAmoVaultContract.COLLATERAL_WITHDRAWER_ROLE(),
-        await amoManagerContract.getAddress(),
-      );
+      await mockAmoVaultContract.grantRole(await mockAmoVaultContract.COLLATERAL_WITHDRAWER_ROLE(), await amoManagerContract.getAddress());
 
       await collateralVaultContract.grantRole(
         await collateralVaultContract.COLLATERAL_WITHDRAWER_ROLE(),
@@ -168,9 +157,7 @@ dstableConfigs.forEach((config) => {
         await amoManagerContract.allocateAmo(await mockAmoVaultContract.getAddress(), dstableToAllocate);
 
         // Calculate initial vault profit/loss - should be zero at this point
-        const initialProfitBase = await amoManagerContract.availableVaultProfitsInBase(
-          await mockAmoVaultContract.getAddress(),
-        );
+        const initialProfitBase = await amoManagerContract.availableVaultProfitsInBase(await mockAmoVaultContract.getAddress());
 
         // Deposit yield-bearing collateral into the MockAmoVault
         const collateralAmount = hre.ethers.parseUnits("1000", collateralInfo.decimals);
@@ -180,9 +167,7 @@ dstableConfigs.forEach((config) => {
         await mockAmoVaultContract.deposit(collateralAmount, collateralInfo.address);
 
         // Calculate vault profit after depositing collateral
-        const profitAfterDepositBase = await amoManagerContract.availableVaultProfitsInBase(
-          await mockAmoVaultContract.getAddress(),
-        );
+        const profitAfterDepositBase = await amoManagerContract.availableVaultProfitsInBase(await mockAmoVaultContract.getAddress());
 
         // Calculate expected value of deposited collateral in base units using oracle prices
         const expectedDepositValueBase = await calculateBaseValueFromAmount(collateralAmount, collateralInfo.address);
@@ -226,10 +211,7 @@ dstableConfigs.forEach((config) => {
           yieldBearingCollateralAmount = hre.ethers.parseUnits("300", yieldBearingCollateralInfo.decimals);
 
           // Approve and deposit yield-bearing collateral
-          await yieldBearingCollateralContract.approve(
-            await mockAmoVaultContract.getAddress(),
-            yieldBearingCollateralAmount,
-          );
+          await yieldBearingCollateralContract.approve(await mockAmoVaultContract.getAddress(), yieldBearingCollateralAmount);
           await mockAmoVaultContract.deposit(yieldBearingCollateralAmount, yieldBearingCollateralInfo.address);
         }
 
@@ -243,20 +225,13 @@ dstableConfigs.forEach((config) => {
         const totalValue = await mockAmoVaultContract.totalValue();
 
         // 5. Verify the values
-        assert.equal(
-          totalValue,
-          dstableValue + collateralValue,
-          "Total value should be sum of dStable and collateral value",
-        );
+        assert.equal(totalValue, dstableValue + collateralValue, "Total value should be sum of dStable and collateral value");
 
         // Calculate expected dStable value using oracle prices
         const expectedDstableValue = await calculateBaseValueFromAmount(dstableToAllocate, dstableInfo.address);
 
         // Calculate expected pegged collateral value using oracle prices
-        const expectedPeggedCollateralValue = await calculateBaseValueFromAmount(
-          peggedCollateralAmount,
-          peggedCollateralInfo.address,
-        );
+        const expectedPeggedCollateralValue = await calculateBaseValueFromAmount(peggedCollateralAmount, peggedCollateralInfo.address);
 
         // Calculate expected yield-bearing collateral value using oracle prices
         let expectedYieldBearingCollateralValue = 0n;
@@ -269,8 +244,7 @@ dstableConfigs.forEach((config) => {
         }
 
         // The collateral value should include pegged collateral, yield-bearing collateral, and the fake DeFi value
-        const expectedTotalCollateralValue =
-          expectedPeggedCollateralValue + expectedYieldBearingCollateralValue + fakeDeFiValue;
+        const expectedTotalCollateralValue = expectedPeggedCollateralValue + expectedYieldBearingCollateralValue + fakeDeFiValue;
 
         assert.equal(collateralValue, expectedTotalCollateralValue, `Collateral value should match expected value`);
       });
@@ -319,12 +293,8 @@ dstableConfigs.forEach((config) => {
             transferAmount,
           );
 
-          const finalAmoVaultBalanceAfterReturn = await collateralContract.balanceOf(
-            await mockAmoVaultContract.getAddress(),
-          );
-          const finalVaultBalanceAfterReturn = await collateralContract.balanceOf(
-            await collateralVaultContract.getAddress(),
-          );
+          const finalAmoVaultBalanceAfterReturn = await collateralContract.balanceOf(await mockAmoVaultContract.getAddress());
+          const finalVaultBalanceAfterReturn = await collateralContract.balanceOf(await collateralVaultContract.getAddress());
 
           assert.equal(
             finalAmoVaultBalanceAfterReturn,

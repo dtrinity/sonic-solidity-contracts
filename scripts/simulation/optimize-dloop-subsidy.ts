@@ -225,12 +225,7 @@ function runOptimisation(): void {
   const optimal = results.reduce((best, curr) => (curr.meanValue > best.meanValue ? curr : best));
 
   console.table(results);
-  console.log(
-    "Optimal multiplier:",
-    optimal.multiplier.toFixed(2),
-    "with mean retained value",
-    optimal.meanValue.toFixed(2),
-  );
+  console.log("Optimal multiplier:", optimal.multiplier.toFixed(2), "with mean retained value", optimal.meanValue.toFixed(2));
 }
 
 function runSingleSimulation(maxSubsidyBps: number): TrialResult {

@@ -119,9 +119,7 @@ describe("AaveOracle", () => {
       await aclManager.addAssetListingAdmin(deployerSigner.address);
 
       // Call setAssetSources (should be no-op)
-      const tx = await aaveOracle
-        .connect(deployerSigner)
-        .setAssetSources([testAsset], [ethers.Wallet.createRandom().address]);
+      const tx = await aaveOracle.connect(deployerSigner).setAssetSources([testAsset], [ethers.Wallet.createRandom().address]);
       await tx.wait();
 
       // Verify source remains unchanged

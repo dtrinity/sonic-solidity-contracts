@@ -284,10 +284,7 @@ describe("ChainlinkCompositeAggregator", () => {
       await mockFeed1.setMockWithTimestamp(ethers.parseUnits("2.0", 8), staleTimestamp);
       await mockFeed2.setMockWithTimestamp(ethers.parseUnits("3.0", 8), staleTimestamp);
 
-      await expect(compositeAggregator.latestRoundData()).to.be.revertedWithCustomError(
-        compositeAggregator,
-        "PriceIsStale",
-      );
+      await expect(compositeAggregator.latestRoundData()).to.be.revertedWithCustomError(compositeAggregator, "PriceIsStale");
     });
 
     it("should work when prices are fresh", async () => {

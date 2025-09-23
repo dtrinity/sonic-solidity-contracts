@@ -61,11 +61,7 @@ dstableConfigs.forEach((config) => {
       );
 
       const amoManagerAddress = await issuerContract.amoManager();
-      amoManagerContract = await hre.ethers.getContractAt(
-        "AmoManager",
-        amoManagerAddress,
-        await hre.ethers.getSigner(deployer),
-      );
+      amoManagerContract = await hre.ethers.getContractAt("AmoManager", amoManagerAddress, await hre.ethers.getSigner(deployer));
 
       // Get the oracle aggregator based on the dStable configuration
       const oracleAggregatorAddress = (await hre.deployments.get(config.oracleAggregatorId)).address;
@@ -94,11 +90,7 @@ dstableConfigs.forEach((config) => {
       );
 
       // Get dStable token info
-      ({ contract: dstableContract, tokenInfo: dstableInfo } = await getTokenContractForSymbol(
-        hre,
-        deployer,
-        config.symbol,
-      ));
+      ({ contract: dstableContract, tokenInfo: dstableInfo } = await getTokenContractForSymbol(hre, deployer, config.symbol));
 
       // Deploy a new MockAmoVault
       const MockAmoVaultFactory = await hre.ethers.getContractFactory("MockAmoVault");
@@ -118,10 +110,7 @@ dstableConfigs.forEach((config) => {
       await amoManagerContract.enableAmoVault(await mockAmoVaultContract.getAddress());
 
       // Assign COLLATERAL_WITHDRAWER_ROLE to the AmoManager for both vaults
-      await mockAmoVaultContract.grantRole(
-        await mockAmoVaultContract.COLLATERAL_WITHDRAWER_ROLE(),
-        await amoManagerContract.getAddress(),
-      );
+      await mockAmoVaultContract.grantRole(await mockAmoVaultContract.COLLATERAL_WITHDRAWER_ROLE(), await amoManagerContract.getAddress());
 
       await collateralHolderVaultContract.grantRole(
         await collateralHolderVaultContract.COLLATERAL_WITHDRAWER_ROLE(),
@@ -238,11 +227,7 @@ dstableConfigs.forEach((config) => {
       const amoTotalAllocated = await amoManagerContract.totalAllocated();
       const amoManagerBalance = await dstableContract.balanceOf(await amoManagerContract.getAddress());
 
-      assert.equal(
-        amoTotalSupply,
-        amoTotalAllocated + amoManagerBalance,
-        "AMO total supply should equal allocated + AMO manager balance",
-      );
+      assert.equal(amoTotalSupply, amoTotalAllocated + amoManagerBalance, "AMO total supply should equal allocated + AMO manager balance");
     }
 
     describe("Oracle Setup", () => {
@@ -271,9 +256,7 @@ dstableConfigs.forEach((config) => {
         await collateralContract.transfer(user1, collateralAmount);
 
         // User1 mints dStable
-        await collateralContract
-          .connect(await hre.ethers.getSigner(user1))
-          .approve(await issuerContract.getAddress(), collateralAmount);
+        await collateralContract.connect(await hre.ethers.getSigner(user1)).approve(await issuerContract.getAddress(), collateralAmount);
 
         const expectedDstable = await calculateAmountFromBaseValue(
           await calculateBaseValueFromAmount(collateralAmount, collateralInfo.address),
@@ -282,9 +265,7 @@ dstableConfigs.forEach((config) => {
 
         const minDstable = (expectedDstable * 95n) / 100n; // 5% slippage
 
-        await issuerContract
-          .connect(await hre.ethers.getSigner(user1))
-          .issue(collateralAmount, collateralInfo.address, minDstable);
+        await issuerContract.connect(await hre.ethers.getSigner(user1)).issue(collateralAmount, collateralInfo.address, minDstable);
 
         await checkInvariants();
 
@@ -306,8 +287,7 @@ dstableConfigs.forEach((config) => {
 
         // 1. Transfer tokens to users for testing
         const primaryCollateralSymbol = config.peggedCollaterals[0];
-        const secondaryCollateralSymbol =
-          config.peggedCollaterals.length > 1 ? config.peggedCollaterals[1] : config.peggedCollaterals[0];
+        const secondaryCollateralSymbol = config.peggedCollaterals.length > 1 ? config.peggedCollaterals[1] : config.peggedCollaterals[0];
 
         const primaryCollateralContract = collateralContracts.get(primaryCollateralSymbol) as TestERC20;
         const primaryCollateralInfo = collateralInfos.get(primaryCollateralSymbol) as TokenInfo;
@@ -317,10 +297,7 @@ dstableConfigs.forEach((config) => {
 
         await primaryCollateralContract.transfer(user1, hre.ethers.parseUnits("1000", primaryCollateralInfo.decimals));
 
-        await secondaryCollateralContract.transfer(
-          user2,
-          hre.ethers.parseUnits("1000", secondaryCollateralInfo.decimals),
-        );
+        await secondaryCollateralContract.transfer(user2, hre.ethers.parseUnits("1000", secondaryCollateralInfo.decimals));
 
         await checkInvariants();
 
@@ -372,19 +349,13 @@ dstableConfigs.forEach((config) => {
         const user1DstableBalance = await dstableContract.balanceOf(user1);
         assert.isTrue(
           user1DstableBalance >= minDstableForPrimary,
-          `User1 should have at least ${hre.ethers.formatUnits(
-            minDstableForPrimary,
-            dstableInfo.decimals,
-          )} ${config.symbol}`,
+          `User1 should have at least ${hre.ethers.formatUnits(minDstableForPrimary, dstableInfo.decimals)} ${config.symbol}`,
         );
 
         const user2DstableBalance = await dstableContract.balanceOf(user2);
         assert.isTrue(
           user2DstableBalance >= minDstableForSecondary,
-          `User2 should have at least ${hre.ethers.formatUnits(
-            minDstableForSecondary,
-            dstableInfo.decimals,
-          )} ${config.symbol}`,
+          `User2 should have at least ${hre.ethers.formatUnits(minDstableForSecondary, dstableInfo.decimals)} ${config.symbol}`,
         );
 
         // 4. Allocate dStable to the AMO vault
@@ -398,9 +369,7 @@ dstableConfigs.forEach((config) => {
 
         // 5. AMO vault simulates turning dStable into primary collateral
         // Simulate by setting fake DeFi collateral value
-        await mockAmoVaultContract.setFakeDeFiCollateralValue(
-          hre.ethers.parseUnits("100", ORACLE_AGGREGATOR_PRICE_DECIMALS),
-        );
+        await mockAmoVaultContract.setFakeDeFiCollateralValue(hre.ethers.parseUnits("100", ORACLE_AGGREGATOR_PRICE_DECIMALS));
 
         await checkInvariants();
 
@@ -416,9 +385,7 @@ dstableConfigs.forEach((config) => {
         // Apply a small slippage to ensure the test passes
         const minCollateralToReceive = (expectedCollateralToReceive * 90n) / 100n; // 10% slippage
 
-        await dstableContract
-          .connect(await hre.ethers.getSigner(user1))
-          .approve(await redeemerContract.getAddress(), dstableToRedeem);
+        await dstableContract.connect(await hre.ethers.getSigner(user1)).approve(await redeemerContract.getAddress(), dstableToRedeem);
 
         await redeemerContract
           .connect(await hre.ethers.getSigner(user1))

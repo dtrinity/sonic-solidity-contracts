@@ -37,10 +37,7 @@ describe("RedstoneChainlinkWrapper", () => {
  * @param root0.user1
  * @param root0.user2
  */
-async function runTestsForCurrency(
-  currency: string,
-  { deployer, user1, user2 }: { deployer: Address; user1: Address; user2: Address },
-) {
+async function runTestsForCurrency(currency: string, { deployer, user1, user2 }: { deployer: Address; user1: Address; user2: Address }) {
   describe(`RedstoneChainlinkWrapper for ${currency}`, () => {
     let fixtureResult: OracleAggregatorFixtureResult;
     let redstoneChainlinkWrapper: RedstoneChainlinkWrapper;

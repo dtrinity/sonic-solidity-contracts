@@ -39,10 +39,7 @@ describe("RedstoneChainlinkWrapperWithThresholding", () => {
  * @param root0.user1
  * @param root0.user2
  */
-async function runTestsForCurrency(
-  currency: string,
-  { deployer, user1, user2 }: { deployer: Address; user1: Address; user2: Address },
-) {
+async function runTestsForCurrency(currency: string, { deployer, user1, user2 }: { deployer: Address; user1: Address; user2: Address }) {
   describe(`RedstoneChainlinkWrapperWithThresholding for ${currency}`, () => {
     let fixtureResult: OracleAggregatorFixtureResult;
     let redstoneChainlinkWrapperWithThresholding: RedstoneChainlinkWrapperWithThresholding;
@@ -122,14 +119,12 @@ async function runTestsForCurrency(
 
           // Convert the target price to 8 decimals for the mock feed
           const mockPrice8Decimals =
-            (priceAboveThreshold * BigInt(10) ** BigInt(CHAINLINK_FEED_DECIMALS)) /
-            BigInt(10) ** BigInt(ORACLE_AGGREGATOR_PRICE_DECIMALS);
+            (priceAboveThreshold * BigInt(10) ** BigInt(CHAINLINK_FEED_DECIMALS)) / BigInt(10) ** BigInt(ORACLE_AGGREGATOR_PRICE_DECIMALS);
 
           await mockFeed.setMock(mockPrice8Decimals);
 
           // Get price info
-          const { price: actualPrice, isAlive } =
-            await redstoneChainlinkWrapperWithThresholding.getPriceInfo(testAsset);
+          const { price: actualPrice, isAlive } = await redstoneChainlinkWrapperWithThresholding.getPriceInfo(testAsset);
 
           // Verify price (should be the fixed price) and status
           expect(actualPrice).to.equal(assetData.fixedPrice, `Asset: ${testAsset}`);
@@ -165,8 +160,7 @@ async function runTestsForCurrency(
           await mockFeed.setMock(mockPrice8Decimals);
 
           // Get price info (wrapper converts back to 18 decimals)
-          const { price: actualPrice, isAlive } =
-            await redstoneChainlinkWrapperWithThresholding.getPriceInfo(testAsset);
+          const { price: actualPrice, isAlive } = await redstoneChainlinkWrapperWithThresholding.getPriceInfo(testAsset);
 
           // Verify price (should be the original price in 18 decimals) and status
           expect(actualPrice).to.equal(
@@ -222,9 +216,7 @@ async function runTestsForCurrency(
         const oracleManagerRole = await redstoneChainlinkWrapperWithThresholding.ORACLE_MANAGER_ROLE();
 
         await expect(
-          redstoneChainlinkWrapperWithThresholding
-            .connect(unauthorizedSigner)
-            .setThresholdConfig(testAsset, lowerThreshold, fixedPrice),
+          redstoneChainlinkWrapperWithThresholding.connect(unauthorizedSigner).setThresholdConfig(testAsset, lowerThreshold, fixedPrice),
         )
           .to.be.revertedWithCustomError(redstoneChainlinkWrapperWithThresholding, "AccessControlUnauthorizedAccount")
           .withArgs(user2, oracleManagerRole);
@@ -237,9 +229,7 @@ async function runTestsForCurrency(
         const unauthorizedSigner = await ethers.getSigner(user2);
         const oracleManagerRole = await redstoneChainlinkWrapperWithThresholding.ORACLE_MANAGER_ROLE();
 
-        await expect(
-          redstoneChainlinkWrapperWithThresholding.connect(unauthorizedSigner).removeThresholdConfig(testAsset),
-        )
+        await expect(redstoneChainlinkWrapperWithThresholding.connect(unauthorizedSigner).removeThresholdConfig(testAsset))
           .to.be.revertedWithCustomError(redstoneChainlinkWrapperWithThresholding, "AccessControlUnauthorizedAccount")
           .withArgs(user2, oracleManagerRole);
       });

@@ -44,13 +44,7 @@ describe("OdosSwapLogic", function () {
 
     await mint(tokenIn, harnessAddr, parseUnits("10000", 18));
     await mint(tokenOut, await router.getAddress(), amountReceived);
-    await router.setSwapBehaviour(
-      await tokenIn.getAddress(),
-      await tokenOut.getAddress(),
-      amountSpent,
-      amountReceived,
-      false,
-    );
+    await router.setSwapBehaviour(await tokenIn.getAddress(), await tokenOut.getAddress(), amountSpent, amountReceived, false);
     const swapData = router.interface.encodeFunctionData("performSwap");
 
     const receiverBalanceBefore = await tokenOut.balanceOf(receiverAddr);
@@ -95,13 +89,7 @@ describe("OdosSwapLogic", function () {
 
     await mint(tokenIn, harnessAddr, parseUnits("10000", 18));
     await mint(tokenOut, await router.getAddress(), amountReceived);
-    await router.setSwapBehaviour(
-      await tokenIn.getAddress(),
-      await tokenOut.getAddress(),
-      amountSpent,
-      amountReceived,
-      false,
-    );
+    await router.setSwapBehaviour(await tokenIn.getAddress(), await tokenOut.getAddress(), amountSpent, amountReceived, false);
     const swapData = router.interface.encodeFunctionData("performSwap");
 
     const receiverBalanceBefore = await tokenOut.balanceOf(receiverAddr);
@@ -141,13 +129,7 @@ describe("OdosSwapLogic", function () {
 
     await mint(tokenIn, harnessAddr, parseUnits("10000", 18));
     await mint(tokenOut, await router.getAddress(), amountReceived);
-    await router.setSwapBehaviour(
-      await tokenIn.getAddress(),
-      await tokenOut.getAddress(),
-      amountSpent,
-      amountReceived,
-      false,
-    );
+    await router.setSwapBehaviour(await tokenIn.getAddress(), await tokenOut.getAddress(), amountSpent, amountReceived, false);
     const swapData = router.interface.encodeFunctionData("performSwap");
 
     // Act & Assert

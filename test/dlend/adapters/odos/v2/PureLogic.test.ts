@@ -75,10 +75,7 @@ describe("V2 Odos Adapters - Pure Logic Tests", function () {
     it("✅ should route PT → Regular as PT_TO_REGULAR", async function () {
       const { pendleLogicHarness, ptTokenA, tokenB } = fixture;
 
-      const swapType = await pendleLogicHarness.determineSwapType(
-        await ptTokenA.getAddress(),
-        await tokenB.getAddress(),
-      );
+      const swapType = await pendleLogicHarness.determineSwapType(await ptTokenA.getAddress(), await tokenB.getAddress());
 
       expect(swapType).to.equal(1); // SwapType.PT_TO_REGULAR
     });
@@ -86,10 +83,7 @@ describe("V2 Odos Adapters - Pure Logic Tests", function () {
     it("✅ should route Regular → PT as REGULAR_TO_PT", async function () {
       const { pendleLogicHarness, tokenA, ptTokenB } = fixture;
 
-      const swapType = await pendleLogicHarness.determineSwapType(
-        await tokenA.getAddress(),
-        await ptTokenB.getAddress(),
-      );
+      const swapType = await pendleLogicHarness.determineSwapType(await tokenA.getAddress(), await ptTokenB.getAddress());
 
       expect(swapType).to.equal(2); // SwapType.REGULAR_TO_PT
     });
@@ -97,10 +91,7 @@ describe("V2 Odos Adapters - Pure Logic Tests", function () {
     it("✅ should route PT → PT as PT_TO_PT", async function () {
       const { pendleLogicHarness, ptTokenA, ptTokenB } = fixture;
 
-      const swapType = await pendleLogicHarness.determineSwapType(
-        await ptTokenA.getAddress(),
-        await ptTokenB.getAddress(),
-      );
+      const swapType = await pendleLogicHarness.determineSwapType(await ptTokenA.getAddress(), await ptTokenB.getAddress());
 
       expect(swapType).to.equal(3); // SwapType.PT_TO_PT
     });
@@ -449,12 +440,7 @@ describe("V2 Odos Adapters - Pure Logic Tests", function () {
       expect(behaviour.shouldRevert).to.be.false;
 
       // Test Pendle router mock
-      await pendleRouter.setSwapBehavior(
-        await tokenA.getAddress(),
-        await tokenB.getAddress(),
-        ethers.parseEther("900"),
-        false,
-      );
+      await pendleRouter.setSwapBehavior(await tokenA.getAddress(), await tokenB.getAddress(), ethers.parseEther("900"), false);
 
       const pendleBehaviour = await pendleRouter.swapBehaviors(await tokenA.getAddress(), await tokenB.getAddress());
       expect(pendleBehaviour.amountOut).to.equal(ethers.parseEther("900"));

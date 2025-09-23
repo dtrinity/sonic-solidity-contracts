@@ -89,34 +89,20 @@ async function fetchDStakeComponents(
   const { deployer } = await getNamedAccounts();
   const deployerSigner = await ethers.getSigner(deployer);
 
-  const { contract: dStableToken, tokenInfo: dStableInfo } = await getTokenContractForSymbol(
-    globalHre,
-    deployer,
-    config.dStableSymbol,
-  );
+  const { contract: dStableToken, tokenInfo: dStableInfo } = await getTokenContractForSymbol(globalHre, deployer, config.dStableSymbol);
 
-  const DStakeToken = await ethers.getContractAt(
-    "DStakeToken",
-    (await deployments.get(config.DStakeTokenContractId)).address,
-  );
+  const DStakeToken = await ethers.getContractAt("DStakeToken", (await deployments.get(config.DStakeTokenContractId)).address);
 
   const collateralVault = await ethers.getContractAt(
     "DStakeCollateralVault",
     (await deployments.get(config.collateralVaultContractId)).address,
   );
 
-  const router = await ethers.getContractAt(
-    "DStakeRouterDLend",
-    (await deployments.get(config.routerContractId)).address,
-  );
+  const router = await ethers.getContractAt("DStakeRouterDLend", (await deployments.get(config.routerContractId)).address);
 
-  const wrappedATokenAddress = (
-    await deployments.get(config.dStableSymbol === "dUSD" ? DUSD_A_TOKEN_WRAPPER_ID : DS_A_TOKEN_WRAPPER_ID)
-  ).address;
-  const wrappedAToken = await ethers.getContractAt(
-    "@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20",
-    wrappedATokenAddress,
-  );
+  const wrappedATokenAddress = (await deployments.get(config.dStableSymbol === "dUSD" ? DUSD_A_TOKEN_WRAPPER_ID : DS_A_TOKEN_WRAPPER_ID))
+    .address;
+  const wrappedAToken = await ethers.getContractAt("@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20", wrappedATokenAddress);
 
   const vaultAssetAddress = wrappedATokenAddress;
   let adapterAddress;
@@ -215,10 +201,7 @@ export async function executeSetupDLendRewards(
   const block = (await ethers.provider.getBlock("latest"))!;
   const distributionEnd = block.timestamp + distributionDuration;
   const poolAddressesProviderDeployment = await deployments.get(POOL_ADDRESSES_PROVIDER_ID);
-  const poolAddressesProvider = await ethers.getContractAt(
-    "PoolAddressesProvider",
-    poolAddressesProviderDeployment.address,
-  );
+  const poolAddressesProvider = await ethers.getContractAt("PoolAddressesProvider", poolAddressesProviderDeployment.address);
   const rewardOracle = await poolAddressesProvider.getPriceOracle();
 
   const emissionPerSecond = emissionPerSecondSetting ?? ethers.parseUnits("1", rewardTokenInfo.decimals ?? 18);
