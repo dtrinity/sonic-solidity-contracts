@@ -1,5 +1,6 @@
 #!/usr/bin/env ts-node
 
+import { spawnSync, execSync } from 'child_process';
 import { Command } from 'commander';
 
 import { logger } from '../../lib/logger';
@@ -67,6 +68,17 @@ export async function runGuardrails(options: GuardrailOptions = {}): Promise<boo
 
   let overallSuccess = true;
 
+  const shouldCheckLockfile = process.env.SHARED_HARDHAT_SKIP_INSTALL_CHECK !== '1' && needsLockfileVerification();
+  if (shouldCheckLockfile) {
+    const lockSuccess = ensureImmutableInstall();
+    overallSuccess = overallSuccess && lockSuccess;
+    if (!lockSuccess && options.failFast) {
+      return false;
+    }
+  } else if (process.env.SHARED_HARDHAT_SKIP_INSTALL_CHECK === '1') {
+    logger.info('Skipping lockfile verification (SHARED_HARDHAT_SKIP_INSTALL_CHECK=1).');
+  }
+
   if (!options.skipLint) {
     const lintSuccess = await runAllLinting({
       skipPrettier: options.skipPrettier,
@@ -115,6 +127,42 @@ export async function runGuardrails(options: GuardrailOptions = {}): Promise<boo
   }
 
   return overallSuccess;
+}
+
+function needsLockfileVerification(): boolean {
+  try {
+    const status = execSync('git status --porcelain', { encoding: 'utf8' });
+    if (!status.trim()) {
+      return false;
+    }
+    return status
+      .trim()
+      .split('\n')
+      .some(line => {
+        const file = line.slice(3).trim();
+        return file === 'yarn.lock' || file.startsWith('.shared/');
+      });
+  } catch (error) {
+    logger.warn('Unable to inspect git status; running lockfile verification defensively.', error);
+    return true;
+  }
+}
+
+function ensureImmutableInstall(): boolean {
+  logger.info('\n=== Dependency Lock ===');
+  logger.info('Running `yarn install --immutable` to verify lockfile integrity.');
+  const result = spawnSync('yarn', ['install', '--immutable'], {
+    stdio: 'inherit',
+    env: { ...process.env, YARN_ENABLE_GLOBAL_CACHE: process.env.YARN_ENABLE_GLOBAL_CACHE ?? 'false' },
+  });
+
+  if (result.status !== 0) {
+    logger.error('Lockfile verification failed. Run `yarn install --mode=update-lockfile` to regenerate the lockfile after syncing .shared.');
+    return false;
+  }
+
+  logger.success('Lockfile integrity check passed.');
+  return true;
 }
 
 if (require.main === module) {
