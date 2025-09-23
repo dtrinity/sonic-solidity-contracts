@@ -425,7 +425,7 @@ __metadata:
 
 "@dtrinity/shared-hardhat-tools@file:.shared::locator=ethereum-solidity-contracts%40workspace%3A.":
   version: 1.0.0
-  resolution: "@dtrinity/shared-hardhat-tools@file:.shared#.shared::hash=b6d64b&locator=ethereum-solidity-contracts%40workspace%3A."
+  resolution: "@dtrinity/shared-hardhat-tools@file:.shared#.shared::hash=a68a46&locator=ethereum-solidity-contracts%40workspace%3A."
   dependencies:
     chalk: "npm:^4.1.2"
     commander: "npm:^11.0.0"
@@ -445,7 +445,7 @@ __metadata:
       optional: true
     solhint:
       optional: true
-  checksum: 10c0/9bd9571cc422eb854e7e6976a9b2b23aed96448dc8f501dcc739f2fcdb6bf529557f9a1f06604ac815e4dd40466b71fc9c6d247d2a3d6506f4bba0df3c198272
+  checksum: 10c0/b9ef00fc7b506d6464cbd47e6d60b6c1c0bea11884bad597a8491f523407857ff8d897f49e94ebf1807e5acdd6e10fb4bd23b1c75db9ab1c34bae3ebfdc2685e
   languageName: node
   linkType: hard
 

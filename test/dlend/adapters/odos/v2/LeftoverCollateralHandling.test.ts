@@ -7,7 +7,7 @@ import {
   createOdosSwapData,
   createPTSwapData,
   encodePTSwapData,
-  OdosV2TestFixture
+  OdosV2TestFixture,
 } from "./fixtures/setup";
 
 describe("V2 Adapters - Leftover Collateral Handling", function () {
@@ -29,7 +29,7 @@ describe("V2 Adapters - Leftover Collateral Handling", function () {
         await pool.getAddress(),
         await odosRouter.getAddress(),
         await pendleRouter.getAddress(),
-        deployer.address
+        deployer.address,
       );
 
       // Set up scenario where Odos swap uses less than expected
@@ -43,7 +43,7 @@ describe("V2 Adapters - Leftover Collateral Handling", function () {
         await tokenB.getAddress(),
         actualSpent, // Spends less than inputAmount
         expectedOutput,
-        false // Don't revert
+        false, // Don't revert
       );
 
       // Create swap data
@@ -57,7 +57,7 @@ describe("V2 Adapters - Leftover Collateral Handling", function () {
         user: user1.address,
         withFlashLoan: false,
         swapData: swapData,
-        allBalanceOffset: 0
+        allBalanceOffset: 0,
       };
 
       const permitInput = {
@@ -66,7 +66,7 @@ describe("V2 Adapters - Leftover Collateral Handling", function () {
         deadline: 0,
         v: 0,
         r: ethers.ZeroHash,
-        s: ethers.ZeroHash
+        s: ethers.ZeroHash,
       };
 
       // This should NOT revert and should re-supply excess (200 tokens)
@@ -93,7 +93,7 @@ describe("V2 Adapters - Leftover Collateral Handling", function () {
         await pool.getAddress(),
         await odosRouter.getAddress(),
         await pendleRouter.getAddress(),
-        deployer.address
+        deployer.address,
       );
 
       // Test the logic change for allBalanceOffset behavior
@@ -110,7 +110,7 @@ describe("V2 Adapters - Leftover Collateral Handling", function () {
       const wrongCalculation = userBalance - BigInt(allBalanceOffset);
       expect(wrongCalculation).to.equal(ethers.parseEther("1000") - 1n);
 
-      // After fix (correct behavior) 
+      // After fix (correct behavior)
       const correctCalculation = userBalance; // Use full balance when offset != 0
       expect(correctCalculation).to.equal(ethers.parseEther("1000"));
 
@@ -131,7 +131,7 @@ describe("V2 Adapters - Leftover Collateral Handling", function () {
         await pool.getAddress(),
         await odosRouter.getAddress(),
         await pendleRouter.getAddress(),
-        deployer.address
+        deployer.address,
       );
 
       // Set up scenario where swap uses less than withdrawn amount
@@ -145,7 +145,7 @@ describe("V2 Adapters - Leftover Collateral Handling", function () {
         await tokenB.getAddress(),
         actualSwapAmount,
         outputAmount,
-        false
+        false,
       );
 
       const swapData = createOdosSwapData(odosRouter);
@@ -157,7 +157,7 @@ describe("V2 Adapters - Leftover Collateral Handling", function () {
         minAmountToReceive: outputAmount,
         user: user1.address,
         swapData: swapData,
-        allBalanceOffset: 0
+        allBalanceOffset: 0,
       };
 
       const permitInput = {
@@ -166,7 +166,7 @@ describe("V2 Adapters - Leftover Collateral Handling", function () {
         deadline: 0,
         v: 0,
         r: ethers.ZeroHash,
-        s: ethers.ZeroHash
+        s: ethers.ZeroHash,
       };
 
       // Calculate expected excess
@@ -187,7 +187,7 @@ describe("V2 Adapters - Leftover Collateral Handling", function () {
         await pool.getAddress(),
         await odosRouter.getAddress(),
         await pendleRouter.getAddress(),
-        deployer.address
+        deployer.address,
       );
 
       // Test the logic change for allBalanceOffset in withdraw adapter
@@ -204,7 +204,7 @@ describe("V2 Adapters - Leftover Collateral Handling", function () {
       // Before fix (would have been wrong if we had it)
       const potentialWrongCalculation = userBalance - BigInt(allBalanceOffset);
 
-      // After fix (correct behavior) 
+      // After fix (correct behavior)
       const correctCalculation = userBalance; // Use full balance when offset != 0
 
       // Validate the correct logic
@@ -240,9 +240,8 @@ describe("V2 Adapters - Leftover Collateral Handling", function () {
       const collateralBalanceBefore = ethers.parseEther("100");
       const collateralBalanceAfter = ethers.parseEther("150"); // Some excess
 
-      const collateralExcess = collateralBalanceAfter > collateralBalanceBefore
-        ? collateralBalanceAfter - collateralBalanceBefore
-        : 0n;
+      const collateralExcess =
+        collateralBalanceAfter > collateralBalanceBefore ? collateralBalanceAfter - collateralBalanceBefore : 0n;
 
       expect(collateralExcess).to.equal(ethers.parseEther("50"));
 

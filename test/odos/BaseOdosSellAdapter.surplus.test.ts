@@ -16,11 +16,8 @@ describe("BaseOdosSellAdapter - Surplus Handling", function () {
     const router = await deployMockRouter();
 
     // Deploy test sell adapter
-    const TestSellAdapterFactory =
-      await ethers.getContractFactory("TestSellAdapter");
-    const adapter = await TestSellAdapterFactory.deploy(
-      await router.getAddress(),
-    );
+    const TestSellAdapterFactory = await ethers.getContractFactory("TestSellAdapter");
+    const adapter = await TestSellAdapterFactory.deploy(await router.getAddress());
 
     return { deployer, tokenIn, tokenOut, router, adapter };
   }
@@ -80,12 +77,8 @@ describe("BaseOdosSellAdapter - Surplus Handling", function () {
     // Note: The current implementation will return amount received correctly
 
     // Verify input tokens were spent correctly
-    const inputSpent =
-      parseUnits("10000", 18) - (await tokenIn.balanceOf(adapterAddr));
-    expect(inputSpent).to.equal(
-      amountSpent,
-      "Correct amount of input tokens should be spent",
-    );
+    const inputSpent = parseUnits("10000", 18) - (await tokenIn.balanceOf(adapterAddr));
+    expect(inputSpent).to.equal(amountSpent, "Correct amount of input tokens should be spent");
   });
 
   it("[NEED-TO-FIX-AUDIT-ISSUE] demonstrates large surplus accumulation in sell operations", async function () {
@@ -164,13 +157,7 @@ describe("BaseOdosSellAdapter - Surplus Handling", function () {
     );
 
     const balanceBefore1 = await tokenOut.balanceOf(adapterAddr);
-    await adapter.sell(
-      await tokenIn.getAddress(),
-      await tokenOut.getAddress(),
-      amountToSell1,
-      minAmount1,
-      swapData,
-    );
+    await adapter.sell(await tokenIn.getAddress(), await tokenOut.getAddress(), amountToSell1, minAmount1, swapData);
     const balanceAfter1 = await tokenOut.balanceOf(adapterAddr);
     totalSurplus += amountReceived1 - minAmount1;
 
@@ -188,13 +175,7 @@ describe("BaseOdosSellAdapter - Surplus Handling", function () {
       false,
     );
 
-    await adapter.sell(
-      await tokenIn.getAddress(),
-      await tokenOut.getAddress(),
-      amountToSell2,
-      minAmount2,
-      swapData,
-    );
+    await adapter.sell(await tokenIn.getAddress(), await tokenOut.getAddress(), amountToSell2, minAmount2, swapData);
     const balanceAfter2 = await tokenOut.balanceOf(adapterAddr);
     totalSurplus += amountReceived2 - minAmount2;
 
@@ -205,10 +186,7 @@ describe("BaseOdosSellAdapter - Surplus Handling", function () {
       "Adapter accumulates surplus from multiple operations",
     );
 
-    expect(totalSurplus).to.equal(
-      parseUnits("800", 18),
-      "Total surplus accumulation demonstrates the audit issue",
-    );
+    expect(totalSurplus).to.equal(parseUnits("800", 18), "Total surplus accumulation demonstrates the audit issue");
   });
 
   it("works correctly when exact minimum amount received", async function () {

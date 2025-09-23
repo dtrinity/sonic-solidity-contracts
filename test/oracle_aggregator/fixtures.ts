@@ -123,89 +123,64 @@ export interface OracleAggregatorFixtureResult {
  *
  * @param config
  */
-export const createOracleAggregatorFixture = (
-  config: OracleAggregatorFixtureConfig,
-) => {
+export const createOracleAggregatorFixture = (config: OracleAggregatorFixtureConfig) => {
   return deployments.createFixture(
-    async ({
-      deployments,
-      getNamedAccounts,
-      ethers,
-    }): Promise<OracleAggregatorFixtureResult> => {
+    async ({ deployments, getNamedAccounts, ethers }): Promise<OracleAggregatorFixtureResult> => {
       const { deployer } = await getNamedAccounts();
 
       await deployments.fixture(); // Start from a fresh deployment
       await deployments.fixture([config.deploymentTag, "local-setup"]); // Include local-setup to use the mock Oracle
 
       // Get contract instances
-      const { address: oracleAggregatorAddress } = await deployments.get(
-        config.oracleAggregatorId,
-      );
-      const oracleAggregator = await ethers.getContractAt(
-        "OracleAggregator",
-        oracleAggregatorAddress,
-      );
+      const { address: oracleAggregatorAddress } = await deployments.get(config.oracleAggregatorId);
+      const oracleAggregator = await ethers.getContractAt("OracleAggregator", oracleAggregatorAddress);
 
-      const { address: api3WrapperAddress } = await deployments.get(
-        config.wrapperIds.api3Wrapper,
-      );
-      const api3Wrapper = await ethers.getContractAt(
-        "API3Wrapper",
-        api3WrapperAddress,
-      );
+      const { address: api3WrapperAddress } = await deployments.get(config.wrapperIds.api3Wrapper);
+      const api3Wrapper = await ethers.getContractAt("API3Wrapper", api3WrapperAddress);
 
-      const { address: api3WrapperWithThresholdingAddress } =
-        await deployments.get(config.wrapperIds.api3WrapperWithThresholding);
+      const { address: api3WrapperWithThresholdingAddress } = await deployments.get(
+        config.wrapperIds.api3WrapperWithThresholding,
+      );
       const api3WrapperWithThresholding = await ethers.getContractAt(
         "API3WrapperWithThresholding",
         api3WrapperWithThresholdingAddress,
       );
 
-      const { address: api3CompositeWrapperWithThresholdingAddress } =
-        await deployments.get(
-          config.wrapperIds.api3CompositeWrapperWithThresholding,
-        );
+      const { address: api3CompositeWrapperWithThresholdingAddress } = await deployments.get(
+        config.wrapperIds.api3CompositeWrapperWithThresholding,
+      );
       const api3CompositeWrapperWithThresholding = await ethers.getContractAt(
         "API3CompositeWrapperWithThresholding",
         api3CompositeWrapperWithThresholdingAddress,
       );
 
-      const { address: hardPegWrapperAddress } = await deployments.get(
-        config.wrapperIds.hardPegWrapper,
-      );
-      const hardPegWrapper = await ethers.getContractAt(
-        "HardPegOracleWrapper",
-        hardPegWrapperAddress,
-      );
+      const { address: hardPegWrapperAddress } = await deployments.get(config.wrapperIds.hardPegWrapper);
+      const hardPegWrapper = await ethers.getContractAt("HardPegOracleWrapper", hardPegWrapperAddress);
 
       // Get Redstone wrapper instances
-      const { address: redstoneChainlinkWrapperAddress } =
-        await deployments.get(config.wrapperIds.redstoneChainlinkWrapper);
+      const { address: redstoneChainlinkWrapperAddress } = await deployments.get(
+        config.wrapperIds.redstoneChainlinkWrapper,
+      );
       const redstoneChainlinkWrapper = await ethers.getContractAt(
         "RedstoneChainlinkWrapper",
         redstoneChainlinkWrapperAddress,
       );
 
-      const { address: redstoneChainlinkWrapperWithThresholdingAddress } =
-        await deployments.get(
-          config.wrapperIds.redstoneChainlinkWrapperWithThresholding,
-        );
-      const redstoneChainlinkWrapperWithThresholding =
-        await ethers.getContractAt(
-          "RedstoneChainlinkWrapperWithThresholding",
-          redstoneChainlinkWrapperWithThresholdingAddress,
-        );
+      const { address: redstoneChainlinkWrapperWithThresholdingAddress } = await deployments.get(
+        config.wrapperIds.redstoneChainlinkWrapperWithThresholding,
+      );
+      const redstoneChainlinkWrapperWithThresholding = await ethers.getContractAt(
+        "RedstoneChainlinkWrapperWithThresholding",
+        redstoneChainlinkWrapperWithThresholdingAddress,
+      );
 
-      const {
-        address: redstoneChainlinkCompositeWrapperWithThresholdingAddress,
-      } = await deployments.get(
+      const { address: redstoneChainlinkCompositeWrapperWithThresholdingAddress } = await deployments.get(
         config.wrapperIds.redstoneChainlinkCompositeWrapperWithThresholding,
       );
-      const redstoneChainlinkCompositeWrapperWithThresholding =
-        await ethers.getContractAt(
-          "RedstoneChainlinkCompositeWrapperWithThresholding",
-          redstoneChainlinkCompositeWrapperWithThresholdingAddress,
-        );
+      const redstoneChainlinkCompositeWrapperWithThresholding = await ethers.getContractAt(
+        "RedstoneChainlinkCompositeWrapperWithThresholding",
+        redstoneChainlinkCompositeWrapperWithThresholdingAddress,
+      );
 
       // Find the mock oracle deployments
       const mockOracles: { [feedName: string]: string } = {};
@@ -244,9 +219,7 @@ export const createOracleAggregatorFixture = (
       } = {};
 
       // Populate API3 plain assets
-      for (const [address, proxy] of Object.entries(
-        config.api3OracleAssets.plainApi3OracleWrappers,
-      )) {
+      for (const [address, proxy] of Object.entries(config.api3OracleAssets.plainApi3OracleWrappers)) {
         api3PlainAssets[address] = {
           address,
           proxy,
@@ -254,9 +227,7 @@ export const createOracleAggregatorFixture = (
       }
 
       // Populate API3 threshold assets
-      for (const [address, data] of Object.entries(
-        config.api3OracleAssets.api3OracleWrappersWithThresholding,
-      )) {
+      for (const [address, data] of Object.entries(config.api3OracleAssets.api3OracleWrappersWithThresholding)) {
         api3ThresholdAssets[address] = {
           address,
           proxy: data.proxy,
@@ -307,9 +278,7 @@ export const createOracleAggregatorFixture = (
       } = {};
 
       // Populate Redstone plain assets
-      for (const [address, feed] of Object.entries(
-        config.redstoneOracleAssets.plainRedstoneOracleWrappers,
-      )) {
+      for (const [address, feed] of Object.entries(config.redstoneOracleAssets.plainRedstoneOracleWrappers)) {
         redstonePlainAssets[address] = {
           address,
           feed,
@@ -330,8 +299,7 @@ export const createOracleAggregatorFixture = (
 
       // Populate Redstone composite assets
       for (const [address, data] of Object.entries(
-        config.redstoneOracleAssets
-          .compositeRedstoneOracleWrappersWithThresholding,
+        config.redstoneOracleAssets.compositeRedstoneOracleWrappersWithThresholding,
       )) {
         redstoneCompositeAssets[address] = {
           address,
@@ -393,42 +361,26 @@ export const getOracleAggregatorFixture = async (currency: string) => {
   const oracleAggregatorConfig = config.oracleAggregators[currency];
 
   if (!oracleAggregatorConfig) {
-    throw new Error(
-      `No oracle aggregator config found for currency ${currency}`,
-    );
+    throw new Error(`No oracle aggregator config found for currency ${currency}`);
   }
 
   const fixtureConfig: OracleAggregatorFixtureConfig = {
     ...oracleAggregatorConfig,
     currency,
     deploymentTag: currency === "USD" ? "dusd-ecosystem" : "ds-ecosystem",
-    oracleAggregatorId:
-      currency === "USD" ? USD_ORACLE_AGGREGATOR_ID : S_ORACLE_AGGREGATOR_ID,
+    oracleAggregatorId: currency === "USD" ? USD_ORACLE_AGGREGATOR_ID : S_ORACLE_AGGREGATOR_ID,
     wrapperIds: {
-      api3Wrapper:
-        currency === "USD"
-          ? USD_API3_ORACLE_WRAPPER_ID
-          : S_API3_ORACLE_WRAPPER_ID,
+      api3Wrapper: currency === "USD" ? USD_API3_ORACLE_WRAPPER_ID : S_API3_ORACLE_WRAPPER_ID,
       api3WrapperWithThresholding:
-        currency === "USD"
-          ? USD_API3_WRAPPER_WITH_THRESHOLDING_ID
-          : S_API3_WRAPPER_WITH_THRESHOLDING_ID,
+        currency === "USD" ? USD_API3_WRAPPER_WITH_THRESHOLDING_ID : S_API3_WRAPPER_WITH_THRESHOLDING_ID,
       api3CompositeWrapperWithThresholding:
         currency === "USD"
           ? USD_API3_COMPOSITE_WRAPPER_WITH_THRESHOLDING_ID
           : S_API3_COMPOSITE_WRAPPER_WITH_THRESHOLDING_ID,
-      hardPegWrapper:
-        currency === "USD"
-          ? DUSD_HARD_PEG_ORACLE_WRAPPER_ID
-          : DS_HARD_PEG_ORACLE_WRAPPER_ID,
-      redstoneChainlinkWrapper:
-        currency === "USD"
-          ? USD_REDSTONE_ORACLE_WRAPPER_ID
-          : S_REDSTONE_ORACLE_WRAPPER_ID,
+      hardPegWrapper: currency === "USD" ? DUSD_HARD_PEG_ORACLE_WRAPPER_ID : DS_HARD_PEG_ORACLE_WRAPPER_ID,
+      redstoneChainlinkWrapper: currency === "USD" ? USD_REDSTONE_ORACLE_WRAPPER_ID : S_REDSTONE_ORACLE_WRAPPER_ID,
       redstoneChainlinkWrapperWithThresholding:
-        currency === "USD"
-          ? USD_REDSTONE_WRAPPER_WITH_THRESHOLDING_ID
-          : S_REDSTONE_WRAPPER_WITH_THRESHOLDING_ID,
+        currency === "USD" ? USD_REDSTONE_WRAPPER_WITH_THRESHOLDING_ID : S_REDSTONE_WRAPPER_WITH_THRESHOLDING_ID,
       redstoneChainlinkCompositeWrapperWithThresholding:
         currency === "USD"
           ? USD_REDSTONE_COMPOSITE_WRAPPER_WITH_THRESHOLDING_ID
@@ -461,9 +413,7 @@ export function hasOracleForAsset(
  *
  * @param mockOracles The mock oracles object from the fixture
  */
-export function logAvailableOracles(mockOracles: {
-  [feedName: string]: string;
-}): void {
+export function logAvailableOracles(mockOracles: { [feedName: string]: string }): void {
   console.log("Available mock oracles:");
 
   for (const [feedName, address] of Object.entries(mockOracles)) {

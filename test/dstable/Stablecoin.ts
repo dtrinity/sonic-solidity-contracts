@@ -44,10 +44,7 @@ describe("ERC20StablecoinUpgradeable", () => {
 
     it("should set deployer as default admin", async function () {
       const DEFAULT_ADMIN_ROLE = await stablecoinContract.DEFAULT_ADMIN_ROLE();
-      const hasRole = await stablecoinContract.hasRole(
-        DEFAULT_ADMIN_ROLE,
-        deployer,
-      );
+      const hasRole = await stablecoinContract.hasRole(DEFAULT_ADMIN_ROLE, deployer);
       assert.isTrue(hasRole);
     });
 
@@ -67,19 +64,12 @@ describe("ERC20StablecoinUpgradeable", () => {
       await stablecoinContract.grantRole(MINTER_ROLE, user1);
 
       // User1 should be able to mint
-      await stablecoinContract
-        .connect(await hre.ethers.getSigner(user1))
-        .mint(user2, mintAmount);
+      await stablecoinContract.connect(await hre.ethers.getSigner(user1)).mint(user2, mintAmount);
 
       // User2 should not be able to mint
       await expect(
-        stablecoinContract
-          .connect(await hre.ethers.getSigner(user2))
-          .mint(user1, mintAmount),
-      ).to.be.revertedWithCustomError(
-        stablecoinContract,
-        "AccessControlUnauthorizedAccount",
-      );
+        stablecoinContract.connect(await hre.ethers.getSigner(user2)).mint(user1, mintAmount),
+      ).to.be.revertedWithCustomError(stablecoinContract, "AccessControlUnauthorizedAccount");
 
       // Verify minted amount
       const balance = await stablecoinContract.balanceOf(user2);
@@ -93,9 +83,7 @@ describe("ERC20StablecoinUpgradeable", () => {
       await stablecoinContract.grantRole(PAUSER_ROLE, user1);
 
       // User1 should be able to pause
-      await stablecoinContract
-        .connect(await hre.ethers.getSigner(user1))
-        .pause();
+      await stablecoinContract.connect(await hre.ethers.getSigner(user1)).pause();
 
       // Verify paused state
       assert.isTrue(await stablecoinContract.paused());
@@ -103,15 +91,10 @@ describe("ERC20StablecoinUpgradeable", () => {
       // User2 should not be able to unpause
       await expect(
         stablecoinContract.connect(await hre.ethers.getSigner(user2)).unpause(),
-      ).to.be.revertedWithCustomError(
-        stablecoinContract,
-        "AccessControlUnauthorizedAccount",
-      );
+      ).to.be.revertedWithCustomError(stablecoinContract, "AccessControlUnauthorizedAccount");
 
       // User1 should be able to unpause
-      await stablecoinContract
-        .connect(await hre.ethers.getSigner(user1))
-        .unpause();
+      await stablecoinContract.connect(await hre.ethers.getSigner(user1)).unpause();
 
       // Verify unpaused state
       assert.isFalse(await stablecoinContract.paused());
@@ -131,16 +114,12 @@ describe("ERC20StablecoinUpgradeable", () => {
 
       // Attempt transfer while paused
       await expect(
-        stablecoinContract
-          .connect(await hre.ethers.getSigner(user1))
-          .transfer(user2, transferAmount),
+        stablecoinContract.connect(await hre.ethers.getSigner(user1)).transfer(user2, transferAmount),
       ).to.be.revertedWithCustomError(stablecoinContract, "EnforcedPause");
 
       // Unpause and verify transfer works
       await stablecoinContract.unpause();
-      await stablecoinContract
-        .connect(await hre.ethers.getSigner(user1))
-        .transfer(user2, transferAmount);
+      await stablecoinContract.connect(await hre.ethers.getSigner(user1)).transfer(user2, transferAmount);
 
       const balance = await stablecoinContract.balanceOf(user2);
       assert.equal(balance, transferAmount);
@@ -163,13 +142,8 @@ describe("ERC20StablecoinUpgradeable", () => {
 
     it("should prevent non-admin from updating name and symbol", async function () {
       await expect(
-        stablecoinContract
-          .connect(await hre.ethers.getSigner(user1))
-          .setNameAndSymbol("Fail", "FL"),
-      ).to.be.revertedWithCustomError(
-        stablecoinContract,
-        "AccessControlUnauthorizedAccount",
-      );
+        stablecoinContract.connect(await hre.ethers.getSigner(user1)).setNameAndSymbol("Fail", "FL"),
+      ).to.be.revertedWithCustomError(stablecoinContract, "AccessControlUnauthorizedAccount");
     });
   });
 });

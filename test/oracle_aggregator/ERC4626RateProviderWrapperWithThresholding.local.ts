@@ -21,10 +21,7 @@ describe("ERC4626RateProviderWrapperWithThresholding", () => {
   });
 });
 
-async function runTestsForCurrency(
-  currency: string,
-  { deployer }: { deployer: Address },
-) {
+async function runTestsForCurrency(currency: string, { deployer }: { deployer: Address }) {
   describe(`ERC4626RateProviderWrapperWithThresholding for ${currency}`, () => {
     let wrapper: any;
     let underlying: any;
@@ -48,10 +45,11 @@ async function runTestsForCurrency(
       // Vault mock: UNIT=1e6, rate set to ~1.020459
       const VAULT_UNIT = 10n ** 6n;
       const VAULT_RATE = 1_020_459n;
-      vault = await ethers.deployContract(
-        "MockERC4626FixedRate",
-        [await underlying.getAddress(), VAULT_UNIT, VAULT_RATE],
-      );
+      vault = await ethers.deployContract("MockERC4626FixedRate", [
+        await underlying.getAddress(),
+        VAULT_UNIT,
+        VAULT_RATE,
+      ]);
 
       // Rate provider mock: UNIT=1e6, rate=980150
       const UNIT = 10n ** 6n;
@@ -59,10 +57,7 @@ async function runTestsForCurrency(
       rateProvider = await ethers.deployContract("MockRateProvider", [UNIT, RATE]);
 
       // Deploy wrapper
-      const Factory = await ethers.getContractFactory(
-        "ERC4626SafeRateProviderWrapperWithThresholding",
-        signer,
-      );
+      const Factory = await ethers.getContractFactory("ERC4626SafeRateProviderWrapperWithThresholding", signer);
       wrapper = await Factory.deploy(BASE_CURRENCY_EXPECTED, BASE_UNIT);
       await wrapper.waitForDeployment();
 
@@ -70,15 +65,7 @@ async function runTestsForCurrency(
       const MockToken = await ethers.getContractFactory("MockERC20");
       const mockToken = await MockToken.deploy("Mock Asset", "MOCK", 18);
       assetKey = await mockToken.getAddress();
-      await wrapper.setFeed(
-        assetKey,
-        await vault.getAddress(),
-        await rateProvider.getAddress(),
-        0,
-        0,
-        0,
-        0,
-      );
+      await wrapper.setFeed(assetKey, await vault.getAddress(), await rateProvider.getAddress(), 0, 0, 0, 0);
     });
 
     describe("Base currency and units", () => {
@@ -95,11 +82,10 @@ async function runTestsForCurrency(
         const sharesDec: number = await vault.decimals();
         const sharesUnit = 10n ** BigInt(sharesDec);
         const assetsPerOneShare: bigint = await vault.convertToAssets(sharesUnit);
-        const uDec = await (await ethers.getContractAt(
-          ["function decimals() view returns (uint8)"],
-          await vault.asset(),
-        )).decimals();
-        const priceInBase1 = (assetsPerOneShare * BASE_UNIT) / (10n ** BigInt(uDec));
+        const uDec = await (
+          await ethers.getContractAt(["function decimals() view returns (uint8)"], await vault.asset())
+        ).decimals();
+        const priceInBase1 = (assetsPerOneShare * BASE_UNIT) / 10n ** BigInt(uDec);
 
         const assetUnit = 10n ** 18n; // Asset has 18 decimals
         const rp: bigint = await rateProvider.getRate();
@@ -115,11 +101,10 @@ async function runTestsForCurrency(
         const sharesDec: number = await vault.decimals();
         const sharesUnit = 10n ** BigInt(sharesDec);
         const assetsPerOneShare: bigint = await vault.convertToAssets(sharesUnit);
-        const uDec = await (await ethers.getContractAt(
-          ["function decimals() view returns (uint8)"],
-          await vault.asset(),
-        )).decimals();
-        const priceInBase1 = (assetsPerOneShare * BASE_UNIT) / (10n ** BigInt(uDec));
+        const uDec = await (
+          await ethers.getContractAt(["function decimals() view returns (uint8)"], await vault.asset())
+        ).decimals();
+        const priceInBase1 = (assetsPerOneShare * BASE_UNIT) / 10n ** BigInt(uDec);
 
         const assetUnit = 10n ** 18n; // Asset has 18 decimals
         const rp: bigint = await rateProvider.getRate();
@@ -138,11 +123,10 @@ async function runTestsForCurrency(
         const sharesDec: number = await vault.decimals();
         const sharesUnit = 10n ** BigInt(sharesDec);
         const assetsPerOneShare: bigint = await vault.convertToAssets(sharesUnit);
-        const uDec = await (await ethers.getContractAt(
-          ["function decimals() view returns (uint8)"],
-          await vault.asset(),
-        )).decimals();
-        const priceInBase1 = (assetsPerOneShare * BASE_UNIT) / (10n ** BigInt(uDec));
+        const uDec = await (
+          await ethers.getContractAt(["function decimals() view returns (uint8)"], await vault.asset())
+        ).decimals();
+        const priceInBase1 = (assetsPerOneShare * BASE_UNIT) / 10n ** BigInt(uDec);
 
         const assetUnit = 10n ** 18n; // Asset has 18 decimals
         const rp: bigint = await rateProvider.getRate();
@@ -201,9 +185,7 @@ async function runTestsForCurrency(
         expect(feed.secondaryThreshold.fixedPriceInBase).to.equal(1n * BASE_UNIT);
 
         // Remove and verify
-        await expect(wrapper.removeFeed(newAsset))
-          .to.emit(wrapper, "FeedRemoved")
-          .withArgs(newAsset);
+        await expect(wrapper.removeFeed(newAsset)).to.emit(wrapper, "FeedRemoved").withArgs(newAsset);
         const removed = await wrapper.feeds(newAsset);
         expect(removed.erc4626Vault).to.equal(ethers.ZeroAddress);
         expect(removed.rateProvider).to.equal(ethers.ZeroAddress);
@@ -242,9 +224,7 @@ async function runTestsForCurrency(
           .to.be.revertedWithCustomError(wrapper, "AccessControlUnauthorizedAccount")
           .withArgs(await unauthorized.getAddress(), role);
 
-        await expect(
-          wrapper.connect(unauthorized).updateFeed(assetKey, 0, 0, 0, 0),
-        )
+        await expect(wrapper.connect(unauthorized).updateFeed(assetKey, 0, 0, 0, 0))
           .to.be.revertedWithCustomError(wrapper, "AccessControlUnauthorizedAccount")
           .withArgs(await unauthorized.getAddress(), role);
 
@@ -265,5 +245,3 @@ async function runTestsForCurrency(
     });
   });
 }
-
-

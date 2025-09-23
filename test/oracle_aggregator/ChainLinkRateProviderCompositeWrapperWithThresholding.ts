@@ -22,10 +22,7 @@ describe("ChainlinkRateProviderCompositeWrapperWithThresholding (config-driven)"
   });
 });
 
-async function runTestsForCurrency(
-  currency: string,
-  { deployer }: { deployer: Address },
-) {
+async function runTestsForCurrency(currency: string, { deployer }: { deployer: Address }) {
   describe(`ChainlinkRateProviderCompositeWrapperWithThresholding for ${currency}`, () => {
     let wrapper: any;
     let feed: any;
@@ -53,15 +50,7 @@ async function runTestsForCurrency(
       const mockToken = await MockToken.deploy("Mock Asset", "MOCK", 18);
       assetKey = await mockToken.getAddress();
 
-      await wrapper.addCompositeFeed(
-        assetKey,
-        await feed.getAddress(),
-        await rateProvider.getAddress(),
-        0,
-        0,
-        0,
-        0,
-      );
+      await wrapper.addCompositeFeed(assetKey, await feed.getAddress(), await rateProvider.getAddress(), 0, 0, 0, 0);
     });
 
     describe("Base currency and units", () => {
@@ -166,11 +155,7 @@ async function runTestsForCurrency(
       it("only ORACLE_MANAGER can update or remove feeds", async function () {
         const [, unauthorized] = await ethers.getSigners();
         const oracleManagerRole = await wrapper.ORACLE_MANAGER_ROLE();
-        await expect(
-          wrapper
-            .connect(unauthorized)
-            .updateCompositeFeed(assetKey, 0, 0, 0, 0),
-        )
+        await expect(wrapper.connect(unauthorized).updateCompositeFeed(assetKey, 0, 0, 0, 0))
           .to.be.revertedWithCustomError(wrapper, "AccessControlUnauthorizedAccount")
           .withArgs(await unauthorized.getAddress(), oracleManagerRole);
         await expect(wrapper.connect(unauthorized).removeCompositeFeed(assetKey))
@@ -187,5 +172,3 @@ async function runTestsForCurrency(
     });
   });
 }
-
-

@@ -48,7 +48,7 @@ describe("ChainlinkDecimalDownscaler", () => {
       MOCK_ROUND_DATA.answer,
       MOCK_ROUND_DATA.startedAt,
       MOCK_ROUND_DATA.updatedAt,
-      MOCK_ROUND_DATA.answeredInRound
+      MOCK_ROUND_DATA.answeredInRound,
     );
 
     // Deploy mock aggregator without legacy interface
@@ -61,7 +61,7 @@ describe("ChainlinkDecimalDownscaler", () => {
       MOCK_ROUND_DATA.answer,
       MOCK_ROUND_DATA.startedAt,
       MOCK_ROUND_DATA.updatedAt,
-      MOCK_ROUND_DATA.answeredInRound
+      MOCK_ROUND_DATA.answeredInRound,
     );
   });
 
@@ -89,9 +89,9 @@ describe("ChainlinkDecimalDownscaler", () => {
     it("should revert when attempting upscaling", async () => {
       const targetDecimals = 12; // Greater than source decimals
       const ConverterFactory = await ethers.getContractFactory("ChainlinkDecimalDownscaler");
-      
+
       await expect(
-        ConverterFactory.deploy(await mockAggregator.getAddress(), targetDecimals)
+        ConverterFactory.deploy(await mockAggregator.getAddress(), targetDecimals),
       ).to.be.revertedWithCustomError(ConverterFactory, "InvalidDecimalsUpscaleNotSupported");
     });
 
@@ -99,10 +99,7 @@ describe("ChainlinkDecimalDownscaler", () => {
       const ConverterFactory = await ethers.getContractFactory("ChainlinkDecimalDownscaler");
 
       // Test with legacy support
-      const converterWithLegacy = await ConverterFactory.deploy(
-        await mockAggregatorWithLegacy.getAddress(),
-        6
-      );
+      const converterWithLegacy = await ConverterFactory.deploy(await mockAggregatorWithLegacy.getAddress(), 6);
 
       // Legacy methods should work by calling source feed directly
       const legacyRound = await converterWithLegacy.latestRound();
@@ -111,10 +108,7 @@ describe("ChainlinkDecimalDownscaler", () => {
       expect(legacyAnswer).to.equal(MOCK_ROUND_DATA.answer / 100n); // Scaled down 8->6 decimals
 
       // Test without legacy support
-      const converterWithoutLegacy = await ConverterFactory.deploy(
-        await mockAggregator.getAddress(),
-        6
-      );
+      const converterWithoutLegacy = await ConverterFactory.deploy(await mockAggregator.getAddress(), 6);
 
       // Legacy methods should work by falling back to latestRoundData()
       const fallbackRound = await converterWithoutLegacy.latestRound();
@@ -232,7 +226,7 @@ describe("ChainlinkDecimalDownscaler", () => {
       converter = await ConverterFactory.deploy(await mockAggregator.getAddress(), 0); // 8 decimal difference
 
       const result = await converter.latestRoundData();
-      expect(result.answer).to.equal(MOCK_ROUND_DATA.answer / (10n ** 8n)); // divide by 10^8
+      expect(result.answer).to.equal(MOCK_ROUND_DATA.answer / 10n ** 8n); // divide by 10^8
     });
 
     it("should handle zero price correctly", async () => {
@@ -242,7 +236,7 @@ describe("ChainlinkDecimalDownscaler", () => {
         0n, // zero price
         MOCK_ROUND_DATA.startedAt + 1n,
         MOCK_ROUND_DATA.updatedAt + 1n,
-        MOCK_ROUND_DATA.answeredInRound + 1n
+        MOCK_ROUND_DATA.answeredInRound + 1n,
       );
 
       const ConverterFactory = await ethers.getContractFactory("ChainlinkDecimalDownscaler");
@@ -260,7 +254,7 @@ describe("ChainlinkDecimalDownscaler", () => {
         negativePrice,
         MOCK_ROUND_DATA.startedAt + 1n,
         MOCK_ROUND_DATA.updatedAt + 1n,
-        MOCK_ROUND_DATA.answeredInRound + 1n
+        MOCK_ROUND_DATA.answeredInRound + 1n,
       );
 
       const ConverterFactory = await ethers.getContractFactory("ChainlinkDecimalDownscaler");

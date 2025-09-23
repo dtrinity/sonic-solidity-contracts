@@ -46,36 +46,25 @@ describe("DPoolVaultLP – Withdraw event", () => {
     const sharesNeeded: bigint = await vault.previewWithdraw(netAssets);
 
     // Gross assets = net / (1-fee)
-    const grossAssetsExpected =
-      (netAssets * 10000n) / (10000n - WITHDRAWAL_FEE_BPS);
+    const grossAssetsExpected = (netAssets * 10000n) / (10000n - WITHDRAWAL_FEE_BPS);
 
     // User LP balance before
     const balanceBefore: bigint = await token.balanceOf(user.address);
 
     // Execute withdrawal
-    const tx = await vault
-      .connect(user)
-      .withdraw(netAssets, user.address, user.address);
+    const tx = await vault.connect(user).withdraw(netAssets, user.address, user.address);
 
     // Expect event to emit **net** assets
     await expect(tx)
       .to.emit(vault, "Withdraw")
-      .withArgs(
-        user.address,
-        user.address,
-        user.address,
-        netAssets,
-        sharesNeeded,
-      );
+      .withArgs(user.address, user.address, user.address, netAssets, sharesNeeded);
 
     // Validate token transfer amount == net assets
     const balanceAfter: bigint = await token.balanceOf(user.address);
     expect(balanceAfter - balanceBefore).to.equal(netAssets);
 
     // Vault balance should have decreased only by the NET amount; fee stays inside the vault
-    const vaultBalance: bigint = await token.balanceOf(
-      await vault.getAddress(),
-    );
+    const vaultBalance: bigint = await token.balanceOf(await vault.getAddress());
     expect(vaultBalance).to.equal(toWei(1000) - netAssets);
   });
 });

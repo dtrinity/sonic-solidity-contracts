@@ -1,12 +1,7 @@
 import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 import { deployments, ethers } from "hardhat";
 
-import {
-  DPoolCurvePeriphery,
-  DPoolVaultCurveLP,
-  ICurveStableSwapNG,
-  IERC20,
-} from "../../typechain-types";
+import { DPoolCurvePeriphery, DPoolVaultCurveLP, ICurveStableSwapNG, IERC20 } from "../../typechain-types";
 
 export interface DPoolFixtureResult {
   // Contracts
@@ -49,18 +44,13 @@ export async function DPoolUSDCFixture(): Promise<DPoolFixtureResult> {
 
   // Get deployed contracts using the expected deployment names
   const vaultDeployment = await deployments.get("DPoolVault_USDC_USDS_Curve");
-  const peripheryDeployment = await deployments.get(
-    "DPoolPeriphery_USDC_USDS_Curve",
-  );
+  const peripheryDeployment = await deployments.get("DPoolPeriphery_USDC_USDS_Curve");
   const curvePoolDeployment = await deployments.get("USDC_USDS_CurvePool");
   const usdcDeployment = await deployments.get("USDC");
   const usdsDeployment = await deployments.get("USDS");
 
   // Connect to contracts
-  const vault = (await ethers.getContractAt(
-    "DPoolVaultCurveLP",
-    vaultDeployment.address,
-  )) as DPoolVaultCurveLP;
+  const vault = (await ethers.getContractAt("DPoolVaultCurveLP", vaultDeployment.address)) as DPoolVaultCurveLP;
   const periphery = (await ethers.getContractAt(
     "DPoolCurvePeriphery",
     peripheryDeployment.address,
@@ -113,18 +103,13 @@ export async function DPoolfrxUSDFixture(): Promise<DPoolFixtureResult> {
 
   // Get deployed contracts using the expected deployment names
   const vaultDeployment = await deployments.get("DPoolVault_frxUSD_USDC_Curve");
-  const peripheryDeployment = await deployments.get(
-    "DPoolPeriphery_frxUSD_USDC_Curve",
-  );
+  const peripheryDeployment = await deployments.get("DPoolPeriphery_frxUSD_USDC_Curve");
   const curvePoolDeployment = await deployments.get("frxUSD_USDC_CurvePool");
   const frxUSDDeployment = await deployments.get("frxUSD");
   const usdcDeployment = await deployments.get("USDC");
 
   // Connect to contracts
-  const vault = (await ethers.getContractAt(
-    "DPoolVaultCurveLP",
-    vaultDeployment.address,
-  )) as DPoolVaultCurveLP;
+  const vault = (await ethers.getContractAt("DPoolVaultCurveLP", vaultDeployment.address)) as DPoolVaultCurveLP;
   const periphery = (await ethers.getContractAt(
     "DPoolCurvePeriphery",
     peripheryDeployment.address,
@@ -264,9 +249,7 @@ export async function depositAssetViaPeriphery(
   minShares: bigint = 0n,
   maxSlippage: number = 100, // 1%
 ): Promise<void> {
-  await periphery
-    .connect(user)
-    .depositAsset(asset, amount, user.address, minShares, maxSlippage);
+  await periphery.connect(user).depositAsset(asset, amount, user.address, minShares, maxSlippage);
 }
 
 /**
@@ -295,16 +278,7 @@ export async function withdrawToAssetViaPeriphery(
   await vault.connect(user).approve(await periphery.getAddress(), shares);
 
   // Now call withdrawToAsset
-  await periphery
-    .connect(user)
-    .withdrawToAsset(
-      shares,
-      asset,
-      user.address,
-      user.address,
-      minAmount,
-      maxSlippage,
-    );
+  await periphery.connect(user).withdrawToAsset(shares, asset, user.address, user.address, minAmount, maxSlippage);
 }
 
 /**
@@ -313,10 +287,7 @@ export async function withdrawToAssetViaPeriphery(
  * @param vault
  * @param user
  */
-export async function getUserShares(
-  vault: DPoolVaultCurveLP,
-  user: SignerWithAddress,
-): Promise<bigint> {
+export async function getUserShares(vault: DPoolVaultCurveLP, user: SignerWithAddress): Promise<bigint> {
   return await vault.balanceOf(user.address);
 }
 
@@ -326,10 +297,7 @@ export async function getUserShares(
  * @param token
  * @param user
  */
-export async function getUserTokenBalance(
-  token: IERC20,
-  user: SignerWithAddress,
-): Promise<bigint> {
+export async function getUserTokenBalance(token: IERC20, user: SignerWithAddress): Promise<bigint> {
   return await token.balanceOf(user.address);
 }
 
@@ -338,9 +306,7 @@ export async function getUserTokenBalance(
  *
  * @param vault
  */
-export async function getVaultTotalAssets(
-  vault: DPoolVaultCurveLP,
-): Promise<bigint> {
+export async function getVaultTotalAssets(vault: DPoolVaultCurveLP): Promise<bigint> {
   return await vault.totalAssets();
 }
 
@@ -349,9 +315,7 @@ export async function getVaultTotalAssets(
  *
  * @param vault
  */
-export async function getVaultTotalSupply(
-  vault: DPoolVaultCurveLP,
-): Promise<bigint> {
+export async function getVaultTotalSupply(vault: DPoolVaultCurveLP): Promise<bigint> {
   return await vault.totalSupply();
 }
 
@@ -371,9 +335,7 @@ export async function addLiquidityToCurvePool(
   amount1: bigint,
   minLP: bigint = 0n,
 ): Promise<void> {
-  await curvePool
-    .connect(user)
-    ["add_liquidity(uint256[],uint256)"]([amount0, amount1], minLP);
+  await curvePool.connect(user)["add_liquidity(uint256[],uint256)"]([amount0, amount1], minLP);
 }
 
 /**
@@ -382,9 +344,6 @@ export async function addLiquidityToCurvePool(
  * @param curvePool
  * @param user
  */
-export async function getLPTokenBalance(
-  curvePool: ICurveStableSwapNG,
-  user: SignerWithAddress,
-): Promise<bigint> {
+export async function getLPTokenBalance(curvePool: ICurveStableSwapNG, user: SignerWithAddress): Promise<bigint> {
   return await curvePool.balanceOf(user.address);
 }

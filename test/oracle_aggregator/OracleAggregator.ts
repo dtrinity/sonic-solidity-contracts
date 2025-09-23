@@ -4,11 +4,7 @@ import { Address } from "hardhat-deploy/types";
 
 import { getConfig } from "../../config/config";
 import { OracleAggregator } from "../../typechain-types";
-import {
-  getOracleAggregatorFixture,
-  getRandomItemFromList,
-  OracleAggregatorFixtureResult,
-} from "./fixtures";
+import { getOracleAggregatorFixture, getRandomItemFromList, OracleAggregatorFixtureResult } from "./fixtures";
 
 describe("OracleAggregator", () => {
   let deployer: Address;
@@ -41,11 +37,7 @@ describe("OracleAggregator", () => {
  */
 async function runTestsForCurrency(
   currency: string,
-  {
-    deployer,
-    user1,
-    user2,
-  }: { deployer: Address; user1: Address; user2: Address },
+  { deployer, user1, user2 }: { deployer: Address; user1: Address; user2: Address },
 ) {
   describe(`OracleAggregator for ${currency}`, () => {
     let fixtureResult: OracleAggregatorFixtureResult;
@@ -85,18 +77,14 @@ async function runTestsForCurrency(
         const actualUnit = await oracleAggregator.BASE_CURRENCY_UNIT();
 
         // The contract is deployed with 10^priceDecimals as the base currency unit
-        expect(actualUnit).to.equal(
-          BigInt(10) ** BigInt(fixtureResult.config.priceDecimals),
-        );
+        expect(actualUnit).to.equal(BigInt(10) ** BigInt(fixtureResult.config.priceDecimals));
       });
     });
 
     describe("Oracle management", () => {
       it("should allow setting and removing oracles", async function () {
         // Deploy a mock oracle for testing
-        const MockOracleAggregator = await ethers.getContractFactory(
-          "MockOracleAggregator",
-        );
+        const MockOracleAggregator = await ethers.getContractFactory("MockOracleAggregator");
         const mockOracle = await MockOracleAggregator.deploy(
           fixtureResult.config.baseCurrency,
           BigInt(10) ** BigInt(fixtureResult.config.priceDecimals),
@@ -113,15 +101,10 @@ async function runTestsForCurrency(
         expect(await mockOracle.getAssetPrice(testAsset)).to.equal(mockPrice);
 
         // Set the oracle for the test asset
-        await oracleAggregator.setOracle(
-          testAsset,
-          await mockOracle.getAddress(),
-        );
+        await oracleAggregator.setOracle(testAsset, await mockOracle.getAddress());
 
         // Verify the oracle is set correctly
-        expect(await oracleAggregator.getAssetPrice(testAsset)).to.equal(
-          mockPrice,
-        );
+        expect(await oracleAggregator.getAssetPrice(testAsset)).to.equal(mockPrice);
 
         // Remove the oracle
         await oracleAggregator.removeOracle(testAsset);
@@ -137,23 +120,15 @@ async function runTestsForCurrency(
         const testAsset = getRandomItemFromList(fixtureResult.assets.allAssets);
 
         // Deploy a MockOracleAggregator with wrong decimals
-        const MockOracleAggregatorFactory = await hre.ethers.getContractFactory(
-          "MockOracleAggregator",
+        const MockOracleAggregatorFactory = await hre.ethers.getContractFactory("MockOracleAggregator");
+
+        const mockOracleAggregatorWithWrongDecimals = await MockOracleAggregatorFactory.deploy(
+          fixtureResult.config.baseCurrency,
+          BigInt(10) ** 1n, // 10^1 has too few decimals
         );
 
-        const mockOracleAggregatorWithWrongDecimals =
-          await MockOracleAggregatorFactory.deploy(
-            fixtureResult.config.baseCurrency,
-            BigInt(10) ** 1n, // 10^1 has too few decimals
-          );
-
         // Try to set the oracle with wrong decimals
-        await expect(
-          oracleAggregator.setOracle(
-            testAsset,
-            await mockOracleAggregatorWithWrongDecimals.getAddress(),
-          ),
-        )
+        await expect(oracleAggregator.setOracle(testAsset, await mockOracleAggregatorWithWrongDecimals.getAddress()))
           .to.be.revertedWithCustomError(oracleAggregator, "UnexpectedBaseUnit")
           .withArgs(
             testAsset,
@@ -168,19 +143,13 @@ async function runTestsForCurrency(
         const testAsset = getRandomItemFromList(fixtureResult.assets.allAssets);
 
         // Deploy a mock oracle for testing
-        const MockAPI3OracleFactory =
-          await hre.ethers.getContractFactory("MockAPI3Oracle");
+        const MockAPI3OracleFactory = await hre.ethers.getContractFactory("MockAPI3Oracle");
         const mockAPI3Oracle = await MockAPI3OracleFactory.deploy(deployer);
 
         const unauthorizedSigner = await hre.ethers.getSigner(user2);
         await expect(
-          oracleAggregator
-            .connect(unauthorizedSigner)
-            .setOracle(testAsset, await mockAPI3Oracle.getAddress()),
-        ).to.be.revertedWithCustomError(
-          oracleAggregator,
-          "AccessControlUnauthorizedAccount",
-        );
+          oracleAggregator.connect(unauthorizedSigner).setOracle(testAsset, await mockAPI3Oracle.getAddress()),
+        ).to.be.revertedWithCustomError(oracleAggregator, "AccessControlUnauthorizedAccount");
       });
     });
 
@@ -190,20 +159,12 @@ async function runTestsForCurrency(
           const price = await oracleAggregator.getAssetPrice(address);
 
           // The price should be non-zero
-          expect(price).to.be.gt(
-            0,
-            `Price for asset ${address} should be greater than 0`,
-          );
+          expect(price).to.be.gt(0, `Price for asset ${address} should be greater than 0`);
 
           // Get price info
-          const [priceInfo, isAlive] =
-            await oracleAggregator.getPriceInfo(address);
-          expect(priceInfo).to.equal(
-            price,
-            `Price info for asset ${address} should match getAssetPrice`,
-          );
-          expect(isAlive).to.be.true,
-            `Price for asset ${address} should be alive`;
+          const [priceInfo, isAlive] = await oracleAggregator.getPriceInfo(address);
+          expect(priceInfo).to.equal(price, `Price info for asset ${address} should match getAssetPrice`);
+          (expect(isAlive).to.be.true, `Price for asset ${address} should be alive`);
         }
       });
     });

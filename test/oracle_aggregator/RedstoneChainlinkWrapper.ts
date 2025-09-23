@@ -4,10 +4,7 @@ import { Address } from "hardhat-deploy/types";
 
 import { getConfig } from "../../config/config";
 import { RedstoneChainlinkWrapper } from "../../typechain-types";
-import {
-  getOracleAggregatorFixture,
-  OracleAggregatorFixtureResult,
-} from "./fixtures";
+import { getOracleAggregatorFixture, OracleAggregatorFixtureResult } from "./fixtures";
 
 const CHAINLINK_HEARTBEAT_SECONDS = 86400; // 24 hours
 
@@ -42,11 +39,7 @@ describe("RedstoneChainlinkWrapper", () => {
  */
 async function runTestsForCurrency(
   currency: string,
-  {
-    deployer,
-    user1,
-    user2,
-  }: { deployer: Address; user1: Address; user2: Address },
+  { deployer, user1, user2 }: { deployer: Address; user1: Address; user2: Address },
 ) {
   describe(`RedstoneChainlinkWrapper for ${currency}`, () => {
     let fixtureResult: OracleAggregatorFixtureResult;
@@ -57,15 +50,13 @@ async function runTestsForCurrency(
       fixtureResult = await fixture();
 
       // Get contract instances from the fixture
-      redstoneChainlinkWrapper =
-        fixtureResult.contracts.redstoneChainlinkWrapper;
+      redstoneChainlinkWrapper = fixtureResult.contracts.redstoneChainlinkWrapper;
 
       // Set the base currency for use in tests
       this.baseCurrency = currency;
 
       // Grant the OracleManager role to the deployer for test operations
-      const oracleManagerRole =
-        await redstoneChainlinkWrapper.ORACLE_MANAGER_ROLE();
+      const oracleManagerRole = await redstoneChainlinkWrapper.ORACLE_MANAGER_ROLE();
       await redstoneChainlinkWrapper.grantRole(oracleManagerRole, deployer);
     });
 
@@ -84,8 +75,7 @@ async function runTestsForCurrency(
 
       it("should return correct BASE_CURRENCY_UNIT", async function () {
         const actualUnit = await redstoneChainlinkWrapper.BASE_CURRENCY_UNIT();
-        const expectedUnit =
-          BigInt(10) ** BigInt(fixtureResult.config.priceDecimals);
+        const expectedUnit = BigInt(10) ** BigInt(fixtureResult.config.priceDecimals);
         expect(actualUnit).to.equal(expectedUnit);
       });
     });
@@ -93,29 +83,18 @@ async function runTestsForCurrency(
     describe("Asset pricing", () => {
       it("should correctly price assets with configured feeds", async function () {
         // Test pricing for plain assets configured for Redstone
-        for (const [address, _asset] of Object.entries(
-          fixtureResult.assets.redstonePlainAssets,
-        )) {
+        for (const [address, _asset] of Object.entries(fixtureResult.assets.redstonePlainAssets)) {
           // Check if the asset actually has a feed configured (safeguard)
           const feed = await redstoneChainlinkWrapper.assetToFeed(address);
-          const { price, isAlive } =
-            await redstoneChainlinkWrapper.getPriceInfo(address);
+          const { price, isAlive } = await redstoneChainlinkWrapper.getPriceInfo(address);
 
           // The price should be non-zero
-          expect(price).to.be.gt(
-            0,
-            `Price for asset ${address} should be greater than 0`,
-          );
-          expect(isAlive).to.be.true,
-            `Price for asset ${address} should be alive`;
+          expect(price).to.be.gt(0, `Price for asset ${address} should be greater than 0`);
+          (expect(isAlive).to.be.true, `Price for asset ${address} should be alive`);
 
           // Verify getAssetPrice returns the same value
-          const directPrice =
-            await redstoneChainlinkWrapper.getAssetPrice(address);
-          expect(directPrice).to.equal(
-            price,
-            `Direct price should match price info for ${address}`,
-          );
+          const directPrice = await redstoneChainlinkWrapper.getAssetPrice(address);
+          expect(directPrice).to.equal(price, `Direct price should match price info for ${address}`);
         }
       });
 
@@ -138,15 +117,11 @@ async function runTestsForCurrency(
 
         // Set the feed
         await redstoneChainlinkWrapper.setFeed(newAsset, feed);
-        expect(await redstoneChainlinkWrapper.assetToFeed(newAsset)).to.equal(
-          feed,
-        );
+        expect(await redstoneChainlinkWrapper.assetToFeed(newAsset)).to.equal(feed);
 
         // Remove the feed by setting it to zero address
         await redstoneChainlinkWrapper.setFeed(newAsset, ethers.ZeroAddress);
-        expect(await redstoneChainlinkWrapper.assetToFeed(newAsset)).to.equal(
-          ethers.ZeroAddress,
-        );
+        expect(await redstoneChainlinkWrapper.assetToFeed(newAsset)).to.equal(ethers.ZeroAddress);
       });
 
       it("should revert when non-ORACLE_MANAGER tries to set feed", async function () {
@@ -154,18 +129,10 @@ async function runTestsForCurrency(
         const feed = "0x2345678901234567890123456789012345678901";
 
         const unauthorizedSigner = await ethers.getSigner(user2);
-        const oracleManagerRole =
-          await redstoneChainlinkWrapper.ORACLE_MANAGER_ROLE();
+        const oracleManagerRole = await redstoneChainlinkWrapper.ORACLE_MANAGER_ROLE();
 
-        await expect(
-          redstoneChainlinkWrapper
-            .connect(unauthorizedSigner)
-            .setFeed(newAsset, feed),
-        )
-          .to.be.revertedWithCustomError(
-            redstoneChainlinkWrapper,
-            "AccessControlUnauthorizedAccount",
-          )
+        await expect(redstoneChainlinkWrapper.connect(unauthorizedSigner).setFeed(newAsset, feed))
+          .to.be.revertedWithCustomError(redstoneChainlinkWrapper, "AccessControlUnauthorizedAccount")
           .withArgs(user2, oracleManagerRole);
       });
     });

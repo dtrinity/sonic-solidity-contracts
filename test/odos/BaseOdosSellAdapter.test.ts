@@ -64,12 +64,7 @@ describe("BaseOdosSellAdapter", function () {
     // Check event emission
     await expect(tx)
       .to.emit(adapter, "Bought")
-      .withArgs(
-        await tokenIn.getAddress(),
-        await tokenOut.getAddress(),
-        amountSpent,
-        amountReceived,
-      );
+      .withArgs(await tokenIn.getAddress(), await tokenOut.getAddress(), amountSpent, amountReceived);
   });
 
   it("reverts when adapter has insufficient balance", async function () {

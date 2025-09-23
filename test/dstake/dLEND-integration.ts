@@ -12,12 +12,7 @@ import {
 } from "../../typechain-types";
 import { ERC20StablecoinUpgradeable } from "../../typechain-types/contracts/dstable/ERC20StablecoinUpgradeable";
 import { IStaticATokenLM } from "../../typechain-types/contracts/vaults/atoken_wrapper/interfaces/IStaticATokenLM";
-import {
-  createDStakeFixture,
-  DStakeFixtureConfig,
-  SDS_CONFIG,
-  SDUSD_CONFIG,
-} from "./fixture";
+import { createDStakeFixture, DStakeFixtureConfig, SDS_CONFIG, SDUSD_CONFIG } from "./fixture";
 
 const STAKE_CONFIGS: DStakeFixtureConfig[] = [SDUSD_CONFIG, SDS_CONFIG];
 
@@ -75,11 +70,8 @@ STAKE_CONFIGS.forEach((cfg) => {
       const initialTotalSupply = await DStakeToken.totalSupply();
       const initialTotalAssets = await DStakeToken.totalAssets();
       const collateralVaultAddr = await collateralVault.getAddress();
-      const initialVaultAssetBalance =
-        await vaultAssetToken.balanceOf(collateralVaultAddr);
-      const initialUserDStableBalance = await dStableToken.balanceOf(
-        user.address,
-      );
+      const initialVaultAssetBalance = await vaultAssetToken.balanceOf(collateralVaultAddr);
+      const initialUserDStableBalance = await dStableToken.balanceOf(user.address);
 
       expect(initialTotalSupply).to.equal(0n);
       expect(initialTotalAssets).to.equal(0n);
@@ -88,21 +80,15 @@ STAKE_CONFIGS.forEach((cfg) => {
 
       // Mint dStable to user and approve token to DStakeToken
       await stable.mint(user.address, depositAmount);
-      await dStableToken
-        .connect(user)
-        .approve(await DStakeToken.getAddress(), depositAmount);
+      await dStableToken.connect(user).approve(await DStakeToken.getAddress(), depositAmount);
 
       // Perform deposit
-      await expect(
-        DStakeToken.connect(user).deposit(depositAmount, user.address),
-      )
+      await expect(DStakeToken.connect(user).deposit(depositAmount, user.address))
         .to.emit(DStakeToken, "Deposit")
         .withArgs(user.address, user.address, depositAmount, depositAmount);
 
       // Post-deposit checks
-      const finalUserDStableBalance = await dStableToken.balanceOf(
-        user.address,
-      );
+      const finalUserDStableBalance = await dStableToken.balanceOf(user.address);
       expect(finalUserDStableBalance).to.equal(0n);
 
       const userShares = await DStakeToken.balanceOf(user.address);
@@ -115,10 +101,8 @@ STAKE_CONFIGS.forEach((cfg) => {
       expect(finalTotalAssets).to.equal(depositAmount);
 
       // Verify supply to dLEND via adapter
-      const [, expectedVaultAssetAmount] =
-        await adapter.previewConvertToVaultAsset(depositAmount);
-      const finalVaultAssetBalance =
-        await vaultAssetToken.balanceOf(collateralVaultAddr);
+      const [, expectedVaultAssetAmount] = await adapter.previewConvertToVaultAsset(depositAmount);
+      const finalVaultAssetBalance = await vaultAssetToken.balanceOf(collateralVaultAddr);
       expect(finalVaultAssetBalance).to.equal(expectedVaultAssetAmount);
 
       // Verify AAVE aToken minted via wrapper

@@ -10,7 +10,7 @@ import {
   TestMintableERC20,
   MockPoolAddressesProvider,
   MockPoolV2,
-  MockPriceOracleGetterV2
+  MockPriceOracleGetterV2,
 } from "../../../../../../typechain-types";
 
 /**
@@ -34,8 +34,8 @@ export interface OdosV2TestFixture {
   // Mock tokens
   tokenA: TestMintableERC20; // Regular ERC20 token
   tokenB: TestMintableERC20; // Regular ERC20 token
-  ptTokenA: MockPTToken;     // PT token for tokenA
-  ptTokenB: MockPTToken;     // PT token for tokenB
+  ptTokenA: MockPTToken; // PT token for tokenA
+  ptTokenB: MockPTToken; // PT token for tokenB
   syTokenA: TestMintableERC20; // SY token for PT tokenA
   syTokenB: TestMintableERC20; // SY token for PT tokenB
 
@@ -69,7 +69,7 @@ export async function deployOdosV2TestFixture(): Promise<OdosV2TestFixture> {
   const MockPoolAddressesProviderFactory = await ethers.getContractFactory("MockPoolAddressesProvider");
   const addressesProvider = await MockPoolAddressesProviderFactory.deploy(
     await pool.getAddress(),
-    await priceOracle.getAddress()
+    await priceOracle.getAddress(),
   );
 
   // Deploy test tokens
@@ -91,7 +91,7 @@ export async function deployOdosV2TestFixture(): Promise<OdosV2TestFixture> {
     await addressesProvider.getAddress(),
     await pool.getAddress(),
     await odosRouter.getAddress(),
-    await pendleRouter.getAddress()
+    await pendleRouter.getAddress(),
   );
 
   const PendleSwapLogicHarnessFactory = await ethers.getContractFactory("PendleSwapLogicHarness");
@@ -117,7 +117,7 @@ export async function deployOdosV2TestFixture(): Promise<OdosV2TestFixture> {
     syTokenB,
     addressesProvider,
     pool,
-    priceOracle
+    priceOracle,
   };
 }
 
@@ -126,9 +126,18 @@ export async function deployOdosV2TestFixture(): Promise<OdosV2TestFixture> {
  */
 export async function setupTestEnvironment(fixture: OdosV2TestFixture) {
   const {
-    deployer, user1, user2,
-    tokenA, tokenB, ptTokenA, ptTokenB, syTokenA, syTokenB,
-    odosRouter, pendleRouter, baseAdapterHarness
+    deployer,
+    user1,
+    user2,
+    tokenA,
+    tokenB,
+    ptTokenA,
+    ptTokenB,
+    syTokenA,
+    syTokenB,
+    odosRouter,
+    pendleRouter,
+    baseAdapterHarness,
   } = fixture;
 
   const initialMintAmount = ethers.parseEther("1000000");
@@ -194,19 +203,15 @@ export function createOdosSwapData(mockRouter: MockOdosRouterV2): string {
 }
 
 /**
- * Create Pendle swap data for testing  
+ * Create Pendle swap data for testing
  */
 export function createPendleSwapData(
   mockRouter: MockPendleRouter,
   tokenIn: string = ethers.ZeroAddress,
   tokenOut: string = ethers.ZeroAddress,
-  amountIn: bigint = 0n
+  amountIn: bigint = 0n,
 ): string {
-  return mockRouter.interface.encodeFunctionData("executeSwap", [
-    tokenIn,
-    tokenOut,
-    amountIn
-  ]);
+  return mockRouter.interface.encodeFunctionData("executeSwap", [tokenIn, tokenOut, amountIn]);
 }
 
 /**
@@ -223,13 +228,13 @@ export function createPTSwapData(
   isComposed: boolean,
   underlyingAsset: string = ethers.ZeroAddress,
   pendleCalldata: string = "0x",
-  odosCalldata: string = "0x"
+  odosCalldata: string = "0x",
 ): PTSwapDataV2 {
   return {
     isComposed,
     underlyingAsset,
     pendleCalldata,
-    odosCalldata
+    odosCalldata,
   };
 }
 
@@ -239,6 +244,6 @@ export function createPTSwapData(
 export function encodePTSwapData(swapData: PTSwapDataV2): string {
   return ethers.AbiCoder.defaultAbiCoder().encode(
     ["tuple(bool,address,bytes,bytes)"],
-    [[swapData.isComposed, swapData.underlyingAsset, swapData.pendleCalldata, swapData.odosCalldata]]
+    [[swapData.isComposed, swapData.underlyingAsset, swapData.pendleCalldata, swapData.odosCalldata]],
   );
 }

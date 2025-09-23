@@ -7,11 +7,7 @@ import {
   RESERVES_SETUP_HELPER_ID,
 } from "../../typescript/deploy-ids";
 import { getConfig } from "../../config/config";
-import {
-  eContractid,
-  IInterestRateStrategyParams,
-  IReserveParams,
-} from "../../config/dlend/types";
+import { eContractid, IInterestRateStrategyParams, IReserveParams } from "../../config/dlend/types";
 import { chunk } from "../../typescript/dlend/helpers";
 import { rateStrategyDUSD } from "../../config/dlend/interest-rate-strategies";
 import { strategyDUSD } from "../../config/dlend/reserves-params";
@@ -59,9 +55,7 @@ const main = async (): Promise<void> => {
     dUSD: strategyDUSD,
   };
 
-  const addressProviderDeployedResult = await hre.deployments.get(
-    POOL_ADDRESSES_PROVIDER_ID
-  );
+  const addressProviderDeployedResult = await hre.deployments.get(POOL_ADDRESSES_PROVIDER_ID);
 
   // Deploy Rate Strategies
   for (const strategy in newRateStrategies) {
@@ -95,40 +89,36 @@ const main = async (): Promise<void> => {
   const addressProviderContract = await hre.ethers.getContractAt(
     "PoolAddressesProvider",
     addressProviderDeployedResult.address,
-    await hre.ethers.getSigner(deployer)
+    await hre.ethers.getSigner(deployer),
   );
 
-  const proxyDeployedResult = await hre.deployments.get(
-    POOL_CONFIGURATOR_PROXY_ID
-  );
+  const proxyDeployedResult = await hre.deployments.get(POOL_CONFIGURATOR_PROXY_ID);
   const configuratorContract = await hre.ethers.getContractAt(
     "PoolConfigurator",
     proxyDeployedResult.address,
-    await hre.ethers.getSigner(deployer)
+    await hre.ethers.getSigner(deployer),
   );
 
   for (const reserve in newReserveConfigs) {
     const reserveData = newReserveConfigs[reserve];
 
     const { address: newReserveDeploymentAddress } = await hre.deployments.get(
-      `ReserveStrategy-${reserveData.strategy.name}`
+      `ReserveStrategy-${reserveData.strategy.name}`,
     );
 
     await configuratorContract.setReserveInterestRateStrategyAddress(
       reservesAddresses[reserve],
-      newReserveDeploymentAddress
+      newReserveDeploymentAddress,
     );
   }
 
   /*  Set up reserve configs */
 
-  const reservesSetupArtifact = await hre.deployments.get(
-    RESERVES_SETUP_HELPER_ID
-  );
+  const reservesSetupArtifact = await hre.deployments.get(RESERVES_SETUP_HELPER_ID);
   const reservesSetupHelper = await hre.ethers.getContractAt(
     "ReservesSetupHelper",
     reservesSetupArtifact.address,
-    await hre.ethers.getSigner(deployer)
+    await hre.ethers.getSigner(deployer),
   );
 
   const tokens: string[] = [];
@@ -162,9 +152,7 @@ const main = async (): Promise<void> => {
     },
   ] of Object.entries(newReserveConfigs) as [string, IReserveParams][]) {
     if (!reservesAddresses[assetSymbol]) {
-      console.log(
-        `- Skipping init of ${assetSymbol} due token address is not set at markets config`
-      );
+      console.log(`- Skipping init of ${assetSymbol} due token address is not set at markets config`);
       continue;
     }
 
@@ -172,12 +160,8 @@ const main = async (): Promise<void> => {
       continue;
     }
 
-    const assetAddressIndex = Object.keys(reservesAddresses).findIndex(
-      (value) => value === assetSymbol
-    );
-    const [, tokenAddress] = (
-      Object.entries(reservesAddresses) as [string, string][]
-    )[assetAddressIndex];
+    const assetAddressIndex = Object.keys(reservesAddresses).findIndex((value) => value === assetSymbol);
+    const [, tokenAddress] = (Object.entries(reservesAddresses) as [string, string][])[assetAddressIndex];
 
     // Push data
     inputParams.push({
@@ -207,12 +191,10 @@ const main = async (): Promise<void> => {
     console.log(`  - Risk Admin: ${aclAdminAddress}`);
     let aclManager = await hre.ethers.getContractAt(
       "ACLManager",
-      await addressProviderContract.getACLManager()
+      await addressProviderContract.getACLManager(),
       // deployer
     );
-    const tx = await aclManager.addRiskAdmin(
-      await reservesSetupHelper.getAddress()
-    );
+    const tx = await aclManager.addRiskAdmin(await reservesSetupHelper.getAddress());
     const receipt = await tx.wait();
     console.log(`  - TxHash : ${receipt?.hash}`);
     console.log(`  - From   : ${receipt?.from}`);
@@ -223,24 +205,16 @@ const main = async (): Promise<void> => {
     const enableChunks = 20;
     const chunkedSymbols = chunk(symbols, enableChunks);
     const chunkedInputParams = chunk(inputParams, enableChunks);
-    const poolConfiguratorAddress =
-      await addressProviderContract.getPoolConfigurator();
+    const poolConfiguratorAddress = await addressProviderContract.getPoolConfigurator();
 
     console.log(`- Configure reserves in ${chunkedInputParams.length} txs`);
 
-    for (
-      let chunkIndex = 0;
-      chunkIndex < chunkedInputParams.length;
-      chunkIndex++
-    ) {
+    for (let chunkIndex = 0; chunkIndex < chunkedInputParams.length; chunkIndex++) {
       console.log(`------------------------`);
       console.log(`Configure reserves chunk ${chunkIndex + 1}`);
       console.log(`  - Configurator: ${poolConfiguratorAddress}`);
       console.log(`  - Reserves    : ${chunkedSymbols[chunkIndex].join(", ")}`);
-      const tx = await reservesSetupHelper.configureReserves(
-        poolConfiguratorAddress,
-        chunkedInputParams[chunkIndex]
-      );
+      const tx = await reservesSetupHelper.configureReserves(poolConfiguratorAddress, chunkedInputParams[chunkIndex]);
       const receipt = await tx.wait();
       console.log(`  - Tx hash: ${receipt?.hash}`);
       console.log(`  - From: ${receipt?.from}`);
@@ -258,10 +232,9 @@ const main = async (): Promise<void> => {
     aclManager = await hre.ethers.getContractAt(
       "ACLManager",
       await addressProviderContract.getACLManager(),
-      await hre.ethers.getSigner(deployer)
+      await hre.ethers.getSigner(deployer),
     );
-    const removeRiskAdminResponse =
-      await aclManager.removeRiskAdmin(reserveHelperAddress);
+    const removeRiskAdminResponse = await aclManager.removeRiskAdmin(reserveHelperAddress);
     const removeRiskAdminReceipt = await removeRiskAdminResponse.wait();
     console.log(`  - TxHash : ${removeRiskAdminReceipt?.hash}`);
     console.log(`  - From   : ${removeRiskAdminReceipt?.from}`);

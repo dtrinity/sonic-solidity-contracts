@@ -40,7 +40,7 @@ export async function scanRolesAndOwnership(
   hre: HardhatRuntimeEnvironment,
   deployer: string,
   governanceMultisig: string,
-  logger?: (message: string) => void
+  logger?: (message: string) => void,
 ): Promise<ScanResult> {
   const { ethers, network } = hre;
   const log = logger || (() => {});
@@ -48,17 +48,12 @@ export async function scanRolesAndOwnership(
   const deploymentsPath = path.join(hre.config.paths.deployments, network.name);
 
   if (!fs.existsSync(deploymentsPath)) {
-    throw new Error(
-      `Deployments directory not found for network ${network.name}: ${deploymentsPath}`
-    );
+    throw new Error(`Deployments directory not found for network ${network.name}: ${deploymentsPath}`);
   }
 
   const deploymentFiles = fs
     .readdirSync(deploymentsPath)
-    .filter(
-      (f) =>
-        f.endsWith(".json") && f !== ".migrations.json" && f !== "solcInputs"
-    );
+    .filter((f) => f.endsWith(".json") && f !== ".migrations.json" && f !== "solcInputs");
 
   const rolesContracts: RolesContractInfo[] = [];
   const ownableContracts: OwnableContractInfo[] = [];
@@ -69,8 +64,7 @@ export async function scanRolesAndOwnership(
       const deployment = JSON.parse(fs.readFileSync(artifactPath, "utf-8"));
       const abi: AbiItem[] = deployment.abi;
       const contractAddress: string = deployment.address;
-      const contractName: string =
-        deployment.contractName || filename.replace(".json", "");
+      const contractName: string = deployment.contractName || filename.replace(".json", "");
 
       // Detect AccessControl (hasRole(bytes32,address) view returns bool)
       const hasRoleFn = abi.find(
@@ -81,14 +75,12 @@ export async function scanRolesAndOwnership(
           item.inputs[0].type === "bytes32" &&
           item.inputs[1].type === "address" &&
           item.outputs?.length === 1 &&
-          item.outputs[0].type === "bool"
+          item.outputs[0].type === "bool",
       );
 
       if (hasRoleFn) {
         log(`  Contract ${contractName} has a hasRole function.`);
-        log(
-          `\nChecking roles for contract: ${contractName} at ${contractAddress}`
-        );
+        log(`\nChecking roles for contract: ${contractName} at ${contractAddress}`);
         const roles: RoleInfo[] = [];
 
         // Collect role constants as view functions returning bytes32
@@ -96,8 +88,7 @@ export async function scanRolesAndOwnership(
           if (
             item.type === "function" &&
             item.stateMutability === "view" &&
-            (item.name?.endsWith("_ROLE") ||
-              item.name === "DEFAULT_ADMIN_ROLE") &&
+            (item.name?.endsWith("_ROLE") || item.name === "DEFAULT_ADMIN_ROLE") &&
             (item.inputs?.length ?? 0) === 0 &&
             item.outputs?.length === 1 &&
             item.outputs[0].type === "bytes32"
@@ -138,10 +129,7 @@ export async function scanRolesAndOwnership(
         let governanceHasDefaultAdmin = false;
         if (defaultAdmin) {
           try {
-            governanceHasDefaultAdmin = await contract.hasRole(
-              defaultAdmin.hash,
-              governanceMultisig
-            );
+            governanceHasDefaultAdmin = await contract.hasRole(defaultAdmin.hash, governanceMultisig);
             log(`    governanceHasDefaultAdmin: ${governanceHasDefaultAdmin}`);
           } catch {}
         }
@@ -165,16 +153,14 @@ export async function scanRolesAndOwnership(
           item.name === "owner" &&
           (item.inputs?.length ?? 0) === 0 &&
           item.outputs?.length === 1 &&
-          item.outputs[0].type === "address"
+          item.outputs[0].type === "address",
       );
 
       if (ownerFn) {
         try {
           const contract = await ethers.getContractAt(abi, contractAddress);
           const owner: string = await contract.owner();
-          log(
-            `  Contract ${contractName} appears to be Ownable. owner=${owner}`
-          );
+          log(`  Contract ${contractName} appears to be Ownable. owner=${owner}`);
           ownableContracts.push({
             name: contractName,
             address: contractAddress,

@@ -48,7 +48,7 @@ describe("ChainlinkDecimalUpscaler", () => {
       MOCK_ROUND_DATA.answer,
       MOCK_ROUND_DATA.startedAt,
       MOCK_ROUND_DATA.updatedAt,
-      MOCK_ROUND_DATA.answeredInRound
+      MOCK_ROUND_DATA.answeredInRound,
     );
 
     // Deploy mock aggregator without legacy interface
@@ -61,7 +61,7 @@ describe("ChainlinkDecimalUpscaler", () => {
       MOCK_ROUND_DATA.answer,
       MOCK_ROUND_DATA.startedAt,
       MOCK_ROUND_DATA.updatedAt,
-      MOCK_ROUND_DATA.answeredInRound
+      MOCK_ROUND_DATA.answeredInRound,
     );
   });
 
@@ -79,18 +79,18 @@ describe("ChainlinkDecimalUpscaler", () => {
     it("should revert when attempting downscaling", async () => {
       const targetDecimals = 6; // Less than source decimals
       const UpscalerFactory = await ethers.getContractFactory("ChainlinkDecimalUpscaler");
-      
+
       await expect(
-        UpscalerFactory.deploy(await mockAggregator.getAddress(), targetDecimals)
+        UpscalerFactory.deploy(await mockAggregator.getAddress(), targetDecimals),
       ).to.be.revertedWithCustomError(UpscalerFactory, "InvalidDecimalsDownscaleNotSupported");
     });
 
     it("should revert when attempting no scaling (same decimals)", async () => {
       const targetDecimals = 8; // Equal to source decimals
       const UpscalerFactory = await ethers.getContractFactory("ChainlinkDecimalUpscaler");
-      
+
       await expect(
-        UpscalerFactory.deploy(await mockAggregator.getAddress(), targetDecimals)
+        UpscalerFactory.deploy(await mockAggregator.getAddress(), targetDecimals),
       ).to.be.revertedWithCustomError(UpscalerFactory, "InvalidDecimalsDownscaleNotSupported");
     });
 
@@ -98,10 +98,7 @@ describe("ChainlinkDecimalUpscaler", () => {
       const UpscalerFactory = await ethers.getContractFactory("ChainlinkDecimalUpscaler");
 
       // Test with legacy support
-      const upscalerWithLegacy = await UpscalerFactory.deploy(
-        await mockAggregatorWithLegacy.getAddress(),
-        12
-      );
+      const upscalerWithLegacy = await UpscalerFactory.deploy(await mockAggregatorWithLegacy.getAddress(), 12);
 
       // Legacy methods should work by calling source feed directly
       const legacyRound = await upscalerWithLegacy.latestRound();
@@ -110,10 +107,7 @@ describe("ChainlinkDecimalUpscaler", () => {
       expect(legacyAnswer).to.equal(MOCK_ROUND_DATA.answer * 10000n); // Scaled up 8->12 decimals
 
       // Test without legacy support
-      const upscalerWithoutLegacy = await UpscalerFactory.deploy(
-        await mockAggregator.getAddress(),
-        12
-      );
+      const upscalerWithoutLegacy = await UpscalerFactory.deploy(await mockAggregator.getAddress(), 12);
 
       // Legacy methods should work by falling back to latestRoundData()
       const fallbackRound = await upscalerWithoutLegacy.latestRound();
@@ -204,7 +198,7 @@ describe("ChainlinkDecimalUpscaler", () => {
       upscaler = await UpscalerFactory.deploy(await mockAggregator.getAddress(), 18); // 10 decimal difference
 
       const result = await upscaler.latestRoundData();
-      expect(result.answer).to.equal(MOCK_ROUND_DATA.answer * (10n ** 10n)); // multiply by 10^10
+      expect(result.answer).to.equal(MOCK_ROUND_DATA.answer * 10n ** 10n); // multiply by 10^10
     });
 
     it("should handle minimal upscaling correctly (8 to 9 decimals)", async () => {
@@ -222,7 +216,7 @@ describe("ChainlinkDecimalUpscaler", () => {
         0n, // zero price
         MOCK_ROUND_DATA.startedAt + 1n,
         MOCK_ROUND_DATA.updatedAt + 1n,
-        MOCK_ROUND_DATA.answeredInRound + 1n
+        MOCK_ROUND_DATA.answeredInRound + 1n,
       );
 
       const UpscalerFactory = await ethers.getContractFactory("ChainlinkDecimalUpscaler");
@@ -240,7 +234,7 @@ describe("ChainlinkDecimalUpscaler", () => {
         negativePrice,
         MOCK_ROUND_DATA.startedAt + 1n,
         MOCK_ROUND_DATA.updatedAt + 1n,
-        MOCK_ROUND_DATA.answeredInRound + 1n
+        MOCK_ROUND_DATA.answeredInRound + 1n,
       );
 
       const UpscalerFactory = await ethers.getContractFactory("ChainlinkDecimalUpscaler");

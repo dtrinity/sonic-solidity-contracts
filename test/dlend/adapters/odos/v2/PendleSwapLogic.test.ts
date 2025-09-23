@@ -7,7 +7,7 @@ import {
   createPendleSwapData,
   createPTSwapData,
   encodePTSwapData,
-  OdosV2TestFixture
+  OdosV2TestFixture,
 } from "./fixtures/setup";
 
 describe("PendleSwapLogic", function () {
@@ -73,10 +73,7 @@ describe("PendleSwapLogic", function () {
     it("should return REGULAR_SWAP for regular token to regular token", async function () {
       const { pendleLogicHarness, tokenA, tokenB } = fixture;
 
-      const swapType = await pendleLogicHarness.determineSwapType(
-        await tokenA.getAddress(),
-        await tokenB.getAddress()
-      );
+      const swapType = await pendleLogicHarness.determineSwapType(await tokenA.getAddress(), await tokenB.getAddress());
 
       expect(swapType).to.equal(0); // SwapType.REGULAR_SWAP
     });
@@ -86,7 +83,7 @@ describe("PendleSwapLogic", function () {
 
       const swapType = await pendleLogicHarness.determineSwapType(
         await ptTokenA.getAddress(),
-        await tokenB.getAddress()
+        await tokenB.getAddress(),
       );
 
       expect(swapType).to.equal(1); // SwapType.PT_TO_REGULAR
@@ -97,7 +94,7 @@ describe("PendleSwapLogic", function () {
 
       const swapType = await pendleLogicHarness.determineSwapType(
         await tokenA.getAddress(),
-        await ptTokenB.getAddress()
+        await ptTokenB.getAddress(),
       );
 
       expect(swapType).to.equal(2); // SwapType.REGULAR_TO_PT
@@ -108,7 +105,7 @@ describe("PendleSwapLogic", function () {
 
       const swapType = await pendleLogicHarness.determineSwapType(
         await ptTokenA.getAddress(),
-        await ptTokenB.getAddress()
+        await ptTokenB.getAddress(),
       );
 
       expect(swapType).to.equal(3); // SwapType.PT_TO_PT
@@ -123,7 +120,7 @@ describe("PendleSwapLogic", function () {
         false, // not composed
         ethers.ZeroAddress,
         "0x",
-        createOdosSwapData(odosRouter)
+        createOdosSwapData(odosRouter),
       );
 
       const isValid = await pendleLogicHarness.validatePTSwapData(swapData);
@@ -137,7 +134,7 @@ describe("PendleSwapLogic", function () {
         true, // composed
         await tokenA.getAddress(),
         createPendleSwapData(pendleRouter),
-        createOdosSwapData(odosRouter)
+        createOdosSwapData(odosRouter),
       );
 
       const isValid = await pendleLogicHarness.validatePTSwapData(swapData);
@@ -151,7 +148,7 @@ describe("PendleSwapLogic", function () {
         false, // not composed
         ethers.ZeroAddress,
         "0x",
-        "0x" // empty odos calldata
+        "0x", // empty odos calldata
       );
 
       const isValid = await pendleLogicHarness.validatePTSwapData(swapData);
@@ -165,7 +162,7 @@ describe("PendleSwapLogic", function () {
         true, // composed
         await tokenA.getAddress(),
         "0x", // empty pendle calldata
-        "0x"
+        "0x",
       );
 
       const isValid = await pendleLogicHarness.validatePTSwapData(swapData);
@@ -179,7 +176,7 @@ describe("PendleSwapLogic", function () {
         true, // composed
         await tokenA.getAddress(),
         createPendleSwapData(pendleRouter),
-        "0x" // empty odos calldata is allowed for some composed swaps
+        "0x", // empty odos calldata is allowed for some composed swaps
       );
 
       const isValid = await pendleLogicHarness.validatePTSwapData(swapData);
@@ -191,19 +188,13 @@ describe("PendleSwapLogic", function () {
 
   describe("Pure Logic: PT Swap Data Validation", function () {
     it("should reject invalid PT swap data for composed swaps", async function () {
-      const {
-        pendleLogicHarness,
-        pendleRouter,
-        odosRouter,
-        ptTokenA,
-        tokenB
-      } = fixture;
+      const { pendleLogicHarness, pendleRouter, odosRouter, ptTokenA, tokenB } = fixture;
 
       const swapData = createPTSwapData(
         false, // not composed - invalid for PT function
         ethers.ZeroAddress,
         "0x",
-        "0x"
+        "0x",
       );
 
       await expect(
@@ -214,8 +205,8 @@ describe("PendleSwapLogic", function () {
           ethers.parseEther("850"),
           await pendleRouter.getAddress(),
           odosRouter,
-          swapData
-        )
+          swapData,
+        ),
       ).to.be.revertedWithCustomError(pendleLogicHarness, "InvalidPTSwapData");
     });
 
@@ -227,7 +218,7 @@ describe("PendleSwapLogic", function () {
         true, // composed
         await syTokenA.getAddress(),
         createPendleSwapData(pendleRouter),
-        "0x" // missing odos calldata for non-direct case
+        "0x", // missing odos calldata for non-direct case
       );
 
       // Test data validation logic - if underlying != target, odos calldata is required
@@ -256,14 +247,14 @@ describe("PendleSwapLogic", function () {
         odosRouter,
         tokenA, // regular token, not PT
         ptTokenB,
-        syTokenA
+        syTokenA,
       } = fixture;
 
       const swapData = createPTSwapData(
         true,
         await syTokenA.getAddress(),
         createPendleSwapData(pendleRouter),
-        createOdosSwapData(odosRouter)
+        createOdosSwapData(odosRouter),
       );
 
       // Should revert when trying to use regular token as PT token input
@@ -275,8 +266,8 @@ describe("PendleSwapLogic", function () {
           ethers.parseEther("850"),
           await pendleRouter.getAddress(),
           odosRouter,
-          swapData
-        )
+          swapData,
+        ),
       ).to.be.revertedWithCustomError(pendleLogicHarness, "InvalidPTToken");
     });
 
@@ -287,14 +278,14 @@ describe("PendleSwapLogic", function () {
         odosRouter,
         ptTokenA,
         tokenB, // regular token, not PT
-        syTokenA
+        syTokenA,
       } = fixture;
 
       const swapData = createPTSwapData(
         true,
         await syTokenA.getAddress(),
         createPendleSwapData(pendleRouter),
-        createOdosSwapData(odosRouter)
+        createOdosSwapData(odosRouter),
       );
 
       // Should revert when trying to use regular token as PT token output
@@ -306,26 +297,19 @@ describe("PendleSwapLogic", function () {
           ethers.parseEther("850"),
           await pendleRouter.getAddress(),
           odosRouter,
-          swapData
-        )
+          swapData,
+        ),
       ).to.be.revertedWithCustomError(pendleLogicHarness, "InvalidPTToken");
     });
 
     it("should validate required calldata for PT-to-PT swaps", async function () {
-      const {
-        pendleLogicHarness,
-        pendleRouter,
-        odosRouter,
-        ptTokenA,
-        ptTokenB,
-        syTokenA
-      } = fixture;
+      const { pendleLogicHarness, pendleRouter, odosRouter, ptTokenA, ptTokenB, syTokenA } = fixture;
 
       const swapData = createPTSwapData(
         true,
         await syTokenA.getAddress(),
         "0x", // missing pendle calldata
-        createOdosSwapData(odosRouter)
+        createOdosSwapData(odosRouter),
       );
 
       await expect(
@@ -336,8 +320,8 @@ describe("PendleSwapLogic", function () {
           ethers.parseEther("850"),
           await pendleRouter.getAddress(),
           odosRouter,
-          swapData
-        )
+          swapData,
+        ),
       ).to.be.revertedWithCustomError(pendleLogicHarness, "InvalidPTSwapData");
     });
   });
@@ -405,11 +389,11 @@ describe("PendleSwapLogic", function () {
       // Test that determineSwapType is also view now
       const swapType1 = await pendleLogicHarness.determineSwapType(
         await ptTokenA.getAddress(),
-        await fixture.tokenB.getAddress()
+        await fixture.tokenB.getAddress(),
       );
       const swapType2 = await pendleLogicHarness.determineSwapType(
         await ptTokenA.getAddress(),
-        await fixture.tokenB.getAddress()
+        await fixture.tokenB.getAddress(),
       );
 
       expect(swapType1).to.equal(swapType2); // Consistent view results

@@ -111,8 +111,7 @@ const parser = yargs(hideBin(process.argv))
     costBps: {
       type: "number",
       default: 30,
-      describe:
-        "Approximate slippage cost borne by rebalancer, in bps of swapped notional",
+      describe: "Approximate slippage cost borne by rebalancer, in bps of swapped notional",
     },
     multMin: {
       type: "number",
@@ -134,9 +133,7 @@ const parser = yargs(hideBin(process.argv))
 
 // Yargs v17 exposes `parseSync()`, older versions expose synchronous parsing via `.argv` or `.parse()`.
 // This shim keeps compatibility with either API surface.
-const argv = (parser as any).parseSync
-  ? (parser as any).parseSync()
-  : parser.parse();
+const argv = (parser as any).parseSync ? (parser as any).parseSync() : parser.parse();
 
 const params: SimParams = {
   target: argv.target,
@@ -173,9 +170,7 @@ function randomNormal(): number {
 /** Compute leverage in bps. Infinite leverage returns Number.MAX_SAFE_INTEGER */
 function leverageBps(collateralBase: number, debtBase: number): number {
   if (collateralBase <= debtBase) return Number.MAX_SAFE_INTEGER;
-  return (
-    (collateralBase * ONE_HUNDRED_PERCENT_BPS) / (collateralBase - debtBase)
-  );
+  return (collateralBase * ONE_HUNDRED_PERCENT_BPS) / (collateralBase - debtBase);
 }
 
 function percentile(sorted: number[], p: number): number {
@@ -227,16 +222,14 @@ function runOptimisation(): void {
   }
 
   // Determine optimal
-  const optimal = results.reduce((best, curr) =>
-    curr.meanValue > best.meanValue ? curr : best
-  );
+  const optimal = results.reduce((best, curr) => (curr.meanValue > best.meanValue ? curr : best));
 
   console.table(results);
   console.log(
     "Optimal multiplier:",
     optimal.multiplier.toFixed(2),
     "with mean retained value",
-    optimal.meanValue.toFixed(2)
+    optimal.meanValue.toFixed(2),
   );
 }
 
@@ -261,12 +254,7 @@ function runSingleSimulation(maxSubsidyBps: number): TrialResult {
 
     // price evolution via GBM with time-varying drift
     const z = randomNormal();
-    price =
-      price *
-      Math.exp(
-        (muStep - 0.5 * params.sigma ** 2) * dt +
-          params.sigma * Math.sqrt(dt) * z
-      );
+    price = price * Math.exp((muStep - 0.5 * params.sigma ** 2) * dt + params.sigma * Math.sqrt(dt) * z);
 
     collateralBase = collateralTokens * price;
     debtBase = debtTokens; // debt token pegged at 1
@@ -278,9 +266,7 @@ function runSingleSimulation(maxSubsidyBps: number): TrialResult {
       // Need rebalance
       const netAssetBase = collateralBase - debtBase;
       const deviationBps = Math.abs(currentLevBps - params.target);
-      const rawSubsidy =
-        (params.currentMult * (deviationBps * ONE_HUNDRED_PERCENT_BPS)) /
-        params.target;
+      const rawSubsidy = (params.currentMult * (deviationBps * ONE_HUNDRED_PERCENT_BPS)) / params.target;
       const subsidyBps = Math.min(rawSubsidy, maxSubsidyBps);
 
       // Rebalancer will only act if net profit positive
@@ -292,8 +278,7 @@ function runSingleSimulation(maxSubsidyBps: number): TrialResult {
       // Value lost as subsidy:
       // Assume we rebalance exactly back to target leverage.
       // Required debt/collateral change is |netAssetDiff| * (L-1)/L. For simplicity we approximate subsidyValue = subsidyBps * netAssetBase / 1e4
-      const subsidyValueBase =
-        (subsidyBps * netAssetBase) / ONE_HUNDRED_PERCENT_BPS;
+      const subsidyValueBase = (subsidyBps * netAssetBase) / ONE_HUNDRED_PERCENT_BPS;
       cumulativeSubsidyBase += subsidyValueBase;
 
       // New net asset after paying subsidy

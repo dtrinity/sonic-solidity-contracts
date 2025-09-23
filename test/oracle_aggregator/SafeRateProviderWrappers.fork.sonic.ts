@@ -20,7 +20,7 @@ describe("SafeRateProvider Wrappers on Sonic Fork", () => {
     this.timeout(120000); // Increase timeout to 2 minutes
 
     console.log("Forking Sonic mainnet...");
-    
+
     // Fork Sonic mainnet
     await hre.network.provider.request({
       method: "hardhat_reset",
@@ -40,26 +40,23 @@ describe("SafeRateProvider Wrappers on Sonic Fork", () => {
     accountant = await ethers.getContractAt(
       [
         "function getRateSafe() external view returns (uint256)",
-        "function getRate() external view returns (uint256)", 
+        "function getRate() external view returns (uint256)",
         "function accountantState() external view returns (tuple(address payoutAddress, uint96 highwaterMark, uint128 feesOwedInBase, uint128 totalSharesLastUpdate, uint96 exchangeRate, uint16 allowedExchangeRateChangeUpper, uint16 allowedExchangeRateChangeLower, uint64 lastUpdateTimestamp, bool isPaused, uint24 minimumUpdateDelayInSeconds, uint16 platformFee, uint16 performanceFee))",
-        "function decimals() external view returns (uint8)"
+        "function decimals() external view returns (uint8)",
       ],
-      ACCOUNTANT_WITH_FIXED_RATE_ADDRESS
+      ACCOUNTANT_WITH_FIXED_RATE_ADDRESS,
     );
 
     // Deploy ChainlinkSafeRateProviderCompositeWrapperWithThresholding
     const ChainlinkFactory = await ethers.getContractFactory(
       "ChainlinkSafeRateProviderCompositeWrapperWithThresholding",
-      signer
+      signer,
     );
     chainlinkWrapper = await ChainlinkFactory.deploy(ethers.ZeroAddress, BASE_UNIT);
     await chainlinkWrapper.waitForDeployment();
 
-    // Deploy ERC4626SafeRateProviderWrapperWithThresholding  
-    const ERC4626Factory = await ethers.getContractFactory(
-      "ERC4626SafeRateProviderWrapperWithThresholding",
-      signer
-    );
+    // Deploy ERC4626SafeRateProviderWrapperWithThresholding
+    const ERC4626Factory = await ethers.getContractFactory("ERC4626SafeRateProviderWrapperWithThresholding", signer);
     erc4626Wrapper = await ERC4626Factory.deploy(ethers.ZeroAddress, BASE_UNIT);
     await erc4626Wrapper.waitForDeployment();
   });
@@ -71,18 +68,18 @@ describe("SafeRateProvider Wrappers on Sonic Fork", () => {
       console.log("  isPaused:", state.isPaused);
       console.log("  exchangeRate:", state.exchangeRate.toString());
       console.log("  decimals:", await accountant.decimals());
-      
+
       expect(state.isPaused).to.be.false;
     });
 
     it("should successfully call getRateSafe() directly on accountant", async function () {
       const rateSafe = await accountant.getRateSafe();
       const rate = await accountant.getRate();
-      
+
       console.log("Direct calls to AccountantWithFixedRate:");
       console.log("  getRateSafe():", rateSafe.toString());
       console.log("  getRate():", rate.toString());
-      
+
       expect(rateSafe).to.equal(rate);
       expect(rateSafe).to.be.gt(0);
     });
@@ -93,7 +90,7 @@ describe("SafeRateProvider Wrappers on Sonic Fork", () => {
       await mockChainlink.setMock(ethers.parseUnits("1.0", 8)); // Set to 1.0 USD
 
       const assetKey = ethers.Wallet.createRandom().address;
-      
+
       // Add composite feed with real AccountantWithFixedRate
       await chainlinkWrapper.addCompositeFeed(
         assetKey,
@@ -103,18 +100,18 @@ describe("SafeRateProvider Wrappers on Sonic Fork", () => {
         0, // No thresholds
         0,
         0,
-        0
+        0,
       );
 
       const { price, isAlive } = await chainlinkWrapper.getPriceInfo(assetKey);
-      
+
       console.log("ChainlinkSafeRateProviderCompositeWrapper result:");
       console.log("  price:", price.toString());
       console.log("  isAlive:", isAlive);
-      
+
       expect(isAlive).to.be.true;
       expect(price).to.be.gt(0);
-      
+
       // Verify we can also call getAssetPrice
       const directPrice = await chainlinkWrapper.getAssetPrice(assetKey);
       expect(directPrice).to.equal(price);
@@ -125,11 +122,11 @@ describe("SafeRateProvider Wrappers on Sonic Fork", () => {
       const mockUnderlying = await ethers.deployContract("TestERC20", ["MockUSD", "MUSD", 18]);
       const mockVault = await ethers.deployContract(
         "MockERC4626FixedRate",
-        [await mockUnderlying.getAddress(), BASE_UNIT, ethers.parseUnits("1.05", 18)] // 1.05 exchange rate
+        [await mockUnderlying.getAddress(), BASE_UNIT, ethers.parseUnits("1.05", 18)], // 1.05 exchange rate
       );
 
       const assetKey = ethers.Wallet.createRandom().address;
-      
+
       // Add feed with real AccountantWithFixedRate
       await erc4626Wrapper.setFeed(
         assetKey,
@@ -139,18 +136,18 @@ describe("SafeRateProvider Wrappers on Sonic Fork", () => {
         0, // No thresholds
         0,
         0,
-        0
+        0,
       );
 
       const { price, isAlive } = await erc4626Wrapper.getPriceInfo(assetKey);
-      
+
       console.log("ERC4626SafeRateProviderWrapper result:");
       console.log("  price:", price.toString());
       console.log("  isAlive:", isAlive);
-      
+
       expect(isAlive).to.be.true;
       expect(price).to.be.gt(0);
-      
+
       // Verify we can also call getAssetPrice
       const directPrice = await erc4626Wrapper.getAssetPrice(assetKey);
       expect(directPrice).to.equal(price);
@@ -163,29 +160,32 @@ describe("SafeRateProvider Wrappers on Sonic Fork", () => {
       await mockChainlink.setMock(chainlinkPrice);
 
       const accountantRate = await accountant.getRateSafe();
-      
+
       const assetKey = ethers.Wallet.createRandom().address;
-      
+
       await chainlinkWrapper.addCompositeFeed(
         assetKey,
         await mockChainlink.getAddress(),
         ACCOUNTANT_WITH_FIXED_RATE_ADDRESS,
         BASE_UNIT,
-        0, 0, 0, 0
+        0,
+        0,
+        0,
+        0,
       );
 
       const { price } = await chainlinkWrapper.getPriceInfo(assetKey);
-      
+
       // Expected calculation: (chainlinkPrice * BASE_UNIT / 1e8) * (accountantRate * BASE_UNIT / BASE_UNIT) / BASE_UNIT
       // Simplified: chainlinkPrice * accountantRate / 1e8
-      const expectedPrice = (BigInt(chainlinkPrice) * accountantRate) / (10n ** 8n);
-      
+      const expectedPrice = (BigInt(chainlinkPrice) * accountantRate) / 10n ** 8n;
+
       console.log("Price calculation verification:");
       console.log("  Chainlink price (8 decimals):", chainlinkPrice.toString());
       console.log("  Accountant rate (18 decimals):", accountantRate.toString());
       console.log("  Expected composed price:", expectedPrice.toString());
       console.log("  Actual composed price:", price.toString());
-      
+
       expect(price).to.equal(expectedPrice);
     });
   });
