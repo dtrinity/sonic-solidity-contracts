@@ -425,7 +425,7 @@ __metadata:
 
 "@dtrinity/shared-hardhat-tools@file:.shared::locator=ethereum-solidity-contracts%40workspace%3A.":
   version: 1.0.0
-  resolution: "@dtrinity/shared-hardhat-tools@file:.shared#.shared::hash=b3f1c7&locator=ethereum-solidity-contracts%40workspace%3A."
+  resolution: "@dtrinity/shared-hardhat-tools@file:.shared#.shared::hash=b6d64b&locator=ethereum-solidity-contracts%40workspace%3A."
   dependencies:
     chalk: "npm:^4.1.2"
     commander: "npm:^11.0.0"
@@ -445,7 +445,7 @@ __metadata:
       optional: true
     solhint:
       optional: true
-  checksum: 10c0/596e9486621d5ed5b12c716627184d9b668bf79eda6713c9d0519f9efcde3cedec5929a72e5546bac51efef5e512827bfdedafba9261c9b7eb26aae96f1f0a40
+  checksum: 10c0/9bd9571cc422eb854e7e6976a9b2b23aed96448dc8f501dcc739f2fcdb6bf529557f9a1f06604ac815e4dd40466b71fc9c6d247d2a3d6506f4bba0df3c198272
   languageName: node
   linkType: hard
 
@@ -5410,6 +5410,7 @@ __metadata:
     eslint-plugin-simple-import-sort: "npm:^12.1.1"
     eslint-plugin-unused-imports: "npm:^4.1.4"
     ethers: "npm:^6.13.5"
+    glob: "npm:^10.3.0"
     globals: "npm:^15.14.0"
     hardhat: "npm:^2.22.17"
     hardhat-deploy: "npm:^1.0.2"

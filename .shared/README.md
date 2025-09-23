@@ -351,6 +351,7 @@ Shared-hardhat-tools should publish incremental updates on a predictable rhythm 
 - Defaults cover `lint`, `compile`, and `test`; add `--task` flags or per-repo overrides to widen or narrow the sweep.
 - Use `--install` (or per-repo `install: true`) when the matrix should refresh dependencies ahead of execution.
 - Emit a JSON report alongside release notes so downstream owners can see which repos were exercised and how long each task took.
+- `configs/validation.networks.json` tracks the current dTrinity Hardhat fleet (lint + compile with installs); copy and adjust it when onboarding new repos.
 
 ```bash
 # Quick check: validate Sonic only
@@ -358,10 +359,12 @@ npm run validate:matrix -- --repo sonic=../sonic-solidity-contracts
 
 # Config-driven run covering multiple repos
 npm run validate:matrix -- --config configs/validation.sample.json --install --report reports/validation.json
+npm run validate:matrix -- --config configs/validation.networks.json --report reports/validation.json
 ```
 
 - The optional config file (`configs/validation.sample.json`) documents the expected shape: a shared task list plus repo-specific `path`, `tasks`, `install`, and `commands` overrides.
-- Commands auto-detect `npm`, `yarn`, or `pnpm` and stop after the first failure so you can triage before cascading updates further downstream.
+- Fallback commands call the shared CLIs through `npx`, so you can lint/compile even if a repo hasn’t run `yarn install` yet.
+- Commands still auto-detect `npm`, `yarn`, or `pnpm` to respect existing `package.json` scripts and stop after the first failure so you can triage before cascading updates further downstream.
 
 ## Contributing
 
@@ -388,6 +391,14 @@ git commit  # Complete the merge
 Ensure shared tools are installed:
 ```bash
 npm install file:./.shared
+```
+
+### Yarn install fails with ENOENT inside node_modules
+
+If a previous `npm install` populated `node_modules`, Yarn 4 may fail with errors like `ENOENT: no such file or directory, lstat '.../node_modules/cacache/node_modules/glob/dist'`. Remove the stale folder and reinstall with Yarn:
+```bash
+rm -rf node_modules
+yarn install
 ```
 
 ### Hook permissions

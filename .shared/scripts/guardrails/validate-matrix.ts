@@ -171,7 +171,7 @@ function buildRunScriptCommand(packageManager: PackageManager, scriptName: strin
 function buildInstallCommand(packageManager: PackageManager): string {
   switch (packageManager) {
     case 'yarn':
-      return 'yarn install --check-files';
+      return 'yarn install';
     case 'pnpm':
       return 'pnpm install --frozen-lockfile';
     default:
@@ -179,16 +179,9 @@ function buildInstallCommand(packageManager: PackageManager): string {
   }
 }
 
-function buildExecCommand(packageManager: PackageManager, binary: string, args: string[]): string {
+function buildNpxCommand(binary: string, args: string[]): string {
   const joinedArgs = args.join(' ');
-  switch (packageManager) {
-    case 'yarn':
-      return `yarn ${binary} ${joinedArgs}`.trim();
-    case 'pnpm':
-      return `pnpm exec ${binary} ${joinedArgs}`.trim();
-    default:
-      return `npx ${binary} ${joinedArgs}`.trim();
-  }
+  return `npx ${binary} ${joinedArgs}`.trim();
 }
 
 type CommandResolution = { command: string } | { skip: true; reason: string };
@@ -230,7 +223,7 @@ function resolveLintCommand(context: ResolveContext): CommandResolution {
 
   const sharedLintScript = path.join(repoPath, '.shared', 'scripts', 'linting', 'eslint.ts');
   if (fs.existsSync(sharedLintScript)) {
-    return { command: `${buildExecCommand(packageManager, 'ts-node', ['.shared/scripts/linting/eslint.ts'])}` };
+    return { command: buildNpxCommand('ts-node', ['.shared/scripts/linting/eslint.ts']) };
   }
 
   return { skip: true, reason: 'No lint task or shared lint script found.' };
@@ -242,7 +235,7 @@ function resolveCompileCommand(context: ResolveContext): CommandResolution {
     return { command: buildRunScriptCommand(packageManager, 'compile') };
   }
 
-  return { command: buildExecCommand(packageManager, 'hardhat', ['compile']) };
+  return { command: buildNpxCommand('hardhat', ['compile']) };
 }
 
 function resolveTestCommand(context: ResolveContext): CommandResolution {
@@ -267,7 +260,7 @@ function resolveTestCommand(context: ResolveContext): CommandResolution {
     return { command: buildRunScriptCommand(packageManager, 'hardhat:test') };
   }
 
-  return { skip: true, reason: 'No predictable test command found.' };
+  return { command: buildNpxCommand('hardhat', ['test']) };
 }
 
 function runCommand(command: string, cwd: string): { exitCode: number | null; durationMs: number } {

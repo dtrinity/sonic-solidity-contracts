@@ -230,7 +230,9 @@ npm uninstall @dtrinity/shared-hardhat-tools
 - The CLI accepts repeated `--repo name=/path/to/repo` flags or a config file (`configs/validation.sample.json`) with shared defaults and per-repo overrides.
 - Add `--task` to change the global task list, `--command lint="yarn lint"` to override specific commands, and `--install` (or repo-level `install: true`) to reinstall dependencies first.
 - Provide `--report reports/validation.json` to emit a machine-readable summary with durations, exit codes, and skip reasons for release notes.
-- The script auto-detects npm/yarn/pnpm and stops after the first failure for a repo so you can triage issues before syncing other networks.
+- Fallback commands run via `npx`, so lint/compile can succeed even when a repo hasn’t re-installed its workspace dependencies yet.
+- The script still auto-detects npm/yarn/pnpm and stops after the first failure for a repo so you can triage issues before syncing other networks.
+- `configs/validation.networks.json` lists the current Hardhat repos (lint + compile with installs) so agents can kick off the full fleet sweep with one flag.
 
 ```bash
 # Validate Sonic only
@@ -238,6 +240,7 @@ npm run validate:matrix -- --repo sonic=../sonic-solidity-contracts
 
 # Drive the run from a config file and record a summary
 npm run validate:matrix -- --config configs/validation.sample.json --install --report reports/validation.json
+npm run validate:matrix -- --config configs/validation.networks.json --report reports/validation.json
 ```
 
 ## Full Integration Checklist (For Later)
@@ -284,6 +287,10 @@ Once minimal integration is verified, consider:
 
 ### Error: Compilation errors in shared tools
 **Solution**: Check TypeScript version compatibility: `npx tsc --version`
+
+### Error: `ENOENT ... node_modules/...` during `yarn install`
+**Cause**: The repository still has `node_modules` artifacts produced by `npm install`, which Yarn 4 cannot reconcile.
+**Solution**: Remove the existing `node_modules` directory and re-run `yarn install` so Yarn recreates the workspace from scratch.
 
 ## Success Criteria
 
