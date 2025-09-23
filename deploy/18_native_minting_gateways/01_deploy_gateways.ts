@@ -144,6 +144,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
 func.id = "deploy_native_minting_gateways";
 func.tags = ["native-minting-gateways", "gateways"];
-func.dependencies = ["ds", "dusd", "setup-issuerv2"]; // Depends on dStable tokens and IssuerV2 being deployed
+func.dependencies = ["ds", "setup-issuerv2"]; // Depends on dStable tokens and IssuerV2 being deployed
 
 export default func;
