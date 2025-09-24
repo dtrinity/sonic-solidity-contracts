@@ -3,23 +3,13 @@ import { expect } from "chai";
 import { ZeroAddress } from "ethers";
 import { deployments, ethers, getNamedAccounts } from "hardhat";
 
-import {
-  DStakeCollateralVault,
-  DStakeRouterDLend,
-  DStakeToken,
-  ERC20,
-} from "../../typechain-types";
+import { DStakeCollateralVault, DStakeRouterDLend, DStakeToken, ERC20 } from "../../typechain-types";
 import { ERC20StablecoinUpgradeable } from "../../typechain-types/contracts/dstable/ERC20StablecoinUpgradeable";
 import { WrappedDLendConversionAdapter } from "../../typechain-types/contracts/vaults/dstake/adapters/WrappedDLendConversionAdapter";
 import { WrappedDLendConversionAdapter__factory } from "../../typechain-types/factories/contracts/vaults/dstake/adapters/WrappedDLendConversionAdapter__factory";
-import {
-  createDStakeFixture,
-  DSTAKE_CONFIGS,
-  DStakeFixtureConfig,
-} from "./fixture";
+import { createDStakeFixture, DSTAKE_CONFIGS, DStakeFixtureConfig } from "./fixture";
 
-const parseUnits = (value: string | number, decimals: number | bigint) =>
-  ethers.parseUnits(value.toString(), decimals);
+const parseUnits = (value: string | number, decimals: number | bigint) => ethers.parseUnits(value.toString(), decimals);
 
 DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
   describe(`DStakeToken for ${config.DStakeTokenSymbol}`, () => {
@@ -49,10 +39,7 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
       // Revert to snapshot instead of re-deploying
       const out = await fixture();
       adapterAddress = out.adapterAddress;
-      adapter = WrappedDLendConversionAdapter__factory.connect(
-        adapterAddress,
-        deployer,
-      );
+      adapter = WrappedDLendConversionAdapter__factory.connect(adapterAddress, deployer);
       DStakeToken = out.DStakeToken as unknown as DStakeToken;
       collateralVault = out.collateralVault as unknown as DStakeCollateralVault;
       router = out.router as unknown as DStakeRouterDLend;
@@ -75,9 +62,7 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
 
     describe("Initialization & State", () => {
       it("Should set immutable dStable address via asset()", async () => {
-        expect(await DStakeToken.asset()).to.equal(
-          await dStableToken.getAddress(),
-        );
+        expect(await DStakeToken.asset()).to.equal(await dStableToken.getAddress());
       });
 
       it("Should revert initialize if dStable address is zero", async () => {
@@ -91,13 +76,7 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
               execute: {
                 init: {
                   methodName: "initialize",
-                  args: [
-                    ZeroAddress,
-                    "TestName",
-                    "TST",
-                    deployer.address,
-                    deployer.address,
-                  ],
+                  args: [ZeroAddress, "TestName", "TST", deployer.address, deployer.address],
                 },
               },
             },
@@ -112,9 +91,7 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
       });
 
       it("Should have collateralVault and router set from fixture", async () => {
-        expect(await DStakeToken.collateralVault()).to.equal(
-          collateralVaultAddress,
-        );
+        expect(await DStakeToken.collateralVault()).to.equal(collateralVaultAddress);
         expect(await DStakeToken.router()).to.equal(routerAddress);
       });
 
@@ -131,22 +108,13 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
             execute: {
               init: {
                 methodName: "initialize",
-                args: [
-                  await dStableToken.getAddress(),
-                  "Fresh",
-                  "FRS",
-                  deployer.address,
-                  deployer.address,
-                ],
+                args: [await dStableToken.getAddress(), "Fresh", "FRS", deployer.address, deployer.address],
               },
             },
           },
           log: false,
         });
-        const fresh = await ethers.getContractAt(
-          "DStakeToken",
-          deployResult.address,
-        );
+        const fresh = await ethers.getContractAt("DStakeToken", deployResult.address);
         expect(await fresh.withdrawalFeeBps()).to.equal(0);
       });
 
@@ -177,96 +145,69 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
 
       describe("setCollateralVault", () => {
         it("Should allow admin to set collateralVault", async () => {
-          await expect(
-            DStakeToken.connect(user1).setCollateralVault(user1.address),
-          )
+          await expect(DStakeToken.connect(user1).setCollateralVault(user1.address))
             .to.emit(DStakeToken, "CollateralVaultSet")
             .withArgs(user1.address);
           expect(await DStakeToken.collateralVault()).to.equal(user1.address);
         });
 
         it("Should revert if non-admin calls setCollateralVault", async () => {
-          await expect(
-            DStakeToken.connect(deployer).setCollateralVault(user1.address),
-          ).to.be.revertedWithCustomError(
+          await expect(DStakeToken.connect(deployer).setCollateralVault(user1.address)).to.be.revertedWithCustomError(
             DStakeToken,
             "AccessControlUnauthorizedAccount",
           );
         });
 
         it("Should revert if setting collateralVault to zero", async () => {
-          await expect(
-            DStakeToken.connect(user1).setCollateralVault(ZeroAddress),
-          ).to.be.revertedWithCustomError(DStakeToken, "ZeroAddress");
+          await expect(DStakeToken.connect(user1).setCollateralVault(ZeroAddress)).to.be.revertedWithCustomError(
+            DStakeToken,
+            "ZeroAddress",
+          );
         });
       });
 
       describe("setRouter", () => {
         it("Should allow admin to set router", async () => {
-          await expect(DStakeToken.connect(user1).setRouter(user1.address))
-            .to.emit(DStakeToken, "RouterSet")
-            .withArgs(user1.address);
+          await expect(DStakeToken.connect(user1).setRouter(user1.address)).to.emit(DStakeToken, "RouterSet").withArgs(user1.address);
           expect(await DStakeToken.router()).to.equal(user1.address);
         });
 
         it("Should revert if non-admin calls setRouter", async () => {
-          await expect(
-            DStakeToken.connect(deployer).setRouter(user1.address),
-          ).to.be.revertedWithCustomError(
+          await expect(DStakeToken.connect(deployer).setRouter(user1.address)).to.be.revertedWithCustomError(
             DStakeToken,
             "AccessControlUnauthorizedAccount",
           );
         });
 
         it("Should revert if setting router to zero", async () => {
-          await expect(
-            DStakeToken.connect(user1).setRouter(ZeroAddress),
-          ).to.be.revertedWithCustomError(DStakeToken, "ZeroAddress");
+          await expect(DStakeToken.connect(user1).setRouter(ZeroAddress)).to.be.revertedWithCustomError(DStakeToken, "ZeroAddress");
         });
       });
 
       describe("Role Management", () => {
         it("Should allow admin to grant and revoke FEE_MANAGER_ROLE", async () => {
-          await expect(
-            DStakeToken.connect(user1).grantRole(
-              FEE_MANAGER_ROLE,
-              deployer.address,
-            ),
-          ).to.not.be.reverted;
-          expect(await DStakeToken.hasRole(FEE_MANAGER_ROLE, deployer.address))
-            .to.be.true;
-          await expect(
-            DStakeToken.connect(user1).revokeRole(
-              FEE_MANAGER_ROLE,
-              deployer.address,
-            ),
-          ).to.not.be.reverted;
-          expect(await DStakeToken.hasRole(FEE_MANAGER_ROLE, deployer.address))
-            .to.be.false;
+          await expect(DStakeToken.connect(user1).grantRole(FEE_MANAGER_ROLE, deployer.address)).to.not.be.reverted;
+          expect(await DStakeToken.hasRole(FEE_MANAGER_ROLE, deployer.address)).to.be.true;
+          await expect(DStakeToken.connect(user1).revokeRole(FEE_MANAGER_ROLE, deployer.address)).to.not.be.reverted;
+          expect(await DStakeToken.hasRole(FEE_MANAGER_ROLE, deployer.address)).to.be.false;
         });
       });
 
       describe("setWithdrawalFee", () => {
         it("Should allow fee manager to set withdrawal fee", async () => {
-          await expect(DStakeToken.connect(user1).setWithdrawalFee(100))
-            .to.emit(DStakeToken, "WithdrawalFeeSet")
-            .withArgs(100);
+          await expect(DStakeToken.connect(user1).setWithdrawalFee(100)).to.emit(DStakeToken, "WithdrawalFeeSet").withArgs(100);
           expect(await DStakeToken.withdrawalFeeBps()).to.equal(100);
         });
 
         it("Should revert if non-fee-manager sets withdrawal fee", async () => {
-          await expect(
-            DStakeToken.connect(deployer).setWithdrawalFee(100),
-          ).to.be.revertedWithCustomError(
+          await expect(DStakeToken.connect(deployer).setWithdrawalFee(100)).to.be.revertedWithCustomError(
             DStakeToken,
             "AccessControlUnauthorizedAccount",
           );
         });
 
         it("Should revert if fee exceeds maxWithdrawalFeeBps", async () => {
-          await expect(
-            DStakeToken.connect(user1).setWithdrawalFee(10001),
-          ).to.be.revertedWithCustomError(DStakeToken, "InvalidFeeBps");
+          await expect(DStakeToken.connect(user1).setWithdrawalFee(10001)).to.be.revertedWithCustomError(DStakeToken, "InvalidFeeBps");
         });
 
         it("Should allow setting fee to 0", async () => {
@@ -289,13 +230,7 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
             execute: {
               init: {
                 methodName: "initialize",
-                args: [
-                  await dStableToken.getAddress(),
-                  "Fresh",
-                  "FRS",
-                  user1.address,
-                  user1.address,
-                ],
+                args: [await dStableToken.getAddress(), "Fresh", "FRS", user1.address, user1.address],
               },
             },
           },
@@ -314,13 +249,8 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
 
       it("totalAssets delegates correctly to collateralVault", async () => {
         await stable.mint(user1.address, assetsToDeposit);
-        await dStableToken
-          .connect(user1)
-          .approve(DStakeTokenAddress, assetsToDeposit);
-        await DStakeToken.connect(user1).deposit(
-          assetsToDeposit,
-          user1.address,
-        );
+        await dStableToken.connect(user1).approve(DStakeTokenAddress, assetsToDeposit);
+        await DStakeToken.connect(user1).deposit(assetsToDeposit, user1.address);
         const expected = await collateralVault.totalValueInDStable();
         expect(await DStakeToken.totalAssets()).to.equal(expected);
       });
@@ -341,13 +271,8 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
         it("should reflect share price change when vault has extra assets", async () => {
           // initial deposit to set base share price
           await stable.mint(user1.address, assetsToDeposit);
-          await dStableToken
-            .connect(user1)
-            .approve(DStakeTokenAddress, assetsToDeposit);
-          await DStakeToken.connect(user1).deposit(
-            assetsToDeposit,
-            user1.address,
-          );
+          await dStableToken.connect(user1).approve(DStakeTokenAddress, assetsToDeposit);
+          await DStakeToken.connect(user1).deposit(assetsToDeposit, user1.address);
 
           // simulate additional yield by adapter
           const extra = parseUnits("50", dStableDecimals);
@@ -366,59 +291,39 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
       });
 
       it("previewDeposit returns expected shares", async () => {
-        expect(await DStakeToken.previewDeposit(assetsToDeposit)).to.equal(
-          assetsToDeposit,
-        );
+        expect(await DStakeToken.previewDeposit(assetsToDeposit)).to.equal(assetsToDeposit);
       });
 
       it("maxDeposit returns uint256 max", async () => {
-        expect(await DStakeToken.maxDeposit(user1.address)).to.equal(
-          ethers.MaxUint256,
-        );
+        expect(await DStakeToken.maxDeposit(user1.address)).to.equal(ethers.MaxUint256);
       });
 
       describe("deposit function", () => {
         it("should revert if router not set", async () => {
           await stable.mint(user1.address, assetsToDeposit);
-          await dStableToken
-            .connect(user1)
-            .approve(await fresh.getAddress(), assetsToDeposit);
-          await expect(
-            fresh.connect(user1).deposit(assetsToDeposit, user1.address),
-          ).to.be.revertedWithCustomError(fresh, "ZeroAddress");
+          await dStableToken.connect(user1).approve(await fresh.getAddress(), assetsToDeposit);
+          await expect(fresh.connect(user1).deposit(assetsToDeposit, user1.address)).to.be.revertedWithCustomError(fresh, "ZeroAddress");
         });
 
         // zero-asset deposit allowed by default OpenZeppelin behavior
         it("should revert with ERC20InvalidReceiver when receiver is zero", async () => {
           await stable.mint(user1.address, assetsToDeposit);
-          await dStableToken
-            .connect(user1)
-            .approve(DStakeTokenAddress, assetsToDeposit);
-          await expect(
-            DStakeToken.connect(user1).deposit(assetsToDeposit, ZeroAddress),
-          )
+          await dStableToken.connect(user1).approve(DStakeTokenAddress, assetsToDeposit);
+          await expect(DStakeToken.connect(user1).deposit(assetsToDeposit, ZeroAddress))
             .to.be.revertedWithCustomError(DStakeToken, "ERC20InvalidReceiver")
             .withArgs(ZeroAddress);
         });
 
         it("should revert on insufficient balance", async () => {
-          await dStableToken
-            .connect(user1)
-            .approve(DStakeTokenAddress, assetsToDeposit);
-          await expect(
-            DStakeToken.connect(user1).deposit(assetsToDeposit, user1.address),
-          ).to.be.reverted;
+          await dStableToken.connect(user1).approve(DStakeTokenAddress, assetsToDeposit);
+          await expect(DStakeToken.connect(user1).deposit(assetsToDeposit, user1.address)).to.be.reverted;
         });
 
         it("should mint shares and emit Deposit event", async () => {
           await stable.mint(user1.address, assetsToDeposit);
-          await dStableToken
-            .connect(user1)
-            .approve(DStakeTokenAddress, assetsToDeposit);
+          await dStableToken.connect(user1).approve(DStakeTokenAddress, assetsToDeposit);
           const shares = await DStakeToken.previewDeposit(assetsToDeposit);
-          await expect(
-            DStakeToken.connect(user1).deposit(assetsToDeposit, user1.address),
-          )
+          await expect(DStakeToken.connect(user1).deposit(assetsToDeposit, user1.address))
             .to.emit(DStakeToken, "Deposit")
             .withArgs(user1.address, user1.address, assetsToDeposit, shares);
           expect(await DStakeToken.balanceOf(user1.address)).to.equal(shares);
@@ -430,22 +335,11 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
           const sharesToMint = parseUnits("50", dStableDecimals);
           const assetsToProvide = await DStakeToken.previewMint(sharesToMint);
           await stable.mint(user1.address, assetsToProvide);
-          await dStableToken
-            .connect(user1)
-            .approve(DStakeTokenAddress, assetsToProvide);
-          await expect(
-            DStakeToken.connect(user1).mint(sharesToMint, user1.address),
-          )
+          await dStableToken.connect(user1).approve(DStakeTokenAddress, assetsToProvide);
+          await expect(DStakeToken.connect(user1).mint(sharesToMint, user1.address))
             .to.emit(DStakeToken, "Deposit")
-            .withArgs(
-              user1.address,
-              user1.address,
-              assetsToProvide,
-              sharesToMint,
-            );
-          expect(await DStakeToken.balanceOf(user1.address)).to.equal(
-            sharesToMint,
-          );
+            .withArgs(user1.address, user1.address, assetsToProvide, sharesToMint);
+          expect(await DStakeToken.balanceOf(user1.address)).to.equal(sharesToMint);
         });
       });
     });
@@ -460,32 +354,21 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
         await DStakeToken.connect(user1).setWithdrawalFee(0);
         // Mint and deposit assets for user1
         await stable.mint(user1.address, assetsToDeposit);
-        await dStableToken
-          .connect(user1)
-          .approve(DStakeTokenAddress, assetsToDeposit);
+        await dStableToken.connect(user1).approve(DStakeTokenAddress, assetsToDeposit);
         shares = await DStakeToken.previewDeposit(assetsToDeposit);
-        await DStakeToken.connect(user1).deposit(
-          assetsToDeposit,
-          user1.address,
-        );
+        await DStakeToken.connect(user1).deposit(assetsToDeposit, user1.address);
       });
 
       it("previewWithdraw returns expected shares", async () => {
-        expect(await DStakeToken.previewWithdraw(assetsToDeposit)).to.equal(
-          shares,
-        );
+        expect(await DStakeToken.previewWithdraw(assetsToDeposit)).to.equal(shares);
       });
 
       it("previewRedeem returns expected assets", async () => {
-        expect(await DStakeToken.previewRedeem(shares)).to.equal(
-          assetsToDeposit,
-        );
+        expect(await DStakeToken.previewRedeem(shares)).to.equal(assetsToDeposit);
       });
 
       it("maxWithdraw returns deposit amount", async () => {
-        expect(await DStakeToken.maxWithdraw(user1.address)).to.equal(
-          assetsToDeposit,
-        );
+        expect(await DStakeToken.maxWithdraw(user1.address)).to.equal(assetsToDeposit);
       });
 
       it("maxRedeem returns share balance", async () => {
@@ -494,51 +377,22 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
 
       it("should withdraw assets and burn shares", async () => {
         const assetsToWithdraw = assetsToDeposit;
-        const sharesToBurn =
-          await DStakeToken.previewWithdraw(assetsToWithdraw);
-        await expect(
-          DStakeToken.connect(user1).withdraw(
-            assetsToWithdraw,
-            user1.address,
-            user1.address,
-          ),
-        )
+        const sharesToBurn = await DStakeToken.previewWithdraw(assetsToWithdraw);
+        await expect(DStakeToken.connect(user1).withdraw(assetsToWithdraw, user1.address, user1.address))
           .to.emit(DStakeToken, "Withdraw")
-          .withArgs(
-            user1.address,
-            user1.address,
-            user1.address,
-            assetsToWithdraw,
-            sharesToBurn,
-          );
+          .withArgs(user1.address, user1.address, user1.address, assetsToWithdraw, sharesToBurn);
         expect(await DStakeToken.balanceOf(user1.address)).to.equal(0);
-        expect(await dStableToken.balanceOf(user1.address)).to.equal(
-          assetsToWithdraw,
-        );
+        expect(await dStableToken.balanceOf(user1.address)).to.equal(assetsToWithdraw);
       });
 
       it("should redeem shares and transfer assets", async () => {
         const sharesToRedeem = shares;
         const assetsToReceive = await DStakeToken.previewRedeem(sharesToRedeem);
-        await expect(
-          DStakeToken.connect(user1).redeem(
-            sharesToRedeem,
-            user1.address,
-            user1.address,
-          ),
-        )
+        await expect(DStakeToken.connect(user1).redeem(sharesToRedeem, user1.address, user1.address))
           .to.emit(DStakeToken, "Withdraw")
-          .withArgs(
-            user1.address,
-            user1.address,
-            user1.address,
-            assetsToReceive,
-            sharesToRedeem,
-          );
+          .withArgs(user1.address, user1.address, user1.address, assetsToReceive, sharesToRedeem);
         expect(await DStakeToken.balanceOf(user1.address)).to.equal(0);
-        expect(await dStableToken.balanceOf(user1.address)).to.equal(
-          assetsToReceive,
-        );
+        expect(await dStableToken.balanceOf(user1.address)).to.equal(assetsToReceive);
       });
     });
 
@@ -561,9 +415,7 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
 
         // Mint and deposit gross assets for user1
         await stable.mint(user1.address, grossDeposit);
-        await dStableToken
-          .connect(user1)
-          .approve(DStakeTokenAddress, grossDeposit);
+        await dStableToken.connect(user1).approve(DStakeTokenAddress, grossDeposit);
         shares = await DStakeToken.previewDeposit(grossDeposit);
         await DStakeToken.connect(user1).deposit(grossDeposit, user1.address);
       });
@@ -571,19 +423,12 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
       it("should withdraw assets with fee deducted", async () => {
         // When we call withdraw(100), the user wants 100 net assets
         // The contract calculates the gross amount needed and takes a fee from that
-        const grossAmountNeeded =
-          (assetsToDeposit * 1000000n) / (1000000n - 10000n);
+        const grossAmountNeeded = (assetsToDeposit * 1000000n) / (1000000n - 10000n);
         const fee = (grossAmountNeeded * 10000n) / 1000000n;
         // The user should receive exactly the amount they requested (100 assets)
         const netAssets = assetsToDeposit; // This should be exactly 100
 
-        await expect(
-          DStakeToken.connect(user1).withdraw(
-            assetsToDeposit,
-            user1.address,
-            user1.address,
-          ),
-        )
+        await expect(DStakeToken.connect(user1).withdraw(assetsToDeposit, user1.address, user1.address))
           .to.emit(DStakeToken, "WithdrawalFee")
           .withArgs(user1.address, user1.address, fee);
         expect(await dStableToken.balanceOf(user1.address)).to.equal(netAssets);
@@ -597,19 +442,11 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
         // Calculate the expected fee on the **gross** assets (convertToAssets(shares)).
         const grossAssets = await DStakeToken.convertToAssets(shares);
         const fee = (grossAssets * 10000n) / 1000000n;
-        await expect(
-          DStakeToken.connect(user1).redeem(
-            shares,
-            user1.address,
-            user1.address,
-          ),
-        )
+        await expect(DStakeToken.connect(user1).redeem(shares, user1.address, user1.address))
           .to.emit(DStakeToken, "WithdrawalFee")
           .withArgs(user1.address, user1.address, fee);
         // User balance should increase by the previewRedeem amount (net assets)
-        expect(await dStableToken.balanceOf(user1.address)).to.equal(
-          previewAssets,
-        );
+        expect(await dStableToken.balanceOf(user1.address)).to.equal(previewAssets);
         expect(await DStakeToken.balanceOf(user1.address)).to.equal(0n);
       });
 
@@ -617,11 +454,8 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
       it("previewWithdraw returns expected shares including fee", async () => {
         // For mathematically correct fee calculation:
         // grossAmount = netAmount * ONE_HUNDRED_PERCENT_BPS / (ONE_HUNDRED_PERCENT_BPS - feeBps)
-        const expectedGrossAmount =
-          (assetsToDeposit * 1000000n) / (1000000n - 10000n);
-        expect(await DStakeToken.previewWithdraw(assetsToDeposit)).to.equal(
-          expectedGrossAmount,
-        );
+        const expectedGrossAmount = (assetsToDeposit * 1000000n) / (1000000n - 10000n);
+        expect(await DStakeToken.previewWithdraw(assetsToDeposit)).to.equal(expectedGrossAmount);
       });
 
       it("previewRedeem returns expected assets after fee", async () => {
@@ -629,9 +463,7 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
         const grossAssets = shares; // 1:1 ratio in this test setup
         const fee = (grossAssets * 10000n) / 1000000n;
         const expectedAssets = grossAssets - fee;
-        expect(await DStakeToken.previewRedeem(shares)).to.equal(
-          expectedAssets,
-        );
+        expect(await DStakeToken.previewRedeem(shares)).to.equal(expectedAssets);
       });
 
       it("maxWithdraw returns net amount after fee and allows full withdrawal", async () => {
@@ -641,21 +473,9 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
 
         const sharesToBurn = await DStakeToken.previewWithdraw(netMax);
 
-        await expect(
-          DStakeToken.connect(user1).withdraw(
-            netMax,
-            user1.address,
-            user1.address,
-          ),
-        )
+        await expect(DStakeToken.connect(user1).withdraw(netMax, user1.address, user1.address))
           .to.emit(DStakeToken, "Withdraw")
-          .withArgs(
-            user1.address,
-            user1.address,
-            user1.address,
-            netMax,
-            sharesToBurn,
-          );
+          .withArgs(user1.address, user1.address, user1.address, netMax, sharesToBurn);
 
         // User should now hold zero shares and exactly `netMax` more assets.
         expect(await DStakeToken.balanceOf(user1.address)).to.equal(0n);
@@ -678,15 +498,10 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
 
         // Give user1 some dStable tokens
         await stable.connect(deployer).mint(user1.address, assetsToDeposit);
-        await dStableToken
-          .connect(user1)
-          .approve(DStakeToken.target, assetsToDeposit);
+        await dStableToken.connect(user1).approve(DStakeToken.target, assetsToDeposit);
 
         // User1 deposits assets
-        await DStakeToken.connect(user1).deposit(
-          assetsToDeposit,
-          user1.address,
-        );
+        await DStakeToken.connect(user1).deposit(assetsToDeposit, user1.address);
         shares = await DStakeToken.balanceOf(user1.address);
       });
 
@@ -699,10 +514,7 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
             user2.address, // attacker as receiver
             user1.address, // victim as owner
           ),
-        ).to.be.revertedWithCustomError(
-          DStakeToken,
-          "ERC20InsufficientAllowance",
-        );
+        ).to.be.revertedWithCustomError(DStakeToken, "ERC20InsufficientAllowance");
       });
 
       it("should prevent unauthorized redeem without allowance", async () => {
@@ -714,10 +526,7 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
             user2.address, // attacker as receiver
             user1.address, // victim as owner
           ),
-        ).to.be.revertedWithCustomError(
-          DStakeToken,
-          "ERC20InsufficientAllowance",
-        );
+        ).to.be.revertedWithCustomError(DStakeToken, "ERC20InsufficientAllowance");
       });
 
       it("should allow withdrawal with proper allowance", async () => {
@@ -740,9 +549,7 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
         expect(await DStakeToken.balanceOf(user1.address)).to.equal(0);
 
         // Verify user2 received the assets
-        expect(await dStableToken.balanceOf(user2.address)).to.be.greaterThan(
-          0,
-        );
+        expect(await dStableToken.balanceOf(user2.address)).to.be.greaterThan(0);
       });
     });
   });

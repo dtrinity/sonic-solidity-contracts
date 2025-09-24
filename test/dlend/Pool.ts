@@ -34,10 +34,7 @@ describe("dLEND Pool", () => {
       "PoolAddressesProvider",
       (await hre.deployments.get(POOL_ADDRESSES_PROVIDER_ID)).address,
     );
-    const aclManager = await hre.ethers.getContractAt(
-      "ACLManager",
-      await addressesProvider.getACLManager(),
-    );
+    const aclManager = await hre.ethers.getContractAt("ACLManager", await addressesProvider.getACLManager());
 
     // Grant POOL_ADMIN_ROLE to deployer
     await aclManager.addPoolAdmin(deployerSigner.address);
@@ -48,8 +45,7 @@ describe("dLEND Pool", () => {
     // Get contract instances and configuration for each reserve
     for (const asset of reservesList) {
       const reserveData = await pool.getReserveData(asset);
-      const config =
-        await fixture.contracts.dataProvider.getReserveConfigurationData(asset);
+      const config = await fixture.contracts.dataProvider.getReserveConfigurationData(asset);
 
       // Get token contracts
       const tokenContract = await hre.ethers.getContractAt("TestERC20", asset);
@@ -81,66 +77,37 @@ describe("dLEND Pool", () => {
     }
 
     if (!dStableAsset || !collateralAsset) {
-      throw new Error(
-        "Could not find required test assets - need one dStable and one collateral asset",
-      );
+      throw new Error("Could not find required test assets - need one dStable and one collateral asset");
     }
 
     // Supply the dStable asset to the pool to ensure there's enough liquidity for borrowing
     // This is needed because the borrowing tests fail due to arithmetic overflow when there's not enough liquidity
-    const dStableToken = await hre.ethers.getContractAt(
-      "TestERC20",
-      dStableAsset,
-    );
+    const dStableToken = await hre.ethers.getContractAt("TestERC20", dStableAsset);
     const dStableSupplyAmount = ethers.parseUnits("1000", 18); // Supply a reasonable amount
 
     // Approve and supply the dStable to the pool
     await dStableToken.approve(await pool.getAddress(), dStableSupplyAmount);
-    await pool.supply(
-      dStableAsset,
-      dStableSupplyAmount,
-      deployerSigner.address,
-      0,
-    );
+    await pool.supply(dStableAsset, dStableSupplyAmount, deployerSigner.address, 0);
 
     // Log reserve configuration for both assets
-    const dStableConfig =
-      await fixture.contracts.dataProvider.getReserveConfigurationData(
-        dStableAsset,
-      );
-    const collateralConfig =
-      await fixture.contracts.dataProvider.getReserveConfigurationData(
-        collateralAsset,
-      );
+    const dStableConfig = await fixture.contracts.dataProvider.getReserveConfigurationData(dStableAsset);
+    const collateralConfig = await fixture.contracts.dataProvider.getReserveConfigurationData(collateralAsset);
   });
 
   describe("Supply", () => {
     beforeEach(async () => {
       // Check reserve configuration
-      const config =
-        await fixture.contracts.dataProvider.getReserveConfigurationData(
-          collateralAsset,
-        );
+      const config = await fixture.contracts.dataProvider.getReserveConfigurationData(collateralAsset);
 
       // For collateral assets, LTV should be > 0
-      expect(config.ltv).to.not.equal(
-        BigInt(0),
-        "Collateral LTV should be greater than 0",
-      );
+      expect(config.ltv).to.not.equal(BigInt(0), "Collateral LTV should be greater than 0");
       expect(config.isActive).to.be.true;
       expect(config.isFrozen).to.be.false;
 
       // For dStables, LTV should be 0 to prevent subsidy syphoning
-      const dStableConfig =
-        await fixture.contracts.dataProvider.getReserveConfigurationData(
-          dStableAsset,
-        );
-      expect(dStableConfig.ltv).to.equal(
-        BigInt(0),
-        "dStable LTV should be 0 to prevent subsidy syphoning",
-      );
-      expect(dStableConfig.borrowingEnabled).to.be.true,
-        "dStable should be borrowable";
+      const dStableConfig = await fixture.contracts.dataProvider.getReserveConfigurationData(dStableAsset);
+      expect(dStableConfig.ltv).to.equal(BigInt(0), "dStable LTV should be 0 to prevent subsidy syphoning");
+      (expect(dStableConfig.borrowingEnabled).to.be.true, "dStable should be borrowable");
     });
 
     it("should allow users to supply assets", async () => {
@@ -149,37 +116,24 @@ describe("dLEND Pool", () => {
       const aToken = fixture.contracts.aTokens[collateralAsset];
 
       // Transfer collateral to user1
-      const collateralToken = await hre.ethers.getContractAt(
-        "TestERC20",
-        collateralAsset,
-      );
+      const collateralToken = await hre.ethers.getContractAt("TestERC20", collateralAsset);
       await collateralToken.transfer(user1Signer.address, amount);
 
       // Approve spending
-      await asset
-        .connect(user1Signer)
-        .approve(await fixture.contracts.pool.getAddress(), amount);
+      await asset.connect(user1Signer).approve(await fixture.contracts.pool.getAddress(), amount);
 
       // Supply asset
-      await fixture.contracts.pool
-        .connect(user1Signer)
-        .supply(collateralAsset, amount, await user1Signer.getAddress(), 0);
+      await fixture.contracts.pool.connect(user1Signer).supply(collateralAsset, amount, await user1Signer.getAddress(), 0);
 
       // Enable collateral usage
-      await fixture.contracts.pool
-        .connect(user1Signer)
-        .setUserUseReserveAsCollateral(collateralAsset, true);
+      await fixture.contracts.pool.connect(user1Signer).setUserUseReserveAsCollateral(collateralAsset, true);
 
       // Check aToken balance
-      const aTokenBalance = await aToken.balanceOf(
-        await user1Signer.getAddress(),
-      );
+      const aTokenBalance = await aToken.balanceOf(await user1Signer.getAddress());
       expect(aTokenBalance).to.equal(amount);
 
       // Check user configuration
-      const userConfig = await fixture.contracts.pool.getUserConfiguration(
-        await user1Signer.getAddress(),
-      );
+      const userConfig = await fixture.contracts.pool.getUserConfiguration(await user1Signer.getAddress());
       expect(userConfig.data).to.not.equal(0); // User should have some configuration set
     });
 
@@ -188,30 +142,20 @@ describe("dLEND Pool", () => {
       const asset = await ethers.getContractAt("TestERC20", collateralAsset);
 
       // Transfer collateral to user1
-      const collateralToken = await hre.ethers.getContractAt(
-        "TestERC20",
-        collateralAsset,
-      );
+      const collateralToken = await hre.ethers.getContractAt("TestERC20", collateralAsset);
       await collateralToken.transfer(user1Signer.address, amount);
 
       // Supply asset
-      await asset
-        .connect(user1Signer)
-        .approve(await fixture.contracts.pool.getAddress(), amount);
-      await fixture.contracts.pool
-        .connect(user1Signer)
-        .supply(collateralAsset, amount, await user1Signer.getAddress(), 0);
+      await asset.connect(user1Signer).approve(await fixture.contracts.pool.getAddress(), amount);
+      await fixture.contracts.pool.connect(user1Signer).supply(collateralAsset, amount, await user1Signer.getAddress(), 0);
 
       // Enable collateral usage
-      await fixture.contracts.pool
-        .connect(user1Signer)
-        .setUserUseReserveAsCollateral(collateralAsset, true);
+      await fixture.contracts.pool.connect(user1Signer).setUserUseReserveAsCollateral(collateralAsset, true);
 
       // Check user account data
-      const { totalCollateralBase, totalDebtBase, availableBorrowsBase } =
-        await fixture.contracts.pool.getUserAccountData(
-          await user1Signer.getAddress(),
-        );
+      const { totalCollateralBase, totalDebtBase, availableBorrowsBase } = await fixture.contracts.pool.getUserAccountData(
+        await user1Signer.getAddress(),
+      );
 
       expect(totalCollateralBase).to.be.gt(0);
       expect(totalDebtBase).to.equal(0);
@@ -225,74 +169,34 @@ describe("dLEND Pool", () => {
       const borrowAmount = ethers.parseUnits("10", 18);
 
       // Transfer collateral to user1
-      const collateralToken = await hre.ethers.getContractAt(
-        "TestERC20",
-        collateralAsset,
-      );
+      const collateralToken = await hre.ethers.getContractAt("TestERC20", collateralAsset);
       await collateralToken.transfer(user1Signer.address, collateralAmount);
 
       // Supply collateral first
-      const collateral = await ethers.getContractAt(
-        "TestERC20",
-        collateralAsset,
-      );
-      await collateral
-        .connect(user1Signer)
-        .approve(await fixture.contracts.pool.getAddress(), collateralAmount);
-      await fixture.contracts.pool
-        .connect(user1Signer)
-        .supply(
-          collateralAsset,
-          collateralAmount,
-          await user1Signer.getAddress(),
-          0,
-        );
+      const collateral = await ethers.getContractAt("TestERC20", collateralAsset);
+      await collateral.connect(user1Signer).approve(await fixture.contracts.pool.getAddress(), collateralAmount);
+      await fixture.contracts.pool.connect(user1Signer).supply(collateralAsset, collateralAmount, await user1Signer.getAddress(), 0);
 
       // Enable collateral usage
-      await fixture.contracts.pool
-        .connect(user1Signer)
-        .setUserUseReserveAsCollateral(collateralAsset, true);
+      await fixture.contracts.pool.connect(user1Signer).setUserUseReserveAsCollateral(collateralAsset, true);
 
       // Get dStable contracts
-      const dStable = await ethers.getContractAt(
-        "ERC20StablecoinUpgradeable",
-        dStableAsset,
-      );
-      const variableDebtToken =
-        fixture.contracts.variableDebtTokens[dStableAsset];
+      const dStable = await ethers.getContractAt("ERC20StablecoinUpgradeable", dStableAsset);
+      const variableDebtToken = fixture.contracts.variableDebtTokens[dStableAsset];
 
       // Get initial dStable balance
-      const initialDStableBalance = await dStable.balanceOf(
-        await user1Signer.getAddress(),
-      );
+      const initialDStableBalance = await dStable.balanceOf(await user1Signer.getAddress());
 
       // Borrow dStable
-      await fixture.contracts.pool
-        .connect(user1Signer)
-        .borrow(
-          dStableAsset,
-          borrowAmount,
-          2,
-          0,
-          await user1Signer.getAddress(),
-        ); // 2 = variable rate
+      await fixture.contracts.pool.connect(user1Signer).borrow(dStableAsset, borrowAmount, 2, 0, await user1Signer.getAddress()); // 2 = variable rate
 
       // Check debt token balance
-      const debtBalance = await variableDebtToken.balanceOf(
-        await user1Signer.getAddress(),
-      );
-      expect(debtBalance).to.be.closeTo(
-        borrowAmount,
-        ethers.parseUnits("0.0001", 18),
-      ); // Use closeTo for potential minor interest accrual
+      const debtBalance = await variableDebtToken.balanceOf(await user1Signer.getAddress());
+      expect(debtBalance).to.be.closeTo(borrowAmount, ethers.parseUnits("0.0001", 18)); // Use closeTo for potential minor interest accrual
 
       // Check borrowed token balance increase
-      const finalDStableBalance = await dStable.balanceOf(
-        await user1Signer.getAddress(),
-      );
-      expect(finalDStableBalance).to.equal(
-        initialDStableBalance + borrowAmount,
-      );
+      const finalDStableBalance = await dStable.balanceOf(await user1Signer.getAddress());
+      expect(finalDStableBalance).to.equal(initialDStableBalance + borrowAmount);
     });
 
     it("should update user position after borrowing", async () => {
@@ -300,59 +204,28 @@ describe("dLEND Pool", () => {
       const borrowAmount = ethers.parseUnits("10", 18);
 
       // Transfer collateral to user1
-      const collateralToken = await hre.ethers.getContractAt(
-        "TestERC20",
-        collateralAsset,
-      );
+      const collateralToken = await hre.ethers.getContractAt("TestERC20", collateralAsset);
       await collateralToken.transfer(user1Signer.address, collateralAmount);
 
       // Supply collateral first
-      const collateral = await ethers.getContractAt(
-        "TestERC20",
-        collateralAsset,
-      );
-      await collateral
-        .connect(user1Signer)
-        .approve(await fixture.contracts.pool.getAddress(), collateralAmount);
-      await fixture.contracts.pool
-        .connect(user1Signer)
-        .supply(
-          collateralAsset,
-          collateralAmount,
-          await user1Signer.getAddress(),
-          0,
-        );
+      const collateral = await ethers.getContractAt("TestERC20", collateralAsset);
+      await collateral.connect(user1Signer).approve(await fixture.contracts.pool.getAddress(), collateralAmount);
+      await fixture.contracts.pool.connect(user1Signer).supply(collateralAsset, collateralAmount, await user1Signer.getAddress(), 0);
 
       // Enable collateral usage
-      await fixture.contracts.pool
-        .connect(user1Signer)
-        .setUserUseReserveAsCollateral(collateralAsset, true);
+      await fixture.contracts.pool.connect(user1Signer).setUserUseReserveAsCollateral(collateralAsset, true);
 
       // Get position before borrowing
-      const beforeBorrow = await fixture.contracts.pool.getUserAccountData(
-        await user1Signer.getAddress(),
-      );
+      const beforeBorrow = await fixture.contracts.pool.getUserAccountData(await user1Signer.getAddress());
 
       // Borrow dStable
-      await fixture.contracts.pool
-        .connect(user1Signer)
-        .borrow(
-          dStableAsset,
-          borrowAmount,
-          2,
-          0,
-          await user1Signer.getAddress(),
-        );
+      await fixture.contracts.pool.connect(user1Signer).borrow(dStableAsset, borrowAmount, 2, 0, await user1Signer.getAddress());
 
       // Get position after borrowing
-      const afterBorrow = await fixture.contracts.pool.getUserAccountData(
-        await user1Signer.getAddress(),
-      );
+      const afterBorrow = await fixture.contracts.pool.getUserAccountData(await user1Signer.getAddress());
 
       expect(afterBorrow.totalDebtBase).to.be.gt(beforeBorrow.totalDebtBase);
-      expect(afterBorrow.availableBorrowsBase).to.be.lt(
-        beforeBorrow.availableBorrowsBase,
-      );
+      expect(afterBorrow.availableBorrowsBase).to.be.lt(beforeBorrow.availableBorrowsBase);
       // Health factor might fluctuate slightly due to interest, check it remains reasonable
       expect(afterBorrow.healthFactor).to.be.lt(beforeBorrow.healthFactor);
       expect(afterBorrow.healthFactor).to.be.gt(ethers.parseUnits("1", 18)); // Ensure health factor is still > 1
@@ -365,56 +238,23 @@ describe("dLEND Pool", () => {
       const borrowAmount = ethers.parseUnits("10", 18);
 
       // Transfer collateral to user1
-      const collateralToken = await hre.ethers.getContractAt(
-        "TestERC20",
-        collateralAsset,
-      );
+      const collateralToken = await hre.ethers.getContractAt("TestERC20", collateralAsset);
       await collateralToken.transfer(user1Signer.address, collateralAmount);
 
       // Supply collateral
-      const collateral = await ethers.getContractAt(
-        "TestERC20",
-        collateralAsset,
-      );
-      await collateral
-        .connect(user1Signer)
-        .approve(await fixture.contracts.pool.getAddress(), collateralAmount);
-      await fixture.contracts.pool
-        .connect(user1Signer)
-        .supply(
-          collateralAsset,
-          collateralAmount,
-          await user1Signer.getAddress(),
-          0,
-        );
+      const collateral = await ethers.getContractAt("TestERC20", collateralAsset);
+      await collateral.connect(user1Signer).approve(await fixture.contracts.pool.getAddress(), collateralAmount);
+      await fixture.contracts.pool.connect(user1Signer).supply(collateralAsset, collateralAmount, await user1Signer.getAddress(), 0);
 
       // Enable collateral usage
-      await fixture.contracts.pool
-        .connect(user1Signer)
-        .setUserUseReserveAsCollateral(collateralAsset, true);
+      await fixture.contracts.pool.connect(user1Signer).setUserUseReserveAsCollateral(collateralAsset, true);
 
       // Borrow dStable
-      await fixture.contracts.pool
-        .connect(user1Signer)
-        .borrow(
-          dStableAsset,
-          borrowAmount,
-          2,
-          0,
-          await user1Signer.getAddress(),
-        );
+      await fixture.contracts.pool.connect(user1Signer).borrow(dStableAsset, borrowAmount, 2, 0, await user1Signer.getAddress());
 
       // Get user position
-      const {
-        totalCollateralBase,
-        totalDebtBase,
-        availableBorrowsBase,
-        currentLiquidationThreshold,
-        ltv,
-        healthFactor,
-      } = await fixture.contracts.pool.getUserAccountData(
-        await user1Signer.getAddress(),
-      );
+      const { totalCollateralBase, totalDebtBase, availableBorrowsBase, currentLiquidationThreshold, ltv, healthFactor } =
+        await fixture.contracts.pool.getUserAccountData(await user1Signer.getAddress());
 
       // Verify position calculations
       expect(totalCollateralBase).to.be.gt(0);
@@ -434,9 +274,7 @@ describe("dLEND Pool", () => {
         .map(([addr, _]) => addr);
 
       if (collateralAssets.length < 2) {
-        throw new Error(
-          "Need at least two distinct non-dStable collateral assets for this test setup.",
-        );
+        throw new Error("Need at least two distinct non-dStable collateral assets for this test setup.");
       }
       const collateralAsset1 = collateralAssets[0]; // User 1 supplies this
       const collateralAsset2 = collateralAssets[1]; // User 2 supplies this
@@ -445,50 +283,25 @@ describe("dLEND Pool", () => {
       const user2SupplyAmount = ethers.parseUnits("1000", 18); // User2 supplies different collateral
       const borrowAmount = ethers.parseUnits("100", 18); // User2 borrows dStable
 
-      const collateralToken1 = (await ethers.getContractAt(
-        "TestERC20",
-        collateralAsset1,
-      )) as TestERC20;
-      const collateralToken2 = (await ethers.getContractAt(
-        "TestERC20",
-        collateralAsset2,
-      )) as TestERC20;
-      const dStableToken = (await ethers.getContractAt(
-        "TestERC20",
-        dStableAsset,
-      )) as TestERC20;
+      const collateralToken1 = (await ethers.getContractAt("TestERC20", collateralAsset1)) as TestERC20;
+      const collateralToken2 = (await ethers.getContractAt("TestERC20", collateralAsset2)) as TestERC20;
+      const dStableToken = (await ethers.getContractAt("TestERC20", dStableAsset)) as TestERC20;
 
       // --- Setup User 1 (Supplies collateral, but doesn't borrow - not strictly needed but good practice) ---
-      await collateralToken1
-        .connect(deployerSigner)
-        .transfer(user1Signer.address, user1SupplyAmount);
-      await collateralToken1
-        .connect(user1Signer)
-        .approve(await pool.getAddress(), user1SupplyAmount);
-      await pool
-        .connect(user1Signer)
-        .supply(collateralAsset1, user1SupplyAmount, user1Signer.address, 0);
+      await collateralToken1.connect(deployerSigner).transfer(user1Signer.address, user1SupplyAmount);
+      await collateralToken1.connect(user1Signer).approve(await pool.getAddress(), user1SupplyAmount);
+      await pool.connect(user1Signer).supply(collateralAsset1, user1SupplyAmount, user1Signer.address, 0);
       // No need to enable collateral for user1 in this test flow
 
       // --- Setup User 2 (Supplies different collateral, borrows dStable) ---
-      await collateralToken2
-        .connect(deployerSigner)
-        .transfer(user2Signer.address, user2SupplyAmount);
-      await collateralToken2
-        .connect(user2Signer)
-        .approve(await pool.getAddress(), user2SupplyAmount);
-      await pool
-        .connect(user2Signer)
-        .supply(collateralAsset2, user2SupplyAmount, user2Signer.address, 0);
-      await pool
-        .connect(user2Signer)
-        .setUserUseReserveAsCollateral(collateralAsset2, true); // Enable the *correct* collateral
+      await collateralToken2.connect(deployerSigner).transfer(user2Signer.address, user2SupplyAmount);
+      await collateralToken2.connect(user2Signer).approve(await pool.getAddress(), user2SupplyAmount);
+      await pool.connect(user2Signer).supply(collateralAsset2, user2SupplyAmount, user2Signer.address, 0);
+      await pool.connect(user2Signer).setUserUseReserveAsCollateral(collateralAsset2, true); // Enable the *correct* collateral
 
       // --- User 2 Borrows dStableAsset ---
       // Note: Deployer supplied dStable liquidity in beforeEach
-      await pool
-        .connect(user2Signer)
-        .borrow(dStableAsset, borrowAmount, 2, 0, user2Signer.address); // 2 = variable rate
+      await pool.connect(user2Signer).borrow(dStableAsset, borrowAmount, 2, 0, user2Signer.address); // 2 = variable rate
 
       // --- Test Interest Accrual on dStableAsset ---
       // Record initial liquidity index for dStableAsset (AFTER borrow establishes utilization)
@@ -503,15 +316,9 @@ describe("dLEND Pool", () => {
       // Perform a minimal interaction with the *dStableAsset* reserve to trigger index update
       // Using User 2 to repay 1 wei
       const interactionAmount = BigInt(1);
-      await dStableToken
-        .connect(deployerSigner)
-        .transfer(user2Signer.address, interactionAmount); // Give user2 1 wei dStable
-      await dStableToken
-        .connect(user2Signer)
-        .approve(await pool.getAddress(), interactionAmount); // Approve pool
-      await pool
-        .connect(user2Signer)
-        .repay(dStableAsset, interactionAmount, 2, user2Signer.address); // Repay 1 wei variable debt
+      await dStableToken.connect(deployerSigner).transfer(user2Signer.address, interactionAmount); // Give user2 1 wei dStable
+      await dStableToken.connect(user2Signer).approve(await pool.getAddress(), interactionAmount); // Approve pool
+      await pool.connect(user2Signer).repay(dStableAsset, interactionAmount, 2, user2Signer.address); // Repay 1 wei variable debt
 
       // Record final liquidity index for dStableAsset
       const finalReserveData = await pool.getReserveData(dStableAsset);

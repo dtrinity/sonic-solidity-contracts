@@ -1,15 +1,7 @@
 import { deployments, ethers, getNamedAccounts, network } from "hardhat";
 
-import {
-  IERC20Detailed,
-  IPool,
-  IPoolConfigurator,
-  IPoolDataProvider,
-} from "../../typechain-types";
-import {
-  POOL_CONFIGURATOR_ID,
-  POOL_DATA_PROVIDER_ID,
-} from "../../typescript/deploy-ids";
+import { IERC20Detailed, IPool, IPoolConfigurator, IPoolDataProvider } from "../../typechain-types";
+import { POOL_CONFIGURATOR_ID, POOL_DATA_PROVIDER_ID } from "../../typescript/deploy-ids";
 
 // ------------------------------------------------------------------------------------------------
 // CONFIGURATION - Set these values before running
@@ -34,21 +26,16 @@ async function main() {
 
   // Get contract addresses from deployments
   const poolConfiguratorAddress = allDeployments[POOL_CONFIGURATOR_ID]?.address;
-  const poolDataProviderAddress =
-    allDeployments[POOL_DATA_PROVIDER_ID]?.address;
+  const poolDataProviderAddress = allDeployments[POOL_DATA_PROVIDER_ID]?.address;
   const aclManagerAddress = allDeployments["ACLManager"]?.address;
 
   if (!poolConfiguratorAddress) {
-    console.error(
-      `❌ Error: PoolConfigurator deployment (${POOL_CONFIGURATOR_ID}) not found.`,
-    );
+    console.error(`❌ Error: PoolConfigurator deployment (${POOL_CONFIGURATOR_ID}) not found.`);
     process.exit(1);
   }
 
   if (!poolDataProviderAddress) {
-    console.error(
-      `❌ Error: PoolDataProvider deployment (${POOL_DATA_PROVIDER_ID}) not found.`,
-    );
+    console.error(`❌ Error: PoolDataProvider deployment (${POOL_DATA_PROVIDER_ID}) not found.`);
     process.exit(1);
   }
 
@@ -68,33 +55,18 @@ async function main() {
   console.log(`Account balance: ${ethers.formatEther(balance)} ETH`);
 
   if (balance === 0n) {
-    console.warn(
-      "⚠️ Warning: The executing account has no balance. Gas fees will cause failure.",
-    );
+    console.warn("⚠️ Warning: The executing account has no balance. Gas fees will cause failure.");
   }
 
   // Get contract instances
-  const poolDataProvider = (await ethers.getContractAt(
-    "IPoolDataProvider",
-    poolDataProviderAddress,
-  )) as IPoolDataProvider;
+  const poolDataProvider = (await ethers.getContractAt("IPoolDataProvider", poolDataProviderAddress)) as IPoolDataProvider;
 
-  const poolConfigurator = (await ethers.getContractAt(
-    "IPoolConfigurator",
-    poolConfiguratorAddress,
-    deployerSigner,
-  )) as IPoolConfigurator;
+  const poolConfigurator = (await ethers.getContractAt("IPoolConfigurator", poolConfiguratorAddress, deployerSigner)) as IPoolConfigurator;
 
-  const aclManager = await ethers.getContractAt(
-    "IACLManager",
-    aclManagerAddress,
-  );
+  const aclManager = await ethers.getContractAt("IACLManager", aclManagerAddress);
 
   // Get pool contract from the addresses provider to access getReservesList
-  const poolAddressesProvider = await ethers.getContractAt(
-    "IPoolAddressesProvider",
-    allDeployments["PoolAddressesProvider"]?.address,
-  );
+  const poolAddressesProvider = await ethers.getContractAt("IPoolAddressesProvider", allDeployments["PoolAddressesProvider"]?.address);
   const poolAddress = await poolAddressesProvider.getPool();
   const pool = (await ethers.getContractAt("IPool", poolAddress)) as IPool;
 
@@ -110,16 +82,11 @@ async function main() {
       const reserveData = await poolDataProvider.getReserveData(assetAddress);
 
       if (!reserveData || typeof reserveData !== "object") {
-        console.error(
-          `❌ Error: Could not fetch reserve data for ${assetAddress}.`,
-        );
+        console.error(`❌ Error: Could not fetch reserve data for ${assetAddress}.`);
         process.exit(1);
       }
     } catch (e) {
-      console.error(
-        `❌ Error: Address ${assetAddress} is not a valid reserve:`,
-        e,
-      );
+      console.error(`❌ Error: Address ${assetAddress} is not a valid reserve:`, e);
       process.exit(1);
     }
   } else if (RESERVE_SYMBOL) {
@@ -135,10 +102,7 @@ async function main() {
       for (const reserve of reservesList) {
         // For each reserve, get the underlying token and check its symbol
         try {
-          const token = (await ethers.getContractAt(
-            "IERC20Detailed",
-            reserve,
-          )) as IERC20Detailed;
+          const token = (await ethers.getContractAt("IERC20Detailed", reserve)) as IERC20Detailed;
           const symbol = await token.symbol();
 
           if (symbol === RESERVE_SYMBOL) {
@@ -154,22 +118,15 @@ async function main() {
       }
 
       if (!found) {
-        console.error(
-          `❌ Error: Could not find reserve with symbol ${RESERVE_SYMBOL}`,
-        );
+        console.error(`❌ Error: Could not find reserve with symbol ${RESERVE_SYMBOL}`);
         process.exit(1);
       }
     } catch (e) {
-      console.error(
-        `❌ Error finding reserve for symbol ${RESERVE_SYMBOL}:`,
-        e,
-      );
+      console.error(`❌ Error finding reserve for symbol ${RESERVE_SYMBOL}:`, e);
       process.exit(1);
     }
   } else {
-    console.error(
-      "❌ Error: Please set either RESERVE_SYMBOL or RESERVE_ADDRESS.",
-    );
+    console.error("❌ Error: Please set either RESERVE_SYMBOL or RESERVE_ADDRESS.");
     process.exit(1);
   }
 
@@ -191,19 +148,12 @@ async function main() {
     const totalVariableDebt = reserveData.totalVariableDebt || reserveData[4];
 
     // Get configuration data
-    const reserveConf =
-      await poolDataProvider.getReserveConfigurationData(assetAddress);
+    const reserveConf = await poolDataProvider.getReserveConfigurationData(assetAddress);
     const decimals = await getTokenDecimals(assetAddress);
 
-    console.log(
-      ` - Total aTokens: ${ethers.formatUnits(totalAToken, decimals)}`,
-    );
-    console.log(
-      ` - Total Stable Debt: ${ethers.formatUnits(totalStableDebt, decimals)}`,
-    );
-    console.log(
-      ` - Total Variable Debt: ${ethers.formatUnits(totalVariableDebt, decimals)}`,
-    );
+    console.log(` - Total aTokens: ${ethers.formatUnits(totalAToken, decimals)}`);
+    console.log(` - Total Stable Debt: ${ethers.formatUnits(totalStableDebt, decimals)}`);
+    console.log(` - Total Variable Debt: ${ethers.formatUnits(totalVariableDebt, decimals)}`);
     console.log(` - Is Active: ${reserveConf.isActive}`);
     console.log(` - Is Frozen: ${reserveConf.isFrozen}`);
 
@@ -213,12 +163,8 @@ async function main() {
       (totalStableDebt && totalStableDebt !== 0n) ||
       (totalVariableDebt && totalVariableDebt !== 0n)
     ) {
-      console.error(
-        "❌ CRITICAL ERROR: Reserve appears to have active supply or borrows. DO NOT PROCEED.",
-      );
-      console.error(
-        "   Dropping a reserve with active balances will likely result in LOST FUNDS.",
-      );
+      console.error("❌ CRITICAL ERROR: Reserve appears to have active supply or borrows. DO NOT PROCEED.");
+      console.error("   Dropping a reserve with active balances will likely result in LOST FUNDS.");
       process.exit(1);
     } else {
       console.log("✅ Reserve appears to have zero supply and borrows.");
@@ -226,15 +172,11 @@ async function main() {
 
     // Check for active/frozen status
     if (reserveConf.isActive) {
-      console.warn(
-        "⚠️ Warning: Reserve is still Active. It should be deactivated first.",
-      );
+      console.warn("⚠️ Warning: Reserve is still Active. It should be deactivated first.");
     }
 
     if (!reserveConf.isFrozen) {
-      console.warn(
-        "⚠️ Warning: Reserve is not Frozen. It should be frozen first.",
-      );
+      console.warn("⚠️ Warning: Reserve is not Frozen. It should be frozen first.");
     }
   } catch (e) {
     console.error("❌ Error during pre-flight checks:", e);
@@ -256,10 +198,7 @@ async function main() {
   console.log("   Double-check the asset address, network, and consequences.");
 
   // Safety delay unless explicitly skipped
-  if (
-    !SKIP_SAFETY_DELAY ||
-    (network.name !== "hardhat" && network.name !== "localhost")
-  ) {
+  if (!SKIP_SAFETY_DELAY || (network.name !== "hardhat" && network.name !== "localhost")) {
     console.log("   Pausing for 15 seconds to allow cancellation (Ctrl+C)...");
     await new Promise((resolve) => setTimeout(resolve, 15000)); // 15 second delay
   } else {
@@ -272,9 +211,7 @@ async function main() {
     const isAdmin = await aclManager.isPoolAdmin(deployerSigner.address);
 
     if (!isAdmin) {
-      console.error(
-        `❌ Error: Account ${deployerSigner.address} does not have the POOL_ADMIN role.`,
-      );
+      console.error(`❌ Error: Account ${deployerSigner.address} does not have the POOL_ADMIN role.`);
       process.exit(1);
     }
     console.log(`✅ POOL_ADMIN role confirmed for ${deployerSigner.address}.`);
@@ -311,16 +248,11 @@ async function main() {
  */
 async function getTokenDecimals(tokenAddress: string): Promise<number> {
   try {
-    const token = (await ethers.getContractAt(
-      "IERC20Detailed",
-      tokenAddress,
-    )) as IERC20Detailed;
+    const token = (await ethers.getContractAt("IERC20Detailed", tokenAddress)) as IERC20Detailed;
     const decimals = await token.decimals();
     return Number(decimals);
   } catch (e) {
-    console.warn(
-      `⚠️ Warning: Could not determine token decimals. Using default of 18.`,
-    );
+    console.warn(`⚠️ Warning: Could not determine token decimals. Using default of 18.`);
     return 18;
   }
 }

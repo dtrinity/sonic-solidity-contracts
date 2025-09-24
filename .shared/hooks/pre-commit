@@ -1,0 +1,163 @@
+#!/bin/sh
+# Shared pre-commit hook for dTrinity Hardhat projects
+
+set -eu
+
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m'
+
+if ! REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null); then
+  echo "${YELLOW}Warning: unable to determine repository root; skipping shared pre-commit checks.${NC}"
+  exit 0
+fi
+
+cd "$REPO_ROOT"
+
+if [ -d "node_modules/.bin" ]; then
+  PATH="$REPO_ROOT/node_modules/.bin:$PATH"
+fi
+
+SHARED_DIR="$REPO_ROOT/.shared"
+HARDHAT_CONFIG_FOUND=0
+for candidate in hardhat.config.ts hardhat.config.js hardhat.config.cjs hardhat.config.mjs; do
+  if [ -f "$candidate" ]; then
+    HARDHAT_CONFIG_FOUND=1
+    break
+  fi
+done
+
+if [ "$HARDHAT_CONFIG_FOUND" -eq 0 ]; then
+  echo "${YELLOW}Warning: Hardhat config not found in repository root; skipping shared pre-commit checks.${NC}"
+  exit 0
+fi
+
+run_guardrails() {
+  if [ ! -f "$SHARED_DIR/scripts/guardrails/check.ts" ]; then
+    echo "${YELLOW}Shared guardrail script missing; skipping linting checks.${NC}"
+    return 0
+  fi
+
+  GUARDRAIL_ARGS="--fail-fast"
+  if [ "${SHARED_HARDHAT_PRE_COMMIT_PRETTIER:-0}" = "0" ]; then
+    GUARDRAIL_ARGS="$GUARDRAIL_ARGS --skip-prettier"
+    echo "${YELLOW}Skipping Prettier check (set SHARED_HARDHAT_PRE_COMMIT_PRETTIER=1 to enable).${NC}"
+  fi
+  if [ "${SHARED_HARDHAT_PRE_COMMIT_SOLHINT:-1}" = "0" ]; then
+    GUARDRAIL_ARGS="$GUARDRAIL_ARGS --skip-solhint"
+    echo "${YELLOW}Skipping Solhint check (set SHARED_HARDHAT_PRE_COMMIT_SOLHINT=1 to enable).${NC}"
+  fi
+  if [ "${SHARED_HARDHAT_PRE_COMMIT_ESLINT:-1}" = "0" ]; then
+    GUARDRAIL_ARGS="$GUARDRAIL_ARGS --skip-eslint"
+    echo "${YELLOW}Skipping ESLint check (set SHARED_HARDHAT_PRE_COMMIT_ESLINT=1 to enable).${NC}"
+  fi
+
+  set -- $GUARDRAIL_ARGS
+
+  if [ -x "$REPO_ROOT/node_modules/.bin/ts-node" ]; then
+    node_modules/.bin/ts-node "$SHARED_DIR/scripts/guardrails/check.ts" "$@"
+    return $?
+  fi
+
+  if command -v ts-node >/dev/null 2>&1; then
+    ts-node "$SHARED_DIR/scripts/guardrails/check.ts" "$@"
+    return $?
+  fi
+
+  echo "${YELLOW}ts-node not available; skipping shared guardrail checks.${NC}"
+  return 0
+}
+
+run_compile_if_opt_in() {
+  if [ "${SHARED_HARDHAT_PRE_COMMIT_COMPILE:-0}" = "0" ]; then
+    echo "${YELLOW}Skipping Hardhat compile (enable via SHARED_HARDHAT_PRE_COMMIT_COMPILE=1).${NC}"
+    return 0
+  fi
+
+  if ! command -v npx >/dev/null 2>&1; then
+    echo "${YELLOW}Skipping Hardhat compile: npx not available.${NC}"
+    return 0
+  fi
+
+  echo "Running Hardhat compile..."
+  if npx hardhat compile >/dev/null 2>&1; then
+    return 0
+  fi
+
+  echo "${RED}Contract compilation failed. Fix issues or unset SHARED_HARDHAT_PRE_COMMIT_COMPILE to skip this step.${NC}"
+  return 1
+}
+
+check_console_logs() {
+  STAGED_SOL_FILES=$(git diff --cached --name-only -- 'contracts/**/*.sol' || true)
+  if [ -z "$STAGED_SOL_FILES" ]; then
+    return 0
+  fi
+
+  found_console=0
+  while IFS= read -r file; do
+    [ -z "$file" ] && continue
+    [ ! -f "$file" ] && continue
+
+    matches=$(grep -n "console\.log" "$file" 2>/dev/null || true)
+    if [ -n "$matches" ]; then
+      found_console=1
+      printf '%s\n' "$matches" | sed 's/^/  /'
+    fi
+  done <<EOF
+$STAGED_SOL_FILES
+EOF
+
+  if [ "$found_console" -ne 0 ]; then
+    echo "${RED}Found console.log statements in staged Solidity files. Remove them before committing.${NC}"
+    return 1
+  fi
+
+  return 0
+}
+
+check_test_only_flags() {
+  STAGED_TEST_FILES=$(git diff --cached --name-only -- 'test/**/*.[tj]s' 'test/**/*.[tj]sx' || true)
+  if [ -z "$STAGED_TEST_FILES" ]; then
+    return 0
+  fi
+
+  found_only=0
+  while IFS= read -r file; do
+    [ -z "$file" ] && continue
+    [ ! -f "$file" ] && continue
+
+    if grep -n "\.only" "$file" 2>/dev/null; then
+      found_only=1
+    fi
+  done <<EOF
+$STAGED_TEST_FILES
+EOF
+
+  if [ "$found_only" -ne 0 ]; then
+    echo "${YELLOW}Warning: Found .only in staged test files. Make sure this is intentional.${NC}"
+  fi
+
+  return 0
+}
+
+echo "Running shared pre-commit checks..."
+
+if ! run_guardrails; then
+  echo "${RED}Shared guardrail checks failed.${NC}"
+  exit 1
+fi
+
+if ! check_console_logs; then
+  exit 1
+fi
+
+check_test_only_flags
+
+if ! run_compile_if_opt_in; then
+  exit 1
+fi
+
+echo "${GREEN}Pre-commit checks passed!${NC}"
+exit 0

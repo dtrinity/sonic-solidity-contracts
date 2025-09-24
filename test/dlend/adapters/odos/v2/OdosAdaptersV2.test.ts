@@ -7,7 +7,7 @@ import {
   createPendleSwapData,
   createPTSwapData,
   encodePTSwapData,
-  OdosV2TestFixture
+  OdosV2TestFixture,
 } from "./fixtures/setup";
 
 describe("Odos V2 Adapters - Pure Logic Tests", function () {
@@ -28,7 +28,7 @@ describe("Odos V2 Adapters - Pure Logic Tests", function () {
         await pool.getAddress(),
         await odosRouter.getAddress(),
         await pendleRouter.getAddress(),
-        deployer.address
+        deployer.address,
       );
 
       expect(await repayAdapter.ADDRESSES_PROVIDER()).to.equal(await addressesProvider.getAddress());
@@ -49,7 +49,7 @@ describe("Odos V2 Adapters - Pure Logic Tests", function () {
         await pool.getAddress(),
         await odosRouter.getAddress(),
         await pendleRouter.getAddress(),
-        deployer.address
+        deployer.address,
       );
 
       expect(await liquidityAdapter.REFERRER()).to.equal(43981); // Unique referrer for LiquidityV2
@@ -65,10 +65,10 @@ describe("Odos V2 Adapters - Pure Logic Tests", function () {
         await pool.getAddress(),
         await odosRouter.getAddress(),
         await pendleRouter.getAddress(),
-        deployer.address
+        deployer.address,
       );
 
-      expect(await debtSwapAdapter.REFERRER()).to.equal(5937); // Unique referrer for DebtSwapV2  
+      expect(await debtSwapAdapter.REFERRER()).to.equal(5937); // Unique referrer for DebtSwapV2
       expect(await debtSwapAdapter.ORACLE_PRICE_TOLERANCE_BPS()).to.equal(500);
     });
 
@@ -81,7 +81,7 @@ describe("Odos V2 Adapters - Pure Logic Tests", function () {
         await pool.getAddress(),
         await odosRouter.getAddress(),
         await pendleRouter.getAddress(),
-        deployer.address
+        deployer.address,
       );
 
       expect(await withdrawSwapAdapter.ORACLE_PRICE_TOLERANCE_BPS()).to.equal(500);
@@ -104,27 +104,29 @@ describe("Odos V2 Adapters - Pure Logic Tests", function () {
         user: ethers.Wallet.createRandom().address,
         minAmountToReceive: ethers.parseEther("900"),
         swapData: "0x",
-        allBalanceOffset: 0
+        allBalanceOffset: 0,
       };
 
       // Test that parameters can be encoded/decoded correctly
       const encoded = ethers.AbiCoder.defaultAbiCoder().encode(
         ["tuple(address,uint256,address,uint256,uint256,bool,address,uint256,bytes,uint256)"],
-        [[
-          repayParams.collateralAsset,
-          repayParams.collateralAmount,
-          repayParams.debtAsset,
-          repayParams.repayAmount,
-          repayParams.rateMode,
-          repayParams.withFlashLoan,
-          repayParams.user,
-          repayParams.minAmountToReceive,
-          repayParams.swapData,
-          repayParams.allBalanceOffset
-        ]]
+        [
+          [
+            repayParams.collateralAsset,
+            repayParams.collateralAmount,
+            repayParams.debtAsset,
+            repayParams.repayAmount,
+            repayParams.rateMode,
+            repayParams.withFlashLoan,
+            repayParams.user,
+            repayParams.minAmountToReceive,
+            repayParams.swapData,
+            repayParams.allBalanceOffset,
+          ],
+        ],
       );
 
-      expect(encoded).to.be.a('string');
+      expect(encoded).to.be.a("string");
       expect(encoded.length).to.be.greaterThan(0);
     });
 
@@ -139,25 +141,27 @@ describe("Odos V2 Adapters - Pure Logic Tests", function () {
         user: ethers.Wallet.createRandom().address,
         withFlashLoan: true,
         swapData: "0x",
-        allBalanceOffset: ethers.parseEther("50")
+        allBalanceOffset: ethers.parseEther("50"),
       };
 
       // Test parameter encoding
       const encoded = ethers.AbiCoder.defaultAbiCoder().encode(
         ["tuple(address,uint256,address,uint256,address,bool,bytes,uint256)"],
-        [[
-          liquidityParams.collateralAsset,
-          liquidityParams.collateralAmountToSwap,
-          liquidityParams.newCollateralAsset,
-          liquidityParams.newCollateralAmount,
-          liquidityParams.user,
-          liquidityParams.withFlashLoan,
-          liquidityParams.swapData,
-          liquidityParams.allBalanceOffset
-        ]]
+        [
+          [
+            liquidityParams.collateralAsset,
+            liquidityParams.collateralAmountToSwap,
+            liquidityParams.newCollateralAsset,
+            liquidityParams.newCollateralAmount,
+            liquidityParams.user,
+            liquidityParams.withFlashLoan,
+            liquidityParams.swapData,
+            liquidityParams.allBalanceOffset,
+          ],
+        ],
       );
 
-      expect(encoded).to.be.a('string');
+      expect(encoded).to.be.a("string");
     });
 
     it("✅ should validate DebtSwapParamsV2 structure", async function () {
@@ -172,26 +176,28 @@ describe("Odos V2 Adapters - Pure Logic Tests", function () {
         extraCollateralAsset: ethers.ZeroAddress,
         extraCollateralAmount: 0,
         swapData: "0x",
-        allBalanceOffset: 0
+        allBalanceOffset: 0,
       };
 
       // Test parameter encoding
       const encoded = ethers.AbiCoder.defaultAbiCoder().encode(
         ["tuple(address,uint256,uint256,address,uint256,address,uint256,bytes,uint256)"],
-        [[
-          debtSwapParams.debtAsset,
-          debtSwapParams.debtRepayAmount,
-          debtSwapParams.debtRateMode,
-          debtSwapParams.newDebtAsset,
-          debtSwapParams.maxNewDebtAmount,
-          debtSwapParams.extraCollateralAsset,
-          debtSwapParams.extraCollateralAmount,
-          debtSwapParams.swapData,
-          debtSwapParams.allBalanceOffset
-        ]]
+        [
+          [
+            debtSwapParams.debtAsset,
+            debtSwapParams.debtRepayAmount,
+            debtSwapParams.debtRateMode,
+            debtSwapParams.newDebtAsset,
+            debtSwapParams.maxNewDebtAmount,
+            debtSwapParams.extraCollateralAsset,
+            debtSwapParams.extraCollateralAmount,
+            debtSwapParams.swapData,
+            debtSwapParams.allBalanceOffset,
+          ],
+        ],
       );
 
-      expect(encoded).to.be.a('string');
+      expect(encoded).to.be.a("string");
     });
 
     it("✅ should validate WithdrawSwapParamsV2 structure", async function () {
@@ -204,24 +210,26 @@ describe("Odos V2 Adapters - Pure Logic Tests", function () {
         minAmountToReceive: ethers.parseEther("950"),
         user: ethers.Wallet.createRandom().address,
         swapData: "0x",
-        allBalanceOffset: ethers.parseEther("100")
+        allBalanceOffset: ethers.parseEther("100"),
       };
 
       // Test parameter encoding
       const encoded = ethers.AbiCoder.defaultAbiCoder().encode(
         ["tuple(address,uint256,address,uint256,address,bytes,uint256)"],
-        [[
-          withdrawParams.oldAsset,
-          withdrawParams.oldAssetAmount,
-          withdrawParams.newAsset,
-          withdrawParams.minAmountToReceive,
-          withdrawParams.user,
-          withdrawParams.swapData,
-          withdrawParams.allBalanceOffset
-        ]]
+        [
+          [
+            withdrawParams.oldAsset,
+            withdrawParams.oldAssetAmount,
+            withdrawParams.newAsset,
+            withdrawParams.minAmountToReceive,
+            withdrawParams.user,
+            withdrawParams.swapData,
+            withdrawParams.allBalanceOffset,
+          ],
+        ],
       );
 
-      expect(encoded).to.be.a('string');
+      expect(encoded).to.be.a("string");
     });
   });
 
@@ -332,8 +340,8 @@ describe("Odos V2 Adapters - Pure Logic Tests", function () {
           await cheapToken.getAddress(),
           await expensiveToken.getAddress(),
           maxAmountIn,
-          exactAmountOut
-        )
+          exactAmountOut,
+        ),
       ).to.be.revertedWithCustomError(baseAdapterHarness, "OraclePriceDeviationExceeded");
     });
 
@@ -359,8 +367,8 @@ describe("Odos V2 Adapters - Pure Logic Tests", function () {
           await token6.getAddress(),
           await token18.getAddress(),
           maxAmountIn,
-          exactAmountOut
-        )
+          exactAmountOut,
+        ),
       ).to.not.be.reverted;
     });
   });
@@ -374,7 +382,7 @@ describe("Odos V2 Adapters - Pure Logic Tests", function () {
         true, // composed
         await tokenA.getAddress(), // valid underlying
         createPendleSwapData(pendleRouter), // valid pendle data
-        createOdosSwapData(odosRouter) // valid odos data
+        createOdosSwapData(odosRouter), // valid odos data
       );
 
       const isValid = await pendleLogicHarness.validatePTSwapData(validSwapData);
@@ -389,7 +397,7 @@ describe("Odos V2 Adapters - Pure Logic Tests", function () {
         true, // composed
         ethers.ZeroAddress, // could be valid
         "0x", // invalid - empty pendle calldata
-        "0x"
+        "0x",
       );
 
       const isValid = await pendleLogicHarness.validatePTSwapData(invalidSwapData);
@@ -404,7 +412,7 @@ describe("Odos V2 Adapters - Pure Logic Tests", function () {
         false, // not composed
         ethers.ZeroAddress, // not needed
         "0x", // not needed
-        createOdosSwapData(odosRouter) // required for regular swaps
+        createOdosSwapData(odosRouter), // required for regular swaps
       );
 
       const isValid = await pendleLogicHarness.validatePTSwapData(regularSwapData);
@@ -421,12 +429,12 @@ describe("Odos V2 Adapters - Pure Logic Tests", function () {
         "OraclePriceDeviationExceeded",
         "LeftoverCollateralAfterSwap", // Still defined in interface (for future use)
         "InsufficientBalanceBeforeSwap",
-        "InsufficientOutputAfterComposedSwap"
+        "InsufficientOutputAfterComposedSwap",
       ];
 
       // Each error should be a valid identifier
-      errorNames.forEach(errorName => {
-        expect(errorName).to.be.a('string');
+      errorNames.forEach((errorName) => {
+        expect(errorName).to.be.a("string");
         expect(errorName.length).to.be.greaterThan(0);
       });
     });
@@ -437,7 +445,7 @@ describe("Odos V2 Adapters - Pure Logic Tests", function () {
       const referrers = {
         repayV2: 43982,
         liquidityV2: 43981,
-        debtSwapV2: 5937
+        debtSwapV2: 5937,
         // withdrawV2 doesn't specify a unique REFERRER in interface
       };
 
@@ -533,7 +541,7 @@ describe("Odos V2 Adapters - Pure Logic Tests", function () {
         await pool.getAddress(),
         await odosRouter.getAddress(),
         await pendleRouter.getAddress(),
-        deployer.address
+        deployer.address,
       );
 
       // Router addresses should be immutable after deployment

@@ -24,10 +24,7 @@ async function main() {
     throw new Error("EmissionManager not found");
   }
 
-  const emissionManagerContract = await ethers.getContractAt(
-    "EmissionManager",
-    emissionManager.address,
-  );
+  const emissionManagerContract = await ethers.getContractAt("EmissionManager", emissionManager.address);
 
   // Check that we are the owner of the emission manager
   const isOwner = await emissionManagerContract.owner();
@@ -44,22 +41,14 @@ async function main() {
     waitConfirmations: 1,
   });
 
-  console.log(
-    "New incentives controller implementation deployed at ",
-    incentivesImpl.address,
-  );
+  console.log("New incentives controller implementation deployed at ", incentivesImpl.address);
 
-  const incentivesImplContract = await ethers.getContractAt(
-    "RewardsController",
-    incentivesImpl.address,
-  );
+  const incentivesImplContract = await ethers.getContractAt("RewardsController", incentivesImpl.address);
 
   try {
     await incentivesImplContract.initialize(ZeroAddress);
   } catch (error: any) {
-    if (
-      error?.message.includes("Contract instance has already been initialized")
-    ) {
+    if (error?.message.includes("Contract instance has already been initialized")) {
       console.log("Incentives implementation already initialized");
     } else {
       throw Error(`Failed to initialize Incentives implementation: ${error}`);
@@ -67,13 +56,9 @@ async function main() {
   }
 
   // The Rewards Controller must be set at AddressesProvider with id keccak256("INCENTIVES_CONTROLLER")
-  const incentivesControllerId = ethers.keccak256(
-    ethers.toUtf8Bytes("INCENTIVES_CONTROLLER"),
-  );
+  const incentivesControllerId = ethers.keccak256(ethers.toUtf8Bytes("INCENTIVES_CONTROLLER"));
 
-  const proxyArtifact = await getExtendedArtifact(
-    "InitializableImmutableAdminUpgradeabilityProxy",
-  );
+  const proxyArtifact = await getExtendedArtifact("InitializableImmutableAdminUpgradeabilityProxy");
 
   const addressesProvider = await deployments.get(POOL_ADDRESSES_PROVIDER_ID);
   const addressesProviderInstance = await ethers.getContractAt(
@@ -82,38 +67,24 @@ async function main() {
     await ethers.getSigner(deployer),
   );
 
-  const _setRewardsAsProxyTx =
-    await addressesProviderInstance.setAddressAsProxy(
-      incentivesControllerId,
-      incentivesImpl.address,
-    );
+  const _setRewardsAsProxyTx = await addressesProviderInstance.setAddressAsProxy(incentivesControllerId, incentivesImpl.address);
 
-  console.log(
-    "Set Rewards Controller as proxy at tx ",
-    _setRewardsAsProxyTx.hash,
-  );
+  console.log("Set Rewards Controller as proxy at tx ", _setRewardsAsProxyTx.hash);
 
-  const proxyAddress = await addressesProviderInstance.getAddressFromID(
-    incentivesControllerId,
-  );
+  const proxyAddress = await addressesProviderInstance.getAddressFromID(incentivesControllerId);
 
   await save(INCENTIVES_PROXY_ID, {
     ...proxyArtifact,
     address: proxyAddress,
   });
 
-  const setRewardsControllerTx =
-    await emissionManagerContract.setRewardsController(proxyAddress);
+  const setRewardsControllerTx = await emissionManagerContract.setRewardsController(proxyAddress);
 
   console.log("Set Rewards Controller at tx ", setRewardsControllerTx.hash);
   const config = await getConfig(hre);
   await deploy(PULL_REWARDS_TRANSFER_STRATEGY_ID, {
     from: deployer,
-    args: [
-      proxyAddress,
-      config.walletAddresses.governanceMultisig,
-      config.walletAddresses.incentivesVault,
-    ],
+    args: [proxyAddress, config.walletAddresses.governanceMultisig, config.walletAddresses.incentivesVault],
     log: true,
     waitConfirmations: 1,
   });

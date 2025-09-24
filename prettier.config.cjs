@@ -1,5 +1,5 @@
 module.exports = {
-  printWidth: 120, // https://docs.soliditylang.org/en/latest/style-guide.html#maximum-line-length
+  printWidth: 140, // Align with shared ESLint config to avoid guardrail conflicts
   // TS/JS style
   tabWidth: 2,
   useTabs: false,

@@ -20,14 +20,11 @@ describe("OdosSwapLogic - Surplus Refund", function () {
     const library = await LibraryFactory.deploy();
 
     // Link the library when deploying the harness
-    const HarnessFactory = await ethers.getContractFactory(
-      "OdosSwapLogicHarness",
-      {
-        libraries: {
-          OdosSwapLogic: await library.getAddress(),
-        },
+    const HarnessFactory = await ethers.getContractFactory("OdosSwapLogicHarness", {
+      libraries: {
+        OdosSwapLogic: await library.getAddress(),
       },
-    );
+    });
     const harness = await HarnessFactory.deploy();
 
     return { deployer, receiver, tokenIn, tokenOut, router, harness };
@@ -48,13 +45,7 @@ describe("OdosSwapLogic - Surplus Refund", function () {
 
     await mint(tokenIn, harnessAddr, parseUnits("10000", 18));
     await mint(tokenOut, await router.getAddress(), amountReceived);
-    await router.setSwapBehaviour(
-      await tokenIn.getAddress(),
-      await tokenOut.getAddress(),
-      amountSpent,
-      amountReceived,
-      false,
-    );
+    await router.setSwapBehaviour(await tokenIn.getAddress(), await tokenOut.getAddress(), amountSpent, amountReceived, false);
     const swapData = router.interface.encodeFunctionData("performSwap");
 
     const receiverBalanceBefore = await tokenOut.balanceOf(receiverAddr);
@@ -76,20 +67,14 @@ describe("OdosSwapLogic - Surplus Refund", function () {
     const harnessBalanceAfter = await tokenOut.balanceOf(harnessAddr);
 
     // Receiver should receive the surplus (500 tokens)
-    expect(receiverBalanceAfter - receiverBalanceBefore).to.equal(
-      expectedSurplus,
-    );
+    expect(receiverBalanceAfter - receiverBalanceBefore).to.equal(expectedSurplus);
 
     // Harness should retain exactly the requested output amount
     expect(harnessBalanceAfter - harnessBalanceBefore).to.equal(amountOut);
 
     // Input tokens should be spent correctly
-    const inputSpent =
-      parseUnits("10000", 18) - (await tokenIn.balanceOf(harnessAddr));
-    expect(inputSpent).to.equal(
-      amountSpent,
-      "Correct amount of input tokens should be spent",
-    );
+    const inputSpent = parseUnits("10000", 18) - (await tokenIn.balanceOf(harnessAddr));
+    expect(inputSpent).to.equal(amountSpent, "Correct amount of input tokens should be spent");
   });
 
   it("refunds minimal surplus (1 wei) to receiver", async function () {
@@ -107,13 +92,7 @@ describe("OdosSwapLogic - Surplus Refund", function () {
 
     await mint(tokenIn, harnessAddr, parseUnits("10000", 18));
     await mint(tokenOut, await router.getAddress(), amountReceived);
-    await router.setSwapBehaviour(
-      await tokenIn.getAddress(),
-      await tokenOut.getAddress(),
-      amountSpent,
-      amountReceived,
-      false,
-    );
+    await router.setSwapBehaviour(await tokenIn.getAddress(), await tokenOut.getAddress(), amountSpent, amountReceived, false);
     const swapData = router.interface.encodeFunctionData("performSwap");
 
     const receiverBalanceBefore = await tokenOut.balanceOf(receiverAddr);
@@ -134,9 +113,7 @@ describe("OdosSwapLogic - Surplus Refund", function () {
     const receiverBalanceAfter = await tokenOut.balanceOf(receiverAddr);
     const harnessBalanceAfter = await tokenOut.balanceOf(harnessAddr);
 
-    expect(receiverBalanceAfter - receiverBalanceBefore).to.equal(
-      expectedSurplus,
-    );
+    expect(receiverBalanceAfter - receiverBalanceBefore).to.equal(expectedSurplus);
     expect(harnessBalanceAfter - harnessBalanceBefore).to.equal(amountOut);
   });
 
@@ -153,13 +130,7 @@ describe("OdosSwapLogic - Surplus Refund", function () {
 
     await mint(tokenIn, harnessAddr, parseUnits("10000", 18));
     await mint(tokenOut, await router.getAddress(), amountReceived);
-    await router.setSwapBehaviour(
-      await tokenIn.getAddress(),
-      await tokenOut.getAddress(),
-      amountSpent,
-      amountReceived,
-      false,
-    );
+    await router.setSwapBehaviour(await tokenIn.getAddress(), await tokenOut.getAddress(), amountSpent, amountReceived, false);
     const swapData = router.interface.encodeFunctionData("performSwap");
 
     const harnessBalanceBefore = await tokenOut.balanceOf(harnessAddr);
@@ -199,13 +170,7 @@ describe("OdosSwapLogic - Surplus Refund", function () {
 
     await mint(tokenIn, harnessAddr, parseUnits("10000", 18));
     await mint(tokenOut, await router.getAddress(), amountReceived);
-    await router.setSwapBehaviour(
-      await tokenIn.getAddress(),
-      await tokenOut.getAddress(),
-      amountSpent,
-      amountReceived,
-      false,
-    );
+    await router.setSwapBehaviour(await tokenIn.getAddress(), await tokenOut.getAddress(), amountSpent, amountReceived, false);
     const swapData = router.interface.encodeFunctionData("performSwap");
 
     const receiverBalanceBefore = await tokenOut.balanceOf(receiverAddr);
@@ -227,13 +192,7 @@ describe("OdosSwapLogic - Surplus Refund", function () {
     const harnessBalanceAfter = await tokenOut.balanceOf(harnessAddr);
 
     // No surplus, so receiver should get nothing, harness keeps all
-    expect(receiverBalanceAfter - receiverBalanceBefore).to.equal(
-      0,
-      "Receiver should get nothing when no surplus",
-    );
-    expect(harnessBalanceAfter - harnessBalanceBefore).to.equal(
-      amountReceived,
-      "Harness should keep all tokens when no surplus",
-    );
+    expect(receiverBalanceAfter - receiverBalanceBefore).to.equal(0, "Receiver should get nothing when no surplus");
+    expect(harnessBalanceAfter - harnessBalanceBefore).to.equal(amountReceived, "Harness should keep all tokens when no surplus");
   });
 });

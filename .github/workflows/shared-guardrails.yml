@@ -1,0 +1,179 @@
+name: Shared Security Guardrails
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  push:
+    branches: [main, master, develop]
+  workflow_dispatch:
+
+env:
+  NODE_VERSION: '18'
+  REPORTS_DIR: reports
+
+jobs:
+  lint:
+    name: Lint & Sanity Checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install dependencies
+        run: |
+          set -eo pipefail
+          if [ -f yarn.lock ]; then
+            corepack enable
+            yarn install --frozen-lockfile --silent
+          elif [ -f pnpm-lock.yaml ]; then
+            corepack enable
+            pnpm install --frozen-lockfile
+          else
+            npm ci
+          fi
+
+      - name: Ensure reports directory
+        run: mkdir -p "${{ env.REPORTS_DIR }}"
+
+      - name: Run shared guardrails
+        run: |
+          set -eo pipefail
+          if [ -f ".shared/scripts/guardrails/check.ts" ] && [ -x "node_modules/.bin/ts-node" ]; then
+            node_modules/.bin/ts-node .shared/scripts/guardrails/check.ts --fail-fast
+          elif node -e "const pkg=require('./package.json');process.exit(pkg && pkg.scripts && pkg.scripts['guardrails:check'] ? 0 : 1)"; then
+            npm run guardrails:check -- --fail-fast
+          else
+            echo "::warning::No shared guardrails script configured; running baseline linters."
+            if [ -x "node_modules/.bin/eslint" ]; then
+              node_modules/.bin/eslint --max-warnings=0 .
+            else
+              echo "::warning::eslint not installed; skipping eslint run."
+            fi
+            if [ -x "node_modules/.bin/prettier" ]; then
+              node_modules/.bin/prettier --check .
+            else
+              echo "::warning::prettier not installed; skipping prettier run."
+            fi
+          fi
+
+      - name: Check for hard-coded deploy IDs
+        run: |
+          set -eo pipefail
+          mkdir -p "${{ env.REPORTS_DIR }}"
+          if [ -f ".shared/scripts/deployments/find-hardcoded-deploy-ids.ts" ] && [ -x "node_modules/.bin/ts-node" ]; then
+            node_modules/.bin/ts-node .shared/scripts/deployments/find-hardcoded-deploy-ids.ts --report "${{ env.REPORTS_DIR }}/deploy-ids.json"
+          elif node -e "const pkg=require('./package.json');process.exit(pkg && pkg.scripts && pkg.scripts['sanity:deploy-ids'] ? 0 : 1)"; then
+            npm run sanity:deploy-ids -- --report "${{ env.REPORTS_DIR }}/deploy-ids.json"
+          else
+            echo "::notice::Deploy ID sanity check not configured; skipping."
+          fi
+
+      - name: Upload guardrail artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: guardrail-reports
+          path: ${{ env.REPORTS_DIR }}/
+          if-no-files-found: ignore
+
+  compile:
+    name: Compile Contracts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install dependencies
+        run: |
+          set -eo pipefail
+          if [ -f yarn.lock ]; then
+            corepack enable
+            yarn install --frozen-lockfile --silent
+          elif [ -f pnpm-lock.yaml ]; then
+            corepack enable
+            pnpm install --frozen-lockfile
+          else
+            npm ci
+          fi
+
+      - name: Compile contracts
+        run: |
+          set -eo pipefail
+          if [ -x "node_modules/.bin/hardhat" ]; then
+            node_modules/.bin/hardhat compile
+          else
+            echo "::warning::Hardhat not installed; skipping compile step."
+          fi
+
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install dependencies
+        run: |
+          set -eo pipefail
+          if [ -f yarn.lock ]; then
+            corepack enable
+            yarn install --frozen-lockfile --silent
+          elif [ -f pnpm-lock.yaml ]; then
+            corepack enable
+            pnpm install --frozen-lockfile
+          else
+            npm ci
+          fi
+
+      - name: Execute tests
+        run: |
+          set -eo pipefail
+          if [ -x "node_modules/.bin/hardhat" ]; then
+            node_modules/.bin/hardhat test
+          elif node -e "const pkg=require('./package.json');process.exit(pkg && pkg.scripts && pkg.scripts.test ? 0 : 1)"; then
+            npm test
+          else
+            echo "::warning::No tests configured; skipping."
+          fi
+
+  guardrails-summary:
+    name: Guardrails Summary
+    needs: [lint, compile, test]
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Publish summary
+        run: |
+          {
+            echo "## Shared Guardrails Summary"
+            echo
+            if [ "${{ needs.lint.result }}" = "success" ]; then
+              echo "✅ Lint & sanity checks passed"
+            else
+              echo "❌ Lint & sanity checks failed"
+            fi
+
+            if [ "${{ needs.compile.result }}" = "success" ]; then
+              echo "✅ Compilation passed"
+            else
+              echo "❌ Compilation failed"
+            fi
+
+            if [ "${{ needs.test.result }}" = "success" ]; then
+              echo "✅ Tests passed"
+            else
+              echo "❌ Tests failed"
+            fi
+          } >> $GITHUB_STEP_SUMMARY

@@ -19,9 +19,7 @@ function saveDebugFiles(prefix: string, meta: any) {
 
   try {
     if (typeof meta.image === "string" && meta.image.startsWith("data:image")) {
-      const svgData = Buffer.from(meta.image.split(",")[1], "base64").toString(
-        "utf8",
-      );
+      const svgData = Buffer.from(meta.image.split(",")[1], "base64").toString("utf8");
       fs.writeFileSync(`./image_${prefix}.svg`, svgData);
     }
   } catch (e) {
@@ -74,9 +72,7 @@ describe("ERC20VestingNFT: tokenURI", function () {
     await dstake.transfer(await user.getAddress(), DEPOSIT_AMOUNT);
 
     // User approves and deposits
-    await dstake
-      .connect(user)
-      .approve(await vestingNFT.getAddress(), DEPOSIT_AMOUNT);
+    await dstake.connect(user).approve(await vestingNFT.getAddress(), DEPOSIT_AMOUNT);
     await vestingNFT.connect(user).deposit(DEPOSIT_AMOUNT);
     this.tokenId = 1n; // first token minted has ID 1
   });
@@ -93,9 +89,7 @@ describe("ERC20VestingNFT: tokenURI", function () {
 
     expect(meta1.name).to.equal(`dSTAKE Vesting #${tokenId}`);
     expect(meta1.attributes).to.be.an("array");
-    const maturedAttr1 = meta1.attributes.find(
-      (a: any) => a.trait_type === "Matured",
-    );
+    const maturedAttr1 = meta1.attributes.find((a: any) => a.trait_type === "Matured");
     expect(maturedAttr1.value).to.equal("false");
     expect(meta1.image).to.include("data:image/svg+xml;base64,");
 
@@ -112,14 +106,10 @@ describe("ERC20VestingNFT: tokenURI", function () {
     // Optional debug output
     saveDebugFiles("after", meta2);
 
-    const maturedAttr2 = meta2.attributes.find(
-      (a: any) => a.trait_type === "Matured",
-    );
+    const maturedAttr2 = meta2.attributes.find((a: any) => a.trait_type === "Matured");
     expect(maturedAttr2.value).to.equal("true");
 
-    const remainingAttr2 = meta2.attributes.find(
-      (a: any) => a.trait_type === "Remaining Seconds",
-    );
+    const remainingAttr2 = meta2.attributes.find((a: any) => a.trait_type === "Remaining Seconds");
     expect(remainingAttr2.value).to.equal("0");
   });
 });
