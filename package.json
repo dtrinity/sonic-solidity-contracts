@@ -65,6 +65,6 @@
     "typescript": "^5.7.3"
   },
   "dependencies": {
-    "@dtrinity/shared-hardhat-tools": "file:.shared"
+    "@dtrinity/shared-hardhat-tools": "portal:.shared"
   }
 }
