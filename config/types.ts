@@ -328,6 +328,7 @@ export interface NativeMintingGatewayConfig {
   readonly name: string; // Human-readable name (e.g., "wS to dS Gateway")
   readonly wNativeToken: Address; // Address of wrapped native token (e.g., wS)
   readonly dStableIssuer: Address; // Address of the IssuerV2 contract
+  readonly dStableRedeemer: Address; // Address of the RedeemerV2 contract
   readonly dStableToken: Address; // Address of the dStable token (e.g., dS)
   readonly initialOwner: Address; // Initial owner of the gateway contract
 }

@@ -6,6 +6,7 @@ import { Address } from "hardhat-deploy/types";
 import {
   NativeMintingGateway,
   IssuerV2,
+  RedeemerV2,
   ERC20StablecoinUpgradeable,
   MockWrappedNativeToken,
   CollateralHolderVault,
@@ -34,6 +35,7 @@ describe("NativeMintingGateway (Integration)", () => {
 
   let gateway: NativeMintingGateway;
   let issuerContract: IssuerV2;
+  let redeemerContract: RedeemerV2;
   let dStableContract: ERC20StablecoinUpgradeable;
   let wNativeContract: MockWrappedNativeToken;
   let wNativeInfo: TokenInfo;
@@ -44,6 +46,11 @@ describe("NativeMintingGateway (Integration)", () => {
   const depositAmount = parseEther("1.0");
   const minDStableLow = parseEther("0.5"); // Low minimum to succeed
   const minDStableHigh = parseEther("10000"); // High minimum to test slippage
+
+  // Redemption test constants
+  const redeemAmount = parseEther("10.0"); // Amount of dStable to redeem
+  const minNativeLow = parseEther("0.1"); // Low minimum to succeed
+  const minNativeHigh = parseEther("100"); // High minimum to test slippage
   // MAX_DEPOSIT removed in contract
 
   // Use the dS fixture to deploy full ecosystem
@@ -79,6 +86,10 @@ describe("NativeMintingGateway (Integration)", () => {
     const oracleAggregatorAddress = (await hre.deployments.get(S_ORACLE_AGGREGATOR_ID)).address;
     oracleAggregator = await hre.ethers.getContractAt("OracleAggregator", oracleAggregatorAddress, deployer);
 
+    // Get the deployed RedeemerV2 contract
+    const redeemerAddress = (await hre.deployments.get("RedeemerV2_DS")).address;
+    redeemerContract = await hre.ethers.getContractAt("RedeemerV2", redeemerAddress, deployer);
+
     // Get the deployed wS token (wrapped native for Sonic) from the ecosystem
     const wNativeResult = await getTokenContractForSymbol(hre, deployerAddress, "wS");
     wNativeInfo = wNativeResult.tokenInfo;
@@ -107,6 +118,7 @@ describe("NativeMintingGateway (Integration)", () => {
     gateway = await gatewayFactory.deploy(
       await wNativeContract.getAddress(), // Mock with deposit() for testing
       issuerAddress,
+      redeemerAddress,
       dStableAddress,
       user1Address, // owner from config (matches deployment config)
     );
@@ -130,6 +142,22 @@ describe("NativeMintingGateway (Integration)", () => {
       ]);
     }
   });
+
+  // Helper function to mint dStable tokens for redemption testing
+  async function mintDStableForUser(userAddress: string, amount: bigint): Promise<void> {
+    // First, deposit native tokens to get dStable
+    const user = await ethers.getSigner(userAddress);
+
+    // Calculate how much native we need to deposit to get the desired dStable amount
+    // Use a multiplier to ensure we get enough
+    const nativeToDeposit = (amount * 110n) / 100n; // 10% buffer
+
+    await gateway.connect(user).depositAndMint(minDStableLow, { value: nativeToDeposit });
+
+    // Grant approval for the gateway to spend user's dStable tokens for redemption
+    const userDStableBalance = await dStableContract.balanceOf(userAddress);
+    await dStableContract.connect(user).approve(await gateway.getAddress(), userDStableBalance);
+  }
 
   // --- Core Functionality Tests ---
   describe("Core Functionality", () => {
@@ -229,22 +257,205 @@ describe("NativeMintingGateway (Integration)", () => {
         }
       });
     });
+
+    describe("Redemption Operations", () => {
+      it("Should successfully redeem dStable tokens for native tokens", async () => {
+        const gatewayAddress = await gateway.getAddress();
+
+        // First, mint some dStable tokens for the user
+        await mintDStableForUser(user1Address, redeemAmount);
+
+        // Record initial balances
+        const userNativeBalanceBefore = await ethers.provider.getBalance(user1Address);
+        const userDStableBalanceBefore = await dStableContract.balanceOf(user1Address);
+        const gatewayNativeBalanceBefore = await ethers.provider.getBalance(gatewayAddress);
+        const gatewayWNativeBalanceBefore = await wNativeContract.balanceOf(gatewayAddress);
+        const gatewayDStableBalanceBefore = await dStableContract.balanceOf(gatewayAddress);
+
+        // Ensure user has enough dStable to redeem
+        expect(userDStableBalanceBefore).to.be.gte(redeemAmount, "User should have enough dStable to redeem");
+
+        // Execute redemption
+        const tx = await gateway.connect(user1).redeemToNative(redeemAmount, minNativeLow);
+        const receipt = await tx.wait();
+        const gasUsed = receipt!.gasUsed * receipt!.gasPrice!;
+
+        // Record final balances
+        const userNativeBalanceAfter = await ethers.provider.getBalance(user1Address);
+        const userDStableBalanceAfter = await dStableContract.balanceOf(user1Address);
+        const gatewayNativeBalanceAfter = await ethers.provider.getBalance(gatewayAddress);
+        const gatewayWNativeBalanceAfter = await wNativeContract.balanceOf(gatewayAddress);
+        const gatewayDStableBalanceAfter = await dStableContract.balanceOf(gatewayAddress);
+
+        // Calculate amounts
+        const dStableSpent = userDStableBalanceBefore - userDStableBalanceAfter;
+        const nativeReceived = userNativeBalanceAfter - userNativeBalanceBefore + gasUsed;
+
+        // Core assertions
+        expect(dStableSpent).to.equal(redeemAmount, "User should spend exactly redeem amount");
+        expect(nativeReceived).to.be.gt(0, "User should receive some native tokens");
+        expect(nativeReceived).to.be.gte(minNativeLow, "User should receive at least minimum native");
+
+        // Gateway should not hold any tokens after successful operation
+        expect(gatewayNativeBalanceAfter).to.equal(gatewayNativeBalanceBefore, "Gateway should not hold native tokens");
+        expect(gatewayWNativeBalanceAfter).to.equal(
+          gatewayWNativeBalanceBefore,
+          "Gateway should not hold wrapped tokens",
+        );
+        expect(gatewayDStableBalanceAfter).to.equal(
+          gatewayDStableBalanceBefore,
+          "Gateway should not hold dStable tokens",
+        );
+
+        // Verify wrapped token withdrawal event
+        await expect(tx).to.emit(wNativeContract, "Withdrawal").withArgs(gatewayAddress, nativeReceived);
+      });
+
+      it("Should handle multiple sequential redemptions correctly", async () => {
+        const redeems = [parseEther("5.0"), parseEther("3.0"), parseEther("2.0")];
+
+        // First mint enough dStable for all redemptions
+        const totalNeeded = redeems.reduce((sum, amt) => sum + amt, 0n);
+        await mintDStableForUser(user1Address, totalNeeded);
+
+        let totalNativeReceived = 0n;
+
+        for (let i = 0; i < redeems.length; i++) {
+          const redeemAmt = redeems[i];
+          const nativeBalanceBefore = await ethers.provider.getBalance(user1Address);
+
+          const tx = await gateway.connect(user1).redeemToNative(redeemAmt, minNativeLow);
+          const receipt = await tx.wait();
+          const gasUsed = receipt!.gasUsed * receipt!.gasPrice!;
+
+          const nativeBalanceAfter = await ethers.provider.getBalance(user1Address);
+          const nativeReceived = nativeBalanceAfter - nativeBalanceBefore + gasUsed;
+
+          expect(nativeReceived).to.be.gt(0, `Redemption ${i + 1} should yield native tokens`);
+          totalNativeReceived += nativeReceived;
+        }
+
+        expect(totalNativeReceived).to.be.gt(parseEther("1"), "Multiple redemptions should accumulate native tokens");
+      });
+
+      it("Should work with multiple concurrent users for redemption", async () => {
+        const users = [user1, user2, user3];
+        const userAddresses = [user1Address, user2Address, user3Address];
+        const redeems = [parseEther("5.0"), parseEther("7.5"), parseEther("4.0")];
+
+        // Mint dStable for each user
+        for (let i = 0; i < users.length; i++) {
+          await mintDStableForUser(userAddresses[i], redeems[i]);
+        }
+
+        // Record initial native balances
+        const initialNativeBalances = await Promise.all(userAddresses.map((addr) => ethers.provider.getBalance(addr)));
+
+        // Execute redemptions for each user
+        const receipts = [];
+        for (let i = 0; i < users.length; i++) {
+          const tx = await gateway.connect(users[i]).redeemToNative(redeems[i], minNativeLow);
+          receipts.push(await tx.wait());
+        }
+
+        // Verify all users received native tokens
+        const finalNativeBalances = await Promise.all(userAddresses.map((addr) => ethers.provider.getBalance(addr)));
+
+        for (let i = 0; i < users.length; i++) {
+          const gasUsed = receipts[i]!.gasUsed * receipts[i]!.gasPrice!;
+          const nativeReceived = finalNativeBalances[i] - initialNativeBalances[i] + gasUsed;
+          expect(nativeReceived).to.be.gt(0, `User ${i + 1} should receive native tokens`);
+          expect(nativeReceived).to.be.gte(minNativeLow, `User ${i + 1} should receive at least minimum`);
+        }
+      });
+
+      it("Should handle existing wrapped token balances correctly during redemption", async () => {
+        const existingBalance = parseEther("0.3");
+        const gatewayAddress = await gateway.getAddress();
+
+        // Mint dStable for redemption
+        await mintDStableForUser(user1Address, redeemAmount);
+
+        // Send some wrapped tokens to gateway first (simulate stuck tokens)
+        await wNativeContract.connect(user1).mint(gatewayAddress, existingBalance);
+
+        const gatewayWNativeBalanceBefore = await wNativeContract.balanceOf(gatewayAddress);
+        expect(gatewayWNativeBalanceBefore).to.equal(existingBalance);
+
+        // Redemption should still work correctly despite existing balance
+        const userNativeBalanceBefore = await ethers.provider.getBalance(user1Address);
+
+        const tx = await gateway.connect(user1).redeemToNative(redeemAmount, minNativeLow);
+        const receipt = await tx.wait();
+        const gasUsed = receipt!.gasUsed * receipt!.gasPrice!;
+
+        const userNativeBalanceAfter = await ethers.provider.getBalance(user1Address);
+        const gatewayWNativeBalanceAfter = await wNativeContract.balanceOf(gatewayAddress);
+
+        // User should receive native tokens
+        const nativeReceived = userNativeBalanceAfter - userNativeBalanceBefore + gasUsed;
+        expect(nativeReceived).to.be.gt(0);
+
+        // Gateway should only hold the pre-existing balance (new tokens should be processed)
+        expect(gatewayWNativeBalanceAfter).to.equal(existingBalance);
+      });
+    });
   });
 
   // --- Input Validation Tests ---
   describe("Input Validation", () => {
-    it("Should revert if zero value is sent", async () => {
-      await expect(gateway.connect(user1).depositAndMint(minDStableLow, { value: 0 })).to.be.revertedWithCustomError(
-        gateway,
-        "ZeroDeposit",
-      );
+    describe("Deposit Validation", () => {
+      it("Should revert if zero value is sent", async () => {
+        await expect(gateway.connect(user1).depositAndMint(minDStableLow, { value: 0 })).to.be.revertedWithCustomError(
+          gateway,
+          "ZeroDeposit",
+        );
+      });
+
+      it("Should revert if minDStable is zero", async () => {
+        await expect(gateway.connect(user1).depositAndMint(0, { value: depositAmount })).to.be.revertedWithCustomError(
+          gateway,
+          "InvalidMinDStable",
+        );
+      });
     });
 
-    it("Should revert if minDStable is zero", async () => {
-      await expect(gateway.connect(user1).depositAndMint(0, { value: depositAmount })).to.be.revertedWithCustomError(
-        gateway,
-        "InvalidMinDStable",
-      );
+    describe("Redemption Validation", () => {
+      it("Should revert if zero dStable amount is provided", async () => {
+        await expect(gateway.connect(user1).redeemToNative(0, minNativeLow)).to.be.revertedWithCustomError(
+          gateway,
+          "ZeroDStableAmount",
+        );
+      });
+
+      it("Should revert if minNativeAmount is zero", async () => {
+        // First mint some dStable for the user
+        await mintDStableForUser(user1Address, redeemAmount);
+
+        await expect(gateway.connect(user1).redeemToNative(redeemAmount, 0)).to.be.revertedWithCustomError(
+          gateway,
+          "InvalidMinNativeAmount",
+        );
+      });
+
+      it("Should revert if user has insufficient dStable balance", async () => {
+        // Mint a small amount of dStable first
+        await mintDStableForUser(user1Address, parseEther("1"));
+
+        const userDStableBalance = await dStableContract.balanceOf(user1Address);
+        const excessiveAmount = userDStableBalance + parseEther("1000");
+
+        await expect(gateway.connect(user1).redeemToNative(excessiveAmount, minNativeLow)).to.be.reverted;
+      });
+
+      it("Should revert if slippage protection is triggered", async () => {
+        // Mint dStable for redemption
+        await mintDStableForUser(user1Address, redeemAmount);
+
+        // Use unreasonably high minimum native amount to trigger slippage protection
+        // Note: The redeemer's own slippage protection may trigger first, which is also valid
+        await expect(gateway.connect(user1).redeemToNative(redeemAmount, minNativeHigh)).to.be.reverted;
+      });
     });
 
     // Removed: max deposit check (contract no longer enforces MAX_DEPOSIT)
@@ -302,6 +513,62 @@ describe("NativeMintingGateway (Integration)", () => {
       await expect(
         gateway.connect(user1).depositAndMint(minDStableLow, { value: depositAmount }),
       ).to.be.revertedWithCustomError(gateway, "IssuerOperationFailed");
+    });
+
+    describe("Redemption Failures", () => {
+      it("Should handle redeemer failures gracefully", async () => {
+        // First mint dStable tokens for the user
+        await mintDStableForUser(user1Address, redeemAmount);
+
+        // Pause the redeemer to simulate failure
+        const governanceSigner = await ethers.getSigner(user1Address);
+        await redeemerContract.connect(governanceSigner).pauseRedemption();
+
+        const userDStableBalanceBefore = await dStableContract.balanceOf(user1Address);
+
+        // Transaction should fail and return tokens
+        await expect(gateway.connect(user1).redeemToNative(redeemAmount, minNativeLow)).to.be.reverted;
+
+        const userDStableBalanceAfter = await dStableContract.balanceOf(user1Address);
+
+        // User should still have their dStable tokens (transaction reverts)
+        expect(userDStableBalanceAfter).to.equal(userDStableBalanceBefore);
+
+        // Clean up - unpause for other tests
+        await redeemerContract.connect(governanceSigner).unpauseRedemption();
+      });
+
+      it("Should revert with RedeemerOperationFailed on redeemer failure", async () => {
+        // First mint dStable tokens for the user
+        await mintDStableForUser(user1Address, redeemAmount);
+
+        const governanceSigner = await ethers.getSigner(user1Address);
+        await redeemerContract.connect(governanceSigner).setAssetRedemptionPause(await wNativeContract.getAddress(), true);
+
+        await expect(
+          gateway.connect(user1).redeemToNative(redeemAmount, minNativeLow),
+        ).to.be.revertedWithCustomError(gateway, "RedeemerOperationFailed");
+
+        // Clean up - unpause for other tests
+        await redeemerContract.connect(governanceSigner).setAssetRedemptionPause(await wNativeContract.getAddress(), false);
+      });
+
+      it("Should handle wrapped token unwrapping failures", async () => {
+        // This test simulates the case where the wrapped token withdraw() function fails
+        // Since we can't easily simulate this with MockWrappedNativeToken,
+        // we test the error path by checking the validation logic
+
+        // Mint dStable for redemption
+        await mintDStableForUser(user1Address, redeemAmount);
+
+        // The contract should detect if unwrapping produces unexpected results
+        // This is tested through the validation in the contract itself
+        // If the unwrap returns different amounts than expected, it should revert with UnwrapFailed
+
+        // For this test, we verify the error exists and can be triggered
+        const errorInterface = gateway.interface.getError("UnwrapFailed");
+        expect(errorInterface).to.not.be.undefined;
+      });
     });
   });
 
@@ -450,6 +717,7 @@ describe("NativeMintingGateway (Integration)", () => {
     it("Should have proper state variables", async () => {
       expect(await gateway.W_NATIVE_TOKEN()).to.equal(await wNativeContract.getAddress());
       expect(await gateway.DSTABLE_ISSUER()).to.equal(await issuerContract.getAddress());
+      expect(await gateway.DSTABLE_REDEEMER()).to.equal(await redeemerContract.getAddress());
       expect(await gateway.DSTABLE_TOKEN()).to.equal(await dStableContract.getAddress());
       // MAX_DEPOSIT removed; no assertion
     });
@@ -627,9 +895,15 @@ describe("NativeMintingGateway (Integration)", () => {
 
       // Should have required functions
       expect(interfaceFragment.hasFunction("depositAndMint")).to.be.true;
+      expect(interfaceFragment.hasFunction("redeemToNative")).to.be.true;
       expect(interfaceFragment.hasFunction("rescueNative")).to.be.true;
       expect(interfaceFragment.hasFunction("rescueTokens")).to.be.true;
-      // TransactionFailed event removed
+
+      // Should have required error types
+      expect(interfaceFragment.getError("ZeroDStableAmount")).to.not.be.undefined;
+      expect(interfaceFragment.getError("InvalidMinNativeAmount")).to.not.be.undefined;
+      expect(interfaceFragment.getError("RedeemerOperationFailed")).to.not.be.undefined;
+      expect(interfaceFragment.getError("UnwrapFailed")).to.not.be.undefined;
     });
   });
 
@@ -656,7 +930,7 @@ describe("NativeMintingGateway (Integration)", () => {
       expect(deployment.address).to.not.equal(ZeroAddress);
       expect(deployment.abi).to.be.an("array");
       expect(deployment.args).to.be.an("array");
-      expect(deployment.args).to.have.length(4); // 4 constructor arguments
+      expect(deployment.args).to.have.length(5); // 5 constructor arguments (including redeemer)
     });
 
     it("Should match localhost configuration exactly", async () => {

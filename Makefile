@@ -134,11 +134,39 @@ clean-deployments: ## Clean the deployments for a given network which matches at
 
 explorer.verify.sonic_testnet:
 	@echo "Verifying contracts on sonic testnet..."
-	@yarn hardhat --network sonic_testnet etherscan-verify --api-key 4EJCRRD3JKIE6TKF6ME7AKVYWFEJI79A26 --api-url https://api-testnet.sonicscan.org
+	@yarn hardhat --network sonic_testnet etherscan-verify --api-key 4EJCRRD3JKIE6TKF6ME7AKVYWFEJI79A26 --api-url "https://api.etherscan.io/v2/api?chainid=14601"
 
 explorer.verify.sonic_mainnet:
 	@echo "Verifying contracts on sonic mainnet..."
-	@yarn hardhat --network sonic_mainnet etherscan-verify --api-key 4EJCRRD3JKIE6TKF6ME7AKVYWFEJI79A26 --api-url https://api.sonicscan.org
+	@yarn hardhat --network sonic_mainnet etherscan-verify --api-key 4EJCRRD3JKIE6TKF6ME7AKVYWFEJI79A26 --api-url "https://api.etherscan.io/v2/api?chainid=146"
+
+explorer.verify.focused: ## Verify a single contract on specified network (usage: make explorer.verify.focused network=sonic_testnet contract=ContractName)
+	@if [ "$(network)" = "" ]; then \
+		echo "Must provide 'network' argument. Example: 'make explorer.verify.focused network=sonic_testnet contract=MyContract'"; \
+		exit 1; \
+	fi
+	@if [ "$(contract)" = "" ]; then \
+		echo "Must provide 'contract' argument. Example: 'make explorer.verify.focused network=sonic_testnet contract=MyContract'"; \
+		exit 1; \
+	fi
+	@if [ "$(network)" = "sonic_testnet" ]; then \
+		echo "Verifying $(contract) on sonic testnet..."; \
+		echo "Network: sonic_testnet"; \
+		echo "API URL: https://api.etherscan.io/v2/api?chainid=14601"; \
+		echo "Contract Name: $(contract)"; \
+		echo "Running verification command..."; \
+		yarn hardhat --network sonic_testnet etherscan-verify --api-key 4EJCRRD3JKIE6TKF6ME7AKVYWFEJI79A26 --api-url "https://api.etherscan.io/v2/api?chainid=14601" --contract-name $(contract) --verbose; \
+	elif [ "$(network)" = "sonic_mainnet" ]; then \
+		echo "Verifying $(contract) on sonic mainnet..."; \
+		echo "Network: sonic_mainnet"; \
+		echo "API URL: https://api.etherscan.io/v2/api?chainid=146"; \
+		echo "Contract Name: $(contract)"; \
+		echo "Running verification command..."; \
+		yarn hardhat --network sonic_mainnet etherscan-verify --api-key 4EJCRRD3JKIE6TKF6ME7AKVYWFEJI79A26 --api-url "https://api.etherscan.io/v2/api?chainid=146" --contract-name $(contract) --verbose; \
+	else \
+		echo "Unsupported network: $(network). Use 'sonic_testnet' or 'sonic_mainnet'"; \
+		exit 1; \
+	fi
 
 ##############
 ## Building ##
@@ -153,5 +181,5 @@ clean: ## When renaming directories or files, run this to clean up
 	@rm -rf cache
 	@echo "Cleaned solidity cache and artifacts. Remember to recompile."
 
-.PHONY: help compile test deploy clean slither slither.check slither.focused mythril mythril.focused mythril.deep mythril.fast mythril.force mythril.summary audit
+.PHONY: help compile test deploy clean slither slither.check slither.focused mythril mythril.focused mythril.deep mythril.fast mythril.force mythril.summary audit explorer.verify.focused
 

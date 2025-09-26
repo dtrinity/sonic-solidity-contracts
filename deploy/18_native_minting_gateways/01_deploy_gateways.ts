@@ -25,6 +25,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     console.log(`  Name: ${gatewayConfig.name}`);
     console.log(`  Wrapped Native Token: ${gatewayConfig.wNativeToken}`);
     console.log(`  dStable Issuer: ${gatewayConfig.dStableIssuer}`);
+    console.log(`  dStable Redeemer: ${gatewayConfig.dStableRedeemer}`);
     console.log(`  dStable Token: ${gatewayConfig.dStableToken}`);
     console.log(`  Initial Owner: ${gatewayConfig.initialOwner}`);
 
@@ -36,6 +37,11 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
     if (!gatewayConfig.dStableIssuer) {
       console.log(`⚠️  Skipping ${gatewayId}: missing dStableIssuer address`);
+      continue;
+    }
+
+    if (!gatewayConfig.dStableRedeemer) {
+      console.log(`⚠️  Skipping ${gatewayId}: missing dStableRedeemer address`);
       continue;
     }
 
@@ -60,6 +66,11 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       continue;
     }
 
+    if (!hre.ethers.isAddress(gatewayConfig.dStableRedeemer)) {
+      console.log(`⚠️  Skipping ${gatewayId}: invalid dStableRedeemer address ${gatewayConfig.dStableRedeemer}`);
+      continue;
+    }
+
     if (!hre.ethers.isAddress(gatewayConfig.dStableToken)) {
       console.log(`⚠️  Skipping ${gatewayId}: invalid dStableToken address ${gatewayConfig.dStableToken}`);
       continue;
@@ -75,7 +86,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       const gatewayDeployment = await deploy(gatewayId, {
         from: deployer,
         contract: "NativeMintingGateway",
-        args: [gatewayConfig.wNativeToken, gatewayConfig.dStableIssuer, gatewayConfig.dStableToken, gatewayConfig.initialOwner],
+        args: [gatewayConfig.wNativeToken, gatewayConfig.dStableIssuer, gatewayConfig.dStableRedeemer, gatewayConfig.dStableToken, gatewayConfig.initialOwner],
         log: true,
         autoMine: true,
         skipIfAlreadyDeployed: true,
@@ -94,12 +105,14 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
         const gateway = await hre.ethers.getContractAt("NativeMintingGateway", gatewayDeployment.address);
         const contractWNative = await gateway.W_NATIVE_TOKEN();
         const contractIssuer = await gateway.DSTABLE_ISSUER();
+        const contractRedeemer = await gateway.DSTABLE_REDEEMER();
         const contractToken = await gateway.DSTABLE_TOKEN();
         const contractOwner = await gateway.owner();
 
         console.log(`  🔍 Verification:`);
         console.log(`    W_NATIVE_TOKEN: ${contractWNative === gatewayConfig.wNativeToken ? "✅" : "❌"} ${contractWNative}`);
         console.log(`    DSTABLE_ISSUER: ${contractIssuer === gatewayConfig.dStableIssuer ? "✅" : "❌"} ${contractIssuer}`);
+        console.log(`    DSTABLE_REDEEMER: ${contractRedeemer === gatewayConfig.dStableRedeemer ? "✅" : "❌"} ${contractRedeemer}`);
         console.log(`    DSTABLE_TOKEN: ${contractToken === gatewayConfig.dStableToken ? "✅" : "❌"} ${contractToken}`);
         console.log(`    OWNER: ${contractOwner === gatewayConfig.initialOwner ? "✅" : "❌"} ${contractOwner}`);
 
@@ -107,6 +120,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
         if (
           contractWNative === gatewayConfig.wNativeToken &&
           contractIssuer === gatewayConfig.dStableIssuer &&
+          contractRedeemer === gatewayConfig.dStableRedeemer &&
           contractToken === gatewayConfig.dStableToken &&
           contractOwner === gatewayConfig.initialOwner
         ) {
@@ -144,6 +158,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
 func.id = "deploy_native_minting_gateways";
 func.tags = ["native-minting-gateways", "gateways"];
-func.dependencies = ["ds", "setup-issuerv2"]; // Depends on dStable tokens and IssuerV2 being deployed
+func.dependencies = ["ds", "setup-issuerv2", "setup-redeemerv2"]; // Depends on dStable tokens, IssuerV2, and RedeemerV2 being deployed
 
 export default func;
