@@ -17,6 +17,14 @@ contract SwappableVaultMock is SwappableVault {
     string private _revertMessage;
 
     /**
+     * @dev The difference tolerance for the swapped output amount
+     * @return differenceTolerance The difference tolerance amount
+     */
+    function swappedOutputDifferenceToleranceAmount(uint256) public pure override returns (uint256) {
+        return 0;
+    }
+
+    /**
      * @dev Set the amount in that will be returned by the swap implementation
      */
     function setAmountInToReturn(uint256 amountIn) external {
@@ -60,7 +68,7 @@ contract SwappableVaultMock is SwappableVault {
         address, // receiver
         uint256, // deadline
         bytes memory // extraData
-    ) internal override returns (uint256) {
+    ) internal override {
         if (_shouldRevert) {
             revert(_revertMessage);
         }
@@ -80,8 +88,6 @@ contract SwappableVaultMock is SwappableVault {
             // Mint tokens to this contract to simulate receiving them from swap
             IMintableERC20(address(outputToken)).mint(address(this), actualAmountOut);
         }
-
-        return _amountInToReturn;
     }
 
     /**

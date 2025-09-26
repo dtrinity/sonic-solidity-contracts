@@ -81,37 +81,6 @@ const config: HardhatUserConfig = {
       },
     ],
     overrides: {
-      // Core complex contract causing stack too deep errors
-      "contracts/vaults/dloop/core/DLoopCoreBase.sol": {
-        version: "0.8.20",
-        settings: {
-          optimizer: {
-            enabled: true,
-            runs: 200,
-          },
-          viaIR: true,
-        },
-      },
-      "contracts/vaults/dloop/core/DLoopQuoter.sol": {
-        version: "0.8.20",
-        settings: {
-          optimizer: {
-            enabled: true,
-            runs: 200,
-          },
-          viaIR: true,
-        },
-      },
-      "contracts/vaults/dloop/core/venue/dlend/DLoopCoreDLend.sol": {
-        version: "0.8.20",
-        settings: {
-          optimizer: {
-            enabled: true,
-            runs: 200,
-          },
-          viaIR: true,
-        },
-      },
       // Testing harness that imports DLoopCoreDLend; ensure the compilation job uses IR
       "contracts/testing/dloop/DLoopCoreDLendHarness.sol": {
         version: "0.8.20",

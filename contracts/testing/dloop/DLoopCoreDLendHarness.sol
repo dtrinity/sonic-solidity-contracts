@@ -25,24 +25,26 @@ contract DLoopCoreDLendHarness is DLoopCoreDLend {
         uint256 _initialExchangeThreshold
     )
         DLoopCoreDLend(
-            _name,
-            _symbol,
-            _collateralToken,
-            _debtToken,
-            _lendingPoolAddressesProvider,
-            _targetLeverageBps,
-            _lowerBoundTargetLeverageBps,
-            _upperBoundTargetLeverageBps,
-            _maxSubsidyBps,
-            _minDeviationBps,
-            _withdrawalFeeBps,
-            _rewardsController,
-            _dLendAssetToClaimFor,
-            _targetStaticATokenWrapper,
-            _treasury,
-            _maxTreasuryFeeBps,
-            _initialTreasuryFeeBps,
-            _initialExchangeThreshold
+            DLoopCoreDLend.InitParams({
+                name: _name,
+                symbol: _symbol,
+                collateralToken: _collateralToken,
+                debtToken: _debtToken,
+                lendingPoolAddressesProvider: _lendingPoolAddressesProvider,
+                targetLeverageBps: _targetLeverageBps,
+                lowerBoundTargetLeverageBps: _lowerBoundTargetLeverageBps,
+                upperBoundTargetLeverageBps: _upperBoundTargetLeverageBps,
+                maxSubsidyBps: _maxSubsidyBps,
+                minDeviationBps: _minDeviationBps,
+                withdrawalFeeBps: _withdrawalFeeBps,
+                rewardsController: _rewardsController,
+                dLendAssetToClaimFor: _dLendAssetToClaimFor,
+                targetStaticATokenWrapper: _targetStaticATokenWrapper,
+                treasury: _treasury,
+                maxTreasuryFeeBps: _maxTreasuryFeeBps,
+                initialTreasuryFeeBps: _initialTreasuryFeeBps,
+                initialExchangeThreshold: _initialExchangeThreshold
+            })
         )
     {}
 

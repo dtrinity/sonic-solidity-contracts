@@ -22,6 +22,7 @@ import { DLoopCoreBase } from "./DLoopCoreBase.sol";
 import { DLoopCoreLogic } from "./DLoopCoreLogic.sol";
 
 contract DLoopQuoter {
+    using DLoopCoreLogic for DLoopCoreLogic.QuoteRebalanceParams;
     /* Rebalance */
 
     /**
@@ -40,23 +41,16 @@ contract DLoopQuoter {
     function quoteRebalanceAmountToReachTargetLeverage(
         DLoopCoreBase dLoopCore
     ) public view returns (uint256 inputTokenAmount, uint256 estimatedOutputTokenAmount, int8 direction) {
-        (uint256 totalCollateralBase, uint256 totalDebtBase) = dLoopCore.getTotalCollateralAndDebtOfUserInBase(
-            address(dLoopCore)
-        );
-        ERC20 collateralToken = ERC20(dLoopCore.collateralToken());
-        ERC20 debtToken = ERC20(dLoopCore.debtToken());
+        DLoopCoreLogic.QuoteRebalanceParams memory p;
+        (p.totalCollateralBase, p.totalDebtBase) = dLoopCore.getTotalCollateralAndDebtOfUserInBase(address(dLoopCore));
+        p.currentLeverageBps = dLoopCore.getCurrentLeverageBps();
+        p.targetLeverageBps = dLoopCore.targetLeverageBps();
+        p.subsidyBps = dLoopCore.getCurrentSubsidyBps();
+        p.collateralTokenDecimals = ERC20(dLoopCore.getCollateralTokenAddress()).decimals();
+        p.collateralTokenPriceInBase = dLoopCore.getAssetPriceFromOracle(dLoopCore.getCollateralTokenAddress());
+        p.debtTokenDecimals = ERC20(dLoopCore.getDebtTokenAddress()).decimals();
+        p.debtTokenPriceInBase = dLoopCore.getAssetPriceFromOracle(dLoopCore.getDebtTokenAddress());
 
-        return
-            DLoopCoreLogic.quoteRebalanceAmountToReachTargetLeverage(
-                totalCollateralBase,
-                totalDebtBase,
-                dLoopCore.getCurrentLeverageBps(),
-                dLoopCore.targetLeverageBps(),
-                dLoopCore.getCurrentSubsidyBps(),
-                collateralToken.decimals(),
-                dLoopCore.getAssetPriceFromOracle(address(collateralToken)),
-                debtToken.decimals(),
-                dLoopCore.getAssetPriceFromOracle(address(debtToken))
-            );
+        return p.quoteRebalanceAmountToReachTargetLeverage();
     }
 }

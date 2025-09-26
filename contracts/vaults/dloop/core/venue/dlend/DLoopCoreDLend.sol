@@ -62,70 +62,58 @@ contract DLoopCoreDLend is DLoopCoreBase, RewardClaimable {
     event FeeBpsSet(uint256 oldFeeBps, uint256 newFeeBps);
 
     /**
-     * @dev Constructor for the DLoopCoreDLend contract
-     * @param _name Name of the vault token
-     * @param _symbol Symbol of the vault token
-     * @param _collateralToken Address of the collateral token
-     * @param _debtToken Address of the debt token
-     * @param _lendingPoolAddressesProvider Address of the lending pool addresses provider
-     * @param _targetLeverageBps Target leverage in basis points
-     * @param _lowerBoundTargetLeverageBps Lower bound of target leverage in basis points
-     * @param _upperBoundTargetLeverageBps Upper bound of target leverage in basis points
-     * @param _maxSubsidyBps Maximum subsidy in basis points
-     * @param _withdrawalFeeBps Initial withdrawal fee in basis points
-     * @param _rewardsController Address of the dLEND rewards controller
-     * @param _dLendAssetToClaimFor Address of the dLEND asset to claim for
-     * @param _targetStaticATokenWrapper Address of the target static aToken wrapper
-     * @param _treasury Address of the treasury
-     * @param _maxTreasuryFeeBps Maximum treasury fee in basis points
-     * @param _initialTreasuryFeeBps Initial treasury fee in basis points
-     * @param _initialExchangeThreshold Minimum amount of rewards (in debt token units) required before exchanging to treasury
+     * @dev Aggregated constructor params to reduce stack usage
      */
-    constructor(
-        string memory _name,
-        string memory _symbol,
-        ERC20 _collateralToken,
-        ERC20 _debtToken,
-        IPoolAddressesProvider _lendingPoolAddressesProvider,
-        uint32 _targetLeverageBps,
-        uint32 _lowerBoundTargetLeverageBps,
-        uint32 _upperBoundTargetLeverageBps,
-        uint256 _maxSubsidyBps,
-        uint256 _minDeviationBps,
-        uint256 _withdrawalFeeBps,
-        IRewardsController _rewardsController,
-        address _dLendAssetToClaimFor,
-        address _targetStaticATokenWrapper,
-        address _treasury,
-        uint256 _maxTreasuryFeeBps,
-        uint256 _initialTreasuryFeeBps,
-        uint256 _initialExchangeThreshold
-    )
+    struct InitParams {
+        string name;
+        string symbol;
+        ERC20 collateralToken;
+        ERC20 debtToken;
+        IPoolAddressesProvider lendingPoolAddressesProvider;
+        uint32 targetLeverageBps;
+        uint32 lowerBoundTargetLeverageBps;
+        uint32 upperBoundTargetLeverageBps;
+        uint256 maxSubsidyBps;
+        uint256 minDeviationBps;
+        uint256 withdrawalFeeBps;
+        IRewardsController rewardsController;
+        address dLendAssetToClaimFor;
+        address targetStaticATokenWrapper;
+        address treasury;
+        uint256 maxTreasuryFeeBps;
+        uint256 initialTreasuryFeeBps;
+        uint256 initialExchangeThreshold;
+    }
+
+    /**
+     * @dev Constructor for the DLoopCoreDLend contract using struct to avoid stack-too-deep
+     */
+    constructor(InitParams memory p)
         DLoopCoreBase(
-            _name,
-            _symbol,
-            _collateralToken,
-            _debtToken,
-            _targetLeverageBps,
-            _lowerBoundTargetLeverageBps,
-            _upperBoundTargetLeverageBps,
-            _maxSubsidyBps,
-            _minDeviationBps,
-            _withdrawalFeeBps
+            p.name,
+            p.symbol,
+            p.collateralToken,
+            p.debtToken,
+            p.targetLeverageBps,
+            p.lowerBoundTargetLeverageBps,
+            p.upperBoundTargetLeverageBps,
+            p.maxSubsidyBps,
+            p.minDeviationBps,
+            p.withdrawalFeeBps
         )
         RewardClaimable(
             address(this), // Use the vault shares as the exchange asset
-            _treasury,
-            _maxTreasuryFeeBps,
-            _initialTreasuryFeeBps,
-            _initialExchangeThreshold
+            p.treasury,
+            p.maxTreasuryFeeBps,
+            p.initialTreasuryFeeBps,
+            p.initialExchangeThreshold
         )
     {
         // Always use the vault shares as the exchange asset in reward claim logic
-        lendingPoolAddressesProvider = _lendingPoolAddressesProvider;
-        dLendRewardsController = _rewardsController;
-        dLendAssetToClaimFor = _dLendAssetToClaimFor;
-        targetStaticATokenWrapper = _targetStaticATokenWrapper;
+        lendingPoolAddressesProvider = p.lendingPoolAddressesProvider;
+        dLendRewardsController = p.rewardsController;
+        dLendAssetToClaimFor = p.dLendAssetToClaimFor;
+        targetStaticATokenWrapper = p.targetStaticATokenWrapper;
 
         if (getLendingOracle().BASE_CURRENCY() != address(0)) {
             revert("Invalid price oracle base currency");
