@@ -1,0 +1,331 @@
+{
+  "metadata": {
+    "generatedAt": "2025-09-28T16:47:20.753Z",
+    "txHash": "0xa6aef05387f5b86b1fd563256fc9223f3c22f74292d66ac796d3f08fd311d940",
+    "network": "sonic",
+    "traceSource": "reports/tenderly/raw-tenderly-trace-sonic-a6aef053.json"
+  },
+  "stepChecks": [
+    {
+      "description": "dUSD flash-mint from zero address to attacker executor",
+      "passed": true,
+      "details": "amount=27000.0"
+    },
+    {
+      "description": "dUSD flash-mint repaid to zero address",
+      "passed": true,
+      "details": "amount=27000.0"
+    },
+    {
+      "description": "Victim aToken balance burned (transfer to zero)",
+      "passed": true,
+      "details": "from=victim amount=21440.463367667587451078"
+    },
+    {
+      "description": "Dust (1 micro wstkscUSD) returned from attacker executor to adapter",
+      "passed": true,
+      "details": "value=1"
+    },
+    {
+      "description": "Attacker executor accumulates wstkscUSD from pool flow",
+      "passed": true,
+      "details": "netGain=35108.166799"
+    }
+  ],
+  "tokenSummaries": {
+    "dUSD": {
+      "symbol": "dUSD",
+      "decimals": 18,
+      "transfers": [
+        {
+          "from": "zero",
+          "to": "attacker_executor",
+          "value": "27000.0",
+          "decodedVia": "tenderly"
+        },
+        {
+          "from": "attacker_executor",
+          "to": "dusd_staging_vault",
+          "value": "21444.122422884130710969",
+          "decodedVia": "manual"
+        },
+        {
+          "from": "dusd_recycler",
+          "to": "attacker_executor",
+          "value": "26681.458777948890901201",
+          "decodedVia": "tenderly"
+        },
+        {
+          "from": "attacker_executor",
+          "to": "dusd_splitter",
+          "value": "25.0",
+          "decodedVia": "tenderly"
+        },
+        {
+          "from": "dusd_splitter",
+          "to": "micro_dist_1",
+          "value": "0.01",
+          "decodedVia": "tenderly"
+        },
+        {
+          "from": "dusd_splitter",
+          "to": "micro_dist_2",
+          "value": "0.24",
+          "decodedVia": "manual"
+        },
+        {
+          "from": "attacker_executor",
+          "to": "dusd_staging_vault",
+          "value": "7133.477578004629885067",
+          "decodedVia": "tenderly"
+        },
+        {
+          "from": "dusd_recycler",
+          "to": "attacker_executor",
+          "value": "8998.899406948321393581",
+          "decodedVia": "tenderly"
+        },
+        {
+          "from": "attacker_executor",
+          "to": "dusd_splitter",
+          "value": "25.0",
+          "decodedVia": "tenderly"
+        },
+        {
+          "from": "dusd_splitter",
+          "to": "micro_dist_1",
+          "value": "0.01",
+          "decodedVia": "tenderly"
+        },
+        {
+          "from": "dusd_splitter",
+          "to": "micro_dist_2",
+          "value": "0.24",
+          "decodedVia": "tenderly"
+        },
+        {
+          "from": "attacker_executor",
+          "to": "zero",
+          "value": "27000.0",
+          "decodedVia": "manual"
+        },
+        {
+          "from": "attacker_executor",
+          "to": "dusd_recycler",
+          "value": "7052.758184008451698746",
+          "decodedVia": "tenderly"
+        }
+      ],
+      "netBalances": {
+        "dusd_staging_vault": "28577.600000888760596036",
+        "dusd_recycler": "-28627.600000888760596036",
+        "dusd_splitter": "49.5",
+        "micro_dist_1": "0.02",
+        "micro_dist_2": "0.48"
+      }
+    },
+    "aWSTKSCUSD": {
+      "symbol": "aWSTKSCUSD",
+      "decimals": 18,
+      "transfers": [
+        {
+          "from": "victim",
+          "to": "zero",
+          "value": "21440.463367667587451078",
+          "decodedVia": "tenderly"
+        },
+        {
+          "from": "reserve_manager",
+          "to": "zero",
+          "value": "7132.235951210549287459",
+          "decodedVia": "tenderly"
+        }
+      ],
+      "netBalances": {
+        "victim": "-21440.463367667587451078",
+        "zero": "28572.699318878136738537",
+        "reserve_manager": "-7132.235951210549287459"
+      }
+    },
+    "wstkscUSD": {
+      "symbol": "wstkscUSD",
+      "decimals": 6,
+      "transfers": [
+        {
+          "from": "atoken_burn_helper",
+          "to": "odos_adapter",
+          "value": "26243.751965",
+          "decodedVia": "manual"
+        },
+        {
+          "from": "odos_adapter",
+          "to": "attacker_executor",
+          "value": "0.000001",
+          "decodedVia": "manual"
+        },
+        {
+          "from": "attacker_executor",
+          "to": "odos_adapter",
+          "value": "0.000001",
+          "decodedVia": "manual"
+        },
+        {
+          "from": "odos_adapter",
+          "to": "atoken_burn_helper",
+          "value": "0.000001",
+          "decodedVia": "manual"
+        },
+        {
+          "from": "atoken_burn_helper",
+          "to": "odos_adapter",
+          "value": "26243.751965",
+          "decodedVia": "manual"
+        },
+        {
+          "from": "odos_adapter",
+          "to": "atoken_burn_helper",
+          "value": "26256.873841",
+          "decodedVia": "manual"
+        },
+        {
+          "from": "atoken_burn_helper",
+          "to": "odos_adapter",
+          "value": "0.000001",
+          "decodedVia": "manual"
+        },
+        {
+          "from": "odos_adapter",
+          "to": "attacker_executor",
+          "value": "0.000001",
+          "decodedVia": "manual"
+        },
+        {
+          "from": "attacker_executor",
+          "to": "odos_adapter",
+          "value": "0.000001",
+          "decodedVia": "manual"
+        },
+        {
+          "from": "odos_adapter",
+          "to": "atoken_burn_helper",
+          "value": "26230.63009",
+          "decodedVia": "manual"
+        },
+        {
+          "from": "atoken_burn_helper",
+          "to": "odos_adapter",
+          "value": "0.000001",
+          "decodedVia": "manual"
+        },
+        {
+          "from": "odos_adapter",
+          "to": "atoken_burn_helper",
+          "value": "0.000001",
+          "decodedVia": "manual"
+        },
+        {
+          "from": "atoken_burn_helper",
+          "to": "attacker_executor",
+          "value": "26230.630089",
+          "decodedVia": "manual"
+        },
+        {
+          "from": "attacker_executor",
+          "to": "odos_pool_leg",
+          "value": "26230.630089",
+          "decodedVia": "manual"
+        },
+        {
+          "from": "atoken_burn_helper",
+          "to": "odos_adapter",
+          "value": "8881.977696",
+          "decodedVia": "manual"
+        },
+        {
+          "from": "odos_adapter",
+          "to": "attacker_executor",
+          "value": "0.000001",
+          "decodedVia": "manual"
+        },
+        {
+          "from": "attacker_executor",
+          "to": "odos_adapter",
+          "value": "0.000001",
+          "decodedVia": "manual"
+        },
+        {
+          "from": "odos_adapter",
+          "to": "atoken_burn_helper",
+          "value": "0.000001",
+          "decodedVia": "manual"
+        },
+        {
+          "from": "atoken_burn_helper",
+          "to": "odos_adapter",
+          "value": "8881.977696",
+          "decodedVia": "manual"
+        },
+        {
+          "from": "odos_adapter",
+          "to": "atoken_burn_helper",
+          "value": "8886.418685",
+          "decodedVia": "manual"
+        },
+        {
+          "from": "atoken_burn_helper",
+          "to": "odos_adapter",
+          "value": "0.000001",
+          "decodedVia": "manual"
+        },
+        {
+          "from": "odos_adapter",
+          "to": "attacker_executor",
+          "value": "0.000001",
+          "decodedVia": "manual"
+        },
+        {
+          "from": "attacker_executor",
+          "to": "odos_adapter",
+          "value": "0.000001",
+          "decodedVia": "manual"
+        },
+        {
+          "from": "odos_adapter",
+          "to": "atoken_burn_helper",
+          "value": "8877.536707",
+          "decodedVia": "manual"
+        },
+        {
+          "from": "atoken_burn_helper",
+          "to": "odos_adapter",
+          "value": "0.000001",
+          "decodedVia": "manual"
+        },
+        {
+          "from": "odos_adapter",
+          "to": "atoken_burn_helper",
+          "value": "0.000001",
+          "decodedVia": "manual"
+        },
+        {
+          "from": "atoken_burn_helper",
+          "to": "attacker_executor",
+          "value": "8877.536706",
+          "decodedVia": "manual"
+        },
+        {
+          "from": "attacker_executor",
+          "to": "odos_pool_leg",
+          "value": "8877.536706",
+          "decodedVia": "manual"
+        }
+      ],
+      "netBalances": {
+        "atoken_burn_helper": "-35108.166794",
+        "odos_adapter": "-0.000001",
+        "odos_pool_leg": "35108.166795"
+      }
+    }
+  },
+  "callInfo": {}
+}

@@ -1,4 +1,4 @@
-# Ticket: Reproduce Odos Liquidity Swap Adapter Exploit
+# Ticket: Reproduce Odos Liquidity Swap Adapter Exploit (Sonic)
 
 ## Objective
 - Build a deterministic, automated repro that mirrors the production attack described in `ATTACK_STEPS.md`.
@@ -7,108 +7,109 @@
 
 ## Background
 - The V1 `OdosLiquiditySwapAdapter` trusts caller-supplied `user`, `swapData`, and `minOut`.
-- With a lingering `aToken` approval, an attacker routes the withdrawn collateral into a malicious executor and returns dust `newCollateralAsset` (potentially flash-minted) to satisfy `minOut` before the adapter re-supplies it on behalf of the victim.
+- With a lingering `aWSTKSCUSD` approval, an attacker routes the withdrawn collateral into a malicious executor and returns a 1-micro `wstkscUSD` dust credit to satisfy `minOut` before the adapter re-supplies it on behalf of the victim.
+- The attacker simultaneously flash-mints **27,000 dUSD**; this float never repays the victim’s debt, it only fuels the staging vault/recycler/splitter helpers needed to mint the staking wrappers that produce the dust output.
 - Reference Sonic exploit tx: `0xa6aef05387f5b86b1fd563256fc9223f3c22f74292d66ac796d3f08fd311d940` (for validating behaviour, not necessarily to fork).
 
 ## Deliverables
 - `MaliciousOdosRouter` mock (or extension of `MockOdosRouterV2`) that transfers input collateral to an attacker-controlled sink and sends configurable dust output back.
-- Minimal attacker executor contract that optionally triggers a fake `dUSD` flash-mint so we can mirror on-chain traces (can be stubbed with pre-funded dust if flash minting proves heavy).
+- Attacker executor contract that runs the adapter **with `withFlashLoan = true`**, kicks off a harness-level dUSD flash mint, and returns the dust output to the adapter while keeping the stolen collateral.
 - Pool + token fixture that supports:
   - Underlying → aToken accounting (supply/withdraw actually moves balances).
   - Victim deposit helper and leftover allowance simulation.
-  - Hooks to observe balances before/after the exploit.
-- Hardhat test (TypeScript) under `test/dlend/adapters/odos/` that drives the exploit through the public adapter API for both `withFlashLoan = false` and (if feasible) `true`.
-- Structured assertions + emitted event snapshots usable in the post-mortem write-up.
+  - Flash-loan plumbing that burns victim/reserve-manager `aTokens`, transfers the underlying to the executor, and enforces repayment bookkeeping/premiums (premiums can stay zero but should be asserted).
+- Hardhat tests (TypeScript) under `test/dlend/adapters/odos/v1/` that drive the exploit through the public adapter API for both `withFlashLoan = false` and `true`.
+- Structured assertions + emitted event snapshots usable in the post-mortem write-up and referenced in the RCA.
 
 ## Clarifications
-- Flash-mint behaviour is currently modelled by pre-funding and repaying a 1-wei `dUSD` balance; once the flash-mint helper lands we’ll emit the same mint/repay `Transfer` pair observed on-chain.
+- Flash-mint behaviour must emit the zero-address mint/repay pair for **27,000 dUSD**. Pre-funding hacks are no longer acceptable; we need deterministic harness support for a flash-mint stub that mirrors the production helper (mint to attacker executor → repay within the same tx).
 - Tests will capture the key adapter, pool, router, and attacker events/logs so the execution flow matches the production transaction narrative.
-- Permit flows will be stubbed; the repro assumes an existing unlimited approval, mirroring the exploited precondition.
-- Collateral and dust amounts will reuse the production magnitudes (≈17,509.54233 collateral units → 1 wei `dUSD`); the real Sonic flow uses wrapped/staked tokens, but we’ll keep the WFRAX alias in the harness for readability.
+- Permit flows remain stubbed; the repro assumes an existing unlimited `aWSTKSCUSD` approval, mirroring the exploited precondition.
+- Use Sonic magnitudes: `collateralAmountToSwap = 26,243.751965 wstkscUSD` (6 decimals) and dust return = `1` (micro unit). Keep all calculations in wei to avoid rounding drift when we validate balances.
 
 ## Test Harness Inventory
-- `contracts/testing/odos/MockOdosRouterV2.sol` redirects swap outputs back to the caller and cannot siphon funds to a third party yet.
-- `contracts/testing/dlend/MockPoolV2.sol` keeps in-memory reserve metadata but `supply/withdraw` are no-ops; no underlying token accounting occurs.
-- `contracts/testing/dlend/MockPoolAddressesProvider.sol` simply forwards the configured pool/oracle addresses and suits our constructor expectations.
-- `contracts/testing/token/TestMintableERC20.sol` mints/burns freely but lacks permit support (acceptable because we assume infinite approvals).
-- No existing `MockAToken` contract; adapters expect ERC20-compatible aTokens with allowance/transfer semantics.
+- `contracts/testing/dlend/StatefulMockPool.sol` (new) tracks underlying balances, mints/burns `MockAToken`, and exposes a single-asset flash loan hook (currently zero premium, single asset only).
+- `contracts/testing/dlend/MockAToken.sol` implements ERC20 with pool-owned mint/burn and stubbed `permit`.
+- `contracts/testing/odos/MaliciousOdosRouterV2.sol` steals the adapter’s input asset and returns configurable dust to the adapter while emitting `MaliciousSwap`.
+- `contracts/testing/odos/AttackExecutor.sol` wraps the adapter call; today it pre-funds dust and does not yet drive the adapter’s flash-loan logic.
+- Tenderly alignment scripts live under `scripts/tenderly/` (`compare-odos-attack-events.ts`, `analyze-sonic-attack.ts`) with cached outputs in `reports/tenderly/`.
 
 ## Immediate Gaps
-- Need a pool mock that mints aTokens on `supply`, burns them on `withdraw`, and actually transfers underlying tokens between users, pool, and attacker sinks.
-- Require an aToken implementation (ERC20 + mint/burn for the pool) with stubbed `permit` that we can wire into `DataTypes.ReserveData`.
-- Malicious Odos router must forward withdrawn collateral to an attacker address while returning configurable dust to the adapter; may reuse existing mock with extra routing parameters.
-- Fixtures/tests currently target V2 adapters only; we will scaffold a new test suite under `test/dlend/adapters/odos/v1/` for the vulnerable adapter.
+- Extend `StatefulMockPool.flashLoan` so the adapter’s `withFlashLoan = true` branch can execute end-to-end (support multiple assets array, premium accounting, and callback sequencing).
+- Add a harness-level `FlashMintMock` contract (or extension on `AttackExecutor`) to mint/repay 27,000 dUSD and emit the zero-address transfers.
+- Update `AttackExecutor` to route the flash-minted dUSD through the staging helpers (simulated) and to retain the stolen `wstkscUSD` while returning `dust = 1` to the adapter.
+- Parameterise fixtures so we can reuse Sonic constants (collateral amount, dust, dUSD float) across flash and non-flash tests.
+- Add second test covering `withFlashLoan = true` once the above plumbing lands; capture event snapshots for regression.
 
 
 
 ## Harness Components (WIP)
-- `contracts/testing/dlend/StatefulMockPool.sol` tracks underlying balances, mints/burns `MockAToken`, and offers a zero-premium flash loan hook for later extension.
-- `contracts/testing/dlend/MockAToken.sol` provides pool-controlled mint/burn, standard ERC20 transfers, and a stubbed `permit` that simply updates allowance and nonce.
-- `contracts/testing/odos/MaliciousOdosRouterV2.sol` siphons the adapter's input token to a configured attacker while dribbling dust output back and emitting `MaliciousSwap` for tracing.
-- `contracts/testing/odos/AttackExecutor.sol` wraps the adapter call, then repays the router with pre-funded dust inside the same transaction so traces echo the flash-mint + repay pattern.
+- `contracts/testing/dlend/StatefulMockPool.sol` tracks balances and supports single-asset flash loans. **TODO:** add premium bookkeeping, allow the callback to request multiple assets, and emit structured events for victim/reserve burns.
+- `contracts/testing/dlend/MockAToken.sol` exposes pool-controlled mint/burn and stubbed `permit`. **TODO:** helper for reserve-manager burn + explicit 18-decimal metadata getters used in tests.
+- `contracts/testing/odos/MaliciousOdosRouterV2.sol` siphons collateral and emits `MaliciousSwap`. **TODO:** emit Sonic-sized leg events (`CollateralPulled`, `AttackerBurst`, `DustReturned`).
+- `contracts/testing/odos/AttackExecutor.sol` currently pre-funds dust. **TODO:** integrate flash-loan callback handling + dUSD flash mint/recycle so the harness mirrors the Sonic trace.
 
 
 
 ## Verification
-- PoC test: `npx hardhat test test/dlend/adapters/odos/v1/OdosLiquiditySwapAdapter.exploit.test.ts` validates the collateral drain and dust repay flow via the new harness.
+- Current PoC (`withFlashLoan = false`): `npx hardhat test test/dlend/adapters/odos/v1/OdosLiquiditySwapAdapter.exploit.test.ts` – validates collateral drain + dust repay via stateful harness.
+- Upcoming coverage: extend the same test file with a `withFlashLoan = true` case using the upgraded flash-loan + flash-mint mocks; assert on dUSD mint/repay, victim/reserve burns, and attacker net gain.
 
 ## Tenderly Tooling
-- Script: `npx hardhat run scripts/tenderly/compare-odos-attack-events.ts`.
-  - Inputs: set `TENDERLY_ACCESS_KEY`; optionally override `TENDERLY_TX_HASH`, `TENDERLY_NETWORK`, `TENDERLY_PROJECT_SLUG` (defaults are the Sonic attack hash, `sonic`, and our project slug `project`), and `TENDERLY_NODE_URL` (currently `https://sonic.gateway.tenderly.co/7miGZkS8Apta8ckbhUVLfY`).
-  - Behaviour: pulls `tenderly_traceTransaction` for the production tx and reruns the local PoC to capture ERC-20 transfers + key mock events.
-  - Output: JSON artefact at `reports/tenderly/attack-vs-repro-transfers.json` plus console summaries of token flow/net deltas.
-- Caching: the script writes the raw trace to `reports/tenderly/raw-tenderly-trace-<network>-<tx>.json` and reuses it to avoid hammering Tenderly; set `TENDERLY_FORCE_REFRESH=true` if you need a fresh fetch.
+- `npx hardhat run scripts/tenderly/compare-odos-attack-events.ts`
+  - Inputs: `TENDERLY_ACCESS_KEY`, optional overrides for `TENDERLY_TX_HASH`, `TENDERLY_NETWORK`, `TENDERLY_PROJECT_SLUG` (defaults: Sonic hash + slug `project`), and `TENDERLY_NODE_URL` (`https://sonic.gateway.tenderly.co/7miGZkS8Apta8ckbhUVLfY`).
+  - Behaviour: pulls the production trace, replays the local PoC, and writes `reports/tenderly/attack-vs-repro-transfers.json` plus console summaries highlighting transfer deltas.
+  - Shares cached raw trace files under `reports/tenderly/raw-tenderly-trace-<network>-<hashprefix>.json`; set `TENDERLY_FORCE_REFRESH=true` to bust cache if the production tx is reindexed.
+- `npx hardhat run scripts/tenderly/analyze-sonic-attack.ts`
+  - Produces `reports/tenderly/sonic-attack-summary.json` with step checks for dUSD flash mint/repay, victim/reserve burns, dust return, and attacker net gain.
+  - Relies on cached raw trace (`reports/tenderly/raw-tenderly-trace-sonic-<hashprefix>.json`); set `TENDERLY_FORCE_REFRESH=true` to bypass cache.
+- Treat step-check failures as repro regressions; update this ticket with any intentional changes before committing.
 
-### Comparison Checklist (post-429 fix)
-Run the script again once Tenderly RPC access is live and cross-check the artefact against the goals below:
-- `actual.transfers` should show the large collateral drain (≈17.5k units in production) and the 1 wei `dUSD` credit flowing through the same addresses we model in the harness.
-- Confirm `actual.callTraceExcerpt` includes the Odos router/executor sandwich that our mocks emit (`MaliciousSwap`, `DustRepaid`). If not, extend mocks/events or fixture naming to mirror production call names.
-- Align timestamps + ordering: favourite events to match are `adapter.swapLiquidity`, `pool.withdraw`, router swap, and attacker dust repay. Add expectations in the PoC once we know which logs fire.
-- Spot any extra tokens or side-effects in `actual.transfers`; add mocks or additional assertions so the test fails if those ever disappear (prevents regressions in replay realism).
-- Record any deltas in this doc (e.g., additional dust tokens, non-zero premiums) and translate them into TODOs for the harness.
+### Comparison Checklist (Tenderly vs. Repro)
+When rerunning the Tenderly comparison scripts, confirm:
+- `actual.transfers` captures the ~26.24k `wstkscUSD` collateral drain (burns from victim + reserve manager) and shows the adapter receiving exactly `1` micro unit of `wstkscUSD`.
+- dUSD flow in the trace matches our harness: single mint of `27,000` to the attacker executor, staging vault/recycler balances (`+28,577.6000008888`, `-28,627.6000008888`), and a single repay of `27,000` back to the zero address.
+- The console summary lists the attacker net gain (~`35,108.1668` `wstkscUSD`) and dust return; align our test assertions with those values (tolerating small deltas).
+- Key events/logs (`MaliciousSwap`, `FlashMinted`, `DustRepaid`) appear in the same order as the Tenderly trace so reviewers can diff flows without re-reading call data.
+- Any discrepancies are documented here and promoted to TODOs (e.g., missing helper addresses, premium handling, additional token hops).
 
-### Tenderly Reality Check (Sonic txn `0xa6ae…940`)
-- **Token mapping:** Tenderly reports `dUSD` (18 decimals, `0x53a6…`) as the dust token and shows the collateral flowing through `frxusd`, `scusd`, `usdc`, and staking receipts (`ws`, `sts`, `wstkscusd`). Helper contracts at `0x72f1…` and `0x1045…` act as the router legs that burn/mint wrapped collateral.
-- **Collateral drain:** Value leaves `0x72f1…` (pool adapter) → attacker router `0xde85…` → `0x000…0000`, then reappears as `frxusd` before cascading into staking wrappers. Our harness still pipes collateral straight to the attacker; add a converter stub (e.g., `BurnedForFrxUsd` event + downstream mint) so the trace captures the burn hop.
-- **dUSD flow:** The attacker contract flash-mints ~40,000 dUSD from the zero address and repays it later in the same transaction, while the adapter only touches a 1 wei dust amount. Replace the pre-funded dust with a flash-mint mock that emits matching `Transfer(0x0, attacker)` + repay events.
-- **Downstream conversions:** After the router, funds split across `usdc/scusd`, `frxusd`, and staking wrappers before final settlement with the attacker EOA (`0x0a69…`). Matching the exact numbers is unnecessary; we just need the same structural hops for the post-mortem narrative.
-- **Reality vs. numbers:** Sonic prices/fees differ from our harness, so assert on flows and events rather than strict token amounts. Close-but-not-identical balances are acceptable once the sequence above is reproduced.
+### Tenderly Reality Check (Sonic txn `0xa6ae…1940`)
+- **Token mapping:** Tenderly reports `dUSD` (18 decimals, `0x53a6…`) for the flash mint and `wstkscUSD` (6 decimals, `0x9fb7…`) as the collateral. Helper contracts (`0x1045…` burn helper, `0x8805…`, `0xdb81…`, `0xb1c1…`, micro distributors) shuttle dUSD, while Odos legs (`0xba13…`, `0xba12…`) handle the collateral conversions.
+- **Collateral drain:** The trace shows `aWSTKSCUSD` transfers from the victim and reserve manager to the zero address (`21,440.463367` + `7,132.235951`), after which `wstkscUSD` flows into the attacker executor in two large bursts (`26,230.630089` and `8,877.536706`). Our harness should emit equivalent burn + transfer events so the Tenderly comparator aligns.
+- **dUSD flow:** Single flash mint of `27,000 dUSD` from zero address → attacker executor, recycled through staging contracts (net `+28,577.6000008888` / `-28,627.6000008888`), and repaid (`27,000`) at the end. The adapter itself only receives `1` micro unit of `wstkscUSD`—no dUSD settles with the victim.
+- **Downstream conversions:** After collateral reaches the attacker executor, it passes through simulated frxUSD/scUSD/USDC/staking wrappers before landing with the attacker EOA. We don’t need exact token economics, but we should emit events that document these legs for the RCA.
+- **Reality vs. numbers:** Sonic pricing will diverge; assert on structure (burn → flash mint → dust return → attacker net gain) rather than exact balances, except for the key constants listed above.
 - **Next steps:**
-  1. Extend `MaliciousOdosRouterV2` (or an auxiliary attacker contract) to emit the burn/mint events we see on Sonic (collateral → `0x0` burn → wrapped mint) so we can assert on ordering.
-  2. Introduce a `FlashMintedDUSD` helper in the PoC that mints ~40,000 dUSD to the router mock, emits the same `Transfer(0x0, attacker)` / repay pair, then returns the adapter’s single-unit dust.
-  3. Update the test assertions to stay consistent with 18-decimal dUSD accounting (ensure dust comparisons use wei).
-  4. Once the harness reflects the burn + flash-mint, snapshot the relevant `Transfer` events and attach them under `reports/tenderly/` for post-mortem diffs.
+  1. Extend `MaliciousOdosRouterV2` (or helper) to emit events for burn helper receipt and attacker bursts so assertions can key off them.
+  2. Introduce a `FlashMintedDUSD` helper that mints exactly 27,000 dUSD, logs the mint/repay pair, and feeds the staging-vault accounting used in the analyzer script.
+  3. Align PoC assertions with 18-decimal dUSD + 6-decimal wstkscUSD handling; ensure dust comparisons work in wei/micro units.
+  4. Re-run Tenderly analyzers after each major harness change and stash the artefacts under `reports/tenderly/` for auditability.
 
 ## Work Plan
 1. **Recon / Fixture Design**
-   - Review `BaseOdosSwapAdapter` helpers (`_pullATokenAndWithdraw`, `_sellOnOdos`, `_supply`) to understand the minimal surface we must emulate in mocks.
-   - Inventory existing testing utilities (`TestMintableERC20`, `MockPoolV2`, `MockPoolAddressesProvider`) and decide whether to extend or replace them for stateful supply/withdraw flows.
+   - Review `BaseOdosSwapAdapter` helpers (`_pullATokenAndWithdraw`, `_sellOnOdos`, `_supply`, flash-loan callbacks) to confirm the adapter expectations for collateral pulls, Odos routing, and dust resupply.
+   - Diff Tenderly artefacts (`reports/tenderly/sonic-attack-summary.json`) against the current PoC logs to enumerate missing events/balances.
 
 2. **Exploit Harness Contracts**
-   - Implement (or extend) a pool mock that (a) mints/burns `aToken` balances on supply/withdraw and (b) actually moves underlying ERC20 balances so that stolen collateral winds up with the attacker.
-   - Create `MockAToken` (simple ERC20) tied to the pool mock for `transferFrom` + permit support (permit optional but useful to keep interface parity).
-   - Build `MaliciousOdosRouter` capable of:
-     - Pulling `amountSpent` from the adapter.
-     - Forwarding the withdrawn collateral to a configurable attacker wallet/contract.
-     - Returning a caller-configurable `amountReceived` of `newCollateralAsset` (dust) to the adapter.
-   - Optional: `AttackerOdosExecutor` stub that can emit events or simulate flash-mint traces for richer telemetry.
+   - Extend `StatefulMockPool` to support full flash-loan semantics (multi-asset guards, premium arg, borrower callback) and to emit victim/reserve-manager burn events.
+   - Add a `FlashMintMock` (or extend `AttackExecutor`) to mint/repay 27,000 dUSD with zero-address transfers and stage the dUSD through mocked helper contracts for accounting.
+   - Enhance `MaliciousOdosRouterV2` to emit structured events for each major leg (`CollateralPulled`, `DustReturned`, `AttackerBurst`) with Sonic-sized amounts so tests can assert on them.
 
 3. **Scenario Assembly**
-   - Deploy real `OdosLiquiditySwapAdapter` pointing at the mocks and register reserves so constructor pre-approvals succeed.
-  - Victim flow: mint a `WFRAX`-like placeholder token (mirrors the Sonic collateral for readability), `supply` into the pool to receive `aWFRAX`, and leave a generous approval for the adapter.
-   - Configure router behaviour to drain a configured portion (e.g., 100%) of the victim’s collateral into the attacker while returning `1 wei` `dUSD`.
-   - Attack flow: attacker calls `swapLiquidity` with crafted `LiquiditySwapParams` (user=victim, tiny `minOut`, malicious `swapData`). Cover both `withFlashLoan = false` path and (if mocks support it) `true` path for completeness.
+   - Deploy the real `OdosLiquiditySwapAdapter` pointing at the upgraded mocks and register the Sonic reserve (`wstkscUSD` / `aWSTKSCUSD`).
+   - Victim flow: mint `wstkscUSD`, supply via the pool to receive `aWSTKSCUSD`, and leave unlimited approval in place.
+   - Configure malicious route to drain `26,243.751965 wstkscUSD`, flash mint 27,000 dUSD, return exactly `1` micro unit of `wstkscUSD` to the adapter, and keep the remainder on the attacker.
+   - Exercise both adapter code paths: `withFlashLoan = false` (existing coverage) and `true` (new flash-loan-backed repro).
 
 4. **Assertions & Telemetry**
-   - Assert victim’s `aWFRAX` balance decreases by `collateralAmountToSwap`.
-   - Confirm pool’s underlying balance decreases and attacker’s balance increases by the same amount (minus any dust configured).
-   - Ensure victim’s newly supplied `dUSD` balance equals the dust amount and is grossly below the drained collateral value.
-   - Capture/emit helper events and store relevant balances to reuse in post-mortem documentation.
+   - Assert victim and reserve-manager `aWSTKSCUSD` balances burn by the expected amounts and that the adapter deposits `1` micro `wstkscUSD` back for the victim.
+   - Verify attacker’s `wstkscUSD` net gain ≈ `35,108.1668` and that all dUSD balances net to zero after mint/repay.
+   - Capture emitted events (`MaliciousSwap`, `FlashMinted`, `DustRepaid`, burn helper logs) and write them to fixtures for post-mortem comparisons.
 
 5. **Packaging & Automation**
-   - Add the test to CI by extending the existing adapter test suite (e.g., `OdosAdaptersV1.exploit.test.ts`).
-   - Provide a README or comment block describing how to rerun (`yarn test path/to/file`), expected output, and how the artefact feeds into regression.
-   - Document any limitations (e.g., simplified flash-mint simulation) so the post-mortem accurately reflects the repro scope.
+   - Add the flash-loan reproduction test alongside the existing PoC (`OdosLiquiditySwapAdapter.exploit.test.ts`) and gate it behind a tenderly-fixture snapshot if needed.
+   - Document run instructions (`npx hardhat test test/dlend/adapters/odos/v1/OdosLiquiditySwapAdapter.exploit.test.ts`) and how to refresh Tenderly caches.
+   - Track limitations (e.g., simplified downstream wrapper modelling) inside the test file and this ticket.
 
 ## Validation Criteria
 - Test consistently reproduces the collateral drain without non-deterministic dependencies (no chain forking, no external RPC calls).
@@ -117,7 +118,7 @@ Run the script again once Tenderly RPC access is live and cross-check the artefa
 
 ## Follow-Ups
 - Pull exact event signatures/order from tx `0xa6ae...1940` to confirm which ones we want to assert in the repro logs.
-- Decide where to store the numeric constants (e.g., helper constants vs. inline literals) so the 17,509.54233 `WFRAX` figure stays easy to update.
+- Decide where to store the numeric constants (e.g., helper constants vs. inline literals) so the `26,243.751965` `wstkscUSD` collateral and `27,000 dUSD` flash-mint values stay easy to update.
 - Scope whether to include a helper script that diffs victim/attacker balances before and after for post-mortem screenshots.
 
 ## Dependencies

