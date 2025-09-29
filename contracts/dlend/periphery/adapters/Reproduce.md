@@ -17,7 +17,7 @@
 - Pool + token fixture that supports:
   - Underlying → aToken accounting (supply/withdraw actually moves balances).
   - Victim deposit helper and leftover allowance simulation.
-  - Flash-loan plumbing that burns victim/reserve-manager `aTokens`, transfers the underlying to the executor, and enforces repayment bookkeeping/premiums (premiums can stay zero but should be asserted).
+- Flash-loan plumbing that burns victim/reserve-manager `aTokens`, transfers the underlying to the executor, and enforces repayment bookkeeping/premiums (Sonic repro uses a 5 bps premium; keep the rate configurable for other networks).
 - Hardhat tests (TypeScript) under `test/dlend/adapters/odos/v1/` that drive the exploit through the public adapter API for both `withFlashLoan = false` and `true`.
 - Structured assertions + emitted event snapshots usable in the post-mortem write-up and referenced in the RCA.
 
@@ -28,22 +28,22 @@
 - Use Sonic magnitudes: `collateralAmountToSwap = 26,243.751965 wstkscUSD` (6 decimals) and dust return = `1` (micro unit). Keep all calculations in wei to avoid rounding drift when we validate balances.
 
 ## Test Harness Inventory
-- `contracts/testing/dlend/StatefulMockPool.sol` (new) tracks underlying balances, mints/burns `MockAToken`, and exposes a single-asset flash loan hook (currently zero premium, single asset only).
+- `contracts/testing/dlend/StatefulMockPool.sol` (new) tracks underlying balances, mints/burns `MockAToken`, and exposes a single-asset flash loan hook (5 bps premium configured for the Sonic repro).
 - `contracts/testing/dlend/MockAToken.sol` implements ERC20 with pool-owned mint/burn and stubbed `permit`.
 - `contracts/testing/odos/MaliciousOdosRouterV2.sol` steals the adapter’s input asset and returns configurable dust to the adapter while emitting `MaliciousSwap`.
-- `contracts/testing/odos/AttackExecutor.sol` wraps the adapter call; today it pre-funds dust and does not yet drive the adapter’s flash-loan logic.
+- `contracts/testing/odos/AttackExecutor.sol` wraps the adapter call, models the 27k dUSD flash mint, and now accounts for the pool’s 5 bps flash-loan premium when returning liquidity.
 - Tenderly alignment scripts live under `scripts/tenderly/` (`compare-odos-attack-events.ts`, `analyze-sonic-attack.ts`) with cached outputs in `reports/tenderly/`.
 
 ## Immediate Gaps (updated)
 - **Event parity:** enrich `MaliciousOdosRouterV2`/`AttackExecutor` to emit Sonic-style markers (`CollateralPulled`, `FlashMintStart/Settled`, per-leg `AttackerBurst`) so the Tenderly comparator can line up logs instead of relying on aggregate balances.
-- **Pool realism:** `StatefulMockPool.flashLoan` now covers the single-asset happy path and mints missing liquidity during the withdraw hook. Still need multi-asset guards, explicit premium accounting, and burn helper events if later tests demand them.
+- **Pool realism:** `StatefulMockPool.flashLoan` now covers the single-asset happy path with configurable zero-premium defaults (Sonic repro uses 5 bps) and mints missing liquidity during the withdraw hook. Still need multi-asset guards and burn helper events if later tests demand them.
 - **Dust fidelity:** the harness currently routes the Odos output as `dUSD` with `minOut = 0` to sidestep the adapter’s same-asset underflow check. Scope a follow-up that simulates the real `wstkscUSD` micro-credit once we have a router shim that can keep the adapter balance monotonic during the swap.
 - **Downstream legs:** we still mock the wrapper hops implicitly. Decide whether adding lightweight `frxUSD/scUSD/USDC` emitters adds enough value for the RCA or if balance sheets (from the analyzer) are sufficient.
 
 
 
 ## Harness Components (WIP)
-- `contracts/testing/dlend/StatefulMockPool.sol` now mints shortfall liquidity during withdraw and enforces single-asset flash loans. **TODO:** surface premium maths + burn helper events, and consider multi-asset array handling if future coverage needs it.
+- `contracts/testing/dlend/StatefulMockPool.sol` now mints shortfall liquidity during withdraw and enforces single-asset flash loans (including premium maths). **TODO:** surface burn helper events and consider multi-asset array handling if future coverage needs it.
 - `contracts/testing/dlend/MockAToken.sol` still provides pool-controlled mint/burn with stubbed `permit`. **TODO:** add helper getters or fixtures for reserve-manager burns if we start asserting on them explicitly.
 - `contracts/testing/odos/MaliciousOdosRouterV2.sol` drains collateral and triggers the executor callback. **TODO:** instrument Sonic-sized leg events so tests can assert on routing phases rather than raw balance diffs.
 - `contracts/testing/odos/AttackExecutor.sol` now owns the 27,000 dUSD flash mint, staging vault choreography, withdraw-hook repayments, and attacker bursts. **TODO:** document the `newCollateralAsset = dUSD` deviation and explore a follow-up path that returns `wstkscUSD` dust without tripping the Odos underflow.

