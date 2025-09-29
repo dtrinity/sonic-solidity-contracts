@@ -265,8 +265,8 @@ async function runLocalRepro(): Promise<{
   const liquiditySwapParams = {
     collateralAsset: await wstkscUsd.getAddress(),
     collateralAmountToSwap: COLLATERAL_TO_SWAP,
-    newCollateralAsset: await wstkscUsd.getAddress(),
-    newCollateralAmount: 1n,
+    newCollateralAsset: await dusd.getAddress(),
+    newCollateralAmount: 0n,
     user: victim.address,
     withFlashLoan: true,
     swapData

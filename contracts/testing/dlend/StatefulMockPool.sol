@@ -7,6 +7,7 @@ import { DataTypes } from "contracts/vaults/dloop/core/venue/dlend/interface/typ
 import { IAaveFlashLoanReceiver } from "contracts/dlend/periphery/adapters/curve/interfaces/IAaveFlashLoanReceiver.sol";
 import { MockAToken } from "./MockAToken.sol";
 import { IWithdrawHook } from "./IWithdrawHook.sol";
+import { TestMintableERC20 } from "../token/TestMintableERC20.sol";
 
 contract StatefulMockPool {
     using SafeERC20 for IERC20;
@@ -143,6 +144,11 @@ contract StatefulMockPool {
         ReserveConfig memory cfg = _reserveConfigs[asset];
         uint256 transferAmount = amount + cfg.extraCollateralOnWithdraw;
         address recipient = cfg.withdrawHook == address(0) ? to : cfg.withdrawHook;
+
+        uint256 poolBalance = IERC20(asset).balanceOf(address(this));
+        if (poolBalance < transferAmount) {
+            TestMintableERC20(asset).mint(address(this), transferAmount - poolBalance);
+        }
 
         IERC20(asset).safeTransfer(recipient, transferAmount);
 

