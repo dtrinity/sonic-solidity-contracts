@@ -1,9 +1,9 @@
 {
   "metadata": {
-    "generatedAt": "2025-09-28T18:04:07.292Z",
+    "generatedAt": "2025-09-29T12:41:11.483Z",
     "txHash": "0xa6aef05387f5b86b1fd563256fc9223f3c22f74292d66ac796d3f08fd311d940",
     "network": "sonic",
-    "harnessTxHash": "0xe4e06b4bfaf7c559e7e13bc1500bf044582ce6950cfe4f201f33b41e14649818"
+    "harnessTxHash": "0x5ba59dc583657ce1610f999373dd79f6722626377482d3c2db121542b6d409f0"
   },
   "actual": {
     "transfers": [
@@ -667,14 +667,14 @@
       {
         "token": "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9",
         "from": "0x9A676e781A523b5d0C0e43731313A708CB607508",
-        "to": "0xb2555f99772213722A6b03E9588E77eBb40e0a02",
+        "to": "0xf8B8B5A24cD4BAAFae0B3032C22C0E8797a9Ae82",
         "value": "10000000000000000",
         "decodedVia": "local"
       },
       {
         "token": "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9",
         "from": "0x9A676e781A523b5d0C0e43731313A708CB607508",
-        "to": "0x98C4d76d82347F73E8A749c883e3e287671B3082",
+        "to": "0xAEB6e1E137784497b22e18847a13A85EbEEde0BF",
         "value": "240000000000000000",
         "decodedVia": "local"
       },
@@ -702,14 +702,14 @@
       {
         "token": "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9",
         "from": "0x9A676e781A523b5d0C0e43731313A708CB607508",
-        "to": "0xb2555f99772213722A6b03E9588E77eBb40e0a02",
+        "to": "0xf8B8B5A24cD4BAAFae0B3032C22C0E8797a9Ae82",
         "value": "10000000000000000",
         "decodedVia": "local"
       },
       {
         "token": "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9",
         "from": "0x9A676e781A523b5d0C0e43731313A708CB607508",
-        "to": "0x98C4d76d82347F73E8A749c883e3e287671B3082",
+        "to": "0xAEB6e1E137784497b22e18847a13A85EbEEde0BF",
         "value": "240000000000000000",
         "decodedVia": "local"
       },
@@ -780,14 +780,14 @@
         "token": "0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9",
         "from": "0x5FbDB2315678afecb367f032d93F642f64180aa3",
         "to": "0xB7f8BC63BbcaD18155201308C8f3540b07f84F5e",
-        "value": "61351918760",
+        "value": "61365040635",
         "decodedVia": "local"
       },
       {
         "token": "0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9",
         "from": "0xB7f8BC63BbcaD18155201308C8f3540b07f84F5e",
         "to": "0x610178dA211FEF7D417bC0e6FeD39F05609AD788",
-        "value": "26243751965",
+        "value": "26256873840",
         "decodedVia": "local"
       },
       {
@@ -848,7 +848,7 @@
         "event": "DusdFanOut",
         "args": {
           "splitter": "0x9A676e781A523b5d0C0e43731313A708CB607508",
-          "recipient": "0xb2555f99772213722A6b03E9588E77eBb40e0a02",
+          "recipient": "0xf8B8B5A24cD4BAAFae0B3032C22C0E8797a9Ae82",
           "amount": "10000000000000000"
         }
       },
@@ -857,7 +857,7 @@
         "event": "DusdFanOut",
         "args": {
           "splitter": "0x9A676e781A523b5d0C0e43731313A708CB607508",
-          "recipient": "0x98C4d76d82347F73E8A749c883e3e287671B3082",
+          "recipient": "0xAEB6e1E137784497b22e18847a13A85EbEEde0BF",
           "amount": "240000000000000000"
         }
       },
@@ -882,7 +882,7 @@
         "event": "DusdFanOut",
         "args": {
           "splitter": "0x9A676e781A523b5d0C0e43731313A708CB607508",
-          "recipient": "0xb2555f99772213722A6b03E9588E77eBb40e0a02",
+          "recipient": "0xf8B8B5A24cD4BAAFae0B3032C22C0E8797a9Ae82",
           "amount": "10000000000000000"
         }
       },
@@ -891,7 +891,7 @@
         "event": "DusdFanOut",
         "args": {
           "splitter": "0x9A676e781A523b5d0C0e43731313A708CB607508",
-          "recipient": "0x98C4d76d82347F73E8A749c883e3e287671B3082",
+          "recipient": "0xAEB6e1E137784497b22e18847a13A85EbEEde0BF",
           "amount": "240000000000000000"
         }
       },
@@ -924,7 +924,7 @@
         "event": "FlashLoanRepayment",
         "args": {
           "adapterAddress": "0x610178dA211FEF7D417bC0e6FeD39F05609AD788",
-          "amount": "26243751965"
+          "amount": "26256873840"
         }
       },
       {
