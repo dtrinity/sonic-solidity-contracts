@@ -20,15 +20,18 @@ This guide explains how to exercise the Sonic attack in our local harness, gathe
 
 ## Fidelity Notes
 - **Same-asset dust loop restored:** The harness now mirrors production by returning `1 µ wstkscUSD` to the adapter. `AttackExecutor` approves the malicious router to pull the dust, the router credits the adapter in-flight, and the tests assert the `CollateralDustReturned` event plus the victim’s credited micro-aToken.
+- **Victim debt repayment reproduced:** The exploit path triggers the pool’s `Repay` flow twice (victim and reserve manager), matching the Sonic trace and leaving the borrower debt-free. Watch for `Repay` events in the Tenderly diff or Hardhat logs to confirm this behavior when refactoring.
 - **Reserve manager burns modelled:** `StatefulMockPool.withdraw` burns the reserve manager’s aTokens for the flash-loan premium and extra collateral, so the structured snapshot test now enforces the exact `-35,121.28867 wstkscUSD` delta alongside the `ReserveBurned` event.
 - **Multi-asset flash loans supported:** `StatefulMockPool.flashLoan` accepts multi-asset arrays, matching Aave’s semantics should we need cross-reserve coverage for regression tests.
 
 No outstanding fidelity gaps are known. Re-run the suite whenever additional guardrails are added to ensure these invariants continue to hold.
 
 ## Tenderly Alignment Workflow
-- Set `TENDERLY_ACCESS_KEY`, then run `npx hardhat run scripts/tenderly/compare-odos-attack-events.ts`.
-- The script downloads the Sonic production trace once (cached under `reports/tenderly/raw-*.json`) and compares it against the latest local run, emitting `reports/tenderly/attack-vs-repro-transfers.json`.
-- Regenerate the report after harness updates and confirm the `.local` trace now includes the `1 µ wstkscUSD` self-transfer that appears in Sonic’s production data.
+- Run `npx hardhat run scripts/tenderly/compare-odos-attack-events.ts`. The script reuses the cached Sonic trace in `reports/tenderly/raw-*.json`; only set `TENDERLY_ACCESS_KEY` (or `TENDERLY_FORCE_REFRESH=true`) when you need to refresh that cache.
+- The comparison artefact `reports/tenderly/attack-vs-repro-transfers.json` should show:
+  - `1 µ wstkscUSD` dust in both the production (`actual`) and harness (`local`) sections.
+  - Matching `Repay` events for reserve `0x53a6…` covering ~21,444 dUSD (victim) and ~7,133 dUSD (reserve manager).
+- Regenerate the report after harness updates and confirm the deltas stay aligned before shipping fixes.
 
 ## Using the Artefacts During Review
 - Capture the console summary printed by the structured snapshot test to support RCA write-ups.
