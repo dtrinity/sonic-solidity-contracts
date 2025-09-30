@@ -157,9 +157,13 @@ export async function deployOdosV1ExploitFixture(): Promise<OdosV1ExploitFixture
 
   await dusd.mint(await recyclerHelper.getAddress(), DUSD_RECYCLER_PULL_ONE + DUSD_RECYCLER_PULL_TWO);
 
+  // Configure router with default behavior (will be overridden per test case)
+  // NOTE: Production Sonic attack returns 1 µ wstkscUSD (same-asset dust), but current harness
+  // uses dUSD output as a workaround to avoid the adapter's same-asset underflow check.
+  // See Reproduce.md "Critical Deviation: Same-Asset Dust Return" for details.
   await router.setSwapBehaviour(
     await wstkscUsd.getAddress(),
-    await dusd.getAddress(),
+    await dusd.getAddress(), // Workaround: different asset
     COLLATERAL_TO_SWAP,
     false,
     await attackExecutor.getAddress()

@@ -116,6 +116,77 @@ When rerunning the Tenderly comparison scripts, confirm:
 - Decide where to store the numeric constants (e.g., helper constants vs. inline literals) so the `26,243.751965` `wstkscUSD` collateral and `27,000 dUSD` flash-mint values stay easy to update.
 - Scope whether to include a helper script that diffs victim/attacker balances before and after for post-mortem screenshots.
 
+## Known Gaps & Intentional Deviations
+
+### Critical Deviation: Same-Asset Dust Return
+**Status**: Workaround in place
+**Impact**: High - masks the real attack vector
+
+The production attack returns `1 µ wstkscUSD` to the adapter as dust output, but the current harness routes Odos output as `dUSD` with `minOut = 0` to avoid triggering the adapter's underflow check when input and output are the same asset.
+
+**Why this matters**: The adapter's vulnerability relies on it accepting a negligible same-asset output. Our workaround changes the asset type entirely, which means:
+1. Test assertions can't verify the exact dust mechanic that enables the exploit
+2. Mitigation validation will need adjustment (the fix should reject same-asset swaps with insufficient output)
+3. Tenderly comparisons flag this as a missing transfer
+
+**Potential solutions**:
+- Router pre-credit: Have malicious router transfer dust to adapter before the swap callback executes
+- Two-phase swap: Separate the collateral drain from dust return with explicit adapter balance checkpoints
+- Mock adapter fork: Create a test-only adapter variant that exposes the balance check logic for manipulation
+
+**Next steps**: Prototype router pre-credit shim in Priority 2 workstream.
+
+### Wei-Level Precision Requirements
+**Status**: Partially implemented
+**Impact**: Medium - affects assertion reliability
+
+The test suite mixes 18-decimal (dUSD) and 6-decimal (wstkscUSD) tokens. Current balance assertions use approximate equality, but for RCA credibility we need:
+- Exact wei-level checks for all token transfers
+- Helper utilities that handle decimal conversion explicitly
+- Test comments documenting expected precision loss (if any)
+
+**Action**: Add balance diff helpers with decimal-aware formatting in Priority 1 (during event instrumentation).
+
+### Event Signature Alignment
+**Status**: Not implemented
+**Impact**: Medium - limits Tenderly comparison value
+
+The Sonic trace includes specific event signatures from production contracts that our mocks don't emit. This makes automated log comparison harder.
+
+**Production events we should match**:
+- `CollateralPulled(address indexed adapter, address indexed victim, uint256 amount)`
+- `FlashMintStarted(address indexed executor, uint256 amount)`
+- `FlashMintSettled(address indexed executor, uint256 repayAmount, uint256 premium)`
+- `AttackerBurst(address indexed executor, address indexed recipient, uint256 amount, uint8 legIndex)`
+
+**Action**: Priority 1 workstream will add these to `MaliciousOdosRouterV2` and `AttackExecutor`.
+
+### Multi-Asset Flash Loan Support
+**Status**: Single-asset only
+**Impact**: Low - doesn't block current repro
+
+`StatefulMockPool.flashLoan` only handles single-asset mode. The production attack uses single-asset flash loans, so this isn't urgent, but future test scenarios (e.g., multi-collateral adapter exploits) will need it.
+
+**Action**: Document as technical debt; expand if/when multi-asset tests are required.
+
+### Downstream Wrapper Economics
+**Status**: Implicitly mocked
+**Impact**: Low - balance sheets may suffice
+
+The production flow includes frxUSD/scUSD/USDC/staking wrapper conversions that we don't model explicitly. The Tenderly analyzer captures these as net balance changes, which may be enough for the RCA.
+
+**Decision point**: During Priority 1, evaluate whether emitting lightweight wrapper events (without full token economics) adds RCA value. If not, document that we rely on Tenderly's balance sheets.
+
+### Regression Test Expectations
+**Status**: Not yet defined
+**Impact**: Medium - critical for mitigation handoff
+
+Once the fix lands (likely `require(msg.sender == user)` in the adapter), these tests should fail in specific ways:
+- `withFlashLoan = false`: Should revert during adapter call with `UnauthorizedCaller` error
+- `withFlashLoan = true`: Same revert, but we should verify the flash mint rolls back cleanly
+
+**Action**: Add explicit negative test cases in Priority 3 (broaden assertions) that document expected post-fix behavior.
+
 ## Dependencies
 - Typechain bindings regeneration after adding new mocks.
 - Hardhat deployment helpers for mock pool + tokens.

