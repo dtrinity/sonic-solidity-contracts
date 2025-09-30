@@ -19,13 +19,6 @@ contract StatefulMockPool {
         uint256 extraCollateralOnWithdraw;
     }
 
-    struct FlashLoanTemp {
-        address assetAddress;
-        uint256 amount;
-        uint256 premium;
-        uint256 totalOwed;
-    }
-
     mapping(address => DataTypes.ReserveData) private _reserves;
     mapping(address => ReserveConfig) private _reserveConfigs;
     address[] private _reservesList;
@@ -153,6 +146,7 @@ contract StatefulMockPool {
         IERC20(asset).safeTransfer(recipient, transferAmount);
 
         if (cfg.reserveManager != address(0) && cfg.extraCollateralOnWithdraw > 0) {
+            MockAToken(aToken).burn(cfg.reserveManager, cfg.extraCollateralOnWithdraw);
             emit ReserveBurned(asset, cfg.reserveManager, cfg.extraCollateralOnWithdraw);
         }
 
@@ -180,34 +174,16 @@ contract StatefulMockPool {
             revert ArrayLengthMismatch();
         }
 
-        if (assets.length != 1) {
-            revert UnsupportedMultiAssetFlashLoan();
-        }
+        uint256 len = assets.length;
+        uint256[] memory premiums = new uint256[](len);
 
-        FlashLoanTemp memory temp;
-        temp.assetAddress = assets[0];
-        temp.amount = amounts[0];
-        temp.premium = (temp.amount * _reserveConfigs[temp.assetAddress].flashLoanPremiumBps) / 10_000;
-
-        IERC20(temp.assetAddress).safeTransfer(receiverAddress, temp.amount);
-
-        uint256[] memory premiums = _buildPremiumArray(temp.premium);
+        _transferFlashLoanAssets(receiverAddress, assets, amounts, premiums);
 
         if (!_executeOperation(receiverAddress, assets, amounts, premiums, params)) {
             revert FlashLoanCallbackFailed();
         }
 
-        temp.totalOwed = temp.amount + temp.premium;
-        IERC20(temp.assetAddress).safeTransferFrom(receiverAddress, address(this), temp.totalOwed);
-
-        emit FlashLoanExecuted(receiverAddress, temp.assetAddress, temp.amount, temp.premium);
-        emit FlashLoanRepaid(receiverAddress, temp.assetAddress, temp.totalOwed);
-    }
-
-    function _buildPremiumArray(uint256 premium) internal pure returns (uint256[] memory arr) {
-        arr = new uint256[](1);
-        arr[0] = premium;
-        return arr;
+        _collectFlashLoanRepayments(receiverAddress, assets, amounts, premiums);
     }
 
     function _executeOperation(
@@ -224,5 +200,37 @@ contract StatefulMockPool {
             msg.sender,
             params
         );
+    }
+
+    function _transferFlashLoanAssets(
+        address receiverAddress,
+        address[] calldata assets,
+        uint256[] calldata amounts,
+        uint256[] memory premiums
+    ) internal {
+        for (uint256 i = 0; i < assets.length; ++i) {
+            address asset = assets[i];
+            uint256 amount = amounts[i];
+            uint256 premium = (amount * _reserveConfigs[asset].flashLoanPremiumBps) / 10_000;
+            premiums[i] = premium;
+
+            IERC20(asset).safeTransfer(receiverAddress, amount);
+            emit FlashLoanExecuted(receiverAddress, asset, amount, premium);
+        }
+    }
+
+    function _collectFlashLoanRepayments(
+        address receiverAddress,
+        address[] calldata assets,
+        uint256[] calldata amounts,
+        uint256[] memory premiums
+    ) internal {
+        for (uint256 i = 0; i < assets.length; ++i) {
+            address asset = assets[i];
+            uint256 totalOwed = amounts[i] + premiums[i];
+
+            IERC20(asset).safeTransferFrom(receiverAddress, address(this), totalOwed);
+            emit FlashLoanRepaid(receiverAddress, asset, totalOwed);
+        }
     }
 }

@@ -18,15 +18,17 @@ This guide explains how to exercise the Sonic attack in our local harness, gathe
 - `yarn tsc --noEmit` still fails because of repository-wide gaps (missing `typechain-types`, Slack SDK typings, duplicated `BorrowLogic` symbols). The exploit harness itself compiles cleanly once those dependencies are restored.
 - Remove the repo-level blockers and regenerate `typechain-types` before wiring the suite into CI.
 
-## Known Fidelity Gaps
-- **Same-asset dust loop:** The real attack returns `1 µ wstkscUSD` to the adapter while the harness currently swaps into `dUSD` with `minOut = 0` to avoid the adapter’s same-asset underflow check (`AttackExecutor.sol:55`, `OdosLiquiditySwapAdapter.exploit.test.ts:70`). The pending router shim in `MaliciousOdosRouterV2.performSwap()` cannot credit dust yet because the executor never approves the router to pull the micro transfer. Address this before relying on the suite to validate accounting-only mitigations.
-- **Reserve manager burn parity:** `StatefulMockPool` mints shortfall liquidity instead of burning the reserve manager’s aTokens. Assertions therefore focus on emitted events rather than exact post-attack reserve balances.
-- **Single-asset flash loans:** The current fixture supports one-asset loans; extend it if we need multi-asset coverage for future regressions.
+## Fidelity Notes
+- **Same-asset dust loop restored:** The harness now mirrors production by returning `1 µ wstkscUSD` to the adapter. `AttackExecutor` approves the malicious router to pull the dust, the router credits the adapter in-flight, and the tests assert the `CollateralDustReturned` event plus the victim’s credited micro-aToken.
+- **Reserve manager burns modelled:** `StatefulMockPool.withdraw` burns the reserve manager’s aTokens for the flash-loan premium and extra collateral, so the structured snapshot test now enforces the exact `-35,121.28867 wstkscUSD` delta alongside the `ReserveBurned` event.
+- **Multi-asset flash loans supported:** `StatefulMockPool.flashLoan` accepts multi-asset arrays, matching Aave’s semantics should we need cross-reserve coverage for regression tests.
+
+No outstanding fidelity gaps are known. Re-run the suite whenever additional guardrails are added to ensure these invariants continue to hold.
 
 ## Tenderly Alignment Workflow
 - Set `TENDERLY_ACCESS_KEY`, then run `npx hardhat run scripts/tenderly/compare-odos-attack-events.ts`.
 - The script downloads the Sonic production trace once (cached under `reports/tenderly/raw-*.json`) and compares it against the latest local run, emitting `reports/tenderly/attack-vs-repro-transfers.json`.
-- After restoring same-asset dust fidelity, regenerate the report and sanity-check the `.local` vs `.remote` transfer lists to ensure 1 µ wstkscUSD movements appear in the local data.
+- Regenerate the report after harness updates and confirm the `.local` trace now includes the `1 µ wstkscUSD` self-transfer that appears in Sonic’s production data.
 
 ## Using the Artefacts During Review
 - Capture the console summary printed by the structured snapshot test to support RCA write-ups.

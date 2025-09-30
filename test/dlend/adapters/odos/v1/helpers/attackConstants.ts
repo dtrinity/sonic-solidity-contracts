@@ -89,6 +89,13 @@ export const ATTACK_COLLATERAL = {
   },
 
   /**
+   * Net amount of victim collateral drained once same-asset dust is returned
+   */
+  get NET_VICTIM_DRAIN(): bigint {
+    return this.COLLATERAL_TO_SWAP - this.DUST_OUTPUT;
+  },
+
+  /**
    * Dust output returned to adapter (1 micro unit)
    * This negligible amount satisfies minOut while stealing the rest
    */
@@ -172,7 +179,7 @@ export const EXPECTED_DELTAS = {
   /**
    * Victim loses entire collateral position
    */
-  VICTIM_ATOKEN_DELTA: -ATTACK_COLLATERAL.COLLATERAL_TO_SWAP,
+  VICTIM_ATOKEN_DELTA: -ATTACK_COLLATERAL.NET_VICTIM_DRAIN,
 
   /**
    * Attacker gains net profit

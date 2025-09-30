@@ -11,6 +11,7 @@ import {
   StatefulMockPool,
   TestMintableERC20
 } from "../../../../../../typechain-types";
+import { ATTACK_COLLATERAL } from "../helpers/attackConstants";
 
 export const COLLATERAL_DECIMALS = 6;
 export const DUSD_DECIMALS = 18;
@@ -21,6 +22,7 @@ export const BURST_TWO = ethers.parseUnits("8877.536706", COLLATERAL_DECIMALS);
 export const FLASH_LOAN_PREMIUM = (COLLATERAL_TO_SWAP * 5n) / 10_000n;
 export const FLASH_SWAP_AMOUNT = COLLATERAL_TO_SWAP - FLASH_LOAN_PREMIUM;
 export const EXTRA_COLLATERAL = BURST_ONE + BURST_TWO + FLASH_LOAN_PREMIUM;
+export const SAME_ASSET_DUST = ATTACK_COLLATERAL.DUST_OUTPUT;
 
 export const FLASH_MINT_AMOUNT = ethers.parseUnits("27000", DUSD_DECIMALS);
 export const DUSD_STAGE_ONE = ethers.parseUnits("21444.122422884130710969", DUSD_DECIMALS);
@@ -161,10 +163,11 @@ export async function deployOdosV1ExploitFixture(): Promise<OdosV1ExploitFixture
   // NOTE: Production Sonic attack returns 1 µ wstkscUSD (same-asset dust), but current harness
   // uses dUSD output as a workaround to avoid the adapter's same-asset underflow check.
   // See Reproduce.md "Critical Deviation: Same-Asset Dust Return" for details.
-  await router.setSwapBehaviour(
+  await router.setSwapBehaviourWithDust(
     await wstkscUsd.getAddress(),
-    await dusd.getAddress(), // Workaround: different asset
+    await wstkscUsd.getAddress(),
     COLLATERAL_TO_SWAP,
+    SAME_ASSET_DUST,
     false,
     await attackExecutor.getAddress()
   );

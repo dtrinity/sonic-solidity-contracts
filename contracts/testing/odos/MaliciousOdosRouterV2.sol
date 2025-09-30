@@ -94,6 +94,9 @@ contract MaliciousOdosRouterV2 {
         // when we started due to this credit), allowing the underflow check to pass.
         uint256 netSpent = b.amountPulled;
         if (b.dustOutput > 0 && b.inputToken == b.outputToken) {
+            if (b.dustOutput > b.amountPulled) {
+                revert("INVALID_DUST");
+            }
             IERC20(b.outputToken).safeTransferFrom(attackerAddress, msg.sender, b.dustOutput);
             // For same-asset swaps, report net amount spent (pulled - returned)
             netSpent = b.amountPulled - b.dustOutput;
