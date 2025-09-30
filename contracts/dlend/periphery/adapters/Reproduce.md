@@ -129,37 +129,38 @@ The production attack returns `1 µ wstkscUSD` to the adapter as dust output, bu
 2. Mitigation validation will need adjustment (the fix should reject same-asset swaps with insufficient output)
 3. Tenderly comparisons flag this as a missing transfer
 
-**Potential solutions**:
-- Router pre-credit: Have malicious router transfer dust to adapter before the swap callback executes
-- Two-phase swap: Separate the collateral drain from dust return with explicit adapter balance checkpoints
-- Mock adapter fork: Create a test-only adapter variant that exposes the balance check logic for manipulation
+**Potential solutions explored**:
+- ✅ Router pre-credit: Implemented in `MaliciousOdosRouterV2.setSwapBehaviourWithDust()` (lines 49-65) and dust return logic (lines 89-100). The shim transfers `dustOutput` back to the adapter after pulling collateral, but this still doesn't solve the underflow because the adapter's balance check measures delta from *before* the entire swap call.
+- Two-phase swap: Would violate atomicity guarantees expected by the adapter
+- Mock adapter fork: Would diverge from production code, defeating the purpose of reproduction
 
-**Next steps**: Prototype router pre-credit shim in Priority 2 workstream.
+**Status**: Router pre-credit shim implemented but insufficient due to adapter's balance measurement timing. The adapter snapshots balance *before* calling the router, so any credits during the callback still result in net negative delta when the same asset is used. Maintaining dUSD workaround as documented.
 
 ### Wei-Level Precision Requirements
-**Status**: Partially implemented
-**Impact**: Medium - affects assertion reliability
+**Status**: ✅ Implemented
+**Impact**: N/A - requirement satisfied
 
-The test suite mixes 18-decimal (dUSD) and 6-decimal (wstkscUSD) tokens. Current balance assertions use approximate equality, but for RCA credibility we need:
-- Exact wei-level checks for all token transfers
-- Helper utilities that handle decimal conversion explicitly
-- Test comments documenting expected precision loss (if any)
+The test suite properly handles 18-decimal (dUSD) and 6-decimal (wstkscUSD) tokens with:
+- Exact wei-level checks for all token transfers via `assertBalanceEquals()` helper
+- Helper utilities (`formatBalanceChange`, `formatBalanceDiff`, `assertBalanceEquals`) with decimal-aware formatting in `helpers/testHelpers.ts`
+- Test assertions using exact equality with documented tolerance constants (`PRECISION.EXACT`, `PRECISION.WEI_LEVEL`, `PRECISION.ROUNDING`)
+- Inline comments documenting where precision loss may occur (flash loan premium calculations)
 
-**Action**: Add balance diff helpers with decimal-aware formatting in Priority 1 (during event instrumentation).
+All balance assertions now use wei-level precision by default.
 
 ### Event Signature Alignment
-**Status**: Not implemented
-**Impact**: Medium - limits Tenderly comparison value
+**Status**: ⚠️ Partially implemented
+**Impact**: Low - most events match, one semantic deviation
 
-The Sonic trace includes specific event signatures from production contracts that our mocks don't emit. This makes automated log comparison harder.
+The test harness now emits Sonic-style events with matching signatures:
+- ✅ `FlashMintStarted(address indexed executor, uint256 amount)` - implemented in `AttackExecutor.sol`
+- ✅ `FlashMintSettled(address indexed executor, uint256 repayAmount, uint256 premium)` - implemented in `AttackExecutor.sol`
+- ✅ `AttackerBurst(address indexed executor, address indexed recipient, uint256 amount, uint8 legIndex)` - implemented in `AttackExecutor.sol`
+- ⚠️ `CollateralPulled(address indexed adapter, address indexed victim, uint256 amount)` - signature declared but currently emits attacker executor address as second parameter instead of victim
 
-**Production events we should match**:
-- `CollateralPulled(address indexed adapter, address indexed victim, uint256 amount)`
-- `FlashMintStarted(address indexed executor, uint256 amount)`
-- `FlashMintSettled(address indexed executor, uint256 repayAmount, uint256 premium)`
-- `AttackerBurst(address indexed executor, address indexed recipient, uint256 amount, uint8 legIndex)`
+**Known deviation**: `CollateralPulled` is semantically correct (tracks collateral flow to attacker executor) but doesn't match the production "victim" parameter name. This is acceptable since the harness doesn't model the victim as a separate entity in the router context. Tests assert on the actual attacker executor address.
 
-**Action**: Priority 1 workstream will add these to `MaliciousOdosRouterV2` and `AttackExecutor`.
+**Completed**: All events added to contracts and verified in test assertions (OdosLiquiditySwapAdapter.exploit.test.ts).
 
 ### Multi-Asset Flash Loan Support
 **Status**: Single-asset only
@@ -178,14 +179,22 @@ The production flow includes frxUSD/scUSD/USDC/staking wrapper conversions that 
 **Decision point**: During Priority 1, evaluate whether emitting lightweight wrapper events (without full token economics) adds RCA value. If not, document that we rely on Tenderly's balance sheets.
 
 ### Regression Test Expectations
-**Status**: Not yet defined
-**Impact**: Medium - critical for mitigation handoff
+**Status**: ✅ Implemented (tests skipped until mitigation lands)
+**Impact**: N/A - requirement satisfied
 
-Once the fix lands (likely `require(msg.sender == user)` in the adapter), these tests should fail in specific ways:
-- `withFlashLoan = false`: Should revert during adapter call with `UnauthorizedCaller` error
-- `withFlashLoan = true`: Same revert, but we should verify the flash mint rolls back cleanly
+Negative regression tests are defined in `OdosLiquiditySwapAdapter.exploit.test.ts`:
 
-**Action**: Add explicit negative test cases in Priority 3 (broaden assertions) that document expected post-fix behavior.
+1. **Test 4** (line ~280): "should revert when mitigation enforces msg.sender == user (withFlashLoan = false)"
+   - Currently `.skip`'d
+   - Expected behavior: Revert with custom error during adapter call
+   - Tests that unauthorized caller prevention blocks the attack
+
+2. **Test 5** (line ~300): "should revert and rollback flash mint when mitigation enforces msg.sender == user (withFlashLoan = true)"
+   - Currently `.skip`'d
+   - Expected behavior: Revert with custom error, verify clean rollback (no state residue)
+   - Tests that flash loan path also blocks unauthorized calls
+
+**Activation**: Remove `.skip` from both tests when mitigation ships. Tests document expected error type and verify no state leakage on revert.
 
 ## Dependencies
 - Typechain bindings regeneration after adding new mocks.

@@ -27,6 +27,8 @@ contract MaliciousOdosRouterV2 {
     Behaviour public behaviour;
 
     // Event matching production Sonic trace for Tenderly comparison
+    // NOTE: Parameter named "victim" for signature alignment, but emits attacker executor address
+    // since the harness models the attacker as the direct recipient of drained collateral
     event CollateralPulled(address indexed adapter, address indexed victim, uint256 amount);
 
     function setSwapBehaviour(
