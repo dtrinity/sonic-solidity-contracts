@@ -335,7 +335,7 @@ async function runLocalRepro(): Promise<{
 async function main(): Promise<void> {
   const txHash = requireEnv("TENDERLY_TX_HASH", "0xa6aef05387f5b86b1fd563256fc9223f3c22f74292d66ac796d3f08fd311d940");
   const network = requireEnv("TENDERLY_NETWORK", "sonic");
-  const accessKey = requireEnv("TENDERLY_ACCESS_KEY");
+  const accessKey = process.env.TENDERLY_ACCESS_KEY;
   const projectSlug = process.env.TENDERLY_PROJECT_SLUG ?? "project";
   const cacheAllowed = process.env.TENDERLY_FORCE_REFRESH !== "true";
   const traceCacheFile = path.join(
@@ -360,6 +360,11 @@ async function main(): Promise<void> {
   }
 
   if (!tenderlyTrace) {
+    if (!accessKey) {
+      throw new Error(
+        "No cached Tenderly trace found. Set TENDERLY_ACCESS_KEY (or provide a cached trace) to fetch from Tenderly."
+      );
+    }
     try {
       tenderlyTrace = await fetchTenderlyTrace(txHash, network, accessKey, projectSlug);
       await ensureOutputDir();
