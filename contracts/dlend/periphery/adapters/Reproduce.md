@@ -107,9 +107,66 @@ When rerunning the Tenderly comparison scripts, confirm:
    - Capture any regression expectations for the eventual fix (e.g., tests should fail once the adapter requires `msg.sender == user`).
 
 ## Validation Criteria
-- Test consistently reproduces the collateral drain without non-deterministic dependencies (no chain forking, no external RPC calls).
-- Balances before/after exactly match the attack narrative (collateral gone, dust collateral supplied, attacker enriched).
-- Repro fails (or throws) once we introduce the planned mitigation (e.g., enforcing caller == user, adding oracle check). This will be used later but should be anticipated now.
+- ✅ Test consistently reproduces the collateral drain without non-deterministic dependencies (no chain forking, no external RPC calls).
+- ⚠️ Balances before/after match the attack narrative with documented deviations (collateral drain exact, attacker profit exact, dust transfer workaround in place).
+- ✅ Negative regression tests ready to validate mitigation (currently skipped, will activate post-fix).
+
+## Confidence Assessment & Remaining Fidelity Gaps
+
+### Current State: Strong Foundation, Missing Critical Dust Mechanic
+
+The harness successfully demonstrates:
+- ✅ **Collateral drain**: Victim loses exactly 26,243.751965 wstkscUSD with wei-level precision
+- ✅ **Flash mint flow**: 27,000 dUSD flash mint with 5 bps premium accounting
+- ✅ **Attacker profit**: 35,108.166795 wstkscUSD net gain (burst arithmetic correct)
+- ✅ **Event instrumentation**: All 4 Sonic-style events emitted and verified
+- ✅ **Regression tests**: Negative test cases ready for mitigation validation
+
+However, **critical fidelity gap remains**:
+
+### Missing: Same-Asset Dust Transfer Loop
+
+**Impact**: **High** - The reproduction does NOT exercise the precise exploit mechanic
+
+**What's missing**:
+- Production Sonic attack returns `1 µ wstkscUSD` to the adapter (same asset as input)
+- This satisfies `minOut` while the adapter's balance check passes because of timing/accounting quirks
+- The harness currently routes swap to **dUSD output** with `minOut = 0` to sidestep the underflow
+
+**Why this matters**:
+1. **Mitigation coverage**: If the fix addresses same-asset accounting (not just `msg.sender` check), current tests won't catch regressions
+2. **Exploit validation**: We're not proving the exact dust mechanic works in isolation
+3. **Tenderly parity**: Comparison scripts flag missing dust transfers (see `reports/tenderly/attack-vs-repro-transfers.json` lines 40-116)
+
+**Evidence from Tenderly comparison**:
+- Production trace shows `1 µ wstkscUSD` transfer to adapter (token `0x9fb7...`)
+- Local harness produces `0` dust transfers (different asset type entirely)
+- Event alignment partial: `CollateralPulled` emits attacker executor instead of victim address
+
+### Confidence Call
+
+**For `msg.sender == user` mitigation**: ✅ **Strong confidence**
+- Negative tests will validate this fix works
+- Attack flow fully reproduced modulo dust workaround
+- Balance accounting exact for all participants
+
+**For same-asset accounting fixes**: ⚠️ **Low confidence**
+- Current tests will pass even if same-asset vulnerability remains
+- Router pre-credit shim implemented but insufficient (adapter measures delta from before swap call)
+- Need alternative approach to achieve dust transfer parity
+
+### Next Steps to Reach Full Confidence
+
+1. **Immediate (for current PR)**:
+   - ✅ TypeScript build passes (formatBalanceDiff deduplicated)
+   - ✅ Regression tests flexible (use `.to.be.reverted` instead of hardcoded error string)
+   - ✅ Documentation updated with fidelity gaps
+
+2. **Follow-up work** (separate effort):
+   - Investigate adapter's `executeOperation` flow timing to understand how production dust return passed balance checks
+   - Consider mock adapter variant that exposes balance snapshot timing for testing
+   - Generate Tenderly diff after dust parity achieved to confirm full alignment
+   - Add explicit test case for same-asset swap rejection (if that becomes part of the fix)
 
 ## Follow-Ups
 - Once the router/executor emit Sonic-style events, pull the exact signatures/order from tx `0xa6ae...1940` so we can harden the repro assertions against them.
