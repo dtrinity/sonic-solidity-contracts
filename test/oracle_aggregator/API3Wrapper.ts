@@ -5,11 +5,7 @@ import { Address } from "hardhat-deploy/types";
 import { getConfig } from "../../config/config";
 import { API3Wrapper } from "../../typechain-types";
 import { ORACLE_AGGREGATOR_PRICE_DECIMALS } from "../../typescript/oracle_aggregator/constants";
-import {
-  getOracleAggregatorFixture,
-  getRandomItemFromList,
-  OracleAggregatorFixtureResult,
-} from "./fixtures";
+import { getOracleAggregatorFixture, getRandomItemFromList, OracleAggregatorFixtureResult } from "./fixtures";
 
 const API3_HEARTBEAT_SECONDS = 86400; // 24 hours
 
@@ -42,14 +38,7 @@ describe("API3Wrapper", () => {
  * @param root0.user1
  * @param root0.user2
  */
-async function runTestsForCurrency(
-  currency: string,
-  {
-    deployer,
-    user1,
-    user2,
-  }: { deployer: Address; user1: Address; user2: Address },
-) {
+async function runTestsForCurrency(currency: string, { deployer, user1, user2 }: { deployer: Address; user1: Address; user2: Address }) {
   describe(`API3Wrapper for ${currency}`, () => {
     let fixtureResult: OracleAggregatorFixtureResult;
     let api3Wrapper: API3Wrapper;
@@ -89,8 +78,7 @@ async function runTestsForCurrency(
 
       it("should return correct BASE_CURRENCY_UNIT", async function () {
         const actualUnit = await api3Wrapper.BASE_CURRENCY_UNIT();
-        const expectedUnit =
-          BigInt(10) ** BigInt(fixtureResult.config.priceDecimals);
+        const expectedUnit = BigInt(10) ** BigInt(fixtureResult.config.priceDecimals);
         expect(actualUnit).to.equal(expectedUnit);
       });
     });
@@ -103,25 +91,16 @@ async function runTestsForCurrency(
         }
 
         // Test pricing for plain assets
-        for (const [address, _asset] of Object.entries(
-          fixtureResult.assets.api3PlainAssets,
-        )) {
+        for (const [address, _asset] of Object.entries(fixtureResult.assets.api3PlainAssets)) {
           const { price, isAlive } = await api3Wrapper.getPriceInfo(address);
 
           // The price should be non-zero
-          expect(price).to.be.gt(
-            0,
-            `Price for asset ${address} should be greater than 0`,
-          );
-          expect(isAlive).to.be.true,
-            `Price for asset ${address} should be alive`;
+          expect(price).to.be.gt(0, `Price for asset ${address} should be greater than 0`);
+          (expect(isAlive).to.be.true, `Price for asset ${address} should be alive`);
 
           // Verify getAssetPrice returns the same value
           const directPrice = await api3Wrapper.getAssetPrice(address);
-          expect(directPrice).to.equal(
-            price,
-            `Direct price should match price info for ${address}`,
-          );
+          expect(directPrice).to.equal(price, `Direct price should match price info for ${address}`);
         }
       });
 
@@ -147,8 +126,7 @@ async function runTestsForCurrency(
         const testAsset = getRandomItemFromList(plainAssets);
 
         // Deploy a new MockAPI3Oracle that can be set to stale
-        const MockAPI3OracleFactory =
-          await ethers.getContractFactory("MockAPI3Oracle");
+        const MockAPI3OracleFactory = await ethers.getContractFactory("MockAPI3Oracle");
         const mockOracle = await MockAPI3OracleFactory.deploy(deployer);
 
         // Set the proxy for our test asset to point to the new mock oracle
@@ -162,8 +140,7 @@ async function runTestsForCurrency(
           throw new Error("Failed to get current block");
         }
 
-        const staleTimestamp =
-          currentBlock.timestamp - API3_HEARTBEAT_SECONDS * 2;
+        const staleTimestamp = currentBlock.timestamp - API3_HEARTBEAT_SECONDS * 2;
         await mockOracle.setMock(price, staleTimestamp);
 
         // getPriceInfo should return false for isAlive
@@ -171,9 +148,7 @@ async function runTestsForCurrency(
         expect(isAlive).to.be.false;
 
         // getAssetPrice should revert
-        await expect(
-          api3Wrapper.getAssetPrice(testAsset),
-        ).to.be.revertedWithCustomError(api3Wrapper, "PriceIsStale");
+        await expect(api3Wrapper.getAssetPrice(testAsset)).to.be.revertedWithCustomError(api3Wrapper, "PriceIsStale");
       });
     });
 
@@ -188,9 +163,7 @@ async function runTestsForCurrency(
 
         // Remove the proxy by setting it to zero address
         await api3Wrapper.setProxy(newAsset, ethers.ZeroAddress);
-        expect(await api3Wrapper.assetToProxy(newAsset)).to.equal(
-          ethers.ZeroAddress,
-        );
+        expect(await api3Wrapper.assetToProxy(newAsset)).to.equal(ethers.ZeroAddress);
       });
 
       it("should revert when non-ORACLE_MANAGER tries to set proxy", async function () {
@@ -200,13 +173,8 @@ async function runTestsForCurrency(
         const unauthorizedSigner = await ethers.getSigner(user2);
         const oracleManagerRole = await api3Wrapper.ORACLE_MANAGER_ROLE();
 
-        await expect(
-          api3Wrapper.connect(unauthorizedSigner).setProxy(newAsset, proxy),
-        )
-          .to.be.revertedWithCustomError(
-            api3Wrapper,
-            "AccessControlUnauthorizedAccount",
-          )
+        await expect(api3Wrapper.connect(unauthorizedSigner).setProxy(newAsset, proxy))
+          .to.be.revertedWithCustomError(api3Wrapper, "AccessControlUnauthorizedAccount")
           .withArgs(user2, oracleManagerRole);
       });
     });

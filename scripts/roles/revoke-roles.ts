@@ -12,12 +12,7 @@ async function main() {
   const governance = config.walletAddresses.governanceMultisig;
 
   console.log(`\nScanning roles for revoke on ${hre.network.name}...`);
-  const scan = await scanRolesAndOwnership(
-    hre,
-    deployer,
-    governance,
-    (m: string) => console.log(m)
-  );
+  const scan = await scanRolesAndOwnership(hre, deployer, governance, (m: string) => console.log(m));
 
   // Build revocation transactions ONLY if governance already has DEFAULT_ADMIN_ROLE on the contract
   const txs: SafeTransactionData[] = [];
@@ -58,15 +53,11 @@ async function main() {
   }
 
   if (txs.length === 0) {
-    console.log(
-      "\nNo roles to revoke where governance has DEFAULT_ADMIN_ROLE."
-    );
+    console.log("\nNo roles to revoke where governance has DEFAULT_ADMIN_ROLE.");
     return;
   }
 
-  console.log(
-    `\nCreating Safe batch with ${addedOperations} operations from ${consideredContracts} contracts...`
-  );
+  console.log(`\nCreating Safe batch with ${addedOperations} operations from ${consideredContracts} contracts...`);
 
   if (!config.safeConfig) {
     throw new Error("Missing safeConfig in current network config");
@@ -99,9 +90,7 @@ async function main() {
     for (const item of revocationSummary) {
       console.log(`- ${item.contract} (${item.address})`);
       for (const r of item.roles) {
-        console.log(
-          `  - revokeRole(${r.name}) from deployer (hash: ${r.hash})`
-        );
+        console.log(`  - revokeRole(${r.name}) from deployer (hash: ${r.hash})`);
         totalRoles++;
       }
     }

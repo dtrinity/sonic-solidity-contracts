@@ -19,15 +19,12 @@ describe("SwappableVault Tolerance Tests", function () {
     [owner, receiver] = await ethers.getSigners();
 
     // Deploy mock ERC20 tokens
-    const ERC20Mock = await ethers.getContractFactory(
-      "RewardClaimableMockERC20",
-    );
+    const ERC20Mock = await ethers.getContractFactory("RewardClaimableMockERC20");
     inputToken = await ERC20Mock.deploy("Input Token", "IN");
     outputToken = await ERC20Mock.deploy("Output Token", "OUT");
 
     // Deploy SwappableVaultMock
-    const SwappableVaultMock =
-      await ethers.getContractFactory("SwappableVaultMock");
+    const SwappableVaultMock = await ethers.getContractFactory("SwappableVaultMock");
     swappableVault = await SwappableVaultMock.deploy();
 
     // Mint tokens to the vault and receiver
@@ -86,10 +83,7 @@ describe("SwappableVault Tolerance Tests", function () {
       // This tests the else branch: amountIn - spentInputTokenAmount = 1 <= BALANCE_DIFF_TOLERANCE
       const amountInReturned = 1501n;
       const amountInActuallySpent = 1500n;
-      await swappableVault.setAmountInParams(
-        amountInReturned,
-        amountInActuallySpent,
-      );
+      await swappableVault.setAmountInParams(amountInReturned, amountInActuallySpent);
 
       const tx = await swappableVault.swapExactOutput(
         await inputToken.getAddress(),
@@ -110,10 +104,7 @@ describe("SwappableVault Tolerance Tests", function () {
       // Return 1502 but spend 1500 to create a +2 difference
       const amountInReturned = 1502n;
       const amountInActuallySpent = 1500n;
-      await swappableVault.setAmountInParams(
-        amountInReturned,
-        amountInActuallySpent,
-      );
+      await swappableVault.setAmountInParams(amountInReturned, amountInActuallySpent);
 
       await expect(
         swappableVault.swapExactOutput(
@@ -125,10 +116,7 @@ describe("SwappableVault Tolerance Tests", function () {
           DEFAULT_DEADLINE,
           EMPTY_EXTRA_DATA,
         ),
-      ).to.be.revertedWithCustomError(
-        swappableVault,
-        "SpentInputTokenAmountNotEqualReturnedAmountIn",
-      );
+      ).to.be.revertedWithCustomError(swappableVault, "SpentInputTokenAmountNotEqualReturnedAmountIn");
     });
 
     it("should revert when difference is -2 (outside tolerance)", async function () {
@@ -136,10 +124,7 @@ describe("SwappableVault Tolerance Tests", function () {
       // This tests the else branch: amountIn - spentInputTokenAmount = 2 > BALANCE_DIFF_TOLERANCE
       const amountInReturned = 1502n;
       const amountInActuallySpent = 1500n;
-      await swappableVault.setAmountInParams(
-        amountInReturned,
-        amountInActuallySpent,
-      );
+      await swappableVault.setAmountInParams(amountInReturned, amountInActuallySpent);
 
       await expect(
         swappableVault.swapExactOutput(
@@ -151,10 +136,7 @@ describe("SwappableVault Tolerance Tests", function () {
           DEFAULT_DEADLINE,
           EMPTY_EXTRA_DATA,
         ),
-      ).to.be.revertedWithCustomError(
-        swappableVault,
-        "SpentInputTokenAmountNotEqualReturnedAmountIn",
-      );
+      ).to.be.revertedWithCustomError(swappableVault, "SpentInputTokenAmountNotEqualReturnedAmountIn");
     });
   });
 
@@ -174,10 +156,7 @@ describe("SwappableVault Tolerance Tests", function () {
           DEFAULT_DEADLINE,
           EMPTY_EXTRA_DATA,
         ),
-      ).to.be.revertedWithCustomError(
-        swappableVault,
-        "SpentInputTokenAmountGreaterThanAmountInMaximum",
-      );
+      ).to.be.revertedWithCustomError(swappableVault, "SpentInputTokenAmountGreaterThanAmountInMaximum");
     });
 
     it("should revert with correct error when spent = amountInMaximum + 1", async function () {
@@ -195,10 +174,7 @@ describe("SwappableVault Tolerance Tests", function () {
           DEFAULT_DEADLINE,
           EMPTY_EXTRA_DATA,
         ),
-      ).to.be.revertedWithCustomError(
-        swappableVault,
-        "SpentInputTokenAmountGreaterThanAmountInMaximum",
-      );
+      ).to.be.revertedWithCustomError(swappableVault, "SpentInputTokenAmountGreaterThanAmountInMaximum");
     });
   });
 
@@ -278,10 +254,7 @@ describe("SwappableVault Tolerance Tests", function () {
           DEFAULT_DEADLINE,
           EMPTY_EXTRA_DATA,
         ),
-      ).to.be.revertedWithCustomError(
-        swappableVault,
-        "ReceivedOutputTokenAmountNotEqualAmountOut",
-      );
+      ).to.be.revertedWithCustomError(swappableVault, "ReceivedOutputTokenAmountNotEqualAmountOut");
     });
 
     it("should revert when receiving -2 output tokens (outside tolerance)", async function () {
@@ -301,10 +274,7 @@ describe("SwappableVault Tolerance Tests", function () {
           DEFAULT_DEADLINE,
           EMPTY_EXTRA_DATA,
         ),
-      ).to.be.revertedWithCustomError(
-        swappableVault,
-        "ReceivedOutputTokenAmountNotEqualAmountOut",
-      );
+      ).to.be.revertedWithCustomError(swappableVault, "ReceivedOutputTokenAmountNotEqualAmountOut");
     });
 
     it("should revert when output token balance doesn't increase", async function () {
@@ -324,10 +294,7 @@ describe("SwappableVault Tolerance Tests", function () {
           DEFAULT_DEADLINE,
           EMPTY_EXTRA_DATA,
         ),
-      ).to.be.revertedWithCustomError(
-        swappableVault,
-        "OutputTokenBalanceNotIncreasedAfterSwap",
-      );
+      ).to.be.revertedWithCustomError(swappableVault, "OutputTokenBalanceNotIncreasedAfterSwap");
     });
   });
 
@@ -346,20 +313,14 @@ describe("SwappableVault Tolerance Tests", function () {
           DEFAULT_DEADLINE,
           EMPTY_EXTRA_DATA,
         ),
-      ).to.be.revertedWithCustomError(
-        swappableVault,
-        "OutputTokenBalanceNotIncreasedAfterSwap",
-      );
+      ).to.be.revertedWithCustomError(swappableVault, "OutputTokenBalanceNotIncreasedAfterSwap");
     });
 
     it("should handle exactly at tolerance boundary", async function () {
       // Test exactly at +1 tolerance: return 1501, spend 1500
       const amountInReturned = 1501n;
       const amountInActuallySpent = 1500n;
-      await swappableVault.setAmountInParams(
-        amountInReturned,
-        amountInActuallySpent,
-      );
+      await swappableVault.setAmountInParams(amountInReturned, amountInActuallySpent);
 
       const tx = await swappableVault.swapExactOutput(
         await inputToken.getAddress(),
