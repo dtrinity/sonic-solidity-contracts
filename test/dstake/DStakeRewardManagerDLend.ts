@@ -3,11 +3,7 @@ import hre, { deployments, ethers, getNamedAccounts } from "hardhat";
 
 import { IDStableConversionAdapter, IERC20 } from "../../typechain-types";
 import { DS_TOKEN_ID, DUSD_TOKEN_ID } from "../../typescript/deploy-ids";
-import {
-  DSTAKE_CONFIGS,
-  DStakeFixtureConfig,
-  setupDLendRewardsFixture,
-} from "./fixture";
+import { DSTAKE_CONFIGS, DStakeFixtureConfig, setupDLendRewardsFixture } from "./fixture";
 
 DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
   describe(`DStakeRewardManagerDLend for ${config.DStakeTokenSymbol}`, function () {
@@ -20,9 +16,7 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
         } else if (config.dStableSymbol === "dS") {
           return "stS";
         } else {
-          throw new Error(
-            `Unsupported dStableSymbol for rewards fixture: ${config.dStableSymbol}`,
-          );
+          throw new Error(`Unsupported dStableSymbol for rewards fixture: ${config.dStableSymbol}`);
         }
       })(),
       ethers.parseUnits("1000000", 18), // Reduced from 100M to 1M
@@ -55,10 +49,8 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
     let vaultAssetAddress: string;
 
     // Determine reward token symbol and dStable token ID based on config
-    const rewardTokenSymbol =
-      config.dStableSymbol === "dUSD" ? "sfrxUSD" : "stS";
-    const dStableTokenId =
-      config.dStableSymbol === "dUSD" ? DUSD_TOKEN_ID : DS_TOKEN_ID;
+    const rewardTokenSymbol = config.dStableSymbol === "dUSD" ? "sfrxUSD" : "stS";
+    const dStableTokenId = config.dStableSymbol === "dUSD" ? DUSD_TOKEN_ID : DS_TOKEN_ID;
     const rewardAmount = ethers.parseUnits("100", 18);
     const emissionPerSecond = ethers.parseUnits("1", 6);
 
@@ -72,10 +64,7 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
       dStakeCollateralVault = fixtures.collateralVault;
       dStakeRouter = fixtures.router;
       const dusdAddress = fixtures.dStableInfo.address;
-      underlyingDStableToken = await ethers.getContractAt(
-        "ERC20StablecoinUpgradeable",
-        dusdAddress,
-      );
+      underlyingDStableToken = await ethers.getContractAt("ERC20StablecoinUpgradeable", dusdAddress);
       deployerSigner = fixtures.deployer;
       rewardToken = fixtures.rewardToken;
       vaultAssetToken = fixtures.vaultAssetToken;
@@ -102,19 +91,14 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
       const issuerDeployment = await deployments.get(
         dStableTokenId, // Use dynamic dStableTokenId
       );
-      const issuer = await ethers.getContractAt(
-        "ERC20StablecoinUpgradeable",
-        issuerDeployment.address,
-      );
+      const issuer = await ethers.getContractAt("ERC20StablecoinUpgradeable", issuerDeployment.address);
 
       const minterRole = await issuer.MINTER_ROLE();
       // Check if deployer already has the role to avoid errors on re-runs
       const hasMinterRole = await issuer.hasRole(minterRole, deployerAddress);
 
       if (!hasMinterRole) {
-        await issuer
-          .connect(deployerSigner)
-          .grantRole(minterRole, deployerAddress);
+        await issuer.connect(deployerSigner).grantRole(minterRole, deployerAddress);
       }
 
       // Mint dStable tokens (dUSD) to the deployer
@@ -124,9 +108,7 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
 
       // Fund the reward manager contract with reward tokens for distribution
       // rewardToken and deployerSigner are available from the top-level beforeEach
-      await rewardToken
-        .connect(deployerSigner)
-        .transfer(rewardManager.target, rewardAmount);
+      await rewardToken.connect(deployerSigner).transfer(rewardManager.target, rewardAmount);
     });
 
     describe("Deployment and Initialization", function () {
@@ -154,42 +136,24 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
 
         // Verify roles are assigned correctly after deployment
         // Get the DStakeRewardManagerDLend contract instance to check roles
-        const rewardManagerContract = await ethers.getContractAt(
-          "DStakeRewardManagerDLend",
-          rewardManager.target!,
-        );
+        const rewardManagerContract = await ethers.getContractAt("DStakeRewardManagerDLend", rewardManager.target!);
 
         // Check DEFAULT_ADMIN_ROLE for the admin account
-        const defaultAdminRole =
-          await rewardManagerContract.DEFAULT_ADMIN_ROLE();
-        const hasDefaultAdminRole = await rewardManagerContract.hasRole(
-          defaultAdminRole,
-          adminSigner.address,
-        );
+        const defaultAdminRole = await rewardManagerContract.DEFAULT_ADMIN_ROLE();
+        const hasDefaultAdminRole = await rewardManagerContract.hasRole(defaultAdminRole, adminSigner.address);
         expect(hasDefaultAdminRole).to.be.true;
 
         // Check that deployer no longer has DEFAULT_ADMIN_ROLE
-        const deployerHasDefaultAdminRole = await rewardManagerContract.hasRole(
-          defaultAdminRole,
-          deployerSigner.address,
-        );
+        const deployerHasDefaultAdminRole = await rewardManagerContract.hasRole(defaultAdminRole, deployerSigner.address);
         expect(deployerHasDefaultAdminRole).to.be.false;
 
         // Check REWARDS_MANAGER_ROLE for the admin account
-        const rewardsManagerRole =
-          await rewardManagerContract.REWARDS_MANAGER_ROLE();
-        const hasRewardsManagerRole = await rewardManagerContract.hasRole(
-          rewardsManagerRole,
-          adminSigner.address,
-        );
+        const rewardsManagerRole = await rewardManagerContract.REWARDS_MANAGER_ROLE();
+        const hasRewardsManagerRole = await rewardManagerContract.hasRole(rewardsManagerRole, adminSigner.address);
         expect(hasRewardsManagerRole).to.be.true;
 
         // Check that deployer no longer has REWARDS_MANAGER_ROLE
-        const deployerHasRewardsManagerRole =
-          await rewardManagerContract.hasRole(
-            rewardsManagerRole,
-            deployerSigner.address,
-          );
+        const deployerHasRewardsManagerRole = await rewardManagerContract.hasRole(rewardsManagerRole, deployerSigner.address);
         expect(deployerHasRewardsManagerRole).to.be.false;
       });
     });
@@ -201,35 +165,24 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
         const oldController = await rewardManager.dLendRewardsController();
         const newController = await ethers.Wallet.createRandom().getAddress();
         // adminSigner holds DEFAULT_ADMIN_ROLE
-        const tx = await rewardManager
-          .connect(adminSigner)
-          .setDLendRewardsController(newController);
+        const tx = await rewardManager.connect(adminSigner).setDLendRewardsController(newController);
         await tx.wait();
-        expect(await rewardManager.dLendRewardsController()).to.equal(
-          newController,
-        );
-        await expect(tx)
-          .to.emit(rewardManager, "DLendRewardsControllerUpdated")
-          .withArgs(oldController, newController);
+        expect(await rewardManager.dLendRewardsController()).to.equal(newController);
+        await expect(tx).to.emit(rewardManager, "DLendRewardsControllerUpdated").withArgs(oldController, newController);
       });
 
       it("reverts when updating to zero address", async function () {
         // Admin signer setting to zero address should revert with ZeroAddress
-        await expect(
-          rewardManager
-            .connect(adminSigner)
-            .setDLendRewardsController(ethers.ZeroAddress),
-        ).to.be.revertedWithCustomError(rewardManager, "ZeroAddress");
+        await expect(rewardManager.connect(adminSigner).setDLendRewardsController(ethers.ZeroAddress)).to.be.revertedWithCustomError(
+          rewardManager,
+          "ZeroAddress",
+        );
       });
 
       it("reverts when non-admin tries to update controller", async function () {
         const randomAddress = await ethers.Wallet.createRandom().getAddress();
         // user2Signer (non-admin) does not have DEFAULT_ADMIN_ROLE
-        await expect(
-          rewardManager
-            .connect(user2Signer)
-            .setDLendRewardsController(randomAddress),
-        ).to.be.reverted; // missing role
+        await expect(rewardManager.connect(user2Signer).setDLendRewardsController(randomAddress)).to.be.reverted; // missing role
       });
     });
 
@@ -239,59 +192,47 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
       it("allows REWARDS_MANAGER_ROLE to update treasury", async function () {
         const oldTreasury = await rewardManager.treasury();
         const newTreasury = user3Address;
-        const tx = await rewardManager
-          .connect(adminSigner)
-          .setTreasury(newTreasury);
-        await expect(tx)
-          .to.emit(rewardManager, "TreasuryUpdated")
-          .withArgs(oldTreasury, newTreasury);
+        const tx = await rewardManager.connect(adminSigner).setTreasury(newTreasury);
+        await expect(tx).to.emit(rewardManager, "TreasuryUpdated").withArgs(oldTreasury, newTreasury);
         expect(await rewardManager.treasury()).to.equal(newTreasury);
       });
 
       it("reverts when non-admin tries to update treasury", async function () {
         const randomAddress = ethers.Wallet.createRandom().address;
-        await expect(
-          rewardManager.connect(user2Signer).setTreasury(randomAddress),
-        ).to.be.reverted;
+        await expect(rewardManager.connect(user2Signer).setTreasury(randomAddress)).to.be.reverted;
       });
 
       it("allows REWARDS_MANAGER_ROLE to update treasuryFeeBps", async function () {
         const oldFee = await rewardManager.treasuryFeeBps();
         const maxFee = await rewardManager.maxTreasuryFeeBps();
         const newFee = maxFee - 1n;
-        const tx = await rewardManager
-          .connect(adminSigner)
-          .setTreasuryFeeBps(newFee);
-        await expect(tx)
-          .to.emit(rewardManager, "TreasuryFeeBpsUpdated")
-          .withArgs(oldFee, newFee);
+        const tx = await rewardManager.connect(adminSigner).setTreasuryFeeBps(newFee);
+        await expect(tx).to.emit(rewardManager, "TreasuryFeeBpsUpdated").withArgs(oldFee, newFee);
         expect(await rewardManager.treasuryFeeBps()).to.equal(newFee);
       });
 
       it("reverts when setting treasuryFeeBps above max", async function () {
         const maxFee = await rewardManager.maxTreasuryFeeBps();
         const invalidFee = maxFee + 1n;
-        await expect(
-          rewardManager.connect(adminSigner).setTreasuryFeeBps(invalidFee),
-        ).to.be.revertedWithCustomError(rewardManager, "TreasuryFeeTooHigh");
+        await expect(rewardManager.connect(adminSigner).setTreasuryFeeBps(invalidFee)).to.be.revertedWithCustomError(
+          rewardManager,
+          "TreasuryFeeTooHigh",
+        );
       });
 
       it("allows REWARDS_MANAGER_ROLE to update exchangeThreshold", async function () {
         const oldThreshold = await rewardManager.exchangeThreshold();
         const newThreshold = oldThreshold + 1n;
-        const tx = await rewardManager
-          .connect(adminSigner)
-          .setExchangeThreshold(newThreshold);
-        await expect(tx)
-          .to.emit(rewardManager, "ExchangeThresholdUpdated")
-          .withArgs(oldThreshold, newThreshold);
+        const tx = await rewardManager.connect(adminSigner).setExchangeThreshold(newThreshold);
+        await expect(tx).to.emit(rewardManager, "ExchangeThresholdUpdated").withArgs(oldThreshold, newThreshold);
         expect(await rewardManager.exchangeThreshold()).to.equal(newThreshold);
       });
 
       it("reverts when setting exchangeThreshold to zero", async function () {
-        await expect(
-          rewardManager.connect(adminSigner).setExchangeThreshold(0),
-        ).to.be.revertedWithCustomError(rewardManager, "ZeroExchangeThreshold");
+        await expect(rewardManager.connect(adminSigner).setExchangeThreshold(0)).to.be.revertedWithCustomError(
+          rewardManager,
+          "ZeroExchangeThreshold",
+        );
       });
     });
 
@@ -315,18 +256,12 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
         // Fund caller with dStable and approve
         // underlyingDStableToken and deployerSigner are available from the top-level beforeEach
         const amountToFundCaller = threshold * 2n;
-        await underlyingDStableToken
-          .connect(deployerSigner)
-          .transfer(callerSigner.address, amountToFundCaller);
-        await underlyingDStableToken
-          .connect(callerSigner)
-          .approve(rewardManager.target, amountToFundCaller);
+        await underlyingDStableToken.connect(deployerSigner).transfer(callerSigner.address, amountToFundCaller);
+        await underlyingDStableToken.connect(callerSigner).approve(rewardManager.target, amountToFundCaller);
 
         // Fund the reward manager contract with reward tokens for distribution
         // rewardToken and deployerSigner are available from the top-level beforeEach
-        await rewardToken
-          .connect(deployerSigner)
-          .transfer(rewardManager.target, rewardAmount);
+        await rewardToken.connect(deployerSigner).transfer(rewardManager.target, rewardAmount);
       });
 
       it("Successfully claims a single reward token", async function () {
@@ -342,9 +277,7 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
         });
         await hre.network.provider.request({ method: "evm_mine", params: [] });
 
-        await rewardManager
-          .connect(callerSigner)
-          .compoundRewards(threshold, [rewardToken.target], receiver);
+        await rewardManager.connect(callerSigner).compoundRewards(threshold, [rewardToken.target], receiver);
 
         const afterReceiverRaw = await rewardToken.balanceOf(receiver);
         const afterTreasuryRaw = await rewardToken.balanceOf(treasuryAddr);
@@ -365,8 +298,7 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
         const receiver = user4Address;
         // Convert balances to numbers for test assertions - removed, using BigInt directly
         const beforeReceiverRawMulti = await rewardToken.balanceOf(receiver);
-        const beforeTreasuryRawMulti =
-          await rewardToken.balanceOf(treasuryAddr);
+        const beforeTreasuryRawMulti = await rewardToken.balanceOf(treasuryAddr);
 
         // Fast-forward time to accrue rewards
         await hre.network.provider.request({
@@ -385,14 +317,11 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
         const afterTreasuryRawMulti = await rewardToken.balanceOf(treasuryAddr);
 
         // Compute actual deltas for multiple claims
-        const deltaReceiverMulti =
-          afterReceiverRawMulti - beforeReceiverRawMulti;
-        const deltaTreasuryMulti =
-          afterTreasuryRawMulti - beforeTreasuryRawMulti;
+        const deltaReceiverMulti = afterReceiverRawMulti - beforeReceiverRawMulti;
+        const deltaTreasuryMulti = afterTreasuryRawMulti - beforeTreasuryRawMulti;
         const rawClaimedMulti = deltaReceiverMulti + deltaTreasuryMulti;
         // Compute expected fee via on-chain logic
-        const expectedFeeMulti =
-          await rewardManager.getTreasuryFee(rawClaimedMulti);
+        const expectedFeeMulti = await rewardManager.getTreasuryFee(rawClaimedMulti);
 
         // Treasury should receive the fee, receiver the remainder
         expect(deltaTreasuryMulti).to.equal(expectedFeeMulti);
@@ -410,35 +339,22 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
         await hre.network.provider.request({ method: "evm_mine", params: [] });
 
         // Preview expected conversion
-        const [expectedVaultAsset, expectedVaultAmount] =
-          await adapter.previewConvertToVaultAsset(threshold);
+        const [expectedVaultAsset, expectedVaultAmount] = await adapter.previewConvertToVaultAsset(threshold);
 
         // Capture initial vault balance
-        const beforeVaultBalance = await vaultAssetToken.balanceOf(
-          dStakeCollateralVault.target,
-        );
+        const beforeVaultBalance = await vaultAssetToken.balanceOf(dStakeCollateralVault.target);
 
         // Execute compoundRewards and assert event emission
-        await expect(
-          rewardManager
-            .connect(callerSigner)
-            .compoundRewards(threshold, [rewardToken.target], receiver),
-        )
+        await expect(rewardManager.connect(callerSigner).compoundRewards(threshold, [rewardToken.target], receiver))
           .to.emit(rewardManager, "ExchangeAssetProcessed")
           .withArgs(expectedVaultAsset, expectedVaultAmount, threshold);
 
         // Assert vault received the converted asset
-        const afterVaultBalance = await vaultAssetToken.balanceOf(
-          dStakeCollateralVault.target,
-        );
-        expect(afterVaultBalance - beforeVaultBalance).to.equal(
-          expectedVaultAmount,
-        );
+        const afterVaultBalance = await vaultAssetToken.balanceOf(dStakeCollateralVault.target);
+        expect(afterVaultBalance - beforeVaultBalance).to.equal(expectedVaultAmount);
 
         // Assert rewardManager consumed all exchange assets
-        const managerBalance = await underlyingDStableToken.balanceOf(
-          rewardManager.target,
-        );
+        const managerBalance = await underlyingDStableToken.balanceOf(rewardManager.target);
         expect(managerBalance).to.equal(0);
       });
 
@@ -481,21 +397,12 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
         const largeDeposit = threshold * 100n;
 
         // Ensure caller has sufficient balance & allowance
-        await underlyingDStableToken
-          .connect(deployerSigner)
-          .mint(callerSigner.address, largeDeposit);
-        await underlyingDStableToken
-          .connect(callerSigner)
-          .approve(rewardManager.target, largeDeposit + threshold); // Add extra for the second compound
+        await underlyingDStableToken.connect(deployerSigner).mint(callerSigner.address, largeDeposit);
+        await underlyingDStableToken.connect(callerSigner).approve(rewardManager.target, largeDeposit + threshold); // Add extra for the second compound
 
-        await rewardManager
-          .connect(callerSigner)
-          .compoundRewards(largeDeposit, [rewardToken.target], user3Address);
+        await rewardManager.connect(callerSigner).compoundRewards(largeDeposit, [rewardToken.target], user3Address);
 
-        const wrapper = await ethers.getContractAt(
-          "IStaticATokenLM",
-          targetStaticATokenWrapper,
-        );
+        const wrapper = await ethers.getContractAt("IStaticATokenLM", targetStaticATokenWrapper);
 
         // 2. Accrue some rewards so that the attacker can actually pull a non-zero amount.
         await hre.network.provider.request({
@@ -505,9 +412,7 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
         await hre.network.provider.request({ method: "evm_mine", params: [] });
 
         // 3. Attacker front-runs: pulls rewards into the wrapper
-        await wrapper
-          .connect(user2Signer)
-          .collectAndUpdateRewards(rewardToken.target);
+        await wrapper.connect(user2Signer).collectAndUpdateRewards(rewardToken.target);
 
         // `collectAndUpdateRewards` pulls the *raw* emissions out of Aave's RewardsController
         // and leaves them sitting in the wrapper's ERC20 balance.  No user has actually
@@ -522,9 +427,7 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
         const beforeTreasury = await rewardToken.balanceOf(treasuryAddr);
 
         // 5. Legitimate caller compounds – this claims fresh rewards from RewardsController only.
-        await rewardManager
-          .connect(callerSigner)
-          .compoundRewards(threshold, [rewardToken.target], receiver);
+        await rewardManager.connect(callerSigner).compoundRewards(threshold, [rewardToken.target], receiver);
 
         // The compound call triggers `claimRewardsOnBehalf(wrapper, vault, …)` under the hood.
         // As explained in the big header comment, that drains (almost) the entire wrapper
@@ -537,8 +440,7 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
         //     amount, proving those tokens were excluded from the payout.
         const afterReceiverBN = await rewardToken.balanceOf(receiver);
         const afterTreasuryBN = await rewardToken.balanceOf(treasuryAddr);
-        const distributed =
-          afterReceiverBN - beforeReceiver + (afterTreasuryBN - beforeTreasury);
+        const distributed = afterReceiverBN - beforeReceiver + (afterTreasuryBN - beforeTreasury);
         /*
          * Distributed amount must be strictly LOWER than what sat in the wrapper right before
          * compounding.  That proves two things:
@@ -561,19 +463,13 @@ DSTAKE_CONFIGS.forEach((config: DStakeFixtureConfig) => {
         await hre.network.provider.request({ method: "evm_mine", params: [] });
 
         // Provide another threshold-sized deposit to satisfy compoundRequirements
-        await underlyingDStableToken
-          .connect(deployerSigner)
-          .mint(callerSigner.address, threshold);
-        await underlyingDStableToken
-          .connect(callerSigner)
-          .approve(rewardManager.target, threshold);
+        await underlyingDStableToken.connect(deployerSigner).mint(callerSigner.address, threshold);
+        await underlyingDStableToken.connect(callerSigner).approve(rewardManager.target, threshold);
 
         // Second compound – should now be able to pull (most of) the trapped balance
         const beforeSecond = await rewardToken.balanceOf(wrapper.target);
 
-        await rewardManager
-          .connect(callerSigner)
-          .compoundRewards(threshold, [rewardToken.target], receiver);
+        await rewardManager.connect(callerSigner).compoundRewards(threshold, [rewardToken.target], receiver);
 
         const afterSecond = await rewardToken.balanceOf(wrapper.target);
 

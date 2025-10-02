@@ -16,11 +16,8 @@ describe("BaseOdosBuyAdapter - Surplus Handling", function () {
     const router = await deployMockRouter();
 
     // Deploy test buy adapter
-    const TestBuyAdapterFactory =
-      await ethers.getContractFactory("TestBuyAdapter");
-    const adapter = await TestBuyAdapterFactory.deploy(
-      await router.getAddress(),
-    );
+    const TestBuyAdapterFactory = await ethers.getContractFactory("TestBuyAdapter");
+    const adapter = await TestBuyAdapterFactory.deploy(await router.getAddress());
 
     return { deployer, tokenIn, tokenOut, router, adapter };
   }
@@ -43,25 +40,13 @@ describe("BaseOdosBuyAdapter - Surplus Handling", function () {
     await mint(tokenOut, await router.getAddress(), amountReceived);
 
     // Configure router behavior
-    await router.setSwapBehaviour(
-      await tokenIn.getAddress(),
-      await tokenOut.getAddress(),
-      amountSpent,
-      amountReceived,
-      false,
-    );
+    await router.setSwapBehaviour(await tokenIn.getAddress(), await tokenOut.getAddress(), amountSpent, amountReceived, false);
 
     const adapterBalanceBefore = await tokenOut.balanceOf(adapterAddr);
 
     // Act - call buy function
     const swapData = router.interface.encodeFunctionData("performSwap");
-    const result = await adapter.buy(
-      await tokenIn.getAddress(),
-      await tokenOut.getAddress(),
-      maxAmountToSwap,
-      amountToReceive,
-      swapData,
-    );
+    const result = await adapter.buy(await tokenIn.getAddress(), await tokenOut.getAddress(), maxAmountToSwap, amountToReceive, swapData);
 
     // Assert
     const adapterBalanceAfter = await tokenOut.balanceOf(adapterAddr);
@@ -80,12 +65,8 @@ describe("BaseOdosBuyAdapter - Surplus Handling", function () {
     // Note: The current implementation will return amount spent correctly
 
     // Verify input tokens were spent correctly
-    const inputSpent =
-      parseUnits("10000", 18) - (await tokenIn.balanceOf(adapterAddr));
-    expect(inputSpent).to.equal(
-      amountSpent,
-      "Correct amount of input tokens should be spent",
-    );
+    const inputSpent = parseUnits("10000", 18) - (await tokenIn.balanceOf(adapterAddr));
+    expect(inputSpent).to.equal(amountSpent, "Correct amount of input tokens should be spent");
   });
 
   it("[NEED-TO-FIX-AUDIT-ISSUE] demonstrates large surplus accumulation issue", async function () {
@@ -102,25 +83,13 @@ describe("BaseOdosBuyAdapter - Surplus Handling", function () {
     await mint(tokenIn, adapterAddr, parseUnits("10000", 18));
     await mint(tokenOut, await router.getAddress(), amountReceived);
 
-    await router.setSwapBehaviour(
-      await tokenIn.getAddress(),
-      await tokenOut.getAddress(),
-      amountSpent,
-      amountReceived,
-      false,
-    );
+    await router.setSwapBehaviour(await tokenIn.getAddress(), await tokenOut.getAddress(), amountSpent, amountReceived, false);
 
     const adapterBalanceBefore = await tokenOut.balanceOf(adapterAddr);
 
     // Act
     const swapData = router.interface.encodeFunctionData("performSwap");
-    await adapter.buy(
-      await tokenIn.getAddress(),
-      await tokenOut.getAddress(),
-      maxAmountToSwap,
-      amountToReceive,
-      swapData,
-    );
+    await adapter.buy(await tokenIn.getAddress(), await tokenOut.getAddress(), maxAmountToSwap, amountToReceive, swapData);
 
     // Assert
     const adapterBalanceAfter = await tokenOut.balanceOf(adapterAddr);
@@ -133,10 +102,7 @@ describe("BaseOdosBuyAdapter - Surplus Handling", function () {
     );
 
     // The surplus should be handled properly but currently isn't
-    expect(surplus).to.equal(
-      parseUnits("4000", 18),
-      "Large surplus demonstrates potential for token accumulation",
-    );
+    expect(surplus).to.equal(parseUnits("4000", 18), "Large surplus demonstrates potential for token accumulation");
   });
 
   it("works correctly when exact amount received", async function () {
@@ -153,25 +119,13 @@ describe("BaseOdosBuyAdapter - Surplus Handling", function () {
     await mint(tokenIn, adapterAddr, parseUnits("10000", 18));
     await mint(tokenOut, await router.getAddress(), amountReceived);
 
-    await router.setSwapBehaviour(
-      await tokenIn.getAddress(),
-      await tokenOut.getAddress(),
-      amountSpent,
-      amountReceived,
-      false,
-    );
+    await router.setSwapBehaviour(await tokenIn.getAddress(), await tokenOut.getAddress(), amountSpent, amountReceived, false);
 
     const adapterBalanceBefore = await tokenOut.balanceOf(adapterAddr);
 
     // Act
     const swapData = router.interface.encodeFunctionData("performSwap");
-    await adapter.buy(
-      await tokenIn.getAddress(),
-      await tokenOut.getAddress(),
-      maxAmountToSwap,
-      amountToReceive,
-      swapData,
-    );
+    await adapter.buy(await tokenIn.getAddress(), await tokenOut.getAddress(), maxAmountToSwap, amountToReceive, swapData);
 
     // Assert
     const adapterBalanceAfter = await tokenOut.balanceOf(adapterAddr);

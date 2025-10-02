@@ -7,11 +7,7 @@ import { ethers } from "hardhat";
  * @param symbol
  * @param decimals
  */
-export async function deployMintableERC20(
-  name: string,
-  symbol: string,
-  decimals = 18,
-): Promise<any> {
+export async function deployMintableERC20(name: string, symbol: string, decimals = 18): Promise<any> {
   const Token = await ethers.getContractFactory("TestMintableERC20");
   return Token.deploy(name, symbol, decimals);
 }

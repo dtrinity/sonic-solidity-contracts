@@ -5,12 +5,15 @@
   "license": "MIT",
   "packageManager": "yarn@4.5.0",
   "scripts": {
+    "analyze:shared": "ts-node .shared/scripts/analysis/run-all.ts",
+    "shared:update": "bash .shared/scripts/subtree/update.sh",
+    "lint:eslint": "ts-node .shared/scripts/linting/eslint.ts",
+    "lint:prettier": "ts-node .shared/scripts/linting/prettier.ts",
+    "lint:all": "ts-node .shared/scripts/linting/run-all.ts",
+    "guardrails:check": "ts-node .shared/scripts/guardrails/check.ts",
     "roles:scan": "ts-node --transpile-only node_modules/@dtrinity/shared-hardhat-tools/scripts/roles/scan-roles.ts",
     "roles:transfer": "ts-node --transpile-only node_modules/@dtrinity/shared-hardhat-tools/scripts/roles/transfer-roles.ts",
     "roles:revoke": "ts-node --transpile-only node_modules/@dtrinity/shared-hardhat-tools/scripts/roles/revoke-roles.ts"
-  },
-  "dependencies": {
-    "@dtrinity/shared-hardhat-tools": "file:../shared-hardhat-tools"
   },
   "devDependencies": {
     "@eslint/compat": "^1.2.6",
@@ -50,6 +53,7 @@
     "eslint-plugin-simple-import-sort": "^12.1.1",
     "eslint-plugin-unused-imports": "^4.1.4",
     "ethers": "^6.13.5",
+    "glob": "^10.3.0",
     "globals": "^15.14.0",
     "hardhat": "^2.22.17",
     "hardhat-deploy": "^1.0.2",
@@ -62,5 +66,8 @@
     "ts-node": "^10.9.2",
     "typechain": "^8.3.2",
     "typescript": "^5.7.3"
+  },
+  "dependencies": {
+    "@dtrinity/shared-hardhat-tools": "portal:.shared"
   }
 }
