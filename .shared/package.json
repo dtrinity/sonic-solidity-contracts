@@ -1,0 +1,78 @@
+{
+  "name": "@dtrinity/shared-hardhat-tools",
+  "version": "1.0.0",
+  "description": "Shared development tools and guardrails for dTrinity Hardhat projects",
+  "main": "lib/index.ts",
+  "types": "lib/index.ts",
+  "scripts": {
+    "slither": "ts-node scripts/analysis/slither.ts",
+    "slither:default": "ts-node scripts/analysis/slither.ts default",
+    "slither:check": "ts-node scripts/analysis/slither.ts check",
+    "slither:install": "ts-node scripts/analysis/install-slither.ts",
+    "mythril": "ts-node scripts/analysis/mythril.ts",
+    "solhint": "ts-node scripts/analysis/solhint.ts",
+    "lint:eslint": "ts-node scripts/linting/eslint.ts",
+    "lint:prettier": "ts-node scripts/linting/prettier.ts",
+    "lint:all": "ts-node scripts/linting/run-all.ts",
+    "lint:types": "tsc --noEmit",
+    "analyze:all": "ts-node scripts/analysis/run-all.ts",
+    "sanity:deploy-ids": "ts-node scripts/deployments/find-hardcoded-deploy-ids.ts",
+    "sanity:deploy-clean": "ts-node scripts/deployments/clean-deployments.ts",
+    "sanity:deploy-addresses": "ts-node scripts/deployments/print-contract-addresses.ts",
+    "sanity:oracle-addresses": "ts-node scripts/deployments/print-oracle-sources.ts",
+    "metrics:nsloc": "ts-node scripts/deployments/nsloc.ts",
+    "guardrails:check": "ts-node scripts/guardrails/check.ts",
+    "validate:matrix": "ts-node scripts/guardrails/validate-matrix.ts",
+    "subtree:update": "bash scripts/subtree/update.sh",
+    "setup": "ts-node scripts/setup.ts",
+    "test": "tsc --noEmit && ts-node scripts/tests/run.ts",
+    "roles:scan": "ts-node scripts/roles/scan-roles.ts",
+    "roles:transfer": "ts-node scripts/roles/transfer-roles.ts",
+    "roles:revoke": "ts-node scripts/roles/revoke-roles.ts"
+  },
+  "keywords": [
+    "hardhat",
+    "ethereum",
+    "solidity",
+    "security",
+    "linting",
+    "static-analysis"
+  ],
+  "author": "dTrinity",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^20.0.0"
+  },
+  "dependencies": {
+    "@safe-global/api-kit": "^2.0.0",
+    "@safe-global/protocol-kit": "^4.0.0",
+    "@safe-global/types-kit": "^1.0.0",
+    "chalk": "^4.1.2",
+    "commander": "^11.0.0",
+    "glob": "^10.3.0",
+    "solidity-code-metrics": "^0.0.28",
+    "ts-node": "^10.9.0",
+    "typescript": "^5.0.0",
+    "web3-utils": "^4.0.0"
+  },
+  "peerDependencies": {
+    "eslint": "^8.0.0 || ^9.0.0",
+    "hardhat": "^2.0.0",
+    "prettier": "^3.0.0",
+    "solhint": "^3.0.0 || ^4.0.0"
+  },
+  "peerDependenciesMeta": {
+    "eslint": {
+      "optional": true
+    },
+    "prettier": {
+      "optional": true
+    },
+    "solhint": {
+      "optional": true
+    }
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  }
+}
