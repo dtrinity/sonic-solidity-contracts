@@ -4,6 +4,14 @@
   "author": "dTRINITY",
   "license": "MIT",
   "packageManager": "yarn@4.5.0",
+  "scripts": {
+    "roles:scan": "ts-node --transpile-only node_modules/@dtrinity/shared-hardhat-tools/scripts/roles/scan-roles.ts",
+    "roles:transfer": "ts-node --transpile-only node_modules/@dtrinity/shared-hardhat-tools/scripts/roles/transfer-roles.ts",
+    "roles:revoke": "ts-node --transpile-only node_modules/@dtrinity/shared-hardhat-tools/scripts/roles/revoke-roles.ts"
+  },
+  "dependencies": {
+    "@dtrinity/shared-hardhat-tools": "file:../shared-hardhat-tools"
+  },
   "devDependencies": {
     "@eslint/compat": "^1.2.6",
     "@eslint/eslintrc": "^3.2.0",
