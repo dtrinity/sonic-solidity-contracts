@@ -1,8 +1,7 @@
+import { SafeConfig, SafeManager, SafeTransactionBatch, SafeTransactionData } from "@dtrinity/shared-hardhat-tools";
 import { Signer } from "ethers";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 
-import { SafeManager } from "../safe/SafeManager";
-import { SafeConfig, SafeTransactionBatch, SafeTransactionData } from "../safe/types";
 import { isMainnet } from "./deploy";
 
 /**

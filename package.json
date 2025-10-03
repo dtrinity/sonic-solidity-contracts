@@ -11,6 +11,7 @@
     "lint:prettier": "ts-node .shared/scripts/linting/prettier.ts",
     "lint:all": "ts-node .shared/scripts/linting/run-all.ts",
     "guardrails:check": "ts-node .shared/scripts/guardrails/check.ts",
+    "prepare": "ts-node .shared/scripts/setup.ts --hooks",
     "roles:scan": "ts-node --transpile-only node_modules/@dtrinity/shared-hardhat-tools/scripts/roles/scan-roles.ts",
     "roles:transfer": "ts-node --transpile-only node_modules/@dtrinity/shared-hardhat-tools/scripts/roles/transfer-roles.ts",
     "roles:revoke": "ts-node --transpile-only node_modules/@dtrinity/shared-hardhat-tools/scripts/roles/revoke-roles.ts"
