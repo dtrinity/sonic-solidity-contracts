@@ -120,6 +120,7 @@ function shouldSkipDueToContext(line: string): boolean {
   if (line.includes('ethers.getContractAt')) return true;
   if (line.includes('func.dependencies')) return true;
   if (line.includes('func.tags')) return true;
+  if (line.includes('func.id')) return true;
   return false;
 }
 

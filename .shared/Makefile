@@ -120,6 +120,59 @@ shared.sanity.oracle-addresses: ## Print oracle source addresses for provided ke
 shared.metrics.nsloc: ## Generate Solidity non-comment SLOC metrics
 	@$(TS_NODE) $(SHARED_ROOT)/scripts/deployments/nsloc.ts
 
+roles.scan: ## Scan contracts for role assignments and ownership (make roles.scan network=network deployer=address governance=address)
+	@if [ "$(network)" = "" ]; then \
+		echo "Must provide 'network' argument."; \
+		exit 1; \
+	fi
+	@if [ "$(deployer)" = "" ]; then \
+		echo "Must provide 'deployer' argument."; \
+		exit 1; \
+	fi
+	@if [ "$(governance)" = "" ]; then \
+		echo "Must provide 'governance' argument."; \
+		exit 1; \
+	fi
+	@$(TS_NODE) $(SHARED_ROOT)/scripts/roles/scan-roles.ts --network "$(network)" --deployer "$(deployer)" --governance "$(governance)"
+
+roles.transfer: ## Transfer roles from deployer to governance (make roles.transfer network=network deployer=address governance=address [--yes])
+	@if [ "$(network)" = "" ]; then \
+		echo "Must provide 'network' argument."; \
+		exit 1; \
+	fi
+	@if [ "$(deployer)" = "" ]; then \
+		echo "Must provide 'deployer' argument."; \
+		exit 1; \
+	fi
+	@if [ "$(governance)" = "" ]; then \
+		echo "Must provide 'governance' argument."; \
+		exit 1; \
+	fi
+	@$(TS_NODE) $(SHARED_ROOT)/scripts/roles/transfer-roles.ts --network "$(network)" --deployer "$(deployer)" --governance "$(governance)" $(if $(yes),--yes,)
+
+roles.revoke: ## Revoke deployer roles via Safe batch (make roles.revoke network=network deployer=address governance=address safe_address=address chain_id=number)
+	@if [ "$(network)" = "" ]; then \
+		echo "Must provide 'network' argument."; \
+		exit 1; \
+	fi
+	@if [ "$(deployer)" = "" ]; then \
+		echo "Must provide 'deployer' argument."; \
+		exit 1; \
+	fi
+	@if [ "$(governance)" = "" ]; then \
+		echo "Must provide 'governance' argument."; \
+		exit 1; \
+	fi
+	@if [ "$(safe_address)" = "" ]; then \
+		echo "Must provide 'safe_address' argument."; \
+		exit 1; \
+	fi
+	@if [ "$(chain_id)" = "" ]; then \
+		echo "Must provide 'chain_id' argument."; \
+		exit 1; \
+	fi
+	@$(TS_NODE) $(SHARED_ROOT)/scripts/roles/revoke-roles.ts --network "$(network)" --deployer "$(deployer)" --governance "$(governance)" --safe-address "$(safe_address)" --chain-id "$(chain_id)"
+
 .PHONY: \
 	help \
 	lint lint.fix lint.check lint.ci \
@@ -129,4 +182,5 @@ shared.metrics.nsloc: ## Generate Solidity non-comment SLOC metrics
 	slither slither.check slither.focused slither.ensure \
 	analyze.shared guardrails shared.update shared.setup \
 	shared.sanity.deploy-ids shared.sanity.deploy-clean shared.sanity.deploy-addresses shared.sanity.oracle-addresses \
-	shared.metrics.nsloc
+	shared.metrics.nsloc \
+	roles.scan roles.transfer roles.revoke

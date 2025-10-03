@@ -12,7 +12,10 @@ When asked to integrate shared tools into a network repository, follow these ste
 # Add subtree at .shared directory
 git subtree add --prefix=.shared https://github.com/dtrinity/shared-hardhat-tools.git main --squash
 
-# Install as local package
+# Alternative when the shared repo lives beside the target repo
+# git subtree add --prefix=.shared ../shared-hardhat-tools main --squash
+
+# Install the local package (enables the setup script and portal resolution)
 npm install file:./.shared
 
 # The shared package ships with ts-node/typescript, so this step ensures the CLI
@@ -27,6 +30,24 @@ node_modules/.bin/ts-node .shared/scripts/setup.ts --package-scripts
 # --hooks, --configs, or --ci when you're ready to install those assets.
 ```
 
+Immediately switch the dependency to the portal protocol so Yarn references the subtree directly and
+no longer repacks it (eliminates macOS extended attributes and checksum drift):
+
+```bash
+# package.json
+"dependencies": {
+  "@dtrinity/shared-hardhat-tools": "portal:.shared"
+}
+
+# Regenerate the lockfile to capture the portal entry (run inside Linux CI or
+# disable macOS extended attributes)
+COPYFILE_DISABLE=1 yarn install --mode=update-lockfile
+```
+
+If `npm install file:./.shared` fails because of peer dependency conflicts (common with Hardhat
+Toolbox still requiring `@types/chai@^4`), rerun with `--legacy-peer-deps` to reuse the lockfile the
+repo already trusts.
+
 #### Hook up the shared Makefile
 
 Add the following to the repository `Makefile` (create one if it does not exist):
@@ -37,6 +58,39 @@ include .shared/Makefile
 ```
 
 The include injects the common `make lint`, `make lint.ci`, `make slither`, and guardrail helper targets so teams keep familiar workflows while relying on the shared TypeScript tooling.
+
+#### Enable the shared GitHub Actions workflow
+
+Add the guardrail workflow so CI runs the shared lint/compile/test suite on every push and PR:
+
+```bash
+mkdir -p .github/workflows
+cp .shared/ci/shared-guardrails.yml .github/workflows/shared-guardrails.yml
+```
+
+Commit the workflow file alongside your integration changes. GitHub automatically activates the workflow once it lands on the default branch.
+
+#### Align Prettier configuration across machines
+
+If the repository does not already define a Prettier config, add a shim that delegates to the shared settings:
+
+```bash
+cat <<'EOF' > prettier.config.cjs
+module.exports = require('./.shared/configs/prettier.config.cjs');
+EOF
+```
+
+This keeps editor integrations, ad-hoc `yarn prettier` runs, and the guardrails in sync.
+
+#### Install the shared git hooks
+
+Enable the pre-commit and pre-push hooks so formatting and guardrails run locally before code reaches CI:
+
+```bash
+node_modules/.bin/ts-node .shared/scripts/setup.ts --hooks
+```
+
+The pre-commit hook writes staged files with Prettier and runs ESLint; the pre-push hook executes the shared guardrail suite with `--fail-fast`. Because the hook scripts live inside `.shared`, future updates to the tooling automatically flow into every repository.
 
 > Prefer automation over manual flags? When you have access to this repository
 > locally, `bash path/to/scripts/subtree/add.sh --help` prints the non-
@@ -111,8 +165,8 @@ cp .shared/configs/solhint.json .solhint.shared.json
 # Check subtree was added
 ls -la .shared/
 
-# Check package installed
-npm ls @dtrinity/shared-hardhat-tools
+# Check package installed (npm ls reports file: deps as "invalid")
+yarn list --pattern @dtrinity/shared-hardhat-tools
 
 # Test a command (non-destructive)
 node_modules/.bin/ts-node .shared/scripts/analysis/solhint.ts --quiet --max-warnings 0 || true
@@ -124,9 +178,10 @@ node_modules/.bin/ts-node .shared/scripts/analysis/solhint.ts --quiet --max-warn
 
 1. **Start clean** – abort if `git status --short` is non-empty. Fix compilation locally so guardrails have a stable baseline.
 2. **Add the subtree** – prefer the wrapper: `bash scripts/subtree/add.sh --repo-url https://github.com/dtrinity/shared-hardhat-tools.git --branch main --prefix .shared`. Pass `--force-remove` only when replacing an existing directory after backing it up.
-3. **Install the package** – `npm install file:./.shared` (or the equivalent `yarn/pnpm` command) so the bundled `ts-node` runtime is available.
-4. **Run the setup preflight** – execute `node_modules/.bin/ts-node .shared/scripts/setup.ts --package-scripts` to add baseline npm scripts and surface missing prerequisites. Expand to `--hooks`, `--configs`, or `--ci` in follow-up passes when stakeholders sign off.
-5. **Take a smoke-test lap** – run `npm run --prefix .shared lint:eslint -- --pattern 'hardhat.config.ts'`, `npm run --prefix .shared sanity:deploy-ids -- --quiet`, and `npm run --prefix .shared guardrails:check -- --skip-prettier --skip-solhint` to confirm the shared tooling works in situ before committing.
+3. **Install the package** – `npm install file:./.shared` (or the equivalent `yarn/pnpm` command) so the bundled `ts-node` runtime is available. For Yarn Berry projects, follow immediately with `yarn install --mode=update-lockfile` to capture the new `file:` dependency so later `yarn install --immutable` checks succeed.
+4. **Run the setup preflight** – execute `node_modules/.bin/ts-node .shared/scripts/setup.ts --package-scripts` to add baseline npm scripts and surface missing prerequisites. Loop back with `--hooks`, `--configs`, or `--ci` once stakeholders sign off (teams sometimes stage those phases in their second pass, but do not forget them).
+5. **Wire automation** – copy `.shared/ci/shared-guardrails.yml` into `.github/workflows/shared-guardrails.yml`, add a root `prettier.config.cjs` that re-exports `.shared/configs/prettier.config.cjs`, and stage both files with the rest of the integration diff so CI and local tooling stay in sync.
+6. **Take a smoke-test lap** – run `npm run --prefix .shared lint:eslint -- --pattern 'hardhat.config.ts'`, `npm run --prefix .shared sanity:deploy-ids -- --quiet`, and either `npm run guardrails:check -- --skip-prettier --skip-solhint` (if the package script is wired up) or `npm run --prefix .shared guardrails:check -- --skip-prettier --skip-solhint` to confirm the shared tooling works in situ before committing. Drop the skips once formatting lands.
 
 ### Updating the Subtree
 
@@ -165,24 +220,23 @@ bash .shared/scripts/subtree/update.sh --allow-dirty # bypass the safety check e
 
 1. **Ensure scripts exist** – confirm `package.json` exposes `guardrails:check`, `sanity:deploy-ids`, and the shared `lint:*` entries (or capture repo-specific equivalents). The setup script reports anything missing.
 2. **Install the shared package in CI** – add `npm install file:./.shared` (or `yarn add file:./.shared`) before calling the guardrail workflow so `ts-node` is on the PATH.
-3. **Reference the shared workflow** – commit `.github/workflows/security.yml` that points to `uses: ./.shared/ci/shared-guardrails.yml`. The setup script’s `--ci` flag can place the workflow stub for you.
+3. **Reference the shared workflow** – commit `.github/workflows/shared-guardrails.yml` copied from `.shared/ci/shared-guardrails.yml` (or run the setup script with `--ci` to place it).
 4. **Keep reports tidy** – ensure `reports/` is ignored locally; CI will upload artifacts automatically. Download them when diagnosing failing runs.
 5. **Stack extra jobs** – add repo-specific jobs (deployments, simulations) after the shared guardrails job, or run the shared workflow from a parent pipeline for consistency across repos.
 
 ### DO NOT on First Integration:
-- ❌ Do not overwrite existing configurations
-- ❌ Do not install git hooks initially
-- ❌ Do not modify CI/CD workflows yet
-- ❌ Do not run security scans that might fail the build
-- ❌ Do not run repo-wide Prettier/guardrail suites on the first pass (start with targeted patterns or skip flags)
+- ❌ Do not overwrite existing configurations without reading the diff – stage only the portions you intend to adopt.
+- ❌ Do not toggle git hooks or CI workflows without coordinating with the team; document any deferrals.
+- ❌ Do not ignore guardrail or hook failures once they are enabled – fix them locally so CI mirrors your workstation.
+- ❌ Do not run heavyweight security scans or repo-wide Prettier sweeps on the very first pass—start with targeted patterns or skip flags.
+- ❌ Do not commit transient artifacts (reports/, cache/, coverage/) produced during validation runs.
 
 ### DO on First Integration:
-- ✅ Add subtree at .shared
-- ✅ Install as npm dependency
-- ✅ Run `node_modules/.bin/ts-node .shared/scripts/setup.ts --package-scripts`
-- ✅ Test that imports work
-- ✅ Dry-run shared linting/guardrail scripts with conservative options (patterns, --skip-prettier, --skip-solhint)
-- ✅ Commit changes with clear message
+- ✅ Add the `.shared` subtree and install it as a local package so the tooling is available immediately.
+- ✅ Run `node_modules/.bin/ts-node .shared/scripts/setup.ts --package-scripts` and capture follow-ups for hooks/configs/ci phases if they must land later.
+- ✅ Copy `.shared/ci/shared-guardrails.yml` into `.github/workflows/shared-guardrails.yml` and add `prettier.config.cjs` that re-exports the shared config once stakeholders are ready (track the TODO if deferred).
+- ✅ Dry-run shared linting/guardrail scripts with conservative options (patterns, `--skip-prettier`, `--skip-solhint`) before pushing.
+- ✅ Summarize the commands you executed in the PR description so reviewers know the validation surface and open follow-ups.
 
 ### Testing Commands (Safe)
 

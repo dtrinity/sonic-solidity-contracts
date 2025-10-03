@@ -25,6 +25,7 @@ export interface OwnableContractInfo {
   abi: AbiItem[];
   owner: string;
   deployerIsOwner: boolean;
+  governanceIsOwner: boolean;
 }
 
 export interface ScanResult {
@@ -32,21 +33,20 @@ export interface ScanResult {
   ownableContracts: OwnableContractInfo[];
 }
 
-/**
- * Scan deployment artifacts for AccessControl roles and Ownable ownership.
- * Returns a structured result that can be used by revoke/transfer scripts.
- */
-export async function scanRolesAndOwnership(
-  hre: HardhatRuntimeEnvironment,
-  deployer: string,
-  governanceMultisig: string,
-  logger?: (message: string) => void,
-): Promise<ScanResult> {
+export interface ScanOptions {
+  hre: HardhatRuntimeEnvironment;
+  deployer: string;
+  governanceMultisig: string;
+  deploymentsPath?: string;
+  logger?: (message: string) => void;
+}
+
+export async function scanRolesAndOwnership(options: ScanOptions): Promise<ScanResult> {
+  const { hre, deployer, governanceMultisig, logger } = options;
   const { ethers, network } = hre;
   const log = logger || (() => {});
 
-  const deploymentsPath = path.join(hre.config.paths.deployments, network.name);
-
+  const deploymentsPath = options.deploymentsPath || path.join(hre.config.paths.deployments, network.name);
   if (!fs.existsSync(deploymentsPath)) {
     throw new Error(`Deployments directory not found for network ${network.name}: ${deploymentsPath}`);
   }
@@ -66,7 +66,7 @@ export async function scanRolesAndOwnership(
       const contractAddress: string = deployment.address;
       const contractName: string = deployment.contractName || filename.replace(".json", "");
 
-      // Detect AccessControl (hasRole(bytes32,address) view returns bool)
+      // Detect AccessControl
       const hasRoleFn = abi.find(
         (item) =>
           item.type === "function" &&
@@ -88,15 +88,15 @@ export async function scanRolesAndOwnership(
           if (
             item.type === "function" &&
             item.stateMutability === "view" &&
-            (item.name?.endsWith("_ROLE") || item.name === "DEFAULT_ADMIN_ROLE") &&
+            ((item.name?.endsWith("_ROLE") as boolean) || item.name === "DEFAULT_ADMIN_ROLE") &&
             (item.inputs?.length ?? 0) === 0 &&
             item.outputs?.length === 1 &&
             item.outputs[0].type === "bytes32"
           ) {
             try {
-              const contract = await ethers.getContractAt(abi, contractAddress);
-              const roleHash: string = await contract[item.name]();
-              roles.push({ name: item.name, hash: roleHash });
+              const contract = await ethers.getContractAt(abi as any, contractAddress);
+              const roleHash: string = await (contract as any)[item.name]();
+              roles.push({ name: item.name!, hash: roleHash });
               log(`  - Found role: ${item.name} with hash ${roleHash}`);
             } catch {
               // ignore role hash failures for this item
@@ -105,20 +105,20 @@ export async function scanRolesAndOwnership(
         }
 
         // Build role ownership information
-        const contract = await ethers.getContractAt(abi, contractAddress);
+        const contract = await ethers.getContractAt(abi as any, contractAddress);
         const rolesHeldByDeployer: RoleInfo[] = [];
         const rolesHeldByGovernance: RoleInfo[] = [];
 
         for (const role of roles) {
           try {
-            if (await contract.hasRole(role.hash, deployer)) {
+            if (await (contract as any).hasRole(role.hash, deployer)) {
               rolesHeldByDeployer.push(role);
               log(`    Deployer HAS role ${role.name}`);
             }
           } catch {}
 
           try {
-            if (await contract.hasRole(role.hash, governanceMultisig)) {
+            if (await (contract as any).hasRole(role.hash, governanceMultisig)) {
               rolesHeldByGovernance.push(role);
               log(`    Governance HAS role ${role.name}`);
             }
@@ -129,7 +129,7 @@ export async function scanRolesAndOwnership(
         let governanceHasDefaultAdmin = false;
         if (defaultAdmin) {
           try {
-            governanceHasDefaultAdmin = await contract.hasRole(defaultAdmin.hash, governanceMultisig);
+            governanceHasDefaultAdmin = await (contract as any).hasRole(defaultAdmin.hash, governanceMultisig);
             log(`    governanceHasDefaultAdmin: ${governanceHasDefaultAdmin}`);
           } catch {}
         }
@@ -158,18 +158,22 @@ export async function scanRolesAndOwnership(
 
       if (ownerFn) {
         try {
-          const contract = await ethers.getContractAt(abi, contractAddress);
-          const owner: string = await contract.owner();
+          const contract = await ethers.getContractAt(abi as any, contractAddress);
+          const owner: string = await (contract as any).owner();
+          const ownerLower = owner.toLowerCase();
+          const deployerLower = deployer?.toLowerCase?.();
+          const governanceLower = governanceMultisig?.toLowerCase?.();
           log(`  Contract ${contractName} appears to be Ownable. owner=${owner}`);
           ownableContracts.push({
             name: contractName,
             address: contractAddress,
             abi,
             owner,
-            deployerIsOwner: owner.toLowerCase() === deployer.toLowerCase(),
+            deployerIsOwner: deployerLower ? ownerLower === deployerLower : false,
+            governanceIsOwner: governanceLower ? ownerLower === governanceLower : false,
           });
-        } catch {
-          // ignore owner resolution failures
+        } catch (error) {
+          log(`    Failed to resolve owner for ${contractName}: ${error}`);
         }
       }
     } catch {

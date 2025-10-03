@@ -43,6 +43,8 @@ export class SafeManager {
 
   /**
    * Initialize Safe Protocol Kit and optionally API Kit
+   *
+   * @returns void when initialization completes
    */
   async initialize(): Promise<void> {
     try {
@@ -87,6 +89,8 @@ export class SafeManager {
 
   /**
    * Verify that the Safe configuration matches on-chain state
+   *
+   * @returns void when verification completes
    */
   private async verifySafeConfiguration(): Promise<void> {
     if (!this.protocolKit) {
@@ -120,7 +124,8 @@ export class SafeManager {
   /**
    * Create a batch Safe transaction for multiple operations
    *
-   * @param batch - The batch of transactions to execute
+   * @param batch The batch of transactions to execute
+   * @returns Result of preparing the batch transaction (offline mode)
    */
   async createBatchTransaction(batch: SafeTransactionBatch): Promise<SafeOperationResult> {
     if (!this.protocolKit) {
@@ -131,10 +136,18 @@ export class SafeManager {
       console.log(`🔄 Creating Safe batch transaction: ${batch.description}`);
       console.log(`   Operations: ${batch.transactions.length}`);
 
-      // Simulate all transactions in the batch
+      // Best-effort simulation. Some operations may depend on earlier ops in the same batch
+      // (e.g., grant admin, then revoke from deployer). If a standalone simulation fails,
+      // continue and rely on Safe UI/on-chain execution ordering.
       for (let i = 0; i < batch.transactions.length; i++) {
         console.log(`   Simulating operation ${i + 1}/${batch.transactions.length}...`);
-        await this.simulateTransaction(batch.transactions[i]);
+
+        try {
+          await this.simulateTransaction(batch.transactions[i]);
+        } catch (e) {
+          const message = e instanceof Error ? e.message : String(e);
+          console.warn(`   ⚠️ Simulation failed (continuing): ${message}`);
+        }
       }
 
       const safeTransaction = await this.protocolKit.createTransaction({
@@ -170,7 +183,8 @@ export class SafeManager {
   /**
    * Simulate transaction to check if it would succeed
    *
-   * @param transactionData - The transaction data to simulate
+   * @param transactionData The transaction data to simulate
+   * @returns void when simulation completes
    */
   private async simulateTransaction(transactionData: SafeTransactionData): Promise<void> {
     if (!this.protocolKit) {
@@ -201,57 +215,18 @@ export class SafeManager {
   }
 
   /**
-   * Propose transaction to Safe Transaction Service
+   * Get transaction status from stored deployment state
    *
-   * @param safeTransaction - The Safe transaction object
-   * @param safeTxHash - The Safe transaction hash
-   * @param description - Optional description for the transaction
-   */
-  private async proposeTransactionToService(safeTransaction: any, safeTxHash: string, description?: string): Promise<void> {
-    if (!this.apiKit) {
-      console.log(`ℹ️ API Kit not available, skipping transaction service proposal`);
-      return;
-    }
-
-    try {
-      const signerAddress = await this.signer.getAddress();
-      const signature = safeTransaction.signatures?.get(signerAddress);
-      const senderSignature = signature?.data || (this.options.signingMode === "none" ? "0x" : undefined);
-
-      if (!senderSignature) {
-        throw new Error("Signature not found for current signer");
-      }
-
-      await this.apiKit.proposeTransaction({
-        safeAddress: this.config.safeAddress,
-        safeTransactionData: safeTransaction.data,
-        safeTxHash,
-        senderAddress: signerAddress,
-        senderSignature,
-        origin: description || "dTRINITY Safe Manager",
-      });
-
-      console.log(`📤 Transaction proposed to Safe Transaction Service`);
-    } catch (error) {
-      console.warn(`⚠️ Failed to propose to transaction service:`, error);
-      // Don't throw - this is not critical for local operation
-    }
-  }
-
-  /**
-   * Check if a transaction with given hash exists and its status
-   *
-   * @param safeTxHash - The Safe transaction hash to check
+   * @param safeTxHash Safe transaction hash
+   * @returns Status string of the transaction
    */
   async getTransactionStatus(safeTxHash: string): Promise<"pending" | "executed" | "not_found"> {
     const deploymentState = await this.getDeploymentState();
 
-    // Check if it's in pending transactions
     if (deploymentState.pendingTransactions.some((tx) => tx.safeTxHash === safeTxHash)) {
       return "pending";
     }
 
-    // Check if it's in completed transactions
     if (deploymentState.completedTransactions.some((tx) => tx.safeTxHash === safeTxHash)) {
       return "executed";
     }
@@ -261,9 +236,9 @@ export class SafeManager {
 
   /**
    * Check on-chain state to verify if a transaction requirement has been met
-   * This is the key idempotency method - check actual contract state rather than relying on stored data
    *
-   * @param checkFunction - Function that returns true if requirement is met
+   * @param checkFunction Asynchronous predicate returning true if requirement met
+   * @returns True if requirement met, false otherwise
    */
   async isRequirementMet(checkFunction: () => Promise<boolean>): Promise<boolean> {
     try {
@@ -277,9 +252,10 @@ export class SafeManager {
   /**
    * Store pending transaction info in deployment artifacts
    *
-   * @param safeTxHash - The Safe transaction hash
-   * @param transactionData - The transaction data
-   * @param description - Description of the transaction
+   * @param safeTxHash Safe transaction hash
+   * @param transactionData Transaction data
+   * @param description Human-readable description
+   * @returns void when storage completes
    */
   private async storePendingTransaction(safeTxHash: string, transactionData: SafeTransactionData, description: string): Promise<void> {
     if (!this.protocolKit) return;
@@ -310,15 +286,16 @@ export class SafeManager {
   /**
    * Store completed transaction info in deployment artifacts
    *
-   * @param safeTxHash - The Safe transaction hash
-   * @param transactionHash - The actual blockchain transaction hash
-   * @param description - Description of the transaction
+   * @param safeTxHash Safe transaction hash
+   * @param transactionHash On-chain transaction hash
+   * @param description Human-readable description
+   * @returns void when storage completes
    */
   private async storeCompletedTransaction(safeTxHash: string, transactionHash: string, description: string): Promise<void> {
     try {
       const deploymentState = await this.getDeploymentState();
 
-      // Remove from pending transactions (avoid reassigning readonly prop)
+      // Remove from pending transactions
       const indexToRemove = deploymentState.pendingTransactions.findIndex((tx) => tx.safeTxHash === safeTxHash);
 
       if (indexToRemove !== -1) {
@@ -345,6 +322,8 @@ export class SafeManager {
 
   /**
    * Get deployment state from artifacts
+   *
+   * @returns Parsed deployment state (or default empty state)
    */
   private async getDeploymentState(): Promise<SafeDeploymentState> {
     try {
@@ -373,7 +352,8 @@ export class SafeManager {
   /**
    * Save deployment state to artifacts
    *
-   * @param state - The deployment state to save
+   * @param state Deployment state to persist
+   * @returns void when save completes
    */
   private async saveDeploymentState(state: SafeDeploymentState): Promise<void> {
     try {
@@ -397,15 +377,21 @@ export class SafeManager {
   /**
    * Export a Transaction Builder JSON for importing in Safe UI
    *
-   * @param transactions - Array of SafeTransactionData to export
-   * @param description - Human-readable description for the batch
-   * @param safeTxHash - Safe transaction hash to include in filename
+   * @param transactions Transactions to include
+   * @param description Human-readable description for the batch
+   * @param safeTxHash Safe transaction hash (used for filename)
+   * @returns void when export completes
    */
   private async exportTransactionBuilderBatch(transactions: SafeTransactionData[], description: string, safeTxHash: string): Promise<void> {
     try {
-      const rootPath = this.hre.config.paths.root || process.cwd();
-      const filePath = `${rootPath}/safe-builder-batch-${safeTxHash}.json`;
+      const networkName = this.hre.network.name;
+      const deploymentPath = `${this.hre.config.paths.deployments}/${networkName}`;
       const fs = require("fs");
+
+      if (!fs.existsSync(deploymentPath)) {
+        fs.mkdirSync(deploymentPath, { recursive: true });
+      }
+      const filePath = `${deploymentPath}/safe-builder-batch-${safeTxHash}.json`;
       const builderJson = {
         version: "1.0",
         chainId: String(this.config.chainId),
@@ -430,6 +416,8 @@ export class SafeManager {
 
   /**
    * Get the Safe address
+   *
+   * @returns Safe address string
    */
   getSafeAddress(): string {
     return this.config.safeAddress;
@@ -437,6 +425,8 @@ export class SafeManager {
 
   /**
    * Get the Safe threshold
+   *
+   * @returns Required signature threshold
    */
   async getThreshold(): Promise<number> {
     if (!this.protocolKit) {
@@ -447,6 +437,8 @@ export class SafeManager {
 
   /**
    * Get the Safe owners
+   *
+   * @returns Array of Safe owner addresses
    */
   async getOwners(): Promise<string[]> {
     if (!this.protocolKit) {
@@ -457,6 +449,8 @@ export class SafeManager {
 
   /**
    * Check if Safe Manager is initialized
+   *
+   * @returns True if initialized, false otherwise
    */
   isInitialized(): boolean {
     return this.protocolKit !== undefined;

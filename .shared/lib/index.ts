@@ -7,3 +7,6 @@ export * from './deployments/contracts-report';
 export * from './deployments/oracle-report';
 export * from './deployments/nsloc';
 export * from './slither-installer';
+export * from './roles/scan';
+export * from './roles/safe-manager';
+export * from './roles/types';
