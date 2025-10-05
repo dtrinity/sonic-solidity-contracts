@@ -9,7 +9,7 @@ import {
   MockPriceOracleGetterV2,
   OdosLiquiditySwapAdapter,
   StatefulMockPool,
-  TestMintableERC20
+  TestMintableERC20,
 } from "../../../../../../typechain-types";
 import { ATTACK_COLLATERAL } from "../helpers/attackConstants";
 
@@ -68,10 +68,7 @@ export async function deployOdosV1ExploitFixture(): Promise<OdosV1ExploitFixture
   const priceOracle = await PriceOracleFactory.deploy();
 
   const AddressesProviderFactory = await ethers.getContractFactory("MockPoolAddressesProvider");
-  const addressesProvider = await AddressesProviderFactory.deploy(
-    await pool.getAddress(),
-    await priceOracle.getAddress()
-  );
+  const addressesProvider = await AddressesProviderFactory.deploy(await pool.getAddress(), await priceOracle.getAddress());
 
   const TokenFactory = await ethers.getContractFactory("TestMintableERC20");
   const wstkscUsd = await TokenFactory.deploy("Wrapped Staked scUSD", "wstkscUSD", COLLATERAL_DECIMALS);
@@ -82,27 +79,12 @@ export async function deployOdosV1ExploitFixture(): Promise<OdosV1ExploitFixture
     "dLend Wrapped Staked scUSD",
     "aWSTKSCUSD",
     COLLATERAL_DECIMALS,
-    await pool.getAddress()
+    await pool.getAddress(),
   );
-  const aDusd = await MockATokenFactory.deploy(
-    "dLend dUSD",
-    "aDUSD",
-    DUSD_DECIMALS,
-    await pool.getAddress()
-  );
+  const aDusd = await MockATokenFactory.deploy("dLend dUSD", "aDUSD", DUSD_DECIMALS, await pool.getAddress());
 
-  await pool.setReserveData(
-    await wstkscUsd.getAddress(),
-    await aWstkscUsd.getAddress(),
-    ethers.ZeroAddress,
-    ethers.ZeroAddress
-  );
-  await pool.setReserveData(
-    await dusd.getAddress(),
-    await aDusd.getAddress(),
-    ethers.ZeroAddress,
-    ethers.ZeroAddress
-  );
+  await pool.setReserveData(await wstkscUsd.getAddress(), await aWstkscUsd.getAddress(), ethers.ZeroAddress, ethers.ZeroAddress);
+  await pool.setReserveData(await dusd.getAddress(), await aDusd.getAddress(), ethers.ZeroAddress, ethers.ZeroAddress);
 
   const RouterFactory = await ethers.getContractFactory("MaliciousOdosRouterV2");
   const router = await RouterFactory.deploy();
@@ -112,7 +94,7 @@ export async function deployOdosV1ExploitFixture(): Promise<OdosV1ExploitFixture
     await addressesProvider.getAddress(),
     await pool.getAddress(),
     await router.getAddress(),
-    deployer.address
+    deployer.address,
   );
 
   const AttackExecutorFactory = await ethers.getContractFactory("AttackExecutor");
@@ -121,7 +103,7 @@ export async function deployOdosV1ExploitFixture(): Promise<OdosV1ExploitFixture
     await dusd.getAddress(),
     await router.getAddress(),
     await adapter.getAddress(),
-    attackerBeneficiary.address
+    attackerBeneficiary.address,
   );
 
   const HelperFactory = await ethers.getContractFactory("DusdHelperMock");
@@ -134,28 +116,22 @@ export async function deployOdosV1ExploitFixture(): Promise<OdosV1ExploitFixture
 
   await attackExecutor.transferOwnership(attacker.address);
   await attackExecutor.connect(attacker).setPool(await pool.getAddress());
-  await attackExecutor
-    .connect(attacker)
-    .configureDusdHelpers({
-      stagingVault: await stagingVault.getAddress(),
-      recycler: await recyclerHelper.getAddress(),
-      splitter: await splitterHelper.getAddress(),
-      microDistributorOne,
-      microDistributorTwo
-    });
+  await attackExecutor.connect(attacker).configureDusdHelpers({
+    stagingVault: await stagingVault.getAddress(),
+    recycler: await recyclerHelper.getAddress(),
+    splitter: await splitterHelper.getAddress(),
+    microDistributorOne,
+    microDistributorTwo,
+  });
 
   await wstkscUsd.mint(victim.address, COLLATERAL_TO_SWAP);
   await wstkscUsd.mint(reserveManager.address, EXTRA_COLLATERAL);
 
   await wstkscUsd.connect(victim).approve(await pool.getAddress(), COLLATERAL_TO_SWAP);
-  await wstkscUsd
-    .connect(reserveManager)
-    .approve(await pool.getAddress(), EXTRA_COLLATERAL);
+  await wstkscUsd.connect(reserveManager).approve(await pool.getAddress(), EXTRA_COLLATERAL);
 
   await pool.connect(victim).supply(await wstkscUsd.getAddress(), COLLATERAL_TO_SWAP, victim.address, 0);
-  await pool
-    .connect(reserveManager)
-    .supply(await wstkscUsd.getAddress(), EXTRA_COLLATERAL, reserveManager.address, 0);
+  await pool.connect(reserveManager).supply(await wstkscUsd.getAddress(), EXTRA_COLLATERAL, reserveManager.address, 0);
 
   await dusd.mint(await recyclerHelper.getAddress(), DUSD_RECYCLER_PULL_ONE + DUSD_RECYCLER_PULL_TWO);
 
@@ -169,7 +145,7 @@ export async function deployOdosV1ExploitFixture(): Promise<OdosV1ExploitFixture
     COLLATERAL_TO_SWAP,
     SAME_ASSET_DUST,
     false,
-    await attackExecutor.getAddress()
+    await attackExecutor.getAddress(),
   );
 
   return {
@@ -192,7 +168,7 @@ export async function deployOdosV1ExploitFixture(): Promise<OdosV1ExploitFixture
     recyclerHelper,
     splitterHelper,
     microDistributorOne,
-    microDistributorTwo
+    microDistributorTwo,
   };
 }
 

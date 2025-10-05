@@ -57,18 +57,32 @@ describe("BaseOdosAdapterV2 - Pure Logic Tests", function () {
         ).to.be.revertedWithCustomError(baseAdapterHarness, "OraclePriceDeviationExceeded");
       });
 
-      it("should skip validation for same token swaps", async function () {
-        const { baseAdapterHarness, tokenA } = fixture;
+      it("should validate same token swaps (no special handling)", async function () {
+        const { baseAdapterHarness, priceOracle, tokenA } = fixture;
 
-        // Same token - should skip validation even with extreme values
+        // Set oracle price for same-token swap
+        await priceOracle.setPrice(await tokenA.getAddress(), ethers.parseUnits("100", 8));
+
+        // Same token swap with reasonable values should pass
+        const amount = ethers.parseEther("100");
         await expect(
           baseAdapterHarness.validateOraclePriceExactOutput(
             await tokenA.getAddress(),
             await tokenA.getAddress(), // same token
-            ethers.parseEther("1000000"), // extreme value
-            ethers.parseEther("1"),
+            amount,
+            amount, // 1:1 ratio
           ),
         ).to.not.be.reverted;
+
+        // Same token swap with excessive deviation should still fail
+        await expect(
+          baseAdapterHarness.validateOraclePriceExactOutput(
+            await tokenA.getAddress(),
+            await tokenA.getAddress(),
+            ethers.parseEther("1000000"), // extreme maxIn
+            ethers.parseEther("1"), // tiny output
+          ),
+        ).to.be.revertedWithCustomError(baseAdapterHarness, "OraclePriceDeviationExceeded");
       });
 
       it("should prevent swaps when oracle price is zero", async function () {

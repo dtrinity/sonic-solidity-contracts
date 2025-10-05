@@ -600,10 +600,7 @@ describe("Odos V2 Adapters - Pure Logic Tests", function () {
         s: ethers.ZeroHash,
       };
 
-      await expect(adapter.connect(other).swapLiquidity(params, emptyPermit)).to.be.revertedWithCustomError(
-        adapter,
-        "InitiatorMustBeThis",
-      );
+      await expect(adapter.connect(other).swapLiquidity(params, emptyPermit)).to.be.revertedWithCustomError(adapter, "InitiatorMustBeThis");
     });
 
     it("🚫 RepayAdapterV2: revert when caller != user", async function () {

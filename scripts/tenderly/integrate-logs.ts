@@ -12,7 +12,7 @@ async function main() {
     txHash,
     network: process.env.TENDERLY_NETWORK ?? "fraxtal",
     accessKey: process.env.TENDERLY_ACCESS_KEY,
-    projectSlug: process.env.TENDERLY_PROJECT_SLUG ?? "project"
+    projectSlug: process.env.TENDERLY_PROJECT_SLUG ?? "project",
   });
 
   const outputDir = path.join("reports", "tenderly");

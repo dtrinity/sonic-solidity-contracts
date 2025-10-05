@@ -7,7 +7,7 @@ import {
   TenderlyTransferEvent,
   TenderlyCall,
   extractTenderlyTransferEvents,
-  traceTransaction
+  traceTransaction,
 } from "../../typescript/tenderly/client";
 
 interface NamedAddressMap {
@@ -66,7 +66,7 @@ const TRACE_DIR = path.join("reports", "tenderly");
 const TOKEN_INFO = {
   dUSD: { address: "0x53a6abb52b2f968fa80df6a894e4f1b1020da975", decimals: 18 },
   aWSTKSCUSD: { address: "0x72f1b09dea4bef67d223c21ab4a2bfcaa60f0d51", decimals: 18 },
-  wstkscUSD: { address: "0x9fb76f7ce5fceaa2c42887ff441d46095e494206", decimals: 6 }
+  wstkscUSD: { address: "0x9fb76f7ce5fceaa2c42887ff441d46095e494206", decimals: 6 },
 } as const;
 
 const ADDRESS_LABELS: NamedAddressMap = {
@@ -86,7 +86,7 @@ const ADDRESS_LABELS: NamedAddressMap = {
   "0xba12222222228d8ba445958a75a0704d566bf2c8": "balancer_vault",
   "0xf0ab950ce2dbc6af4bff3d9bdcb82e634aafd6e0": "reserve_manager",
   "0x10451579fd6375c8bee09f1e2c5831afde9003ed": "atoken_burn_helper",
-  "0x0000000000000000000000000000000000000000": "zero"
+  "0x0000000000000000000000000000000000000000": "zero",
 };
 
 function normalise(value: string): string {
@@ -107,7 +107,7 @@ async function ensureTrace(txHash: string, network: string, cachePath: string): 
       txHash,
       network,
       accessKey,
-      projectSlug
+      projectSlug,
     });
     await fs.mkdir(path.dirname(cachePath), { recursive: true });
     await fs.writeFile(cachePath, JSON.stringify(trace, null, 2));
@@ -124,10 +124,7 @@ function formatAmount(value: bigint, decimals: number): string {
   return formatUnits(value, decimals);
 }
 
-function summariseToken(
-  transfers: readonly TenderlyTransferEvent[],
-  tokenName: keyof typeof TOKEN_INFO
-): TokenSummary {
+function summariseToken(transfers: readonly TenderlyTransferEvent[], tokenName: keyof typeof TOKEN_INFO): TokenSummary {
   const info = TOKEN_INFO[tokenName];
   const tokenAddress = normalise(info.address);
   const relevant = transfers.filter((t) => normalise(t.token) === tokenAddress);
@@ -136,7 +133,7 @@ function summariseToken(
     from: labelAddress(t.from),
     to: labelAddress(t.to),
     value: formatAmount(t.value, info.decimals),
-    decodedVia: t.decodedVia
+    decodedVia: t.decodedVia,
   }));
 
   const net: Record<string, bigint> = {};
@@ -160,7 +157,7 @@ function summariseToken(
     symbol: tokenName,
     decimals: info.decimals,
     transfers: entries,
-    netBalances: netStrings
+    netBalances: netStrings,
   };
 }
 
@@ -200,21 +197,25 @@ function buildStepChecks(transfers: readonly TenderlyTransferEvent[]): StepCheck
   const dusdInfo = TOKEN_INFO.dUSD;
   const dusdTransfers = transfers.filter((t) => normalise(t.token) === normalise(dusdInfo.address));
   const minted = dusdTransfers.find(
-    (t) => normalise(t.from) === normalise("0x0000000000000000000000000000000000000000") && normalise(t.to) === normalise("0xde8558c9111fd58c8db74c6c01d29bb9e5836565")
+    (t) =>
+      normalise(t.from) === normalise("0x0000000000000000000000000000000000000000") &&
+      normalise(t.to) === normalise("0xde8558c9111fd58c8db74c6c01d29bb9e5836565"),
   );
   checks.push({
     description: "dUSD flash-mint from zero address to attacker executor",
     passed: minted !== undefined,
-    details: minted ? `amount=${formatAmount(minted.value, dusdInfo.decimals)}` : "missing transfer"
+    details: minted ? `amount=${formatAmount(minted.value, dusdInfo.decimals)}` : "missing transfer",
   });
 
   const repaid = dusdTransfers.find(
-    (t) => normalise(t.from) === normalise("0xde8558c9111fd58c8db74c6c01d29bb9e5836565") && normalise(t.to) === normalise("0x0000000000000000000000000000000000000000")
+    (t) =>
+      normalise(t.from) === normalise("0xde8558c9111fd58c8db74c6c01d29bb9e5836565") &&
+      normalise(t.to) === normalise("0x0000000000000000000000000000000000000000"),
   );
   checks.push({
     description: "dUSD flash-mint repaid to zero address",
     passed: repaid !== undefined,
-    details: repaid ? `amount=${formatAmount(repaid.value, dusdInfo.decimals)}` : "missing repayment"
+    details: repaid ? `amount=${formatAmount(repaid.value, dusdInfo.decimals)}` : "missing repayment",
   });
 
   const atokenInfo = TOKEN_INFO.aWSTKSCUSD;
@@ -232,20 +233,19 @@ function buildStepChecks(transfers: readonly TenderlyTransferEvent[]): StepCheck
   checks.push({
     description: "Victim aToken balance burned (transfer to zero)",
     passed: aBurn !== undefined,
-    details: aBurn
-      ? `from=${labelAddress(aBurn.from)} amount=${formatAmount(aBurn.value, atokenInfo.decimals)}`
-      : "missing burn transfer"
+    details: aBurn ? `from=${labelAddress(aBurn.from)} amount=${formatAmount(aBurn.value, atokenInfo.decimals)}` : "missing burn transfer",
   });
 
   const wstInfo = TOKEN_INFO.wstkscUSD;
   const wstTransfers = transfers.filter((t) => normalise(t.token) === normalise(wstInfo.address));
   const dust = wstTransfers.find(
-    (t) => normalise(t.from) === normalise("0xde8558c9111fd58c8db74c6c01d29bb9e5836565") && normalise(t.to) === adapterAddress && t.value === 1n
+    (t) =>
+      normalise(t.from) === normalise("0xde8558c9111fd58c8db74c6c01d29bb9e5836565") && normalise(t.to) === adapterAddress && t.value === 1n,
   );
   checks.push({
     description: "Dust (1 micro wstkscUSD) returned from attacker executor to adapter",
     passed: dust !== undefined,
-    details: dust ? `value=${dust.value.toString()}` : "missing dust transfer"
+    details: dust ? `value=${dust.value.toString()}` : "missing dust transfer",
   });
 
   const attackerGain = wstTransfers.filter((t) => normalise(t.to) === normalise("0xde8558c9111fd58c8db74c6c01d29bb9e5836565"));
@@ -253,7 +253,7 @@ function buildStepChecks(transfers: readonly TenderlyTransferEvent[]): StepCheck
   checks.push({
     description: "Attacker executor accumulates wstkscUSD from pool flow",
     passed: attackerGain.length > 0 && totalAttackerGain > 0n,
-    details: attackerGain.length > 0 ? `netGain=${formatAmount(totalAttackerGain, wstInfo.decimals)}` : "no incoming transfers"
+    details: attackerGain.length > 0 ? `netGain=${formatAmount(totalAttackerGain, wstInfo.decimals)}` : "no incoming transfers",
   });
 
   return checks;
@@ -262,10 +262,7 @@ function buildStepChecks(transfers: readonly TenderlyTransferEvent[]): StepCheck
 async function main(): Promise<void> {
   const txHash = process.env.TENDERLY_TX_HASH ?? DEFAULT_TX_HASH;
   const network = process.env.TENDERLY_NETWORK ?? DEFAULT_NETWORK;
-  const cacheFile = process.env.TENDERLY_TRACE_FILE ?? path.join(
-    TRACE_DIR,
-    `raw-tenderly-trace-${network}-${txHash.slice(2, 10)}.json`
-  );
+  const cacheFile = process.env.TENDERLY_TRACE_FILE ?? path.join(TRACE_DIR, `raw-tenderly-trace-${network}-${txHash.slice(2, 10)}.json`);
 
   const trace = await ensureTrace(txHash, network, cacheFile);
   const transfers = extractTenderlyTransferEvents(trace);
@@ -275,21 +272,21 @@ async function main(): Promise<void> {
     tokenSummaries[key] = summariseToken(transfers, key);
   });
 
-  const swapCall = findCall(trace.trace, (call) =>
-    normalise(call.to) === normalise("0x9ee939ddc8eaaac72d3cae793b12a09d92624e4a") &&
-    (call.functionName?.toLowerCase().includes("swapliquidity") ?? false)
+  const swapCall = findCall(
+    trace.trace,
+    (call) =>
+      normalise(call.to) === normalise("0x9ee939ddc8eaaac72d3cae793b12a09d92624e4a") &&
+      (call.functionName?.toLowerCase().includes("swapliquidity") ?? false),
   );
 
-  const flashLoanCall = findCall(trace.trace, (call) =>
-    call.functionName?.toLowerCase().includes("flashloan") ?? false
-  );
+  const flashLoanCall = findCall(trace.trace, (call) => call.functionName?.toLowerCase().includes("flashloan") ?? false);
 
   const report: AnalysisReport = {
     metadata: {
       generatedAt: new Date().toISOString(),
       txHash,
       network,
-      traceSource: cacheFile
+      traceSource: cacheFile,
     },
     stepChecks: buildStepChecks(transfers),
     tokenSummaries,
@@ -299,7 +296,7 @@ async function main(): Promise<void> {
             from: labelAddress(swapCall.from),
             to: labelAddress(swapCall.to),
             functionName: swapCall.functionName,
-            args: extractArgs(swapCall)
+            args: extractArgs(swapCall),
           }
         : undefined,
       flashLoan: flashLoanCall
@@ -307,10 +304,10 @@ async function main(): Promise<void> {
             from: labelAddress(flashLoanCall.from),
             to: labelAddress(flashLoanCall.to),
             functionName: flashLoanCall.functionName,
-            args: extractArgs(flashLoanCall)
+            args: extractArgs(flashLoanCall),
           }
-        : undefined
-    }
+        : undefined,
+    },
   };
 
   await fs.mkdir(TRACE_DIR, { recursive: true });

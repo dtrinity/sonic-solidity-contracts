@@ -17,12 +17,7 @@ contract MockAToken is ERC20, IERC20WithPermit {
         _;
     }
 
-    constructor(
-        string memory name_,
-        string memory symbol_,
-        uint8 decimals_,
-        address pool_
-    ) ERC20(name_, symbol_) {
+    constructor(string memory name_, string memory symbol_, uint8 decimals_, address pool_) ERC20(name_, symbol_) {
         POOL = pool_;
         _setupDecimals(decimals_);
     }

@@ -21,6 +21,7 @@ import { IERC20Detailed } from "contracts/dlend/core/dependencies/openzeppelin/c
 import { IPriceOracleGetter } from "contracts/dlend/core/interfaces/IPriceOracleGetter.sol";
 import { IPoolAddressesProvider } from "contracts/dlend/core/interfaces/IPoolAddressesProvider.sol";
 import { IBaseOdosAdapterV2 } from "./interfaces/IBaseOdosAdapterV2.sol";
+import { SafeOracleMath } from "./SafeOracleMath.sol";
 
 /**
  * @title OracleValidation
@@ -52,6 +53,11 @@ abstract contract OracleValidation {
         uint256 maxAmountIn,
         uint256 exactAmountOut
     ) internal view {
+        // Prevent zero-amount swaps to avoid division by zero in deviation calculation
+        if (maxAmountIn == 0 || exactAmountOut == 0) {
+            revert IBaseOdosAdapterV2.OraclePriceDeviationExceeded(tokenIn, tokenOut, 0, 0, type(uint256).max);
+        }
+
         // Get token decimals for proper calculation
         uint256 decimalsIn = IERC20Detailed(tokenIn).decimals();
         uint256 decimalsOut = IERC20Detailed(tokenOut).decimals();
@@ -66,14 +72,20 @@ abstract contract OracleValidation {
             revert IBaseOdosAdapterV2.OraclePriceDeviationExceeded(tokenIn, tokenOut, 0, 0, type(uint256).max);
         }
 
-        // Calculate expected input amount using oracle prices
+        // Calculate expected input amount using oracle prices with overflow protection
         // expectedIn = (exactAmountOut * priceOut * 10^decimalsIn) / (priceIn * 10^decimalsOut)
-        uint256 expectedAmountIn = (exactAmountOut * priceOut * (10 ** decimalsIn)) / (priceIn * (10 ** decimalsOut));
+        uint256 expectedAmountIn = SafeOracleMath.calculateExpectedInput(
+            exactAmountOut,
+            priceIn,
+            priceOut,
+            decimalsIn,
+            decimalsOut
+        );
 
         // For exact output, we validate that maxAmountIn isn't excessively higher than expectedAmountIn
-        // Calculate deviation: (maxAmountIn - expectedAmountIn) / expectedAmountIn * 10000 (in BPS)
+        // Calculate deviation with overflow protection: (maxAmountIn - expectedAmountIn) / expectedAmountIn * 10000 (in BPS)
         if (maxAmountIn > expectedAmountIn) {
-            uint256 deviationBps = ((maxAmountIn - expectedAmountIn) * 10000) / expectedAmountIn;
+            uint256 deviationBps = SafeOracleMath.calculateDeviationBps(expectedAmountIn, maxAmountIn);
 
             // Revert if user is willing to pay too much more than oracle suggests
             if (deviationBps > ORACLE_PRICE_TOLERANCE_BPS) {
@@ -102,6 +114,11 @@ abstract contract OracleValidation {
         uint256 amountIn,
         uint256 minAmountOut
     ) internal view {
+        // Prevent zero-amount swaps to avoid division by zero in deviation calculation
+        if (amountIn == 0 || minAmountOut == 0) {
+            revert IBaseOdosAdapterV2.OraclePriceDeviationExceeded(tokenIn, tokenOut, 0, 0, type(uint256).max);
+        }
+
         // Get token decimals for proper calculation
         uint256 decimalsIn = IERC20Detailed(tokenIn).decimals();
         uint256 decimalsOut = IERC20Detailed(tokenOut).decimals();
@@ -116,17 +133,18 @@ abstract contract OracleValidation {
             revert IBaseOdosAdapterV2.OraclePriceDeviationExceeded(tokenIn, tokenOut, 0, 0, type(uint256).max);
         }
 
-        // Calculate expected output amount using oracle prices
+        // Calculate expected output amount using oracle prices with overflow protection
         // expectedOut = (amountIn * priceIn * 10^decimalsOut) / (priceOut * 10^decimalsIn)
-        uint256 expectedAmountOut = (amountIn * priceIn * (10 ** decimalsOut)) / (priceOut * (10 ** decimalsIn));
+        uint256 expectedAmountOut = SafeOracleMath.calculateExpectedOutput(
+            amountIn,
+            priceIn,
+            priceOut,
+            decimalsIn,
+            decimalsOut
+        );
 
-        // Calculate deviation: |expected - actual| / expected * 10000 (in BPS)
-        uint256 deviationBps;
-        if (expectedAmountOut > minAmountOut) {
-            deviationBps = ((expectedAmountOut - minAmountOut) * 10000) / expectedAmountOut;
-        } else {
-            deviationBps = ((minAmountOut - expectedAmountOut) * 10000) / expectedAmountOut;
-        }
+        // Calculate deviation with overflow protection: |expected - actual| / expected * 10000 (in BPS)
+        uint256 deviationBps = SafeOracleMath.calculateDeviationBps(expectedAmountOut, minAmountOut);
 
         // Revert if deviation exceeds tolerance
         if (deviationBps > ORACLE_PRICE_TOLERANCE_BPS) {

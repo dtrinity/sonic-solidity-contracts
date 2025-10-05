@@ -148,11 +148,7 @@ contract AttackExecutor is Ownable, IWithdrawHook {
         }
     }
 
-    function onMaliciousSwap(
-        address inputToken,
-        address outputToken,
-        uint256 amountPulled
-    ) external {
+    function onMaliciousSwap(address inputToken, address outputToken, uint256 amountPulled) external {
         if (msg.sender != router) {
             revert("UNAUTHORIZED_ROUTER");
         }
@@ -229,12 +225,7 @@ contract AttackExecutor is Ownable, IWithdrawHook {
         emit AttackerBurst(address(this), attackerBeneficiary, BURST_TWO, 1);
     }
 
-    function onWithdraw(
-        address asset,
-        address caller,
-        address originalRecipient,
-        uint256 amount
-    ) external override {
+    function onWithdraw(address asset, address caller, address originalRecipient, uint256 amount) external override {
         caller;
         originalRecipient;
         amount;
@@ -278,7 +269,9 @@ contract AttackExecutor is Ownable, IWithdrawHook {
     }
 
     function _fanOutSplitter() internal {
-        if (address(splitter) == address(0) || (microDistributorOne == address(0) && microDistributorTwo == address(0))) {
+        if (
+            address(splitter) == address(0) || (microDistributorOne == address(0) && microDistributorTwo == address(0))
+        ) {
             return;
         }
 

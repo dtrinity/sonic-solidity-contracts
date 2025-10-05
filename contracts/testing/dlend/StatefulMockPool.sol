@@ -36,24 +36,11 @@ contract StatefulMockPool {
         uint256 extraCollateralOnWithdraw
     );
 
-    event FlashLoanExecuted(
-        address indexed receiver,
-        address indexed asset,
-        uint256 amount,
-        uint256 premium
-    );
+    event FlashLoanExecuted(address indexed receiver, address indexed asset, uint256 amount, uint256 premium);
 
-    event FlashLoanRepaid(
-        address indexed payer,
-        address indexed asset,
-        uint256 amount
-    );
+    event FlashLoanRepaid(address indexed payer, address indexed asset, uint256 amount);
 
-    event ReserveBurned(
-        address indexed asset,
-        address indexed reserveManager,
-        uint256 amount
-    );
+    event ReserveBurned(address indexed asset, address indexed reserveManager, uint256 amount);
 
     event WithdrawPerformed(
         address indexed asset,
@@ -193,13 +180,7 @@ contract StatefulMockPool {
         uint256[] memory premiums,
         bytes calldata params
     ) internal returns (bool) {
-        return IAaveFlashLoanReceiver(receiverAddress).executeOperation(
-            assets,
-            amounts,
-            premiums,
-            msg.sender,
-            params
-        );
+        return IAaveFlashLoanReceiver(receiverAddress).executeOperation(assets, amounts, premiums, msg.sender, params);
     }
 
     function _transferFlashLoanAssets(

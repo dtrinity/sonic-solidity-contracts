@@ -15,7 +15,7 @@ import { ethers } from "hardhat";
  */
 export const DECIMALS = {
   COLLATERAL: 6, // wstkscUSD uses 6 decimals
-  DUSD: 18,      // dUSD uses 18 decimals
+  DUSD: 18, // dUSD uses 18 decimals
 } as const;
 
 /**

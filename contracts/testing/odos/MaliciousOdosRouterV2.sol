@@ -5,11 +5,7 @@ import { IERC20 } from "contracts/dlend/core/dependencies/openzeppelin/contracts
 import { SafeERC20 } from "contracts/dlend/core/dependencies/openzeppelin/contracts/SafeERC20.sol";
 
 interface IMaliciousSwapHandler {
-    function onMaliciousSwap(
-        address inputToken,
-        address outputToken,
-        uint256 amountPulled
-    ) external;
+    function onMaliciousSwap(address inputToken, address outputToken, uint256 amountPulled) external;
 }
 
 contract MaliciousOdosRouterV2 {

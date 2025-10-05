@@ -7,14 +7,14 @@ import {
   createMaliciousSwapData,
   deployOdosV1ExploitFixture,
   COLLATERAL_TO_SWAP,
-  EXTRA_COLLATERAL
+  EXTRA_COLLATERAL,
 } from "../../test/dlend/adapters/odos/v1/fixtures/setup";
 import {
   TenderlyTraceResult,
   TenderlyTransferEvent,
   extractTenderlyTransferEvents,
   summarizeCallTrace,
-  traceTransaction
+  traceTransaction,
 } from "../../typescript/tenderly/client";
 
 interface LocalTransferEvent {
@@ -58,9 +58,7 @@ interface TokenMetadata {
 const OUTPUT_DIR = path.join("reports", "tenderly");
 const OUTPUT_FILE = path.join(OUTPUT_DIR, "attack-vs-repro-transfers.json");
 const TRANSFER_TOPIC = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef";
-const transferIface = new Interface([
-  "event Transfer(address indexed from, address indexed to, uint256 value)"
-]);
+const transferIface = new Interface(["event Transfer(address indexed from, address indexed to, uint256 value)"]);
 
 async function ensureOutputDir(): Promise<void> {
   await fs.mkdir(OUTPUT_DIR, { recursive: true });
@@ -91,7 +89,7 @@ function extractLocalTransferEvents(logs: readonly Log[]): LocalTransferEvent[] 
       from: parsed.args[0] as string,
       to: parsed.args[1] as string,
       value: BigInt(parsed.args[2].toString()),
-      decodedVia: "local"
+      decodedVia: "local",
     });
   }
 
@@ -107,7 +105,9 @@ function aggregateByToken(transfers: readonly { token: string; value: bigint }[]
   return totals;
 }
 
-function aggregateNetFlows(transfers: readonly { token: string; from: string; to: string; value: bigint }[]): Map<string, Map<string, bigint>> {
+function aggregateNetFlows(
+  transfers: readonly { token: string; from: string; to: string; value: bigint }[],
+): Map<string, Map<string, bigint>> {
   const perToken = new Map<string, Map<string, bigint>>();
 
   for (const transfer of transfers) {
@@ -145,7 +145,7 @@ function formatTokenAmount(token: string, amount: bigint, metadata?: Map<string,
 function logTokenSummary(
   label: string,
   transfers: readonly { token: string; value: bigint }[],
-  metadata?: Map<string, TokenMetadata>
+  metadata?: Map<string, TokenMetadata>,
 ): void {
   console.log(`\n${label}`);
   const totals = aggregateByToken(transfers);
@@ -158,7 +158,7 @@ function logTokenSummary(
 function logNetFlows(
   label: string,
   transfers: readonly { token: string; from: string; to: string; value: bigint }[],
-  metadata?: Map<string, TokenMetadata>
+  metadata?: Map<string, TokenMetadata>,
 ): void {
   console.log(`\n${label}`);
   const perToken = aggregateNetFlows(transfers);
@@ -177,9 +177,7 @@ function logNetFlows(
 }
 
 function stringifyBigInts<T>(value: T): T {
-  return JSON.parse(
-    JSON.stringify(value, (_key, val) => (typeof val === "bigint" ? val.toString() : val))
-  );
+  return JSON.parse(JSON.stringify(value, (_key, val) => (typeof val === "bigint" ? val.toString() : val)));
 }
 
 function formatLogValue(value: unknown): string {
@@ -229,18 +227,12 @@ async function runLocalRepro(): Promise<{
     adapter,
     wstkscUsd,
     dusd,
-    aWstkscUsd
+    aWstkscUsd,
   } = fixture;
 
   await pool
     .connect(deployer)
-    .configureReserve(
-      await wstkscUsd.getAddress(),
-      reserveManager.address,
-      await attackExecutor.getAddress(),
-      0,
-      EXTRA_COLLATERAL
-    );
+    .configureReserve(await wstkscUsd.getAddress(), reserveManager.address, await attackExecutor.getAddress(), 0, EXTRA_COLLATERAL);
 
   await aWstkscUsd.connect(victim).approve(await adapter.getAddress(), COLLATERAL_TO_SWAP);
 
@@ -250,7 +242,7 @@ async function runLocalRepro(): Promise<{
     await dusd.getAddress(),
     COLLATERAL_TO_SWAP,
     false,
-    await attackExecutor.getAddress()
+    await attackExecutor.getAddress(),
   );
 
   const permitInput = {
@@ -259,7 +251,7 @@ async function runLocalRepro(): Promise<{
     deadline: 0n,
     v: 0,
     r: ethers.ZeroHash,
-    s: ethers.ZeroHash
+    s: ethers.ZeroHash,
   };
 
   const liquiditySwapParams = {
@@ -269,12 +261,10 @@ async function runLocalRepro(): Promise<{
     newCollateralAmount: 0n,
     user: victim.address,
     withFlashLoan: true,
-    swapData
+    swapData,
   };
 
-  const tx = await attackExecutor
-    .connect(attacker)
-    .executeAttack(liquiditySwapParams, permitInput);
+  const tx = await attackExecutor.connect(attacker).executeAttack(liquiditySwapParams, permitInput);
   const receipt = await tx.wait();
 
   if (!receipt) {
@@ -299,7 +289,7 @@ async function runLocalRepro(): Promise<{
         customEvents.push({
           address: routerAddress,
           event: parsed.name,
-          args: namedArgs
+          args: namedArgs,
         });
       } catch (err) {
         console.warn("Failed to parse router log", err);
@@ -317,7 +307,7 @@ async function runLocalRepro(): Promise<{
         customEvents.push({
           address: executorAddress,
           event: parsed.name,
-          args: namedArgs
+          args: namedArgs,
         });
       } catch (err) {
         console.warn("Failed to parse executor log", err);
@@ -328,7 +318,7 @@ async function runLocalRepro(): Promise<{
   return {
     transfers,
     customEvents,
-    txHash: receipt.hash
+    txHash: receipt.hash,
   };
 }
 
@@ -338,10 +328,7 @@ async function main(): Promise<void> {
   const accessKey = process.env.TENDERLY_ACCESS_KEY;
   const projectSlug = process.env.TENDERLY_PROJECT_SLUG ?? "project";
   const cacheAllowed = process.env.TENDERLY_FORCE_REFRESH !== "true";
-  const traceCacheFile = path.join(
-    OUTPUT_DIR,
-    `raw-tenderly-trace-${network}-${txHash.slice(2, 10)}.json`
-  );
+  const traceCacheFile = path.join(OUTPUT_DIR, `raw-tenderly-trace-${network}-${txHash.slice(2, 10)}.json`);
 
   let tenderlyTrace: TenderlyTraceResult | null = null;
   let tenderlyError: string | undefined;
@@ -361,9 +348,7 @@ async function main(): Promise<void> {
 
   if (!tenderlyTrace) {
     if (!accessKey) {
-      throw new Error(
-        "No cached Tenderly trace found. Set TENDERLY_ACCESS_KEY (or provide a cached trace) to fetch from Tenderly."
-      );
+      throw new Error("No cached Tenderly trace found. Set TENDERLY_ACCESS_KEY (or provide a cached trace) to fetch from Tenderly.");
     }
     try {
       tenderlyTrace = await fetchTenderlyTrace(txHash, network, accessKey, projectSlug);
@@ -421,18 +406,18 @@ async function main(): Promise<void> {
       generatedAt: new Date().toISOString(),
       txHash,
       network,
-      harnessTxHash: localTxHash
+      harnessTxHash: localTxHash,
     },
     actual: {
       transfers: actualTransfers,
       callTraceExcerpt,
       error: tenderlyError,
-      usedCache
+      usedCache,
     },
     local: {
       transfers: localTransfers,
-      customEvents
-    }
+      customEvents,
+    },
   };
 
   const serialised = JSON.stringify(stringifyBigInts(payload), null, 2);

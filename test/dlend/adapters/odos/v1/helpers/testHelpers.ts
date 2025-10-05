@@ -14,11 +14,7 @@ import { ContractTransactionReceipt, Log } from "ethers";
  * @param decimals Number of decimals for the token (6 for wstkscUSD, 18 for dUSD)
  * @param symbol Optional token symbol for display
  */
-export function formatBalanceChange(
-  amount: bigint,
-  decimals: number,
-  symbol?: string
-): string {
+export function formatBalanceChange(amount: bigint, decimals: number, symbol?: string): string {
   const formatted = ethers.formatUnits(amount, decimals);
   return symbol ? `${formatted} ${symbol}` : formatted;
 }
@@ -31,12 +27,7 @@ export function formatBalanceChange(
  * @param symbol Token symbol
  * @returns Formatted string with sign indicator
  */
-export function formatBalanceDiff(
-  before: bigint,
-  after: bigint,
-  decimals: number,
-  symbol?: string
-): string {
+export function formatBalanceDiff(before: bigint, after: bigint, decimals: number, symbol?: string): string {
   const diff = after - before;
   const sign = diff >= 0n ? "+" : "";
   return sign + formatBalanceChange(diff, decimals, symbol);
@@ -68,12 +59,7 @@ export class BalanceTracker {
   /**
    * Records a balance snapshot
    */
-  async snapshot(
-    address: string,
-    token: string,
-    tokenContract: any,
-    label?: string
-  ): Promise<void> {
+  async snapshot(address: string, token: string, tokenContract: any, label?: string): Promise<void> {
     const balance = await tokenContract.balanceOf(address);
     const k = this.key(address, token);
     this.snapshots.set(k, balance);
@@ -92,17 +78,11 @@ export class BalanceTracker {
   /**
    * Calculates the delta between current balance and snapshot
    */
-  async delta(
-    address: string,
-    token: string,
-    tokenContract: any
-  ): Promise<bigint> {
+  async delta(address: string, token: string, tokenContract: any): Promise<bigint> {
     const current = await tokenContract.balanceOf(address);
     const previous = this.snapshots.get(this.key(address, token));
     if (previous === undefined) {
-      throw new Error(
-        `No snapshot found for ${address} + ${token}. Call snapshot() first.`
-      );
+      throw new Error(`No snapshot found for ${address} + ${token}. Call snapshot() first.`);
     }
     return current - previous;
   }
@@ -130,11 +110,7 @@ export interface ParsedEvent {
  * @param contractInterface Contract interface to parse events
  * @param eventName Optional filter for specific event name
  */
-export function parseEvents(
-  receipt: ContractTransactionReceipt | null,
-  contractInterface: any,
-  eventName?: string
-): ParsedEvent[] {
+export function parseEvents(receipt: ContractTransactionReceipt | null, contractInterface: any, eventName?: string): ParsedEvent[] {
   if (!receipt) {
     return [];
   }
@@ -176,11 +152,7 @@ export function parseEvents(
 /**
  * Finds the first event matching the given name
  */
-export function findEvent(
-  receipt: ContractTransactionReceipt | null,
-  contractInterface: any,
-  eventName: string
-): ParsedEvent | undefined {
+export function findEvent(receipt: ContractTransactionReceipt | null, contractInterface: any, eventName: string): ParsedEvent | undefined {
   const events = parseEvents(receipt, contractInterface, eventName);
   return events[0];
 }
@@ -188,11 +160,7 @@ export function findEvent(
 /**
  * Finds all events matching the given name
  */
-export function findEvents(
-  receipt: ContractTransactionReceipt | null,
-  contractInterface: any,
-  eventName: string
-): ParsedEvent[] {
+export function findEvents(receipt: ContractTransactionReceipt | null, contractInterface: any, eventName: string): ParsedEvent[] {
   return parseEvents(receipt, contractInterface, eventName);
 }
 
@@ -236,7 +204,7 @@ export async function captureAttackState(
   recycler: any,
   aTokenContract: any,
   collateralContract: any,
-  dusdContract: any
+  dusdContract: any,
 ): Promise<AttackStateSnapshot> {
   return {
     victimATokenBalance: await aTokenContract.balanceOf(victim.address),
@@ -247,7 +215,7 @@ export async function captureAttackState(
     executorCollateralBalance: await collateralContract.balanceOf(await executor.getAddress()),
     executorDusdBalance: await dusdContract.balanceOf(await executor.getAddress()),
     adapterCollateralBalance: await collateralContract.balanceOf(await adapter.getAddress()),
-    adapterDusdBalance: await dusdContract.balanceOf(await adapter.getAddress())
+    adapterDusdBalance: await dusdContract.balanceOf(await adapter.getAddress()),
   };
 }
 
@@ -269,10 +237,7 @@ export interface AttackStateDelta {
 /**
  * Calculates deltas between two attack state snapshots
  */
-export function computeAttackDeltas(
-  before: AttackStateSnapshot,
-  after: AttackStateSnapshot
-): AttackStateDelta {
+export function computeAttackDeltas(before: AttackStateSnapshot, after: AttackStateSnapshot): AttackStateDelta {
   return {
     victimATokenDelta: after.victimATokenBalance - before.victimATokenBalance,
     attackerCollateralDelta: after.attackerCollateralBalance - before.attackerCollateralBalance,
@@ -282,7 +247,7 @@ export function computeAttackDeltas(
     executorCollateralDelta: after.executorCollateralBalance - before.executorCollateralBalance,
     executorDusdDelta: after.executorDusdBalance - before.executorDusdBalance,
     adapterCollateralDelta: after.adapterCollateralBalance - before.adapterCollateralBalance,
-    adapterDusdDelta: after.adapterDusdBalance - before.adapterDusdBalance
+    adapterDusdDelta: after.adapterDusdBalance - before.adapterDusdBalance,
   };
 }
 
@@ -295,13 +260,7 @@ export function computeAttackDeltas(
  * @param decimals Token decimals for formatting error messages
  * @param label Description for the assertion
  */
-export function assertBalanceEquals(
-  actual: bigint,
-  expected: bigint,
-  decimals: number,
-  label: string,
-  tolerance: bigint = 0n
-): void {
+export function assertBalanceEquals(actual: bigint, expected: bigint, decimals: number, label: string, tolerance: bigint = 0n): void {
   const diff = actual > expected ? actual - expected : expected - actual;
 
   if (diff > tolerance) {
@@ -309,9 +268,7 @@ export function assertBalanceEquals(
     const expectedFormatted = ethers.formatUnits(expected, decimals);
     const diffFormatted = ethers.formatUnits(diff, decimals);
 
-    throw new Error(
-      `${label}: Expected ${expectedFormatted} but got ${actualFormatted} (diff: ${diffFormatted})`
-    );
+    throw new Error(`${label}: Expected ${expectedFormatted} but got ${actualFormatted} (diff: ${diffFormatted})`);
   }
 }
 
