@@ -74,6 +74,10 @@ contract OdosWithdrawSwapAdapterV2 is BaseOdosSellAdapterV2, ReentrancyGuard, IO
         WithdrawSwapParamsV2 memory withdrawSwapParams,
         PermitInput memory permitInput
     ) external nonReentrant {
+        // enforce that only the account owner can execute for themselves
+        if (withdrawSwapParams.user != msg.sender) {
+            revert InitiatorMustBeThis(msg.sender, withdrawSwapParams.user);
+        }
         (, , address aToken) = _getReserveData(withdrawSwapParams.oldAsset);
         if (withdrawSwapParams.allBalanceOffset != 0) {
             uint256 balance = IERC20(aToken).balanceOf(withdrawSwapParams.user);

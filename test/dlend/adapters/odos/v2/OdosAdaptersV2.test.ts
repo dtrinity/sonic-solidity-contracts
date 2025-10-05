@@ -566,4 +566,121 @@ describe("Odos V2 Adapters - Pure Logic Tests", function () {
       expect(percentage).to.equal(5);
     });
   });
+
+  describe("User Authorization", function () {
+    it("🚫 LiquiditySwapAdapterV2: revert when caller != user", async function () {
+      const { addressesProvider, pool, odosRouter, pendleRouter } = fixture;
+      const [deployer, other] = await ethers.getSigners();
+
+      const Factory = await ethers.getContractFactory("OdosLiquiditySwapAdapterV2");
+      const adapter = await Factory.deploy(
+        await addressesProvider.getAddress(),
+        await pool.getAddress(),
+        await odosRouter.getAddress(),
+        await pendleRouter.getAddress(),
+        deployer.address,
+      );
+
+      const params = {
+        collateralAsset: ethers.ZeroAddress,
+        collateralAmountToSwap: 0n,
+        newCollateralAsset: ethers.ZeroAddress,
+        newCollateralAmount: 0n,
+        user: deployer.address, // expected user is deployer
+        withFlashLoan: false,
+        swapData: "0x",
+        allBalanceOffset: 0n,
+      };
+      const emptyPermit = {
+        aToken: ethers.ZeroAddress,
+        value: 0n,
+        deadline: 0n,
+        v: 0,
+        r: ethers.ZeroHash,
+        s: ethers.ZeroHash,
+      };
+
+      await expect(adapter.connect(other).swapLiquidity(params, emptyPermit)).to.be.revertedWithCustomError(
+        adapter,
+        "InitiatorMustBeThis",
+      );
+    });
+
+    it("🚫 RepayAdapterV2: revert when caller != user", async function () {
+      const { addressesProvider, pool, odosRouter, pendleRouter, tokenA, tokenB } = fixture;
+      const [deployer, other] = await ethers.getSigners();
+
+      const Factory = await ethers.getContractFactory("OdosRepayAdapterV2");
+      const adapter = await Factory.deploy(
+        await addressesProvider.getAddress(),
+        await pool.getAddress(),
+        await odosRouter.getAddress(),
+        await pendleRouter.getAddress(),
+        deployer.address,
+      );
+
+      const params = {
+        collateralAsset: await tokenA.getAddress(),
+        collateralAmount: 0n,
+        debtAsset: await tokenB.getAddress(),
+        repayAmount: 0n,
+        rateMode: 2,
+        withFlashLoan: false,
+        user: deployer.address, // expected user is deployer
+        minAmountToReceive: 0n,
+        swapData: "0x",
+        allBalanceOffset: 0n,
+      };
+      const emptyPermit = {
+        aToken: ethers.ZeroAddress,
+        value: 0n,
+        deadline: 0n,
+        v: 0,
+        r: ethers.ZeroHash,
+        s: ethers.ZeroHash,
+      };
+
+      await expect(adapter.connect(other).repayWithCollateral(params, emptyPermit)).to.be.revertedWithCustomError(
+        adapter,
+        "InitiatorMustBeThis",
+      );
+    });
+
+    it("🚫 WithdrawSwapAdapterV2: revert when caller != user", async function () {
+      const { addressesProvider, pool, odosRouter, pendleRouter, tokenA, tokenB } = fixture;
+      const [deployer, other] = await ethers.getSigners();
+
+      const Factory = await ethers.getContractFactory("OdosWithdrawSwapAdapterV2");
+      const adapter = await Factory.deploy(
+        await addressesProvider.getAddress(),
+        await pool.getAddress(),
+        await odosRouter.getAddress(),
+        await pendleRouter.getAddress(),
+        deployer.address,
+      );
+
+      const params = {
+        oldAsset: await tokenA.getAddress(),
+        oldAssetAmount: 0n,
+        newAsset: await tokenB.getAddress(),
+        minAmountToReceive: 0n,
+        user: deployer.address, // expected user is deployer
+        swapData: "0x",
+        allBalanceOffset: 0n,
+      };
+      const emptyPermit = {
+        aToken: ethers.ZeroAddress,
+        value: 0n,
+        deadline: 0n,
+        v: 0,
+        r: ethers.ZeroHash,
+        s: ethers.ZeroHash,
+      };
+
+      await expect(adapter.connect(other).withdrawAndSwap(params, emptyPermit)).to.be.revertedWithCustomError(
+        adapter,
+        "InitiatorMustBeThis",
+      );
+    });
+  });
 });

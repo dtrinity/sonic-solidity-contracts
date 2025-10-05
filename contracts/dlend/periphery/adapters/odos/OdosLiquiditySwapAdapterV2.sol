@@ -84,6 +84,10 @@ contract OdosLiquiditySwapAdapterV2 is
         LiquiditySwapParamsV2 memory liquiditySwapParams,
         PermitInput memory collateralATokenPermit
     ) external nonReentrant {
+        // enforce that only the account owner can execute for themselves
+        if (liquiditySwapParams.user != msg.sender) {
+            revert InitiatorMustBeThis(msg.sender, liquiditySwapParams.user);
+        }
         if (liquiditySwapParams.allBalanceOffset != 0) {
             (, , address aToken) = _getReserveData(liquiditySwapParams.collateralAsset);
             uint256 balance = IERC20(aToken).balanceOf(liquiditySwapParams.user);

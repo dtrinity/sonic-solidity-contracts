@@ -61,6 +61,10 @@ contract OdosRepayAdapterV2 is BaseOdosBuyAdapterV2, ReentrancyGuard, IAaveFlash
         RepayParamsV2 memory repayParams,
         PermitInput memory collateralATokenPermit
     ) external nonReentrant {
+        // enforce that only the account owner can execute for themselves
+        if (repayParams.user != msg.sender) {
+            revert InitiatorMustBeThis(msg.sender, repayParams.user);
+        }
         // Refresh the exact repayAmount using current debt state and optional allBalanceOffset
         repayParams.repayAmount = _getDebtRepayAmount(
             IERC20(repayParams.debtAsset),

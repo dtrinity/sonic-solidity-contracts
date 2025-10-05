@@ -52,9 +52,6 @@ abstract contract OracleValidation {
         uint256 maxAmountIn,
         uint256 exactAmountOut
     ) internal view {
-        // Skip validation for same token swaps
-        if (tokenIn == tokenOut) return;
-
         // Get token decimals for proper calculation
         uint256 decimalsIn = IERC20Detailed(tokenIn).decimals();
         uint256 decimalsOut = IERC20Detailed(tokenOut).decimals();
@@ -105,9 +102,6 @@ abstract contract OracleValidation {
         uint256 amountIn,
         uint256 minAmountOut
     ) internal view {
-        // Skip validation for same token swaps
-        if (tokenIn == tokenOut) return;
-
         // Get token decimals for proper calculation
         uint256 decimalsIn = IERC20Detailed(tokenIn).decimals();
         uint256 decimalsOut = IERC20Detailed(tokenOut).decimals();
