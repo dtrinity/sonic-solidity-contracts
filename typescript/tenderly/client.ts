@@ -53,6 +53,7 @@ export interface TraceTransactionParams {
 
 /**
  * Builds the Tenderly RPC URL for the specified network
+ *
  * @param network - The network identifier for Tenderly
  * @param customBaseUrl - Optional custom base URL to override the default
  * @returns The complete Tenderly RPC URL
@@ -70,6 +71,7 @@ export function buildTenderlyRpcUrl(network: string, customBaseUrl?: string): st
 
 /**
  * Traces a transaction using Tenderly's tracing API
+ *
  * @param root0 - The transaction trace parameters
  * @param root0.txHash - The transaction hash to trace
  * @param root0.network - The network where the transaction occurred
@@ -116,6 +118,7 @@ export async function traceTransaction({ txHash, network, accessKey, projectSlug
 
 /**
  * Extracts Transfer events from a Tenderly trace result
+ *
  * @param traceResult - The Tenderly trace result containing logs
  * @returns Array of parsed transfer events
  */
@@ -171,6 +174,7 @@ export function extractTenderlyTransferEvents(traceResult: TenderlyTraceResult):
 
 /**
  * Summarizes a call trace into a human-readable string format
+ *
  * @param calls - Array of Tenderly call objects to summarize
  * @param indent - Indentation level for nested calls (default: 0)
  * @returns Formatted string representation of the call trace

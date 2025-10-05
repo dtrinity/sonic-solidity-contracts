@@ -53,9 +53,9 @@ abstract contract OracleValidation {
         uint256 maxAmountIn,
         uint256 exactAmountOut
     ) internal view {
-        // Prevent zero-amount swaps to avoid division by zero in deviation calculation
+        // Prevent zero-amount swaps with clear error message
         if (maxAmountIn == 0 || exactAmountOut == 0) {
-            revert IBaseOdosAdapterV2.OraclePriceDeviationExceeded(tokenIn, tokenOut, 0, 0, type(uint256).max);
+            revert IBaseOdosAdapterV2.ZeroSwapAmount(tokenIn, tokenOut);
         }
 
         // Get token decimals for proper calculation
@@ -67,9 +67,12 @@ abstract contract OracleValidation {
         uint256 priceIn = oracle.getAssetPrice(tokenIn);
         uint256 priceOut = oracle.getAssetPrice(tokenOut);
 
-        // Prevent swaps when oracle prices are not configured (zero prices)
-        if (priceIn == 0 || priceOut == 0) {
-            revert IBaseOdosAdapterV2.OraclePriceDeviationExceeded(tokenIn, tokenOut, 0, 0, type(uint256).max);
+        // Prevent swaps when oracle prices are not configured with clear error message
+        if (priceIn == 0) {
+            revert IBaseOdosAdapterV2.ZeroOraclePrice(tokenIn);
+        }
+        if (priceOut == 0) {
+            revert IBaseOdosAdapterV2.ZeroOraclePrice(tokenOut);
         }
 
         // Calculate expected input amount using oracle prices with overflow protection
@@ -82,23 +85,19 @@ abstract contract OracleValidation {
             decimalsOut
         );
 
-        // For exact output, we validate that maxAmountIn isn't excessively higher than expectedAmountIn
-        // Calculate deviation with overflow protection: (maxAmountIn - expectedAmountIn) / expectedAmountIn * 10000 (in BPS)
-        if (maxAmountIn > expectedAmountIn) {
-            uint256 deviationBps = SafeOracleMath.calculateDeviationBps(expectedAmountIn, maxAmountIn);
+        // Validate deviation in both directions for exact output swaps
+        // This prevents both overpaying and underpaying relative to oracle prices
+        uint256 deviationBps = SafeOracleMath.calculateDeviationBps(expectedAmountIn, maxAmountIn);
 
-            // Revert if user is willing to pay too much more than oracle suggests
-            if (deviationBps > ORACLE_PRICE_TOLERANCE_BPS) {
-                revert IBaseOdosAdapterV2.OraclePriceDeviationExceeded(
-                    tokenIn,
-                    tokenOut,
-                    expectedAmountIn,
-                    maxAmountIn,
-                    deviationBps
-                );
-            }
+        if (deviationBps > ORACLE_PRICE_TOLERANCE_BPS) {
+            revert IBaseOdosAdapterV2.OraclePriceDeviationExceeded(
+                tokenIn,
+                tokenOut,
+                expectedAmountIn,
+                maxAmountIn,
+                deviationBps
+            );
         }
-        // Note: We don't validate if maxAmountIn < expectedAmountIn as the user might have better pricing
     }
 
     /**
@@ -114,9 +113,9 @@ abstract contract OracleValidation {
         uint256 amountIn,
         uint256 minAmountOut
     ) internal view {
-        // Prevent zero-amount swaps to avoid division by zero in deviation calculation
+        // Prevent zero-amount swaps with clear error message
         if (amountIn == 0 || minAmountOut == 0) {
-            revert IBaseOdosAdapterV2.OraclePriceDeviationExceeded(tokenIn, tokenOut, 0, 0, type(uint256).max);
+            revert IBaseOdosAdapterV2.ZeroSwapAmount(tokenIn, tokenOut);
         }
 
         // Get token decimals for proper calculation
@@ -128,9 +127,12 @@ abstract contract OracleValidation {
         uint256 priceIn = oracle.getAssetPrice(tokenIn);
         uint256 priceOut = oracle.getAssetPrice(tokenOut);
 
-        // Prevent swaps when oracle prices are not configured (zero prices)
-        if (priceIn == 0 || priceOut == 0) {
-            revert IBaseOdosAdapterV2.OraclePriceDeviationExceeded(tokenIn, tokenOut, 0, 0, type(uint256).max);
+        // Prevent swaps when oracle prices are not configured with clear error message
+        if (priceIn == 0) {
+            revert IBaseOdosAdapterV2.ZeroOraclePrice(tokenIn);
+        }
+        if (priceOut == 0) {
+            revert IBaseOdosAdapterV2.ZeroOraclePrice(tokenOut);
         }
 
         // Calculate expected output amount using oracle prices with overflow protection

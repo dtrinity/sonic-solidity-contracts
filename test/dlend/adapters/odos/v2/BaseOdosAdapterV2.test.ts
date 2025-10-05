@@ -92,7 +92,7 @@ describe("BaseOdosAdapterV2 - Pure Logic Tests", function () {
         await priceOracle.setPrice(await tokenA.getAddress(), 0);
         await priceOracle.setPrice(await tokenB.getAddress(), ethers.parseUnits("100", 8));
 
-        // Should revert to prevent unsafe swaps when oracle is not configured
+        // Should revert to prevent unsafe swaps when oracle is not configured with clear error
         await expect(
           baseAdapterHarness.validateOraclePriceExactOutput(
             await tokenA.getAddress(),
@@ -100,7 +100,7 @@ describe("BaseOdosAdapterV2 - Pure Logic Tests", function () {
             ethers.parseEther("10"),
             ethers.parseEther("1"),
           ),
-        ).to.be.revertedWithCustomError(baseAdapterHarness, "OraclePriceDeviationExceeded");
+        ).to.be.revertedWithCustomError(baseAdapterHarness, "ZeroOraclePrice");
       });
 
       it("should handle different token decimals correctly", async function () {
@@ -385,7 +385,7 @@ describe("BaseOdosAdapterV2 - Pure Logic Tests", function () {
       await priceOracle.setPrice(await tokenA.getAddress(), 0); // Zero price
       await priceOracle.setPrice(await tokenB.getAddress(), ethers.parseUnits("100", 8));
 
-      // Should revert for any swap when oracle prices are zero
+      // Should revert for any swap when oracle prices are zero with clear error
       await expect(
         baseAdapterHarness.validateOraclePriceExactOutput(
           await tokenA.getAddress(),
@@ -393,7 +393,7 @@ describe("BaseOdosAdapterV2 - Pure Logic Tests", function () {
           ethers.parseEther("10"), // any input amount
           ethers.parseEther("1"), // any output amount
         ),
-      ).to.be.revertedWithCustomError(baseAdapterHarness, "OraclePriceDeviationExceeded");
+      ).to.be.revertedWithCustomError(baseAdapterHarness, "ZeroOraclePrice");
     });
 
     it("✅ should prevent swaps when either token has zero price", async function () {
@@ -410,7 +410,7 @@ describe("BaseOdosAdapterV2 - Pure Logic Tests", function () {
           ethers.parseEther("10"),
           ethers.parseEther("1"),
         ),
-      ).to.be.revertedWithCustomError(baseAdapterHarness, "OraclePriceDeviationExceeded");
+      ).to.be.revertedWithCustomError(baseAdapterHarness, "ZeroOraclePrice");
 
       // Test tokenOut zero price
       await priceOracle.setPrice(await tokenA.getAddress(), ethers.parseUnits("100", 8));
@@ -423,7 +423,7 @@ describe("BaseOdosAdapterV2 - Pure Logic Tests", function () {
           ethers.parseEther("10"),
           ethers.parseEther("1"),
         ),
-      ).to.be.revertedWithCustomError(baseAdapterHarness, "OraclePriceDeviationExceeded");
+      ).to.be.revertedWithCustomError(baseAdapterHarness, "ZeroOraclePrice");
     });
 
     it("✅ should proceed with validation when both prices are non-zero", async function () {
