@@ -38,7 +38,7 @@ describe("ChainlinkDecimalConverter (Legacy Compatibility)", () => {
       MOCK_ROUND_DATA.answer,
       MOCK_ROUND_DATA.startedAt,
       MOCK_ROUND_DATA.updatedAt,
-      MOCK_ROUND_DATA.answeredInRound
+      MOCK_ROUND_DATA.answeredInRound,
     );
   });
 
@@ -61,9 +61,10 @@ describe("ChainlinkDecimalConverter (Legacy Compatibility)", () => {
 
   it("should reject upscaling attempts", async () => {
     const ConverterFactory = await ethers.getContractFactory("ChainlinkDecimalConverter");
-    
-    await expect(
-      ConverterFactory.deploy(await mockAggregator.getAddress(), 12)
-    ).to.be.revertedWithCustomError(ConverterFactory, "InvalidDecimalsUpscaleNotSupported");
+
+    await expect(ConverterFactory.deploy(await mockAggregator.getAddress(), 12)).to.be.revertedWithCustomError(
+      ConverterFactory,
+      "InvalidDecimalsUpscaleNotSupported",
+    );
   });
 });
