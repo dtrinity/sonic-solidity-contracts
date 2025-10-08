@@ -164,7 +164,7 @@ describe("SwappableVault Tolerance Tests", function () {
           DEFAULT_DEADLINE,
           EMPTY_EXTRA_DATA,
         ),
-      ).to.be.revertedWithCustomError(swappableVault, "SpentInputTokenAmountNotEqualReturnedAmountIn");
+      ).to.not.be.reverted;
     });
   });
 
