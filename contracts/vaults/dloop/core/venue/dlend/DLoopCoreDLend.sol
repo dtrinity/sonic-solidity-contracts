@@ -88,7 +88,9 @@ contract DLoopCoreDLend is DLoopCoreBase, RewardClaimable {
     /**
      * @dev Constructor for the DLoopCoreDLend contract using struct to avoid stack-too-deep
      */
-    constructor(InitParams memory p)
+    constructor(
+        InitParams memory p
+    )
         DLoopCoreBase(
             p.name,
             p.symbol,

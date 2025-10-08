@@ -103,10 +103,7 @@ describe("SwappableVault Tolerance Tests", function () {
     it("should return actual spent amount when adapter reports higher amount", async function () {
       const amountInReported = 1502n;
       const amountInActuallySpent = 1500n;
-      await swappableVault.setAmountInParams(
-        amountInReported,
-        amountInActuallySpent,
-      );
+      await swappableVault.setAmountInParams(amountInReported, amountInActuallySpent);
 
       const reportedSpent = await swappableVault.swapExactOutput.staticCall(
         await inputToken.getAddress(),
@@ -141,10 +138,7 @@ describe("SwappableVault Tolerance Tests", function () {
     it("should return actual spent amount when adapter reports lower amount", async function () {
       const amountInReported = 1500n;
       const amountInActuallySpent = 1502n;
-      await swappableVault.setAmountInParams(
-        amountInReported,
-        amountInActuallySpent,
-      );
+      await swappableVault.setAmountInParams(amountInReported, amountInActuallySpent);
 
       const reportedSpent = await swappableVault.swapExactOutput.staticCall(
         await inputToken.getAddress(),
