@@ -185,7 +185,7 @@ export async function getConfig(_hre: HardhatRuntimeEnvironment): Promise<Config
             treasury: governanceSafeMultisig,
             maxTreasuryFeeBps: "1000",
             initialTreasuryFeeBps: "500",
-            initialExchangeThreshold: 1n * 10n ** BigInt(dUSDDecimals), // TODO: 1 dStable token (fetched from contract decimals), for QA ONLY
+            initialExchangeThreshold: 10n * 10n ** BigInt(dUSDDecimals), // 10 dStable tokens to exchange the rewards
           },
         },
       },
