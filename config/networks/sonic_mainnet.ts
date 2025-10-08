@@ -168,7 +168,7 @@ export async function getConfig(_hre: HardhatRuntimeEnvironment): Promise<Config
     dLoop: {
       dUSDAddress: assertNotEmpty(dUSDDeployment?.address),
       coreVaults: {
-        "3x_sfrxUSD_dUSD_test": {
+        "3x_sfrxUSD_dUSD_demo": {
           venue: "dlend",
           name: "dLOOP 3X sfrxUSD dLEND",
           symbol: "3X-sfrxUSD",
