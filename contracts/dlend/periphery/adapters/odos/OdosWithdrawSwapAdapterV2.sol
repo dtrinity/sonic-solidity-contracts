@@ -74,13 +74,11 @@ contract OdosWithdrawSwapAdapterV2 is BaseOdosSellAdapterV2, ReentrancyGuard, IO
         WithdrawSwapParamsV2 memory withdrawSwapParams,
         PermitInput memory permitInput
     ) external nonReentrant {
-        // enforce that only the account owner can execute for themselves
-        if (withdrawSwapParams.user != msg.sender) {
-            revert InitiatorMustBeThis(msg.sender, withdrawSwapParams.user);
-        }
+        address user = msg.sender; // Capture the actual caller
+        
         (, , address aToken) = _getReserveData(withdrawSwapParams.oldAsset);
         if (withdrawSwapParams.allBalanceOffset != 0) {
-            uint256 balance = IERC20(aToken).balanceOf(withdrawSwapParams.user);
+            uint256 balance = IERC20(aToken).balanceOf(user);
             withdrawSwapParams.oldAssetAmount = balance;
         }
 
@@ -90,7 +88,7 @@ contract OdosWithdrawSwapAdapterV2 is BaseOdosSellAdapterV2, ReentrancyGuard, IO
         // pulls liquidity asset from the user and withdraw
         _pullATokenAndWithdraw(
             withdrawSwapParams.oldAsset,
-            withdrawSwapParams.user,
+            user,
             withdrawSwapParams.oldAssetAmount,
             permitInput
         );
@@ -111,10 +109,10 @@ contract OdosWithdrawSwapAdapterV2 is BaseOdosSellAdapterV2, ReentrancyGuard, IO
             : 0;
         if (oldAssetExcess > 0) {
             _conditionalRenewAllowance(withdrawSwapParams.oldAsset, oldAssetExcess);
-            _supply(withdrawSwapParams.oldAsset, oldAssetExcess, withdrawSwapParams.user, REFERRER);
+            _supply(withdrawSwapParams.oldAsset, oldAssetExcess, user, REFERRER);
         }
 
         // transfer new asset to the user
-        IERC20(withdrawSwapParams.newAsset).safeTransfer(withdrawSwapParams.user, amountReceived);
+        IERC20(withdrawSwapParams.newAsset).safeTransfer(user, amountReceived);
     }
 }

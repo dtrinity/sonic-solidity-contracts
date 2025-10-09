@@ -31,7 +31,6 @@ interface IOdosLiquiditySwapAdapterV2 is IBaseOdosAdapterV2 {
      * @param collateralAmountToSwap the amount of asset to swap from
      * @param newCollateralAsset the asset to swap collateral to
      * @param newCollateralAmount the minimum amount of new collateral asset to receive
-     * @param user the address of user
      * @param withFlashLoan true if flashloan is needed to swap collateral, otherwise false
      * @param swapData the encoded swap data (either regular Odos data or PTSwapDataV2)
      * @param allBalanceOffset offset to all balance of the user
@@ -41,10 +40,21 @@ interface IOdosLiquiditySwapAdapterV2 is IBaseOdosAdapterV2 {
         uint256 collateralAmountToSwap;
         address newCollateralAsset;
         uint256 newCollateralAmount;
-        address user;
         bool withFlashLoan;
         bytes swapData;
         uint256 allBalanceOffset;
+    }
+
+    /**
+     * @dev Internal struct for flash loan parameters
+     * @param liquiditySwapParams The liquidity swap parameters
+     * @param collateralATokenPermit The collateral aToken permit
+     * @param user The address of the user initiating the swap
+     */
+    struct FlashParamsV2 {
+        LiquiditySwapParamsV2 liquiditySwapParams;
+        PermitInput collateralATokenPermit;
+        address user;
     }
 
     /**
