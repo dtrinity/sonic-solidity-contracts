@@ -99,12 +99,25 @@ describe("SwappableVault Tolerance Tests", function () {
     });
   });
 
-  describe("Failure Cases - Outside Tolerance", function () {
-    it("should revert when difference is +2 (outside tolerance)", async function () {
-      // Return 1502 but spend 1500 to create a +2 difference
-      const amountInReturned = 1502n;
+  describe("Input Token Tracking", function () {
+    it("should return actual spent amount when adapter reports higher amount", async function () {
+      const amountInReported = 1502n;
       const amountInActuallySpent = 1500n;
-      await swappableVault.setAmountInParams(amountInReturned, amountInActuallySpent);
+      await swappableVault.setAmountInParams(amountInReported, amountInActuallySpent);
+
+      const reportedSpent = await swappableVault.swapExactOutput.staticCall(
+        await inputToken.getAddress(),
+        await outputToken.getAddress(),
+        AMOUNT_OUT,
+        AMOUNT_IN_MAXIMUM,
+        await receiver.getAddress(),
+        DEFAULT_DEADLINE,
+        EMPTY_EXTRA_DATA,
+      );
+      expect(reportedSpent).to.equal(amountInActuallySpent);
+
+      const vaultAddress = await swappableVault.getAddress();
+      const balanceBefore = await inputToken.balanceOf(vaultAddress);
 
       await expect(
         swappableVault.swapExactOutput(
@@ -116,15 +129,30 @@ describe("SwappableVault Tolerance Tests", function () {
           DEFAULT_DEADLINE,
           EMPTY_EXTRA_DATA,
         ),
-      ).to.be.revertedWithCustomError(swappableVault, "SpentInputTokenAmountNotEqualReturnedAmountIn");
+      ).to.not.be.reverted;
+
+      const balanceAfter = await inputToken.balanceOf(vaultAddress);
+      expect(balanceBefore - balanceAfter).to.equal(amountInActuallySpent);
     });
 
-    it("should revert when difference is -2 (outside tolerance)", async function () {
-      // Return 1502 but spend 1500 to create a +2 difference (amountIn > spentInputTokenAmount)
-      // This tests the else branch: amountIn - spentInputTokenAmount = 2 > BALANCE_DIFF_TOLERANCE
-      const amountInReturned = 1502n;
-      const amountInActuallySpent = 1500n;
-      await swappableVault.setAmountInParams(amountInReturned, amountInActuallySpent);
+    it("should return actual spent amount when adapter reports lower amount", async function () {
+      const amountInReported = 1500n;
+      const amountInActuallySpent = 1502n;
+      await swappableVault.setAmountInParams(amountInReported, amountInActuallySpent);
+
+      const reportedSpent = await swappableVault.swapExactOutput.staticCall(
+        await inputToken.getAddress(),
+        await outputToken.getAddress(),
+        AMOUNT_OUT,
+        AMOUNT_IN_MAXIMUM,
+        await receiver.getAddress(),
+        DEFAULT_DEADLINE,
+        EMPTY_EXTRA_DATA,
+      );
+      expect(reportedSpent).to.equal(amountInActuallySpent);
+
+      const vaultAddress = await swappableVault.getAddress();
+      const balanceBefore = await inputToken.balanceOf(vaultAddress);
 
       await expect(
         swappableVault.swapExactOutput(
@@ -136,7 +164,7 @@ describe("SwappableVault Tolerance Tests", function () {
           DEFAULT_DEADLINE,
           EMPTY_EXTRA_DATA,
         ),
-      ).to.be.revertedWithCustomError(swappableVault, "SpentInputTokenAmountNotEqualReturnedAmountIn");
+      ).to.not.be.reverted;
     });
   });
 

@@ -29,6 +29,7 @@ import { RescuableVault } from "contracts/common/RescuableVault.sol";
 import { BasisPointConstants } from "contracts/common/BasisPointConstants.sol";
 import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
 import { SharedLogic } from "./helper/SharedLogic.sol";
+import { Compare } from "contracts/common/Compare.sol";
 
 /**
  * @title DLoopDepositorBase
@@ -77,14 +78,18 @@ abstract contract DLoopDepositorBase is
         uint256 leveragedCollateralAmount,
         uint256 depositCollateralAmount
     );
-    error EstimatedSharesLessThanMinOutputShares(uint256 currentEstimatedShares, uint256 minOutputShares);
-    error EstimatedOverallSlippageBpsCannotExceedOneHundredPercent(uint256 estimatedOverallSlippageBps);
     error FlashLenderNotSameAsDebtToken(address flashLender, address debtToken);
     error SlippageBpsCannotExceedOneHundredPercent(uint256 slippageBps);
 
     /* Events */
 
     event LeftoverDebtTokensTransferred(address indexed debtToken, uint256 amount, address indexed receiver);
+
+    event LeftoverCollateralTokensTransferred(
+        address indexed collateralToken,
+        uint256 amount,
+        address indexed receiver
+    );
 
     /* Structs */
 
@@ -132,84 +137,13 @@ abstract contract DLoopDepositorBase is
         if (slippageBps > BasisPointConstants.ONE_HUNDRED_PERCENT_BPS) {
             revert SlippageBpsCannotExceedOneHundredPercent(slippageBps);
         }
-        uint256 expectedLeveragedAssets = getLeveragedAssets(depositAmount, dLoopCore);
+        uint256 expectedLeveragedAssets = SharedLogic.getLeveragedAssets(depositAmount, dLoopCore);
         uint256 expectedShares = dLoopCore.convertToShares(expectedLeveragedAssets);
         return
             Math.mulDiv(
                 expectedShares,
                 BasisPointConstants.ONE_HUNDRED_PERCENT_BPS - slippageBps,
                 BasisPointConstants.ONE_HUNDRED_PERCENT_BPS
-            );
-    }
-
-    /**
-     * @dev Gets the leveraged assets for a given assets and dLoopCore
-     * @param assets Amount of assets
-     * @param dLoopCore Address of the DLoopCore contract
-     * @return leveragedAssets Amount of leveraged assets
-     */
-    function getLeveragedAssets(uint256 assets, DLoopCoreBase dLoopCore) public view returns (uint256) {
-        return SharedLogic.getLeveragedAssets(assets, dLoopCore);
-    }
-
-    /**
-     * @dev Calculates the estimated overall slippage bps
-     * @param currentEstimatedShares Current estimated shares
-     * @param minOutputShares Minimum output shares
-     * @return estimatedOverallSlippageBps Estimated overall slippage bps
-     */
-    function _calculateEstimatedOverallSlippageBps(
-        uint256 currentEstimatedShares,
-        uint256 minOutputShares
-    ) internal pure returns (uint256) {
-        /*
-         * According to the formula in getBorrowAmountThatKeepCurrentLeverage() of DLoopCoreLogic,
-         * we have:
-         *      y = x * (T-1)/T
-         *  and
-         *      y = x * (T' - ONE_HUNDRED_PERCENT_BPS) / T'
-         *  and
-         *      T' = T * ONE_HUNDRED_PERCENT_BPS
-         * where:
-         *      - T: target leverage
-         *      - T': target leverage in basis points unit
-         *      - x: supply amount in base currency
-         *      - y: borrow amount in base currency
-         *
-         * We have:
-         *      x = (d + f) * (1 - s)
-         *   => y = (d + f) * (1 - s) * (T-1) / T
-         * where:
-         *      - d is the user's deposit collateral amount (original deposit amount) in base currency
-         *      - f is the flash loan amount of debt token in base currency
-         *      - s is the swap slippage (0.01 means 1%)
-         *
-         * We want find what is the condition of f so that we can borrow the debt token
-         * which is sufficient to cover up the flash loan amount. We want:
-         *      y >= f
-         *  <=> (d+f) * (1-s) * (T-1) / T >= f
-         *  <=> (d+f) * (1-s) * (T-1) >= T*f
-         *  <=> d * (1-s) * (T-1) >= T*f - f * (1-s) * (T-1)
-         *  <=> d * (1-s) * (T-1) >= f * (T - (1-s) * (T-1))
-         *  <=> (d * (1-s) * (T-1)) / (T - (1-s) * (T-1)) >= f    (as the denominator is greater than 0)
-         *  <=> f <= (d * (1-s) * (T-1)) / (T - (1-s) * (T-1))
-         *  <=> f <= (d * (1-s) * (T-1)) / (T - T + 1 + T*s - s)
-         *  <=> f <= (d * (1-s) * (T-1)) / (1 + T*s - s)
-         *
-         * Based on the above inequation, it means we can just adjust the flashloan amount to make
-         * sure the flashloan can be covered by the borrow amount.
-         *
-         * Thus, just need to infer the estimated slippage based on the provided min output shares
-         * and the current estimated shares
-         */
-        if (currentEstimatedShares < minOutputShares) {
-            revert EstimatedSharesLessThanMinOutputShares(currentEstimatedShares, minOutputShares);
-        }
-        return
-            Math.mulDiv(
-                currentEstimatedShares - minOutputShares,
-                BasisPointConstants.ONE_HUNDRED_PERCENT_BPS,
-                currentEstimatedShares
             );
     }
 
@@ -233,31 +167,24 @@ abstract contract DLoopDepositorBase is
         ERC20 collateralToken = dLoopCore.collateralToken();
         ERC20 debtToken = dLoopCore.debtToken();
 
+        SharedLogic.TokenBalancesBeforeAfter memory collateralTokenBalancesBeforeAfter;
+        SharedLogic.TokenBalancesBeforeAfter memory debtTokenBalancesBeforeAfter;
+
+        // Track the token balances before the deposit
+        collateralTokenBalancesBeforeAfter.token = collateralToken;
+        collateralTokenBalancesBeforeAfter.tokenBalanceBefore = collateralToken.balanceOf(address(this));
+        debtTokenBalancesBeforeAfter.token = debtToken;
+        debtTokenBalancesBeforeAfter.tokenBalanceBefore = debtToken.balanceOf(address(this));
+
         // Transfer the collateral token to the vault (need the allowance before calling this function)
         // The remaining amount of collateral token will be flash loaned from the flash lender
         // to reach the leveraged amount
         collateralToken.safeTransferFrom(msg.sender, address(this), assets);
 
-        // Get the leveraged assets with the current leverage
-        uint256 currentLeveragedAssets = getLeveragedAssets(assets, dLoopCore);
-
-        // Calculate the estimated overall slippage bps
-        uint256 estimatedOverallSlippageBps = _calculateEstimatedOverallSlippageBps(
-            dLoopCore.convertToShares(currentLeveragedAssets),
-            minOutputShares
-        );
-
-        // Make sure the estimated overall slippage bps does not exceed 100%
-        if (estimatedOverallSlippageBps > BasisPointConstants.ONE_HUNDRED_PERCENT_BPS) {
-            revert EstimatedOverallSlippageBpsCannotExceedOneHundredPercent(estimatedOverallSlippageBps);
-        }
-
-        // Calculate the leveraged collateral amount to deposit with slippage included
-        // Explained with formula in _calculateEstimatedOverallSlippageBps()
-        uint256 leveragedCollateralAmount = Math.mulDiv(
-            currentLeveragedAssets,
-            BasisPointConstants.ONE_HUNDRED_PERCENT_BPS - estimatedOverallSlippageBps,
-            BasisPointConstants.ONE_HUNDRED_PERCENT_BPS
+        uint256 leveragedCollateralAmount = SharedLogic.getLeveragedCollateralAmountWithSlippage(
+            assets,
+            minOutputShares,
+            dLoopCore
         );
 
         // Create the flash loan params data
@@ -296,11 +223,16 @@ abstract contract DLoopDepositorBase is
             revert SharesNotIncreasedAfterFlashLoan(sharesBeforeDeposit, sharesAfterDeposit);
         }
 
+        // Update the token balances before and after the deposit
+        collateralTokenBalancesBeforeAfter.tokenBalanceAfter = collateralToken.balanceOf(address(this));
+        debtTokenBalancesBeforeAfter.tokenBalanceAfter = debtToken.balanceOf(address(this));
+
         // Finalize deposit and transfer shares
         return
             _finalizeDepositAndTransfer(
                 dLoopCore,
-                debtToken,
+                collateralTokenBalancesBeforeAfter,
+                debtTokenBalancesBeforeAfter,
                 receiver,
                 sharesBeforeDeposit,
                 sharesAfterDeposit,
@@ -457,7 +389,8 @@ abstract contract DLoopDepositorBase is
     /**
      * @dev Finalizes deposit by validating shares and transferring to receiver
      * @param dLoopCore The dLoopCore contract
-     * @param debtToken The debt token
+     * @param collateralTokenBalancesBeforeAfter Collateral token balances before and after the deposit
+     * @param debtTokenBalancesBeforeAfter Debt token balances before and after the deposit
      * @param receiver Address to receive the shares
      * @param sharesBeforeDeposit Shares before deposit
      * @param sharesAfterDeposit Shares after deposit
@@ -466,12 +399,43 @@ abstract contract DLoopDepositorBase is
      */
     function _finalizeDepositAndTransfer(
         DLoopCoreBase dLoopCore,
-        ERC20 debtToken,
+        SharedLogic.TokenBalancesBeforeAfter memory collateralTokenBalancesBeforeAfter,
+        SharedLogic.TokenBalancesBeforeAfter memory debtTokenBalancesBeforeAfter,
         address receiver,
         uint256 sharesBeforeDeposit,
         uint256 sharesAfterDeposit,
         uint256 minOutputShares
     ) internal returns (uint256 shares) {
+        // Transfer any leftover debt tokens directly to the receiver
+        {
+            (uint256 leftoverDebtTokenAmount, bool success) = SharedLogic.transferLeftoverTokens(
+                debtTokenBalancesBeforeAfter,
+                receiver
+            );
+            if (success) {
+                emit LeftoverDebtTokensTransferred(
+                    address(debtTokenBalancesBeforeAfter.token),
+                    leftoverDebtTokenAmount,
+                    receiver
+                );
+            }
+        }
+
+        // Transfer any leftover collateral tokens directly to the receiver
+        {
+            (uint256 leftoverCollateralTokenAmount, bool success) = SharedLogic.transferLeftoverTokens(
+                collateralTokenBalancesBeforeAfter,
+                receiver
+            );
+            if (success) {
+                emit LeftoverCollateralTokensTransferred(
+                    address(collateralTokenBalancesBeforeAfter.token),
+                    leftoverCollateralTokenAmount,
+                    receiver
+                );
+            }
+        }
+
         /**
          * Make sure the shares minted is not less than the minimum output shares
          * for slippage protection
@@ -482,16 +446,6 @@ abstract contract DLoopDepositorBase is
         shares = sharesAfterDeposit - sharesBeforeDeposit;
         if (shares < minOutputShares) {
             revert ReceivedSharesNotMetMinReceiveAmount(shares, minOutputShares);
-        }
-
-        // There is no leftover collateral token, as all swapped collateral token
-        // (using flash loaned debt token) is used to deposit to the core contract
-
-        // Transfer any leftover debt tokens directly to the receiver
-        uint256 leftoverAmount = debtToken.balanceOf(address(this));
-        if (leftoverAmount > 0) {
-            debtToken.safeTransfer(receiver, leftoverAmount);
-            emit LeftoverDebtTokensTransferred(address(debtToken), leftoverAmount, receiver);
         }
 
         // Transfer the minted shares to the receiver

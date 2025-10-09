@@ -1,6 +1,7 @@
 import { ZeroAddress } from "ethers";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 
+import { assertNotEmpty } from "../../typescript/common/assert";
 import { ONE_PERCENT_BPS } from "../../typescript/common/bps_constants";
 import { DS_TOKEN_ID, DUSD_TOKEN_ID, INCENTIVES_PROXY_ID } from "../../typescript/deploy-ids";
 import { ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT, ORACLE_AGGREGATOR_PRICE_DECIMALS } from "../../typescript/oracle_aggregator/constants";
@@ -165,15 +166,14 @@ export async function getConfig(_hre: HardhatRuntimeEnvironment): Promise<Config
       },
     },
     dLoop: {
-      dUSDAddress: dUSDDeployment?.address || "",
+      dUSDAddress: assertNotEmpty(dUSDDeployment?.address),
       coreVaults: {
-        "3x_sfrxUSD_dUSD": {
-          // TODO: ALL dLOOP values are for QA ONLY. Reset them before mainnet
+        "3x_sfrxUSD_dUSD_demo": {
           venue: "dlend",
           name: "dLOOP 3X sfrxUSD dLEND",
           symbol: "3X-sfrxUSD",
           underlyingAsset: sfrxUSDAddress,
-          dStable: dUSDDeployment?.address || "",
+          dStable: assertNotEmpty(dUSDDeployment?.address),
           targetLeverageBps: 300 * ONE_PERCENT_BPS, // 300% leverage, meaning 3x leverage
           lowerBoundTargetLeverageBps: 200 * ONE_PERCENT_BPS, // 200% leverage, meaning 2x leverage
           upperBoundTargetLeverageBps: 400 * ONE_PERCENT_BPS, // 400% leverage, meaning 4x leverage
@@ -185,7 +185,7 @@ export async function getConfig(_hre: HardhatRuntimeEnvironment): Promise<Config
             treasury: governanceSafeMultisig,
             maxTreasuryFeeBps: "1000",
             initialTreasuryFeeBps: "500",
-            initialExchangeThreshold: 1n * 10n ** BigInt(dUSDDecimals), // TODO: 1 dStable token (fetched from contract decimals), for QA ONLY
+            initialExchangeThreshold: 10n * 10n ** BigInt(dUSDDecimals), // 10 dStable tokens to exchange the rewards
           },
         },
       },

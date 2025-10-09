@@ -27,6 +27,7 @@ import { DLoopCoreBase } from "../core/DLoopCoreBase.sol";
 import { SwappableVault } from "contracts/common/SwappableVault.sol";
 import { RescuableVault } from "contracts/common/RescuableVault.sol";
 import { BasisPointConstants } from "contracts/common/BasisPointConstants.sol";
+import { SharedLogic } from "./helper/SharedLogic.sol";
 
 /**
  * @title DLoopDecreaseLeverageBase
@@ -59,7 +60,7 @@ abstract contract DLoopDecreaseLeverageBase is
     error UnknownLender(address msgSender, address flashLender);
     error UnknownInitiator(address initiator, address thisContract);
     error IncompatibleDLoopCoreDebtToken(address currentDebtToken, address dLoopCoreDebtToken);
-    error CollateralTokenBalanceNotIncreasedAfterDecreaseLeverage(
+    error CollateralTokenBalanceDecreasedAfterDecreaseLeverage(
         uint256 collateralTokenBalanceBeforeDecrease,
         uint256 collateralTokenBalanceAfterDecrease
     );
@@ -74,6 +75,8 @@ abstract contract DLoopDecreaseLeverageBase is
         uint256 amount,
         address indexed receiver
     );
+
+    event LeftoverDebtTokensTransferred(address indexed debtToken, uint256 amount, address indexed receiver);
 
     /* Structs */
 
@@ -131,6 +134,17 @@ abstract contract DLoopDecreaseLeverageBase is
         bytes calldata collateralToDebtTokenSwapData,
         DLoopCoreBase dLoopCore
     ) public nonReentrant returns (uint256 receivedCollateralTokenAmount) {
+        ERC20 collateralToken = dLoopCore.collateralToken();
+        ERC20 debtToken = dLoopCore.debtToken();
+
+        // Track the token balances before the decrease leverage
+        SharedLogic.TokenBalancesBeforeAfter memory collateralTokenBalancesBeforeAfter;
+        collateralTokenBalancesBeforeAfter.token = collateralToken;
+        collateralTokenBalancesBeforeAfter.tokenBalanceBefore = collateralToken.balanceOf(address(this));
+        SharedLogic.TokenBalancesBeforeAfter memory debtTokenBalancesBeforeAfter;
+        debtTokenBalancesBeforeAfter.token = debtToken;
+        debtTokenBalancesBeforeAfter.tokenBalanceBefore = debtToken.balanceOf(address(this));
+
         // Record initial leverage
         uint256 leverageBeforeDecrease = dLoopCore.getCurrentLeverageBps();
 
@@ -148,16 +162,34 @@ abstract contract DLoopDecreaseLeverageBase is
             revert LeverageNotDecreased(leverageBeforeDecrease, leverageAfterDecrease);
         }
 
-        ERC20 collateralToken = dLoopCore.collateralToken();
-
-        // Transfer received collateral tokens to user
-        collateralToken.safeTransfer(msg.sender, receivedCollateralTokenAmount);
+        // Track the token balances after the decrease leverage
+        collateralTokenBalancesBeforeAfter.tokenBalanceAfter = collateralToken.balanceOf(address(this));
+        debtTokenBalancesBeforeAfter.tokenBalanceAfter = debtToken.balanceOf(address(this));
 
         // Transfer any leftover collateral tokens directly to the user
-        uint256 leftoverAmount = collateralToken.balanceOf(address(this));
-        if (leftoverAmount > 0) {
-            collateralToken.safeTransfer(msg.sender, leftoverAmount);
-            emit LeftoverCollateralTokensTransferred(address(collateralToken), leftoverAmount, msg.sender);
+        {
+            (uint256 leftoverCollateralTokenAmount, bool success) = SharedLogic.transferLeftoverTokens(
+                collateralTokenBalancesBeforeAfter,
+                msg.sender
+            );
+            if (success) {
+                emit LeftoverCollateralTokensTransferred(
+                    address(collateralToken),
+                    leftoverCollateralTokenAmount,
+                    msg.sender
+                );
+            }
+        }
+
+        // Transfer any leftover debt tokens directly to the user
+        {
+            (uint256 leftoverDebtTokenAmount, bool success) = SharedLogic.transferLeftoverTokens(
+                debtTokenBalancesBeforeAfter,
+                msg.sender
+            );
+            if (success) {
+                emit LeftoverDebtTokensTransferred(address(debtToken), leftoverDebtTokenAmount, msg.sender);
+            }
         }
 
         return receivedCollateralTokenAmount;
@@ -208,10 +240,10 @@ abstract contract DLoopDecreaseLeverageBase is
             0 // No min amount check here, will be checked in main function
         );
 
-        // Verify we received collateral tokens
+        // Verify the collateral token balance does not decrease after decrease leverage
         uint256 collateralTokenBalanceAfterDecrease = collateralToken.balanceOf(address(this));
-        if (collateralTokenBalanceAfterDecrease <= collateralTokenBalanceBeforeDecrease) {
-            revert CollateralTokenBalanceNotIncreasedAfterDecreaseLeverage(
+        if (collateralTokenBalanceAfterDecrease < collateralTokenBalanceBeforeDecrease) {
+            revert CollateralTokenBalanceDecreasedAfterDecreaseLeverage(
                 collateralTokenBalanceBeforeDecrease,
                 collateralTokenBalanceAfterDecrease
             );
@@ -287,10 +319,10 @@ abstract contract DLoopDecreaseLeverageBase is
             0 // no need to have slippage protection here
         );
 
-        // Make sure the collateral token balance increased after decrease leverage
+        // Make sure the collateral token balance does not decrease after decrease leverage
         uint256 collateralTokenBalanceAfterDecrease = collateralToken.balanceOf(address(this));
-        if (collateralTokenBalanceAfterDecrease <= collateralTokenBalanceBeforeDecrease) {
-            revert CollateralTokenBalanceNotIncreasedAfterDecreaseLeverage(
+        if (collateralTokenBalanceAfterDecrease < collateralTokenBalanceBeforeDecrease) {
+            revert CollateralTokenBalanceDecreasedAfterDecreaseLeverage(
                 collateralTokenBalanceBeforeDecrease,
                 collateralTokenBalanceAfterDecrease
             );

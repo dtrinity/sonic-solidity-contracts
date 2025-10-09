@@ -27,7 +27,7 @@ import { DLoopCoreBase } from "../core/DLoopCoreBase.sol";
 import { SwappableVault } from "contracts/common/SwappableVault.sol";
 import { RescuableVault } from "contracts/common/RescuableVault.sol";
 import { BasisPointConstants } from "contracts/common/BasisPointConstants.sol";
-
+import { SharedLogic } from "./helper/SharedLogic.sol";
 /**
  * @title DLoopIncreaseLeverageBase
  * @dev A helper contract for increasing leverage with flash loans
@@ -75,6 +75,11 @@ abstract contract DLoopIncreaseLeverageBase is
 
     /* Events */
 
+    event LeftoverCollateralTokensTransferred(
+        address indexed collateralToken,
+        uint256 amount,
+        address indexed receiver
+    );
     event LeftoverDebtTokensTransferred(address indexed debtToken, uint256 amount, address indexed receiver);
 
     /* Structs */
@@ -125,10 +130,19 @@ abstract contract DLoopIncreaseLeverageBase is
         bytes calldata debtTokenToCollateralSwapData,
         DLoopCoreBase dLoopCore
     ) public nonReentrant returns (uint256 receivedDebtTokenAmount) {
+        ERC20 collateralToken = dLoopCore.collateralToken();
+        ERC20 debtToken = dLoopCore.debtToken();
+
+        // Track the token balances before the deposit
+        SharedLogic.TokenBalancesBeforeAfter memory collateralTokenBalancesBeforeAfter;
+        collateralTokenBalancesBeforeAfter.token = collateralToken;
+        collateralTokenBalancesBeforeAfter.tokenBalanceBefore = collateralToken.balanceOf(address(this));
+        SharedLogic.TokenBalancesBeforeAfter memory debtTokenBalancesBeforeAfter;
+        debtTokenBalancesBeforeAfter.token = debtToken;
+        debtTokenBalancesBeforeAfter.tokenBalanceBefore = debtToken.balanceOf(address(this));
+
         // Record initial leverage
         uint256 leverageBeforeIncrease = dLoopCore.getCurrentLeverageBps();
-
-        ERC20 collateralToken = dLoopCore.collateralToken();
 
         uint256 currentCollateralTokenBalance = collateralToken.balanceOf(address(this));
         if (rebalanceCollateralAmount > currentCollateralTokenBalance) {
@@ -146,6 +160,10 @@ abstract contract DLoopIncreaseLeverageBase is
             revert LeverageNotIncreased(leverageBeforeIncrease, leverageAfterIncrease);
         }
 
+        // Track the token balances after the increase leverage
+        debtTokenBalancesBeforeAfter.tokenBalanceAfter = debtToken.balanceOf(address(this));
+        collateralTokenBalancesBeforeAfter.tokenBalanceAfter = collateralToken.balanceOf(address(this));
+
         // Transfer any leftover debt tokens directly to the user
         //   + If it is the case without flash loan, the leftover amount will be
         //     value equals to the currentCollateralTokenBalance, but in debt token
@@ -153,11 +171,29 @@ abstract contract DLoopIncreaseLeverageBase is
         //   + If it is the case with flash loan, the leftover amount will be
         //     subsidy in debt token, plus the positive slippage in debt token
         //     during swapping.
-        ERC20 debtToken = dLoopCore.debtToken();
-        receivedDebtTokenAmount = debtToken.balanceOf(address(this));
-        if (receivedDebtTokenAmount > 0) {
-            debtToken.safeTransfer(msg.sender, receivedDebtTokenAmount);
-            emit LeftoverDebtTokensTransferred(address(debtToken), receivedDebtTokenAmount, msg.sender);
+        {
+            (uint256 leftoverDebtTokenAmount, bool success) = SharedLogic.transferLeftoverTokens(
+                debtTokenBalancesBeforeAfter,
+                msg.sender
+            );
+            if (success) {
+                emit LeftoverDebtTokensTransferred(address(debtToken), leftoverDebtTokenAmount, msg.sender);
+            }
+        }
+
+        // Transfer any leftover collateral tokens directly to the user
+        {
+            (uint256 leftoverCollateralTokenAmount, bool success) = SharedLogic.transferLeftoverTokens(
+                collateralTokenBalancesBeforeAfter,
+                msg.sender
+            );
+            if (success) {
+                emit LeftoverCollateralTokensTransferred(
+                    address(collateralToken),
+                    leftoverCollateralTokenAmount,
+                    msg.sender
+                );
+            }
         }
 
         return receivedDebtTokenAmount;
@@ -270,6 +306,9 @@ abstract contract DLoopIncreaseLeverageBase is
             requiredFlashLoanAmountInBase,
             address(debtToken)
         );
+
+        // Multiply by 2 to avoid overflow issue
+        requiredFlashLoanAmount *= 2;
 
         // Check if flash loan amount is available
         uint256 maxFlashLoanAmount = flashLender.maxFlashLoan(address(debtToken)) / 10; // Only flash loan 1/10 of the max amount to avoid overflow issue

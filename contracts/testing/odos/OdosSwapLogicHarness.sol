@@ -15,7 +15,9 @@ contract OdosSwapLogicHarness {
         bytes calldata swapData,
         IOdosRouterV2 router
     ) external returns (uint256 amountSpent) {
-        amountSpent = OdosSwapLogic.swapExactOutput(
+        uint256 inputTokenBalanceBefore = inputToken.balanceOf(address(this));
+
+        OdosSwapLogic.swapExactOutput(
             inputToken,
             outputToken,
             amountOut,
@@ -25,5 +27,16 @@ contract OdosSwapLogicHarness {
             swapData,
             router
         );
+
+        uint256 inputTokenBalanceAfter = inputToken.balanceOf(address(this));
+
+        if (inputTokenBalanceAfter < inputTokenBalanceBefore) {
+            amountSpent = inputTokenBalanceBefore - inputTokenBalanceAfter;
+            if (amountSpent > amountInMaximum) {
+                revert("Amount spent exceeds amount in maximum");
+            }
+        } else {
+            amountSpent = 0;
+        }
     }
 }
