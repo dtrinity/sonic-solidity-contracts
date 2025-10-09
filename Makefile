@@ -1,4 +1,26 @@
+-include ./.env
+
+
+ROLES_NETWORK ?= sonic_mainnet
+ROLES_MANIFEST ?= manifests/sonic-mainnet-roles.json
+ROLES_SCAN_ARGS ?= --drift-check
+ROLES_TRANSFER_ARGS ?=
+ROLES_REVOKE_ARGS ?=
+
+SHARED_ENABLE_SLITHER_TARGETS := 0
 include .shared/Makefile
+
+override TS_NODE := TS_NODE_TRANSPILE_ONLY=1 TS_NODE_PROJECT=$(PROJECT_ROOT)/tsconfig.shared.json $(YARN) ts-node --project $(PROJECT_ROOT)/tsconfig.shared.json
+
+MANIFEST_DEPLOYER := $(shell node -e "const fs=require('fs');const path=require('path');try{const m=JSON.parse(fs.readFileSync(path.resolve('$(ROLES_MANIFEST)'),'utf8'));if(m.deployer){process.stdout.write(m.deployer);}}catch(e){}")
+MANIFEST_GOVERNANCE := $(shell node -e "const fs=require('fs');const path=require('path');try{const m=JSON.parse(fs.readFileSync(path.resolve('$(ROLES_MANIFEST)'),'utf8'));if(m.governance){process.stdout.write(m.governance);}}catch(e){}")
+
+network ?= $(ROLES_NETWORK)
+manifest ?= $(ROLES_MANIFEST)
+deployer ?= $(MANIFEST_DEPLOYER)
+governance ?= $(MANIFEST_GOVERNANCE)
+
+$(shell mkdir -p reports/roles)
 
 ##############
 ## Testing  ##

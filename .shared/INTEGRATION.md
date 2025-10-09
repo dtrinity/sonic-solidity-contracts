@@ -59,6 +59,31 @@ include .shared/Makefile
 
 The include injects the common `make lint`, `make lint.ci`, `make slither`, and guardrail helper targets so teams keep familiar workflows while relying on the shared TypeScript tooling.
 
+Immediately after the include, add a few defaults so the shared role automation can run without extra flags:
+
+```make
+ROLES_NETWORK ?= katana_mainnet
+ROLES_MANIFEST ?= manifests/katana-mainnet-roles.json
+ROLES_SCAN_ARGS ?= --drift-check
+ROLES_TRANSFER_ARGS ?=
+ROLES_REVOKE_ARGS ?=
+```
+
+With those in place you can invoke `make roles.scan`, `make roles.transfer`, or `make roles.revoke` directly. The deployer / governance addresses are pulled from the manifest, and `roles.revoke` also reads the Safe configuration (`safe.safeAddress` / `safe.chainId`) unless you override them explicitly. To customise behaviour on the fly, pass the exposed variables inline:
+
+```bash
+# run drift check and persist the JSON summary
+make roles.scan ROLES_SCAN_ARGS="--drift-check --json-output reports/roles/scan.json"
+# dry-run transfers
+make roles.transfer ROLES_TRANSFER_ARGS="--dry-run-only"
+# target an alternate manifest / Safe combo
+make roles.revoke manifest=manifests/katana-testnet-roles.json
+```
+
+When repositories keep TypeScript sources outside the default Hardhat `tsconfig.json`, add a thin wrapper such as `tsconfig.shared.json` that extends `./.shared/tsconfig.json` and lists `node`, `hardhat`, and `hardhat-deploy` in `compilerOptions.types`. Point `TS_NODE_PROJECT` (see Katana/Fraxtal `Makefile` examples) at this file so the shared CLI compiles without missing-type errors.
+
+Shared role targets write JSON artefacts under `reports/roles/`; add `reports/**/*.json` (or a narrower glob) to `.gitignore` so drift outputs do not clutter commits.
+
 #### Enable the shared GitHub Actions workflow
 
 Add the guardrail workflow so CI runs the shared lint/compile/test suite on every push and PR:

@@ -9,6 +9,7 @@ export interface RoleInfo {
 }
 
 export interface RolesContractInfo {
+  deploymentName: string;
   name: string;
   address: string;
   abi: AbiItem[];
@@ -20,6 +21,7 @@ export interface RolesContractInfo {
 }
 
 export interface OwnableContractInfo {
+  deploymentName: string;
   name: string;
   address: string;
   abi: AbiItem[];
@@ -64,7 +66,8 @@ export async function scanRolesAndOwnership(options: ScanOptions): Promise<ScanR
       const deployment = JSON.parse(fs.readFileSync(artifactPath, "utf-8"));
       const abi: AbiItem[] = deployment.abi;
       const contractAddress: string = deployment.address;
-      const contractName: string = deployment.contractName || filename.replace(".json", "");
+      const deploymentName: string = filename.replace(".json", "");
+      const contractName: string = deployment.contractName || deploymentName;
 
       // Detect AccessControl
       const hasRoleFn = abi.find(
@@ -135,6 +138,7 @@ export async function scanRolesAndOwnership(options: ScanOptions): Promise<ScanR
         }
 
         rolesContracts.push({
+          deploymentName,
           name: contractName,
           address: contractAddress,
           abi,
@@ -165,6 +169,7 @@ export async function scanRolesAndOwnership(options: ScanOptions): Promise<ScanR
           const governanceLower = governanceMultisig?.toLowerCase?.();
           log(`  Contract ${contractName} appears to be Ownable. owner=${owner}`);
           ownableContracts.push({
+            deploymentName,
             name: contractName,
             address: contractAddress,
             abi,
