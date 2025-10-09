@@ -1,17 +1,7 @@
 {
   "extends": "./.shared/tsconfig.json",
   "compilerOptions": {
-    "types": [
-      "node",
-      "hardhat",
-      "@nomicfoundation/hardhat-ethers",
-      "@nomicfoundation/hardhat-chai-matchers",
-      "hardhat-deploy"
-    ]
+    "types": ["node", "hardhat", "@nomicfoundation/hardhat-ethers", "@nomicfoundation/hardhat-chai-matchers", "hardhat-deploy"]
   },
-  "include": [
-    ".shared/scripts/**/*.ts",
-    ".shared/lib/**/*.ts",
-    ".shared/configs/**/*.ts"
-  ]
+  "include": [".shared/scripts/**/*.ts", ".shared/lib/**/*.ts", ".shared/configs/**/*.ts"]
 }
