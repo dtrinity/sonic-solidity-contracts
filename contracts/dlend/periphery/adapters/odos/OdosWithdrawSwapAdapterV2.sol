@@ -69,6 +69,15 @@ contract OdosWithdrawSwapAdapterV2 is BaseOdosSellAdapterV2, ReentrancyGuard, IO
         POOL.supply(asset, amount, to, referralCode);
     }
 
+    /**
+     * @notice Sets the oracle price deviation tolerance (governance only)
+     * @dev Cannot exceed MAX_ORACLE_PRICE_TOLERANCE_BPS (5%)
+     * @param newToleranceBps New tolerance in basis points (e.g., 300 = 3%)
+     */
+    function setOraclePriceTolerance(uint256 newToleranceBps) external onlyOwner {
+        _setOraclePriceTolerance(newToleranceBps);
+    }
+
     /// @inheritdoc IOdosWithdrawSwapAdapterV2
     function withdrawAndSwap(
         WithdrawSwapParamsV2 memory withdrawSwapParams,

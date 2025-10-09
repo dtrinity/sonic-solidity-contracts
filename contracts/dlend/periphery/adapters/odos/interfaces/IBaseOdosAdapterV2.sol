@@ -87,5 +87,12 @@ interface IBaseOdosAdapterV2 is IBaseOdosAdapter {
      */
     error ZeroOraclePrice(address token);
 
+    /**
+     * @dev Thrown when attempting to set invalid tolerance (exceeds maximum)
+     * @param attemptedTolerance The tolerance value that was attempted
+     * @param maxAllowed The maximum allowed tolerance
+     */
+    error InvalidToleranceBps(uint256 attemptedTolerance, uint256 maxAllowed);
+
     /* Structs intentionally omitted to avoid duplication with PTSwapUtils */
 }

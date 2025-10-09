@@ -79,6 +79,15 @@ contract OdosLiquiditySwapAdapterV2 is
         POOL.supply(asset, amount, to, referralCode);
     }
 
+    /**
+     * @notice Sets the oracle price deviation tolerance (governance only)
+     * @dev Cannot exceed MAX_ORACLE_PRICE_TOLERANCE_BPS (5%)
+     * @param newToleranceBps New tolerance in basis points (e.g., 300 = 3%)
+     */
+    function setOraclePriceTolerance(uint256 newToleranceBps) external onlyOwner {
+        _setOraclePriceTolerance(newToleranceBps);
+    }
+
     /// @inheritdoc IOdosLiquiditySwapAdapterV2
     function swapLiquidity(
         LiquiditySwapParamsV2 memory liquiditySwapParams,

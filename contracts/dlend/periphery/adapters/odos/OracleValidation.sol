@@ -29,8 +29,13 @@ import { SafeOracleMath } from "./SafeOracleMath.sol";
  * @dev Provides common oracle validation functions to eliminate code duplication
  */
 abstract contract OracleValidation {
-    /// @notice Oracle price deviation tolerance in basis points (500 = 5%)
-    uint256 public constant ORACLE_PRICE_TOLERANCE_BPS = 500;
+    /// @notice Oracle price deviation tolerance in basis points (default 500 = 5%)
+    /// @dev Governance can adjust this based on chain maturity and oracle reliability
+    ///      5% is the maximum for exotic chains, should be tightened over time
+    uint256 public ORACLE_PRICE_TOLERANCE_BPS = 500;
+
+    /// @notice Maximum allowed tolerance (5%) - governance cannot exceed this
+    uint256 public constant MAX_ORACLE_PRICE_TOLERANCE_BPS = 500;
 
     // Custom errors are defined in IBaseOdosAdapterV2 interface
 
@@ -39,6 +44,31 @@ abstract contract OracleValidation {
      * @return The addresses provider instance
      */
     function _getAddressesProvider() internal view virtual returns (IPoolAddressesProvider);
+
+    /**
+     * @notice Sets the oracle price deviation tolerance
+     * @dev Only callable by contract owner (governance)
+     * @dev Cannot exceed MAX_ORACLE_PRICE_TOLERANCE_BPS (5%)
+     * @dev Should be lowered over time as oracles become more reliable
+     * @param newToleranceBps New tolerance in basis points (e.g., 300 = 3%)
+     */
+    function _setOraclePriceTolerance(uint256 newToleranceBps) internal virtual {
+        if (newToleranceBps > MAX_ORACLE_PRICE_TOLERANCE_BPS) {
+            revert IBaseOdosAdapterV2.InvalidToleranceBps(newToleranceBps, MAX_ORACLE_PRICE_TOLERANCE_BPS);
+        }
+        
+        uint256 oldTolerance = ORACLE_PRICE_TOLERANCE_BPS;
+        ORACLE_PRICE_TOLERANCE_BPS = newToleranceBps;
+        
+        emit OraclePriceToleranceUpdated(oldTolerance, newToleranceBps);
+    }
+
+    /**
+     * @notice Emitted when oracle price tolerance is updated
+     * @param oldTolerance Previous tolerance value in basis points
+     * @param newTolerance New tolerance value in basis points
+     */
+    event OraclePriceToleranceUpdated(uint256 oldTolerance, uint256 newTolerance);
 
     /**
      * @dev Validates swap amounts against oracle prices for exact output swaps

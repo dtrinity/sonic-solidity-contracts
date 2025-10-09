@@ -82,6 +82,15 @@ contract OdosDebtSwapAdapterV2 is
     }
 
     /**
+     * @notice Sets the oracle price deviation tolerance (governance only)
+     * @dev Cannot exceed MAX_ORACLE_PRICE_TOLERANCE_BPS (5%)
+     * @param newToleranceBps New tolerance in basis points (e.g., 300 = 3%)
+     */
+    function setOraclePriceTolerance(uint256 newToleranceBps) external onlyOwner {
+        _setOraclePriceTolerance(newToleranceBps);
+    }
+
+    /**
      * @dev Swaps one type of debt to another with PT token support
      * @param debtSwapParams the enhanced parameters describing the swap
      * @param creditDelegationPermit optional permit for credit delegation
