@@ -221,10 +221,11 @@ library PendleSwapLogic {
                 revert IBaseOdosAdapterV2.InvalidPTSwapData();
             }
 
-            // Record balance before Odos swap for debugging
+            // Record balance before Odos swap
             uint256 underlyingBalanceBeforeOdos = IERC20(swapData.underlyingAsset).balanceOf(address(this));
 
-            underlyingAmount = OdosSwapUtils.executeSwapOperation(
+            // Execute Odos swap (return value is informational only)
+            OdosSwapUtils.executeSwapOperation(
                 odosRouter,
                 sourceToken,
                 swapData.underlyingAsset,
@@ -240,19 +241,12 @@ library PendleSwapLogic {
                 revert IBaseOdosAdapterV2.OdosSwapFailed("Odos swap resulted in balance decrease");
             }
 
-            uint256 actualReceived = underlyingBalanceAfterOdos - underlyingBalanceBeforeOdos;
+            // Use actual measured balance change (safer than trusting return value)
+            underlyingAmount = underlyingBalanceAfterOdos - underlyingBalanceBeforeOdos;
 
-            if (actualReceived == 0) {
+            if (underlyingAmount == 0) {
                 revert IBaseOdosAdapterV2.OdosSwapFailed("Odos swap returned zero underlying tokens");
             }
-        }
-
-        // Stage 2: underlying -> PT via Pendle
-        uint256 underlyingBalanceBefore = IERC20(swapData.underlyingAsset).balanceOf(address(this));
-
-        // Verify we have sufficient underlying tokens
-        if (underlyingBalanceBefore < underlyingAmount) {
-            revert UnderlyingBalanceInsufficient(underlyingAmount, underlyingBalanceBefore);
         }
 
         // Stage 2: underlying → PT via PendleSwapUtils
@@ -318,6 +312,7 @@ library PendleSwapLogic {
         {
             uint256 underlyingBalanceBefore = IERC20(swapData.underlyingAsset).balanceOf(address(this));
 
+            // Execute Odos swap (return value is informational only)
             OdosSwapUtils.executeSwapOperation(
                 odosRouter,
                 inputPTToken,
@@ -334,6 +329,7 @@ library PendleSwapLogic {
                 revert IBaseOdosAdapterV2.OdosSwapFailed("Odos PT swap resulted in balance decrease");
             }
 
+            // Use actual measured balance change (safer than trusting return value)
             actualUnderlyingReceived = underlyingBalanceAfter - underlyingBalanceBefore;
         }
 

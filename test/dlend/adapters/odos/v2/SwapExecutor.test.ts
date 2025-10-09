@@ -10,7 +10,7 @@ import {
   OdosV2TestFixture,
 } from "./fixtures/setup";
 
-describe("SwapExecutorV2 - Pure Logic Tests", function () {
+describe("SwapExecutor - Pure Logic Tests", function () {
   let fixture: OdosV2TestFixture;
 
   beforeEach(async function () {

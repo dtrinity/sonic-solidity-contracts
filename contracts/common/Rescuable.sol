@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: AGPL-3.0
 /* ———————————————————————————————————————————————————————————————————————————————— *
  *    _____     ______   ______     __     __   __     __     ______   __  __       *
  *   /\  __-.  /\__  _\ /\  == \   /\ \   /\ "-.\ \   /\ \   /\__  _\ /\ \_\ \      *
@@ -17,28 +17,26 @@
 
 pragma solidity ^0.8.20;
 
-import { IBaseCurveAdapter } from "./IBaseCurveAdapter.sol";
+import { IERC20 } from "contracts/dlend/core/dependencies/openzeppelin/contracts/IERC20.sol";
+import { SafeERC20 } from "contracts/dlend/core/dependencies/openzeppelin/contracts/SafeERC20.sol";
+import { Ownable } from "contracts/dlend/core/dependencies/openzeppelin/contracts/Ownable.sol";
 
 /**
- * @title ICurveWithdrawSwapAdapter
- * @notice Defines the basic interface for CurveWithdrawSwapAdapter
- * @dev Implement this interface to provide functionality of withdrawing from the Aave Pool and swapping to another asset
- **/
-interface ICurveWithdrawSwapAdapter is IBaseCurveAdapter {
-    struct WithdrawSwapParams {
-        address oldAsset; // the asset to withdraw and swap from
-        uint256 oldAssetAmount; // the amount to withdraw
-        address newAsset; // the asset to swap to
-        uint256 minAmountToReceive; // the minimum amount of new asset to receive
-        address user; // the address of user
-        address[11] route; // the route to swap the collateral asset to the debt asset on Curve
-        uint256[4][5] swapParams; // the swap parameters on Curve
-    }
+ * @title Rescuable
+ * @notice Provides emergency token rescue functionality for contracts
+ * @dev Allows the owner to rescue any ERC20 tokens that get stuck in the contract
+ * - Funds should never remain in the contract longer than during transactions
+ * - This is a failsafe mechanism for edge cases and user errors
+ */
+abstract contract Rescuable is Ownable {
+    using SafeERC20 for IERC20;
 
     /**
-     * @notice Withdraws and swaps an asset that is supplied to the Aave Pool
-     * @param withdrawSwapParams struct describing the withdraw swap
-     * @param permitInput optional permit for collateral aToken
+     * @dev Emergency rescue for token stucked on this contract, as failsafe mechanism
+     * - Funds should never remain in this contract more time than during transactions
+     * - Only callable by the owner
      */
-    function withdrawAndSwap(WithdrawSwapParams memory withdrawSwapParams, PermitInput memory permitInput) external;
+    function rescueTokens(IERC20 token) external onlyOwner {
+        token.safeTransfer(owner(), token.balanceOf(address(this)));
+    }
 }

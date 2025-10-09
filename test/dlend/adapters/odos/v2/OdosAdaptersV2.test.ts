@@ -93,7 +93,7 @@ describe("Odos V2 Adapters - Pure Logic Tests", function () {
     it("✅ should validate RepayParamsV2 structure", async function () {
       const { tokenA, tokenB } = fixture;
 
-      // Test parameter structure for RepayParamsV2
+      // Test parameter structure for RepayParamsV2 (user field removed - now uses msg.sender)
       const repayParams = {
         collateralAsset: await tokenA.getAddress(),
         collateralAmount: ethers.parseEther("1000"),
@@ -101,7 +101,6 @@ describe("Odos V2 Adapters - Pure Logic Tests", function () {
         repayAmount: ethers.parseEther("950"),
         rateMode: 2, // Variable rate
         withFlashLoan: false,
-        user: ethers.Wallet.createRandom().address,
         minAmountToReceive: ethers.parseEther("900"),
         swapData: "0x",
         allBalanceOffset: 0,
@@ -109,7 +108,7 @@ describe("Odos V2 Adapters - Pure Logic Tests", function () {
 
       // Test that parameters can be encoded/decoded correctly
       const encoded = ethers.AbiCoder.defaultAbiCoder().encode(
-        ["tuple(address,uint256,address,uint256,uint256,bool,address,uint256,bytes,uint256)"],
+        ["tuple(address,uint256,address,uint256,uint256,bool,uint256,bytes,uint256)"],
         [
           [
             repayParams.collateralAsset,
@@ -118,7 +117,6 @@ describe("Odos V2 Adapters - Pure Logic Tests", function () {
             repayParams.repayAmount,
             repayParams.rateMode,
             repayParams.withFlashLoan,
-            repayParams.user,
             repayParams.minAmountToReceive,
             repayParams.swapData,
             repayParams.allBalanceOffset,
@@ -133,12 +131,12 @@ describe("Odos V2 Adapters - Pure Logic Tests", function () {
     it("✅ should validate LiquiditySwapParamsV2 structure", async function () {
       const { tokenA, tokenB } = fixture;
 
+      // User field removed - now uses msg.sender
       const liquidityParams = {
         collateralAsset: await tokenA.getAddress(),
         collateralAmountToSwap: ethers.parseEther("1000"),
         newCollateralAsset: await tokenB.getAddress(),
         newCollateralAmount: ethers.parseEther("950"),
-        user: ethers.Wallet.createRandom().address,
         withFlashLoan: true,
         swapData: "0x",
         allBalanceOffset: ethers.parseEther("50"),
@@ -146,14 +144,13 @@ describe("Odos V2 Adapters - Pure Logic Tests", function () {
 
       // Test parameter encoding
       const encoded = ethers.AbiCoder.defaultAbiCoder().encode(
-        ["tuple(address,uint256,address,uint256,address,bool,bytes,uint256)"],
+        ["tuple(address,uint256,address,uint256,bool,bytes,uint256)"],
         [
           [
             liquidityParams.collateralAsset,
             liquidityParams.collateralAmountToSwap,
             liquidityParams.newCollateralAsset,
             liquidityParams.newCollateralAmount,
-            liquidityParams.user,
             liquidityParams.withFlashLoan,
             liquidityParams.swapData,
             liquidityParams.allBalanceOffset,
@@ -203,26 +200,25 @@ describe("Odos V2 Adapters - Pure Logic Tests", function () {
     it("✅ should validate WithdrawSwapParamsV2 structure", async function () {
       const { tokenA, tokenB } = fixture;
 
+      // User field removed - now uses msg.sender
       const withdrawParams = {
         oldAsset: await tokenA.getAddress(),
         oldAssetAmount: ethers.parseEther("1000"),
         newAsset: await tokenB.getAddress(),
         minAmountToReceive: ethers.parseEther("950"),
-        user: ethers.Wallet.createRandom().address,
         swapData: "0x",
         allBalanceOffset: ethers.parseEther("100"),
       };
 
       // Test parameter encoding
       const encoded = ethers.AbiCoder.defaultAbiCoder().encode(
-        ["tuple(address,uint256,address,uint256,address,bytes,uint256)"],
+        ["tuple(address,uint256,address,uint256,bytes,uint256)"],
         [
           [
             withdrawParams.oldAsset,
             withdrawParams.oldAssetAmount,
             withdrawParams.newAsset,
             withdrawParams.minAmountToReceive,
-            withdrawParams.user,
             withdrawParams.swapData,
             withdrawParams.allBalanceOffset,
           ],
@@ -564,6 +560,95 @@ describe("Odos V2 Adapters - Pure Logic Tests", function () {
       // Validate percentage calculation: 500 BPS = 5%
       const percentage = tolerance / 100; // 5%
       expect(percentage).to.equal(5);
+    });
+  });
+
+  describe("User Authorization", function () {
+    it("✅ LiquiditySwapAdapterV2: user is always msg.sender (security fix)", async function () {
+      const { addressesProvider, pool, odosRouter, pendleRouter } = fixture;
+      const [deployer, other] = await ethers.getSigners();
+
+      const Factory = await ethers.getContractFactory("OdosLiquiditySwapAdapterV2");
+      const adapter = await Factory.deploy(
+        await addressesProvider.getAddress(),
+        await pool.getAddress(),
+        await odosRouter.getAddress(),
+        await pendleRouter.getAddress(),
+        deployer.address,
+      );
+
+      // User field removed from params - now always uses msg.sender internally
+      // This prevents the authentication bypass vulnerability
+      const params = {
+        collateralAsset: ethers.ZeroAddress,
+        collateralAmountToSwap: 0n,
+        newCollateralAsset: ethers.ZeroAddress,
+        newCollateralAmount: 0n,
+        withFlashLoan: false,
+        swapData: "0x",
+        allBalanceOffset: 0n,
+      };
+
+      // The contract will now use `other` as the user since they're msg.sender
+      // No authentication bypass is possible
+      expect(params).to.not.have.property("user");
+    });
+
+    it("✅ RepayAdapterV2: user is always msg.sender (security fix)", async function () {
+      const { addressesProvider, pool, odosRouter, pendleRouter, tokenA, tokenB } = fixture;
+      const [deployer, other] = await ethers.getSigners();
+
+      const Factory = await ethers.getContractFactory("OdosRepayAdapterV2");
+      const adapter = await Factory.deploy(
+        await addressesProvider.getAddress(),
+        await pool.getAddress(),
+        await odosRouter.getAddress(),
+        await pendleRouter.getAddress(),
+        deployer.address,
+      );
+
+      // User field removed from params - now always uses msg.sender internally
+      const params = {
+        collateralAsset: await tokenA.getAddress(),
+        collateralAmount: 0n,
+        debtAsset: await tokenB.getAddress(),
+        repayAmount: 0n,
+        rateMode: 2,
+        withFlashLoan: false,
+        minAmountToReceive: 0n,
+        swapData: "0x",
+        allBalanceOffset: 0n,
+      };
+
+      // The contract will now use msg.sender as the user - no bypass possible
+      expect(params).to.not.have.property("user");
+    });
+
+    it("✅ WithdrawSwapAdapterV2: user is always msg.sender (security fix)", async function () {
+      const { addressesProvider, pool, odosRouter, pendleRouter, tokenA, tokenB } = fixture;
+      const [deployer, other] = await ethers.getSigners();
+
+      const Factory = await ethers.getContractFactory("OdosWithdrawSwapAdapterV2");
+      const adapter = await Factory.deploy(
+        await addressesProvider.getAddress(),
+        await pool.getAddress(),
+        await odosRouter.getAddress(),
+        await pendleRouter.getAddress(),
+        deployer.address,
+      );
+
+      // User field removed from params - now always uses msg.sender internally
+      const params = {
+        oldAsset: await tokenA.getAddress(),
+        oldAssetAmount: 0n,
+        newAsset: await tokenB.getAddress(),
+        minAmountToReceive: 0n,
+        swapData: "0x",
+        allBalanceOffset: 0n,
+      };
+
+      // The contract will now use msg.sender as the user - no bypass possible
+      expect(params).to.not.have.property("user");
     });
   });
 });

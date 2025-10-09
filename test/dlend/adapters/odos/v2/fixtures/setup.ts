@@ -3,7 +3,7 @@ import { ethers } from "hardhat";
 import {
   BaseOdosAdapterV2Harness,
   PendleSwapLogicHarness,
-  SwapExecutorV2Harness,
+  SwapExecutorHarness,
   MockOdosRouterV2,
   MockPendleRouter,
   MockPTToken,
@@ -29,7 +29,7 @@ export interface OdosV2TestFixture {
   // Test harnesses
   baseAdapterHarness: BaseOdosAdapterV2Harness;
   pendleLogicHarness: PendleSwapLogicHarness;
-  swapExecutorHarness: SwapExecutorV2Harness;
+  swapExecutorHarness: SwapExecutorHarness;
 
   // Mock tokens
   tokenA: TestMintableERC20; // Regular ERC20 token
@@ -94,8 +94,8 @@ export async function deployOdosV2TestFixture(): Promise<OdosV2TestFixture> {
   const PendleSwapLogicHarnessFactory = await ethers.getContractFactory("PendleSwapLogicHarness");
   const pendleLogicHarness = await PendleSwapLogicHarnessFactory.deploy();
 
-  const SwapExecutorV2HarnessFactory = await ethers.getContractFactory("SwapExecutorV2Harness");
-  const swapExecutorHarness = await SwapExecutorV2HarnessFactory.deploy();
+  const SwapExecutorHarnessFactory = await ethers.getContractFactory("SwapExecutorHarness");
+  const swapExecutorHarness = await SwapExecutorHarnessFactory.deploy();
 
   return {
     deployer,
