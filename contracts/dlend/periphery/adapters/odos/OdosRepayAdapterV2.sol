@@ -71,7 +71,7 @@ contract OdosRepayAdapterV2 is BaseOdosBuyAdapterV2, ReentrancyGuard, IAaveFlash
         PermitInput memory collateralATokenPermit
     ) external nonReentrant whenNotPaused {
         address user = msg.sender; // Capture the actual caller
-        
+
         // Refresh the exact repayAmount using current debt state and optional allBalanceOffset
         repayParams.repayAmount = _getDebtRepayAmount(
             IERC20(repayParams.debtAsset),
@@ -200,7 +200,11 @@ contract OdosRepayAdapterV2 is BaseOdosBuyAdapterV2, ReentrancyGuard, IAaveFlash
      * @param collateralATokenPermit optional permit for old collateral's aToken
      * @param user the address of the user initiating the repay
      */
-    function _flash(RepayParamsV2 memory repayParams, PermitInput memory collateralATokenPermit, address user) internal virtual {
+    function _flash(
+        RepayParamsV2 memory repayParams,
+        PermitInput memory collateralATokenPermit,
+        address user
+    ) internal virtual {
         bytes memory params = abi.encode(repayParams, collateralATokenPermit, user);
         address[] memory assets = new address[](1);
         assets[0] = repayParams.collateralAsset;

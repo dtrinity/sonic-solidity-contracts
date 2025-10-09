@@ -84,7 +84,7 @@ contract OdosWithdrawSwapAdapterV2 is BaseOdosSellAdapterV2, ReentrancyGuard, IO
         PermitInput memory permitInput
     ) external nonReentrant whenNotPaused {
         address user = msg.sender; // Capture the actual caller
-        
+
         (, , address aToken) = _getReserveData(withdrawSwapParams.oldAsset);
         if (withdrawSwapParams.allBalanceOffset != 0) {
             uint256 balance = IERC20(aToken).balanceOf(user);
@@ -95,12 +95,7 @@ contract OdosWithdrawSwapAdapterV2 is BaseOdosSellAdapterV2, ReentrancyGuard, IO
         uint256 oldAssetBalanceBefore = IERC20(withdrawSwapParams.oldAsset).balanceOf(address(this));
 
         // pulls liquidity asset from the user and withdraw
-        _pullATokenAndWithdraw(
-            withdrawSwapParams.oldAsset,
-            user,
-            withdrawSwapParams.oldAssetAmount,
-            permitInput
-        );
+        _pullATokenAndWithdraw(withdrawSwapParams.oldAsset, user, withdrawSwapParams.oldAssetAmount, permitInput);
 
         // Use adaptive swap which handles both regular and PT token swaps intelligently
         uint256 amountReceived = _executeAdaptiveSwap(

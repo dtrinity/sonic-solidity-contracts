@@ -51,4 +51,3 @@ contract TestPausable is Pausable {
         return true;
     }
 }
-

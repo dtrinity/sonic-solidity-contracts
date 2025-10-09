@@ -123,14 +123,13 @@ describe("Rescuable - Emergency Token Recovery", function () {
     });
   });
 
-
   describe("Access Control", function () {
     it("❌ should revert when non-owner tries to rescue", async function () {
       const { rescuable, token, attacker } = await loadFixture(deployRescueFixture);
 
-      await expect(
-        rescuable.connect(attacker).rescueTokens(await token.getAddress())
-      ).to.be.revertedWith("Ownable: caller is not the owner");
+      await expect(rescuable.connect(attacker).rescueTokens(await token.getAddress())).to.be.revertedWith(
+        "Ownable: caller is not the owner",
+      );
     });
 
     it("✅ should allow new owner to rescue after ownership transfer", async function () {
@@ -147,9 +146,7 @@ describe("Rescuable - Emergency Token Recovery", function () {
       await rescuable.connect(owner).transferOwnership(recipient.address);
 
       // Old owner cannot rescue
-      await expect(
-        rescuable.connect(owner).rescueTokens(await token.getAddress())
-      ).to.be.revertedWith("Ownable: caller is not the owner");
+      await expect(rescuable.connect(owner).rescueTokens(await token.getAddress())).to.be.revertedWith("Ownable: caller is not the owner");
 
       // New owner can rescue
       await rescuable.connect(recipient).rescueTokens(await token.getAddress());
@@ -157,7 +154,6 @@ describe("Rescuable - Emergency Token Recovery", function () {
       expect(await token.balanceOf(recipient.address)).to.equal(stuckAmount);
     });
   });
-
 
   describe("Real-world Scenarios", function () {
     it("✅ should rescue tokens sent by mistake", async function () {
@@ -252,4 +248,3 @@ describe("Rescuable - Emergency Token Recovery", function () {
     });
   });
 });
-

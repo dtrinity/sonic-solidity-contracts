@@ -28,10 +28,7 @@ contract TestRescuable is Rescuable {
      */
     function receiveTokens(address token, uint256 amount) external {
         // Transfer tokens from sender to this contract
-        require(
-            IERC20(token).transferFrom(msg.sender, address(this), amount),
-            "TestRescuable: transfer failed"
-        );
+        require(IERC20(token).transferFrom(msg.sender, address(this), amount), "TestRescuable: transfer failed");
         emit TokensReceived(token, amount);
     }
 
@@ -43,5 +40,3 @@ contract TestRescuable is Rescuable {
         // Allow receiving native tokens for testing
     }
 }
-
-

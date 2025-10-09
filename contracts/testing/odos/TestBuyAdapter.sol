@@ -8,8 +8,10 @@ import { IERC20Detailed } from "contracts/dlend/core/dependencies/openzeppelin/c
 
 /// @dev Dummy implementation of BaseOdosBuyAdapterV2 exposing internal function for tests.
 contract TestBuyAdapter is BaseOdosBuyAdapterV2 {
-    constructor(IOdosRouterV2 router, address pendleRouter) 
-        BaseOdosBuyAdapterV2(IPoolAddressesProvider(address(0)), address(0), router, pendleRouter) {}
+    constructor(
+        IOdosRouterV2 router,
+        address pendleRouter
+    ) BaseOdosBuyAdapterV2(IPoolAddressesProvider(address(0)), address(0), router, pendleRouter) {}
 
     // ----------------- Required abstract stubs -------------------
     function _getReserveData(address /*asset*/) internal pure override returns (address, address, address) {
@@ -24,12 +26,7 @@ contract TestBuyAdapter is BaseOdosBuyAdapterV2 {
     ) internal pure override {}
 
     // Override oracle validation for testing (skip it)
-    function _validateOraclePriceExactOutput(
-        address,
-        address,
-        uint256,
-        uint256
-    ) internal pure override {}
+    function _validateOraclePriceExactOutput(address, address, uint256, uint256) internal pure override {}
 
     // ----------------- Test helper -------------------
     function buy(

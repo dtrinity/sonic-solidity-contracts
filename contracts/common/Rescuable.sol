@@ -40,4 +40,3 @@ abstract contract Rescuable is Ownable {
         token.safeTransfer(owner(), token.balanceOf(address(this)));
     }
 }
-

@@ -33,9 +33,7 @@ describe("Pausable - Emergency Pause Functionality", function () {
     it("✅ should allow owner to pause contract", async function () {
       const { pausable, owner } = await loadFixture(deployPausableFixture);
 
-      await expect(pausable.connect(owner).pause())
-        .to.emit(pausable, "Paused")
-        .withArgs(owner.address);
+      await expect(pausable.connect(owner).pause()).to.emit(pausable, "Paused").withArgs(owner.address);
 
       expect(await pausable.paused()).to.equal(true);
     });
@@ -48,9 +46,7 @@ describe("Pausable - Emergency Pause Functionality", function () {
       expect(await pausable.paused()).to.equal(true);
 
       // Then unpause
-      await expect(pausable.connect(owner).unpause())
-        .to.emit(pausable, "Unpaused")
-        .withArgs(owner.address);
+      await expect(pausable.connect(owner).unpause()).to.emit(pausable, "Unpaused").withArgs(owner.address);
 
       expect(await pausable.paused()).to.equal(false);
     });
@@ -60,19 +56,13 @@ describe("Pausable - Emergency Pause Functionality", function () {
 
       await pausable.connect(owner).pause();
 
-      await expect(pausable.connect(owner).pause()).to.be.revertedWithCustomError(
-        pausable,
-        "EnforcedPause"
-      );
+      await expect(pausable.connect(owner).pause()).to.be.revertedWithCustomError(pausable, "EnforcedPause");
     });
 
     it("❌ should revert when owner tries to unpause non-paused contract", async function () {
       const { pausable, owner } = await loadFixture(deployPausableFixture);
 
-      await expect(pausable.connect(owner).unpause()).to.be.revertedWithCustomError(
-        pausable,
-        "ExpectedPause"
-      );
+      await expect(pausable.connect(owner).unpause()).to.be.revertedWithCustomError(pausable, "ExpectedPause");
     });
 
     it("✅ should allow multiple pause/unpause cycles", async function () {
@@ -96,9 +86,7 @@ describe("Pausable - Emergency Pause Functionality", function () {
     it("❌ should revert when non-owner tries to pause", async function () {
       const { pausable, attacker } = await loadFixture(deployPausableFixture);
 
-      await expect(pausable.connect(attacker).pause()).to.be.revertedWith(
-        "Ownable: caller is not the owner"
-      );
+      await expect(pausable.connect(attacker).pause()).to.be.revertedWith("Ownable: caller is not the owner");
     });
 
     it("❌ should revert when non-owner tries to unpause", async function () {
@@ -108,9 +96,7 @@ describe("Pausable - Emergency Pause Functionality", function () {
       await pausable.connect(owner).pause();
 
       // Attacker tries to unpause
-      await expect(pausable.connect(attacker).unpause()).to.be.revertedWith(
-        "Ownable: caller is not the owner"
-      );
+      await expect(pausable.connect(attacker).unpause()).to.be.revertedWith("Ownable: caller is not the owner");
     });
 
     it("✅ should allow new owner to pause/unpause after ownership transfer", async function () {
@@ -120,21 +106,15 @@ describe("Pausable - Emergency Pause Functionality", function () {
       await pausable.connect(owner).transferOwnership(user.address);
 
       // Old owner cannot pause
-      await expect(pausable.connect(owner).pause()).to.be.revertedWith(
-        "Ownable: caller is not the owner"
-      );
+      await expect(pausable.connect(owner).pause()).to.be.revertedWith("Ownable: caller is not the owner");
 
       // New owner can pause
-      await expect(pausable.connect(user).pause())
-        .to.emit(pausable, "Paused")
-        .withArgs(user.address);
+      await expect(pausable.connect(user).pause()).to.emit(pausable, "Paused").withArgs(user.address);
 
       expect(await pausable.paused()).to.equal(true);
 
       // New owner can unpause
-      await expect(pausable.connect(user).unpause())
-        .to.emit(pausable, "Unpaused")
-        .withArgs(user.address);
+      await expect(pausable.connect(user).unpause()).to.emit(pausable, "Unpaused").withArgs(user.address);
 
       expect(await pausable.paused()).to.equal(false);
     });
@@ -146,9 +126,7 @@ describe("Pausable - Emergency Pause Functionality", function () {
 
       expect(await pausable.paused()).to.equal(false);
 
-      await expect(pausable.connect(user).performOperation(100))
-        .to.emit(pausable, "OperationPerformed")
-        .withArgs(user.address, 100);
+      await expect(pausable.connect(user).performOperation(100)).to.emit(pausable, "OperationPerformed").withArgs(user.address, 100);
 
       expect(await pausable.operationCount()).to.equal(1);
     });
@@ -160,10 +138,7 @@ describe("Pausable - Emergency Pause Functionality", function () {
       await pausable.connect(owner).pause();
 
       // Operation should fail
-      await expect(pausable.connect(user).performOperation(100)).to.be.revertedWithCustomError(
-        pausable,
-        "EnforcedPause"
-      );
+      await expect(pausable.connect(user).performOperation(100)).to.be.revertedWithCustomError(pausable, "EnforcedPause");
 
       expect(await pausable.operationCount()).to.equal(0);
     });
@@ -173,16 +148,11 @@ describe("Pausable - Emergency Pause Functionality", function () {
 
       // Pause and try operation
       await pausable.connect(owner).pause();
-      await expect(pausable.connect(user).performOperation(100)).to.be.revertedWithCustomError(
-        pausable,
-        "EnforcedPause"
-      );
+      await expect(pausable.connect(user).performOperation(100)).to.be.revertedWithCustomError(pausable, "EnforcedPause");
 
       // Unpause and retry
       await pausable.connect(owner).unpause();
-      await expect(pausable.connect(user).performOperation(100))
-        .to.emit(pausable, "OperationPerformed")
-        .withArgs(user.address, 100);
+      await expect(pausable.connect(user).performOperation(100)).to.emit(pausable, "OperationPerformed").withArgs(user.address, 100);
 
       expect(await pausable.operationCount()).to.equal(1);
     });
@@ -193,10 +163,7 @@ describe("Pausable - Emergency Pause Functionality", function () {
       const { pausable, owner } = await loadFixture(deployPausableFixture);
 
       // Should fail when not paused
-      await expect(pausable.emergencyOperation()).to.be.revertedWithCustomError(
-        pausable,
-        "ExpectedPause"
-      );
+      await expect(pausable.emergencyOperation()).to.be.revertedWithCustomError(pausable, "ExpectedPause");
 
       // Pause and retry
       await pausable.connect(owner).pause();
@@ -208,10 +175,7 @@ describe("Pausable - Emergency Pause Functionality", function () {
 
       expect(await pausable.paused()).to.equal(false);
 
-      await expect(pausable.emergencyOperation()).to.be.revertedWithCustomError(
-        pausable,
-        "ExpectedPause"
-      );
+      await expect(pausable.emergencyOperation()).to.be.revertedWithCustomError(pausable, "ExpectedPause");
     });
   });
 
@@ -234,9 +198,7 @@ describe("Pausable - Emergency Pause Functionality", function () {
     it("✅ should emit Paused event with correct parameters", async function () {
       const { pausable, owner } = await loadFixture(deployPausableFixture);
 
-      await expect(pausable.connect(owner).pause())
-        .to.emit(pausable, "Paused")
-        .withArgs(owner.address);
+      await expect(pausable.connect(owner).pause()).to.emit(pausable, "Paused").withArgs(owner.address);
     });
 
     it("✅ should emit Unpaused event with correct parameters", async function () {
@@ -244,9 +206,7 @@ describe("Pausable - Emergency Pause Functionality", function () {
 
       await pausable.connect(owner).pause();
 
-      await expect(pausable.connect(owner).unpause())
-        .to.emit(pausable, "Unpaused")
-        .withArgs(owner.address);
+      await expect(pausable.connect(owner).unpause()).to.emit(pausable, "Unpaused").withArgs(owner.address);
     });
   });
 
@@ -262,15 +222,9 @@ describe("Pausable - Emergency Pause Functionality", function () {
       await pausable.connect(owner).pause();
 
       // All pausable operations are blocked
-      await expect(pausable.connect(user).performOperation(200)).to.be.revertedWithCustomError(
-        pausable,
-        "EnforcedPause"
-      );
+      await expect(pausable.connect(user).performOperation(200)).to.be.revertedWithCustomError(pausable, "EnforcedPause");
 
-      await expect(pausable.connect(attacker).performOperation(300)).to.be.revertedWithCustomError(
-        pausable,
-        "EnforcedPause"
-      );
+      await expect(pausable.connect(attacker).performOperation(300)).to.be.revertedWithCustomError(pausable, "EnforcedPause");
 
       // Operation count unchanged
       expect(await pausable.operationCount()).to.equal(1);
@@ -294,10 +248,7 @@ describe("Pausable - Emergency Pause Functionality", function () {
       expect(await pausable.paused()).to.equal(true);
 
       // All operations blocked immediately
-      await expect(pausable.performOperation(100)).to.be.revertedWithCustomError(
-        pausable,
-        "EnforcedPause"
-      );
+      await expect(pausable.performOperation(100)).to.be.revertedWithCustomError(pausable, "EnforcedPause");
     });
 
     it("🛡️ should maintain pause state across multiple transactions", async function () {
@@ -308,10 +259,7 @@ describe("Pausable - Emergency Pause Functionality", function () {
 
       // Multiple failed attempts
       for (let i = 0; i < 5; i++) {
-        await expect(pausable.connect(user).performOperation(i)).to.be.revertedWithCustomError(
-          pausable,
-          "EnforcedPause"
-        );
+        await expect(pausable.connect(user).performOperation(i)).to.be.revertedWithCustomError(pausable, "EnforcedPause");
       }
 
       // Still paused
@@ -351,4 +299,3 @@ describe("Pausable - Emergency Pause Functionality", function () {
     });
   });
 });
-

@@ -7,8 +7,10 @@ import { IPoolAddressesProvider } from "contracts/dlend/core/interfaces/IPoolAdd
 import { IERC20Detailed } from "contracts/dlend/core/dependencies/openzeppelin/contracts/IERC20Detailed.sol";
 
 contract TestSellAdapter is BaseOdosSellAdapterV2 {
-    constructor(IOdosRouterV2 router, address pendleRouter) 
-        BaseOdosSellAdapterV2(IPoolAddressesProvider(address(0)), address(0), router, pendleRouter) {}
+    constructor(
+        IOdosRouterV2 router,
+        address pendleRouter
+    ) BaseOdosSellAdapterV2(IPoolAddressesProvider(address(0)), address(0), router, pendleRouter) {}
 
     // Stubs for abstract methods
     function _getReserveData(address) internal pure override returns (address, address, address) {
@@ -18,12 +20,7 @@ contract TestSellAdapter is BaseOdosSellAdapterV2 {
     function _supply(address, uint256, address, uint16) internal pure override {}
 
     // Override oracle validation for testing (skip it)
-    function _validateOraclePriceExactInput(
-        address,
-        address,
-        uint256,
-        uint256
-    ) internal pure override {}
+    function _validateOraclePriceExactInput(address, address, uint256, uint256) internal pure override {}
 
     // Public helper
     function sell(

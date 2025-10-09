@@ -56,10 +56,10 @@ abstract contract OracleValidation {
         if (newToleranceBps > MAX_ORACLE_PRICE_TOLERANCE_BPS) {
             revert IBaseOdosAdapterV2.InvalidToleranceBps(newToleranceBps, MAX_ORACLE_PRICE_TOLERANCE_BPS);
         }
-        
+
         uint256 oldTolerance = ORACLE_PRICE_TOLERANCE_BPS;
         ORACLE_PRICE_TOLERANCE_BPS = newToleranceBps;
-        
+
         emit OraclePriceToleranceUpdated(oldTolerance, newToleranceBps);
     }
 

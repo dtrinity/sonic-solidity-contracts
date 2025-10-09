@@ -76,9 +76,8 @@ describe("BaseOdosBuyAdapter", function () {
     const swapData = router.interface.encodeFunctionData("performSwap");
 
     // V2 adapters for regular swaps rely on ERC20 transfer failure instead of explicit balance check
-    await expect(
-      (adapter as any).buy(await tokenIn.getAddress(), await tokenOut.getAddress(), maxAmountToSwap, amountReceived, swapData),
-    ).to.be.reverted;
+    await expect((adapter as any).buy(await tokenIn.getAddress(), await tokenOut.getAddress(), maxAmountToSwap, amountReceived, swapData))
+      .to.be.reverted;
   });
 
   it("reverts when router delivers less than requested", async function () {

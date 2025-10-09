@@ -184,9 +184,7 @@ contract OdosLiquiditySwapAdapterV2 is
      * @param flashParams struct containing liquidity swap params, permit, and user address
      * @return The amount received from the swap of new collateral asset, that is now supplied to the Aave Pool
      */
-    function _swapAndDeposit(
-        FlashParamsV2 memory flashParams
-    ) internal returns (uint256) {
+    function _swapAndDeposit(FlashParamsV2 memory flashParams) internal returns (uint256) {
         LiquiditySwapParamsV2 memory liquiditySwapParams = flashParams.liquiditySwapParams;
         PermitInput memory collateralATokenPermit = flashParams.collateralATokenPermit;
         address user = flashParams.user;
@@ -230,9 +228,7 @@ contract OdosLiquiditySwapAdapterV2 is
      * @dev Triggers the flashloan passing encoded params for the collateral swap
      * @param flashParams struct containing liquidity swap params, permit, and user address
      */
-    function _flash(
-        FlashParamsV2 memory flashParams
-    ) internal virtual {
+    function _flash(FlashParamsV2 memory flashParams) internal virtual {
         bytes memory params = abi.encode(flashParams);
         address[] memory assets = new address[](1);
         assets[0] = flashParams.liquiditySwapParams.collateralAsset;
