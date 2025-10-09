@@ -24,13 +24,14 @@ import { IERC20WithPermit } from "contracts/dlend/core/interfaces/IERC20WithPerm
 import { IPoolAddressesProvider } from "contracts/dlend/core/interfaces/IPoolAddressesProvider.sol";
 import { IPool } from "contracts/dlend/core/interfaces/IPool.sol";
 import { Rescuable } from "contracts/common/Rescuable.sol";
+import { Pausable } from "contracts/common/Pausable.sol";
 import { IBaseOdosAdapter } from "./interfaces/IBaseOdosAdapter.sol";
 
 /**
  * @title BaseOdosSwapAdapter
  * @notice Utility functions for adapters using Odos
  */
-abstract contract BaseOdosSwapAdapter is Rescuable, IBaseOdosAdapter {
+abstract contract BaseOdosSwapAdapter is Rescuable, Pausable, IBaseOdosAdapter {
     using SafeERC20 for IERC20;
 
     /* State Variables */

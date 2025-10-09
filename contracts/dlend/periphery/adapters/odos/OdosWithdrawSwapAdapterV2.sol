@@ -82,7 +82,7 @@ contract OdosWithdrawSwapAdapterV2 is BaseOdosSellAdapterV2, ReentrancyGuard, IO
     function withdrawAndSwap(
         WithdrawSwapParamsV2 memory withdrawSwapParams,
         PermitInput memory permitInput
-    ) external nonReentrant {
+    ) external nonReentrant whenNotPaused {
         address user = msg.sender; // Capture the actual caller
         
         (, , address aToken) = _getReserveData(withdrawSwapParams.oldAsset);

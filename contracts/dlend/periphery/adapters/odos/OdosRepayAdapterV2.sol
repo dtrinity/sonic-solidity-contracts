@@ -69,7 +69,7 @@ contract OdosRepayAdapterV2 is BaseOdosBuyAdapterV2, ReentrancyGuard, IAaveFlash
     function repayWithCollateral(
         RepayParamsV2 memory repayParams,
         PermitInput memory collateralATokenPermit
-    ) external nonReentrant {
+    ) external nonReentrant whenNotPaused {
         address user = msg.sender; // Capture the actual caller
         
         // Refresh the exact repayAmount using current debt state and optional allBalanceOffset

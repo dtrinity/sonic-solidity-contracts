@@ -92,7 +92,7 @@ contract OdosLiquiditySwapAdapterV2 is
     function swapLiquidity(
         LiquiditySwapParamsV2 memory liquiditySwapParams,
         PermitInput memory collateralATokenPermit
-    ) external nonReentrant {
+    ) external nonReentrant whenNotPaused {
         if (liquiditySwapParams.allBalanceOffset != 0) {
             (, , address aToken) = _getReserveData(liquiditySwapParams.collateralAsset);
             uint256 balance = IERC20(aToken).balanceOf(msg.sender);
