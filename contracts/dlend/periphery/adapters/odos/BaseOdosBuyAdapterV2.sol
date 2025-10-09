@@ -25,7 +25,7 @@ import { IBaseOdosAdapterV2 } from "./interfaces/IBaseOdosAdapterV2.sol";
 import { OdosSwapUtils } from "contracts/odos/OdosSwapUtils.sol";
 import { PendleSwapLogic } from "./PendleSwapLogic.sol";
 import { ISwapTypes } from "./interfaces/ISwapTypes.sol";
-import { SwapExecutorV2 } from "./SwapExecutorV2.sol";
+import { SwapExecutor } from "./SwapExecutor.sol";
 import { OracleValidation } from "./OracleValidation.sol";
 
 /**
@@ -140,8 +140,8 @@ abstract contract BaseOdosBuyAdapterV2 is BaseOdosSwapAdapter, OracleValidation,
         bytes memory swapData
     ) internal returns (uint256 actualOutputAmount) {
         return
-            SwapExecutorV2.executeSwapExactOutput(
-                SwapExecutorV2.ExactOutputParams({
+            SwapExecutor.executeSwapExactOutput(
+                SwapExecutor.ExactOutputParams({
                     inputToken: inputToken,
                     outputToken: outputToken,
                     maxInputAmount: maxInputAmount,

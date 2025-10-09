@@ -15,9 +15,9 @@ describe("BaseOdosSellAdapter - Surplus Handling", function () {
     const tokenOut = await deployMintableERC20("TokenOut", "TOUT");
     const router = await deployMockRouter();
 
-    // Deploy test sell adapter
+    // Deploy test sell adapter (V2 requires pendleRouter parameter)
     const TestSellAdapterFactory = await ethers.getContractFactory("TestSellAdapter");
-    const adapter = await TestSellAdapterFactory.deploy(await router.getAddress());
+    const adapter = await TestSellAdapterFactory.deploy(await router.getAddress(), ethers.ZeroAddress);
 
     return { deployer, tokenIn, tokenOut, router, adapter };
   }

@@ -82,7 +82,7 @@ abstract contract OracleValidation {
         address tokenOut,
         uint256 maxAmountIn,
         uint256 exactAmountOut
-    ) internal view {
+    ) internal view virtual {
         // Prevent zero-amount swaps with clear error message
         if (maxAmountIn == 0 || exactAmountOut == 0) {
             revert IBaseOdosAdapterV2.ZeroSwapAmount(tokenIn, tokenOut);
@@ -142,7 +142,7 @@ abstract contract OracleValidation {
         address tokenOut,
         uint256 amountIn,
         uint256 minAmountOut
-    ) internal view {
+    ) internal view virtual {
         // Prevent zero-amount swaps with clear error message
         if (amountIn == 0 || minAmountOut == 0) {
             revert IBaseOdosAdapterV2.ZeroSwapAmount(tokenIn, tokenOut);

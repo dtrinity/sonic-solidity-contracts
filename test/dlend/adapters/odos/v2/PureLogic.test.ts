@@ -375,7 +375,7 @@ describe("V2 Odos Adapters - Pure Logic Tests", function () {
   });
 
   describe("9. Library Function Exposure", function () {
-    it("✅ should expose SwapExecutorV2 functions correctly", async function () {
+    it("✅ should expose SwapExecutor functions correctly", async function () {
       const { swapExecutorHarness } = fixture;
 
       // Test that harness methods exist
