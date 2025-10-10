@@ -204,6 +204,70 @@ import { runSlither } from '@dtrinity/shared-hardhat-tools/scripts/analysis/slit
 const success = runSlither({ network: 'mainnet', failOnHigh: true });
 ```
 
+### Manifest-Driven Role Transfers
+
+The shared runner migrates `Ownable` ownership and `DEFAULT_ADMIN_ROLE` by reading a manifest instead of bespoke scripts. Version 2 manifests default to auto-including every contract the deployer still controls and let you opt out with targeted exclusions or overrides. A minimal example:
+
+```json
+{
+  "version": 2,
+  "deployer": "0xDeployer...",
+  "governance": "0xGovernance...",
+  "autoInclude": { "ownable": true, "defaultAdmin": true },
+  "defaults": {
+    "ownable": { "newOwner": "{{governance}}" },
+    "defaultAdmin": {
+      "newAdmin": "{{governance}}",
+      "remove": { "strategy": "renounce", "execution": "direct", "address": "{{deployer}}" }
+    }
+  },
+  "safe": {
+    "safeAddress": "0xSafe...",
+    "owners": ["0xGovernor1...", "0xGovernor2..."],
+    "threshold": 2,
+    "chainId": 8453,
+    "description": "DEFAULT_ADMIN_ROLE cleanup"
+  },
+  "exclusions": [
+    { "deployment": "PausedContract", "ownable": true, "reason": "Keep under deployer until audit" }
+  ],
+  "overrides": [
+    {
+      "deployment": "SpecialContract",
+      "defaultAdmin": {
+        "enabled": true,
+        "remove": { "strategy": "revoke", "execution": "safe", "address": "{{deployer}}" }
+      }
+    }
+  ]
+}
+```
+
+- `{{deployer}}` and `{{governance}}` placeholders resolve to the manifest addresses.
+- `autoInclude` determines the default sweep; exclusions and overrides explicitly change the plan.
+- `ownable.execution` must stay `direct`; Safe batches cannot call `transferOwnership`.
+- Setting `remove.execution` to `safe` automatically switches to `revokeRole` and queues Safe transactions.
+
+Before running the CLI, add `roles.deployer` and `roles.governance` to your Hardhat network config. The shared scripts fall back to these values when the CLI flags are omitted, and refuse to run if neither source is provided.
+
+Usage:
+
+```bash
+# Preview + execute direct ownership/admin transfers
+ts-node .shared/scripts/roles/transfer-roles.ts --manifest manifests/roles.mainnet.json --network mainnet
+
+# Preview + queue Safe revokeRole transactions only
+ts-node .shared/scripts/roles/revoke-roles.ts --manifest manifests/roles.mainnet.json --network mainnet
+
+# Dry-run without touching chain
+ts-node .shared/scripts/roles/transfer-roles.ts --manifest manifests/roles.mainnet.json --network mainnet --dry-run-only
+
+# Scan for new deployments and fail CI if coverage is missing
+ts-node .shared/scripts/roles/scan-roles.ts --manifest manifests/roles.mainnet.json --network mainnet --deployer 0xDeployer... --governance 0xGovernance... --drift-check
+```
+
+Each command performs a guarded dry-run first, printing the planned changes and listing any remaining non-admin roles so governance can follow up manually. Supply `--json-output report.json` to persist an execution summary alongside console output.
+
 ### Setting Up Git Hooks
 
 ```bash

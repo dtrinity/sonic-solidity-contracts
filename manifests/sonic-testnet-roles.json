@@ -1,0 +1,38 @@
+{
+  "version": 2,
+  "network": "sonic_testnet",
+  "deployer": "0xd2f775Ff2cD41bfe43C7A8c016eD10393553fe44",
+  "governance": "0xd2f775Ff2cD41bfe43C7A8c016eD10393553fe44",
+  "defaults": {
+    "ownable": {
+      "newOwner": "{{governance}}",
+      "execution": "direct"
+    },
+    "defaultAdmin": {
+      "newAdmin": "{{governance}}",
+      "grantExecution": "direct",
+      "remove": {
+        "address": "{{deployer}}",
+        "strategy": "renounce",
+        "execution": "direct",
+        "enabled": true
+      }
+    }
+  },
+  "autoInclude": {
+    "ownable": true,
+    "defaultAdmin": true
+  },
+  "exclusions": [],
+  "overrides": [],
+  "safe": {
+    "safeAddress": "0xd2f775Ff2cD41bfe43C7A8c016eD10393553fe44",
+    "threshold": 1,
+    "chainId": 64165,
+    "rpcUrl": "https://rpc.sonic.fantom.network",
+    "description": "Sonic testnet deployer Safe placeholder"
+  },
+  "output": {
+    "json": "reports/roles/sonic-testnet-latest.json"
+  }
+}

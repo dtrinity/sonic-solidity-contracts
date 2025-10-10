@@ -1,200 +1,182 @@
 #!/usr/bin/env ts-node
 
-import { Command } from 'commander';
-import * as readline from 'readline';
-import { scanRolesAndOwnership } from '../../lib/roles/scan';
-import { logger } from '../../lib/logger';
+import { Command } from "commander";
+import * as readline from "readline";
+
+import { logger } from "../../lib/logger";
+import { loadRoleManifest, resolveRoleManifest } from "../../lib/roles/manifest";
+import { OperationReport, RunnerResult, runRoleManifest } from "../../lib/roles/runner";
+
+async function promptYesNo(question: string): Promise<boolean> {
+  const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+  const answer: string = await new Promise((resolve) => rl.question(question, resolve));
+  rl.close();
+  return ["y", "yes"].includes(answer.trim().toLowerCase());
+}
+
+function printPlannedOperations(result: RunnerResult): number {
+  let planned = 0;
+
+  logger.info("\n--- Planned Operations ---");
+  for (const contract of result.contracts) {
+    const plannedOps = contract.operations.filter((op) => op.status === "planned");
+    if (plannedOps.length === 0) continue;
+
+    logger.info(`- ${contract.alias ?? contract.deployment}${contract.address ? ` (${contract.address})` : ""}`);
+    for (const op of plannedOps) {
+      logger.info(`  • ${describeOperation(op)}`);
+    }
+    planned += plannedOps.length;
+  }
+
+  if (planned === 0) {
+    logger.info("No operations required.");
+  }
+
+  return planned;
+}
+
+function printRemainingRoles(result: RunnerResult): void {
+  logger.info("\n--- Remaining Roles (non-default admin) ---");
+  let reported = false;
+  for (const contract of result.contracts) {
+    if (contract.remainingRoles.length === 0) continue;
+    reported = true;
+    logger.info(`- ${contract.alias ?? contract.deployment}${contract.address ? ` (${contract.address})` : ""}`);
+    for (const role of contract.remainingRoles) {
+      const deployerFlag = role.deployerHasRole ? "deployer" : "";
+      const governanceFlag = role.governanceHasRole ? "governance" : "";
+      const holders = [deployerFlag, governanceFlag].filter(Boolean).join(", ") || "other";
+      logger.info(`  • ${role.role} (${holders}) hash=${role.hash}`);
+    }
+  }
+
+  if (!reported) {
+    logger.info("No additional AccessControl roles detected.");
+  }
+}
+
+function describeOperation(op: OperationReport): string {
+  const base = `${op.type} [${op.mode}]`;
+  if (op.status === "planned") return `${base} (planned)`;
+  if (op.status === "executed") return `${base} (tx: ${op.txHash ?? "unknown"})`;
+  if (op.status === "queued") return `${base} (queued)`;
+  if (op.status === "skipped") return `${base} (skipped${op.details ? `: ${op.details}` : ""})`;
+  return `${base} (failed${op.details ? `: ${op.details}` : ""})`;
+}
+
+function summarizeResult(result: RunnerResult): void {
+  logger.info("\n--- Execution Summary ---");
+  let executed = 0;
+  let queued = 0;
+
+  for (const contract of result.contracts) {
+    for (const op of contract.operations) {
+      if (op.status === "executed") executed += 1;
+      if (op.status === "queued") queued += 1;
+    }
+  }
+
+  logger.info(`Direct operations executed: ${executed}`);
+  logger.info(`Safe operations queued: ${queued}`);
+
+  if (result.safeBatch) {
+    logger.info(`Safe batch description: ${result.safeBatch.description}`);
+    if (result.safeBatch.safeTxHash) {
+      logger.info(`SafeTxHash: ${result.safeBatch.safeTxHash}`);
+    }
+    if (!result.safeBatch.success && result.safeBatch.error) {
+      logger.error(`Safe batch error: ${result.safeBatch.error}`);
+    }
+  }
+}
+
+function logStatistics(result: RunnerResult, phase: string): void {
+  if (!result.statistics) return;
+
+  logger.info(`\n--- ${phase} Breakdown ---`);
+  logger.info(`Contracts considered: ${result.statistics.totalContracts}`);
+  logger.info(`Auto-included Ownable actions: ${result.statistics.autoIncludedOwnable}`);
+  logger.info(`Auto-included DEFAULT_ADMIN_ROLE actions: ${result.statistics.autoIncludedDefaultAdmin}`);
+  logger.info(`Override Ownable actions: ${result.statistics.overrideOwnable}`);
+  logger.info(`Override DEFAULT_ADMIN_ROLE actions: ${result.statistics.overrideDefaultAdmin}`);
+}
 
 async function main(): Promise<void> {
   const program = new Command();
 
   program
-    .description('Transfer roles and ownership from deployer to governance multisig.')
-    .requiredOption('-n, --network <name>', 'Network to operate on')
-    .requiredOption('-d, --deployer <address>', 'Deployer address (current role holder)')
-    .requiredOption('-g, --governance <address>', 'Governance multisig address (new role holder)')
-    .option('--deployments-dir <path>', 'Path to deployments directory (defaults to ./deployments)')
-    .option('--yes', 'Skip confirmation prompt and execute immediately')
-    .option('--hardhat-config <path>', 'Path to hardhat.config.ts (defaults to ./hardhat.config.ts)');
+    .description("Transfer ownership and DEFAULT_ADMIN_ROLE using a manifest-driven workflow.")
+    .requiredOption("-m, --manifest <path>", "Path to the role manifest JSON")
+    .option("-n, --network <name>", "Hardhat network to target")
+    .option("--json-output <path>", "Write execution report JSON to path (overrides manifest output)")
+    .option("--dry-run-only", "Run planning step without executing on-chain actions")
+    .option("--hardhat-config <path>", "Path to hardhat.config.ts (defaults to ./hardhat.config.ts)")
+    .option("--yes", "Skip confirmation prompt");
 
   program.parse(process.argv);
   const options = program.opts();
 
-  try {
-    // Dynamically load hardhat runtime environment
+  if (options.network) {
     process.env.HARDHAT_NETWORK = options.network;
-    const hre = require('hardhat');
-    const { ethers } = hre;
+  }
+  if (options.hardhatConfig) {
+    process.env.HARDHAT_CONFIG = options.hardhatConfig;
+    process.env.HARDHAT_USER_CONFIG = options.hardhatConfig;
+  }
 
-    const deployer: string = options.deployer;
-    const governance: string = options.governance;
-    const deployerSigner = await ethers.getSigner(deployer);
+  try {
+    const hre = require("hardhat");
+    const manifest = resolveRoleManifest(loadRoleManifest(options.manifest));
 
-    logger.info(`\nScanning roles/ownership for transfer on ${options.network}...`);
-    const scan = await scanRolesAndOwnership({
+    logger.info(`Loaded manifest for deployer ${manifest.deployer} → governance ${manifest.governance}`);
+    logger.info(`Auto-included Ownable transfers: ${manifest.autoInclude.ownable ? "enabled" : "disabled"}`);
+    logger.info(`Auto-included DEFAULT_ADMIN_ROLE transfers: ${manifest.autoInclude.defaultAdmin ? "enabled" : "disabled"}`);
+    logger.info(`Overrides declared: ${manifest.overrides.length}`);
+
+    const planResult = await runRoleManifest({
       hre,
-      deployer,
-      governanceMultisig: governance,
-      deploymentsPath: options.deploymentsDir,
-      logger: (m: string) => logger.info(m),
+      manifest,
+      dryRun: true,
+      logger: (msg: string) => logger.info(msg),
     });
 
-    let addedOperations = 0;
-    const summary: { contract: string; address: string; ops: string[] }[] = [];
+    const plannedCount = printPlannedOperations(planResult);
+    printRemainingRoles(planResult);
+    logStatistics(planResult, "Planning");
 
-    // Roles: grant to governance first, then revoke/renounce from deployer (non-admin first, admin last)
-    for (const c of scan.rolesContracts) {
-      const opsForContract: string[] = [];
-
-      const nonAdminRolesHeldByDeployer = c.rolesHeldByDeployer.filter((r) => r.name !== "DEFAULT_ADMIN_ROLE");
-      const adminRole = c.rolesHeldByDeployer.find((r) => r.name === "DEFAULT_ADMIN_ROLE");
-
-      if (nonAdminRolesHeldByDeployer.length > 0 || adminRole) {
-        logger.info(`\nProcessing ${c.name} at ${c.address}`);
-      }
-
-      // Non-admin roles
-      for (const role of nonAdminRolesHeldByDeployer) {
-        logger.info(`  - Grant ${role.name} to governance, then renounce from deployer`);
-        addedOperations += 2;
-        opsForContract.push(`grantRole(${role.name})->${governance}`, `renounceRole(${role.name})->${deployer}`);
-      }
-
-      // Admin role last
-      if (adminRole) {
-        logger.info(`  - Transfer DEFAULT_ADMIN_ROLE to governance and renounce from deployer`);
-        addedOperations += 2;
-        opsForContract.push(`grantRole(DEFAULT_ADMIN_ROLE)->${governance}`, `renounceRole(DEFAULT_ADMIN_ROLE)->${deployer}`);
-      }
-
-      if (opsForContract.length > 0) {
-        summary.push({
-          contract: c.name,
-          address: c.address,
-          ops: opsForContract,
-        });
-      }
-    }
-
-    // Ownable: transferOwnership to governance when deployer is owner
-    for (const c of scan.ownableContracts) {
-      if (!c.deployerIsOwner) continue;
-      logger.info(`\nTransferring ownership of ${c.name} at ${c.address} to governance`);
-      addedOperations += 1;
-      summary.push({
-        contract: c.name,
-        address: c.address,
-        ops: ["transferOwnership->governance"],
-      });
-    }
-
-    if (addedOperations === 0) {
-      logger.info("\nNothing to transfer.");
+    if (plannedCount === 0) {
+      logger.success("\nNothing to execute. Governance and ownership already aligned.");
       return;
     }
 
-    // Print final change summary
-    logger.info("\n--- Planned Changes Summary ---");
-    for (const s of summary) {
-      logger.info(`- ${s.contract} (${s.address})`);
-      for (const op of s.ops) logger.info(`  • ${op}`);
+    if (options.dryRunOnly) {
+      logger.info("\nDry-run only flag supplied; exiting without execution.");
+      return;
     }
-    logger.info(`Total operations: ${addedOperations}`);
 
-    // Confirmation prompt (skip with --yes)
     if (!options.yes) {
-      const rl = readline.createInterface({
-        input: process.stdin,
-        output: process.stdout,
-      });
-      const answer: string = await new Promise((resolve) => rl.question("\nProceed to execute on-chain migrations? (yes/no): ", resolve));
-      rl.close();
-      if (answer.trim().toLowerCase() !== "yes") {
+      const confirmed = await promptYesNo("\nProceed to execute these operations on-chain? (yes/no): ");
+      if (!confirmed) {
         logger.info("Aborted by user.");
         return;
       }
     }
 
-    logger.info(`\nExecuting on-chain migrations with deployer signer...`);
+    const executionResult = await runRoleManifest({
+      hre,
+      manifest,
+      logger: (msg: string) => logger.info(msg),
+      jsonOutputPath: options.jsonOutput,
+      dryRun: false,
+    });
 
-    // Execute AccessControl migrations: non-admin roles first, then admin role
-    for (const c of scan.rolesContracts) {
-      const contract = await ethers.getContractAt(c.abi as any, c.address, deployerSigner);
-
-      // Non-admin roles
-      const nonAdminRolesHeldByDeployer = c.rolesHeldByDeployer.filter((r) => r.name !== "DEFAULT_ADMIN_ROLE");
-      for (const role of nonAdminRolesHeldByDeployer) {
-        try {
-          const governanceHasRole: boolean = await (contract as any).hasRole(role.hash, governance);
-          if (!governanceHasRole) {
-            logger.info(`Granting ${role.name} to governance on ${c.name} (${c.address})...`);
-            const tx = await (contract as any).grantRole(role.hash, governance);
-            await tx.wait();
-          } else {
-            logger.info(`Governance already has ${role.name} on ${c.name}; skipping grant.`);
-          }
-
-          const deployerHasRole: boolean = await (contract as any).hasRole(role.hash, deployer);
-          if (deployerHasRole) {
-            logger.info(`Renouncing ${role.name} from deployer on ${c.name} (${c.address})...`);
-            const tx2 = await (contract as any).renounceRole(role.hash, deployer);
-            await tx2.wait();
-          } else {
-            logger.info(`Deployer does not hold ${role.name} on ${c.name}; skipping renounce.`);
-          }
-        } catch (e) {
-          logger.error(`Error migrating role ${role.name} on ${c.name} (${c.address}):`, e);
-        }
-      }
-
-      // Admin role last
-      const adminRole = c.rolesHeldByDeployer.find((r) => r.name === "DEFAULT_ADMIN_ROLE");
-      if (adminRole) {
-        try {
-          const governanceHasAdmin: boolean = await (contract as any).hasRole(adminRole.hash, governance);
-          if (!governanceHasAdmin) {
-            logger.info(`Granting DEFAULT_ADMIN_ROLE to governance on ${c.name} (${c.address})...`);
-            const tx = await (contract as any).grantRole(adminRole.hash, governance);
-            await tx.wait();
-          } else {
-            logger.info(`Governance already has DEFAULT_ADMIN_ROLE on ${c.name}; skipping grant.`);
-          }
-
-          const deployerHasAdmin: boolean = await (contract as any).hasRole(adminRole.hash, deployer);
-          if (deployerHasAdmin) {
-            logger.info(`Renouncing DEFAULT_ADMIN_ROLE from deployer on ${c.name} (${c.address})...`);
-            const tx2 = await (contract as any).renounceRole(adminRole.hash, deployer);
-            await tx2.wait();
-          } else {
-            logger.info(`Deployer does not hold DEFAULT_ADMIN_ROLE on ${c.name}; skipping renounce.`);
-          }
-        } catch (e) {
-          logger.error(`Error migrating DEFAULT_ADMIN_ROLE on ${c.name} (${c.address}):`, e);
-        }
-      }
-    }
-
-    // Execute Ownable migrations: transfer ownership to governance
-    for (const c of scan.ownableContracts) {
-      if (!c.deployerIsOwner) continue;
-      try {
-        const contract = await ethers.getContractAt(c.abi as any, c.address, deployerSigner);
-        const currentOwner: string = await (contract as any).owner();
-        if (currentOwner.toLowerCase() === governance.toLowerCase()) {
-          logger.info(`Governance already owns ${c.name} (${c.address}); skipping.`);
-          continue;
-        }
-        logger.info(`Transferring ownership of ${c.name} (${c.address}) to governance...`);
-        const tx = await (contract as any).transferOwnership(governance);
-        await tx.wait();
-      } catch (e) {
-        logger.error(`Error transferring ownership for ${c.name} (${c.address}):`, e);
-      }
-    }
-
-    logger.success("\nRole and ownership transfer completed.");
+    summarizeResult(executionResult);
+    printRemainingRoles(executionResult);
+    logStatistics(executionResult, "Execution");
+    logger.success("\nRole migration completed.");
   } catch (error) {
-    logger.error('Failed to transfer roles and ownership.');
+    logger.error("Failed to execute role migration.");
     logger.error(String(error instanceof Error ? error.message : error));
     process.exitCode = 1;
   }
