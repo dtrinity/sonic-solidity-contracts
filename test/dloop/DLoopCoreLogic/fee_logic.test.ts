@@ -2,6 +2,7 @@ import { expect } from "chai";
 import { ethers } from "hardhat";
 
 import type { DLoopCoreLogicHarness } from "../../../typechain-types/contracts/testing/dloop/DLoopCoreLogicHarness";
+import type { WithdrawalFeeHarness } from "../../../typechain-types/contracts/testing/WithdrawalFeeHarness";
 
 describe("DLoopCoreLogic - Fee Logic", () => {
   const SCALE = 1_000_000n;
@@ -9,15 +10,21 @@ describe("DLoopCoreLogic - Fee Logic", () => {
   /**
    * Deploys the DLoopCoreLogic harness for fee logic tests.
    */
-  async function deployHarness(): Promise<{ harness: DLoopCoreLogicHarness }> {
+  async function deployHarnesses(): Promise<{
+    harness: DLoopCoreLogicHarness;
+    feeHarness: WithdrawalFeeHarness;
+  }> {
     const Factory = await ethers.getContractFactory("DLoopCoreLogicHarness");
     const harness = (await Factory.deploy()) as DLoopCoreLogicHarness;
-    return { harness };
+    const FeeFactory = await ethers.getContractFactory("WithdrawalFeeHarness");
+    const feeHarness = (await FeeFactory.deploy()) as WithdrawalFeeHarness;
+    await feeHarness.waitForDeployment();
+    return { harness, feeHarness };
   }
 
   describe("getGrossAmountRequiredForNet", () => {
     it("table-driven cases", async () => {
-      const { harness } = await deployHarness();
+      const { harness, feeHarness } = await deployHarnesses();
       const cases = [
         { name: "zero fee", net: 1_000_000n, fee: 0n },
         { name: "1% fee", net: 1_000_000n, fee: 10_000n },
@@ -32,16 +39,26 @@ describe("DLoopCoreLogic - Fee Logic", () => {
       ];
 
       for (const tc of cases) {
-        const expected = (tc.net * SCALE) / (SCALE - tc.fee);
+        const expected = await feeHarness.grossFromNet(tc.net, tc.fee);
         const res = await harness.getGrossAmountRequiredForNetPublic(tc.net, tc.fee);
         expect(res).to.equal(expected, tc.name);
       }
+    });
+
+    it("reverts when fee is 100% or greater", async () => {
+      const { harness } = await deployHarnesses();
+      await expect(harness.getGrossAmountRequiredForNetPublic(1n, SCALE))
+        .to.be.revertedWithCustomError(harness, "InvalidWithdrawalFeeBps")
+        .withArgs(SCALE);
+      await expect(harness.getGrossAmountRequiredForNetPublic(1n, SCALE + 1n))
+        .to.be.revertedWithCustomError(harness, "InvalidWithdrawalFeeBps")
+        .withArgs(SCALE + 1n);
     });
   });
 
   describe("getNetAmountAfterFee", () => {
     it("table-driven cases", async () => {
-      const { harness } = await deployHarness();
+      const { harness, feeHarness } = await deployHarnesses();
       const cases = [
         { name: "zero fee", gross: 1_000_000n, fee: 0n },
         { name: "1% fee", gross: 1_000_000n, fee: 10_000n },
@@ -56,10 +73,25 @@ describe("DLoopCoreLogic - Fee Logic", () => {
       ];
 
       for (const tc of cases) {
-        const expected = (tc.gross * (SCALE - tc.fee)) / SCALE;
+        const expected = await feeHarness.netAfterFee(tc.gross, tc.fee);
         const res = await harness.getNetAmountAfterFeePublic(tc.gross, tc.fee);
         expect(res).to.equal(expected, tc.name);
       }
+    });
+
+    it("handles 100% fee by returning zero net amount", async () => {
+      const { harness, feeHarness } = await deployHarnesses();
+      const expected = await feeHarness.netAfterFee(1_000n, SCALE);
+      const res = await harness.getNetAmountAfterFeePublic(1_000n, SCALE);
+      expect(res).to.equal(expected);
+      expect(res).to.equal(0n);
+    });
+
+    it("reverts when fee exceeds 100%", async () => {
+      const { harness } = await deployHarnesses();
+      await expect(harness.getNetAmountAfterFeePublic(1n, SCALE + 1n))
+        .to.be.revertedWithCustomError(harness, "InvalidWithdrawalFeeBps")
+        .withArgs(SCALE + 1n);
     });
   });
 });

@@ -20,6 +20,7 @@ pragma solidity ^0.8.20;
 import { BasisPointConstants } from "contracts/common/BasisPointConstants.sol";
 import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
 import { Compare } from "contracts/common/Compare.sol";
+import { WithdrawalFeeMath } from "contracts/common/WithdrawalFeeMath.sol";
 
 /**
  * This library contains the stateless implementation of the DLoopCore logic
@@ -861,15 +862,10 @@ library DLoopCoreLogic {
         uint256 netAmount,
         uint256 withdrawalFeeBps
     ) internal pure returns (uint256 grossAmount) {
-        if (withdrawalFeeBps > BasisPointConstants.ONE_HUNDRED_PERCENT_BPS) {
+        if (withdrawalFeeBps >= BasisPointConstants.ONE_HUNDRED_PERCENT_BPS) {
             revert InvalidWithdrawalFeeBps(withdrawalFeeBps);
         }
-        return
-            Math.mulDiv(
-                netAmount,
-                BasisPointConstants.ONE_HUNDRED_PERCENT_BPS,
-                BasisPointConstants.ONE_HUNDRED_PERCENT_BPS - withdrawalFeeBps
-            );
+        return WithdrawalFeeMath.grossFromNet(netAmount, withdrawalFeeBps);
     }
 
     /**
@@ -885,12 +881,7 @@ library DLoopCoreLogic {
         if (withdrawalFeeBps > BasisPointConstants.ONE_HUNDRED_PERCENT_BPS) {
             revert InvalidWithdrawalFeeBps(withdrawalFeeBps);
         }
-        return
-            Math.mulDiv(
-                grossAmount,
-                BasisPointConstants.ONE_HUNDRED_PERCENT_BPS - withdrawalFeeBps,
-                BasisPointConstants.ONE_HUNDRED_PERCENT_BPS
-            );
+        return WithdrawalFeeMath.netAfterFee(grossAmount, withdrawalFeeBps);
     }
 
     /**

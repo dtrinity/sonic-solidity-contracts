@@ -7,6 +7,7 @@ import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
 error InitialFeeExceedsMaxFee(uint256 feeBps, uint256 maxFeeBps);
 error InvalidFeeBps(uint256 feeBps, uint256 maxFeeBps);
 
+// NOTE: Superseded by WithdrawalFeeMath.sol for new deployments; remains intact for live contracts.
 // Note: FeeManagerCannotBeZeroAddress error can be handled by the consuming contract's AccessControl checks.
 
 abstract contract SupportsWithdrawalFee {

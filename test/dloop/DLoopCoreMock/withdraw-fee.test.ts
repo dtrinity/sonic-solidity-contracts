@@ -154,7 +154,8 @@ describe("DLoopCoreMock - Withdraw Fee", function () {
     await dloop.connect(user).deposit(smallDeposit, user.address);
 
     const netFromRedeem = await dloop.previewRedeem(1n);
-    expect(netFromRedeem).to.equal(0n);
+    const expectedNetFromRedeem = 1n - (1n * BigInt(FEE_BPS)) / DENOM;
+    expect(netFromRedeem).to.equal(expectedNetFromRedeem);
 
     // Pick a small-but-safe net that maps to at least ~2 base units to avoid rounding repay to zero
     const maxNet = await dloop.maxWithdraw(user.address);
