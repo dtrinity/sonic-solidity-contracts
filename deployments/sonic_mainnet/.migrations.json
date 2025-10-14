@@ -73,5 +73,7 @@
   "DLoopDecreaseLeverageOdos": 1757864921,
   "DLoopIncreaseLeverageOdos": 1758016637,
   "dLend:OdosAdaptersV2": 1756969400,
-  "ChainlinkDecimalUpscaler_sfrxUSD": 1760410288
+  "ChainlinkDecimalUpscaler_sfrxUSD": 1760410288,
+  "update-s-chainlink-feeds": 1760413048,
+  "switch-s-chainlink-oracles": 1760447120
 }
