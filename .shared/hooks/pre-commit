@@ -40,9 +40,11 @@ run_guardrails() {
   fi
 
   GUARDRAIL_ARGS="--fail-fast"
-  if [ "${SHARED_HARDHAT_PRE_COMMIT_PRETTIER:-0}" = "0" ]; then
+  if [ "${SHARED_HARDHAT_PRE_COMMIT_PRETTIER:-1}" = "0" ]; then
     GUARDRAIL_ARGS="$GUARDRAIL_ARGS --skip-prettier"
     echo "${YELLOW}Skipping Prettier check (set SHARED_HARDHAT_PRE_COMMIT_PRETTIER=1 to enable).${NC}"
+  else
+    echo "${GREEN}Running Prettier check (set SHARED_HARDHAT_PRE_COMMIT_PRETTIER=0 to skip).${NC}"
   fi
   if [ "${SHARED_HARDHAT_PRE_COMMIT_SOLHINT:-1}" = "0" ]; then
     GUARDRAIL_ARGS="$GUARDRAIL_ARGS --skip-solhint"

@@ -1,0 +1,317 @@
+{
+  "address": "0xEc4D689e4Cb8C4cd731014eEfE3C64cF2E35b6DF",
+  "abi": [
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_sourceFeed",
+          "type": "address"
+        },
+        {
+          "internalType": "uint8",
+          "name": "_targetDecimals",
+          "type": "uint8"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "constructor"
+    },
+    {
+      "inputs": [],
+      "name": "InvalidDecimalsDownscaleNotSupported",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "decimals",
+      "outputs": [
+        {
+          "internalType": "uint8",
+          "name": "",
+          "type": "uint8"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "description",
+      "outputs": [
+        {
+          "internalType": "string",
+          "name": "",
+          "type": "string"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint80",
+          "name": "_roundId",
+          "type": "uint80"
+        }
+      ],
+      "name": "getRoundData",
+      "outputs": [
+        {
+          "internalType": "uint80",
+          "name": "roundId",
+          "type": "uint80"
+        },
+        {
+          "internalType": "int256",
+          "name": "answer",
+          "type": "int256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "startedAt",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "updatedAt",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint80",
+          "name": "answeredInRound",
+          "type": "uint80"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "latestAnswer",
+      "outputs": [
+        {
+          "internalType": "int256",
+          "name": "",
+          "type": "int256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "latestRound",
+      "outputs": [
+        {
+          "internalType": "uint80",
+          "name": "",
+          "type": "uint80"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "latestRoundData",
+      "outputs": [
+        {
+          "internalType": "uint80",
+          "name": "roundId",
+          "type": "uint80"
+        },
+        {
+          "internalType": "int256",
+          "name": "answer",
+          "type": "int256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "startedAt",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "updatedAt",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint80",
+          "name": "answeredInRound",
+          "type": "uint80"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "sourceDecimals",
+      "outputs": [
+        {
+          "internalType": "uint8",
+          "name": "",
+          "type": "uint8"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "sourceFeed",
+      "outputs": [
+        {
+          "internalType": "contract AggregatorV3Interface",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "version",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    }
+  ],
+  "transactionHash": "0x0ef7062d5e592e59cca98b4b7c83944db9021afe4265db22d3ce857c8198cf68",
+  "receipt": {
+    "to": null,
+    "from": "0x0f5e3D9AEe7Ab5fDa909Af1ef147D98a7f4B3022",
+    "contractAddress": "0xEc4D689e4Cb8C4cd731014eEfE3C64cF2E35b6DF",
+    "transactionIndex": 1,
+    "gasUsed": "597233",
+    "logsBloom": "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+    "blockHash": "0xcd800ae9cba57402625577fe33378c85777a35630b16d563e9014d469309e6c8",
+    "transactionHash": "0x0ef7062d5e592e59cca98b4b7c83944db9021afe4265db22d3ce857c8198cf68",
+    "logs": [],
+    "blockNumber": 50539107,
+    "cumulativeGasUsed": "1213354",
+    "status": 1,
+    "byzantium": true
+  },
+  "args": [
+    "0xebE443E20ADf302B59419648c4dbA0c7299cf1A2",
+    18
+  ],
+  "numDeployments": 1,
+  "solcInputHash": "308c3d1b004be78bd322f45e61b10da6",
+  "metadata": "{\"compiler\":{\"version\":\"0.8.22+commit.4fc1097e\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_sourceFeed\",\"type\":\"address\"},{\"internalType\":\"uint8\",\"name\":\"_targetDecimals\",\"type\":\"uint8\"}],\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"inputs\":[],\"name\":\"InvalidDecimalsDownscaleNotSupported\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"decimals\",\"outputs\":[{\"internalType\":\"uint8\",\"name\":\"\",\"type\":\"uint8\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"description\",\"outputs\":[{\"internalType\":\"string\",\"name\":\"\",\"type\":\"string\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint80\",\"name\":\"_roundId\",\"type\":\"uint80\"}],\"name\":\"getRoundData\",\"outputs\":[{\"internalType\":\"uint80\",\"name\":\"roundId\",\"type\":\"uint80\"},{\"internalType\":\"int256\",\"name\":\"answer\",\"type\":\"int256\"},{\"internalType\":\"uint256\",\"name\":\"startedAt\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"updatedAt\",\"type\":\"uint256\"},{\"internalType\":\"uint80\",\"name\":\"answeredInRound\",\"type\":\"uint80\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"latestAnswer\",\"outputs\":[{\"internalType\":\"int256\",\"name\":\"\",\"type\":\"int256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"latestRound\",\"outputs\":[{\"internalType\":\"uint80\",\"name\":\"\",\"type\":\"uint80\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"latestRoundData\",\"outputs\":[{\"internalType\":\"uint80\",\"name\":\"roundId\",\"type\":\"uint80\"},{\"internalType\":\"int256\",\"name\":\"answer\",\"type\":\"int256\"},{\"internalType\":\"uint256\",\"name\":\"startedAt\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"updatedAt\",\"type\":\"uint256\"},{\"internalType\":\"uint80\",\"name\":\"answeredInRound\",\"type\":\"uint80\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"sourceDecimals\",\"outputs\":[{\"internalType\":\"uint8\",\"name\":\"\",\"type\":\"uint8\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"sourceFeed\",\"outputs\":[{\"internalType\":\"contract AggregatorV3Interface\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"version\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"}],\"devdoc\":{\"details\":\"Implements both AggregatorV3Interface and IPriceFeedLegacy for backwards compatibilityThis contract is optimized for gas efficiency by only supporting upscaling operations\",\"kind\":\"dev\",\"methods\":{\"constructor\":{\"params\":{\"_sourceFeed\":\"Address of the source Chainlink price feed\",\"_targetDecimals\":\"Target decimal precision (must be greater than source decimals)\"}},\"description()\":{\"returns\":{\"_0\":\"Description string\"}},\"getRoundData(uint80)\":{\"params\":{\"_roundId\":\"The round ID to retrieve data for\"},\"returns\":{\"answer\":\"The price with adjusted decimals\",\"answeredInRound\":\"The round in which the answer was computed\",\"roundId\":\"The round ID\",\"startedAt\":\"The timestamp when the round started\",\"updatedAt\":\"The timestamp when the round was updated\"}},\"latestAnswer()\":{\"returns\":{\"_0\":\"latestAnswer The latest successfully reported value with target decimals\"}},\"latestRound()\":{\"returns\":{\"_0\":\"latestRound The number of the latest update round\"}},\"latestRoundData()\":{\"returns\":{\"answer\":\"The price with adjusted decimals\",\"answeredInRound\":\"The round in which the answer was computed\",\"roundId\":\"The round ID\",\"startedAt\":\"The timestamp when the round started\",\"updatedAt\":\"The timestamp when the round was updated\"}},\"version()\":{\"returns\":{\"_0\":\"Version number\"}}},\"title\":\"ChainlinkDecimalUpscaler\",\"version\":1},\"userdoc\":{\"errors\":{\"InvalidDecimalsDownscaleNotSupported()\":[{\"notice\":\"Error thrown when target decimals are less than or equal to source decimals\"}]},\"kind\":\"user\",\"methods\":{\"constructor\":{\"notice\":\"Constructor to initialize the upscaling decimal converter\"},\"decimals()\":{\"notice\":\"Target decimals for price conversion\"},\"description()\":{\"notice\":\"Returns the description of the original feed\"},\"getRoundData(uint80)\":{\"notice\":\"Gets data for a specific round\"},\"latestAnswer()\":{\"notice\":\"Legacy function: Gets the latest successfully reported value with adjusted decimals\"},\"latestRound()\":{\"notice\":\"Legacy function: Gets the number of latest round\"},\"latestRoundData()\":{\"notice\":\"Gets data for the latest round\"},\"sourceDecimals()\":{\"notice\":\"Original decimals from the source feed\"},\"sourceFeed()\":{\"notice\":\"Original Chainlink price feed\"},\"version()\":{\"notice\":\"Returns the version of the original feed\"}},\"notice\":\"Dedicated upscaler for Chainlink price feeds - increases decimal precision\",\"version\":1}},\"settings\":{\"compilationTarget\":{\"contracts/oracle_aggregator/chainlink/ChainlinkDecimalUpscaler.sol\":\"ChainlinkDecimalUpscaler\"},\"evmVersion\":\"paris\",\"libraries\":{},\"metadata\":{\"bytecodeHash\":\"ipfs\",\"useLiteralContent\":true},\"optimizer\":{\"enabled\":true,\"runs\":200},\"remappings\":[]},\"sources\":{\"contracts/oracle_aggregator/chainlink/ChainlinkDecimalUpscaler.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\n/* \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 *\\n *    _____     ______   ______     __     __   __     __     ______   __  __       *\\n *   /\\\\  __-.  /\\\\__  _\\\\ /\\\\  == \\\\   /\\\\ \\\\   /\\\\ \\\"-.\\\\ \\\\   /\\\\ \\\\   /\\\\__  _\\\\ /\\\\ \\\\_\\\\ \\\\      *\\n *   \\\\ \\\\ \\\\/\\\\ \\\\ \\\\/_/\\\\ \\\\/ \\\\ \\\\  __<   \\\\ \\\\ \\\\  \\\\ \\\\ \\\\-.  \\\\  \\\\ \\\\ \\\\  \\\\/_/\\\\ \\\\/ \\\\ \\\\____ \\\\     *\\n *    \\\\ \\\\____-    \\\\ \\\\_\\\\  \\\\ \\\\_\\\\ \\\\_\\\\  \\\\ \\\\_\\\\  \\\\ \\\\_\\\\\\\\\\\"\\\\_\\\\  \\\\ \\\\_\\\\    \\\\ \\\\_\\\\  \\\\/\\\\_____\\\\    *\\n *     \\\\/____/     \\\\/_/   \\\\/_/ /_/   \\\\/_/   \\\\/_/ \\\\/_/   \\\\/_/     \\\\/_/   \\\\/_____/    *\\n *                                                                                  *\\n * \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 dtrinity.org \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 *\\n *                                                                                  *\\n *                                         \\u25b2                                        *\\n *                                        \\u25b2 \\u25b2                                       *\\n *                                                                                  *\\n * \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 *\\n * dTRINITY Protocol: https://github.com/dtrinity                                   *\\n * \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 */\\n\\npragma solidity ^0.8.20;\\n\\nimport \\\"../interface/chainlink/IAggregatorV3Interface.sol\\\";\\nimport \\\"../interface/chainlink/IPriceFeedLegacy.sol\\\";\\n\\n/**\\n * @title ChainlinkDecimalUpscaler\\n * @notice Dedicated upscaler for Chainlink price feeds - increases decimal precision\\n * @dev Implements both AggregatorV3Interface and IPriceFeedLegacy for backwards compatibility\\n * @dev This contract is optimized for gas efficiency by only supporting upscaling operations\\n */\\ncontract ChainlinkDecimalUpscaler is AggregatorV3Interface, IPriceFeedLegacy {\\n    /// @notice Original Chainlink price feed\\n    AggregatorV3Interface public immutable sourceFeed;\\n\\n    /// @notice Legacy interface for the source feed (if supported)\\n    IPriceFeedLegacy private immutable sourceFeedLegacy;\\n\\n    /// @notice Original decimals from the source feed\\n    uint8 public immutable sourceDecimals;\\n\\n    /// @notice Target decimals for price conversion\\n    uint8 public immutable override decimals;\\n\\n    /// @notice Scaling factor to convert between source and target decimals\\n    int256 private immutable scalingFactor;\\n\\n    /**\\n     * @notice Error thrown when target decimals are less than or equal to source decimals\\n     */\\n    error InvalidDecimalsDownscaleNotSupported();\\n\\n    /**\\n     * @notice Constructor to initialize the upscaling decimal converter\\n     * @param _sourceFeed Address of the source Chainlink price feed\\n     * @param _targetDecimals Target decimal precision (must be greater than source decimals)\\n     */\\n    constructor(address _sourceFeed, uint8 _targetDecimals) {\\n        sourceFeed = AggregatorV3Interface(_sourceFeed);\\n        sourceFeedLegacy = IPriceFeedLegacy(_sourceFeed);\\n        sourceDecimals = sourceFeed.decimals();\\n        decimals = _targetDecimals;\\n\\n        // We only support upscaling (increasing precision), not downscaling\\n        if (_targetDecimals <= sourceDecimals) {\\n            revert InvalidDecimalsDownscaleNotSupported();\\n        }\\n\\n        // Calculate the scaling factor to convert from source to target decimals\\n        // For upscaling, we multiply by 10^(targetDecimals - sourceDecimals)\\n        uint8 decimalDifference = _targetDecimals - sourceDecimals;\\n        scalingFactor = int256(10 ** decimalDifference);\\n    }\\n\\n    /**\\n     * @notice Returns the description of the original feed\\n     * @return Description string\\n     */\\n    function description() external view override returns (string memory) {\\n        return sourceFeed.description();\\n    }\\n\\n    /**\\n     * @notice Returns the version of the original feed\\n     * @return Version number\\n     */\\n    function version() external view override returns (uint256) {\\n        return sourceFeed.version();\\n    }\\n\\n    /**\\n     * @notice Gets data for a specific round\\n     * @param _roundId The round ID to retrieve data for\\n     * @return roundId The round ID\\n     * @return answer The price with adjusted decimals\\n     * @return startedAt The timestamp when the round started\\n     * @return updatedAt The timestamp when the round was updated\\n     * @return answeredInRound The round in which the answer was computed\\n     */\\n    function getRoundData(\\n        uint80 _roundId\\n    )\\n        external\\n        view\\n        override\\n        returns (uint80 roundId, int256 answer, uint256 startedAt, uint256 updatedAt, uint80 answeredInRound)\\n    {\\n        (roundId, answer, startedAt, updatedAt, answeredInRound) = sourceFeed.getRoundData(_roundId);\\n        answer = answer * scalingFactor;\\n    }\\n\\n    /**\\n     * @notice Gets data for the latest round\\n     * @return roundId The round ID\\n     * @return answer The price with adjusted decimals\\n     * @return startedAt The timestamp when the round started\\n     * @return updatedAt The timestamp when the round was updated\\n     * @return answeredInRound The round in which the answer was computed\\n     */\\n    function latestRoundData()\\n        external\\n        view\\n        override\\n        returns (uint80 roundId, int256 answer, uint256 startedAt, uint256 updatedAt, uint80 answeredInRound)\\n    {\\n        (roundId, answer, startedAt, updatedAt, answeredInRound) = sourceFeed.latestRoundData();\\n        answer = answer * scalingFactor;\\n    }\\n\\n    /**\\n     * @notice Legacy function: Gets the number of latest round\\n     * @return latestRound The number of the latest update round\\n     */\\n    function latestRound() external view override returns (uint80) {\\n        try sourceFeedLegacy.latestRound() returns (uint80 roundId) {\\n            return roundId;\\n        } catch {\\n            // Fall back to getting it from latestRoundData if legacy interface not supported\\n            (uint80 roundId, , , , ) = sourceFeed.latestRoundData();\\n            return roundId;\\n        }\\n    }\\n\\n    /**\\n     * @notice Legacy function: Gets the latest successfully reported value with adjusted decimals\\n     * @return latestAnswer The latest successfully reported value with target decimals\\n     */\\n    function latestAnswer() external view override returns (int256) {\\n        try sourceFeedLegacy.latestAnswer() returns (int256 answer) {\\n            return answer * scalingFactor;\\n        } catch {\\n            // Fall back to getting it from latestRoundData if legacy interface not supported\\n            (, int256 answer, , , ) = sourceFeed.latestRoundData();\\n            return answer * scalingFactor;\\n        }\\n    }\\n}\\n\",\"keccak256\":\"0x870349bd0d43c376cebf959dc2c306b15083adf2f11c4c79e902b6f2e8b2cc92\",\"license\":\"MIT\"},\"contracts/oracle_aggregator/interface/chainlink/IAggregatorV3Interface.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\n/* \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 *\\n *    _____     ______   ______     __     __   __     __     ______   __  __       *\\n *   /\\\\  __-.  /\\\\__  _\\\\ /\\\\  == \\\\   /\\\\ \\\\   /\\\\ \\\"-.\\\\ \\\\   /\\\\ \\\\   /\\\\__  _\\\\ /\\\\ \\\\_\\\\ \\\\      *\\n *   \\\\ \\\\ \\\\/\\\\ \\\\ \\\\/_/\\\\ \\\\/ \\\\ \\\\  __<   \\\\ \\\\ \\\\  \\\\ \\\\ \\\\-.  \\\\  \\\\ \\\\ \\\\  \\\\/_/\\\\ \\\\/ \\\\ \\\\____ \\\\     *\\n *    \\\\ \\\\____-    \\\\ \\\\_\\\\  \\\\ \\\\_\\\\ \\\\_\\\\  \\\\ \\\\_\\\\  \\\\ \\\\_\\\\\\\\\\\"\\\\_\\\\  \\\\ \\\\_\\\\    \\\\ \\\\_\\\\  \\\\/\\\\_____\\\\    *\\n *     \\\\/____/     \\\\/_/   \\\\/_/ /_/   \\\\/_/   \\\\/_/ \\\\/_/   \\\\/_/     \\\\/_/   \\\\/_____/    *\\n *                                                                                  *\\n * \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 dtrinity.org \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 *\\n *                                                                                  *\\n *                                         \\u25b2                                        *\\n *                                        \\u25b2 \\u25b2                                       *\\n *                                                                                  *\\n * \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 *\\n * dTRINITY Protocol: https://github.com/dtrinity                                   *\\n * \\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014\\u2014 */\\n\\npragma solidity ^0.8.20;\\n\\ninterface AggregatorV3Interface {\\n    function decimals() external view returns (uint8);\\n\\n    function description() external view returns (string memory);\\n\\n    function version() external view returns (uint256);\\n\\n    // getRoundData and latestRoundData should both raise \\\"No data present\\\"\\n    // if they do not have data to report, instead of returning unset values\\n    // which could be misinterpreted as actual reported values.\\n    function getRoundData(\\n        uint80 _roundId\\n    )\\n        external\\n        view\\n        returns (uint80 roundId, int256 answer, uint256 startedAt, uint256 updatedAt, uint80 answeredInRound);\\n\\n    function latestRoundData()\\n        external\\n        view\\n        returns (uint80 roundId, int256 answer, uint256 startedAt, uint256 updatedAt, uint80 answeredInRound);\\n}\\n\",\"keccak256\":\"0x39aa5907d90c346f01d376900eb407cda5f41f89915514d98fcee73d0beee3e8\",\"license\":\"MIT\"},\"contracts/oracle_aggregator/interface/chainlink/IPriceFeedLegacy.sol\":{\"content\":\"// SPDX-License-Identifier: BUSL-1.1\\n\\npragma solidity ^0.8.17;\\n\\n/**\\n * @title Interface with the old Chainlink Price Feed functions\\n * @author The Redstone Oracles team\\n * @dev There are some projects (e.g. gmx-contracts) that still\\n * rely on some legacy functions\\n */\\ninterface IPriceFeedLegacy {\\n    /**\\n     * @notice Old Chainlink function for getting the number of latest round\\n     * @return latestRound The number of the latest update round\\n     */\\n    function latestRound() external view returns (uint80);\\n\\n    /**\\n     * @notice Old Chainlink function for getting the latest successfully reported value\\n     * @return latestAnswer The latest successfully reported value\\n     */\\n    function latestAnswer() external view returns (int256);\\n}\\n\",\"keccak256\":\"0x1b4dcd45fdf0e3a74c1439a0e20169d99613f7a4c46f2918d017a8a7d0b4c3c0\",\"license\":\"BUSL-1.1\"}},\"version\":1}",
+  "bytecode": "0x6101206040523480156200001257600080fd5b5060405162000cdd38038062000cdd833981016040819052620000359162000122565b6001600160a01b038216608081905260a08190526040805163313ce56760e01b8152905163313ce567916004808201926020929091908290030181865afa15801562000085573d6000803e3d6000fd5b505050506040513d601f19601f82011682018060405250810190620000ab919062000167565b60ff90811660c081905290821660e081905211620000dc57604051631a500fd160e21b815260040160405180910390fd5b600060c05182620000ee9190620001a2565b9050620000fd81600a620002c1565b6101005250620002d2915050565b805160ff811681146200011d57600080fd5b919050565b600080604083850312156200013657600080fd5b82516001600160a01b03811681146200014e57600080fd5b91506200015e602084016200010b565b90509250929050565b6000602082840312156200017a57600080fd5b62000185826200010b565b9392505050565b634e487b7160e01b600052601160045260246000fd5b60ff8281168282160390811115620001be57620001be6200018c565b92915050565b600181815b8085111562000205578160001904821115620001e957620001e96200018c565b80851615620001f757918102915b93841c9390800290620001c9565b509250929050565b6000826200021e57506001620001be565b816200022d57506000620001be565b8160018114620002465760028114620002515762000271565b6001915050620001be565b60ff8411156200026557620002656200018c565b50506001821b620001be565b5060208310610133831016604e8410600b841016171562000296575081810a620001be565b620002a28383620001c4565b8060001904821115620002b957620002b96200018c565b029392505050565b60006200018560ff8416836200020d565b60805160a05160c05160e051610100516109816200035c600039600081816102f0015281816103250152818161061f01526106ea01526000609d015260006101ba0152600081816101e801526103d701526000818161017b015281816102680152818161034e01528181610457015281816104eb015281816105a3015261065901526109816000f3fe608060405234801561001057600080fd5b50600436106100935760003560e01c80637284e416116100665780637284e416146101175780639a6fc8f51461012c578063a1a927b114610176578063be231cb3146101b5578063feaf968c146101dc57600080fd5b8063313ce5671461009857806350d25bcd146100d657806354fd4d50146100ec578063668a0f02146100f4575b600080fd5b6100bf7f000000000000000000000000000000000000000000000000000000000000000081565b60405160ff90911681526020015b60405180910390f35b6100de6101e4565b6040519081526020016100cd565b6100de61034a565b6100fc6103d3565b60405169ffffffffffffffffffff90911681526020016100cd565b61011f6104e7565b6040516100cd919061073c565b61013f61013a36600461078a565b61056f565b6040805169ffffffffffffffffffff968716815260208101959095528401929092526060830152909116608082015260a0016100cd565b61019d7f000000000000000000000000000000000000000000000000000000000000000081565b6040516001600160a01b0390911681526020016100cd565b6100bf7f000000000000000000000000000000000000000000000000000000000000000081565b61013f61064f565b60007f00000000000000000000000000000000000000000000000000000000000000006001600160a01b03166350d25bcd6040518163ffffffff1660e01b8152600401602060405180830381865afa925050508015610260575060408051601f3d908101601f1916820190925261025d918101906107ae565b60015b6103205760007f00000000000000000000000000000000000000000000000000000000000000006001600160a01b031663feaf968c6040518163ffffffff1660e01b815260040160a060405180830381865afa1580156102c4573d6000803e3d6000fd5b505050506040513d601f19601f820116820180604052508101906102e891906107c7565b5050509150507f00000000000000000000000000000000000000000000000000000000000000008161031a9190610835565b91505090565b61031a7f000000000000000000000000000000000000000000000000000000000000000082610835565b60007f00000000000000000000000000000000000000000000000000000000000000006001600160a01b03166354fd4d506040518163ffffffff1660e01b8152600401602060405180830381865afa1580156103aa573d6000803e3d6000fd5b505050506040513d601f19601f820116820180604052508101906103ce91906107ae565b905090565b60007f00000000000000000000000000000000000000000000000000000000000000006001600160a01b031663668a0f026040518163ffffffff1660e01b8152600401602060405180830381865afa92505050801561044f575060408051601f3d908101601f1916820190925261044c9181019061086b565b60015b6104e25760007f00000000000000000000000000000000000000000000000000000000000000006001600160a01b031663feaf968c6040518163ffffffff1660e01b815260040160a060405180830381865afa1580156104b3573d6000803e3d6000fd5b505050506040513d601f19601f820116820180604052508101906104d791906107c7565b509295945050505050565b919050565b60607f00000000000000000000000000000000000000000000000000000000000000006001600160a01b0316637284e4166040518163ffffffff1660e01b8152600401600060405180830381865afa158015610547573d6000803e3d6000fd5b505050506040513d6000823e601f3d908101601f191682016040526103ce919081019061089e565b604051639a6fc8f560e01b815269ffffffffffffffffffff8216600482015260009081908190819081906001600160a01b037f00000000000000000000000000000000000000000000000000000000000000001690639a6fc8f59060240160a060405180830381865afa1580156105ea573d6000803e3d6000fd5b505050506040513d601f19601f8201168201806040525081019061060e91906107c7565b9398509196509450925090506106447f000000000000000000000000000000000000000000000000000000000000000085610835565b935091939590929450565b60008060008060007f00000000000000000000000000000000000000000000000000000000000000006001600160a01b031663feaf968c6040518163ffffffff1660e01b815260040160a060405180830381865afa1580156106b5573d6000803e3d6000fd5b505050506040513d601f19601f820116820180604052508101906106d991906107c7565b93985091965094509250905061070f7f000000000000000000000000000000000000000000000000000000000000000085610835565b93509091929394565b60005b8381101561073357818101518382015260200161071b565b50506000910152565b602081526000825180602084015261075b816040850160208701610718565b601f01601f19169190910160400192915050565b69ffffffffffffffffffff8116811461078757600080fd5b50565b60006020828403121561079c57600080fd5b81356107a78161076f565b9392505050565b6000602082840312156107c057600080fd5b5051919050565b600080600080600060a086880312156107df57600080fd5b85516107ea8161076f565b8095505060208601519350604086015192506060860151915060808601516108118161076f565b809150509295509295909350565b634e487b7160e01b600052601160045260246000fd5b80820260008212600160ff1b841416156108515761085161081f565b81810583148215176108655761086561081f565b92915050565b60006020828403121561087d57600080fd5b81516107a78161076f565b634e487b7160e01b600052604160045260246000fd5b6000602082840312156108b057600080fd5b815167ffffffffffffffff808211156108c857600080fd5b818401915084601f8301126108dc57600080fd5b8151818111156108ee576108ee610888565b604051601f8201601f19908116603f0116810190838211818310171561091657610916610888565b8160405282815287602084870101111561092f57600080fd5b610940836020830160208801610718565b97965050505050505056fea26469706673582212208b1ca8032b5e3879774c6906135197533edcef0ea5193210b7cf4db93026341564736f6c63430008160033",
+  "deployedBytecode": "0x608060405234801561001057600080fd5b50600436106100935760003560e01c80637284e416116100665780637284e416146101175780639a6fc8f51461012c578063a1a927b114610176578063be231cb3146101b5578063feaf968c146101dc57600080fd5b8063313ce5671461009857806350d25bcd146100d657806354fd4d50146100ec578063668a0f02146100f4575b600080fd5b6100bf7f000000000000000000000000000000000000000000000000000000000000000081565b60405160ff90911681526020015b60405180910390f35b6100de6101e4565b6040519081526020016100cd565b6100de61034a565b6100fc6103d3565b60405169ffffffffffffffffffff90911681526020016100cd565b61011f6104e7565b6040516100cd919061073c565b61013f61013a36600461078a565b61056f565b6040805169ffffffffffffffffffff968716815260208101959095528401929092526060830152909116608082015260a0016100cd565b61019d7f000000000000000000000000000000000000000000000000000000000000000081565b6040516001600160a01b0390911681526020016100cd565b6100bf7f000000000000000000000000000000000000000000000000000000000000000081565b61013f61064f565b60007f00000000000000000000000000000000000000000000000000000000000000006001600160a01b03166350d25bcd6040518163ffffffff1660e01b8152600401602060405180830381865afa925050508015610260575060408051601f3d908101601f1916820190925261025d918101906107ae565b60015b6103205760007f00000000000000000000000000000000000000000000000000000000000000006001600160a01b031663feaf968c6040518163ffffffff1660e01b815260040160a060405180830381865afa1580156102c4573d6000803e3d6000fd5b505050506040513d601f19601f820116820180604052508101906102e891906107c7565b5050509150507f00000000000000000000000000000000000000000000000000000000000000008161031a9190610835565b91505090565b61031a7f000000000000000000000000000000000000000000000000000000000000000082610835565b60007f00000000000000000000000000000000000000000000000000000000000000006001600160a01b03166354fd4d506040518163ffffffff1660e01b8152600401602060405180830381865afa1580156103aa573d6000803e3d6000fd5b505050506040513d601f19601f820116820180604052508101906103ce91906107ae565b905090565b60007f00000000000000000000000000000000000000000000000000000000000000006001600160a01b031663668a0f026040518163ffffffff1660e01b8152600401602060405180830381865afa92505050801561044f575060408051601f3d908101601f1916820190925261044c9181019061086b565b60015b6104e25760007f00000000000000000000000000000000000000000000000000000000000000006001600160a01b031663feaf968c6040518163ffffffff1660e01b815260040160a060405180830381865afa1580156104b3573d6000803e3d6000fd5b505050506040513d601f19601f820116820180604052508101906104d791906107c7565b509295945050505050565b919050565b60607f00000000000000000000000000000000000000000000000000000000000000006001600160a01b0316637284e4166040518163ffffffff1660e01b8152600401600060405180830381865afa158015610547573d6000803e3d6000fd5b505050506040513d6000823e601f3d908101601f191682016040526103ce919081019061089e565b604051639a6fc8f560e01b815269ffffffffffffffffffff8216600482015260009081908190819081906001600160a01b037f00000000000000000000000000000000000000000000000000000000000000001690639a6fc8f59060240160a060405180830381865afa1580156105ea573d6000803e3d6000fd5b505050506040513d601f19601f8201168201806040525081019061060e91906107c7565b9398509196509450925090506106447f000000000000000000000000000000000000000000000000000000000000000085610835565b935091939590929450565b60008060008060007f00000000000000000000000000000000000000000000000000000000000000006001600160a01b031663feaf968c6040518163ffffffff1660e01b815260040160a060405180830381865afa1580156106b5573d6000803e3d6000fd5b505050506040513d601f19601f820116820180604052508101906106d991906107c7565b93985091965094509250905061070f7f000000000000000000000000000000000000000000000000000000000000000085610835565b93509091929394565b60005b8381101561073357818101518382015260200161071b565b50506000910152565b602081526000825180602084015261075b816040850160208701610718565b601f01601f19169190910160400192915050565b69ffffffffffffffffffff8116811461078757600080fd5b50565b60006020828403121561079c57600080fd5b81356107a78161076f565b9392505050565b6000602082840312156107c057600080fd5b5051919050565b600080600080600060a086880312156107df57600080fd5b85516107ea8161076f565b8095505060208601519350604086015192506060860151915060808601516108118161076f565b809150509295509295909350565b634e487b7160e01b600052601160045260246000fd5b80820260008212600160ff1b841416156108515761085161081f565b81810583148215176108655761086561081f565b92915050565b60006020828403121561087d57600080fd5b81516107a78161076f565b634e487b7160e01b600052604160045260246000fd5b6000602082840312156108b057600080fd5b815167ffffffffffffffff808211156108c857600080fd5b818401915084601f8301126108dc57600080fd5b8151818111156108ee576108ee610888565b604051601f8201601f19908116603f0116810190838211818310171561091657610916610888565b8160405282815287602084870101111561092f57600080fd5b610940836020830160208801610718565b97965050505050505056fea26469706673582212208b1ca8032b5e3879774c6906135197533edcef0ea5193210b7cf4db93026341564736f6c63430008160033",
+  "devdoc": {
+    "details": "Implements both AggregatorV3Interface and IPriceFeedLegacy for backwards compatibilityThis contract is optimized for gas efficiency by only supporting upscaling operations",
+    "kind": "dev",
+    "methods": {
+      "constructor": {
+        "params": {
+          "_sourceFeed": "Address of the source Chainlink price feed",
+          "_targetDecimals": "Target decimal precision (must be greater than source decimals)"
+        }
+      },
+      "description()": {
+        "returns": {
+          "_0": "Description string"
+        }
+      },
+      "getRoundData(uint80)": {
+        "params": {
+          "_roundId": "The round ID to retrieve data for"
+        },
+        "returns": {
+          "answer": "The price with adjusted decimals",
+          "answeredInRound": "The round in which the answer was computed",
+          "roundId": "The round ID",
+          "startedAt": "The timestamp when the round started",
+          "updatedAt": "The timestamp when the round was updated"
+        }
+      },
+      "latestAnswer()": {
+        "returns": {
+          "_0": "latestAnswer The latest successfully reported value with target decimals"
+        }
+      },
+      "latestRound()": {
+        "returns": {
+          "_0": "latestRound The number of the latest update round"
+        }
+      },
+      "latestRoundData()": {
+        "returns": {
+          "answer": "The price with adjusted decimals",
+          "answeredInRound": "The round in which the answer was computed",
+          "roundId": "The round ID",
+          "startedAt": "The timestamp when the round started",
+          "updatedAt": "The timestamp when the round was updated"
+        }
+      },
+      "version()": {
+        "returns": {
+          "_0": "Version number"
+        }
+      }
+    },
+    "title": "ChainlinkDecimalUpscaler",
+    "version": 1
+  },
+  "userdoc": {
+    "errors": {
+      "InvalidDecimalsDownscaleNotSupported()": [
+        {
+          "notice": "Error thrown when target decimals are less than or equal to source decimals"
+        }
+      ]
+    },
+    "kind": "user",
+    "methods": {
+      "constructor": {
+        "notice": "Constructor to initialize the upscaling decimal converter"
+      },
+      "decimals()": {
+        "notice": "Target decimals for price conversion"
+      },
+      "description()": {
+        "notice": "Returns the description of the original feed"
+      },
+      "getRoundData(uint80)": {
+        "notice": "Gets data for a specific round"
+      },
+      "latestAnswer()": {
+        "notice": "Legacy function: Gets the latest successfully reported value with adjusted decimals"
+      },
+      "latestRound()": {
+        "notice": "Legacy function: Gets the number of latest round"
+      },
+      "latestRoundData()": {
+        "notice": "Gets data for the latest round"
+      },
+      "sourceDecimals()": {
+        "notice": "Original decimals from the source feed"
+      },
+      "sourceFeed()": {
+        "notice": "Original Chainlink price feed"
+      },
+      "version()": {
+        "notice": "Returns the version of the original feed"
+      }
+    },
+    "notice": "Dedicated upscaler for Chainlink price feeds - increases decimal precision",
+    "version": 1
+  },
+  "storageLayout": {
+    "storage": [],
+    "types": null
+  }
+}
