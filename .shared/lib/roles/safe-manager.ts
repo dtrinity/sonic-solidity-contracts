@@ -2,6 +2,7 @@ import SafeApiKit from "@safe-global/api-kit";
 import Safe from "@safe-global/protocol-kit";
 import { Signer } from "ethers";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
+import "hardhat-deploy";
 
 import {
   SafeCompletedTransaction,
@@ -39,6 +40,7 @@ export class SafeManager {
       enableTransactionService: false,
       signingMode: "none",
     };
+    void this.storeCompletedTransaction;
   }
 
   /**
@@ -78,6 +80,7 @@ export class SafeManager {
           chainId: BigInt(this.config.chainId),
           txServiceUrl: this.config.txServiceUrl,
         });
+        void this.apiKit;
       }
 
       console.log(`✅ Safe Manager initialized successfully`);
@@ -328,7 +331,8 @@ export class SafeManager {
   private async getDeploymentState(): Promise<SafeDeploymentState> {
     try {
       const networkName = this.hre.network.name;
-      const deploymentPath = `${this.hre.config.paths.deployments}/${networkName}`;
+      const deploymentsRoot = getDeploymentsBasePath(this.hre);
+      const deploymentPath = `${deploymentsRoot}/${networkName}`;
       const statePath = `${deploymentPath}/safe-deployment-state.json`;
 
       const fs = require("fs");
@@ -358,7 +362,8 @@ export class SafeManager {
   private async saveDeploymentState(state: SafeDeploymentState): Promise<void> {
     try {
       const networkName = this.hre.network.name;
-      const deploymentPath = `${this.hre.config.paths.deployments}/${networkName}`;
+      const deploymentsRoot = getDeploymentsBasePath(this.hre);
+      const deploymentPath = `${deploymentsRoot}/${networkName}`;
       const statePath = `${deploymentPath}/safe-deployment-state.json`;
 
       const fs = require("fs");
@@ -385,7 +390,8 @@ export class SafeManager {
   private async exportTransactionBuilderBatch(transactions: SafeTransactionData[], description: string, safeTxHash: string): Promise<void> {
     try {
       const networkName = this.hre.network.name;
-      const deploymentPath = `${this.hre.config.paths.deployments}/${networkName}`;
+      const deploymentsRoot = getDeploymentsBasePath(this.hre);
+      const deploymentPath = `${deploymentsRoot}/${networkName}`;
       const fs = require("fs");
 
       if (!fs.existsSync(deploymentPath)) {
@@ -455,4 +461,9 @@ export class SafeManager {
   isInitialized(): boolean {
     return this.protocolKit !== undefined;
   }
+}
+
+function getDeploymentsBasePath(hre: HardhatRuntimeEnvironment): string {
+  const paths = hre.config.paths as unknown as { deployments?: string; root: string };
+  return paths.deployments ?? `${paths.root}/deployments`;
 }
