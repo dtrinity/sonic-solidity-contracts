@@ -274,9 +274,7 @@ async function dumpAggregatorPrices(): Promise<void> {
     // Chainlink composite wrappers (simple map asset->config)
     addKeys(aggConfig.chainlinkCompositeWrapperAggregator);
 
-    const tokenAddressMap: Record<string, string> = Object.entries(
-      (config.tokenAddresses ?? {}) as Record<string, any>,
-    ).reduce(
+    const tokenAddressMap: Record<string, string> = Object.entries((config.tokenAddresses ?? {}) as Record<string, any>).reduce(
       (acc, [symbol, addr]) => {
         if (addr) acc[(addr as string).toLowerCase()] = symbol;
         return acc;
@@ -320,10 +318,7 @@ async function runGeneralizedCrawler(options: CrawlerOptions = {}): Promise<void
   // 2) Preflight: fetch BASE_CURRENCY_UNIT for all aggregators + wrappers via multicall
   const baseUnitIface = new ethers.Interface(["function BASE_CURRENCY_UNIT() view returns (uint256)"]);
   const preflightCalls: Aggregate3Call[] = [];
-  const allTargets: string[] = [
-    ...classified.aggregators.map((d) => d.address),
-    ...classified.wrappers.map((d) => d.address),
-  ];
+  const allTargets: string[] = [...classified.aggregators.map((d) => d.address), ...classified.wrappers.map((d) => d.address)];
   const uniqueTargets = Array.from(new Set(allTargets.map((a) => a.toLowerCase())));
   for (const target of uniqueTargets) {
     preflightCalls.push({
@@ -366,9 +361,7 @@ async function runGeneralizedCrawler(options: CrawlerOptions = {}): Promise<void
 
   for (const [aggKey, aggCfg] of aggEntries) {
     // Prefer deployment name like `${aggKey}_OracleAggregator` else pick the first aggregator
-    let aggregatorDep = classified.aggregators.find(
-      (d) => (d.name ?? "").toLowerCase() === `${aggKey.toLowerCase()}_oracleaggregator`,
-    );
+    let aggregatorDep = classified.aggregators.find((d) => (d.name ?? "").toLowerCase() === `${aggKey.toLowerCase()}_oracleaggregator`);
     if (!aggregatorDep) aggregatorDep = classified.aggregators[0];
     if (!aggregatorDep) continue;
 
@@ -429,15 +422,11 @@ async function runGeneralizedCrawler(options: CrawlerOptions = {}): Promise<void
     // Choose wrappers: prefix match OR used by aggregator pointers
     const prefix = `${aggKey}_`.toLowerCase();
     const byPrefix = classified.wrappers.filter(
-      (w) =>
-        (baseUnitByAddr.get(w.address.toLowerCase()) ?? -1n) === aggUnit &&
-        (w.name ?? "").toLowerCase().startsWith(prefix),
+      (w) => (baseUnitByAddr.get(w.address.toLowerCase()) ?? -1n) === aggUnit && (w.name ?? "").toLowerCase().startsWith(prefix),
     );
     const ptrSet = new Set<string>(Array.from(aggPtrByAsset.values()));
     const byPtr = classified.wrappers.filter((w) => ptrSet.has(w.address.toLowerCase()));
-    const wrappersForAgg = Array.from(
-      new Map([...byPrefix, ...byPtr].map((w) => [w.address.toLowerCase(), w])).values(),
-    );
+    const wrappersForAgg = Array.from(new Map([...byPrefix, ...byPtr].map((w) => [w.address.toLowerCase(), w])).values());
 
     console.log(`Wrappers considered: ${wrappersForAgg.length}`);
     console.log("------------------------------------------------------------\n");
@@ -611,10 +600,7 @@ async function main(): Promise<void> {
     customResults.push(...part);
   }
 
-  const byAddr: Record<
-    string,
-    { name: string; decimals?: number; description?: string; price?: string; updatedAt?: string }
-  > = {};
+  const byAddr: Record<string, { name: string; decimals?: number; description?: string; price?: string; updatedAt?: string }> = {};
   for (let i = 0; i < customResults.length; i++) {
     const meta = customMeta[i];
     const res = customResults[i];
