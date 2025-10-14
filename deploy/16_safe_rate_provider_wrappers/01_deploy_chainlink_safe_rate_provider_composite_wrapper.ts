@@ -8,6 +8,124 @@ import { ensureDefaultAdminExistsAndRevokeFrom } from "../../typescript/hardhat/
 import { GovernanceExecutor } from "../../typescript/hardhat/governance";
 import { SafeTransactionData } from "../../typescript/safe/types";
 
+const PRICE_FEED_ABI = [
+  "function decimals() view returns (uint8)",
+  "function latestRoundData() view returns (uint80 roundId, int256 answer, uint256 startedAt, uint256 updatedAt, uint80 answeredInRound)",
+];
+const RATE_PROVIDER_SAFE_ABI = ["function getRateSafe() view returns (uint256)"];
+const ERC20_DECIMALS_ABI = ["function decimals() view returns (uint8)"];
+
+type ChainlinkCompositeFeedConfig = {
+  feedAsset: string;
+  chainlinkFeed: string;
+  rateProvider: string;
+  lowerThresholdInBase1?: bigint;
+  fixedPriceInBase1?: bigint;
+  lowerThresholdInBase2?: bigint;
+  fixedPriceInBase2?: bigint;
+};
+
+type CompositePriceDiagnostics = {
+  candidatePrice: bigint;
+  priceInBase1: bigint;
+  priceInBase2: bigint;
+  chainlinkAnswer: bigint;
+  rateProviderRate: bigint;
+  feedDecimals: number;
+  assetDecimals: number;
+  updatedAt: bigint;
+};
+
+/**
+ * Apply configured thresholding to a price leg.
+ *
+ * @param priceInBase - Price expressed in base currency units.
+ * @param lowerThreshold - Threshold above which the fixed price should replace the live price.
+ * @param fixedPrice - Replacement price to use when the threshold triggers.
+ * @returns Threshold-adjusted price.
+ */
+function applyThreshold(priceInBase: bigint, lowerThreshold: bigint, fixedPrice: bigint): bigint {
+  if (lowerThreshold > 0n && priceInBase > lowerThreshold) {
+    return fixedPrice;
+  }
+  return priceInBase;
+}
+
+/**
+ * Read the live Chainlink and rate-provider legs to mirror the on-chain composition.
+ *
+ * @param ethers - Hardhat ethers helper.
+ * @param config - Static configuration for the composite feed.
+ * @param baseCurrencyUnit - Base currency scaling factor (e.g. 1e18).
+ * @param signer - Signer used to perform read-only calls.
+ * @returns Composite price diagnostics for logging and safety checks.
+ */
+async function buildCompositePriceDiagnostics(
+  ethers: HardhatRuntimeEnvironment["ethers"],
+  config: ChainlinkCompositeFeedConfig,
+  baseCurrencyUnit: bigint,
+  signer: Signer,
+): Promise<CompositePriceDiagnostics> {
+  const priceFeed = new ethers.Contract(config.chainlinkFeed, PRICE_FEED_ABI, signer);
+  const rateProvider = new ethers.Contract(config.rateProvider, RATE_PROVIDER_SAFE_ABI, signer);
+  const asset = new ethers.Contract(config.feedAsset, ERC20_DECIMALS_ABI, signer);
+
+  const feedDecimalsRaw = await priceFeed.decimals();
+  const feedDecimals = typeof feedDecimalsRaw === "number" ? feedDecimalsRaw : Number(feedDecimalsRaw);
+
+  if (feedDecimals === 0) {
+    throw new Error(`Feed ${config.chainlinkFeed} reports 0 decimals`);
+  }
+  const feedUnit = 10n ** BigInt(feedDecimals);
+
+  const roundData = await priceFeed.latestRoundData();
+  const answer = BigInt(roundData.answer ?? roundData[1]);
+  const updatedAt = BigInt(roundData.updatedAt ?? roundData[3]);
+
+  if (answer <= 0n) {
+    throw new Error(`Feed ${config.chainlinkFeed} returned non-positive answer ${answer}`);
+  }
+
+  const assetDecimalsRaw = await asset.decimals();
+  const assetDecimals = typeof assetDecimalsRaw === "number" ? assetDecimalsRaw : Number(assetDecimalsRaw);
+
+  if (assetDecimals === 0) {
+    throw new Error(`Asset ${config.feedAsset} reports 0 decimals`);
+  }
+  const rateProviderUnit = 10n ** BigInt(assetDecimals);
+
+  const rateCall = await rateProvider.getRateSafe();
+  const rate = BigInt(rateCall);
+
+  if (rate === 0n) {
+    throw new Error(`Rate provider ${config.rateProvider} returned zero rate`);
+  }
+
+  let priceInBase1 = (answer * baseCurrencyUnit) / feedUnit;
+  let priceInBase2 = (rate * baseCurrencyUnit) / rateProviderUnit;
+
+  const lowerThresholdInBase1 = BigInt(config.lowerThresholdInBase1 ?? 0n);
+  const fixedPriceInBase1 = BigInt(config.fixedPriceInBase1 ?? 0n);
+  const lowerThresholdInBase2 = BigInt(config.lowerThresholdInBase2 ?? 0n);
+  const fixedPriceInBase2 = BigInt(config.fixedPriceInBase2 ?? 0n);
+
+  priceInBase1 = applyThreshold(priceInBase1, lowerThresholdInBase1, fixedPriceInBase1);
+  priceInBase2 = applyThreshold(priceInBase2, lowerThresholdInBase2, fixedPriceInBase2);
+
+  const candidatePrice = (priceInBase1 * priceInBase2) / baseCurrencyUnit;
+
+  return {
+    candidatePrice,
+    priceInBase1,
+    priceInBase2,
+    chainlinkAnswer: answer,
+    rateProviderRate: rate,
+    feedDecimals,
+    assetDecimals,
+    updatedAt,
+  };
+}
+
 /**
  * Build a Safe transaction payload to grant a role on a target contract.
  *
@@ -76,27 +194,6 @@ function createAddCompositeFeedTransaction(
       lowerThresholdInBase2,
       fixedPriceInBase2,
     ]),
-  };
-}
-
-/**
- * Build a Safe transaction payload to set an oracle on the OracleAggregator.
- *
- * @param aggregatorAddress - The address of the OracleAggregator contract
- * @param asset - The asset address for which to set the oracle
- * @param oracle - The oracle address to set for the asset
- * @param aggregatorInterface - The contract interface for encoding function data
- */
-function createSetOracleTransaction(
-  aggregatorAddress: string,
-  asset: string,
-  oracle: string,
-  aggregatorInterface: any,
-): SafeTransactionData {
-  return {
-    to: aggregatorAddress,
-    value: "0",
-    data: aggregatorInterface.encodeFunctionData("setOracle", [asset, oracle]),
   };
 }
 
@@ -251,7 +348,13 @@ async function migrateOracleWrapperRolesIdempotent(
   return noPendingActions;
 }
 
-const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
+/**
+ * Handle the wrapper deployment/configuration phase on networks where the script runs.
+ *
+ * @param hre - Hardhat runtime environment.
+ * @returns True when the deployment completed or actions were queued.
+ */
+async function executeDeployment(hre: HardhatRuntimeEnvironment): Promise<boolean> {
   const { deployments, ethers } = hre;
   const { deployer } = await hre.getNamedAccounts();
   const deployerSigner = await ethers.getSigner(deployer);
@@ -300,6 +403,14 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     for (const [_assetAddress, feedConfig] of Object.entries(chainlinkFeeds)) {
       console.log(`  📊 Adding composite feed for asset ${feedConfig.feedAsset}...`);
 
+      const diagnostics = await buildCompositePriceDiagnostics(ethers, feedConfig, baseCurrencyUnit, deployerSigner);
+      console.log(
+        `    ℹ️ Feed answer=${diagnostics.chainlinkAnswer} (decimals=${diagnostics.feedDecimals}), rate=${diagnostics.rateProviderRate} (asset decimals=${diagnostics.assetDecimals})`,
+      );
+      console.log(
+        `    ℹ️ Candidate composite price=${diagnostics.candidatePrice}, leg1=${diagnostics.priceInBase1}, leg2=${diagnostics.priceInBase2}`,
+      );
+
       const complete = await executor.tryOrQueue(
         async () => {
           await wrapper.addCompositeFeed(
@@ -325,26 +436,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
             feedConfig.fixedPriceInBase2,
             wrapper.interface,
           ),
-      );
-
-      if (!complete) allOperationsComplete = false;
-    }
-
-    // Point oracle aggregator to this wrapper for configured assets
-    console.log(`\n🔗 Pointing USD Oracle Aggregator to ChainlinkSafeRateProviderComposite wrapper...`);
-    const oracleAggregatorDeployment = await deployments.get(USD_ORACLE_AGGREGATOR_ID);
-    const oracleAggregator = await ethers.getContractAt("OracleAggregator", oracleAggregatorDeployment.address);
-
-    for (const [_assetAddress, feedConfig] of Object.entries(chainlinkFeeds)) {
-      console.log(`  🎯 Setting oracle for asset ${feedConfig.feedAsset}...`);
-
-      const complete = await executor.tryOrQueue(
-        async () => {
-          await oracleAggregator.setOracle(feedConfig.feedAsset, wrapperAddress);
-          console.log(`    ✅ Set oracle for ${feedConfig.feedAsset} to ChainlinkSafeRateProviderComposite wrapper`);
-        },
-        () =>
-          createSetOracleTransaction(oracleAggregatorDeployment.address, feedConfig.feedAsset, wrapperAddress, oracleAggregator.interface),
       );
 
       if (!complete) allOperationsComplete = false;
@@ -386,8 +477,31 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   }
 
   console.log("\n✅ All operations completed successfully.");
+  console.log(`   ➡️ Run phase 2 updater script to flip the OracleAggregator once governance approves this deployment.`);
   console.log(`\n≻ ${__filename.split("/").slice(-2).join("/")}: ✅`);
   return true;
+}
+
+/**
+ * Hardhat deploy entry point. Skips on Sonic mainnet where the wrapper is already live.
+ *
+ * @param hre - Hardhat runtime environment.
+ * @returns True when the script finishes or queues governance actions.
+ */
+const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
+  if (await func.skip?.(hre)) {
+    console.log(`\n≻ ${__filename.split("/").slice(-2).join("/")}: skipping (already executed on Sonic mainnet)`);
+    console.log(`   ℹ️ Wrapper safety improvements are available for future forks.`);
+    console.log(`\n≻ ${__filename.split("/").slice(-2).join("/")}: ✅ (no-op)`);
+    return true;
+  }
+
+  return executeDeployment(hre);
+};
+
+func.skip = async function (hre: HardhatRuntimeEnvironment): Promise<boolean> {
+  const network = hre.network.name;
+  return network === "sonic_mainnet" || network === "sonic";
 };
 
 func.id = "deploy-chainlink-safe-rate-provider-composite-wrapper";

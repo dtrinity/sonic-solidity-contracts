@@ -37,6 +37,7 @@ async function runTestsForCurrency(currency: string, { deployer }: { deployer: A
 
       // Chainlink mock with 8 decimals
       feed = await ethers.deployContract("MockChainlinkAggregatorV3", [8, "MOCK/BASE"]);
+      await feed.setMock(ethers.parseUnits("1.0", 8));
       // Mock rate provider with UNIT=1e6 (6 decimals), rate=980150
       const UNIT = 10n ** 6n;
       const rate = 980_150n;
@@ -135,7 +136,6 @@ async function runTestsForCurrency(currency: string, { deployer }: { deployer: A
 
     describe("Threshold configuration management", () => {
       it("allows updating thresholds via updateCompositeFeed and reflects in storage", async function () {
-        const unit = (await rateProvider.UNIT()) as bigint;
         const lower1 = ethers.parseUnits("0.99", 18);
         const fixed1 = ethers.parseUnits("1.00", 18);
         const lower2 = ethers.parseUnits("0.98", 18);
@@ -143,6 +143,8 @@ async function runTestsForCurrency(currency: string, { deployer }: { deployer: A
         await wrapper.updateCompositeFeed(assetKey, lower1, fixed1, lower2, fixed2);
         const cfg = await wrapper.compositeFeeds(assetKey);
         expect(cfg.rateProviderUnit).to.equal(10n ** 18n); // Asset has 18 decimals
+        expect(cfg.feed1Decimals).to.equal(8);
+        expect(cfg.feed1Unit).to.equal(10n ** 8n);
         expect(cfg.primaryThreshold.lowerThresholdInBase).to.equal(lower1);
         expect(cfg.primaryThreshold.fixedPriceInBase).to.equal(fixed1);
         expect(cfg.secondaryThreshold.lowerThresholdInBase).to.equal(lower2);
@@ -163,6 +165,62 @@ async function runTestsForCurrency(currency: string, { deployer }: { deployer: A
       it("removes a feed and then getPriceInfo reverts with FeedNotSet", async function () {
         await wrapper.removeCompositeFeed(assetKey);
         await expect(wrapper.getPriceInfo(assetKey)).to.be.revertedWithCustomError(wrapper, "FeedNotSet").withArgs(assetKey);
+      });
+    });
+
+    describe("Configuration guards", () => {
+      it("reverts when adding a feed with non-positive price", async function () {
+        const otherFeed = await ethers.deployContract("MockChainlinkAggregatorV3", [8, "ZERO/BASE"]);
+        await otherFeed.setMock(0);
+        const MockToken = await ethers.getContractFactory("MockERC20");
+        const mockToken = await MockToken.deploy("Guard Asset", "GUARD", 18);
+        await expect(
+          wrapper.addCompositeFeed(await mockToken.getAddress(), await otherFeed.getAddress(), await rateProvider.getAddress(), 0, 0, 0, 0),
+        )
+          .to.be.revertedWithCustomError(wrapper, "FeedPriceNotPositive")
+          .withArgs(await otherFeed.getAddress());
+      });
+
+      it("reverts when chainlink feed decimals are zero", async function () {
+        const zeroDecimalFeed = await ethers.deployContract("MockChainlinkAggregatorV3", [0, "ZERO/BASE"]);
+        await zeroDecimalFeed.setMock(ethers.parseUnits("1", 0));
+        const MockToken = await ethers.getContractFactory("MockERC20");
+        const mockToken = await MockToken.deploy("Zero Dec", "ZERO", 18);
+        await expect(
+          wrapper.addCompositeFeed(
+            await mockToken.getAddress(),
+            await zeroDecimalFeed.getAddress(),
+            await rateProvider.getAddress(),
+            0,
+            0,
+            0,
+            0,
+          ),
+        )
+          .to.be.revertedWithCustomError(wrapper, "InvalidFeedDecimals")
+          .withArgs(await zeroDecimalFeed.getAddress(), 0);
+      });
+
+      it("scales feeds that report 18 decimals", async function () {
+        const highPrecisionFeed = await ethers.deployContract("MockChainlinkAggregatorV3", [18, "MOCK18/BASE"]);
+        await highPrecisionFeed.setMock(ethers.parseUnits("1.01", 18));
+        const MockToken = await ethers.getContractFactory("MockERC20");
+        const mockToken = await MockToken.deploy("High Precision Asset", "HPREC", 18);
+        await wrapper.addCompositeFeed(
+          await mockToken.getAddress(),
+          await highPrecisionFeed.getAddress(),
+          await rateProvider.getAddress(),
+          0,
+          0,
+          0,
+          0,
+        );
+        const { price: price18, isAlive } = await wrapper.getPriceInfo(await mockToken.getAddress());
+        expect(isAlive).to.equal(true);
+        const rp: bigint = await rateProvider.getRate();
+        const priceInBase2 = (rp * BASE_UNIT) / 10n ** 18n;
+        const expected = (ethers.parseUnits("1.01", 18) * priceInBase2) / BASE_UNIT;
+        expect(price18).to.equal(expected);
       });
     });
   });
