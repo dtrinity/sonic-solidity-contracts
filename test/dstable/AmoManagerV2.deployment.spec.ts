@@ -82,17 +82,9 @@ function runDeploymentTestsForDStable(
       amoManagerV2Address = amoManagerV2Deployment.address;
       amoDebtTokenAddress = amoDebtTokenDeployment.address;
 
-      amoManagerV2 = await hre.ethers.getContractAt(
-        "AmoManagerV2",
-        amoManagerV2Address,
-        await hre.ethers.getSigner(deployer),
-      );
+      amoManagerV2 = await hre.ethers.getContractAt("AmoManagerV2", amoManagerV2Address, await hre.ethers.getSigner(deployer));
 
-      amoDebtToken = await hre.ethers.getContractAt(
-        "AmoDebtToken",
-        amoDebtTokenAddress,
-        await hre.ethers.getSigner(deployer),
-      );
+      amoDebtToken = await hre.ethers.getContractAt("AmoDebtToken", amoDebtTokenAddress, await hre.ethers.getSigner(deployer));
 
       // Get the oracle aggregator
       const oracleAggregatorAddress = (await hre.deployments.get(config.oracleAggregatorId)).address;

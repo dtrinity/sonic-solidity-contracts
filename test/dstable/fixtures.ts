@@ -70,7 +70,7 @@ export const createDStableAmoV2Fixture = (config: DStableFixtureConfig) => {
     // Start with the base dStable fixture
     const standaloneMinimalFixture = createDStableFixture(config);
     await standaloneMinimalFixture(deployments);
-    
+
     // Deploy the AMO V2 debt system with proper oracle setup
     await deployments.fixture(["amo-v2"]);
   });
