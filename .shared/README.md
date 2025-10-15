@@ -282,10 +282,10 @@ The shared pre-commit hook runs the guardrail suite (Prettier, ESLint, Solhint) 
 `console.log` or lingering `.only`. Prettier runs by default—set `SHARED_HARDHAT_PRE_COMMIT_PRETTIER=0` to skip it
 temporarily. Contract compilation is also enabled unless you opt out (`SHARED_HARDHAT_PRE_COMMIT_COMPILE=0`).
 
-The pre-push hook reruns guardrails (Prettier disabled unless `SHARED_HARDHAT_PRE_PUSH_PRETTIER=1`), optionally
-executes tests, and requires Slither only on long-lived branches (`main`, `master`, `develop`). Enable automated test
-runs with `SHARED_HARDHAT_PRE_PUSH_TEST=1` or customize the command via
-`SHARED_HARDHAT_PRE_PUSH_TEST_CMD="yarn test --runInBand"`.
+The pre-push hook reruns guardrails (Prettier enabled by default—set
+`SHARED_HARDHAT_PRE_PUSH_PRETTIER=0` to skip), executes tests by default (opt out with
+`SHARED_HARDHAT_PRE_PUSH_TEST=0`), and requires Slither only on long-lived branches (`main`, `master`, `develop`).
+Customize the test command via `SHARED_HARDHAT_PRE_PUSH_TEST_CMD="yarn test --runInBand"`.
 
 ### Updating Shared Tools
 

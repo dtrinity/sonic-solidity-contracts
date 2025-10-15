@@ -123,7 +123,7 @@ Enable the pre-commit and pre-push hooks so formatting and guardrails run locall
 node_modules/.bin/ts-node .shared/scripts/setup.ts --hooks
 ```
 
-The pre-commit hook writes staged files with Prettier and runs ESLint; the pre-push hook executes the shared guardrail suite with `--fail-fast`. Because the hook scripts live inside `.shared`, future updates to the tooling automatically flow into every repository.
+The pre-commit hook writes staged files with Prettier and runs ESLint; the pre-push hook executes the shared guardrail suite with `--fail-fast`, runs Prettier/ESLint/Solhint, and now executes `npx hardhat test` by default. Set `SHARED_HARDHAT_PRE_PUSH_PRETTIER=0` or `SHARED_HARDHAT_PRE_PUSH_TEST=0` to opt out temporarily, or override the test command with `SHARED_HARDHAT_PRE_PUSH_TEST_CMD="yarn test --runInBand"`. Because the hook scripts live inside `.shared`, future updates to the tooling automatically flow into every repository.
 
 > Prefer automation over manual flags? When you have access to this repository
 > locally, `bash path/to/scripts/subtree/add.sh --help` prints the non-
