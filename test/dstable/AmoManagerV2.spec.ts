@@ -51,6 +51,8 @@ function runTestsForDStable(
     let collateralVaultContract: CollateralHolderVault;
     let collateralTokens: Map<string, TestERC20> = new Map();
     let collateralInfos: Map<string, TokenInfo> = new Map();
+    let baseCurrencyUnit: bigint;
+    let baseCurrency: Address;
 
     // Roles
     let defaultAdminRole: string;
@@ -92,6 +94,8 @@ function runTestsForDStable(
         oracleAggregatorAddress,
         await hre.ethers.getSigner(deployer),
       );
+      baseCurrencyUnit = await oracleAggregatorContract.BASE_CURRENCY_UNIT();
+      baseCurrency = await oracleAggregatorContract.BASE_CURRENCY();
 
       // Get the collateral vault
       const collateralVaultAddress = (await hre.deployments.get(config.collateralVaultContractId)).address;
@@ -108,6 +112,19 @@ function runTestsForDStable(
       );
       amoDebtToken = (await AmoDebtTokenFactory.deploy("dTRINITY AMO Receipt", `amo-${config.symbol}`)) as AmoDebtToken;
       await amoDebtToken.waitForDeployment();
+
+      // Deploy HardPegOracleWrapper for the debt token (returns fixed price of 1.0)
+      const HardPegOracleFactory = await hre.ethers.getContractFactory(
+        "HardPegOracleWrapper",
+        await hre.ethers.getSigner(deployer),
+      );
+      const hardPegOracle = await HardPegOracleFactory.deploy(baseCurrency, baseCurrencyUnit, baseCurrencyUnit);
+      await hardPegOracle.waitForDeployment();
+
+      // Grant ORACLE_MANAGER_ROLE to deployer and set the oracle before deploying the manager
+      const oracleManagerRole = await oracleAggregatorContract.ORACLE_MANAGER_ROLE();
+      await oracleAggregatorContract.grantRole(oracleManagerRole, deployer);
+      await oracleAggregatorContract.setOracle(await amoDebtToken.getAddress(), await hardPegOracle.getAddress());
 
       // Deploy AmoManagerV2
       const AmoManagerV2Factory = await hre.ethers.getContractFactory(
@@ -145,24 +162,6 @@ function runTestsForDStable(
       await amoDebtToken.setAllowlisted(await collateralVaultContract.getAddress(), true);
       await amoDebtToken.setAllowlisted(await amoManagerV2.getAddress(), true);
       await amoManagerV2.setAmoWalletAllowed(amoWallet, true);
-
-      // Deploy HardPegOracleWrapper for the debt token (returns fixed price of 1.0)
-      const baseCurrencyUnit = await oracleAggregatorContract.BASE_CURRENCY_UNIT();
-      const HardPegOracleFactory = await hre.ethers.getContractFactory(
-        "HardPegOracleWrapper",
-        await hre.ethers.getSigner(deployer),
-      );
-      const hardPegOracle = await HardPegOracleFactory.deploy(
-        await oracleAggregatorContract.BASE_CURRENCY(), // Base currency (address 0)
-        baseCurrencyUnit, // Base currency unit
-        baseCurrencyUnit, // Hard peg at 1.0
-      );
-      await hardPegOracle.waitForDeployment();
-
-      // Grant ORACLE_MANAGER_ROLE to deployer and set the oracle
-      const oracleManagerRole = await oracleAggregatorContract.ORACLE_MANAGER_ROLE();
-      await oracleAggregatorContract.grantRole(oracleManagerRole, deployer);
-      await oracleAggregatorContract.setOracle(await amoDebtToken.getAddress(), await hardPegOracle.getAddress());
 
       // Add debt token as supported collateral in the vault
       await collateralVaultContract.allowCollateral(await amoDebtToken.getAddress());
@@ -540,6 +539,124 @@ function runTestsForDStable(
         });
       });
 
+      describe("Peg Guard", () => {
+        it("should allow operations when prices remain within tolerance", async function () {
+          const amoManagerSigner = await hre.ethers.getSigner(amoWallet);
+          const amount = hre.ethers.parseUnits("10", dstableInfo.decimals);
+          const HardPegOracleFactory = await hre.ethers.getContractFactory(
+            "HardPegOracleWrapper",
+            await hre.ethers.getSigner(deployer),
+          );
+
+          const mildDriftPrice = (baseCurrencyUnit * 1005n) / 1000n; // +0.5%
+          const mildDriftOracle = await HardPegOracleFactory.deploy(
+            baseCurrency,
+            baseCurrencyUnit,
+            mildDriftPrice,
+          );
+          await mildDriftOracle.waitForDeployment();
+          await oracleAggregatorContract.setOracle(dstableInfo.address, await mildDriftOracle.getAddress());
+
+          await expect(amoManagerV2.connect(amoManagerSigner).increaseAmoSupply(amount, amoWallet)).to.not.be.reverted;
+        });
+
+        it("should revert when dStable price exceeds tolerance", async function () {
+          const amoManagerSigner = await hre.ethers.getSigner(amoWallet);
+          const amount = hre.ethers.parseUnits("10", dstableInfo.decimals);
+          const HardPegOracleFactory = await hre.ethers.getContractFactory(
+            "HardPegOracleWrapper",
+            await hre.ethers.getSigner(deployer),
+          );
+
+          const severeDriftPrice = (baseCurrencyUnit * 102n) / 100n; // +2%
+          const severeDriftOracle = await HardPegOracleFactory.deploy(
+            baseCurrency,
+            baseCurrencyUnit,
+            severeDriftPrice,
+          );
+          await severeDriftOracle.waitForDeployment();
+          await oracleAggregatorContract.setOracle(dstableInfo.address, await severeDriftOracle.getAddress());
+
+          const guard = await amoManagerV2.pegDeviationBps();
+
+          await expect(
+            amoManagerV2.connect(amoManagerSigner).increaseAmoSupply(amount, amoWallet),
+          )
+            .to.be.revertedWithCustomError(amoManagerV2, "PegDeviationExceeded")
+            .withArgs(dstableInfo.address, severeDriftPrice, baseCurrencyUnit, guard);
+        });
+
+        it("should revert when debt token price exceeds tolerance", async function () {
+          const amoManagerSigner = await hre.ethers.getSigner(amoWallet);
+          const amount = hre.ethers.parseUnits("10", dstableInfo.decimals);
+          const HardPegOracleFactory = await hre.ethers.getContractFactory(
+            "HardPegOracleWrapper",
+            await hre.ethers.getSigner(deployer),
+          );
+
+          const severeDriftPrice = (baseCurrencyUnit * 102n) / 100n; // +2%
+          const severeDriftOracle = await HardPegOracleFactory.deploy(
+            baseCurrency,
+            baseCurrencyUnit,
+            severeDriftPrice,
+          );
+          await severeDriftOracle.waitForDeployment();
+          await oracleAggregatorContract.setOracle(await amoDebtToken.getAddress(), await severeDriftOracle.getAddress());
+
+          const guard = await amoManagerV2.pegDeviationBps();
+
+          await expect(
+            amoManagerV2.connect(amoManagerSigner).increaseAmoSupply(amount, amoWallet),
+          )
+            .to.be.revertedWithCustomError(amoManagerV2, "PegDeviationExceeded")
+            .withArgs(await amoDebtToken.getAddress(), severeDriftPrice, baseCurrencyUnit, guard);
+        });
+
+        it("should respect updated peg deviation tolerance", async function () {
+          const amoManagerSigner = await hre.ethers.getSigner(amoWallet);
+          const amount = hre.ethers.parseUnits("10", dstableInfo.decimals);
+          const HardPegOracleFactory = await hre.ethers.getContractFactory(
+            "HardPegOracleWrapper",
+            await hre.ethers.getSigner(deployer),
+          );
+
+          const severeDriftPrice = (baseCurrencyUnit * 102n) / 100n; // +2%
+          const severeDriftOracle = await HardPegOracleFactory.deploy(
+            baseCurrency,
+            baseCurrencyUnit,
+            severeDriftPrice,
+          );
+          await severeDriftOracle.waitForDeployment();
+          await oracleAggregatorContract.setOracle(dstableInfo.address, await severeDriftOracle.getAddress());
+
+          await amoManagerV2.setPegDeviationBps(30_000n); // 3%
+
+          await expect(amoManagerV2.connect(amoManagerSigner).increaseAmoSupply(amount, amoWallet)).to.not.be.reverted;
+        });
+
+        it("should allow disabling peg guard by setting tolerance to zero", async function () {
+          const amoManagerSigner = await hre.ethers.getSigner(amoWallet);
+          const amount = hre.ethers.parseUnits("10", dstableInfo.decimals);
+          const HardPegOracleFactory = await hre.ethers.getContractFactory(
+            "HardPegOracleWrapper",
+            await hre.ethers.getSigner(deployer),
+          );
+
+          const severeDriftPrice = (baseCurrencyUnit * 105n) / 100n; // +5%
+          const severeDriftOracle = await HardPegOracleFactory.deploy(
+            baseCurrency,
+            baseCurrencyUnit,
+            severeDriftPrice,
+          );
+          await severeDriftOracle.waitForDeployment();
+          await oracleAggregatorContract.setOracle(dstableInfo.address, await severeDriftOracle.getAddress());
+
+          await amoManagerV2.setPegDeviationBps(0n);
+
+          await expect(amoManagerV2.connect(amoManagerSigner).increaseAmoSupply(amount, amoWallet)).to.not.be.reverted;
+        });
+      });
+
       describe("Collateral AMO Operations", () => {
         const setupCollateralTest = async (symbol: string) => {
           const collateralToken = collateralTokens.get(symbol)!;
@@ -771,6 +888,25 @@ function runTestsForDStable(
           expect(await amoManagerV2.tolerance()).to.equal(newTolerance);
         });
 
+        it("should allow admin to set peg deviation tolerance", async function () {
+          const oldDeviation = await amoManagerV2.pegDeviationBps();
+          const newDeviation = 5_000n; // 0.5%
+
+          await expect(amoManagerV2.setPegDeviationBps(newDeviation))
+            .to.emit(amoManagerV2, "PegDeviationBpsSet")
+            .withArgs(oldDeviation, newDeviation);
+
+          expect(await amoManagerV2.pegDeviationBps()).to.equal(newDeviation);
+        });
+
+        it("should prevent setting peg deviation above 100%", async function () {
+          const invalidDeviation = 1_000_001n;
+
+          await expect(amoManagerV2.setPegDeviationBps(invalidDeviation))
+            .to.be.revertedWithCustomError(amoManagerV2, "PegDeviationOutOfRange")
+            .withArgs(invalidDeviation, 1_000_000n);
+        });
+
         it("should prevent non-admin from admin functions", async function () {
           const nonAdminSigner = await hre.ethers.getSigner(user1);
 
@@ -779,6 +915,11 @@ function runTestsForDStable(
           ).to.be.revertedWithCustomError(amoManagerV2, "AccessControlUnauthorizedAccount");
 
           await expect(amoManagerV2.connect(nonAdminSigner).setTolerance(1000n)).to.be.revertedWithCustomError(
+            amoManagerV2,
+            "AccessControlUnauthorizedAccount",
+          );
+
+          await expect(amoManagerV2.connect(nonAdminSigner).setPegDeviationBps(1_000n)).to.be.revertedWithCustomError(
             amoManagerV2,
             "AccessControlUnauthorizedAccount",
           );

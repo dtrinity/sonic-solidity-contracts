@@ -28,6 +28,7 @@ import "./OracleAware.sol";
 import "./CollateralVault.sol";
 import "./AmoDebtToken.sol";
 import "../common/IMintableERC20.sol";
+import "../common/BasisPointConstants.sol";
 
 /**
  * @title AmoManagerV2
@@ -45,6 +46,7 @@ contract AmoManagerV2 is OracleAware, ReentrancyGuard {
     address public collateralVault;
     EnumerableSet.AddressSet private _allowedAmoWallets;
     uint256 public tolerance;
+    uint256 public pegDeviationBps;
 
     /* Roles */
 
@@ -70,6 +72,7 @@ contract AmoManagerV2 is OracleAware, ReentrancyGuard {
     event CollateralVaultSet(address indexed oldVault, address indexed newVault);
     event AmoWalletAllowedSet(address indexed wallet, bool allowed);
     event ToleranceSet(uint256 oldTolerance, uint256 newTolerance);
+    event PegDeviationBpsSet(uint256 oldDeviationBps, uint256 newDeviationBps);
 
     /* Errors */
 
@@ -80,6 +83,8 @@ contract AmoManagerV2 is OracleAware, ReentrancyGuard {
     error InvariantViolation(uint256 pre, uint256 post);
     error SlippageDebtMintTooLow(uint256 actualDebtMinted, uint256 minDebtMinted);
     error SlippageDebtBurnTooHigh(uint256 actualDebtBurned, uint256 maxDebtBurned);
+    error PegDeviationExceeded(address asset, uint256 price, uint256 baseUnit, uint256 maxDeviationBps);
+    error PegDeviationOutOfRange(uint256 requested, uint256 maxAllowed);
 
     /**
      * @notice Initializes the AmoManagerV2 contract
@@ -98,6 +103,8 @@ contract AmoManagerV2 is OracleAware, ReentrancyGuard {
         dstable = _dstable;
         // Set tolerance to 1 base unit to allow for minimal rounding differences independent of decimals
         tolerance = 1;
+        // Default peg deviation guard to 1% to surface oracle drift or decimal mismatches
+        pegDeviationBps = BasisPointConstants.ONE_PERCENT_BPS;
 
         if (_collateralVault == address(0)) {
             revert UnsupportedVault(_collateralVault);
@@ -105,6 +112,8 @@ contract AmoManagerV2 is OracleAware, ReentrancyGuard {
         collateralVault = _collateralVault;
 
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
+
+        _ensurePegGuard();
     }
 
     /* Stable AMO Operations */
@@ -120,6 +129,8 @@ contract AmoManagerV2 is OracleAware, ReentrancyGuard {
         if (!_allowedAmoWallets.contains(wallet)) {
             revert UnsupportedAmoWallet(wallet);
         }
+
+        _ensurePegGuard();
 
         // Convert dUSD amount to base value for debt token minting
         uint256 dstableBaseValue = dstableAmountToBaseValue(amount);
@@ -164,6 +175,8 @@ contract AmoManagerV2 is OracleAware, ReentrancyGuard {
         if (!_allowedAmoWallets.contains(wallet)) {
             revert UnsupportedAmoWallet(wallet);
         }
+
+        _ensurePegGuard();
 
         // Convert dUSD amount to base value for debt token burning
         uint256 dstableBaseValue = dstableAmountToBaseValue(amount);
@@ -227,6 +240,8 @@ contract AmoManagerV2 is OracleAware, ReentrancyGuard {
             revert DebtTokenProhibited();
         }
 
+        _ensurePegGuard();
+
         // Record pre-operation vault value
         uint256 preValue = CollateralVault(collateralVault).totalValue();
 
@@ -279,6 +294,8 @@ contract AmoManagerV2 is OracleAware, ReentrancyGuard {
         if (asset == address(debtToken)) {
             revert DebtTokenProhibited();
         }
+
+        _ensurePegGuard();
 
         // Record pre-operation vault value
         uint256 preValue = CollateralVault(collateralVault).totalValue();
@@ -391,6 +408,20 @@ contract AmoManagerV2 is OracleAware, ReentrancyGuard {
         emit ToleranceSet(oldTolerance, newTolerance);
     }
 
+    /**
+     * @notice Sets the maximum allowed peg deviation in basis points
+     * @param newPegDeviationBps The new deviation tolerance in basis points
+     * @dev Only callable by DEFAULT_ADMIN_ROLE
+     */
+    function setPegDeviationBps(uint256 newPegDeviationBps) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        if (newPegDeviationBps > BasisPointConstants.ONE_HUNDRED_PERCENT_BPS) {
+            revert PegDeviationOutOfRange(newPegDeviationBps, BasisPointConstants.ONE_HUNDRED_PERCENT_BPS);
+        }
+        uint256 oldPegDeviationBps = pegDeviationBps;
+        pegDeviationBps = newPegDeviationBps;
+        emit PegDeviationBpsSet(oldPegDeviationBps, newPegDeviationBps);
+    }
+
     /* View Functions */
 
     /**
@@ -416,6 +447,36 @@ contract AmoManagerV2 is OracleAware, ReentrancyGuard {
      */
     function getAllowedAmoWalletsLength() external view returns (uint256) {
         return _allowedAmoWallets.length();
+    }
+
+    /**
+     * @notice Ensures we don't issue debt while dSTABLE is significantly off-peg
+     */
+    function _ensurePegGuard() internal view {
+        uint256 guardBps = pegDeviationBps;
+        if (guardBps == 0) {
+            return;
+        }
+
+        _enforcePegForAsset(address(dstable), guardBps);
+        _enforcePegForAsset(address(debtToken), guardBps);
+    }
+
+    /**
+     * @notice Checks a specific asset oracle price against the base unit within allowed deviation
+     * @param asset The asset address to validate
+     * @param guardBps The maximum deviation allowed in basis points
+     */
+    function _enforcePegForAsset(address asset, uint256 guardBps) internal view {
+        uint256 baseUnit = baseCurrencyUnit;
+        uint256 price = oracle.getAssetPrice(asset);
+
+        uint256 diff = price >= baseUnit ? price - baseUnit : baseUnit - price;
+        uint256 deviation = Math.mulDiv(diff, BasisPointConstants.ONE_HUNDRED_PERCENT_BPS, baseUnit);
+
+        if (deviation > guardBps) {
+            revert PegDeviationExceeded(asset, price, baseUnit, guardBps);
+        }
     }
 
     /**
