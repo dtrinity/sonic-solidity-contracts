@@ -4,13 +4,13 @@ import { DeployFunction } from "hardhat-deploy/types";
 import {
   DS_AMO_DEBT_TOKEN_ID,
   DS_AMO_MANAGER_V2_ID,
-  DS_HARD_PEG_ORACLE_WRAPPER_ID,
   DS_COLLATERAL_VAULT_CONTRACT_ID,
+  DS_HARD_PEG_ORACLE_WRAPPER_ID,
   DS_TOKEN_ID,
   DUSD_AMO_DEBT_TOKEN_ID,
   DUSD_AMO_MANAGER_V2_ID,
-  DUSD_HARD_PEG_ORACLE_WRAPPER_ID,
   DUSD_COLLATERAL_VAULT_CONTRACT_ID,
+  DUSD_HARD_PEG_ORACLE_WRAPPER_ID,
   DUSD_TOKEN_ID,
   S_ORACLE_AGGREGATOR_ID,
   USD_ORACLE_AGGREGATOR_ID,
@@ -79,11 +79,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       console.log(`  🔧 Ensuring oracle entry for ${amoConfig.name} debt token...`);
       const hardPegDeployment = await deployments.get(amoConfig.hardPegOracleId);
       const deployerSigner = await hre.ethers.getSigner(deployer);
-      const oracleAggregator = await hre.ethers.getContractAt(
-        "OracleAggregator",
-        oracleDeployment.address,
-        deployerSigner,
-      );
+      const oracleAggregator = await hre.ethers.getContractAt("OracleAggregator", oracleDeployment.address, deployerSigner);
       const oracleManagerRole = await oracleAggregator.ORACLE_MANAGER_ROLE();
       const hasRole = await oracleAggregator.hasRole(oracleManagerRole, deployer);
 
@@ -94,6 +90,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
         );
       } else {
         const currentOracle = await oracleAggregator.assetOracles(debtTokenDeployment.address);
+
         if (currentOracle !== hardPegDeployment.address) {
           const tx = await oracleAggregator.setOracle(debtTokenDeployment.address, hardPegDeployment.address);
           await tx.wait();
@@ -113,12 +110,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     const amoManagerDeployment = await deploy(amoConfig.amoManagerV2Id, {
       from: deployer,
       contract: "AmoManagerV2",
-      args: [
-        oracleDeployment.address,
-        debtTokenDeployment.address,
-        tokenDeployment.address,
-        collateralVaultDeployment.address,
-      ],
+      args: [oracleDeployment.address, debtTokenDeployment.address, tokenDeployment.address, collateralVaultDeployment.address],
       log: true,
       autoMine: true,
     });

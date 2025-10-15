@@ -49,11 +49,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
     // Get OracleAggregator contract
     const oracleDeployment = await deployments.get(amoConfig.oracleId);
-    const oracleAggregator = await ethers.getContractAt(
-      "OracleAggregator",
-      oracleDeployment.address,
-      await ethers.getSigner(deployer),
-    );
+    const oracleAggregator = await ethers.getContractAt("OracleAggregator", oracleDeployment.address, await ethers.getSigner(deployer));
 
     // Get the debt token deployment
     const debtTokenDeployment = await deployments.get(amoConfig.debtTokenId);

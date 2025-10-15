@@ -1,6 +1,7 @@
 import { ZeroAddress } from "ethers";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 
+import { assertNotEmpty } from "../../typescript/common/assert";
 import { ONE_PERCENT_BPS } from "../../typescript/common/bps_constants";
 import { DS_TOKEN_ID, DUSD_TOKEN_ID, INCENTIVES_PROXY_ID } from "../../typescript/deploy-ids";
 import { ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT, ORACLE_AGGREGATOR_PRICE_DECIMALS } from "../../typescript/oracle_aggregator/constants";
@@ -165,15 +166,14 @@ export async function getConfig(_hre: HardhatRuntimeEnvironment): Promise<Config
       },
     },
     dLoop: {
-      dUSDAddress: dUSDDeployment?.address || "",
+      dUSDAddress: assertNotEmpty(dUSDDeployment?.address),
       coreVaults: {
-        "3x_sfrxUSD_dUSD": {
-          // TODO: ALL dLOOP values are for QA ONLY. Reset them before mainnet
+        "3x_sfrxUSD_dUSD_demo": {
           venue: "dlend",
           name: "dLOOP 3X sfrxUSD dLEND",
           symbol: "3X-sfrxUSD",
           underlyingAsset: sfrxUSDAddress,
-          dStable: dUSDDeployment?.address || "",
+          dStable: assertNotEmpty(dUSDDeployment?.address),
           targetLeverageBps: 300 * ONE_PERCENT_BPS, // 300% leverage, meaning 3x leverage
           lowerBoundTargetLeverageBps: 200 * ONE_PERCENT_BPS, // 200% leverage, meaning 2x leverage
           upperBoundTargetLeverageBps: 400 * ONE_PERCENT_BPS, // 400% leverage, meaning 4x leverage
@@ -185,7 +185,7 @@ export async function getConfig(_hre: HardhatRuntimeEnvironment): Promise<Config
             treasury: governanceSafeMultisig,
             maxTreasuryFeeBps: "1000",
             initialTreasuryFeeBps: "500",
-            initialExchangeThreshold: 1n * 10n ** BigInt(dUSDDecimals), // TODO: 1 dStable token (fetched from contract decimals), for QA ONLY
+            initialExchangeThreshold: 10n * 10n ** BigInt(dUSDDecimals), // 10 dStable tokens to exchange the rewards
           },
         },
       },
@@ -216,15 +216,19 @@ export async function getConfig(_hre: HardhatRuntimeEnvironment): Promise<Config
         hardDStablePeg: 10n ** BigInt(ORACLE_AGGREGATOR_PRICE_DECIMALS),
         priceDecimals: ORACLE_AGGREGATOR_PRICE_DECIMALS,
         api3OracleAssets: {
-          plainApi3OracleWrappers: {
-            [wSAddress]: "0xAf9647E1F86406BC38F42FE630E9Fa8CBcd59B19", // S/USD dTRINITY OEV
-            [dSDeployment?.address || ""]: "0xAf9647E1F86406BC38F42FE630E9Fa8CBcd59B19", // S/USD dTRINITY OEV
-          },
+          plainApi3OracleWrappers: {},
           api3OracleWrappersWithThresholding: {},
           compositeApi3OracleWrappersWithThresholding: {},
         },
         redstoneOracleAssets: {
-          plainRedstoneOracleWrappers: {},
+          plainRedstoneOracleWrappers: {
+            [wSAddress]: "0xc76dFb89fF298145b417d221B2c747d84952e01d", // S/USD Chainlink price feed
+            ...(dSDeployment?.address
+              ? {
+                  [dSDeployment.address]: "0xc76dFb89fF298145b417d221B2c747d84952e01d", // S/USD Chainlink price feed
+                }
+              : {}),
+          },
           redstoneOracleWrappersWithThresholding: {
             [frxUSDAddress]: {
               feed: "0xC3346631E0A9720582fB9CAbdBEA22BC2F57741b", // frxUSD/USD Redstone price feed
@@ -269,7 +273,7 @@ export async function getConfig(_hre: HardhatRuntimeEnvironment): Promise<Config
             [stSAddress]: {
               feedAsset: stSAddress,
               feed1: "0x65d0F14f7809CdC4f90c3978c753C4671b6B815b", // stS/S Redstone Fundamental feed
-              feed2: "0xa8a94Da411425634e3Ed6C331a32ab4fd774aa43", // S/USD Redstone price feed
+              feed2: "0xc76dFb89fF298145b417d221B2c747d84952e01d", // S/USD Chainlink price feed
               lowerThresholdInBase1: 0n, // No thresholding
               fixedPriceInBase1: 0n,
               lowerThresholdInBase2: 0n, // Do not threshold S/USD

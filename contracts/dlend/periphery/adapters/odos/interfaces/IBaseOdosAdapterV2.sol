@@ -74,5 +74,25 @@ interface IBaseOdosAdapterV2 is IBaseOdosAdapter {
         uint256 deviationBps
     );
 
+    /**
+     * @dev Thrown when swap amounts are zero
+     * @param tokenIn The input token address
+     * @param tokenOut The output token address
+     */
+    error ZeroSwapAmount(address tokenIn, address tokenOut);
+
+    /**
+     * @dev Thrown when oracle price is zero (not configured)
+     * @param token The token with zero oracle price
+     */
+    error ZeroOraclePrice(address token);
+
+    /**
+     * @dev Thrown when attempting to set invalid tolerance (exceeds maximum)
+     * @param attemptedTolerance The tolerance value that was attempted
+     * @param maxAllowed The maximum allowed tolerance
+     */
+    error InvalidToleranceBps(uint256 attemptedTolerance, uint256 maxAllowed);
+
     /* Structs intentionally omitted to avoid duplication with PTSwapUtils */
 }

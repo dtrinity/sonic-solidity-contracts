@@ -3,12 +3,7 @@ import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
 
 import { getConfig } from "../../config/config";
-import {
-  DS_AMO_DEBT_TOKEN_ID,
-  DS_AMO_MANAGER_V2_ID,
-  DUSD_AMO_DEBT_TOKEN_ID,
-  DUSD_AMO_MANAGER_V2_ID,
-} from "../../typescript/deploy-ids";
+import { DS_AMO_DEBT_TOKEN_ID, DS_AMO_MANAGER_V2_ID, DUSD_AMO_DEBT_TOKEN_ID, DUSD_AMO_MANAGER_V2_ID } from "../../typescript/deploy-ids";
 import { ensureDefaultAdminExistsAndRevokeFrom } from "../../typescript/hardhat/access_control";
 import { GovernanceExecutor } from "../../typescript/hardhat/governance";
 

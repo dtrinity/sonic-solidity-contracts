@@ -39,7 +39,6 @@ interface IOdosRepayAdapterV2 is IBaseOdosAdapterV2 {
      * @param repayAmount The amount of debt to repay
      * @param rateMode The rate mode of the debt (1 = stable, 2 = variable)
      * @param withFlashLoan true if flashloan is needed to repay the debt, otherwise false
-     * @param user The address of the user
      * @param minAmountToReceive The minimum amount to receive from the swap
      * @param swapData The encoded swap data (either regular Odos data or PTSwapDataV2)
      * @param allBalanceOffset offset to all balance of the user
@@ -51,7 +50,6 @@ interface IOdosRepayAdapterV2 is IBaseOdosAdapterV2 {
         uint256 repayAmount;
         uint256 rateMode;
         bool withFlashLoan;
-        address user;
         uint256 minAmountToReceive;
         bytes swapData;
         uint256 allBalanceOffset;

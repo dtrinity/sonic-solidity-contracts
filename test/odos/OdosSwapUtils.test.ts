@@ -14,9 +14,7 @@ describe("OdosSwapUtils", function () {
     const tokenIn = await deployMintableERC20("TokenIn", "TIN");
     const tokenOut = await deployMintableERC20("TokenOut", "TOUT");
     const router = await deployMockRouter();
-    const HarnessFactory = await ethers.getContractFactory(
-      "OdosSwapUtilsHarness",
-    );
+    const HarnessFactory = await ethers.getContractFactory("OdosSwapUtilsHarness");
     const harness = await HarnessFactory.deploy();
     return { deployer, tokenIn, tokenOut, router, harness };
   }
@@ -31,13 +29,7 @@ describe("OdosSwapUtils", function () {
     const harnessAddr = await harness.getAddress();
     await mint(tokenIn, harnessAddr, parseUnits("10000", 18));
     await mint(tokenOut, await router.getAddress(), amountReceived);
-    await router.setSwapBehaviour(
-      await tokenIn.getAddress(),
-      await tokenOut.getAddress(),
-      amountSpent,
-      amountReceived,
-      false,
-    );
+    await router.setSwapBehaviour(await tokenIn.getAddress(), await tokenOut.getAddress(), amountSpent, amountReceived, false);
     const swapData = router.interface.encodeFunctionData("performSwap");
 
     // Act
@@ -52,9 +44,7 @@ describe("OdosSwapUtils", function () {
 
     // Assert output balance & allowance checks
     expect(await tokenOut.balanceOf(harnessAddr)).to.equal(amountReceived);
-    expect(
-      await tokenIn.allowance(harnessAddr, await router.getAddress()),
-    ).to.equal(0);
+    expect(await tokenIn.allowance(harnessAddr, await router.getAddress())).to.equal(0);
   });
 
   it("reverts when received < exactOut", async function () {
@@ -65,13 +55,7 @@ describe("OdosSwapUtils", function () {
     const harnessAddr = await harness.getAddress();
     await mint(tokenIn, harnessAddr, parseUnits("10000", 18));
     await mint(tokenOut, await router.getAddress(), amountReceived);
-    await router.setSwapBehaviour(
-      await tokenIn.getAddress(),
-      await tokenOut.getAddress(),
-      amountSpent,
-      amountReceived,
-      false,
-    );
+    await router.setSwapBehaviour(await tokenIn.getAddress(), await tokenOut.getAddress(), amountSpent, amountReceived, false);
     const swapData = router.interface.encodeFunctionData("performSwap");
 
     await expect(

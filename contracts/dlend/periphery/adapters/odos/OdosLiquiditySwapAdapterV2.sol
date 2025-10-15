@@ -79,24 +79,39 @@ contract OdosLiquiditySwapAdapterV2 is
         POOL.supply(asset, amount, to, referralCode);
     }
 
+    /**
+     * @notice Sets the oracle price deviation tolerance (governance only)
+     * @dev Cannot exceed MAX_ORACLE_PRICE_TOLERANCE_BPS (5%)
+     * @param newToleranceBps New tolerance in basis points (e.g., 300 = 3%)
+     */
+    function setOraclePriceTolerance(uint256 newToleranceBps) external onlyOwner {
+        _setOraclePriceTolerance(newToleranceBps);
+    }
+
     /// @inheritdoc IOdosLiquiditySwapAdapterV2
     function swapLiquidity(
         LiquiditySwapParamsV2 memory liquiditySwapParams,
         PermitInput memory collateralATokenPermit
-    ) external nonReentrant {
+    ) external nonReentrant whenNotPaused {
         if (liquiditySwapParams.allBalanceOffset != 0) {
             (, , address aToken) = _getReserveData(liquiditySwapParams.collateralAsset);
-            uint256 balance = IERC20(aToken).balanceOf(liquiditySwapParams.user);
+            uint256 balance = IERC20(aToken).balanceOf(msg.sender);
 
             liquiditySwapParams.collateralAmountToSwap = balance;
         }
 
+        FlashParamsV2 memory flashParams = FlashParamsV2({
+            liquiditySwapParams: liquiditySwapParams,
+            collateralATokenPermit: collateralATokenPermit,
+            user: msg.sender
+        });
+
         // true if flashloan is needed to swap liquidity
         if (!liquiditySwapParams.withFlashLoan) {
-            _swapAndDeposit(liquiditySwapParams, collateralATokenPermit);
+            _swapAndDeposit(flashParams);
         } else {
             // flashloan of the current collateral asset
-            _flash(liquiditySwapParams, collateralATokenPermit);
+            _flash(flashParams);
         }
     }
 
@@ -128,10 +143,10 @@ contract OdosLiquiditySwapAdapterV2 is
             revert InitiatorMustBeThis(initiator, address(this));
         }
 
-        (LiquiditySwapParamsV2 memory liquiditySwapParams, PermitInput memory collateralATokenPermit) = abi.decode(
-            params,
-            (LiquiditySwapParamsV2, PermitInput)
-        );
+        FlashParamsV2 memory flashParams = abi.decode(params, (FlashParamsV2));
+        LiquiditySwapParamsV2 memory liquiditySwapParams = flashParams.liquiditySwapParams;
+        PermitInput memory collateralATokenPermit = flashParams.collateralATokenPermit;
+        address user = flashParams.user;
 
         address flashLoanAsset = assets[0];
         uint256 flashLoanAmount = amounts[0];
@@ -150,10 +165,10 @@ contract OdosLiquiditySwapAdapterV2 is
 
         // supplies the received asset(newCollateralAsset) from swap to Aave Pool
         _conditionalRenewAllowance(liquiditySwapParams.newCollateralAsset, amountReceived);
-        _supply(liquiditySwapParams.newCollateralAsset, amountReceived, liquiditySwapParams.user, REFERRER);
+        _supply(liquiditySwapParams.newCollateralAsset, amountReceived, user, REFERRER);
 
         // pulls flashLoanAmount amount of flash-borrowed asset from the user
-        _pullATokenAndWithdraw(flashLoanAsset, liquiditySwapParams.user, flashLoanAmount, collateralATokenPermit);
+        _pullATokenAndWithdraw(flashLoanAsset, user, flashLoanAmount, collateralATokenPermit);
 
         // flashloan repayment
         _conditionalRenewAllowance(flashLoanAsset, flashLoanAmount + flashLoanPremium);
@@ -166,20 +181,19 @@ contract OdosLiquiditySwapAdapterV2 is
      * 1. Pull aToken collateral from user and withdraw from Pool
      * 2. Sell asset for new collateral asset
      * 3. Supply new collateral asset
-     * @param liquiditySwapParams struct describing the liquidity swap
-     * @param collateralATokenPermit Permit for aToken corresponding to old collateral asset from the user
+     * @param flashParams struct containing liquidity swap params, permit, and user address
      * @return The amount received from the swap of new collateral asset, that is now supplied to the Aave Pool
      */
-    function _swapAndDeposit(
-        LiquiditySwapParamsV2 memory liquiditySwapParams,
-        PermitInput memory collateralATokenPermit
-    ) internal returns (uint256) {
+    function _swapAndDeposit(FlashParamsV2 memory flashParams) internal returns (uint256) {
+        LiquiditySwapParamsV2 memory liquiditySwapParams = flashParams.liquiditySwapParams;
+        PermitInput memory collateralATokenPermit = flashParams.collateralATokenPermit;
+        address user = flashParams.user;
         // Record balance before pulling collateral for leftover calculation
         uint256 collateralBalanceBefore = IERC20(liquiditySwapParams.collateralAsset).balanceOf(address(this));
 
         uint256 collateralAmountReceived = _pullATokenAndWithdraw(
             liquiditySwapParams.collateralAsset,
-            liquiditySwapParams.user,
+            user,
             liquiditySwapParams.collateralAmountToSwap,
             collateralATokenPermit
         );
@@ -195,7 +209,7 @@ contract OdosLiquiditySwapAdapterV2 is
 
         // supply the received asset(newCollateralAsset) from swap to the Aave Pool
         _conditionalRenewAllowance(liquiditySwapParams.newCollateralAsset, amountReceived);
-        _supply(liquiditySwapParams.newCollateralAsset, amountReceived, liquiditySwapParams.user, REFERRER);
+        _supply(liquiditySwapParams.newCollateralAsset, amountReceived, user, REFERRER);
 
         // Handle leftover collateral by re-supplying to pool (similar to RepayAdapterV2 pattern)
         uint256 collateralBalanceAfter = IERC20(liquiditySwapParams.collateralAsset).balanceOf(address(this));
@@ -204,7 +218,7 @@ contract OdosLiquiditySwapAdapterV2 is
             : 0;
         if (collateralExcess > 0) {
             _conditionalRenewAllowance(liquiditySwapParams.collateralAsset, collateralExcess);
-            _supply(liquiditySwapParams.collateralAsset, collateralExcess, liquiditySwapParams.user, REFERRER);
+            _supply(liquiditySwapParams.collateralAsset, collateralExcess, user, REFERRER);
         }
 
         return amountReceived;
@@ -212,18 +226,14 @@ contract OdosLiquiditySwapAdapterV2 is
 
     /**
      * @dev Triggers the flashloan passing encoded params for the collateral swap
-     * @param liquiditySwapParams struct describing the liquidity swap
-     * @param collateralATokenPermit optional permit for old collateral's aToken
+     * @param flashParams struct containing liquidity swap params, permit, and user address
      */
-    function _flash(
-        LiquiditySwapParamsV2 memory liquiditySwapParams,
-        PermitInput memory collateralATokenPermit
-    ) internal virtual {
-        bytes memory params = abi.encode(liquiditySwapParams, collateralATokenPermit);
+    function _flash(FlashParamsV2 memory flashParams) internal virtual {
+        bytes memory params = abi.encode(flashParams);
         address[] memory assets = new address[](1);
-        assets[0] = liquiditySwapParams.collateralAsset;
+        assets[0] = flashParams.liquiditySwapParams.collateralAsset;
         uint256[] memory amounts = new uint256[](1);
-        amounts[0] = liquiditySwapParams.collateralAmountToSwap;
+        amounts[0] = flashParams.liquiditySwapParams.collateralAmountToSwap;
         uint256[] memory interestRateModes = new uint256[](1);
         interestRateModes[0] = 0;
 

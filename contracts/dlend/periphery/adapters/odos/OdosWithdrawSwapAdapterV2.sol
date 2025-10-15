@@ -69,14 +69,25 @@ contract OdosWithdrawSwapAdapterV2 is BaseOdosSellAdapterV2, ReentrancyGuard, IO
         POOL.supply(asset, amount, to, referralCode);
     }
 
+    /**
+     * @notice Sets the oracle price deviation tolerance (governance only)
+     * @dev Cannot exceed MAX_ORACLE_PRICE_TOLERANCE_BPS (5%)
+     * @param newToleranceBps New tolerance in basis points (e.g., 300 = 3%)
+     */
+    function setOraclePriceTolerance(uint256 newToleranceBps) external onlyOwner {
+        _setOraclePriceTolerance(newToleranceBps);
+    }
+
     /// @inheritdoc IOdosWithdrawSwapAdapterV2
     function withdrawAndSwap(
         WithdrawSwapParamsV2 memory withdrawSwapParams,
         PermitInput memory permitInput
-    ) external nonReentrant {
+    ) external nonReentrant whenNotPaused {
+        address user = msg.sender; // Capture the actual caller
+
         (, , address aToken) = _getReserveData(withdrawSwapParams.oldAsset);
         if (withdrawSwapParams.allBalanceOffset != 0) {
-            uint256 balance = IERC20(aToken).balanceOf(withdrawSwapParams.user);
+            uint256 balance = IERC20(aToken).balanceOf(user);
             withdrawSwapParams.oldAssetAmount = balance;
         }
 
@@ -84,12 +95,7 @@ contract OdosWithdrawSwapAdapterV2 is BaseOdosSellAdapterV2, ReentrancyGuard, IO
         uint256 oldAssetBalanceBefore = IERC20(withdrawSwapParams.oldAsset).balanceOf(address(this));
 
         // pulls liquidity asset from the user and withdraw
-        _pullATokenAndWithdraw(
-            withdrawSwapParams.oldAsset,
-            withdrawSwapParams.user,
-            withdrawSwapParams.oldAssetAmount,
-            permitInput
-        );
+        _pullATokenAndWithdraw(withdrawSwapParams.oldAsset, user, withdrawSwapParams.oldAssetAmount, permitInput);
 
         // Use adaptive swap which handles both regular and PT token swaps intelligently
         uint256 amountReceived = _executeAdaptiveSwap(
@@ -107,10 +113,10 @@ contract OdosWithdrawSwapAdapterV2 is BaseOdosSellAdapterV2, ReentrancyGuard, IO
             : 0;
         if (oldAssetExcess > 0) {
             _conditionalRenewAllowance(withdrawSwapParams.oldAsset, oldAssetExcess);
-            _supply(withdrawSwapParams.oldAsset, oldAssetExcess, withdrawSwapParams.user, REFERRER);
+            _supply(withdrawSwapParams.oldAsset, oldAssetExcess, user, REFERRER);
         }
 
         // transfer new asset to the user
-        IERC20(withdrawSwapParams.newAsset).safeTransfer(withdrawSwapParams.user, amountReceived);
+        IERC20(withdrawSwapParams.newAsset).safeTransfer(user, amountReceived);
     }
 }

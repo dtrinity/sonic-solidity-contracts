@@ -23,14 +23,15 @@ import { IERC20Detailed } from "contracts/dlend/core/dependencies/openzeppelin/c
 import { IERC20WithPermit } from "contracts/dlend/core/interfaces/IERC20WithPermit.sol";
 import { IPoolAddressesProvider } from "contracts/dlend/core/interfaces/IPoolAddressesProvider.sol";
 import { IPool } from "contracts/dlend/core/interfaces/IPool.sol";
-import { Ownable } from "contracts/dlend/core/dependencies/openzeppelin/contracts/Ownable.sol";
+import { Rescuable } from "contracts/common/Rescuable.sol";
+import { Pausable } from "contracts/common/Pausable.sol";
 import { IBaseOdosAdapter } from "./interfaces/IBaseOdosAdapter.sol";
 
 /**
  * @title BaseOdosSwapAdapter
  * @notice Utility functions for adapters using Odos
  */
-abstract contract BaseOdosSwapAdapter is Ownable, IBaseOdosAdapter {
+abstract contract BaseOdosSwapAdapter is Rescuable, Pausable, IBaseOdosAdapter {
     using SafeERC20 for IERC20;
 
     /* State Variables */
@@ -114,14 +115,5 @@ abstract contract BaseOdosSwapAdapter is Ownable, IBaseOdosAdapter {
         if (allowance < minAmount) {
             IERC20(asset).safeApprove(address(POOL), type(uint256).max);
         }
-    }
-
-    /**
-     * @dev Emergency rescue for token stucked on this contract, as failsafe mechanism
-     * - Funds should never remain in this contract more time than during transactions
-     * - Only callable by the owner
-     */
-    function rescueTokens(IERC20 token) external onlyOwner {
-        token.safeTransfer(owner(), token.balanceOf(address(this)));
     }
 }

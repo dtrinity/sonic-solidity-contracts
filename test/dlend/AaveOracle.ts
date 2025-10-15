@@ -24,14 +24,8 @@ describe("AaveOracle", () => {
 
     // Load the fixture
     fixture = await dLendFixture();
-    aaveOracle = await ethers.getContractAt(
-      "AaveOracle",
-      await fixture.contracts.priceOracle.getAddress(),
-    );
-    oracleAggregator = await ethers.getContractAt(
-      "OracleAggregator",
-      await aaveOracle.getFallbackOracle(),
-    );
+    aaveOracle = await ethers.getContractAt("AaveOracle", await fixture.contracts.priceOracle.getAddress());
+    oracleAggregator = await ethers.getContractAt("OracleAggregator", await aaveOracle.getFallbackOracle());
 
     // Get a test asset from the reserves list
     const reservesList = await fixture.contracts.pool.getReservesList();
@@ -85,9 +79,7 @@ describe("AaveOracle", () => {
       const assets = [...reservesList.slice(0, 3)]; // Create a new array from the first 3 assets
 
       // Get prices from oracle aggregator first
-      const aggregatorPrices = await Promise.all(
-        assets.map((asset) => oracleAggregator.getAssetPrice(asset)),
-      );
+      const aggregatorPrices = await Promise.all(assets.map((asset) => oracleAggregator.getAssetPrice(asset)));
 
       // Get batch prices from AaveOracle
       const batchPrices = await aaveOracle.getAssetsPrices(assets);
@@ -123,16 +115,11 @@ describe("AaveOracle", () => {
         "PoolAddressesProvider",
         (await hre.deployments.get(POOL_ADDRESSES_PROVIDER_ID)).address,
       );
-      const aclManager = await hre.ethers.getContractAt(
-        "ACLManager",
-        await addressesProvider.getACLManager(),
-      );
+      const aclManager = await hre.ethers.getContractAt("ACLManager", await addressesProvider.getACLManager());
       await aclManager.addAssetListingAdmin(deployerSigner.address);
 
       // Call setAssetSources (should be no-op)
-      const tx = await aaveOracle
-        .connect(deployerSigner)
-        .setAssetSources([testAsset], [ethers.Wallet.createRandom().address]);
+      const tx = await aaveOracle.connect(deployerSigner).setAssetSources([testAsset], [ethers.Wallet.createRandom().address]);
       await tx.wait();
 
       // Verify source remains unchanged

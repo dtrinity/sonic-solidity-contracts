@@ -3,14 +3,14 @@ import { ethers } from "hardhat";
 import {
   BaseOdosAdapterV2Harness,
   PendleSwapLogicHarness,
-  SwapExecutorV2Harness,
+  SwapExecutorHarness,
   MockOdosRouterV2,
   MockPendleRouter,
   MockPTToken,
   TestMintableERC20,
   MockPoolAddressesProvider,
   MockPoolV2,
-  MockPriceOracleGetterV2
+  MockPriceOracleGetterV2,
 } from "../../../../../../typechain-types";
 
 /**
@@ -29,13 +29,13 @@ export interface OdosV2TestFixture {
   // Test harnesses
   baseAdapterHarness: BaseOdosAdapterV2Harness;
   pendleLogicHarness: PendleSwapLogicHarness;
-  swapExecutorHarness: SwapExecutorV2Harness;
+  swapExecutorHarness: SwapExecutorHarness;
 
   // Mock tokens
   tokenA: TestMintableERC20; // Regular ERC20 token
   tokenB: TestMintableERC20; // Regular ERC20 token
-  ptTokenA: MockPTToken;     // PT token for tokenA
-  ptTokenB: MockPTToken;     // PT token for tokenB
+  ptTokenA: MockPTToken; // PT token for tokenA
+  ptTokenB: MockPTToken; // PT token for tokenB
   syTokenA: TestMintableERC20; // SY token for PT tokenA
   syTokenB: TestMintableERC20; // SY token for PT tokenB
 
@@ -67,10 +67,7 @@ export async function deployOdosV2TestFixture(): Promise<OdosV2TestFixture> {
 
   // Deploy addresses provider with pool and oracle addresses
   const MockPoolAddressesProviderFactory = await ethers.getContractFactory("MockPoolAddressesProvider");
-  const addressesProvider = await MockPoolAddressesProviderFactory.deploy(
-    await pool.getAddress(),
-    await priceOracle.getAddress()
-  );
+  const addressesProvider = await MockPoolAddressesProviderFactory.deploy(await pool.getAddress(), await priceOracle.getAddress());
 
   // Deploy test tokens
   const TestMintableERC20Factory = await ethers.getContractFactory("TestMintableERC20");
@@ -91,14 +88,14 @@ export async function deployOdosV2TestFixture(): Promise<OdosV2TestFixture> {
     await addressesProvider.getAddress(),
     await pool.getAddress(),
     await odosRouter.getAddress(),
-    await pendleRouter.getAddress()
+    await pendleRouter.getAddress(),
   );
 
   const PendleSwapLogicHarnessFactory = await ethers.getContractFactory("PendleSwapLogicHarness");
   const pendleLogicHarness = await PendleSwapLogicHarnessFactory.deploy();
 
-  const SwapExecutorV2HarnessFactory = await ethers.getContractFactory("SwapExecutorV2Harness");
-  const swapExecutorHarness = await SwapExecutorV2HarnessFactory.deploy();
+  const SwapExecutorHarnessFactory = await ethers.getContractFactory("SwapExecutorHarness");
+  const swapExecutorHarness = await SwapExecutorHarnessFactory.deploy();
 
   return {
     deployer,
@@ -117,7 +114,7 @@ export async function deployOdosV2TestFixture(): Promise<OdosV2TestFixture> {
     syTokenB,
     addressesProvider,
     pool,
-    priceOracle
+    priceOracle,
   };
 }
 
@@ -125,11 +122,8 @@ export async function deployOdosV2TestFixture(): Promise<OdosV2TestFixture> {
  * Setup test environment with token balances and approvals
  */
 export async function setupTestEnvironment(fixture: OdosV2TestFixture) {
-  const {
-    deployer, user1, user2,
-    tokenA, tokenB, ptTokenA, ptTokenB, syTokenA, syTokenB,
-    odosRouter, pendleRouter, baseAdapterHarness
-  } = fixture;
+  const { deployer, user1, user2, tokenA, tokenB, ptTokenA, ptTokenB, syTokenA, syTokenB, odosRouter, pendleRouter, baseAdapterHarness } =
+    fixture;
 
   const initialMintAmount = ethers.parseEther("1000000");
 
@@ -194,19 +188,15 @@ export function createOdosSwapData(mockRouter: MockOdosRouterV2): string {
 }
 
 /**
- * Create Pendle swap data for testing  
+ * Create Pendle swap data for testing
  */
 export function createPendleSwapData(
   mockRouter: MockPendleRouter,
   tokenIn: string = ethers.ZeroAddress,
   tokenOut: string = ethers.ZeroAddress,
-  amountIn: bigint = 0n
+  amountIn: bigint = 0n,
 ): string {
-  return mockRouter.interface.encodeFunctionData("executeSwap", [
-    tokenIn,
-    tokenOut,
-    amountIn
-  ]);
+  return mockRouter.interface.encodeFunctionData("executeSwap", [tokenIn, tokenOut, amountIn]);
 }
 
 /**
@@ -223,13 +213,13 @@ export function createPTSwapData(
   isComposed: boolean,
   underlyingAsset: string = ethers.ZeroAddress,
   pendleCalldata: string = "0x",
-  odosCalldata: string = "0x"
+  odosCalldata: string = "0x",
 ): PTSwapDataV2 {
   return {
     isComposed,
     underlyingAsset,
     pendleCalldata,
-    odosCalldata
+    odosCalldata,
   };
 }
 
@@ -239,6 +229,6 @@ export function createPTSwapData(
 export function encodePTSwapData(swapData: PTSwapDataV2): string {
   return ethers.AbiCoder.defaultAbiCoder().encode(
     ["tuple(bool,address,bytes,bytes)"],
-    [[swapData.isComposed, swapData.underlyingAsset, swapData.pendleCalldata, swapData.odosCalldata]]
+    [[swapData.isComposed, swapData.underlyingAsset, swapData.pendleCalldata, swapData.odosCalldata]],
   );
 }

@@ -66,11 +66,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     // Get contract instances
     const dstable = await ethers.getContractAt("ERC20StablecoinUpgradeable", tokenDeployment.address, deployerSigner);
     const oracle = await ethers.getContractAt("OracleAggregator", oracleDeployment.address, deployerSigner);
-    const collateralVault = await ethers.getContractAt(
-      "CollateralHolderVault",
-      collateralVaultDeployment.address,
-      deployerSigner,
-    );
+    const collateralVault = await ethers.getContractAt("CollateralHolderVault", collateralVaultDeployment.address, deployerSigner);
     const amoManager = await ethers.getContractAt("AmoManagerV2", amoManagerDeployment.address, deployerSigner);
     const debtToken = await ethers.getContractAt("AmoDebtToken", debtTokenDeployment.address, deployerSigner);
 
@@ -151,10 +147,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
         () => ({
           to: collateralVaultDeployment.address,
           value: "0",
-          data: collateralVault.interface.encodeFunctionData("grantRole", [
-            COLLATERAL_WITHDRAWER_ROLE,
-            amoManagerDeployment.address,
-          ]),
+          data: collateralVault.interface.encodeFunctionData("grantRole", [COLLATERAL_WITHDRAWER_ROLE, amoManagerDeployment.address]),
         }),
       );
       if (!complete) allOperationsComplete = false;

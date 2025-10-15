@@ -121,24 +121,26 @@ async function deployDLoopCoreDLend(
     from: deployer,
     contract: "DLoopCoreDLend",
     args: [
-      assertNotEmpty(vaultInfo.name),
-      assertNotEmpty(vaultInfo.symbol),
-      assertNotEmpty(vaultInfo.underlyingAsset),
-      assertNotEmpty(dUSDAddress),
-      assertNotEmpty(lendingPoolAddressesProviderAddress),
-      vaultInfo.targetLeverageBps,
-      vaultInfo.lowerBoundTargetLeverageBps,
-      vaultInfo.upperBoundTargetLeverageBps,
-      vaultInfo.maxSubsidyBps,
-      vaultInfo.minDeviationBps,
-      vaultInfo.withdrawalFeeBps,
-      assertNotEmpty(incentivesProxyDeployment.address), // _rewardsController
-      assertNotEmpty(aTokenAddress), // _dLendAssetToClaimFor
-      targetStaticATokenWrapper, // _targetStaticATokenWrapper
-      assertNotEmpty(treasury), // _treasury
-      maxTreasuryFeeBps, // _maxTreasuryFeeBps
-      initialTreasuryFeeBps, // _initialTreasuryFeeBps
-      initialExchangeThreshold, // _initialExchangeThreshold
+      {
+        name: assertNotEmpty(vaultInfo.name),
+        symbol: assertNotEmpty(vaultInfo.symbol),
+        collateralToken: assertNotEmpty(vaultInfo.underlyingAsset),
+        debtToken: assertNotEmpty(dUSDAddress),
+        lendingPoolAddressesProvider: assertNotEmpty(lendingPoolAddressesProviderAddress),
+        targetLeverageBps: vaultInfo.targetLeverageBps,
+        lowerBoundTargetLeverageBps: vaultInfo.lowerBoundTargetLeverageBps,
+        upperBoundTargetLeverageBps: vaultInfo.upperBoundTargetLeverageBps,
+        maxSubsidyBps: vaultInfo.maxSubsidyBps,
+        minDeviationBps: vaultInfo.minDeviationBps,
+        withdrawalFeeBps: vaultInfo.withdrawalFeeBps,
+        rewardsController: assertNotEmpty(incentivesProxyDeployment.address),
+        dLendAssetToClaimFor: assertNotEmpty(aTokenAddress),
+        targetStaticATokenWrapper: targetStaticATokenWrapper,
+        treasury: assertNotEmpty(treasury),
+        maxTreasuryFeeBps: maxTreasuryFeeBps,
+        initialTreasuryFeeBps: initialTreasuryFeeBps,
+        initialExchangeThreshold: initialExchangeThreshold,
+      },
     ],
     log: true,
     autoMine: true,
@@ -196,14 +198,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 };
 
 func.tags = ["dloop", "dloop-core", "dloop-core-dlend"];
-func.dependencies = [
-  "dloop-core-logic",
-  "PoolAddressesProvider",
-  "dlend-periphery-post",
-  "PoolDataProvider",
-  "dlend-static-wrapper-factory",
-  "dStableATokenWrappers",
-];
+func.dependencies = ["dloop-core-logic"];
 func.id = DLOOP_CORE_DLEND_ID;
 
 export default func;
