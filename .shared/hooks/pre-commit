@@ -40,9 +40,9 @@ run_guardrails() {
   fi
 
   GUARDRAIL_ARGS="--fail-fast"
-  if [ "${SHARED_HARDHAT_PRE_COMMIT_PRETTIER:-0}" = "0" ]; then
+  if [ "${SHARED_HARDHAT_PRE_COMMIT_PRETTIER:-1}" = "0" ]; then
     GUARDRAIL_ARGS="$GUARDRAIL_ARGS --skip-prettier"
-    echo "${YELLOW}Skipping Prettier check (set SHARED_HARDHAT_PRE_COMMIT_PRETTIER=1 to enable).${NC}"
+    echo "${YELLOW}Skipping Prettier check (set SHARED_HARDHAT_PRE_COMMIT_PRETTIER=1 to re-enable).${NC}"
   fi
   if [ "${SHARED_HARDHAT_PRE_COMMIT_SOLHINT:-1}" = "0" ]; then
     GUARDRAIL_ARGS="$GUARDRAIL_ARGS --skip-solhint"
@@ -70,8 +70,8 @@ run_guardrails() {
 }
 
 run_compile_if_opt_in() {
-  if [ "${SHARED_HARDHAT_PRE_COMMIT_COMPILE:-0}" = "0" ]; then
-    echo "${YELLOW}Skipping Hardhat compile (enable via SHARED_HARDHAT_PRE_COMMIT_COMPILE=1).${NC}"
+  if [ "${SHARED_HARDHAT_PRE_COMMIT_COMPILE:-1}" = "0" ]; then
+    echo "${YELLOW}Skipping Hardhat compile (set SHARED_HARDHAT_PRE_COMMIT_COMPILE=1 to re-enable).${NC}"
     return 0
   fi
 
@@ -85,7 +85,7 @@ run_compile_if_opt_in() {
     return 0
   fi
 
-  echo "${RED}Contract compilation failed. Fix issues or unset SHARED_HARDHAT_PRE_COMMIT_COMPILE to skip this step.${NC}"
+  echo "${RED}Contract compilation failed. Fix issues or set SHARED_HARDHAT_PRE_COMMIT_COMPILE=0 to skip this step.${NC}"
   return 1
 }
 

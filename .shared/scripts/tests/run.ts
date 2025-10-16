@@ -9,6 +9,7 @@ import { generateOracleReport } from '../../lib/deployments/oracle-report';
 import { generateNSLOCReport } from '../../lib/deployments/nsloc';
 import { loadProjectModule, getSolidityFiles } from '../../lib/utils';
 import { validateConfig } from '../../lib/validators';
+import { buildAggregatorList } from '../../lib/oracles/prices/asset-extractors';
 
 type TestCase = {
   name: string;
@@ -193,6 +194,79 @@ test('generateOracleReport categorizes addresses using custom patterns', () => {
     process.chdir(originalCwd);
     fs.rmSync(tempRoot, { recursive: true, force: true });
   }
+});
+
+test('buildAggregatorList extracts assets for multi and single aggregator configs', () => {
+  const usdAsset = '0x0000000000000000000000000000000000000001';
+  const wethAsset = '0x0000000000000000000000000000000000000002';
+  const compositeKey = '0x0000000000000000000000000000000000000003';
+  const compositeFeedAsset = '0x0000000000000000000000000000000000000004';
+  const dexAsset = '0x0000000000000000000000000000000000000005';
+
+  const configA = {
+    tokenAddresses: {
+      USDC: usdAsset,
+      WETH: wethAsset,
+    },
+    oracleAggregators: {
+      USD: {
+        priceDecimals: 18,
+        api3OracleAssets: {
+          plainApi3OracleWrappers: {
+            [usdAsset]: '0x0000000000000000000000000000000000000011',
+          },
+          compositeApi3OracleWrappersWithThresholding: {
+            [compositeKey]: {
+              feedAsset: compositeFeedAsset,
+            },
+          },
+        },
+        redstoneOracleAssets: {
+          plainRedstoneOracleWrappers: {
+            [wethAsset]: '0x0000000000000000000000000000000000000022',
+          },
+        },
+        dexOracleAssets: {
+          [dexAsset]: '0x0000000000000000000000000000000000000033',
+        },
+      },
+    },
+  };
+
+  const listA = buildAggregatorList(configA);
+  assert.equal(listA.length, 1);
+  const usdAggregator = listA[0];
+  const addressesA = new Set(usdAggregator.assets.map(asset => asset.address));
+  assert.ok(addressesA.has(usdAsset.toLowerCase()));
+  assert.ok(addressesA.has(wethAsset.toLowerCase()));
+  assert.ok(addressesA.has(compositeKey.toLowerCase()));
+  assert.ok(addressesA.has(compositeFeedAsset.toLowerCase()));
+  assert.ok(addressesA.has(dexAsset.toLowerCase()));
+
+  const singletonAsset = '0x0000000000000000000000000000000000000006';
+  const configB = {
+    lending: {
+      reserveAssetAddresses: {
+        dUSD: singletonAsset,
+      },
+    },
+    oracleAggregator: {
+      priceDecimals: 18,
+      dUSDAddress: singletonAsset,
+      api3OracleAssets: {
+        plainApi3OracleWrappers: {
+          [singletonAsset]: '0x0000000000000000000000000000000000000044',
+        },
+      },
+    },
+  };
+
+  const listB = buildAggregatorList(configB);
+  assert.equal(listB.length, 1);
+  const singleton = listB[0];
+  assert.equal(singleton.key, 'OracleAggregator');
+  const addressesB = new Set(singleton.assets.map(asset => asset.address));
+  assert.ok(addressesB.has(singletonAsset.toLowerCase()));
 });
 
 test('generateNSLOCReport produces metrics for Solidity sources', () => {

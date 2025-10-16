@@ -68,9 +68,9 @@ run_guardrails() {
   fi
 
   set -- --fail-fast
-  if [ "${SHARED_HARDHAT_PRE_PUSH_PRETTIER:-0}" = "0" ]; then
+  if [ "${SHARED_HARDHAT_PRE_PUSH_PRETTIER:-1}" = "0" ]; then
     set -- "$@" --skip-prettier
-    echo "${YELLOW}Skipping Prettier check (set SHARED_HARDHAT_PRE_PUSH_PRETTIER=1 to enable).${NC}"
+    echo "${YELLOW}Skipping Prettier check (set SHARED_HARDHAT_PRE_PUSH_PRETTIER=1 to re-enable).${NC}"
   fi
   if [ "${SHARED_HARDHAT_PRE_PUSH_SOLHINT:-1}" = "0" ]; then
     set -- "$@" --skip-solhint
@@ -93,8 +93,8 @@ run_guardrails() {
 }
 
 run_tests_if_opt_in() {
-  if [ "${SHARED_HARDHAT_PRE_PUSH_TEST:-0}" = "0" ]; then
-    echo "${YELLOW}Skipping Hardhat test run (enable via SHARED_HARDHAT_PRE_PUSH_TEST=1).${NC}"
+  if [ "${SHARED_HARDHAT_PRE_PUSH_TEST:-1}" = "0" ]; then
+    echo "${YELLOW}Skipping Hardhat test run (set SHARED_HARDHAT_PRE_PUSH_TEST=1 to re-enable).${NC}"
     return 0
   fi
 
@@ -122,7 +122,7 @@ run_tests_if_opt_in() {
     return 0
   fi
 
-  echo "${RED}Hardhat tests failed. Fix issues or unset SHARED_HARDHAT_PRE_PUSH_TEST to skip this step.${NC}"
+  echo "${RED}Hardhat tests failed. Fix issues or set SHARED_HARDHAT_PRE_PUSH_TEST=0 to skip this step.${NC}"
   return 1
 }
 

@@ -1,4 +1,26 @@
+-include ./.env
+
+
+ROLES_NETWORK ?= sonic_mainnet
+ROLES_MANIFEST ?= manifests/sonic-mainnet-roles.json
+ROLES_SCAN_ARGS ?= --drift-check
+ROLES_TRANSFER_ARGS ?=
+ROLES_REVOKE_ARGS ?=
+
+SHARED_ENABLE_SLITHER_TARGETS := 0
 include .shared/Makefile
+
+override TS_NODE := TS_NODE_TRANSPILE_ONLY=1 TS_NODE_PROJECT=$(PROJECT_ROOT)/tsconfig.shared.json $(YARN) ts-node --project $(PROJECT_ROOT)/tsconfig.shared.json
+
+MANIFEST_DEPLOYER := $(shell node -e "const fs=require('fs');const path=require('path');try{const m=JSON.parse(fs.readFileSync(path.resolve('$(ROLES_MANIFEST)'),'utf8'));if(m.deployer){process.stdout.write(m.deployer);}}catch(e){}")
+MANIFEST_GOVERNANCE := $(shell node -e "const fs=require('fs');const path=require('path');try{const m=JSON.parse(fs.readFileSync(path.resolve('$(ROLES_MANIFEST)'),'utf8'));if(m.governance){process.stdout.write(m.governance);}}catch(e){}")
+
+network ?= $(ROLES_NETWORK)
+manifest ?= $(ROLES_MANIFEST)
+deployer ?= $(MANIFEST_DEPLOYER)
+governance ?= $(MANIFEST_GOVERNANCE)
+
+$(shell mkdir -p reports/roles)
 
 ##############
 ## Testing  ##
@@ -69,11 +91,39 @@ clean-deployments: ## Clean the deployments for a given network which matches at
 
 explorer.verify.sonic_testnet: ## Verify contracts on sonic testnet
 	@echo "Verifying contracts on sonic testnet..."
-	@yarn hardhat --network sonic_testnet etherscan-verify --api-key 4EJCRRD3JKIE6TKF6ME7AKVYWFEJI79A26 --api-url https://api-testnet.sonicscan.org
+	@yarn hardhat --network sonic_testnet etherscan-verify --api-key 4EJCRRD3JKIE6TKF6ME7AKVYWFEJI79A26 --api-url "https://api.etherscan.io/v2/api?chainid=14601"
 
 explorer.verify.sonic_mainnet: ## Verify contracts on sonic mainnet
 	@echo "Verifying contracts on sonic mainnet..."
-	@yarn hardhat --network sonic_mainnet etherscan-verify --api-key 4EJCRRD3JKIE6TKF6ME7AKVYWFEJI79A26 --api-url https://api.sonicscan.org
+	@yarn hardhat --network sonic_mainnet etherscan-verify --api-key 4EJCRRD3JKIE6TKF6ME7AKVYWFEJI79A26 --api-url "https://api.etherscan.io/v2/api?chainid=146"
+
+explorer.verify.focused: ## Verify a single contract on specified network (usage: make explorer.verify.focused network=sonic_testnet contract=ContractName)
+	@if [ "$(network)" = "" ]; then \
+		echo "Must provide 'network' argument. Example: 'make explorer.verify.focused network=sonic_testnet contract=MyContract'"; \
+		exit 1; \
+	fi
+	@if [ "$(contract)" = "" ]; then \
+		echo "Must provide 'contract' argument. Example: 'make explorer.verify.focused network=sonic_testnet contract=MyContract'"; \
+		exit 1; \
+	fi
+	@if [ "$(network)" = "sonic_testnet" ]; then \
+		echo "Verifying $(contract) on sonic testnet..."; \
+		echo "Network: sonic_testnet"; \
+		echo "API URL: https://api.etherscan.io/v2/api?chainid=14601"; \
+		echo "Contract Name: $(contract)"; \
+		echo "Running verification command..."; \
+		yarn hardhat --network sonic_testnet etherscan-verify --api-key 4EJCRRD3JKIE6TKF6ME7AKVYWFEJI79A26 --api-url "https://api.etherscan.io/v2/api?chainid=14601" --contract-name $(contract) --verbose; \
+	elif [ "$(network)" = "sonic_mainnet" ]; then \
+		echo "Verifying $(contract) on sonic mainnet..."; \
+		echo "Network: sonic_mainnet"; \
+		echo "API URL: https://api.etherscan.io/v2/api?chainid=146"; \
+		echo "Contract Name: $(contract)"; \
+		echo "Running verification command..."; \
+		yarn hardhat --network sonic_mainnet etherscan-verify --api-key 4EJCRRD3JKIE6TKF6ME7AKVYWFEJI79A26 --api-url "https://api.etherscan.io/v2/api?chainid=146" --contract-name $(contract) --verbose; \
+	else \
+		echo "Unsupported network: $(network). Use 'sonic_testnet' or 'sonic_mainnet'"; \
+		exit 1; \
+	fi
 
 ##############
 ## Building ##

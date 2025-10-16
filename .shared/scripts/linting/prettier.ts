@@ -2,7 +2,7 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
-import { globSync } from 'glob';
+import { sync as globSync } from 'glob';
 import { Command } from 'commander';
 
 import { logger } from '../../lib/logger';

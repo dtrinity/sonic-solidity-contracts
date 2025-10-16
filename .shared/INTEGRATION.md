@@ -48,6 +48,10 @@ If `npm install file:./.shared` fails because of peer dependency conflicts (comm
 Toolbox still requiring `@types/chai@^4`), rerun with `--legacy-peer-deps` to reuse the lockfile the
 repo already trusts.
 
+> Heads-up: `yarn install --mode=update-lockfile` updates the lockfile only—it skips linking. Run a
+> plain `yarn install` afterwards when the repository uses `nodeLinker: node-modules`; otherwise new
+> shared dependencies (`@safe-global/*`, etc.) will be missing during the first `make roles.*` run.
+
 #### Hook up the shared Makefile
 
 Add the following to the repository `Makefile` (create one if it does not exist):
@@ -58,6 +62,35 @@ include .shared/Makefile
 ```
 
 The include injects the common `make lint`, `make lint.ci`, `make slither`, and guardrail helper targets so teams keep familiar workflows while relying on the shared TypeScript tooling.
+
+Immediately after the include, add a few defaults so the shared role automation can run without extra flags:
+
+```make
+ROLES_NETWORK ?= katana_mainnet
+ROLES_MANIFEST ?= manifests/katana-mainnet-roles.json
+ROLES_SCAN_ARGS ?= --drift-check
+ROLES_TRANSFER_ARGS ?=
+ROLES_REVOKE_ARGS ?=
+```
+
+> Tip: When you rely on `?=` for these defaults, declare the block *before* `include .shared/Makefile`. The shared file seeds empty placeholders during the include, so setting them earlier (or switching to `:=` afterwards) keeps `make roles.scan` / `make roles.transfer` wired up with sensible defaults.
+
+Have repo-specific `slither` automation or a custom `help` target? Top-level duplicates trigger GNU Make warnings. Set `SHARED_ENABLE_SLITHER_TARGETS := 0` (and drop bespoke `help:` rules) ahead of the include when you need to preserve local implementations.
+
+With those in place you can invoke `make roles.scan`, `make roles.transfer`, or `make roles.revoke` directly. The deployer / governance addresses are pulled from the manifest, and `roles.revoke` also reads the Safe configuration (`safe.safeAddress` / `safe.chainId`) unless you override them explicitly. To customise behaviour on the fly, pass the exposed variables inline:
+
+```bash
+# run drift check and persist the JSON summary
+make roles.scan ROLES_SCAN_ARGS="--drift-check --json-output reports/roles/scan.json"
+# dry-run transfers
+make roles.transfer ROLES_TRANSFER_ARGS="--dry-run-only"
+# target an alternate manifest / Safe combo
+make roles.revoke manifest=manifests/katana-testnet-roles.json
+```
+
+When repositories keep TypeScript sources outside the default Hardhat `tsconfig.json`, add a thin wrapper such as `tsconfig.shared.json` that extends `./.shared/tsconfig.json` and lists `node`, `hardhat`, and `hardhat-deploy` in `compilerOptions.types`. Point `TS_NODE_PROJECT` (see Katana/Fraxtal `Makefile` examples) at this file so the shared CLI compiles without missing-type errors.
+
+Shared role targets write JSON artefacts under `reports/roles/`; add `reports/**/*.json` (or a narrower glob) to `.gitignore` so drift outputs do not clutter commits.
 
 #### Enable the shared GitHub Actions workflow
 
@@ -84,13 +117,19 @@ This keeps editor integrations, ad-hoc `yarn prettier` runs, and the guardrails 
 
 #### Install the shared git hooks
 
-Enable the pre-commit and pre-push hooks so formatting and guardrails run locally before code reaches CI:
+Enable the shared git hooks so formatting and guardrails run locally before code reaches CI:
 
 ```bash
-node_modules/.bin/ts-node .shared/scripts/setup.ts --hooks
+node_modules/.bin/ts-node .shared/scripts/setup.ts --hooks                       # installs the pre-push hook
+node_modules/.bin/ts-node .shared/scripts/setup.ts --hooks --include-pre-commit-hook # opt into the pre-commit hook
 ```
 
-The pre-commit hook writes staged files with Prettier and runs ESLint; the pre-push hook executes the shared guardrail suite with `--fail-fast`. Because the hook scripts live inside `.shared`, future updates to the tooling automatically flow into every repository.
+The pre-push hook executes the shared guardrail suite with `--fail-fast`, runs Prettier/ESLint/Solhint, and now
+executes `npx hardhat test` by default. Set `SHARED_HARDHAT_PRE_PUSH_PRETTIER=0` or `SHARED_HARDHAT_PRE_PUSH_TEST=0`
+to opt out temporarily, or override the test command with `SHARED_HARDHAT_PRE_PUSH_TEST_CMD="yarn test --runInBand"`.
+Because the hook scripts live inside `.shared`, future updates to the tooling automatically flow into every
+repository. Add `--include-pre-commit-hook` whenever you want the additional staged-file linting and compile guard that
+the shared pre-commit hook provides.
 
 > Prefer automation over manual flags? When you have access to this repository
 > locally, `bash path/to/scripts/subtree/add.sh --help` prints the non-
@@ -312,8 +351,9 @@ npm run validate:matrix -- --config configs/validation.networks.json --report re
 
 Once minimal integration is verified, consider:
 
-- [ ] Set up git hooks: `node_modules/.bin/ts-node .shared/scripts/setup.ts --hooks`
-  - Pre-commit executes guardrails and staged-file heuristics; enable Prettier with `SHARED_HARDHAT_PRE_COMMIT_PRETTIER=1` and contract compilation with `SHARED_HARDHAT_PRE_COMMIT_COMPILE=1` when you want them enforced locally.
+- [ ] Set up git hooks: `node_modules/.bin/ts-node .shared/scripts/setup.ts --hooks` (add `--include-pre-commit-hook`
+      to opt into the shared pre-commit checks)
+  - Pre-commit executes guardrails and staged-file heuristics; keep Prettier on unless you opt out (`SHARED_HARDHAT_PRE_COMMIT_PRETTIER=0`) and compile contracts by default (`SHARED_HARDHAT_PRE_COMMIT_COMPILE=0` to skip).
   - Pre-push reruns guardrails, optionally runs tests (`SHARED_HARDHAT_PRE_PUSH_TEST=1`) or a custom command (`SHARED_HARDHAT_PRE_PUSH_TEST_CMD="yarn test --runInBand"`), enables Prettier with `SHARED_HARDHAT_PRE_PUSH_PRETTIER=1`, and requires Slither only on `main`/`master`/`develop`.
 - [ ] Add shared CI workflow: `cp .shared/ci/shared-guardrails.yml .github/workflows/` (runs lint + sanity checks, Hardhat compile, and tests with a summary step)
 - [ ] Configure the deploy ID sanity check (`sanity:deploy-ids` npm script or direct call with repo-specific `--deploy-ids/--deploy-root` arguments)

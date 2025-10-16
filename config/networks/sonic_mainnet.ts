@@ -3,7 +3,14 @@ import { HardhatRuntimeEnvironment } from "hardhat/types";
 
 import { assertNotEmpty } from "../../typescript/common/assert";
 import { ONE_PERCENT_BPS } from "../../typescript/common/bps_constants";
-import { DS_TOKEN_ID, DUSD_TOKEN_ID, INCENTIVES_PROXY_ID } from "../../typescript/deploy-ids";
+import {
+  DS_ISSUER_V2_CONTRACT_ID,
+  DS_REDEEMER_V2_CONTRACT_ID,
+  DS_TOKEN_ID,
+  DUSD_ISSUER_V2_CONTRACT_ID,
+  DUSD_TOKEN_ID,
+  INCENTIVES_PROXY_ID,
+} from "../../typescript/deploy-ids";
 import { ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT, ORACLE_AGGREGATOR_PRICE_DECIMALS } from "../../typescript/oracle_aggregator/constants";
 import { fetchTokenInfo } from "../../typescript/token/utils";
 import {
@@ -38,6 +45,13 @@ import { Config } from "../types";
 export async function getConfig(_hre: HardhatRuntimeEnvironment): Promise<Config> {
   const dUSDDeployment = await _hre.deployments.getOrNull(DUSD_TOKEN_ID);
   const dSDeployment = await _hre.deployments.getOrNull(DS_TOKEN_ID);
+
+  // Fetch IssuerV2 deployments
+  const _dUSDIssuerV2Deployment = await _hre.deployments.getOrNull(DUSD_ISSUER_V2_CONTRACT_ID);
+  const dSIssuerV2Deployment = await _hre.deployments.getOrNull(DS_ISSUER_V2_CONTRACT_ID);
+
+  // Fetch RedeemerV2 deployments
+  const dSRedeemerV2Deployment = await _hre.deployments.getOrNull(DS_REDEEMER_V2_CONTRACT_ID);
   const wSAddress = "0x039e2fB66102314Ce7b64Ce5Ce3E5183bc94aD38";
   const stSAddress = "0xE5DA20F15420aD15DE0fa650600aFc998bbE3955";
   const frxUSDAddress = "0x80Eede496655FB9047dd39d9f418d5483ED600df";
@@ -216,15 +230,19 @@ export async function getConfig(_hre: HardhatRuntimeEnvironment): Promise<Config
         hardDStablePeg: 10n ** BigInt(ORACLE_AGGREGATOR_PRICE_DECIMALS),
         priceDecimals: ORACLE_AGGREGATOR_PRICE_DECIMALS,
         api3OracleAssets: {
-          plainApi3OracleWrappers: {
-            [wSAddress]: "0xAf9647E1F86406BC38F42FE630E9Fa8CBcd59B19", // S/USD dTRINITY OEV
-            [dSDeployment?.address || ""]: "0xAf9647E1F86406BC38F42FE630E9Fa8CBcd59B19", // S/USD dTRINITY OEV
-          },
+          plainApi3OracleWrappers: {},
           api3OracleWrappersWithThresholding: {},
           compositeApi3OracleWrappersWithThresholding: {},
         },
         redstoneOracleAssets: {
-          plainRedstoneOracleWrappers: {},
+          plainRedstoneOracleWrappers: {
+            [wSAddress]: "0xc76dFb89fF298145b417d221B2c747d84952e01d", // S/USD Chainlink price feed
+            ...(dSDeployment?.address
+              ? {
+                  [dSDeployment.address]: "0xc76dFb89fF298145b417d221B2c747d84952e01d", // S/USD Chainlink price feed
+                }
+              : {}),
+          },
           redstoneOracleWrappersWithThresholding: {
             [frxUSDAddress]: {
               feed: "0xC3346631E0A9720582fB9CAbdBEA22BC2F57741b", // frxUSD/USD Redstone price feed
@@ -269,7 +287,7 @@ export async function getConfig(_hre: HardhatRuntimeEnvironment): Promise<Config
             [stSAddress]: {
               feedAsset: stSAddress,
               feed1: "0x65d0F14f7809CdC4f90c3978c753C4671b6B815b", // stS/S Redstone Fundamental feed
-              feed2: "0xa8a94Da411425634e3Ed6C331a32ab4fd774aa43", // S/USD Redstone price feed
+              feed2: "0xc76dFb89fF298145b417d221B2c747d84952e01d", // S/USD Chainlink price feed
               lowerThresholdInBase1: 0n, // No thresholding
               fixedPriceInBase1: 0n,
               lowerThresholdInBase2: 0n, // Do not threshold S/USD
@@ -435,6 +453,16 @@ export async function getConfig(_hre: HardhatRuntimeEnvironment): Promise<Config
     //   initialOwner: governanceSafeMultisig,
     //   minDepositThreshold: _hre.ethers.parseUnits("250000", 18).toString(), // 250k tokens
     // },
+    nativeMintingGateways: {
+      wSDSGateway: {
+        name: "wS to dS Native Minting Gateway",
+        wNativeToken: wSAddress,
+        dStableIssuer: emptyStringIfUndefined(dSIssuerV2Deployment?.address),
+        dStableRedeemer: emptyStringIfUndefined(dSRedeemerV2Deployment?.address),
+        dStableToken: emptyStringIfUndefined(dSDeployment?.address),
+        initialOwner: governanceSafeMultisig,
+      },
+    },
   };
 }
 

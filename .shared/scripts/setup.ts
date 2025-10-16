@@ -25,6 +25,7 @@ interface PhaseResult {
 interface SetupOptions {
   phases: Set<SetupPhase>;
   force: boolean;
+  includePreCommitHook: boolean;
 }
 
 interface PackageJson {
@@ -92,7 +93,7 @@ function main(): void {
     results.push(applyPackageScripts(context, options.force));
   }
   if (options.phases.has('hooks')) {
-    results.push(applyGitHooks(context, options.force));
+    results.push(applyGitHooks(context, options));
   }
   if (options.phases.has('configs')) {
     results.push(applyConfigs(context, options.force));
@@ -112,6 +113,7 @@ function parseArgs(args: string[]): SetupOptions {
   const phases = new Set<SetupPhase>();
   let force = false;
   let explicitPhaseSelection = false;
+  let includePreCommitHook = false;
 
   for (const arg of args) {
     switch (arg) {
@@ -141,6 +143,12 @@ function parseArgs(args: string[]): SetupOptions {
       case '--force':
         force = true;
         break;
+      case '--include-pre-commit-hook':
+      case '--with-pre-commit-hook':
+      case '--include-pre-commit':
+      case '--with-pre-commit':
+        includePreCommitHook = true;
+        break;
       default:
         logger.warn(`Unknown argument: ${arg}`);
     }
@@ -153,7 +161,7 @@ function parseArgs(args: string[]): SetupOptions {
     phases.add('packageScripts');
   }
 
-  return { phases, force };
+  return { phases, force, includePreCommitHook };
 }
 
 function collectContext(): SetupContext {
@@ -355,7 +363,7 @@ function applyPackageScripts(context: SetupContext, force: boolean): PhaseResult
   };
 }
 
-function applyGitHooks(context: SetupContext, force: boolean): PhaseResult {
+function applyGitHooks(context: SetupContext, options: SetupOptions): PhaseResult {
   const gitHooksDir = context.gitHooksDir;
   if (!gitHooksDir) {
     return {
@@ -366,7 +374,10 @@ function applyGitHooks(context: SetupContext, force: boolean): PhaseResult {
   }
 
   const sharedHooksDir = path.join(context.sharedRoot, 'hooks');
-  const hooks = ['pre-commit', 'pre-push'];
+  const hooks = ['pre-push'];
+  if (options.includePreCommitHook) {
+    hooks.push('pre-commit');
+  }
   const installed: string[] = [];
   const skipped: string[] = [];
   const manual: string[] = [];
@@ -399,7 +410,7 @@ function applyGitHooks(context: SetupContext, force: boolean): PhaseResult {
       continue;
     }
 
-    if (force) {
+    if (options.force) {
       fs.copyFileSync(sourcePath, targetPath);
       fs.chmodSync(targetPath, 0o755);
       installed.push(`${hook} (overwritten with --force)`);
@@ -409,7 +420,12 @@ function applyGitHooks(context: SetupContext, force: boolean): PhaseResult {
     manual.push(`${hook} (existing hook differs; use --force to overwrite)`);
   }
 
-  return buildPhaseResult('hooks', installed, skipped, manual);
+  const result = buildPhaseResult('hooks', installed, skipped, manual);
+  if (!options.includePreCommitHook) {
+    result.messages.push('Pre-commit hook not installed (rerun with --include-pre-commit-hook to opt in).');
+  }
+
+  return result;
 }
 
 function applyConfigs(context: SetupContext, force: boolean): PhaseResult {

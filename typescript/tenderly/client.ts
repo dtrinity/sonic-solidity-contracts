@@ -10,21 +10,35 @@ export interface TenderlyLogInput {
   readonly value: any;
 }
 
+export interface TenderlyLogRaw {
+  readonly address?: string;
+  readonly data?: string;
+  readonly topics?: string[];
+}
+
 export interface TenderlyLog {
   readonly address?: string;
   readonly name?: string;
   readonly inputs?: TenderlyLogInput[];
-  readonly raw?: {
-    readonly data: string;
-    readonly topics: string[];
-  };
+  readonly raw?: TenderlyLogRaw;
   readonly topics?: string[];
   readonly data?: string;
+}
+
+export interface TenderlyAssetInfo {
+  readonly contractAddress?: string;
+  readonly symbol?: string;
+  readonly decimals?: number;
+}
+
+export interface TenderlyAssetChange {
+  readonly assetInfo?: TenderlyAssetInfo;
 }
 
 export interface TenderlyTraceResult {
   readonly logs?: TenderlyLog[];
   readonly trace?: TenderlyCall[];
+  readonly assetChanges?: TenderlyAssetChange[];
 }
 
 export interface TenderlyCall {
@@ -152,10 +166,14 @@ export function extractTenderlyTransferEvents(traceResult: TenderlyTraceResult):
       const data = log.data ?? log.raw?.data ?? "0x";
 
       try {
-        const parsed: LogDescription = transferIface.parseLog({
+        const parsed = transferIface.parseLog({
           topics,
           data,
-        });
+        }) as LogDescription | null;
+
+        if (!parsed) {
+          continue;
+        }
         transfers.push({
           token: tokenAddress,
           from: (parsed.args[0] as string) ?? "unknown",
