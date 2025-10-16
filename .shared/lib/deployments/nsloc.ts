@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 
-import { globSync } from 'glob';
+import { sync as globSync } from 'glob';
 import { findProjectRoot } from '../utils';
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires

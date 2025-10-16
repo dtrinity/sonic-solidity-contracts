@@ -10,3 +10,7 @@ export * from './slither-installer';
 export * from './roles/scan';
 export * from './roles/safe-manager';
 export * from './roles/types';
+export * from './oracles/prices/types';
+export * from './oracles/prices/config-loader';
+export * from './oracles/prices/runner';
+export * from './oracles/prices/cli';

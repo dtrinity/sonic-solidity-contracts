@@ -271,21 +271,27 @@ Each command performs a guarded dry-run first, printing the planned changes and 
 ### Setting Up Git Hooks
 
 ```bash
-# Install just the shared hooks (skips configs/CI/package scripts)
+# Install the default shared hook (pre-push only; skips configs/CI/package scripts)
 node_modules/.bin/ts-node .shared/scripts/setup.ts --hooks
+
+# Opt into the optional pre-commit hook as well
+node_modules/.bin/ts-node .shared/scripts/setup.ts --hooks --include-pre-commit-hook
 
 # Force overwrite existing hooks
 node_modules/.bin/ts-node .shared/scripts/setup.ts --hooks --force
 ```
 
 The shared pre-commit hook runs the guardrail suite (Prettier, ESLint, Solhint) and checks staged Solidity/tests for
-`console.log` or lingering `.only`. Prettier is skipped by default—set `SHARED_HARDHAT_PRE_COMMIT_PRETTIER=1` to turn it
-on. Contract compilation is opt-in as well (`SHARED_HARDHAT_PRE_COMMIT_COMPILE=1`).
+`console.log` or lingering `.only`. Prettier runs by default—set `SHARED_HARDHAT_PRE_COMMIT_PRETTIER=0` to skip it
+temporarily. Contract compilation is also enabled unless you opt out (`SHARED_HARDHAT_PRE_COMMIT_COMPILE=0`).
 
-The pre-push hook reruns guardrails (Prettier disabled unless `SHARED_HARDHAT_PRE_PUSH_PRETTIER=1`), optionally
-executes tests, and requires Slither only on long-lived branches (`main`, `master`, `develop`). Enable automated test
-runs with `SHARED_HARDHAT_PRE_PUSH_TEST=1` or customize the command via
-`SHARED_HARDHAT_PRE_PUSH_TEST_CMD="yarn test --runInBand"`.
+The pre-push hook reruns guardrails (Prettier enabled by default—set
+`SHARED_HARDHAT_PRE_PUSH_PRETTIER=0` to skip), executes tests by default (opt out with
+`SHARED_HARDHAT_PRE_PUSH_TEST=0`), and requires Slither only on long-lived branches (`main`, `master`, `develop`).
+Customize the test command via `SHARED_HARDHAT_PRE_PUSH_TEST_CMD="yarn test --runInBand"`.
+
+By default only the pre-push hook is installed; re-run the setup command with `--include-pre-commit-hook` whenever you
+want the additional pre-commit automation.
 
 ### Updating Shared Tools
 

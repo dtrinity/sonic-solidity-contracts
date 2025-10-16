@@ -20,6 +20,7 @@
     "sanity:deploy-clean": "ts-node scripts/deployments/clean-deployments.ts",
     "sanity:deploy-addresses": "ts-node scripts/deployments/print-contract-addresses.ts",
     "sanity:oracle-addresses": "ts-node scripts/deployments/print-oracle-sources.ts",
+    "sanity:oracle-prices": "ts-node scripts/oracles/show-prices.ts",
     "metrics:nsloc": "ts-node scripts/deployments/nsloc.ts",
     "guardrails:check": "ts-node scripts/guardrails/check.ts",
     "validate:matrix": "ts-node scripts/guardrails/validate-matrix.ts",
@@ -41,7 +42,8 @@
   "author": "dTrinity",
   "license": "MIT",
   "devDependencies": {
-    "@types/node": "^20.0.0"
+    "@types/node": "^20.0.0",
+    "hardhat-deploy": "^1.0.2"
   },
   "dependencies": {
     "@safe-global/api-kit": "^2.0.0",
@@ -57,7 +59,9 @@
   },
   "peerDependencies": {
     "eslint": "^8.0.0 || ^9.0.0",
+    "ethers": "^6.0.0",
     "hardhat": "^2.0.0",
+    "hardhat-deploy": "^0.12.0 || ^1.0.0",
     "prettier": "^3.0.0",
     "solhint": "^3.0.0 || ^4.0.0"
   },
