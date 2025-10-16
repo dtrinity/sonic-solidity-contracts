@@ -124,12 +124,27 @@ node_modules/.bin/ts-node .shared/scripts/setup.ts --hooks                      
 node_modules/.bin/ts-node .shared/scripts/setup.ts --hooks --include-pre-commit-hook # opt into the pre-commit hook
 ```
 
-The pre-push hook executes the shared guardrail suite with `--fail-fast`, runs Prettier/ESLint/Solhint, and now
-executes `npx hardhat test` by default. Set `SHARED_HARDHAT_PRE_PUSH_PRETTIER=0` or `SHARED_HARDHAT_PRE_PUSH_TEST=0`
-to opt out temporarily, or override the test command with `SHARED_HARDHAT_PRE_PUSH_TEST_CMD="yarn test --runInBand"`.
-Because the hook scripts live inside `.shared`, future updates to the tooling automatically flow into every
-repository. Add `--include-pre-commit-hook` whenever you want the additional staged-file linting and compile guard that
-the shared pre-commit hook provides.
+The pre-push hook executes the shared guardrail suite with `--fail-fast`, runs Prettier/ESLint/Solhint, and
+executes `npx hardhat test` by default. Because the hook scripts live inside `.shared`, future updates to the tooling
+automatically flow into every repository. Add `--include-pre-commit-hook` whenever you want the additional
+staged-file linting and compile guard that the shared pre-commit hook provides.
+
+> **Heads-up:** The default pre-push flow now blocks on Prettier. Please fix formatting before pushing instead of
+> suppressing the guard via `SHARED_HARDHAT_PRE_PUSH_PRETTIER=0`. A quick way to sweep the tree is:
+>
+> ```bash
+> node_modules/.bin/ts-node .shared/scripts/linting/prettier.ts --write
+> ```
+>
+> Only reach for the skip flag when you’re actively landing the formatter fix, and remember to re-enable it afterwards.
+
+**Yarn Berry note:** the shared package expects the `node-modules` linker (`.yarnrc.yml` with `nodeLinker: node-modules`)
+so that Node ambient typings and shared binaries resolve consistently. Switch existing repos with:
+
+```bash
+echo "nodeLinker: node-modules" > .yarnrc.yml
+yarn install --mode=update-lockfile
+```
 
 > Prefer automation over manual flags? When you have access to this repository
 > locally, `bash path/to/scripts/subtree/add.sh --help` prints the non-
@@ -218,6 +233,21 @@ node_modules/.bin/ts-node .shared/scripts/analysis/solhint.ts --quiet --max-warn
 1. **Start clean** – abort if `git status --short` is non-empty. Fix compilation locally so guardrails have a stable baseline.
 2. **Add the subtree** – prefer the wrapper: `bash scripts/subtree/add.sh --repo-url https://github.com/dtrinity/shared-hardhat-tools.git --branch main --prefix .shared`. Pass `--force-remove` only when replacing an existing directory after backing it up.
 3. **Install the package** – `npm install file:./.shared` (or the equivalent `yarn/pnpm` command) so the bundled `ts-node` runtime is available. For Yarn Berry projects, follow immediately with `yarn install --mode=update-lockfile` to capture the new `file:` dependency so later `yarn install --immutable` checks succeed.
+
+### Keeping subtrees fresh
+
+1. Track the commit SHA applied to the repository (add it to the PR body or changelog).
+2. Future updates become `git subtree pull --prefix=.shared https://github.com/dtrinity/shared-hardhat-tools.git <new-sha> --squash`.
+3. Re-run `yarn install --mode=update-lockfile` (Yarn Berry) or the equivalent install command so lockfiles capture the new tree.
+4. Re-run `node_modules/.bin/ts-node .shared/scripts/setup.ts --hooks --force` to make sure the latest hook wiring is present.
+5. Run `node_modules/.bin/ts-node .shared/scripts/linting/prettier.ts --write` followed by `make lint`/`make test` to confirm the repo is still healthy.
+
+### Rollout learnings
+
+- **Prettier enforcement pays off.** Leaving `SHARED_HARDHAT_PRE_PUSH_PRETTIER` at its default forces teams to fix formatting once instead of repeatedly skipping it. Add the formatter sweep to your upgrade PR so reviewers only have to look at one big diff.
+- **Ambient Hardhat/Node typings.** If you hit `TS2307` errors for built-in Node modules after updating the subtree, confirm that `types/ambient-hardhat.d.ts` and `types/node-globals.d.ts` are present and that your Yarn linker is set to `node-modules`.
+- **Berry + subtrees.** Yarn 4 projects should keep `.yarnrc.yml` committed alongside the subtree to avoid accidental PnP installs, otherwise the shared scripts can’t locate ambient type definitions or the bundled `ts-node`.
+- **Document the SHA.** Every shared update should call out the exact commit (`git subtree add/pull --prefix=.shared … <sha>`) in the PR description so future pulls can anchor to the same point.
 4. **Run the setup preflight** – execute `node_modules/.bin/ts-node .shared/scripts/setup.ts --package-scripts` to add baseline npm scripts and surface missing prerequisites. Loop back with `--hooks`, `--configs`, or `--ci` once stakeholders sign off (teams sometimes stage those phases in their second pass, but do not forget them).
 5. **Wire automation** – copy `.shared/ci/shared-guardrails.yml` into `.github/workflows/shared-guardrails.yml`, add a root `prettier.config.cjs` that re-exports `.shared/configs/prettier.config.cjs`, and stage both files with the rest of the integration diff so CI and local tooling stay in sync.
 6. **Take a smoke-test lap** – run `npm run --prefix .shared lint:eslint -- --pattern 'hardhat.config.ts'`, `npm run --prefix .shared sanity:deploy-ids -- --quiet`, and either `npm run guardrails:check -- --skip-prettier --skip-solhint` (if the package script is wired up) or `npm run --prefix .shared guardrails:check -- --skip-prettier --skip-solhint` to confirm the shared tooling works in situ before committing. Drop the skips once formatting lands.

@@ -6,24 +6,15 @@ import { getAddress } from "@ethersproject/address";
 import { SafeConfig } from "./types";
 
 export type ExecutionMode = "direct" | "safe";
-export type DefaultAdminRemovalStrategy = "renounce" | "revoke";
 
 export interface ManifestOwnableDefaults {
   readonly newOwner?: string;
   readonly execution?: ExecutionMode;
 }
 
-export interface ManifestDefaultAdminRemoval {
-  readonly address?: string;
-  readonly strategy?: DefaultAdminRemovalStrategy;
-  readonly execution?: ExecutionMode;
-  readonly enabled?: boolean;
-}
-
 export interface ManifestDefaultAdminDefaults {
   readonly newAdmin?: string;
   readonly grantExecution?: ExecutionMode;
-  readonly remove?: ManifestDefaultAdminRemoval;
 }
 
 export interface ManifestDefaults {
@@ -37,7 +28,6 @@ export interface ManifestOwnableOverrides extends ManifestOwnableDefaults {
 
 export interface ManifestDefaultAdminOverrides extends ManifestDefaultAdminDefaults {
   readonly enabled?: boolean;
-  readonly remove?: ManifestDefaultAdminRemoval;
 }
 
 export interface ManifestContractOverride {
@@ -89,16 +79,9 @@ export interface ResolvedOwnableAction {
   readonly execution: ExecutionMode;
 }
 
-export interface ResolvedDefaultAdminRemoval {
-  readonly address: string;
-  readonly strategy: DefaultAdminRemovalStrategy;
-  readonly execution: ExecutionMode;
-}
-
 export interface ResolvedDefaultAdminAction {
   readonly newAdmin: string;
   readonly grantExecution: ExecutionMode;
-  readonly removal?: ResolvedDefaultAdminRemoval;
 }
 
 export interface ResolvedOwnableOverride {
@@ -196,18 +179,6 @@ function normalizeExecution(mode: ExecutionMode | undefined, fallback: Execution
   }
 
   return mode;
-}
-
-function normalizeStrategy(strategy: DefaultAdminRemovalStrategy | undefined): DefaultAdminRemovalStrategy {
-  if (!strategy) {
-    return "renounce";
-  }
-
-  if (strategy !== "renounce" && strategy !== "revoke") {
-    throw new ManifestValidationError(`Unsupported removal strategy: ${strategy}`);
-  }
-
-  return strategy;
 }
 
 export function loadRoleManifest(manifestPath: string): RoleManifest {
@@ -332,15 +303,26 @@ function resolveManifestDefaults(defaults: ManifestDefaults | undefined, context
   const ownableDefaults = defaults?.ownable;
   const ownableExecution = normalizeExecution(ownableDefaults?.execution, "direct");
   if (ownableExecution !== "direct") {
-    throw new ManifestValidationError(`defaults.ownable.execution must be 'direct'. Safe execution is not supported for Ownable transfers.`);
+    throw new ManifestValidationError(
+      `defaults.ownable.execution must be 'direct'. Safe execution is not supported for Ownable transfers.`,
+    );
   }
 
   const resolvedOwnable: ResolvedOwnableAction = {
-    newOwner: resolveAddress(ownableDefaults?.newOwner ?? context.governance, context, "defaults.ownable.newOwner"),
+    newOwner: resolveAddress(
+      ownableDefaults?.newOwner ?? context.governance,
+      context,
+      "defaults.ownable.newOwner",
+    ),
     execution: ownableExecution,
   };
 
   const defaultAdminDefaults = defaults?.defaultAdmin;
+  if (defaultAdminDefaults && Object.prototype.hasOwnProperty.call(defaultAdminDefaults as Record<string, unknown>, "remove")) {
+    throw new ManifestValidationError(
+      "defaults.defaultAdmin.remove is no longer supported. Use the revoke script generated Safe batch to drop deployer roles.",
+    );
+  }
   const grantExecution = normalizeExecution(defaultAdminDefaults?.grantExecution, "direct");
   if (grantExecution === "safe") {
     throw new ManifestValidationError(
@@ -348,38 +330,13 @@ function resolveManifestDefaults(defaults: ManifestDefaults | undefined, context
     );
   }
 
-  const removalConfig = defaultAdminDefaults?.remove ?? {};
-  const removalEnabled = removalConfig.enabled ?? true;
-
-  let removal: ResolvedDefaultAdminRemoval | undefined;
-  if (removalEnabled) {
-    const strategy = normalizeStrategy(removalConfig.strategy);
-    const defaultRemovalExecution = strategy === "revoke" ? "safe" : "direct";
-    const execution = normalizeExecution(removalConfig.execution, defaultRemovalExecution);
-
-    if (execution === "safe" && strategy !== "revoke") {
-      throw new ManifestValidationError(
-        `defaults.defaultAdmin.remove.execution set to 'safe' requires the 'revoke' strategy.`,
-      );
-    }
-
-    const address = resolveAddress(
-      removalConfig.address ?? context.deployer,
-      context,
-      "defaults.defaultAdmin.remove.address",
-    );
-
-    removal = {
-      address,
-      strategy,
-      execution,
-    };
-  }
-
   const resolvedDefaultAdmin: ResolvedDefaultAdminAction = {
-    newAdmin: resolveAddress(defaultAdminDefaults?.newAdmin ?? context.governance, context, "defaults.defaultAdmin.newAdmin"),
+    newAdmin: resolveAddress(
+      defaultAdminDefaults?.newAdmin ?? context.governance,
+      context,
+      "defaults.defaultAdmin.newAdmin",
+    ),
     grantExecution,
-    removal,
   };
 
   return {
@@ -398,6 +355,12 @@ function resolveOwnableOverride(
 
   if (enabled === false) {
     return { enabled };
+  }
+
+  if (Object.prototype.hasOwnProperty.call(override as Record<string, unknown>, "remove")) {
+    throw new ManifestValidationError(
+      `${label}.defaultAdmin.remove is no longer supported. Use the revoke script generated Safe batch to drop deployer roles.`,
+    );
   }
 
   const execution = normalizeExecution(override.execution, defaults.execution);
@@ -447,44 +410,11 @@ function resolveDefaultAdminOverride(
     `${label}.defaultAdmin.newAdmin`,
   );
 
-  const removalConfig = override.remove ?? {};
-  const defaultRemoval = defaults.removal;
-  const removalEnabled = removalConfig.enabled ?? (override.remove ? true : Boolean(defaultRemoval));
-
-  let removal: ResolvedDefaultAdminRemoval | undefined;
-  if (removalEnabled) {
-    const strategy = normalizeStrategy(removalConfig.strategy ?? defaultRemoval?.strategy);
-    const defaultRemovalExecution = strategy === "revoke" ? "safe" : "direct";
-    const execution = normalizeExecution(
-      removalConfig.execution ?? defaultRemoval?.execution,
-      defaultRemoval?.execution ?? defaultRemovalExecution,
-    );
-
-    if (execution === "safe" && strategy !== "revoke") {
-      throw new ManifestValidationError(
-        `${label}.defaultAdmin.remove.execution set to 'safe' requires the 'revoke' strategy.`,
-      );
-    }
-
-    const address = resolveAddress(
-      removalConfig.address ?? defaultRemoval?.address ?? context.deployer,
-      context,
-      `${label}.defaultAdmin.remove.address`,
-    );
-
-    removal = {
-      address,
-      strategy,
-      execution,
-    };
-  }
-
   return {
     enabled,
     action: {
       newAdmin,
       grantExecution,
-      removal,
     },
   };
 }

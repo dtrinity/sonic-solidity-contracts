@@ -63,58 +63,64 @@ async function main(): Promise<void> {
       logger: (m: string) => logger.info(m),
     });
 
-    logger.info(`\nRoles contracts: ${result.rolesContracts.length}`);
-    for (const c of result.rolesContracts) {
-      logger.info(`- ${c.name} (${c.address})`);
-      if (c.rolesHeldByDeployer.length > 0) {
-        logger.info(`  deployer roles: ${c.rolesHeldByDeployer.map((r) => r.name).join(', ')}`);
-      }
-      if (c.rolesHeldByGovernance.length > 0) {
-        logger.info(`  governance roles: ${c.rolesHeldByGovernance.map((r) => r.name).join(', ')}`);
-      }
-      logger.info(`  governanceHasDefaultAdmin: ${c.governanceHasDefaultAdmin}`);
-    }
-
-    logger.info(`\nOwnable contracts: ${result.ownableContracts.length}`);
-    for (const c of result.ownableContracts) {
-      logger.info(
-        `- ${c.name} (${c.address}) owner=${c.owner} deployerIsOwner=${c.deployerIsOwner} governanceIsOwner=${c.governanceIsOwner}`,
-      );
-    }
+    const { stats } = result;
+    const durationSeconds = (stats.durationMs / 1000).toFixed(2);
+    logger.info(
+      `\nCompleted scan in ${durationSeconds}s :: deployments=${stats.deploymentsEvaluated}, rolesContracts=${stats.rolesContractsEvaluated}, ownableContracts=${stats.ownableContractsEvaluated}`,
+    );
+    logger.info(
+      `Multicall batches=${stats.multicall.batchesExecuted}, requests=${stats.multicall.requestsAttempted}, fallbacks=${stats.multicall.fallbacks}, supported=${stats.multicall.supported}`,
+    );
+    logger.info(
+      `Direct calls roleHashes=${stats.directCalls.roleConstants}, hasRole=${stats.directCalls.hasRole}, owner=${stats.directCalls.owner}`,
+    );
 
     const exposureRoles = result.rolesContracts.filter((c) => c.rolesHeldByDeployer.length > 0);
+    const governanceMissingAdmin = result.rolesContracts.filter(
+      (c) => c.defaultAdminRoleHash && !c.governanceHasDefaultAdmin,
+    );
     const exposureOwnable = result.ownableContracts.filter((c) => c.deployerIsOwner);
     const governanceOwnableMismatches = result.ownableContracts.filter((c) => !c.governanceIsOwner);
 
-    logger.info('\n--- Deployer Exposure Summary ---');
-    if (exposureRoles.length > 0) {
-      logger.info(`Contracts with roles held by deployer: ${exposureRoles.length}`);
-      for (const c of exposureRoles) {
-        logger.info(`- ${c.name} (${c.address})`);
-        for (const role of c.rolesHeldByDeployer) {
-          logger.info(`  - ${role.name} (hash: ${role.hash})`);
-        }
-      }
+    logger.info('\nAccessControl exposures (deployer-held roles):');
+    if (exposureRoles.length === 0) {
+      logger.success('- None');
     } else {
-      logger.success('Deployer holds no AccessControl roles.');
+      exposureRoles.forEach((contract, index) => {
+        const deployerRoles = contract.rolesHeldByDeployer.map((role) => role.name).join(', ');
+        logger.info(
+          `- [${index + 1}/${exposureRoles.length}] ${contract.name} (${contract.address}) deployerRoles=${deployerRoles}`,
+        );
+      });
     }
 
-    if (exposureOwnable.length > 0) {
-      logger.info(`\nOwnable contracts owned by deployer: ${exposureOwnable.length}`);
-      for (const c of exposureOwnable) {
-        logger.info(`- ${c.name} (${c.address})`);
-      }
+    logger.info('\nGovernance default admin coverage:');
+    if (governanceMissingAdmin.length === 0) {
+      logger.success('- Governance already holds DEFAULT_ADMIN_ROLE everywhere.');
     } else {
-      logger.success('\nDeployer owns no Ownable contracts.');
+      governanceMissingAdmin.forEach((contract, index) => {
+        logger.warn(`- [${index + 1}/${governanceMissingAdmin.length}] ${contract.name} (${contract.address})`);
+      });
     }
 
-    if (governanceOwnableMismatches.length > 0) {
-      logger.warn(`\nOwnable contracts NOT owned by governance multisig: ${governanceOwnableMismatches.length}`);
-      for (const c of governanceOwnableMismatches) {
-        logger.warn(`- ${c.name} (${c.address}) owner=${c.owner}`);
-      }
+    logger.info('\nOwnable exposures:');
+    if (exposureOwnable.length === 0) {
+      logger.success('- Deployer does not own any Ownable contracts.');
     } else {
-      logger.success('\nAll Ownable contracts are governed by the multisig.');
+      exposureOwnable.forEach((contract, index) => {
+        logger.info(`- [${index + 1}/${exposureOwnable.length}] ${contract.name} (${contract.address})`);
+      });
+    }
+
+    logger.info('\nOwnable contracts not yet under governance:');
+    if (governanceOwnableMismatches.length === 0) {
+      logger.success('- All Ownable contracts are governed by the multisig.');
+    } else {
+      governanceOwnableMismatches.forEach((contract, index) => {
+        logger.warn(
+          `- [${index + 1}/${governanceOwnableMismatches.length}] ${contract.name} (${contract.address}) owner=${contract.owner}`,
+        );
+      });
     }
 
     let driftIssues: DriftIssue[] = [];
@@ -161,6 +167,7 @@ async function main(): Promise<void> {
           rolesContracts: result.rolesContracts.length,
           ownableContracts: result.ownableContracts.length,
         },
+        stats,
         exposures: {
           ownable: exposureOwnable.map((c) => ({
             deployment: c.deploymentName,
@@ -254,11 +261,7 @@ function findDefaultAdminDrift({
     const plannedAction = plannedDefaultAdmin.get(exposure.deploymentName);
 
     if (plannedAction) {
-      if (!plannedAction.removal) {
-        // Manifest explicitly keeps deployer as admin; no drift.
-        continue;
-      }
-      // Removal planned – coverage exists.
+      // Manifest plans to grant governance default admin; coverage exists.
       continue;
     }
 
