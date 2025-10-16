@@ -75,5 +75,6 @@
   "dLend:OdosAdaptersV2": 1756969400,
   "ChainlinkDecimalUpscaler_sfrxUSD": 1760410288,
   "update-s-chainlink-feeds": 1760413048,
-  "switch-s-chainlink-oracles": 1760447120
+  "switch-s-chainlink-oracles": 1760447120,
+  "deploy_native_minting_gateways": 1758848853
 }

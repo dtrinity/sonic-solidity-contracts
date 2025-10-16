@@ -2,10 +2,14 @@ import hre, { deployments } from "hardhat";
 
 import {
   DS_AMO_MANAGER_ID,
+  DS_AMO_MANAGER_V2_ID,
+  DS_AMO_DEBT_TOKEN_ID,
   DS_COLLATERAL_VAULT_CONTRACT_ID,
   DS_ISSUER_V2_CONTRACT_ID,
   DS_REDEEMER_CONTRACT_ID,
   DUSD_AMO_MANAGER_ID,
+  DUSD_AMO_MANAGER_V2_ID,
+  DUSD_AMO_DEBT_TOKEN_ID,
   DUSD_COLLATERAL_VAULT_CONTRACT_ID,
   DUSD_ISSUER_V2_CONTRACT_ID,
   DUSD_REDEEMER_CONTRACT_ID,
@@ -20,6 +24,8 @@ export interface DStableFixtureConfig {
   redeemerContractId: string;
   collateralVaultContractId: string;
   amoManagerId: string;
+  amoManagerV2Id?: string;
+  amoDebtTokenId?: string;
   oracleAggregatorId: string;
   peggedCollaterals: string[];
   yieldBearingCollaterals: string[];
@@ -58,6 +64,18 @@ export const createDStableAmoFixture = (config: DStableFixtureConfig) => {
   });
 };
 
+// Create an AMO V2 fixture factory that includes AMO debt system
+export const createDStableAmoV2Fixture = (config: DStableFixtureConfig) => {
+  return deployments.createFixture(async ({ deployments }) => {
+    // Start with the base dStable fixture
+    const standaloneMinimalFixture = createDStableFixture(config);
+    await standaloneMinimalFixture(deployments);
+
+    // Deploy the AMO V2 debt system with proper oracle setup
+    await deployments.fixture(["amo-v2"]);
+  });
+};
+
 // Predefined configurations
 export const DUSD_CONFIG: DStableFixtureConfig = {
   symbol: "dUSD",
@@ -65,6 +83,8 @@ export const DUSD_CONFIG: DStableFixtureConfig = {
   redeemerContractId: DUSD_REDEEMER_CONTRACT_ID,
   collateralVaultContractId: DUSD_COLLATERAL_VAULT_CONTRACT_ID,
   amoManagerId: DUSD_AMO_MANAGER_ID,
+  amoManagerV2Id: DUSD_AMO_MANAGER_V2_ID,
+  amoDebtTokenId: DUSD_AMO_DEBT_TOKEN_ID,
   oracleAggregatorId: USD_ORACLE_AGGREGATOR_ID,
   peggedCollaterals: ["frxUSD", "USDC", "USDS"], // USDC is interesting due to 6 decimals
   yieldBearingCollaterals: ["sfrxUSD", "sUSDS"],
@@ -76,6 +96,8 @@ export const DS_CONFIG: DStableFixtureConfig = {
   redeemerContractId: DS_REDEEMER_CONTRACT_ID,
   collateralVaultContractId: DS_COLLATERAL_VAULT_CONTRACT_ID,
   amoManagerId: DS_AMO_MANAGER_ID,
+  amoManagerV2Id: DS_AMO_MANAGER_V2_ID,
+  amoDebtTokenId: DS_AMO_DEBT_TOKEN_ID,
   oracleAggregatorId: S_ORACLE_AGGREGATOR_ID,
   peggedCollaterals: ["wS"],
   yieldBearingCollaterals: ["wOS", "stS"],
