@@ -30,6 +30,7 @@ import { BasisPointConstants } from "contracts/common/BasisPointConstants.sol";
 import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
 import { SharedLogic } from "./helper/SharedLogic.sol";
 import { Compare } from "contracts/common/Compare.sol";
+import { Pausable } from "@openzeppelin/contracts/utils/Pausable.sol";
 
 /**
  * @title DLoopDepositorBase
@@ -46,7 +47,8 @@ abstract contract DLoopDepositorBase is
     Ownable,
     ReentrancyGuard,
     SwappableVault,
-    RescuableVault
+    RescuableVault,
+    Pausable
 {
     using SafeERC20 for ERC20;
 
@@ -118,6 +120,22 @@ abstract contract DLoopDepositorBase is
     function isRestrictedRescueToken(address) public view virtual override returns (bool) {
         // No restricted rescue tokens
         return false;
+    }
+
+    /** Pausable Functions */
+
+    /**
+     * @dev Pauses the contract (exposes the internal pause function of Pausable)
+     */
+    function pause() public onlyOwner {
+        _pause();
+    }
+
+    /**
+     * @dev Unpauses the contract (exposes the internal unpause function of Pausable)
+     */
+    function unpause() public onlyOwner {
+        _unpause();
     }
 
     /* Deposit */

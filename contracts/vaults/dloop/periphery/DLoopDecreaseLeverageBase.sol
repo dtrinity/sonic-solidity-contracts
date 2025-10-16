@@ -28,6 +28,7 @@ import { SwappableVault } from "contracts/common/SwappableVault.sol";
 import { RescuableVault } from "../shared/RescuableVault.sol";
 import { BasisPointConstants } from "contracts/common/BasisPointConstants.sol";
 import { SharedLogic } from "./helper/SharedLogic.sol";
+import { Pausable } from "@openzeppelin/contracts/utils/Pausable.sol";
 
 /**
  * @title DLoopDecreaseLeverageBase
@@ -43,7 +44,8 @@ abstract contract DLoopDecreaseLeverageBase is
     Ownable,
     ReentrancyGuard,
     SwappableVault,
-    RescuableVault
+    RescuableVault,
+    Pausable
 {
     using SafeERC20 for ERC20;
 
@@ -114,6 +116,22 @@ abstract contract DLoopDecreaseLeverageBase is
     function isRestrictedRescueToken(address) public view virtual override returns (bool) {
         // No restricted rescue tokens
         return false;
+    }
+
+    /** Pausable Functions */
+
+    /**
+     * @dev Pauses the contract (exposes the internal pause function of Pausable)
+     */
+    function pause() public onlyOwner {
+        _pause();
+    }
+
+    /**
+     * @dev Unpauses the contract (exposes the internal unpause function of Pausable)
+     */
+    function unpause() public onlyOwner {
+        _unpause();
     }
 
     /* Decrease Leverage */
