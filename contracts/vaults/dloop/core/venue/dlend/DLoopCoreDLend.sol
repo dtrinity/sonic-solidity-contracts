@@ -116,18 +116,15 @@ contract DLoopCoreDLend is DLoopCoreBase, RewardClaimable {
         )
     {
         // Always use the vault shares as the exchange asset in reward claim logic
-        coreState = CoreState({
-            lendingPoolAddressesProvider: p.lendingPoolAddressesProvider,
-            dLendAssetToClaimFor: p.dLendAssetToClaimFor,
-            targetStaticATokenWrapper: p.targetStaticATokenWrapper,
-            dLendRewardsController: p.rewardsController,
-            collateralReserveData: _getReserveData(address(collateralToken))
-        });
+        coreState.lendingPoolAddressesProvider = p.lendingPoolAddressesProvider;
+        coreState.dLendAssetToClaimFor = p.dLendAssetToClaimFor;
+        coreState.targetStaticATokenWrapper = p.targetStaticATokenWrapper;
+        coreState.dLendRewardsController = p.rewardsController;
+        coreState.collateralReserveData = _getReserveData(address(collateralToken));
 
         if (getLendingOracle().BASE_CURRENCY() != address(0)) {
-            revert("Invalid price oracle base currency");
+           revert("Invalid price oracle base currency");
         }
-
         if (getLendingOracle().BASE_CURRENCY_UNIT() != 10 ** AAVE_PRICE_ORACLE_DECIMALS) {
             revert("Invalid price oracle unit");
         }
