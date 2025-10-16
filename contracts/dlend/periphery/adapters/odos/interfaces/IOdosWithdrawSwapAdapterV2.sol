@@ -31,7 +31,6 @@ interface IOdosWithdrawSwapAdapterV2 is IBaseOdosAdapterV2 {
      * @param oldAssetAmount The amount to withdraw
      * @param newAsset The asset to swap to (can be PT token)
      * @param minAmountToReceive The minimum amount of new asset to receive
-     * @param user The address of user
      * @param swapData The swap data (either regular Odos calldata or encoded PTSwapDataV2)
      * @param allBalanceOffset offset to all balance of the user
      */
@@ -40,7 +39,6 @@ interface IOdosWithdrawSwapAdapterV2 is IBaseOdosAdapterV2 {
         uint256 oldAssetAmount;
         address newAsset;
         uint256 minAmountToReceive;
-        address user;
         bytes swapData;
         uint256 allBalanceOffset;
     }

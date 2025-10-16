@@ -2,11 +2,7 @@ import { expect } from "chai";
 import { network } from "hardhat";
 
 import { getPTMarketInfo, isPT } from "../../typescript/pendle/sdk";
-import {
-  SONIC_CHAIN_ID,
-  SONIC_MAINNET_PT_TOKENS,
-  SONIC_PY_FACTORY,
-} from "./fixture";
+import { SONIC_CHAIN_ID, SONIC_MAINNET_PT_TOKENS, SONIC_PY_FACTORY } from "./fixture";
 
 describe("Pendle SDK Functions", function () {
   // Skip if not on Sonic mainnet
@@ -21,9 +17,7 @@ describe("Pendle SDK Functions", function () {
     it("Should return true for valid PT tokens", async function () {
       console.log(`\n=== Testing isPT with valid PT tokens ===`);
 
-      for (const [tokenName, tokenInfo] of Object.entries(
-        SONIC_MAINNET_PT_TOKENS,
-      )) {
+      for (const [tokenName, tokenInfo] of Object.entries(SONIC_MAINNET_PT_TOKENS)) {
         console.log(`Testing ${tokenName} (${tokenInfo.address})`);
 
         const result = await isPT(tokenInfo.address, SONIC_PY_FACTORY);
@@ -95,12 +89,8 @@ describe("Pendle SDK Functions", function () {
       expect(marketInfo).to.have.property("underlyingAsset");
 
       // Verify the values match our fixture data
-      expect(marketInfo.marketAddress.toLowerCase()).to.equal(
-        ptToken.market.toLowerCase(),
-      );
-      expect(marketInfo.underlyingAsset.toLowerCase()).to.equal(
-        ptToken.underlyingToken.toLowerCase(),
-      );
+      expect(marketInfo.marketAddress.toLowerCase()).to.equal(ptToken.market.toLowerCase());
+      expect(marketInfo.underlyingAsset.toLowerCase()).to.equal(ptToken.underlyingToken.toLowerCase());
     });
 
     it("Should return correct market info for PT-wstkscUSD (active market)", async function () {
@@ -120,35 +110,23 @@ describe("Pendle SDK Functions", function () {
       expect(marketInfo).to.have.property("underlyingAsset");
 
       // Verify the values match our fixture data
-      expect(marketInfo.marketAddress.toLowerCase()).to.equal(
-        ptToken.market.toLowerCase(),
-      );
-      expect(marketInfo.underlyingAsset.toLowerCase()).to.equal(
-        ptToken.underlyingToken.toLowerCase(),
-      );
+      expect(marketInfo.marketAddress.toLowerCase()).to.equal(ptToken.market.toLowerCase());
+      expect(marketInfo.underlyingAsset.toLowerCase()).to.equal(ptToken.underlyingToken.toLowerCase());
     });
 
     it("Should validate all fixture PT tokens have market info", async function () {
       console.log(`\n=== Validating all fixture PT tokens ===`);
 
-      for (const [tokenName, tokenInfo] of Object.entries(
-        SONIC_MAINNET_PT_TOKENS,
-      )) {
+      for (const [tokenName, tokenInfo] of Object.entries(SONIC_MAINNET_PT_TOKENS)) {
         console.log(`\nValidating ${tokenName}:`);
         console.log(`  Address: ${tokenInfo.address}`);
         console.log(`  Expected Market: ${tokenInfo.market}`);
         console.log(`  Expected Underlying: ${tokenInfo.underlyingToken}`);
 
-        const marketInfo = await getPTMarketInfo(
-          tokenInfo.address,
-          SONIC_CHAIN_ID,
-        );
+        const marketInfo = await getPTMarketInfo(tokenInfo.address, SONIC_CHAIN_ID);
 
         // Verify the API data matches our fixture data
-        expect(marketInfo.marketAddress.toLowerCase()).to.equal(
-          tokenInfo.market.toLowerCase(),
-          `Market address mismatch for ${tokenName}`,
-        );
+        expect(marketInfo.marketAddress.toLowerCase()).to.equal(tokenInfo.market.toLowerCase(), `Market address mismatch for ${tokenName}`);
 
         expect(marketInfo.underlyingAsset.toLowerCase()).to.equal(
           tokenInfo.underlyingToken.toLowerCase(),

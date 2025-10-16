@@ -1,0 +1,13 @@
+{
+  "packs": {
+    "essentials": {
+      "version": "1.0.0",
+      "installedAt": "2025-09-09T14:58:09.793Z",
+      "source": {
+        "name": "local",
+        "type": "local",
+        "path": "/Users/dazheng/n/lib/node_modules/z-claude-code/templates"
+      }
+    }
+  }
+}

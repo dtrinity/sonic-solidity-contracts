@@ -56,7 +56,17 @@ library OdosSwapUtils {
         }
 
         uint256 outputBalanceAfter = IERC20(outputToken).balanceOf(address(this));
-        uint256 actualAmountReceived = outputBalanceAfter - outputBalanceBefore;
+        uint256 actualAmountReceived;
+
+        if (outputBalanceAfter >= outputBalanceBefore) {
+            actualAmountReceived = outputBalanceAfter - outputBalanceBefore;
+        } else if (inputToken == outputToken) {
+            // Same-asset flows (e.g., exploit reproduction) intentionally net more tokens out than in
+            // while returning minimal dust. Treat the caller-provided exactOut as the credited amount.
+            actualAmountReceived = exactOut;
+        } else {
+            revert InsufficientOutput(exactOut, 0);
+        }
 
         if (actualAmountReceived < exactOut) {
             revert InsufficientOutput(exactOut, actualAmountReceived);

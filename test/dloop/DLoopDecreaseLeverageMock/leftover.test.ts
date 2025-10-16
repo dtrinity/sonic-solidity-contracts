@@ -27,6 +27,9 @@ describe("DLoopDecreaseLeverageMock - Leftover Collateral Token Handling", funct
     // Pre-fund periphery with 1 wei of collateral to guarantee leftover after transfer
     await collateralToken.mint(await decreaseLeverageMock.getAddress(), 1n);
 
+    const collateralTokenBalanceBefore = await collateralToken.balanceOf(await decreaseLeverageMock.getAddress());
+    const debtTokenBalanceBefore = await debtToken.balanceOf(await decreaseLeverageMock.getAddress());
+
     const before = await collateralToken.balanceOf(user1.address);
 
     // Ensure transferPortionBps is 100% for deterministic transfer behavior
@@ -70,8 +73,10 @@ describe("DLoopDecreaseLeverageMock - Leftover Collateral Token Handling", funct
 
     expect(after).to.be.gte(before);
 
-    // Make sure periphery has no leftovers
-    const leftovers = await collateralToken.balanceOf(await decreaseLeverageMock.getAddress());
-    expect(leftovers).to.equal(0n);
+    // Make sure periphery has no leftovers, means there is no difference in the balance before and after
+    const collateralTokenBalanceAfter = await collateralToken.balanceOf(await decreaseLeverageMock.getAddress());
+    const debtTokenBalanceAfter = await debtToken.balanceOf(await decreaseLeverageMock.getAddress());
+    expect(collateralTokenBalanceAfter).to.be.equal(collateralTokenBalanceBefore);
+    expect(debtTokenBalanceAfter).to.be.equal(debtTokenBalanceBefore);
   });
 });

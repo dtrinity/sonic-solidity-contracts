@@ -20,11 +20,26 @@ pragma solidity ^0.8.20;
 import { BasisPointConstants } from "contracts/common/BasisPointConstants.sol";
 import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
 import { Compare } from "contracts/common/Compare.sol";
+import { WithdrawalFeeMath } from "contracts/common/WithdrawalFeeMath.sol";
 
 /**
  * This library contains the stateless implementation of the DLoopCore logic
  */
 library DLoopCoreLogic {
+    /**
+     * @dev Aggregated inputs for quoting rebalance amounts. Using a struct reduces stack pressure.
+     */
+    struct QuoteRebalanceParams {
+        uint256 totalCollateralBase;
+        uint256 totalDebtBase;
+        uint256 currentLeverageBps;
+        uint256 targetLeverageBps;
+        uint256 subsidyBps;
+        uint256 collateralTokenDecimals;
+        uint256 collateralTokenPriceInBase;
+        uint256 debtTokenDecimals;
+        uint256 debtTokenPriceInBase;
+    }
     error CollateralLessThanDebt(uint256 totalCollateralBase, uint256 totalDebtBase);
     error InvalidLeverage(uint256 leverageBps);
     error TotalCollateralBaseIsZero();
@@ -847,15 +862,10 @@ library DLoopCoreLogic {
         uint256 netAmount,
         uint256 withdrawalFeeBps
     ) internal pure returns (uint256 grossAmount) {
-        if (withdrawalFeeBps > BasisPointConstants.ONE_HUNDRED_PERCENT_BPS) {
+        if (withdrawalFeeBps >= BasisPointConstants.ONE_HUNDRED_PERCENT_BPS) {
             revert InvalidWithdrawalFeeBps(withdrawalFeeBps);
         }
-        return
-            Math.mulDiv(
-                netAmount,
-                BasisPointConstants.ONE_HUNDRED_PERCENT_BPS,
-                BasisPointConstants.ONE_HUNDRED_PERCENT_BPS - withdrawalFeeBps
-            );
+        return WithdrawalFeeMath.grossFromNet(netAmount, withdrawalFeeBps);
     }
 
     /**
@@ -871,11 +881,26 @@ library DLoopCoreLogic {
         if (withdrawalFeeBps > BasisPointConstants.ONE_HUNDRED_PERCENT_BPS) {
             revert InvalidWithdrawalFeeBps(withdrawalFeeBps);
         }
+        return WithdrawalFeeMath.netAfterFee(grossAmount, withdrawalFeeBps);
+    }
+
+    /**
+     * @dev Struct-based overload that forwards to the parameterized implementation. Using a struct reduces stack usage.
+     */
+    function quoteRebalanceAmountToReachTargetLeverage(
+        QuoteRebalanceParams memory p
+    ) public pure returns (uint256 inputTokenAmount, uint256 estimatedOutputTokenAmount, int8 direction) {
         return
-            Math.mulDiv(
-                grossAmount,
-                BasisPointConstants.ONE_HUNDRED_PERCENT_BPS - withdrawalFeeBps,
-                BasisPointConstants.ONE_HUNDRED_PERCENT_BPS
+            quoteRebalanceAmountToReachTargetLeverage(
+                p.totalCollateralBase,
+                p.totalDebtBase,
+                p.currentLeverageBps,
+                p.targetLeverageBps,
+                p.subsidyBps,
+                p.collateralTokenDecimals,
+                p.collateralTokenPriceInBase,
+                p.debtTokenDecimals,
+                p.debtTokenPriceInBase
             );
     }
 }

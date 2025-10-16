@@ -1,10 +1,6 @@
 import { expect } from "chai";
 import { ethers } from "hardhat";
-import {
-  deployOdosV2TestFixture,
-  setupTestEnvironment,
-  OdosV2TestFixture
-} from "./fixtures/setup";
+import { deployOdosV2TestFixture, setupTestEnvironment, OdosV2TestFixture } from "./fixtures/setup";
 
 describe("BaseOdosAdapterV2 - Pure Logic Tests", function () {
   let fixture: OdosV2TestFixture;
@@ -38,8 +34,8 @@ describe("BaseOdosAdapterV2 - Pure Logic Tests", function () {
             await tokenA.getAddress(),
             await tokenB.getAddress(),
             maxAmountIn,
-            exactAmountOut
-          )
+            exactAmountOut,
+          ),
         ).to.not.be.reverted;
       });
 
@@ -56,23 +52,37 @@ describe("BaseOdosAdapterV2 - Pure Logic Tests", function () {
             await tokenA.getAddress(),
             await tokenB.getAddress(),
             maxAmountIn,
-            exactAmountOut
-          )
+            exactAmountOut,
+          ),
         ).to.be.revertedWithCustomError(baseAdapterHarness, "OraclePriceDeviationExceeded");
       });
 
-      it("should skip validation for same token swaps", async function () {
-        const { baseAdapterHarness, tokenA } = fixture;
+      it("should validate same token swaps (no special handling)", async function () {
+        const { baseAdapterHarness, priceOracle, tokenA } = fixture;
 
-        // Same token - should skip validation even with extreme values
+        // Set oracle price for same-token swap
+        await priceOracle.setPrice(await tokenA.getAddress(), ethers.parseUnits("100", 8));
+
+        // Same token swap with reasonable values should pass
+        const amount = ethers.parseEther("100");
         await expect(
           baseAdapterHarness.validateOraclePriceExactOutput(
             await tokenA.getAddress(),
             await tokenA.getAddress(), // same token
-            ethers.parseEther("1000000"), // extreme value
-            ethers.parseEther("1")
-          )
+            amount,
+            amount, // 1:1 ratio
+          ),
         ).to.not.be.reverted;
+
+        // Same token swap with excessive deviation should still fail
+        await expect(
+          baseAdapterHarness.validateOraclePriceExactOutput(
+            await tokenA.getAddress(),
+            await tokenA.getAddress(),
+            ethers.parseEther("1000000"), // extreme maxIn
+            ethers.parseEther("1"), // tiny output
+          ),
+        ).to.be.revertedWithCustomError(baseAdapterHarness, "OraclePriceDeviationExceeded");
       });
 
       it("should prevent swaps when oracle price is zero", async function () {
@@ -82,15 +92,15 @@ describe("BaseOdosAdapterV2 - Pure Logic Tests", function () {
         await priceOracle.setPrice(await tokenA.getAddress(), 0);
         await priceOracle.setPrice(await tokenB.getAddress(), ethers.parseUnits("100", 8));
 
-        // Should revert to prevent unsafe swaps when oracle is not configured
+        // Should revert to prevent unsafe swaps when oracle is not configured with clear error
         await expect(
           baseAdapterHarness.validateOraclePriceExactOutput(
             await tokenA.getAddress(),
             await tokenB.getAddress(),
             ethers.parseEther("10"),
-            ethers.parseEther("1")
-          )
-        ).to.be.revertedWithCustomError(baseAdapterHarness, "OraclePriceDeviationExceeded");
+            ethers.parseEther("1"),
+          ),
+        ).to.be.revertedWithCustomError(baseAdapterHarness, "ZeroOraclePrice");
       });
 
       it("should handle different token decimals correctly", async function () {
@@ -115,8 +125,8 @@ describe("BaseOdosAdapterV2 - Pure Logic Tests", function () {
             await token6Decimals.getAddress(),
             await token18Decimals.getAddress(),
             maxAmountIn,
-            exactAmountOut
-          )
+            exactAmountOut,
+          ),
         ).to.not.be.reverted;
       });
 
@@ -135,8 +145,8 @@ describe("BaseOdosAdapterV2 - Pure Logic Tests", function () {
             await tokenA.getAddress(),
             await tokenB.getAddress(),
             maxAmountIn,
-            exactAmountOut
-          )
+            exactAmountOut,
+          ),
         ).to.not.be.reverted;
       });
 
@@ -153,16 +163,11 @@ describe("BaseOdosAdapterV2 - Pure Logic Tests", function () {
             await tokenA.getAddress(),
             await tokenB.getAddress(),
             maxAmountIn,
-            exactAmountOut
-          )
-        ).to.be.revertedWithCustomError(baseAdapterHarness, "OraclePriceDeviationExceeded")
-          .withArgs(
-            await tokenA.getAddress(),
-            await tokenB.getAddress(),
-            expectedAmountIn,
-            maxAmountIn,
-            expectedDeviationBps
-          );
+            exactAmountOut,
+          ),
+        )
+          .to.be.revertedWithCustomError(baseAdapterHarness, "OraclePriceDeviationExceeded")
+          .withArgs(await tokenA.getAddress(), await tokenB.getAddress(), expectedAmountIn, maxAmountIn, expectedDeviationBps);
       });
     });
   });
@@ -172,10 +177,7 @@ describe("BaseOdosAdapterV2 - Pure Logic Tests", function () {
       const { pendleLogicHarness, tokenA, tokenB } = fixture;
 
       // Test that determineSwapType correctly identifies regular tokens
-      const swapType = await pendleLogicHarness.determineSwapType(
-        await tokenA.getAddress(),
-        await tokenB.getAddress()
-      );
+      const swapType = await pendleLogicHarness.determineSwapType(await tokenA.getAddress(), await tokenB.getAddress());
 
       expect(swapType).to.equal(0); // SwapType.REGULAR_SWAP
     });
@@ -184,10 +186,7 @@ describe("BaseOdosAdapterV2 - Pure Logic Tests", function () {
       const { pendleLogicHarness, ptTokenA, tokenB } = fixture;
 
       // Test that determineSwapType correctly identifies PT tokens
-      const swapType = await pendleLogicHarness.determineSwapType(
-        await ptTokenA.getAddress(),
-        await tokenB.getAddress()
-      );
+      const swapType = await pendleLogicHarness.determineSwapType(await ptTokenA.getAddress(), await tokenB.getAddress());
 
       expect(swapType).to.equal(1); // SwapType.PT_TO_REGULAR
     });
@@ -228,8 +227,8 @@ describe("BaseOdosAdapterV2 - Pure Logic Tests", function () {
           await tokenA.getAddress(),
           await tokenB.getAddress(),
           extremeAmount, // extreme max input
-          normalOutput
-        )
+          normalOutput,
+        ),
       ).to.be.revertedWithCustomError(baseAdapterHarness, "OraclePriceDeviationExceeded");
     });
   });
@@ -253,15 +252,7 @@ describe("BaseOdosAdapterV2 - Pure Logic Tests", function () {
       expect(isBalanceSufficient).to.be.false; // Should detect insufficient balance
 
       // Note: Oracle validation may trigger first in actual execution
-      await expect(
-        baseAdapterHarness.executeAdaptiveBuy(
-          tokenA,
-          tokenB,
-          excessiveAmount,
-          outputAmount,
-          "0x"
-        )
-      ).to.be.reverted; // Should revert (either oracle or balance error)
+      await expect(baseAdapterHarness.executeAdaptiveBuy(tokenA, tokenB, excessiveAmount, outputAmount, "0x")).to.be.reverted; // Should revert (either oracle or balance error)
     });
 
     it("should validate balance calculations don't underflow", async function () {
@@ -302,11 +293,11 @@ describe("BaseOdosAdapterV2 - Pure Logic Tests", function () {
           tokenB,
           swapAmount,
           minReceived,
-          "0x" // Empty swap data to trigger validation logic
+          "0x", // Empty swap data to trigger validation logic
         );
       } catch (error: any) {
         // Expect this to fail during validation, not during actual swap
-        expect(error.message).to.be.a('string');
+        expect(error.message).to.be.a("string");
       }
     });
 
@@ -314,10 +305,7 @@ describe("BaseOdosAdapterV2 - Pure Logic Tests", function () {
       const { pendleLogicHarness, tokenA, tokenB } = fixture;
 
       // Test swap type determination for validation
-      const swapType = await pendleLogicHarness.determineSwapType(
-        await tokenA.getAddress(),
-        await tokenB.getAddress()
-      );
+      const swapType = await pendleLogicHarness.determineSwapType(await tokenA.getAddress(), await tokenB.getAddress());
 
       // For regular swaps, should route to REGULAR_SWAP (0)
       expect(swapType).to.equal(0);
@@ -341,16 +329,10 @@ describe("BaseOdosAdapterV2 - Pure Logic Tests", function () {
       const { pendleLogicHarness, tokenA, ptTokenA } = fixture;
 
       // Test mixed token types
-      const regularToRegular = await pendleLogicHarness.determineSwapType(
-        await tokenA.getAddress(),
-        await tokenA.getAddress()
-      );
+      const regularToRegular = await pendleLogicHarness.determineSwapType(await tokenA.getAddress(), await tokenA.getAddress());
       expect(regularToRegular).to.equal(0); // REGULAR_SWAP
 
-      const regularToPT = await pendleLogicHarness.determineSwapType(
-        await tokenA.getAddress(),
-        await ptTokenA.getAddress()
-      );
+      const regularToPT = await pendleLogicHarness.determineSwapType(await tokenA.getAddress(), await ptTokenA.getAddress());
       expect(regularToPT).to.equal(2); // REGULAR_TO_PT
     });
 
@@ -403,15 +385,15 @@ describe("BaseOdosAdapterV2 - Pure Logic Tests", function () {
       await priceOracle.setPrice(await tokenA.getAddress(), 0); // Zero price
       await priceOracle.setPrice(await tokenB.getAddress(), ethers.parseUnits("100", 8));
 
-      // Should revert for any swap when oracle prices are zero
+      // Should revert for any swap when oracle prices are zero with clear error
       await expect(
         baseAdapterHarness.validateOraclePriceExactOutput(
           await tokenA.getAddress(),
           await tokenB.getAddress(),
           ethers.parseEther("10"), // any input amount
-          ethers.parseEther("1") // any output amount
-        )
-      ).to.be.revertedWithCustomError(baseAdapterHarness, "OraclePriceDeviationExceeded");
+          ethers.parseEther("1"), // any output amount
+        ),
+      ).to.be.revertedWithCustomError(baseAdapterHarness, "ZeroOraclePrice");
     });
 
     it("✅ should prevent swaps when either token has zero price", async function () {
@@ -426,9 +408,9 @@ describe("BaseOdosAdapterV2 - Pure Logic Tests", function () {
           await tokenA.getAddress(),
           await tokenB.getAddress(),
           ethers.parseEther("10"),
-          ethers.parseEther("1")
-        )
-      ).to.be.revertedWithCustomError(baseAdapterHarness, "OraclePriceDeviationExceeded");
+          ethers.parseEther("1"),
+        ),
+      ).to.be.revertedWithCustomError(baseAdapterHarness, "ZeroOraclePrice");
 
       // Test tokenOut zero price
       await priceOracle.setPrice(await tokenA.getAddress(), ethers.parseUnits("100", 8));
@@ -439,9 +421,9 @@ describe("BaseOdosAdapterV2 - Pure Logic Tests", function () {
           await tokenA.getAddress(),
           await tokenB.getAddress(),
           ethers.parseEther("10"),
-          ethers.parseEther("1")
-        )
-      ).to.be.revertedWithCustomError(baseAdapterHarness, "OraclePriceDeviationExceeded");
+          ethers.parseEther("1"),
+        ),
+      ).to.be.revertedWithCustomError(baseAdapterHarness, "ZeroOraclePrice");
     });
 
     it("✅ should proceed with validation when both prices are non-zero", async function () {
@@ -457,8 +439,8 @@ describe("BaseOdosAdapterV2 - Pure Logic Tests", function () {
           await tokenA.getAddress(),
           await tokenB.getAddress(),
           ethers.parseEther("1.04"), // 4% deviation - should pass
-          ethers.parseEther("1")
-        )
+          ethers.parseEther("1"),
+        ),
       ).to.not.be.reverted; // Should pass normal validation
     });
   });
