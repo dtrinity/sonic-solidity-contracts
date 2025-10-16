@@ -10,13 +10,7 @@
     },
     "defaultAdmin": {
       "newAdmin": "{{governance}}",
-      "grantExecution": "direct",
-      "remove": {
-        "address": "{{deployer}}",
-        "strategy": "renounce",
-        "execution": "direct",
-        "enabled": true
-      }
+      "grantExecution": "direct"
     }
   },
   "autoInclude": {

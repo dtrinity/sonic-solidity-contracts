@@ -216,12 +216,5 @@ export function cloneDefaultAdminAction(action: ResolvedDefaultAdminAction): Res
   return {
     newAdmin: action.newAdmin,
     grantExecution: action.grantExecution,
-    removal: action.removal
-      ? {
-          address: action.removal.address,
-          strategy: action.removal.strategy,
-          execution: action.removal.execution,
-        }
-      : undefined,
   };
 }
