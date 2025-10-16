@@ -86,7 +86,13 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       const gatewayDeployment = await deploy(gatewayId, {
         from: deployer,
         contract: "NativeMintingGateway",
-        args: [gatewayConfig.wNativeToken, gatewayConfig.dStableIssuer, gatewayConfig.dStableRedeemer, gatewayConfig.dStableToken, gatewayConfig.initialOwner],
+        args: [
+          gatewayConfig.wNativeToken,
+          gatewayConfig.dStableIssuer,
+          gatewayConfig.dStableRedeemer,
+          gatewayConfig.dStableToken,
+          gatewayConfig.initialOwner,
+        ],
         log: true,
         autoMine: true,
         skipIfAlreadyDeployed: true,

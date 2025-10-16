@@ -199,14 +199,8 @@ describe("NativeMintingGateway (Integration)", () => {
 
         // Gateway should not hold any tokens after successful operation
         expect(gatewayNativeBalanceAfter).to.equal(gatewayNativeBalanceBefore, "Gateway should not hold native tokens");
-        expect(gatewayWNativeBalanceAfter).to.equal(
-          gatewayWNativeBalanceBefore,
-          "Gateway should not hold wrapped tokens",
-        );
-        expect(gatewayDStableBalanceAfter).to.equal(
-          gatewayDStableBalanceBefore,
-          "Gateway should not hold dStable tokens",
-        );
+        expect(gatewayWNativeBalanceAfter).to.equal(gatewayWNativeBalanceBefore, "Gateway should not hold wrapped tokens");
+        expect(gatewayDStableBalanceAfter).to.equal(gatewayDStableBalanceBefore, "Gateway should not hold dStable tokens");
 
         // Downstream contracts emit their own events; gateway does not emit
 
@@ -298,14 +292,8 @@ describe("NativeMintingGateway (Integration)", () => {
 
         // Gateway should not hold any tokens after successful operation
         expect(gatewayNativeBalanceAfter).to.equal(gatewayNativeBalanceBefore, "Gateway should not hold native tokens");
-        expect(gatewayWNativeBalanceAfter).to.equal(
-          gatewayWNativeBalanceBefore,
-          "Gateway should not hold wrapped tokens",
-        );
-        expect(gatewayDStableBalanceAfter).to.equal(
-          gatewayDStableBalanceBefore,
-          "Gateway should not hold dStable tokens",
-        );
+        expect(gatewayWNativeBalanceAfter).to.equal(gatewayWNativeBalanceBefore, "Gateway should not hold wrapped tokens");
+        expect(gatewayDStableBalanceAfter).to.equal(gatewayDStableBalanceBefore, "Gateway should not hold dStable tokens");
 
         // Verify wrapped token withdrawal event
         await expect(tx).to.emit(wNativeContract, "Withdrawal").withArgs(gatewayAddress, nativeReceived);
@@ -422,10 +410,7 @@ describe("NativeMintingGateway (Integration)", () => {
 
     describe("Redemption Validation", () => {
       it("Should revert if zero dStable amount is provided", async () => {
-        await expect(gateway.connect(user1).redeemToNative(0, minNativeLow)).to.be.revertedWithCustomError(
-          gateway,
-          "ZeroDStableAmount",
-        );
+        await expect(gateway.connect(user1).redeemToNative(0, minNativeLow)).to.be.revertedWithCustomError(gateway, "ZeroDStableAmount");
       });
 
       it("Should revert if minNativeAmount is zero", async () => {
@@ -510,9 +495,10 @@ describe("NativeMintingGateway (Integration)", () => {
       const governanceSigner = await ethers.getSigner(user1Address);
       await issuerContract.connect(governanceSigner).setAssetMintingPause(await wNativeContract.getAddress(), true);
 
-      await expect(
-        gateway.connect(user1).depositAndMint(minDStableLow, { value: depositAmount }),
-      ).to.be.revertedWithCustomError(gateway, "IssuerOperationFailed");
+      await expect(gateway.connect(user1).depositAndMint(minDStableLow, { value: depositAmount })).to.be.revertedWithCustomError(
+        gateway,
+        "IssuerOperationFailed",
+      );
     });
 
     describe("Redemption Failures", () => {
@@ -545,9 +531,10 @@ describe("NativeMintingGateway (Integration)", () => {
         const governanceSigner = await ethers.getSigner(user1Address);
         await redeemerContract.connect(governanceSigner).setAssetRedemptionPause(await wNativeContract.getAddress(), true);
 
-        await expect(
-          gateway.connect(user1).redeemToNative(redeemAmount, minNativeLow),
-        ).to.be.revertedWithCustomError(gateway, "RedeemerOperationFailed");
+        await expect(gateway.connect(user1).redeemToNative(redeemAmount, minNativeLow)).to.be.revertedWithCustomError(
+          gateway,
+          "RedeemerOperationFailed",
+        );
 
         // Clean up - unpause for other tests
         await redeemerContract.connect(governanceSigner).setAssetRedemptionPause(await wNativeContract.getAddress(), false);
@@ -772,10 +759,7 @@ describe("NativeMintingGateway (Integration)", () => {
   describe("Security Features", () => {
     // Removed: maximum deposit limit test
     it("Should prevent unauthorized access to rescue functions", async () => {
-      await expect(gateway.connect(user2).rescueNative()).to.be.revertedWithCustomError(
-        gateway,
-        "OwnableUnauthorizedAccount",
-      );
+      await expect(gateway.connect(user2).rescueNative()).to.be.revertedWithCustomError(gateway, "OwnableUnauthorizedAccount");
 
       await expect(gateway.connect(user2).rescueTokens(wNativeContract.getAddress())).to.be.revertedWithCustomError(
         gateway,
@@ -812,10 +796,7 @@ describe("NativeMintingGateway (Integration)", () => {
 
     it("Should have proper oracle configuration", async () => {
       const issuerOracleAddress = await issuerContract.oracle();
-      const oracle = await hre.ethers.getContractAt(
-        "contracts/common/IAaveOracle.sol:IPriceOracleGetter",
-        issuerOracleAddress,
-      );
+      const oracle = await hre.ethers.getContractAt("contracts/common/IAaveOracle.sol:IPriceOracleGetter", issuerOracleAddress);
 
       // Verify oracle can provide price for wS
       const wNativePrice = await oracle.getAssetPrice(await wNativeContract.getAddress());
@@ -841,10 +822,7 @@ describe("NativeMintingGateway (Integration)", () => {
       );
 
       // ExceedsMaxDeposit (when user has sufficient balance)
-      await hre.network.provider.send("hardhat_setBalance", [
-        user1Address,
-        `0x${(parseEther("1000000") * 2n).toString(16)}`,
-      ]);
+      await hre.network.provider.send("hardhat_setBalance", [user1Address, `0x${(parseEther("1000000") * 2n).toString(16)}`]);
 
       // Removed: ExceedsMaxDeposit check
     });

@@ -119,7 +119,13 @@ contract NativeMintingGateway is ReentrancyGuard, Ownable {
      * @dev All addresses are stored as immutable for gas efficiency and security.
      *      Constructor validates that no address is zero to prevent deployment errors.
      */
-    constructor(address _wNativeToken, address _dStableIssuer, address _dStableRedeemer, address _dStableToken, address _owner) Ownable(_owner) {
+    constructor(
+        address _wNativeToken,
+        address _dStableIssuer,
+        address _dStableRedeemer,
+        address _dStableToken,
+        address _owner
+    ) Ownable(_owner) {
         if (_wNativeToken == address(0)) revert ZeroAddress();
         if (_dStableIssuer == address(0)) revert ZeroAddress();
         if (_dStableRedeemer == address(0)) revert ZeroAddress();
