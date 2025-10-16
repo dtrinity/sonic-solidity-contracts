@@ -19,24 +19,14 @@ pragma solidity ^0.8.20;
 
 import { ReentrancyGuard } from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
-import { ERC20, SafeERC20 } from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
+import { Rescuable } from "contracts/common/Rescuable.sol";
 
 /**
  * @title RescuableVault
  * @dev A helper contract for rescuing tokens accidentally sent to the contract
- *      - The derived contract must implement the getRestrictedRescueTokens() function
+ *      - The derived contract must implement the isRestrictedRescueToken() function from Rescuable
  */
-abstract contract RescuableVault is Ownable, ReentrancyGuard {
-    using SafeERC20 for ERC20;
-
-    /* Virtual Methods - Required to be implemented by derived contracts */
-
-    /**
-     * @dev Gets the restricted rescue tokens
-     * @return address[] Restricted rescue tokens
-     */
-    function getRestrictedRescueTokens() public view virtual returns (address[] memory);
-
+abstract contract RescuableVault is Ownable, ReentrancyGuard, Rescuable {
     /* Rescue Functions */
 
     /**
@@ -46,19 +36,13 @@ abstract contract RescuableVault is Ownable, ReentrancyGuard {
      * @param amount Amount of tokens to rescue
      */
     function rescueToken(address token, address receiver, uint256 amount) public onlyOwner nonReentrant {
-        // The vault does not hold any debt token and collateral token, so it is not necessary to restrict the rescue of debt token and collateral token
-        // We can just rescue any ERC-20 token
+        // Expose the internal rescue token function of Rescuable
+        _rescueToken(token, receiver, amount);
+    }
 
-        address[] memory restrictedRescueTokens = getRestrictedRescueTokens();
-
-        // Check if the token is restricted
-        for (uint256 i = 0; i < restrictedRescueTokens.length; i++) {
-            if (token == restrictedRescueTokens[i]) {
-                revert("Cannot rescue restricted token");
-            }
-        }
-
-        // Rescue the token
-        ERC20(token).safeTransfer(receiver, amount);
+    // Rescue ETH
+    function rescueNative(address receiver, uint256 amount) public onlyOwner nonReentrant {
+        // Expose the internal rescue native function of Rescuable
+        _rescueNative(receiver, amount);
     }
 }

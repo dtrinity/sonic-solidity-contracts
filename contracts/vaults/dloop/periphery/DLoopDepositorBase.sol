@@ -25,7 +25,7 @@ import { IERC3156FlashBorrower } from "./interface/flashloan/IERC3156FlashBorrow
 import { IERC3156FlashLender } from "./interface/flashloan/IERC3156FlashLender.sol";
 import { DLoopCoreBase } from "../core/DLoopCoreBase.sol";
 import { SwappableVault } from "contracts/common/SwappableVault.sol";
-import { RescuableVault } from "contracts/common/RescuableVault.sol";
+import { RescuableVault } from "../shared/RescuableVault.sol";
 import { BasisPointConstants } from "contracts/common/BasisPointConstants.sol";
 import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
 import { SharedLogic } from "./helper/SharedLogic.sol";
@@ -115,9 +115,9 @@ abstract contract DLoopDepositorBase is
      * @dev Gets the restricted rescue tokens
      * @return restrictedTokens Restricted rescue tokens
      */
-    function getRestrictedRescueTokens() public view virtual override returns (address[] memory restrictedTokens) {
-        // Return empty array as we no longer handle leftover debt tokens
-        return new address[](0);
+    function isRestrictedRescueToken(address) public view virtual override returns (bool) {
+        // No restricted rescue tokens
+        return false;
     }
 
     /* Deposit */

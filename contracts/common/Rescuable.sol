@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: AGPL-3.0
+// SPDX-License-Identifier: MIT
 /* ———————————————————————————————————————————————————————————————————————————————— *
  *    _____     ______   ______     __     __   __     __     ______   __  __       *
  *   /\  __-.  /\__  _\ /\  == \   /\ \   /\ "-.\ \   /\ \   /\__  _\ /\ \_\ \      *
@@ -17,26 +17,48 @@
 
 pragma solidity ^0.8.20;
 
-import { IERC20 } from "contracts/dlend/core/dependencies/openzeppelin/contracts/IERC20.sol";
-import { SafeERC20 } from "contracts/dlend/core/dependencies/openzeppelin/contracts/SafeERC20.sol";
-import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
+import { ERC20, SafeERC20 } from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
+import { Address } from "@openzeppelin/contracts/utils/Address.sol";
 
 /**
  * @title Rescuable
- * @notice Provides emergency token rescue functionality for contracts
- * @dev Allows the owner to rescue any ERC20 tokens that get stuck in the contract
- * - Funds should never remain in the contract longer than during transactions
- * - This is a failsafe mechanism for edge cases and user errors
+ * @dev A helper contract for rescuing tokens accidentally sent to the contract
+ *      - The derived contract must implement the isRestrictedRescueToken() function
  */
-abstract contract Rescuable is Ownable {
-    using SafeERC20 for IERC20;
+abstract contract Rescuable {
+    error CannotRescueRestrictedToken(address token);
+
+    using SafeERC20 for ERC20;
+
+    /* Virtual Methods - Required to be implemented by derived contracts */
 
     /**
-     * @dev Emergency rescue for token stucked on this contract, as failsafe mechanism
-     * - Funds should never remain in this contract more time than during transactions
-     * - Only callable by the owner
+     * @dev Checks if the token is a restricted rescue token
+     * @param token Address of the token to check
+     * @return bool True if the token is a restricted rescue token, false otherwise
      */
-    function rescueTokens(IERC20 token) external onlyOwner {
-        token.safeTransfer(owner(), token.balanceOf(address(this)));
+    function isRestrictedRescueToken(address token) public view virtual returns (bool);
+
+    /* Rescue Functions */
+
+    /**
+     * @dev Rescues tokens accidentally sent to the contract
+     * @param token Address of the token to rescue
+     * @param receiver Address to receive the rescued tokens
+     * @param amount Amount of tokens to rescue
+     */
+    function _rescueToken(address token, address receiver, uint256 amount) internal {
+        if (isRestrictedRescueToken(token)) {
+            revert CannotRescueRestrictedToken(token);
+        }
+
+        // Rescue the token
+        ERC20(token).safeTransfer(receiver, amount);
+    }
+
+    // Rescue native token
+    function _rescueNative(address receiver, uint256 amount) internal {
+        // Transfer the native token to the receiver
+        Address.sendValue(payable(receiver), amount);
     }
 }

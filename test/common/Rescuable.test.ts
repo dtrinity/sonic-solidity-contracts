@@ -127,9 +127,9 @@ describe("Rescuable - Emergency Token Recovery", function () {
     it("❌ should revert when non-owner tries to rescue", async function () {
       const { rescuable, token, attacker } = await loadFixture(deployRescueFixture);
 
-      await expect(rescuable.connect(attacker).rescueTokens(await token.getAddress())).to.be.revertedWith(
-        "Ownable: caller is not the owner",
-      );
+      await expect(rescuable.connect(attacker).rescueTokens(await token.getAddress()))
+        .to.be.revertedWithCustomError(rescuable, "OwnableUnauthorizedAccount")
+        .withArgs(attacker.address);
     });
 
     it("✅ should allow new owner to rescue after ownership transfer", async function () {
@@ -146,7 +146,9 @@ describe("Rescuable - Emergency Token Recovery", function () {
       await rescuable.connect(owner).transferOwnership(recipient.address);
 
       // Old owner cannot rescue
-      await expect(rescuable.connect(owner).rescueTokens(await token.getAddress())).to.be.revertedWith("Ownable: caller is not the owner");
+      await expect(rescuable.connect(owner).rescueTokens(await token.getAddress()))
+        .to.be.revertedWithCustomError(rescuable, "OwnableUnauthorizedAccount")
+        .withArgs(owner.address);
 
       // New owner can rescue
       await rescuable.connect(recipient).rescueTokens(await token.getAddress());

@@ -46,10 +46,14 @@ contract DLoopCoreDLend is DLoopCoreBase, RewardClaimable {
 
     /* State */
 
-    IPoolAddressesProvider public immutable lendingPoolAddressesProvider;
-    address public immutable dLendAssetToClaimFor;
-    address public immutable targetStaticATokenWrapper;
-    IRewardsController public dLendRewardsController;
+    struct CoreState {
+        IPoolAddressesProvider lendingPoolAddressesProvider;
+        address dLendAssetToClaimFor;
+        address targetStaticATokenWrapper;
+        IRewardsController dLendRewardsController;
+        DataTypes.ReserveData collateralReserveData;
+    }
+    CoreState public coreState;
 
     /* Errors */
 
@@ -112,10 +116,13 @@ contract DLoopCoreDLend is DLoopCoreBase, RewardClaimable {
         )
     {
         // Always use the vault shares as the exchange asset in reward claim logic
-        lendingPoolAddressesProvider = p.lendingPoolAddressesProvider;
-        dLendRewardsController = p.rewardsController;
-        dLendAssetToClaimFor = p.dLendAssetToClaimFor;
-        targetStaticATokenWrapper = p.targetStaticATokenWrapper;
+        coreState = CoreState({
+            lendingPoolAddressesProvider: p.lendingPoolAddressesProvider,
+            dLendAssetToClaimFor: p.dLendAssetToClaimFor,
+            targetStaticATokenWrapper: p.targetStaticATokenWrapper,
+            dLendRewardsController: p.rewardsController,
+            collateralReserveData: _getReserveData(address(collateralToken))
+        });
 
         if (getLendingOracle().BASE_CURRENCY() != address(0)) {
             revert("Invalid price oracle base currency");
@@ -139,22 +146,22 @@ contract DLoopCoreDLend is DLoopCoreBase, RewardClaimable {
         if (_newDLendRewardsController.code.length == 0) {
             revert InvalidRewardsController();
         }
-        address oldController = address(dLendRewardsController);
-        dLendRewardsController = IRewardsController(_newDLendRewardsController);
+        address oldController = address(coreState.dLendRewardsController);
+        coreState.dLendRewardsController = IRewardsController(_newDLendRewardsController);
         emit DLendRewardsControllerUpdated(oldController, _newDLendRewardsController);
     }
 
     /**
-     * @inheritdoc DLoopCoreBase
-     * @return address[] Additional rescue tokens
+     * @dev Do not rescue the aToken, variable debt token and stable debt token of the collateral token
+     *      - Implement this method from RescuableVault
+     * @param token Address of the token to check
+     * @return bool True if the token is a restricted rescue token, false otherwise
      */
-    function _getAdditionalRescueTokensImplementation() internal view override returns (address[] memory) {
-        DataTypes.ReserveData memory reserveData = _getReserveData(address(collateralToken));
-        address[] memory additionalRescueTokens = new address[](3);
-        additionalRescueTokens[0] = reserveData.aTokenAddress;
-        additionalRescueTokens[1] = reserveData.variableDebtTokenAddress;
-        additionalRescueTokens[2] = reserveData.stableDebtTokenAddress;
-        return additionalRescueTokens;
+    function isRestrictedRescueToken(address token) public view override returns (bool) {
+        return
+            token == coreState.collateralReserveData.aTokenAddress ||
+            token == coreState.collateralReserveData.variableDebtTokenAddress ||
+            token == coreState.collateralReserveData.stableDebtTokenAddress;
     }
 
     /**
@@ -225,7 +232,7 @@ contract DLoopCoreDLend is DLoopCoreBase, RewardClaimable {
      * @return IPriceOracleGetter The lending oracle interface
      */
     function getLendingOracle() public view returns (IPriceOracleGetter) {
-        return IPriceOracleGetter(lendingPoolAddressesProvider.getPriceOracle());
+        return IPriceOracleGetter(coreState.lendingPoolAddressesProvider.getPriceOracle());
     }
 
     /**
@@ -233,7 +240,7 @@ contract DLoopCoreDLend is DLoopCoreBase, RewardClaimable {
      * @return ILendingPool The lending pool interface
      */
     function getLendingPool() public view returns (ILendingPool) {
-        return ILendingPool(lendingPoolAddressesProvider.getPool());
+        return ILendingPool(coreState.lendingPoolAddressesProvider.getPool());
     }
 
     /**
@@ -313,7 +320,7 @@ contract DLoopCoreDLend is DLoopCoreBase, RewardClaimable {
 
         rewardAmounts = new uint256[](rewardTokens.length);
         address[] memory assetsToClaimForPayload = new address[](1);
-        assetsToClaimForPayload[0] = dLendAssetToClaimFor;
+        assetsToClaimForPayload[0] = coreState.dLendAssetToClaimFor;
 
         for (uint256 i = 0; i < rewardTokens.length; i++) {
             address rewardToken = rewardTokens[i];
@@ -324,10 +331,10 @@ contract DLoopCoreDLend is DLoopCoreBase, RewardClaimable {
             uint256 balanceBefore = ERC20(rewardToken).balanceOf(receiver);
 
             // Claim all available amount of the specific reward token
-            dLendRewardsController.claimRewardsOnBehalf(
+            coreState.dLendRewardsController.claimRewardsOnBehalf(
                 assetsToClaimForPayload, // Asset held by the wrapper in dLEND
                 type(uint256).max, // Claim all
-                targetStaticATokenWrapper, // User earning rewards is the wrapper
+                coreState.targetStaticATokenWrapper, // User earning rewards is the wrapper
                 receiver,
                 rewardToken // The reward token to claim
             );

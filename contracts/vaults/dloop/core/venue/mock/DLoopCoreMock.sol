@@ -147,11 +147,18 @@ contract DLoopCoreMock is DLoopCoreBase {
     // --- Overrides ---
 
     /**
-     * @inheritdoc DLoopCoreBase
-     * @return address[] Additional rescue tokens
+     * @dev Do not rescue the mock additional rescue tokens
+     *      - Implement this method from RescuableVault
+     * @param token Address of the token to check
+     * @return bool True if the token is a restricted rescue token, false otherwise
      */
-    function _getAdditionalRescueTokensImplementation() internal view override returns (address[] memory) {
-        return mockAdditionalRescueTokens;
+    function isRestrictedRescueToken(address token) public view override returns (bool) {
+        for (uint256 i = 0; i < mockAdditionalRescueTokens.length; i++) {
+            if (token == mockAdditionalRescueTokens[i]) {
+                return true;
+            }
+        }
+        return false;
     }
 
     function _getAssetPriceFromOracleImplementation(address asset) internal view override returns (uint256) {
@@ -321,10 +328,10 @@ contract DLoopCoreMock is DLoopCoreBase {
     // --- Additional Test Wrappers for Internal Methods ---
 
     /**
-     * @dev Test wrapper for _getAdditionalRescueTokensImplementation
+     * @dev Test wrapper for isRestrictedRescueToken
      */
-    function testGetAdditionalRescueTokensImplementation() external view returns (address[] memory) {
-        return _getAdditionalRescueTokensImplementation();
+    function testIsRestrictedRescueToken(address token) external view returns (bool) {
+        return isRestrictedRescueToken(token);
     }
 
     /**

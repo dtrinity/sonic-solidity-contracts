@@ -22,7 +22,7 @@ import { BasisPointConstants } from "contracts/common/BasisPointConstants.sol";
 import { ERC4626, ERC20, SafeERC20 } from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 import { Erc20Helper } from "contracts/common/Erc20Helper.sol";
 import { ReentrancyGuard } from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-import { RescuableVault } from "contracts/common/RescuableVault.sol";
+import { RescuableVault } from "../shared/RescuableVault.sol";
 import { DLoopCoreLogic } from "./DLoopCoreLogic.sol";
 import { Compare } from "contracts/common/Compare.sol";
 import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
@@ -298,15 +298,6 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard, RescuableV
     ) public view virtual returns (uint256 debtTokenAmount);
 
     /**
-     * @dev Gets the additional rescue tokens
-     *      - As the getRestrictedRescueTokens function is very critical and we do not
-     *        want to override it in the derived contracts, we use this function to
-     *        get the additional rescue tokens
-     * @return address[] Additional rescue tokens
-     */
-    function _getAdditionalRescueTokensImplementation() internal view virtual returns (address[] memory);
-
-    /**
      * @dev Gets the asset price from the oracle
      * @param asset Address of the asset
      * @return uint256 Price of the asset
@@ -515,17 +506,6 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard, RescuableV
 
         // Return the observed value to avoid the case when the actual amount is 1 wei different from the expected amount
         return check.observedDelta;
-    }
-
-    /* Safety */
-
-    /**
-     * @dev Gets the restricted rescue tokens
-     * @return address[] Restricted rescue tokens
-     */
-    function getRestrictedRescueTokens() public view virtual override returns (address[] memory) {
-        // Get the additional rescue tokens from the derived contract
-        return _getAdditionalRescueTokensImplementation();
     }
 
     /* Helper Functions */
