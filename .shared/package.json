@@ -28,7 +28,8 @@
     "setup": "ts-node scripts/setup.ts",
     "test": "tsc --noEmit && ts-node scripts/tests/run.ts",
     "roles:scan": "ts-node scripts/roles/scan-roles.ts",
-    "roles:transfer": "ts-node scripts/roles/transfer-roles.ts",
+    "roles:grant": "ts-node scripts/roles/grant-default-admin.ts",
+    "roles:transfer": "ts-node scripts/roles/transfer-ownership.ts",
     "roles:revoke": "ts-node scripts/roles/revoke-roles.ts"
   },
   "keywords": [

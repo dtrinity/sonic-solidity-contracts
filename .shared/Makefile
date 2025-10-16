@@ -10,6 +10,7 @@ SHARED_ENABLE_SLITHER_TARGETS ?= 1
 SHARED_ENABLE_ROLES_TARGETS ?= 1
 
 ROLES_SCAN_ARGS ?=
+ROLES_GRANT_ARGS ?=
 ROLES_TRANSFER_ARGS ?=
 ROLES_REVOKE_ARGS ?=
 
@@ -148,7 +149,7 @@ roles.scan: ## Scan contracts for role assignments and ownership (make roles.sca
 	fi
 	@$(TS_NODE) $(SHARED_ROOT)/scripts/roles/scan-roles.ts --network "$(network)" --deployer "$(deployer)" --governance "$(governance)" $(if $(manifest),--manifest "$(manifest)",) $(ROLES_SCAN_ARGS)
 
-roles.transfer: ## Transfer roles from deployer to governance (make roles.transfer network=network manifest=path [--yes])
+roles.grant: ## Grant DEFAULT_ADMIN_ROLE to governance (make roles.grant network=network manifest=path [--dry-run] [--yes])
 	@if [ "$(network)" = "" ]; then \
 		echo "Must provide 'network' argument."; \
 		exit 1; \
@@ -157,7 +158,18 @@ roles.transfer: ## Transfer roles from deployer to governance (make roles.transf
 		echo "Must provide 'manifest' argument."; \
 		exit 1; \
 	fi
-	@$(TS_NODE) $(SHARED_ROOT)/scripts/roles/transfer-roles.ts --network "$(network)" --manifest "$(manifest)" $(if $(yes),--yes,) $(ROLES_TRANSFER_ARGS)
+	@$(TS_NODE) $(SHARED_ROOT)/scripts/roles/grant-default-admin.ts --network "$(network)" --manifest "$(manifest)" $(if $(yes),--yes,) $(ROLES_GRANT_ARGS)
+
+roles.transfer: ## Transfer Ownable ownership to governance (make roles.transfer network=network manifest=path [--dry-run] [--yes])
+	@if [ "$(network)" = "" ]; then \
+		echo "Must provide 'network' argument."; \
+		exit 1; \
+	fi
+	@if [ "$(manifest)" = "" ]; then \
+		echo "Must provide 'manifest' argument."; \
+		exit 1; \
+	fi
+	@$(TS_NODE) $(SHARED_ROOT)/scripts/roles/transfer-ownership.ts --network "$(network)" --manifest "$(manifest)" $(if $(yes),--yes,) $(ROLES_TRANSFER_ARGS)
 
 roles.revoke: ## Revoke deployer roles via Safe batch (make roles.revoke network=network manifest=path)
 	@if [ "$(network)" = "" ]; then \
@@ -181,4 +193,4 @@ endif
 	analyze.shared guardrails shared.update shared.setup \
 	shared.sanity.deploy-ids shared.sanity.deploy-clean shared.sanity.deploy-addresses shared.sanity.oracle-addresses \
 	shared.metrics.nsloc \
-	roles.scan roles.transfer roles.revoke
+	roles.scan roles.grant roles.transfer roles.revoke
