@@ -123,7 +123,7 @@ contract DLoopCoreDLend is DLoopCoreBase, RewardClaimable {
         coreState.collateralReserveData = _getReserveData(address(collateralToken));
 
         if (getLendingOracle().BASE_CURRENCY() != address(0)) {
-           revert("Invalid price oracle base currency");
+            revert("Invalid price oracle base currency");
         }
         if (getLendingOracle().BASE_CURRENCY_UNIT() != 10 ** AAVE_PRICE_ORACLE_DECIMALS) {
             revert("Invalid price oracle unit");
