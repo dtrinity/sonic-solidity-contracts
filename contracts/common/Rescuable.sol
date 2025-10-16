@@ -19,7 +19,7 @@ pragma solidity ^0.8.20;
 
 import { IERC20 } from "contracts/dlend/core/dependencies/openzeppelin/contracts/IERC20.sol";
 import { SafeERC20 } from "contracts/dlend/core/dependencies/openzeppelin/contracts/SafeERC20.sol";
-import { Ownable } from "contracts/dlend/core/dependencies/openzeppelin/contracts/Ownable.sol";
+import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 
 /**
  * @title Rescuable

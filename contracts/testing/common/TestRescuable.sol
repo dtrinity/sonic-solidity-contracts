@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import { Rescuable } from "contracts/common/Rescuable.sol";
+import { Rescuable, Ownable } from "contracts/common/Rescuable.sol";
 import { IERC20 } from "contracts/dlend/core/dependencies/openzeppelin/contracts/IERC20.sol";
 
 /**
@@ -18,7 +18,7 @@ contract TestRescuable is Rescuable {
     /**
      * @notice Constructor sets the owner
      */
-    constructor() {
+    constructor() Ownable(msg.sender) {
         // Ownable constructor is called implicitly
     }
 

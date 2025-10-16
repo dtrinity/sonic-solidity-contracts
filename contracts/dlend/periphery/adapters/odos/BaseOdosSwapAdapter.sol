@@ -23,8 +23,8 @@ import { IERC20Detailed } from "contracts/dlend/core/dependencies/openzeppelin/c
 import { IERC20WithPermit } from "contracts/dlend/core/interfaces/IERC20WithPermit.sol";
 import { IPoolAddressesProvider } from "contracts/dlend/core/interfaces/IPoolAddressesProvider.sol";
 import { IPool } from "contracts/dlend/core/interfaces/IPool.sol";
-import { Rescuable } from "contracts/common/Rescuable.sol";
-import { Pausable } from "contracts/common/Pausable.sol";
+import { Rescuable, Ownable } from "contracts/common/Rescuable.sol";
+import { Pausable } from "@openzeppelin/contracts/utils/Pausable.sol";
 import { IBaseOdosAdapter } from "./interfaces/IBaseOdosAdapter.sol";
 
 /**
@@ -46,7 +46,7 @@ abstract contract BaseOdosSwapAdapter is Rescuable, Pausable, IBaseOdosAdapter {
      * @param addressesProvider The address of the Aave PoolAddressesProvider contract
      * @param pool The address of the Aave Pool contract
      */
-    constructor(IPoolAddressesProvider addressesProvider, address pool) {
+    constructor(IPoolAddressesProvider addressesProvider, address pool) Ownable(msg.sender) {
         ADDRESSES_PROVIDER = addressesProvider;
         POOL = IPool(pool);
     }
