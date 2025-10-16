@@ -76,5 +76,6 @@
   "1_setup_issuerv2": 1758262662,
   "2_setup_redeemerv2": 1758262711,
   "ChainlinkDecimalUpscaler_sfrxUSD": 1758262711,
-  "transfer_dstake_roles_to_multisig": 1758265751
+  "transfer_dstake_roles_to_multisig": 1758265751,
+  "deploy_native_minting_gateways": 1758621656
 }

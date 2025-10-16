@@ -3,7 +3,14 @@ import { HardhatRuntimeEnvironment } from "hardhat/types";
 
 import { assertNotEmpty } from "../../typescript/common/assert";
 import { ONE_PERCENT_BPS } from "../../typescript/common/bps_constants";
-import { DS_TOKEN_ID, DUSD_TOKEN_ID, INCENTIVES_PROXY_ID } from "../../typescript/deploy-ids";
+import {
+  DS_ISSUER_V2_CONTRACT_ID,
+  DS_REDEEMER_V2_CONTRACT_ID,
+  DS_TOKEN_ID,
+  DUSD_ISSUER_V2_CONTRACT_ID,
+  DUSD_TOKEN_ID,
+  INCENTIVES_PROXY_ID,
+} from "../../typescript/deploy-ids";
 import { ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT, ORACLE_AGGREGATOR_PRICE_DECIMALS } from "../../typescript/oracle_aggregator/constants";
 import { fetchTokenInfo } from "../../typescript/token/utils";
 import {
@@ -38,6 +45,13 @@ import { Config } from "../types";
 export async function getConfig(_hre: HardhatRuntimeEnvironment): Promise<Config> {
   const dUSDDeployment = await _hre.deployments.getOrNull(DUSD_TOKEN_ID);
   const dSDeployment = await _hre.deployments.getOrNull(DS_TOKEN_ID);
+
+  // Fetch IssuerV2 deployments
+  const _dUSDIssuerV2Deployment = await _hre.deployments.getOrNull(DUSD_ISSUER_V2_CONTRACT_ID);
+  const dSIssuerV2Deployment = await _hre.deployments.getOrNull(DS_ISSUER_V2_CONTRACT_ID);
+
+  // Fetch RedeemerV2 deployments
+  const dSRedeemerV2Deployment = await _hre.deployments.getOrNull(DS_REDEEMER_V2_CONTRACT_ID);
   const wSAddress = "0x039e2fB66102314Ce7b64Ce5Ce3E5183bc94aD38";
   const stSAddress = "0xE5DA20F15420aD15DE0fa650600aFc998bbE3955";
   const frxUSDAddress = "0x80Eede496655FB9047dd39d9f418d5483ED600df";
@@ -439,6 +453,16 @@ export async function getConfig(_hre: HardhatRuntimeEnvironment): Promise<Config
     //   initialOwner: governanceSafeMultisig,
     //   minDepositThreshold: _hre.ethers.parseUnits("250000", 18).toString(), // 250k tokens
     // },
+    nativeMintingGateways: {
+      wSDSGateway: {
+        name: "wS to dS Native Minting Gateway",
+        wNativeToken: wSAddress,
+        dStableIssuer: emptyStringIfUndefined(dSIssuerV2Deployment?.address),
+        dStableRedeemer: emptyStringIfUndefined(dSRedeemerV2Deployment?.address),
+        dStableToken: emptyStringIfUndefined(dSDeployment?.address),
+        initialOwner: governanceSafeMultisig,
+      },
+    },
   };
 }
 
