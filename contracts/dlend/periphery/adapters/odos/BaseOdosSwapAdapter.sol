@@ -149,4 +149,20 @@ abstract contract BaseOdosSwapAdapter is Rescuable, Ownable, Pausable, IBaseOdos
         // Expose the internal rescue native function of Rescuable
         _rescueNative(receiver, amount);
     }
+
+    /** Pausable Functions */
+
+    /**
+     * @dev Pauses the contract (exposes the internal pause function of Pausable)
+     */
+    function pause() public onlyOwner {
+        _pause();
+    }
+
+    /**
+     * @dev Unpauses the contract (exposes the internal unpause function of Pausable)
+     */
+    function unpause() public onlyOwner {
+        _unpause();
+    }
 }
