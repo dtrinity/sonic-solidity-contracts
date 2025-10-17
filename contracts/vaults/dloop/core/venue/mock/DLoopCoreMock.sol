@@ -444,4 +444,7 @@ contract DLoopCoreMock is DLoopCoreBase, RescuableVault {
     function getMockAdditionalRescueTokens() external view returns (address[] memory) {
         return mockAdditionalRescueTokens;
     }
+
+    // Allow receiving native tokens for testing rescue functionality
+    receive() external payable {}
 }
