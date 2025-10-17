@@ -138,7 +138,7 @@ abstract contract DLoopDecreaseLeverageBase is
         uint256 rebalanceDebtAmount,
         bytes calldata collateralToDebtTokenSwapData,
         DLoopCoreBase dLoopCore
-    ) public nonReentrant returns (uint256 receivedCollateralTokenAmount) {
+    ) public nonReentrant whenNotPaused returns (uint256 receivedCollateralTokenAmount) {
         ERC20 collateralToken = dLoopCore.collateralToken();
         ERC20 debtToken = dLoopCore.debtToken();
 
@@ -216,7 +216,7 @@ abstract contract DLoopDecreaseLeverageBase is
         uint256, // amount (flash loan amount)
         uint256 fee,
         bytes calldata data
-    ) external override returns (bytes32) {
+    ) external override whenNotPaused returns (bytes32) {
         // This function does not need nonReentrant as the flash loan will be called by decreaseLeverage() public
         // function, which is already protected by nonReentrant
         // Moreover, this function is only be able to be called by the address(this) (check the initiator condition)
