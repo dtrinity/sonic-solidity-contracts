@@ -25,6 +25,7 @@ import { ReentrancyGuard } from "@openzeppelin/contracts/utils/ReentrancyGuard.s
 import { DLoopCoreLogic } from "./DLoopCoreLogic.sol";
 import { Compare } from "contracts/common/Compare.sol";
 import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
+import { Pausable } from "@openzeppelin/contracts/utils/Pausable.sol";
 
 /**
  * @title DLoopCoreBase
@@ -49,7 +50,7 @@ import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
  *      - previewRedeem returns the net assets after applying the fee.
  *      - During _withdraw, only the net amount is transferred to `receiver`; the fee stays in the vault balance.
  */
-abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard {
+abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard, Pausable {
     using SafeERC20 for ERC20;
 
     /* Core state */
@@ -863,7 +864,7 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard {
      * @dev Only callable by the contract owner
      * @param newWithdrawalFeeBps The new withdrawal fee in basis points
      */
-    function setWithdrawalFeeBps(uint256 newWithdrawalFeeBps) public onlyOwner nonReentrant {
+    function setWithdrawalFeeBps(uint256 newWithdrawalFeeBps) public onlyOwner nonReentrant whenNotPaused {
         if (newWithdrawalFeeBps > MAX_WITHDRAWAL_FEE_BPS) {
             revert WithdrawalFeeIsGreaterThanMaxFee(newWithdrawalFeeBps, MAX_WITHDRAWAL_FEE_BPS);
         }
@@ -884,7 +885,7 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard {
     function increaseLeverage(
         uint256 inputCollateralTokenAmount,
         uint256 minReceivedDebtTokenAmount
-    ) public nonReentrant {
+    ) public nonReentrant whenNotPaused {
         /**
          * Example of how this function works:
          *
@@ -989,7 +990,7 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard {
     function decreaseLeverage(
         uint256 inputDebtTokenAmount,
         uint256 minReceivedCollateralTokenAmount
-    ) public nonReentrant {
+    ) public nonReentrant whenNotPaused {
         /**
          * Example of how this function works:
          *
@@ -1134,7 +1135,7 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard {
      * @dev Only callable by the contract owner
      * @param _maxSubsidyBps New maximum subsidy in basis points
      */
-    function setMaxSubsidyBps(uint256 _maxSubsidyBps) public onlyOwner nonReentrant {
+    function setMaxSubsidyBps(uint256 _maxSubsidyBps) public onlyOwner nonReentrant whenNotPaused {
         uint256 oldMaxSubsidyBps = maxSubsidyBps;
         maxSubsidyBps = _maxSubsidyBps;
         emit MaxSubsidyBpsSet(oldMaxSubsidyBps, _maxSubsidyBps);
@@ -1145,7 +1146,7 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard {
      * @dev Only callable by the contract owner
      * @param _minDeviationBps New minimum deviation of leverage from the target leverage in basis points
      */
-    function setMinDeviationBps(uint256 _minDeviationBps) public onlyOwner nonReentrant {
+    function setMinDeviationBps(uint256 _minDeviationBps) public onlyOwner nonReentrant whenNotPaused {
         uint256 oldMinDeviationBps = minDeviationBps;
         minDeviationBps = _minDeviationBps;
         emit MinDeviationBpsSet(oldMinDeviationBps, _minDeviationBps);
@@ -1159,7 +1160,7 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard {
     function setLeverageBounds(
         uint32 _lowerBoundTargetLeverageBps,
         uint32 _upperBoundTargetLeverageBps
-    ) public onlyOwner nonReentrant {
+    ) public onlyOwner nonReentrant whenNotPaused {
         if (_lowerBoundTargetLeverageBps >= targetLeverageBps || targetLeverageBps >= _upperBoundTargetLeverageBps) {
             revert InvalidLeverageBounds(_lowerBoundTargetLeverageBps, targetLeverageBps, _upperBoundTargetLeverageBps);
         }
@@ -1168,6 +1169,22 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard {
         upperBoundTargetLeverageBps = _upperBoundTargetLeverageBps;
 
         emit LeverageBoundsSet(_lowerBoundTargetLeverageBps, _upperBoundTargetLeverageBps);
+    }
+
+    /**
+     * @notice Pauses the contract
+     * @dev Only callable by the contract owner
+     */
+    function pause() public onlyOwner {
+        _pause();
+    }
+
+    /**
+     * @notice Unpauses the contract
+     * @dev Only callable by the contract owner
+     */
+    function unpause() public onlyOwner {
+        _unpause();
     }
 
     /* Overrides to add leverage check */
