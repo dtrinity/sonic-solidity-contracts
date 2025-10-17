@@ -25,9 +25,9 @@ import { IERC3156FlashBorrower } from "./interface/flashloan/IERC3156FlashBorrow
 import { IERC3156FlashLender } from "./interface/flashloan/IERC3156FlashLender.sol";
 import { DLoopCoreBase } from "../core/DLoopCoreBase.sol";
 import { SwappableVault } from "contracts/common/SwappableVault.sol";
-import { RescuableVault } from "contracts/common/RescuableVault.sol";
 import { BasisPointConstants } from "contracts/common/BasisPointConstants.sol";
 import { SharedLogic } from "./helper/SharedLogic.sol";
+import { Pausable } from "@openzeppelin/contracts/utils/Pausable.sol";
 
 /**
  * @title DLoopDecreaseLeverageBase
@@ -43,7 +43,7 @@ abstract contract DLoopDecreaseLeverageBase is
     Ownable,
     ReentrancyGuard,
     SwappableVault,
-    RescuableVault
+    Pausable
 {
     using SafeERC20 for ERC20;
 
@@ -105,15 +105,20 @@ abstract contract DLoopDecreaseLeverageBase is
         flashLender = _flashLender;
     }
 
-    /* RescuableVault Override */
+    /** Pausable Functions */
 
     /**
-     * @dev Gets the restricted rescue tokens
-     * @return restrictedTokens Restricted rescue tokens
+     * @dev Pauses the contract (exposes the internal pause function of Pausable)
      */
-    function getRestrictedRescueTokens() public view virtual override returns (address[] memory restrictedTokens) {
-        // Return empty array as we no longer handle leftover collateral tokens
-        return new address[](0);
+    function pause() public onlyOwner {
+        _pause();
+    }
+
+    /**
+     * @dev Unpauses the contract (exposes the internal unpause function of Pausable)
+     */
+    function unpause() public onlyOwner {
+        _unpause();
     }
 
     /* Decrease Leverage */
@@ -133,7 +138,7 @@ abstract contract DLoopDecreaseLeverageBase is
         uint256 rebalanceDebtAmount,
         bytes calldata collateralToDebtTokenSwapData,
         DLoopCoreBase dLoopCore
-    ) public nonReentrant returns (uint256 receivedCollateralTokenAmount) {
+    ) public nonReentrant whenNotPaused returns (uint256 receivedCollateralTokenAmount) {
         ERC20 collateralToken = dLoopCore.collateralToken();
         ERC20 debtToken = dLoopCore.debtToken();
 
@@ -211,7 +216,7 @@ abstract contract DLoopDecreaseLeverageBase is
         uint256, // amount (flash loan amount)
         uint256 fee,
         bytes calldata data
-    ) external override returns (bytes32) {
+    ) external override whenNotPaused returns (bytes32) {
         // This function does not need nonReentrant as the flash loan will be called by decreaseLeverage() public
         // function, which is already protected by nonReentrant
         // Moreover, this function is only be able to be called by the address(this) (check the initiator condition)

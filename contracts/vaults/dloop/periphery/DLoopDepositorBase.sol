@@ -25,11 +25,11 @@ import { IERC3156FlashBorrower } from "./interface/flashloan/IERC3156FlashBorrow
 import { IERC3156FlashLender } from "./interface/flashloan/IERC3156FlashLender.sol";
 import { DLoopCoreBase } from "../core/DLoopCoreBase.sol";
 import { SwappableVault } from "contracts/common/SwappableVault.sol";
-import { RescuableVault } from "contracts/common/RescuableVault.sol";
 import { BasisPointConstants } from "contracts/common/BasisPointConstants.sol";
 import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
 import { SharedLogic } from "./helper/SharedLogic.sol";
 import { Compare } from "contracts/common/Compare.sol";
+import { Pausable } from "@openzeppelin/contracts/utils/Pausable.sol";
 
 /**
  * @title DLoopDepositorBase
@@ -41,13 +41,7 @@ import { Compare } from "contracts/common/Compare.sol";
  *      - In the final state, the user has 300 shares representing 300 WETH, and the core contract has 300 WETH as collateral, 200 dUSD as debt
  *      - NOTE: This contract only support deposit() to DLoopCore contracts, not mint()
  */
-abstract contract DLoopDepositorBase is
-    IERC3156FlashBorrower,
-    Ownable,
-    ReentrancyGuard,
-    SwappableVault,
-    RescuableVault
-{
+abstract contract DLoopDepositorBase is IERC3156FlashBorrower, Ownable, ReentrancyGuard, SwappableVault, Pausable {
     using SafeERC20 for ERC20;
 
     /* Constants */
@@ -109,15 +103,20 @@ abstract contract DLoopDepositorBase is
         flashLender = _flashLender;
     }
 
-    /* RescuableVault Override */
+    /** Pausable Functions */
 
     /**
-     * @dev Gets the restricted rescue tokens
-     * @return restrictedTokens Restricted rescue tokens
+     * @dev Pauses the contract (exposes the internal pause function of Pausable)
      */
-    function getRestrictedRescueTokens() public view virtual override returns (address[] memory restrictedTokens) {
-        // Return empty array as we no longer handle leftover debt tokens
-        return new address[](0);
+    function pause() public onlyOwner {
+        _pause();
+    }
+
+    /**
+     * @dev Unpauses the contract (exposes the internal unpause function of Pausable)
+     */
+    function unpause() public onlyOwner {
+        _unpause();
     }
 
     /* Deposit */
@@ -163,7 +162,7 @@ abstract contract DLoopDepositorBase is
         uint256 minOutputShares,
         bytes calldata debtTokenToCollateralSwapData,
         DLoopCoreBase dLoopCore
-    ) public nonReentrant returns (uint256 shares) {
+    ) public nonReentrant whenNotPaused returns (uint256 shares) {
         ERC20 collateralToken = dLoopCore.collateralToken();
         ERC20 debtToken = dLoopCore.debtToken();
 
@@ -257,7 +256,7 @@ abstract contract DLoopDepositorBase is
         uint256, // amount (flash loan amount)
         uint256 flashLoanFee, // fee (flash loan fee)
         bytes calldata data
-    ) external override returns (bytes32) {
+    ) external override whenNotPaused returns (bytes32) {
         // This function does not need nonReentrant as the flash loan will be called by deposit() public
         // function, which is already protected by nonReentrant
         // Moreover, this function is only be able to be called by the address(this) (check the initiator condition)
