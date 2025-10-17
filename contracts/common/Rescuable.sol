@@ -23,7 +23,7 @@ import { Address } from "@openzeppelin/contracts/utils/Address.sol";
 /**
  * @title Rescuable
  * @dev A helper contract for rescuing tokens accidentally sent to the contract
- *      - The derived contract must implement the isRestrictedRescueToken() function
+ *      - The derived contract must implement the isRescuableToken() function
  */
 abstract contract Rescuable {
     error CannotRescueRestrictedToken(address token);
@@ -37,7 +37,7 @@ abstract contract Rescuable {
      * @param token Address of the token to check
      * @return bool True if the token is a restricted rescue token, false otherwise
      */
-    function isRestrictedRescueToken(address token) public view virtual returns (bool);
+    function isRescuableToken(address token) public view virtual returns (bool);
 
     /* Rescue Functions */
 
@@ -48,7 +48,7 @@ abstract contract Rescuable {
      * @param amount Amount of tokens to rescue
      */
     function _rescueToken(address token, address receiver, uint256 amount) internal {
-        if (isRestrictedRescueToken(token)) {
+        if (isRescuableToken(token)) {
             revert CannotRescueRestrictedToken(token);
         }
 

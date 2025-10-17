@@ -153,7 +153,7 @@ contract DLoopCoreDLend is DLoopCoreBase, RewardClaimable, RescuableVault {
      * @param token Address of the token to check
      * @return bool True if the token is a restricted rescue token, false otherwise
      */
-    function isRestrictedRescueToken(address token) public view override returns (bool) {
+    function isRescuableToken(address token) public view override returns (bool) {
         DataTypes.ReserveData memory reserveData = _getReserveData(address(collateralToken));
         return
             token == reserveData.aTokenAddress ||

@@ -44,7 +44,7 @@ contract DLoopRedeemerOdos is DLoopRedeemerBase, RescuableVault {
      * @dev Gets the restricted rescue tokens
      * @return restrictedTokens Restricted rescue tokens
      */
-    function isRestrictedRescueToken(address) public view virtual override returns (bool) {
+    function isRescuableToken(address) public view virtual override returns (bool) {
         // No restricted rescue tokens
         return false;
     }

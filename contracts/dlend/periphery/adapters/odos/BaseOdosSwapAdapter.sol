@@ -124,7 +124,7 @@ abstract contract BaseOdosSwapAdapter is Rescuable, Ownable, Pausable, IBaseOdos
      * @dev Checks if the token is a restricted rescue token
      * @return bool True if the token is a restricted rescue token, false otherwise
      */
-    function isRestrictedRescueToken(address) public pure override returns (bool) {
+    function isRescuableToken(address) public pure override returns (bool) {
         // No restricted rescue tokens
         return false;
     }

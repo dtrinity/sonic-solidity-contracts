@@ -46,7 +46,7 @@ contract TestRescuable is Rescuable, Ownable {
      * @dev For testing purposes, we consider no tokens as restricted
      * @return bool Always returns false for testing
      */
-    function isRestrictedRescueToken(address /*token*/) public pure override returns (bool) {
+    function isRescuableToken(address /*token*/) public pure override returns (bool) {
         // For testing purposes, allow rescuing any token
         return false;
     }

@@ -24,7 +24,7 @@ import { Rescuable } from "contracts/common/Rescuable.sol";
 /**
  * @title RescuableVault
  * @dev A helper contract for rescuing tokens accidentally sent to the contract
- *      - The derived contract must implement the isRestrictedRescueToken() function from Rescuable
+ *      - The derived contract must implement the isRescuableToken() function from Rescuable
  */
 abstract contract RescuableVault is Ownable, ReentrancyGuard, Rescuable {
     /* Rescue Functions */

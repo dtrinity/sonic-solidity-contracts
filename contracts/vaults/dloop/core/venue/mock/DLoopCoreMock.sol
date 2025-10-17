@@ -153,7 +153,7 @@ contract DLoopCoreMock is DLoopCoreBase, RescuableVault {
      * @param token Address of the token to check
      * @return bool True if the token is a restricted rescue token, false otherwise
      */
-    function isRestrictedRescueToken(address token) public view override returns (bool) {
+    function isRescuableToken(address token) public view override returns (bool) {
         for (uint256 i = 0; i < mockAdditionalRescueTokens.length; i++) {
             if (token == mockAdditionalRescueTokens[i]) {
                 return true;
@@ -329,10 +329,10 @@ contract DLoopCoreMock is DLoopCoreBase, RescuableVault {
     // --- Additional Test Wrappers for Internal Methods ---
 
     /**
-     * @dev Test wrapper for isRestrictedRescueToken
+     * @dev Test wrapper for isRescuableToken
      */
-    function testIsRestrictedRescueToken(address token) external view returns (bool) {
-        return isRestrictedRescueToken(token);
+    function testisRescuableToken(address token) external view returns (bool) {
+        return isRescuableToken(token);
     }
 
     /**

@@ -46,15 +46,15 @@ describe("DLoopCoreMock Rescue Token Tests", function () {
       expect(mockTokens.length).to.equal(0);
     });
 
-    it("Should check if token is restricted using isRestrictedRescueToken", async function () {
+    it("Should check if token is restricted using isRescuableToken", async function () {
       const tokenAddress = await otherToken.getAddress();
 
       // Initially no tokens are restricted
-      expect(await dloopMock.testIsRestrictedRescueToken(tokenAddress)).to.be.false;
+      expect(await dloopMock.testisRescuableToken(tokenAddress)).to.be.false;
 
       // After setting as additional rescue token, it becomes restricted
       await dloopMock.setMockAdditionalRescueTokens([tokenAddress]);
-      expect(await dloopMock.testIsRestrictedRescueToken(tokenAddress)).to.be.true;
+      expect(await dloopMock.testisRescuableToken(tokenAddress)).to.be.true;
     });
   });
 
@@ -311,7 +311,7 @@ describe("DLoopCoreMock Rescue Token Tests", function () {
       expect(mockTokens.length).to.equal(0);
 
       // Mock implementation returns no additional restricted tokens by default
-      expect(await dloopMock.testIsRestrictedRescueToken(await otherToken.getAddress())).to.be.false;
+      expect(await dloopMock.testisRescuableToken(await otherToken.getAddress())).to.be.false;
     });
   });
 
@@ -345,7 +345,7 @@ describe("DLoopCoreMock Rescue Token Tests", function () {
 
       // Verify no tokens are restricted by default
       const tokenAAddress = await tokenA.getAddress();
-      expect(await dloopMock.testIsRestrictedRescueToken(tokenAAddress)).to.be.false;
+      expect(await dloopMock.testisRescuableToken(tokenAAddress)).to.be.false;
     });
 
     it("Should set and return single additional rescue token", async function () {
@@ -358,7 +358,7 @@ describe("DLoopCoreMock Rescue Token Tests", function () {
       expect(mockTokens[0]).to.equal(tokenAAddress);
 
       // Verify implementation restricts the token
-      expect(await dloopMock.testIsRestrictedRescueToken(tokenAAddress)).to.be.true;
+      expect(await dloopMock.testisRescuableToken(tokenAAddress)).to.be.true;
     });
 
     it("Should set and return multiple additional rescue tokens", async function () {
@@ -376,9 +376,9 @@ describe("DLoopCoreMock Rescue Token Tests", function () {
       expect(mockTokens[2]).to.equal(tokenCAddress);
 
       // Verify implementation restricts all tokens
-      expect(await dloopMock.testIsRestrictedRescueToken(tokenAAddress)).to.be.true;
-      expect(await dloopMock.testIsRestrictedRescueToken(tokenBAddress)).to.be.true;
-      expect(await dloopMock.testIsRestrictedRescueToken(tokenCAddress)).to.be.true;
+      expect(await dloopMock.testisRescuableToken(tokenAAddress)).to.be.true;
+      expect(await dloopMock.testisRescuableToken(tokenBAddress)).to.be.true;
+      expect(await dloopMock.testisRescuableToken(tokenCAddress)).to.be.true;
     });
 
     it("Should allow dynamic changes to additional rescue tokens", async function () {
@@ -409,14 +409,14 @@ describe("DLoopCoreMock Rescue Token Tests", function () {
       // Set multiple tokens first
       await dloopMock.setMockAdditionalRescueTokens([tokenAAddress, tokenBAddress]);
       expect((await dloopMock.getMockAdditionalRescueTokens()).length).to.equal(2);
-      expect(await dloopMock.testIsRestrictedRescueToken(tokenAAddress)).to.be.true;
-      expect(await dloopMock.testIsRestrictedRescueToken(tokenBAddress)).to.be.true;
+      expect(await dloopMock.testisRescuableToken(tokenAAddress)).to.be.true;
+      expect(await dloopMock.testisRescuableToken(tokenBAddress)).to.be.true;
 
       // Clear by setting empty array
       await dloopMock.setMockAdditionalRescueTokens([]);
       expect((await dloopMock.getMockAdditionalRescueTokens()).length).to.equal(0);
-      expect(await dloopMock.testIsRestrictedRescueToken(tokenAAddress)).to.be.false;
-      expect(await dloopMock.testIsRestrictedRescueToken(tokenBAddress)).to.be.false;
+      expect(await dloopMock.testisRescuableToken(tokenAAddress)).to.be.false;
+      expect(await dloopMock.testisRescuableToken(tokenBAddress)).to.be.false;
     });
 
     it("Should handle setting same token multiple times", async function () {
@@ -458,8 +458,8 @@ describe("DLoopCoreMock Rescue Token Tests", function () {
       // Initially no restricted tokens (mock starts clean)
       let mockTokens = await dloopMock.getMockAdditionalRescueTokens();
       expect(mockTokens.length).to.equal(0);
-      expect(await dloopMock.testIsRestrictedRescueToken(tokenAAddress)).to.be.false;
-      expect(await dloopMock.testIsRestrictedRescueToken(tokenBAddress)).to.be.false;
+      expect(await dloopMock.testisRescuableToken(tokenAAddress)).to.be.false;
+      expect(await dloopMock.testisRescuableToken(tokenBAddress)).to.be.false;
 
       // Set additional rescue tokens
       await dloopMock.setMockAdditionalRescueTokens([tokenAAddress, tokenBAddress]);
@@ -468,8 +468,8 @@ describe("DLoopCoreMock Rescue Token Tests", function () {
       mockTokens = await dloopMock.getMockAdditionalRescueTokens();
       expect(mockTokens).to.include(tokenAAddress);
       expect(mockTokens).to.include(tokenBAddress);
-      expect(await dloopMock.testIsRestrictedRescueToken(tokenAAddress)).to.be.true;
-      expect(await dloopMock.testIsRestrictedRescueToken(tokenBAddress)).to.be.true;
+      expect(await dloopMock.testisRescuableToken(tokenAAddress)).to.be.true;
+      expect(await dloopMock.testisRescuableToken(tokenBAddress)).to.be.true;
       expect(mockTokens.length).to.equal(2);
     });
 
