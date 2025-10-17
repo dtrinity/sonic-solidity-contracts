@@ -51,7 +51,6 @@ contract DLoopCoreDLend is DLoopCoreBase, RewardClaimable {
         address dLendAssetToClaimFor;
         address targetStaticATokenWrapper;
         IRewardsController dLendRewardsController;
-        DataTypes.ReserveData collateralReserveData;
     }
     CoreState public coreState;
 
@@ -120,7 +119,6 @@ contract DLoopCoreDLend is DLoopCoreBase, RewardClaimable {
         coreState.dLendAssetToClaimFor = p.dLendAssetToClaimFor;
         coreState.targetStaticATokenWrapper = p.targetStaticATokenWrapper;
         coreState.dLendRewardsController = p.rewardsController;
-        coreState.collateralReserveData = _getReserveData(address(collateralToken));
 
         if (getLendingOracle().BASE_CURRENCY() != address(0)) {
             revert("Invalid price oracle base currency");
@@ -155,10 +153,11 @@ contract DLoopCoreDLend is DLoopCoreBase, RewardClaimable {
      * @return bool True if the token is a restricted rescue token, false otherwise
      */
     function isRestrictedRescueToken(address token) public view override returns (bool) {
+        DataTypes.ReserveData memory reserveData = _getReserveData(address(collateralToken));
         return
-            token == coreState.collateralReserveData.aTokenAddress ||
-            token == coreState.collateralReserveData.variableDebtTokenAddress ||
-            token == coreState.collateralReserveData.stableDebtTokenAddress;
+            token == reserveData.aTokenAddress ||
+            token == reserveData.variableDebtTokenAddress ||
+            token == reserveData.stableDebtTokenAddress;
     }
 
     /**
