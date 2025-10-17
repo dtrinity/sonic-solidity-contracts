@@ -22,7 +22,6 @@ import { BasisPointConstants } from "contracts/common/BasisPointConstants.sol";
 import { ERC4626, ERC20, SafeERC20 } from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 import { Erc20Helper } from "contracts/common/Erc20Helper.sol";
 import { ReentrancyGuard } from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-import { RescuableVault } from "../shared/RescuableVault.sol";
 import { DLoopCoreLogic } from "./DLoopCoreLogic.sol";
 import { Compare } from "contracts/common/Compare.sol";
 import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
@@ -50,7 +49,7 @@ import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
  *      - previewRedeem returns the net assets after applying the fee.
  *      - During _withdraw, only the net amount is transferred to `receiver`; the fee stays in the vault balance.
  */
-abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard, RescuableVault {
+abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard {
     using SafeERC20 for ERC20;
 
     /* Core state */

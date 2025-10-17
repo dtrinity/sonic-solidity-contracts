@@ -7,12 +7,13 @@ import { BasisPointConstants } from "contracts/common/BasisPointConstants.sol";
 import { PercentageMath } from "contracts/dlend/core/protocol/libraries/math/PercentageMath.sol";
 import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
 import { DLoopCoreLogic } from "../../DLoopCoreLogic.sol";
+import { RescuableVault } from "contracts/vaults/dloop/shared/RescuableVault.sol";
 
 /**
  * @title DLoopCoreMock
  * @dev Simple mock implementation of DLoopCoreBase for testing
  */
-contract DLoopCoreMock is DLoopCoreBase {
+contract DLoopCoreMock is DLoopCoreBase, RescuableVault {
     // Errors
     error NotEnoughBalanceToSupply(address user, string tokenSymbol, uint256 balance, uint256 amount);
     error MockPriceNotSet(address asset);

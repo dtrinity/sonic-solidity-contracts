@@ -27,7 +27,6 @@ import { IERC3156FlashBorrower } from "./interface/flashloan/IERC3156FlashBorrow
 import { IERC3156FlashLender } from "./interface/flashloan/IERC3156FlashLender.sol";
 import { DLoopCoreBase } from "../core/DLoopCoreBase.sol";
 import { SwappableVault } from "contracts/common/SwappableVault.sol";
-import { RescuableVault } from "../shared/RescuableVault.sol";
 import { SharedLogic } from "./helper/SharedLogic.sol";
 import { Pausable } from "@openzeppelin/contracts/utils/Pausable.sol";
 
@@ -40,14 +39,7 @@ import { Pausable } from "@openzeppelin/contracts/utils/Pausable.sol";
  *      - In the final state, the user has 100 WETH (300 - 200), and the core contract has 0 WETH as collateral, 0 dUSD as debt
  *      - NOTE: This contract only support redeem() from DLoopCore contracts, not withdraw()
  */
-abstract contract DLoopRedeemerBase is
-    IERC3156FlashBorrower,
-    Ownable,
-    ReentrancyGuard,
-    SwappableVault,
-    RescuableVault,
-    Pausable
-{
+abstract contract DLoopRedeemerBase is IERC3156FlashBorrower, Ownable, ReentrancyGuard, SwappableVault, Pausable {
     using SafeERC20 for ERC20;
 
     /* Constants */
@@ -110,17 +102,6 @@ abstract contract DLoopRedeemerBase is
      */
     constructor(IERC3156FlashLender _flashLender) Ownable(msg.sender) {
         flashLender = _flashLender;
-    }
-
-    /* RescuableVault Override */
-
-    /**
-     * @dev Gets the restricted rescue tokens
-     * @return restrictedTokens Restricted rescue tokens
-     */
-    function isRestrictedRescueToken(address) public view virtual override returns (bool) {
-        // No restricted rescue tokens
-        return false;
     }
 
     /** Pausable Functions */

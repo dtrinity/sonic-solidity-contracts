@@ -27,13 +27,14 @@ import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
 import { RewardClaimable } from "contracts/vaults/rewards_claimable/RewardClaimable.sol";
 import { IRewardsController } from "./interface/IRewardsController.sol";
 import { BasisPointConstants } from "contracts/common/BasisPointConstants.sol";
+import { RescuableVault } from "contracts/vaults/dloop/shared/RescuableVault.sol";
 
 /**
  * @title DLoopCoreDLend
  * @dev Read the documentation of DLoopCoreBase for more details
  *      - This contract implement dLEND-specific lending operations for DLoopCoreBase
  */
-contract DLoopCoreDLend is DLoopCoreBase, RewardClaimable {
+contract DLoopCoreDLend is DLoopCoreBase, RewardClaimable, RescuableVault {
     using SafeERC20 for ERC20;
 
     /* Constants */

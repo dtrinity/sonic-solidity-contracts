@@ -19,12 +19,13 @@ pragma solidity ^0.8.20;
 
 import { DLoopIncreaseLeverageBase, ERC20, IERC3156FlashLender } from "../../DLoopIncreaseLeverageBase.sol";
 import { OdosSwapLogic, IOdosRouterV2 } from "./OdosSwapLogic.sol";
+import { RescuableVault } from "contracts/vaults/dloop/shared/RescuableVault.sol";
 
 /**
  * @title DLoopIncreaseLeverageOdos
  * @dev Implementation of DLoopIncreaseLeverageBase with Odos swap functionality
  */
-contract DLoopIncreaseLeverageOdos is DLoopIncreaseLeverageBase {
+contract DLoopIncreaseLeverageOdos is DLoopIncreaseLeverageBase, RescuableVault {
     IOdosRouterV2 public immutable odosRouter;
 
     /**
@@ -34,6 +35,17 @@ contract DLoopIncreaseLeverageOdos is DLoopIncreaseLeverageBase {
      */
     constructor(IERC3156FlashLender _flashLender, IOdosRouterV2 _odosRouter) DLoopIncreaseLeverageBase(_flashLender) {
         odosRouter = _odosRouter;
+    }
+
+    /* RescuableVault Override */
+
+    /**
+     * @dev Gets the restricted rescue tokens
+     * @return restrictedTokens Restricted rescue tokens
+     */
+    function isRestrictedRescueToken(address) public view virtual override returns (bool) {
+        // No restricted rescue tokens
+        return false;
     }
 
     /**

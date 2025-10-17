@@ -20,12 +20,13 @@ pragma solidity ^0.8.20;
 import { DLoopRedeemerBase, ERC20, IERC3156FlashLender, DLoopCoreBase } from "../../DLoopRedeemerBase.sol";
 import { DLoopCoreLogic } from "../../../core/DLoopCoreLogic.sol";
 import { OdosSwapLogic, IOdosRouterV2 } from "./OdosSwapLogic.sol";
+import { RescuableVault } from "contracts/vaults/dloop/shared/RescuableVault.sol";
 
 /**
  * @title DLoopRedeemerOdos
  * @dev Implementation of DLoopRedeemerBase with Odos swap functionality
  */
-contract DLoopRedeemerOdos is DLoopRedeemerBase {
+contract DLoopRedeemerOdos is DLoopRedeemerBase, RescuableVault {
     IOdosRouterV2 public immutable odosRouter;
 
     /**
@@ -35,6 +36,17 @@ contract DLoopRedeemerOdos is DLoopRedeemerBase {
      */
     constructor(IERC3156FlashLender _flashLender, IOdosRouterV2 _odosRouter) DLoopRedeemerBase(_flashLender) {
         odosRouter = _odosRouter;
+    }
+
+    /* RescuableVault Override */
+
+    /**
+     * @dev Gets the restricted rescue tokens
+     * @return restrictedTokens Restricted rescue tokens
+     */
+    function isRestrictedRescueToken(address) public view virtual override returns (bool) {
+        // No restricted rescue tokens
+        return false;
     }
 
     /**
