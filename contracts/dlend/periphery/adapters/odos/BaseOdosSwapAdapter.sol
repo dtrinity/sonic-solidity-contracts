@@ -24,14 +24,15 @@ import { IERC20WithPermit } from "contracts/dlend/core/interfaces/IERC20WithPerm
 import { IPoolAddressesProvider } from "contracts/dlend/core/interfaces/IPoolAddressesProvider.sol";
 import { IPool } from "contracts/dlend/core/interfaces/IPool.sol";
 import { Rescuable } from "contracts/common/Rescuable.sol";
-import { Pausable } from "contracts/common/Pausable.sol";
+import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
+import { Pausable } from "@openzeppelin/contracts/utils/Pausable.sol";
 import { IBaseOdosAdapter } from "./interfaces/IBaseOdosAdapter.sol";
 
 /**
  * @title BaseOdosSwapAdapter
  * @notice Utility functions for adapters using Odos
  */
-abstract contract BaseOdosSwapAdapter is Rescuable, Pausable, IBaseOdosAdapter {
+abstract contract BaseOdosSwapAdapter is Rescuable, Ownable, Pausable, IBaseOdosAdapter {
     using SafeERC20 for IERC20;
 
     /* State Variables */
@@ -46,7 +47,7 @@ abstract contract BaseOdosSwapAdapter is Rescuable, Pausable, IBaseOdosAdapter {
      * @param addressesProvider The address of the Aave PoolAddressesProvider contract
      * @param pool The address of the Aave Pool contract
      */
-    constructor(IPoolAddressesProvider addressesProvider, address pool) {
+    constructor(IPoolAddressesProvider addressesProvider, address pool) Ownable(msg.sender) {
         ADDRESSES_PROVIDER = addressesProvider;
         POOL = IPool(pool);
     }
@@ -115,5 +116,53 @@ abstract contract BaseOdosSwapAdapter is Rescuable, Pausable, IBaseOdosAdapter {
         if (allowance < minAmount) {
             IERC20(asset).safeApprove(address(POOL), type(uint256).max);
         }
+    }
+
+    /** Rescue Functions */
+
+    /**
+     * @dev Checks if the token is a restricted rescue token
+     * @return bool True if the token is a restricted rescue token, false otherwise
+     */
+    function isRescuableToken(address) public pure override returns (bool) {
+        // No restricted rescue tokens
+        return false;
+    }
+
+    /**
+     * @dev Rescues tokens accidentally sent to the contract
+     * @param token Address of the token to rescue
+     * @param receiver Address to receive the rescued tokens
+     * @param amount Amount of tokens to rescue
+     */
+    function rescueToken(address token, address receiver, uint256 amount) public onlyOwner {
+        // Expose the internal rescue token function of Rescuable
+        _rescueToken(token, receiver, amount);
+    }
+
+    /**
+     * @dev Rescues native tokens accidentally sent to the contract
+     * @param receiver Address to receive the rescued tokens
+     * @param amount Amount of tokens to rescue
+     */
+    function rescueNative(address receiver, uint256 amount) public onlyOwner {
+        // Expose the internal rescue native function of Rescuable
+        _rescueNative(receiver, amount);
+    }
+
+    /** Pausable Functions */
+
+    /**
+     * @dev Pauses the contract (exposes the internal pause function of Pausable)
+     */
+    function pause() public onlyOwner {
+        _pause();
+    }
+
+    /**
+     * @dev Unpauses the contract (exposes the internal unpause function of Pausable)
+     */
+    function unpause() public onlyOwner {
+        _unpause();
     }
 }

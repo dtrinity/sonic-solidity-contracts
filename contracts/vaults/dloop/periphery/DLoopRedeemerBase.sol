@@ -17,7 +17,7 @@
 
 pragma solidity ^0.8.20;
 
-import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
+import { AccessControl } from "@openzeppelin/contracts/access/AccessControl.sol";
 import { ERC20, SafeERC20 } from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 import { BasisPointConstants } from "contracts/common/BasisPointConstants.sol";
 import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
@@ -27,8 +27,8 @@ import { IERC3156FlashBorrower } from "./interface/flashloan/IERC3156FlashBorrow
 import { IERC3156FlashLender } from "./interface/flashloan/IERC3156FlashLender.sol";
 import { DLoopCoreBase } from "../core/DLoopCoreBase.sol";
 import { SwappableVault } from "contracts/common/SwappableVault.sol";
-import { RescuableVault } from "contracts/common/RescuableVault.sol";
 import { SharedLogic } from "./helper/SharedLogic.sol";
+import { Pausable } from "@openzeppelin/contracts/utils/Pausable.sol";
 
 /**
  * @title DLoopRedeemerBase
@@ -39,10 +39,13 @@ import { SharedLogic } from "./helper/SharedLogic.sol";
  *      - In the final state, the user has 100 WETH (300 - 200), and the core contract has 0 WETH as collateral, 0 dUSD as debt
  *      - NOTE: This contract only support redeem() from DLoopCore contracts, not withdraw()
  */
-abstract contract DLoopRedeemerBase is IERC3156FlashBorrower, Ownable, ReentrancyGuard, SwappableVault, RescuableVault {
+abstract contract DLoopRedeemerBase is IERC3156FlashBorrower, AccessControl, ReentrancyGuard, SwappableVault, Pausable {
     using SafeERC20 for ERC20;
 
     /* Constants */
+
+    bytes32 public constant DLOOP_ADMIN_ROLE = keccak256("DLOOP_ADMIN_ROLE");
+    bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
 
     bytes32 public constant FLASHLOAN_CALLBACK = keccak256("ERC3156FlashBorrower.onFlashLoan");
 
@@ -100,19 +103,28 @@ abstract contract DLoopRedeemerBase is IERC3156FlashBorrower, Ownable, Reentranc
      * @dev Constructor for the DLoopRedeemerBase contract
      * @param _flashLender Address of the flash loan provider
      */
-    constructor(IERC3156FlashLender _flashLender) Ownable(msg.sender) {
+    constructor(IERC3156FlashLender _flashLender) {
         flashLender = _flashLender;
+        _setRoleAdmin(DLOOP_ADMIN_ROLE, DLOOP_ADMIN_ROLE);
+        _setRoleAdmin(PAUSER_ROLE, DLOOP_ADMIN_ROLE);
+        _grantRole(DLOOP_ADMIN_ROLE, _msgSender());
+        _grantRole(PAUSER_ROLE, _msgSender());
     }
 
-    /* RescuableVault Override */
+    /** Pausable Functions */
 
     /**
-     * @dev Gets the restricted rescue tokens
-     * @return restrictedTokens Restricted rescue tokens
+     * @dev Pauses the contract (exposes the internal pause function of Pausable)
      */
-    function getRestrictedRescueTokens() public view virtual override returns (address[] memory restrictedTokens) {
-        // Return empty array as we no longer handle leftover collateral tokens
-        return new address[](0);
+    function pause() public onlyRole(PAUSER_ROLE) {
+        _pause();
+    }
+
+    /**
+     * @dev Unpauses the contract (exposes the internal unpause function of Pausable)
+     */
+    function unpause() public onlyRole(PAUSER_ROLE) {
+        _unpause();
     }
 
     /* Redeem */
@@ -168,7 +180,7 @@ abstract contract DLoopRedeemerBase is IERC3156FlashBorrower, Ownable, Reentranc
         uint256 minOutputCollateralAmount,
         bytes calldata collateralToDebtTokenSwapData,
         DLoopCoreBase dLoopCore
-    ) public nonReentrant returns (uint256 assets) {
+    ) public nonReentrant whenNotPaused returns (uint256 assets) {
         ERC20 collateralToken = dLoopCore.collateralToken();
         ERC20 debtToken = dLoopCore.debtToken();
 
@@ -275,7 +287,7 @@ abstract contract DLoopRedeemerBase is IERC3156FlashBorrower, Ownable, Reentranc
         uint256, // amount (flash loan amount)
         uint256 flashLoanFee, // fee (flash loan fee)
         bytes calldata data
-    ) external override returns (bytes32) {
+    ) external override whenNotPaused returns (bytes32) {
         // This function does not need nonReentrant as the flash loan will be called by redeem() public
         // function, which is already protected by nonReentrant
         // Moreover, this function is only be able to be called by the address(this) (check the initiator condition)
