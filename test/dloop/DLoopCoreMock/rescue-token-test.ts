@@ -79,9 +79,11 @@ describe("DLoopCoreMock Rescue Token Tests", function () {
     it("Should revert when non-owner tries to rescue tokens", async function () {
       const rescueAmount = ethers.parseEther("50");
 
-      await expect(
-        dloopMock.connect(nonOwner).rescueToken(await otherToken.getAddress(), receiver.address, rescueAmount),
-      ).to.be.revertedWithCustomError(dloopMock, "OwnableUnauthorizedAccount");
+      const rescuerRole = await dloopMock.RESCUER_ROLE();
+
+      await expect(dloopMock.connect(nonOwner).rescueToken(await otherToken.getAddress(), receiver.address, rescueAmount))
+        .to.be.revertedWithCustomError(dloopMock, "AccessControlUnauthorizedAccount")
+        .withArgs(nonOwner.address, rescuerRole);
     });
 
     it("Should revert when trying to rescue restricted collateral token", async function () {
@@ -516,10 +518,11 @@ describe("DLoopCoreMock Rescue Token Tests", function () {
     it("Should revert when non-owner tries to rescue native tokens", async function () {
       const rescueAmount = ethers.parseEther("5");
 
-      await expect(dloopMock.connect(nonOwner).rescueNative(receiver.address, rescueAmount)).to.be.revertedWithCustomError(
-        dloopMock,
-        "OwnableUnauthorizedAccount",
-      );
+      const rescuerRole = await dloopMock.RESCUER_ROLE();
+
+      await expect(dloopMock.connect(nonOwner).rescueNative(receiver.address, rescueAmount))
+        .to.be.revertedWithCustomError(dloopMock, "AccessControlUnauthorizedAccount")
+        .withArgs(nonOwner.address, rescuerRole);
     });
 
     it("Should rescue full native token balance", async function () {

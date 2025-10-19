@@ -18,7 +18,7 @@
 pragma solidity ^0.8.20;
 
 import { ReentrancyGuard } from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
+import { AccessControl } from "@openzeppelin/contracts/access/AccessControl.sol";
 import { Rescuable } from "contracts/common/Rescuable.sol";
 
 /**
@@ -26,7 +26,17 @@ import { Rescuable } from "contracts/common/Rescuable.sol";
  * @dev A helper contract for rescuing tokens accidentally sent to the contract
  *      - The derived contract must implement the isRescuableToken() function from Rescuable
  */
-abstract contract RescuableVault is Ownable, ReentrancyGuard, Rescuable {
+abstract contract RescuableVault is AccessControl, ReentrancyGuard, Rescuable {
+    bytes32 public constant RESCUER_ADMIN_ROLE = keccak256("RESCUER_ADMIN_ROLE");
+    bytes32 public constant RESCUER_ROLE = keccak256("RESCUER_ROLE");
+
+    constructor() {
+        _setRoleAdmin(RESCUER_ADMIN_ROLE, RESCUER_ADMIN_ROLE);
+        _setRoleAdmin(RESCUER_ROLE, RESCUER_ADMIN_ROLE);
+        _grantRole(RESCUER_ADMIN_ROLE, _msgSender());
+        _grantRole(RESCUER_ROLE, _msgSender());
+    }
+
     /* Rescue Functions */
 
     /**
@@ -35,13 +45,13 @@ abstract contract RescuableVault is Ownable, ReentrancyGuard, Rescuable {
      * @param receiver Address to receive the rescued tokens
      * @param amount Amount of tokens to rescue
      */
-    function rescueToken(address token, address receiver, uint256 amount) public onlyOwner nonReentrant {
+    function rescueToken(address token, address receiver, uint256 amount) public onlyRole(RESCUER_ROLE) nonReentrant {
         // Expose the internal rescue token function of Rescuable
         _rescueToken(token, receiver, amount);
     }
 
     // Rescue ETH
-    function rescueNative(address receiver, uint256 amount) public onlyOwner nonReentrant {
+    function rescueNative(address receiver, uint256 amount) public onlyRole(RESCUER_ROLE) nonReentrant {
         // Expose the internal rescue native function of Rescuable
         _rescueNative(receiver, amount);
     }

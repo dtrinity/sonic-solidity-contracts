@@ -17,7 +17,7 @@
 
 pragma solidity ^0.8.20;
 
-import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
+import { AccessControl } from "@openzeppelin/contracts/access/AccessControl.sol";
 import { BasisPointConstants } from "contracts/common/BasisPointConstants.sol";
 import { ERC4626, ERC20, SafeERC20 } from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 import { Erc20Helper } from "contracts/common/Erc20Helper.sol";
@@ -50,7 +50,7 @@ import { Pausable } from "@openzeppelin/contracts/utils/Pausable.sol";
  *      - previewRedeem returns the net assets after applying the fee.
  *      - During _withdraw, only the net amount is transferred to `receiver`; the fee stays in the vault balance.
  */
-abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard, Pausable {
+abstract contract DLoopCoreBase is ERC4626, AccessControl, ReentrancyGuard, Pausable {
     using SafeERC20 for ERC20;
 
     /* Core state */
@@ -62,6 +62,9 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard, Pausable {
     uint256 public withdrawalFeeBps;
 
     /* Constants */
+
+    bytes32 public constant DLOOP_ADMIN_ROLE = keccak256("DLOOP_ADMIN_ROLE");
+    bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
 
     uint32 public immutable targetLeverageBps; // ie. 30000 = 300% in basis points, means 3x leverage
     ERC20 public immutable collateralToken;
@@ -217,7 +220,7 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard, Pausable {
         uint256 _maxSubsidyBps,
         uint256 _minDeviationBps,
         uint256 _withdrawalFeeBps
-    ) ERC20(_name, _symbol) ERC4626(_collateralToken) Ownable(msg.sender) {
+    ) ERC20(_name, _symbol) ERC4626(_collateralToken) {
         debtToken = _debtToken;
         collateralToken = _collateralToken;
 
@@ -249,6 +252,11 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard, Pausable {
         maxSubsidyBps = _maxSubsidyBps;
         minDeviationBps = _minDeviationBps;
         withdrawalFeeBps = _withdrawalFeeBps;
+
+        _setRoleAdmin(DLOOP_ADMIN_ROLE, DLOOP_ADMIN_ROLE);
+        _setRoleAdmin(PAUSER_ROLE, DLOOP_ADMIN_ROLE);
+        _grantRole(DLOOP_ADMIN_ROLE, _msgSender());
+        _grantRole(PAUSER_ROLE, _msgSender());
     }
 
     /* Virtual Methods - Required to be implemented by derived contracts */
@@ -861,10 +869,12 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard, Pausable {
 
     /**
      * @notice Sets the withdrawal fee in basis points
-     * @dev Only callable by the contract owner
+     * @dev Only callable by accounts with the admin role
      * @param newWithdrawalFeeBps The new withdrawal fee in basis points
      */
-    function setWithdrawalFeeBps(uint256 newWithdrawalFeeBps) public onlyOwner nonReentrant whenNotPaused {
+    function setWithdrawalFeeBps(
+        uint256 newWithdrawalFeeBps
+    ) public onlyRole(DLOOP_ADMIN_ROLE) nonReentrant whenNotPaused {
         if (newWithdrawalFeeBps > MAX_WITHDRAWAL_FEE_BPS) {
             revert WithdrawalFeeIsGreaterThanMaxFee(newWithdrawalFeeBps, MAX_WITHDRAWAL_FEE_BPS);
         }
@@ -1132,10 +1142,10 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard, Pausable {
 
     /**
      * @notice Sets the maximum subsidy in basis points
-     * @dev Only callable by the contract owner
+     * @dev Only callable by accounts with the admin role
      * @param _maxSubsidyBps New maximum subsidy in basis points
      */
-    function setMaxSubsidyBps(uint256 _maxSubsidyBps) public onlyOwner nonReentrant whenNotPaused {
+    function setMaxSubsidyBps(uint256 _maxSubsidyBps) public onlyRole(DLOOP_ADMIN_ROLE) nonReentrant whenNotPaused {
         uint256 oldMaxSubsidyBps = maxSubsidyBps;
         maxSubsidyBps = _maxSubsidyBps;
         emit MaxSubsidyBpsSet(oldMaxSubsidyBps, _maxSubsidyBps);
@@ -1143,10 +1153,10 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard, Pausable {
 
     /**
      * @notice Sets the minimum deviation of leverage from the target leverage in basis points
-     * @dev Only callable by the contract owner
+     * @dev Only callable by accounts with the admin role
      * @param _minDeviationBps New minimum deviation of leverage from the target leverage in basis points
      */
-    function setMinDeviationBps(uint256 _minDeviationBps) public onlyOwner nonReentrant whenNotPaused {
+    function setMinDeviationBps(uint256 _minDeviationBps) public onlyRole(DLOOP_ADMIN_ROLE) nonReentrant whenNotPaused {
         uint256 oldMinDeviationBps = minDeviationBps;
         minDeviationBps = _minDeviationBps;
         emit MinDeviationBpsSet(oldMinDeviationBps, _minDeviationBps);
@@ -1160,7 +1170,7 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard, Pausable {
     function setLeverageBounds(
         uint32 _lowerBoundTargetLeverageBps,
         uint32 _upperBoundTargetLeverageBps
-    ) public onlyOwner nonReentrant whenNotPaused {
+    ) public onlyRole(DLOOP_ADMIN_ROLE) nonReentrant whenNotPaused {
         if (_lowerBoundTargetLeverageBps >= targetLeverageBps || targetLeverageBps >= _upperBoundTargetLeverageBps) {
             revert InvalidLeverageBounds(_lowerBoundTargetLeverageBps, targetLeverageBps, _upperBoundTargetLeverageBps);
         }
@@ -1173,17 +1183,17 @@ abstract contract DLoopCoreBase is ERC4626, Ownable, ReentrancyGuard, Pausable {
 
     /**
      * @notice Pauses the contract
-     * @dev Only callable by the contract owner
+     * @dev Only callable by accounts with the pauser role
      */
-    function pause() public onlyOwner {
+    function pause() public onlyRole(PAUSER_ROLE) {
         _pause();
     }
 
     /**
      * @notice Unpauses the contract
-     * @dev Only callable by the contract owner
+     * @dev Only callable by accounts with the pauser role
      */
-    function unpause() public onlyOwner {
+    function unpause() public onlyRole(PAUSER_ROLE) {
         _unpause();
     }
 

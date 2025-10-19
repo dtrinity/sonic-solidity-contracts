@@ -17,7 +17,7 @@
 
 pragma solidity ^0.8.20;
 
-import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
+import { AccessControl } from "@openzeppelin/contracts/access/AccessControl.sol";
 import { ERC20, SafeERC20 } from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 import { BasisPointConstants } from "contracts/common/BasisPointConstants.sol";
 import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
@@ -39,10 +39,13 @@ import { Pausable } from "@openzeppelin/contracts/utils/Pausable.sol";
  *      - In the final state, the user has 100 WETH (300 - 200), and the core contract has 0 WETH as collateral, 0 dUSD as debt
  *      - NOTE: This contract only support redeem() from DLoopCore contracts, not withdraw()
  */
-abstract contract DLoopRedeemerBase is IERC3156FlashBorrower, Ownable, ReentrancyGuard, SwappableVault, Pausable {
+abstract contract DLoopRedeemerBase is IERC3156FlashBorrower, AccessControl, ReentrancyGuard, SwappableVault, Pausable {
     using SafeERC20 for ERC20;
 
     /* Constants */
+
+    bytes32 public constant DLOOP_ADMIN_ROLE = keccak256("DLOOP_ADMIN_ROLE");
+    bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
 
     bytes32 public constant FLASHLOAN_CALLBACK = keccak256("ERC3156FlashBorrower.onFlashLoan");
 
@@ -100,8 +103,12 @@ abstract contract DLoopRedeemerBase is IERC3156FlashBorrower, Ownable, Reentranc
      * @dev Constructor for the DLoopRedeemerBase contract
      * @param _flashLender Address of the flash loan provider
      */
-    constructor(IERC3156FlashLender _flashLender) Ownable(msg.sender) {
+    constructor(IERC3156FlashLender _flashLender) {
         flashLender = _flashLender;
+        _setRoleAdmin(DLOOP_ADMIN_ROLE, DLOOP_ADMIN_ROLE);
+        _setRoleAdmin(PAUSER_ROLE, DLOOP_ADMIN_ROLE);
+        _grantRole(DLOOP_ADMIN_ROLE, _msgSender());
+        _grantRole(PAUSER_ROLE, _msgSender());
     }
 
     /** Pausable Functions */
@@ -109,14 +116,14 @@ abstract contract DLoopRedeemerBase is IERC3156FlashBorrower, Ownable, Reentranc
     /**
      * @dev Pauses the contract (exposes the internal pause function of Pausable)
      */
-    function pause() public onlyOwner {
+    function pause() public onlyRole(PAUSER_ROLE) {
         _pause();
     }
 
     /**
      * @dev Unpauses the contract (exposes the internal unpause function of Pausable)
      */
-    function unpause() public onlyOwner {
+    function unpause() public onlyRole(PAUSER_ROLE) {
         _unpause();
     }
 

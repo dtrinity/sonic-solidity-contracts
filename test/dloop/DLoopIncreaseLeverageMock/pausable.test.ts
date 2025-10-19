@@ -20,9 +20,11 @@ describe("DLoopIncreaseLeverageMock - Pausable", function () {
     const rebalancer = accounts[5];
     const leverageBefore = await dloopMock.getCurrentLeverageBps();
 
+    const pauserRole = await increaseLeverageMock.PAUSER_ROLE();
+
     await expect(increaseLeverageMock.connect(rebalancer).pause())
-      .to.be.revertedWithCustomError(increaseLeverageMock, "OwnableUnauthorizedAccount")
-      .withArgs(rebalancer.address);
+      .to.be.revertedWithCustomError(increaseLeverageMock, "AccessControlUnauthorizedAccount")
+      .withArgs(rebalancer.address, pauserRole);
 
     await increaseLeverageMock.connect(deployer).pause();
     expect(await increaseLeverageMock.paused()).to.equal(true);

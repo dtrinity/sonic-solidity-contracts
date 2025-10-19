@@ -19,9 +19,11 @@ describe("DLoopRedeemerMock - Pausable", function () {
     const slippageBps = 500n; // 0.5% slippage tolerance
     const minOutputCollateral = await dLoopRedeemerMock.calculateMinOutputCollateral(shares, slippageBps, dloopMock);
 
+    const pauserRole = await dLoopRedeemerMock.PAUSER_ROLE();
+
     await expect(dLoopRedeemerMock.connect(user1).pause())
-      .to.be.revertedWithCustomError(dLoopRedeemerMock, "OwnableUnauthorizedAccount")
-      .withArgs(user1.address);
+      .to.be.revertedWithCustomError(dLoopRedeemerMock, "AccessControlUnauthorizedAccount")
+      .withArgs(user1.address, pauserRole);
 
     await dLoopRedeemerMock.connect(deployer).pause();
     expect(await dLoopRedeemerMock.paused()).to.equal(true);

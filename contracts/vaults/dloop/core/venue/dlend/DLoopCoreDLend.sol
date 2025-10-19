@@ -131,10 +131,10 @@ contract DLoopCoreDLend is DLoopCoreBase, RewardClaimable, RescuableVault {
 
     /**
      * @notice Sets the address of the dLEND RewardsController contract.
-     * @dev Only callable by the owner.
+     * @dev Only callable by accounts with the dLoop admin role.
      * @param _newDLendRewardsController The address of the new rewards controller.
      */
-    function setDLendRewardsController(address _newDLendRewardsController) external onlyOwner {
+    function setDLendRewardsController(address _newDLendRewardsController) external onlyRole(DLOOP_ADMIN_ROLE) {
         if (_newDLendRewardsController == address(0)) {
             revert ZeroAddress();
         }

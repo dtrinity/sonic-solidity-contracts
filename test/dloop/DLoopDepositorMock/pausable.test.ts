@@ -16,9 +16,11 @@ describe("DLoopDepositorMock - Pausable", function () {
     const slippageBps = 500n; // 0.5% tolerance
     const minOutputShares = await dLoopDepositorMock.calculateMinOutputShares(depositAmount, slippageBps, dloopMock);
 
+    const pauserRole = await dLoopDepositorMock.PAUSER_ROLE();
+
     await expect(dLoopDepositorMock.connect(user1).pause())
-      .to.be.revertedWithCustomError(dLoopDepositorMock, "OwnableUnauthorizedAccount")
-      .withArgs(user1.address);
+      .to.be.revertedWithCustomError(dLoopDepositorMock, "AccessControlUnauthorizedAccount")
+      .withArgs(user1.address, pauserRole);
 
     await dLoopDepositorMock.connect(deployer).pause();
     expect(await dLoopDepositorMock.paused()).to.equal(true);

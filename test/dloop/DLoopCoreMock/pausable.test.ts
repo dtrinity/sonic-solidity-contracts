@@ -15,21 +15,23 @@ describe("DLoopCoreMock - Pausable", function () {
 
   type DLoopCoreMockFixture = Awaited<ReturnType<typeof deployDLoopMockFixture>>;
 
-  it("allows only the owner to toggle pause state", async function () {
+  it("allows only accounts with pauser role to toggle pause state", async function () {
     const { dloopMock, deployer, user1 } = await loadCoreFixture();
 
     expect(await dloopMock.paused()).to.equal(false);
 
+    const pauserRole = await dloopMock.PAUSER_ROLE();
+
     await expect(dloopMock.connect(user1).pause())
-      .to.be.revertedWithCustomError(dloopMock, "OwnableUnauthorizedAccount")
-      .withArgs(user1.address);
+      .to.be.revertedWithCustomError(dloopMock, "AccessControlUnauthorizedAccount")
+      .withArgs(user1.address, pauserRole);
 
     await dloopMock.connect(deployer).pause();
     expect(await dloopMock.paused()).to.equal(true);
 
     await expect(dloopMock.connect(user1).unpause())
-      .to.be.revertedWithCustomError(dloopMock, "OwnableUnauthorizedAccount")
-      .withArgs(user1.address);
+      .to.be.revertedWithCustomError(dloopMock, "AccessControlUnauthorizedAccount")
+      .withArgs(user1.address, pauserRole);
 
     await dloopMock.connect(deployer).unpause();
     expect(await dloopMock.paused()).to.equal(false);
