@@ -87,4 +87,14 @@ contract BaseOdosAdapterV2Harness is BaseOdosBuyAdapterV2 {
         (bool success, ) = token.call(abi.encodeWithSignature("mint(address,uint256)", address(this), amount));
         require(success, "Mint failed");
     }
+
+    /// @notice Expose _conditionalRenewAllowance for testing H-03 fix
+    function conditionalRenewAllowance(address asset, uint256 minAmount) external {
+        _conditionalRenewAllowance(asset, minAmount);
+    }
+
+    /// @notice Helper to set arbitrary approval for testing (not using safeApprove)
+    function directApprove(address token, address spender, uint256 amount) external {
+        IERC20(token).approve(spender, amount);
+    }
 }

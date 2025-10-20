@@ -236,7 +236,7 @@ contract OdosDebtSwapAdapterV2 is
                 "Insufficient amount to repay flashloan"
             );
 
-            IERC20WithPermit(asset).safeApprove(address(POOL), amountToReturn);
+            _conditionalRenewAllowance(asset, amountToReturn);
             return true;
         }
 
@@ -252,7 +252,7 @@ contract OdosDebtSwapAdapterV2 is
             );
 
             // Repay old debt
-            IERC20WithPermit(flashParams.debtAsset).safeApprove(address(POOL), flashParams.debtRepayAmount);
+            _conditionalRenewAllowance(flashParams.debtAsset, flashParams.debtRepayAmount);
             POOL.repay(flashParams.debtAsset, flashParams.debtRepayAmount, flashParams.debtRateMode, flashParams.user);
 
             // Borrow new debt to repay flashloan
@@ -270,7 +270,7 @@ contract OdosDebtSwapAdapterV2 is
                 "Insufficient amount to repay flashloan"
             );
 
-            IERC20WithPermit(asset).safeApprove(address(POOL), amountToReturn);
+            _conditionalRenewAllowance(asset, amountToReturn);
             return true;
         }
     }
