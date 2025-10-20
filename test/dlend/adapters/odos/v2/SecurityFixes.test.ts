@@ -1,12 +1,6 @@
 import { expect } from "chai";
 import { ethers } from "hardhat";
-import {
-  deployOdosV2TestFixture,
-  setupTestEnvironment,
-  createPendleSwapData,
-  createPTSwapData,
-  OdosV2TestFixture,
-} from "./fixtures/setup";
+import { deployOdosV2TestFixture, setupTestEnvironment, createPendleSwapData, createPTSwapData, OdosV2TestFixture } from "./fixtures/setup";
 
 describe("Security Fixes: H-02 and H-03", function () {
   let fixture: OdosV2TestFixture;
@@ -52,7 +46,8 @@ describe("Security Fixes: H-02 and H-03", function () {
           odosRouter,
           swapData,
         ),
-      ).to.be.revertedWithCustomError(pendleLogicHarness, "InsufficientPTSwapOutput")
+      )
+        .to.be.revertedWithCustomError(pendleLogicHarness, "InsufficientPTSwapOutput")
         .withArgs(minTargetOut, underlyingReceived);
     });
 
@@ -64,12 +59,7 @@ describe("Security Fixes: H-02 and H-03", function () {
       const minTargetOut = ethers.parseEther("950");
 
       // Configure Pendle router to return exactly the minimum
-      await pendleRouter.setSwapBehavior(
-        await ptTokenA.getAddress(),
-        await syTokenA.getAddress(),
-        underlyingReceived,
-        false,
-      );
+      await pendleRouter.setSwapBehavior(await ptTokenA.getAddress(), await syTokenA.getAddress(), underlyingReceived, false);
 
       const swapData = createPTSwapData(
         true,
@@ -103,12 +93,7 @@ describe("Security Fixes: H-02 and H-03", function () {
       const minTargetOut = ethers.parseEther("950");
 
       // Configure Pendle router to return more than minimum
-      await pendleRouter.setSwapBehavior(
-        await ptTokenA.getAddress(),
-        await syTokenA.getAddress(),
-        underlyingReceived,
-        false,
-      );
+      await pendleRouter.setSwapBehavior(await ptTokenA.getAddress(), await syTokenA.getAddress(), underlyingReceived, false);
 
       const swapData = createPTSwapData(
         true,
@@ -143,12 +128,7 @@ describe("Security Fixes: H-02 and H-03", function () {
       // so actual output is below user's minimum
       const attackerManipulatedOutput = ethers.parseEther("900"); // 5%+ slippage
 
-      await pendleRouter.setSwapBehavior(
-        await ptTokenA.getAddress(),
-        await syTokenA.getAddress(),
-        attackerManipulatedOutput,
-        false,
-      );
+      await pendleRouter.setSwapBehavior(await ptTokenA.getAddress(), await syTokenA.getAddress(), attackerManipulatedOutput, false);
 
       const swapData = createPTSwapData(
         true,
@@ -178,12 +158,7 @@ describe("Security Fixes: H-02 and H-03", function () {
       const underlyingReceived = ethers.parseEther("980");
       const minTargetOut = ethers.parseEther("950");
 
-      await pendleRouter.setSwapBehavior(
-        await ptTokenA.getAddress(),
-        await syTokenA.getAddress(),
-        underlyingReceived,
-        false,
-      );
+      await pendleRouter.setSwapBehavior(await ptTokenA.getAddress(), await syTokenA.getAddress(), underlyingReceived, false);
 
       const swapData = createPTSwapData(
         true,
@@ -369,12 +344,7 @@ describe("Security Fixes: H-02 and H-03", function () {
       await baseAdapterHarness.conditionalRenewAllowance(await syTokenA.getAddress(), minTargetOut);
 
       // Configure Pendle to return below minimum
-      await pendleRouter.setSwapBehavior(
-        await ptTokenA.getAddress(),
-        await syTokenA.getAddress(),
-        underlyingReceived,
-        false,
-      );
+      await pendleRouter.setSwapBehavior(await ptTokenA.getAddress(), await syTokenA.getAddress(), underlyingReceived, false);
 
       const swapData = createPTSwapData(
         true,
@@ -412,12 +382,7 @@ describe("Security Fixes: H-02 and H-03", function () {
       const minTargetOut = ethers.parseEther("950");
 
       // Configure Pendle: PT -> underlying
-      await pendleRouter.setSwapBehavior(
-        await ptTokenA.getAddress(),
-        await syTokenA.getAddress(),
-        underlyingReceived,
-        false,
-      );
+      await pendleRouter.setSwapBehavior(await ptTokenA.getAddress(), await syTokenA.getAddress(), underlyingReceived, false);
 
       // Configure Odos: underlying -> target (different token)
       await odosRouter.setSwapBehaviour(
@@ -452,4 +417,3 @@ describe("Security Fixes: H-02 and H-03", function () {
     });
   });
 });
-

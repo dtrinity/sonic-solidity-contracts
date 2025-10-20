@@ -164,7 +164,7 @@ library PendleSwapLogic {
         if (swapData.underlyingAsset == targetToken) {
             // Direct case: underlying is the target token
             actualTargetOut = underlyingReceived;
-            
+
             // Validate slippage protection even in direct path
             if (actualTargetOut < minTargetOut) {
                 revert InsufficientPTSwapOutput(minTargetOut, actualTargetOut);
