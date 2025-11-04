@@ -34,3 +34,6 @@ reports/slither/
 
 # Mythril analysis reports
 reports/mythril/
+
+# Verification artifacts
+reports/verification/

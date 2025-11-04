@@ -69,11 +69,19 @@ clean-deployments: ## Clean the deployments for a given network which matches at
 
 explorer.verify.sonic_testnet: ## Verify contracts on sonic testnet
 	@echo "Verifying contracts on sonic testnet..."
-	@yarn hardhat --network sonic_testnet etherscan-verify --api-key 4EJCRRD3JKIE6TKF6ME7AKVYWFEJI79A26 --api-url https://api-testnet.sonicscan.org
+	@if [ -z "$(ETHERSCAN_API_KEY)" ]; then \
+		echo "ETHERSCAN_API_KEY environment variable must be set"; \
+		exit 1; \
+	fi
+	@ETHERSCAN_API_KEY="$(ETHERSCAN_API_KEY)" yarn hardhat --network sonic_testnet etherscan-verify
 
 explorer.verify.sonic_mainnet: ## Verify contracts on sonic mainnet
 	@echo "Verifying contracts on sonic mainnet..."
-	@yarn hardhat --network sonic_mainnet etherscan-verify --api-key 4EJCRRD3JKIE6TKF6ME7AKVYWFEJI79A26 --api-url https://api.sonicscan.org
+	@if [ -z "$(ETHERSCAN_API_KEY)" ]; then \
+		echo "ETHERSCAN_API_KEY environment variable must be set"; \
+		exit 1; \
+	fi
+	@ETHERSCAN_API_KEY="$(ETHERSCAN_API_KEY)" yarn hardhat --network sonic_mainnet etherscan-verify
 
 ##############
 ## Building ##
