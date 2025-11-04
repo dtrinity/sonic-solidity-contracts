@@ -2,7 +2,11 @@
 
 ## Overview
 
-The `ERC20VestingNFT` contract implements a "soft locker" system for dSTAKE tokens with a 6-month vesting period. Users deposit dSTAKE tokens and receive NFTs that represent their locked positions. The contract supports two exit mechanisms: early redemption (burns NFT) and matured withdrawal (makes NFT soul-bound).
+The `ERC20VestingNFT` contract implements a "soft locker" system for dSTAKE
+tokens with a governance-configurable vesting duration. Users deposit dSTAKE,
+receive NFTs representing locked positions, and can either exit early (burning
+the NFT) or wait until vesting completes, after which the NFT becomes
+soul-bound.
 
 ## Key Design Decisions
 
@@ -20,11 +24,17 @@ The `ERC20VestingNFT` contract implements a "soft locker" system for dSTAKE toke
 - Prevents unlimited deposits while allowing program scaling
 - Separate from individual deposit limits
 
-### 4. Deposit Control
+### 4. Programmable Vesting Period
+- `vestingPeriod` is provided at deployment; protocol governance chooses the
+  duration (e.g., 6 months).
+- The value is immutable once the contract is deployed, but different instances
+  can use different durations to support multiple programs.
+
+### 5. Deposit Control
 - Owner can disable new deposits without affecting existing positions
 - Allows graceful program wind-down while preserving user rights
 
-### 5. Minimum Deposit Threshold
+### 6. Minimum Deposit Threshold
 - Owner can set a minimum amount for deposits to prevent micropayments and gas waste
 - Threshold is specified in the constructor and stored in `minDepositAmount`
 - Owner can update the threshold via `setMinDepositAmount`
@@ -47,9 +57,10 @@ The `ERC20VestingNFT` contract implements a "soft locker" system for dSTAKE toke
 - `_beforeTokenTransfer` hook prevents transfers of matured NFTs
 
 ### 3. Vesting Period Immutability
-- Set at deployment time for predictability and trust
-- Cannot be changed by owner to prevent rug-pull scenarios
-- Users can rely on fixed 6-month timeline
+- `vestingPeriod` is immutable once the contract is deployed, ensuring
+  predictability for participants.
+- Deployments can choose any duration; documentation should state the chosen
+  period (commonly 6 months).
 
 ### 4. Token ID Management
 - Uses OpenZeppelin's `_tokenIdCounter` for sequential, unique IDs
@@ -97,7 +108,7 @@ The `ERC20VestingNFT` contract implements a "soft locker" system for dSTAKE toke
 
 ## Program Lifecycle
 
-1. **Deployment**: Set vesting period (6 months), max supply
+1. **Deployment**: Set vesting period (in seconds), max supply, and min deposit
 2. **Active Phase**: Users deposit dSTAKE, receive NFTs
 3. **Wind-down**: Owner disables deposits (optional)
 4. **Vesting**: Users wait for 6-month period

@@ -2,7 +2,13 @@ import { ZeroAddress } from "ethers";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 
 import { ONE_PERCENT_BPS } from "../../typescript/common/bps_constants";
-import { DS_TOKEN_ID, DUSD_TOKEN_ID, INCENTIVES_PROXY_ID, SDUSD_DSTAKE_TOKEN_ID } from "../../typescript/deploy-ids";
+import {
+  DS_ISSUER_V2_CONTRACT_ID,
+  DS_TOKEN_ID,
+  DUSD_TOKEN_ID,
+  INCENTIVES_PROXY_ID,
+  SDUSD_DSTAKE_TOKEN_ID,
+} from "../../typescript/deploy-ids";
 import { ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT, ORACLE_AGGREGATOR_PRICE_DECIMALS } from "../../typescript/oracle_aggregator/constants";
 import {
   rateStrategyDUSD,
@@ -46,6 +52,10 @@ export async function getConfig(_hre: HardhatRuntimeEnvironment): Promise<Config
 
   // Fetch deployed dSTAKE token for sdUSD (optional)
   const sdUSDDeployment = await _hre.deployments.getOrNull(SDUSD_DSTAKE_TOKEN_ID);
+
+  // Fetch RedeemerV2 deployments
+  const dSRedeemerV2Deployment = await _hre.deployments.getOrNull("RedeemerV2_DS");
+
   // Get mock oracle deployments
   const mockOracleNameToAddress: Record<string, string> = {};
   const mockOracleAddressesDeployment = await _hre.deployments.getOrNull("MockOracleNameToAddress");
@@ -60,6 +70,7 @@ export async function getConfig(_hre: HardhatRuntimeEnvironment): Promise<Config
 
   // Safe configuration for testnet governance (using deployer as single owner for testing)
   const testnetGovernanceMultisig = "0xd2f775Ff2cD41bfe43C7A8c016eD10393553fe44";
+  const dSIssuerV2Deployment = await _hre.deployments.getOrNull(DS_ISSUER_V2_CONTRACT_ID);
 
   return {
     // Note: No Safe deployed on testnet yet - using deployer as single signer for testing
@@ -435,6 +446,16 @@ export async function getConfig(_hre: HardhatRuntimeEnvironment): Promise<Config
       maxTotalSupply: _hre.ethers.parseUnits("20000000", 18).toString(), // 20M tokens
       initialOwner: deployer,
       minDepositThreshold: _hre.ethers.parseUnits("250000", 18).toString(), // 250k tokens
+    },
+    nativeMintingGateways: {
+      wSDSGateway: {
+        name: "wS to dS Native Minting Gateway",
+        wNativeToken: wSAddress,
+        dStableIssuer: emptyStringIfUndefined(dSIssuerV2Deployment?.address),
+        dStableRedeemer: emptyStringIfUndefined(dSRedeemerV2Deployment?.address),
+        dStableToken: emptyStringIfUndefined(dSDeployment?.address),
+        initialOwner: testnetGovernanceMultisig,
+      },
     },
   };
 }

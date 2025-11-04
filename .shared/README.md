@@ -204,24 +204,101 @@ import { runSlither } from '@dtrinity/shared-hardhat-tools/scripts/analysis/slit
 const success = runSlither({ network: 'mainnet', failOnHigh: true });
 ```
 
+### Manifest-Driven Role Governance
+
+The shared tooling now splits role/ownership hardening into focused scripts driven by a single manifest:
+
+- `scan-roles` – read-only visibility into AccessControl and Ownable exposure.
+- `grant-default-admin` – grants `DEFAULT_ADMIN_ROLE` to governance (direct execution).
+- `revoke-roles` – prepares a Safe batch that revokes every deployer-held role.
+- `transfer-ownership` – transfers `Ownable` contracts from the deployer to governance.
+
+Version 2 manifests still auto-include every contract the deployer controls and let you opt out with exclusions or overrides. The schema is simpler—there is no renounce list or removal strategy anymore. A minimal manifest:
+
+```json
+{
+  "version": 2,
+  "deployer": "0xDeployer...",
+  "governance": "0xGovernance...",
+  "autoInclude": { "ownable": true, "defaultAdmin": true },
+  "defaults": {
+    "ownable": { "newOwner": "{{governance}}" },
+    "defaultAdmin": { "newAdmin": "{{governance}}" }
+  },
+  "safe": {
+    "safeAddress": "0xSafe...",
+    "owners": ["0xGovernor1...", "0xGovernor2..."],
+    "threshold": 2,
+    "chainId": 8453,
+    "description": "DEFAULT_ADMIN_ROLE cleanup"
+  },
+  "exclusions": [
+    { "deployment": "PausedContract", "ownable": true, "reason": "Keep under deployer until audit" }
+  ],
+  "overrides": [
+    {
+      "deployment": "SpecialContract",
+      "defaultAdmin": {
+        "enabled": true
+      }
+    }
+  ]
+}
+```
+
+- `{{deployer}}` and `{{governance}}` placeholders resolve to the manifest addresses.
+- `autoInclude` determines the default sweep; exclusions and overrides explicitly change the plan.
+- `ownable.execution` must stay `direct`; Safe batches cannot call `transferOwnership`.
+- The revoke script always generates `revokeRole` calls that the governance Safe executes offline.
+
+Before running the CLI, add `roles.deployer` and `roles.governance` to your Hardhat network config. The shared scripts fall back to these values when the CLI flags are omitted, and refuse to run if neither source is provided.
+
+Usage:
+
+```bash
+# Scan for exposure and drift
+ts-node .shared/scripts/roles/scan-roles.ts --manifest manifests/roles.mainnet.json --network mainnet --deployer 0xDeployer... --governance 0xGovernance... --drift-check
+
+# Grant DEFAULT_ADMIN_ROLE directly (prompted unless --yes)
+ts-node .shared/scripts/roles/grant-default-admin.ts --manifest manifests/roles.mainnet.json --network mainnet
+
+# Queue Safe revokeRole transactions for every deployer-held role
+ts-node .shared/scripts/roles/revoke-roles.ts --manifest manifests/roles.mainnet.json --network mainnet
+
+# Transfer Ownable contracts directly (prompted unless --yes)
+ts-node .shared/scripts/roles/transfer-ownership.ts --manifest manifests/roles.mainnet.json --network mainnet
+
+# Add --dry-run to any script to print the plan without sending transactions
+```
+
+`--json-output report.json` persists an execution summary alongside console output. The Safe batch creator never signs
+or submits transactions—it only prepares a tx-builder payload and SafeTx hash offline so governors can review before
+proposing.
+
 ### Setting Up Git Hooks
 
 ```bash
-# Install just the shared hooks (skips configs/CI/package scripts)
+# Install the default shared hook (pre-push only; skips configs/CI/package scripts)
 node_modules/.bin/ts-node .shared/scripts/setup.ts --hooks
+
+# Opt into the optional pre-commit hook as well
+node_modules/.bin/ts-node .shared/scripts/setup.ts --hooks --include-pre-commit-hook
 
 # Force overwrite existing hooks
 node_modules/.bin/ts-node .shared/scripts/setup.ts --hooks --force
 ```
 
 The shared pre-commit hook runs the guardrail suite (Prettier, ESLint, Solhint) and checks staged Solidity/tests for
-`console.log` or lingering `.only`. Prettier is skipped by default—set `SHARED_HARDHAT_PRE_COMMIT_PRETTIER=1` to turn it
-on. Contract compilation is opt-in as well (`SHARED_HARDHAT_PRE_COMMIT_COMPILE=1`).
+`console.log` or lingering `.only`. Prettier runs by default—set `SHARED_HARDHAT_PRE_COMMIT_PRETTIER=0` to skip it
+temporarily. Contract compilation is also enabled unless you opt out (`SHARED_HARDHAT_PRE_COMMIT_COMPILE=0`).
 
-The pre-push hook reruns guardrails (Prettier disabled unless `SHARED_HARDHAT_PRE_PUSH_PRETTIER=1`), optionally
-executes tests, and requires Slither only on long-lived branches (`main`, `master`, `develop`). Enable automated test
-runs with `SHARED_HARDHAT_PRE_PUSH_TEST=1` or customize the command via
-`SHARED_HARDHAT_PRE_PUSH_TEST_CMD="yarn test --runInBand"`.
+The pre-push hook reruns guardrails (Prettier enabled by default—set
+`SHARED_HARDHAT_PRE_PUSH_PRETTIER=0` to skip), executes tests by default (opt out with
+`SHARED_HARDHAT_PRE_PUSH_TEST=0`), and requires Slither only on long-lived branches (`main`, `master`, `develop`).
+Customize the test command via `SHARED_HARDHAT_PRE_PUSH_TEST_CMD="yarn test --runInBand"`.
+
+By default only the pre-push hook is installed; re-run the setup command with `--include-pre-commit-hook` whenever you
+want the additional pre-commit automation.
 
 ### Updating Shared Tools
 

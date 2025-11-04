@@ -154,7 +154,8 @@ describe("DLoopCoreMock - Withdraw Fee", function () {
     await dloop.connect(user).deposit(smallDeposit, user.address);
 
     const netFromRedeem = await dloop.previewRedeem(1n);
-    expect(netFromRedeem).to.equal(0n);
+    const expectedNetFromRedeem = 1n - (1n * BigInt(FEE_BPS)) / DENOM;
+    expect(netFromRedeem).to.equal(expectedNetFromRedeem);
 
     // Pick a small-but-safe net that maps to at least ~2 base units to avoid rounding repay to zero
     const maxNet = await dloop.maxWithdraw(user.address);
@@ -217,10 +218,13 @@ describe("DLoopCoreMock - Withdraw Fee", function () {
     await expect(dloop.setWithdrawalFeeBps(MAX_FEE_BPS + 1n)).to.be.revertedWithCustomError(dloop, "WithdrawalFeeIsGreaterThanMaxFee");
   });
 
-  it("setWithdrawalFeeBps is onlyOwner", async function () {
+  it("setWithdrawalFeeBps is restricted to admin role", async function () {
     const user = users[1]; // not the deployer/owner
     const nonOwner = dloop.connect(user);
-    await expect(nonOwner.setWithdrawalFeeBps(FEE_BPS)).to.be.revertedWithCustomError(dloop, "OwnableUnauthorizedAccount");
+    const adminRole = await dloop.DLOOP_ADMIN_ROLE();
+    await expect(nonOwner.setWithdrawalFeeBps(FEE_BPS))
+      .to.be.revertedWithCustomError(dloop, "AccessControlUnauthorizedAccount")
+      .withArgs(user.address, adminRole);
   });
 
   it("large amounts maintain precision and match previews", async function () {

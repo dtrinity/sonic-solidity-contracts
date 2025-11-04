@@ -7,12 +7,13 @@ import { BasisPointConstants } from "contracts/common/BasisPointConstants.sol";
 import { PercentageMath } from "contracts/dlend/core/protocol/libraries/math/PercentageMath.sol";
 import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
 import { DLoopCoreLogic } from "../../DLoopCoreLogic.sol";
+import { RescuableVault } from "contracts/vaults/dloop/shared/RescuableVault.sol";
 
 /**
  * @title DLoopCoreMock
  * @dev Simple mock implementation of DLoopCoreBase for testing
  */
-contract DLoopCoreMock is DLoopCoreBase {
+contract DLoopCoreMock is DLoopCoreBase, RescuableVault {
     // Errors
     error NotEnoughBalanceToSupply(address user, string tokenSymbol, uint256 balance, uint256 amount);
     error MockPriceNotSet(address asset);
@@ -147,11 +148,18 @@ contract DLoopCoreMock is DLoopCoreBase {
     // --- Overrides ---
 
     /**
-     * @inheritdoc DLoopCoreBase
-     * @return address[] Additional rescue tokens
+     * @dev Do not rescue the mock additional rescue tokens
+     *      - Implement this method from RescuableVault
+     * @param token Address of the token to check
+     * @return bool True if the token is a restricted rescue token, false otherwise
      */
-    function _getAdditionalRescueTokensImplementation() internal view override returns (address[] memory) {
-        return mockAdditionalRescueTokens;
+    function isRescuableToken(address token) public view override returns (bool) {
+        for (uint256 i = 0; i < mockAdditionalRescueTokens.length; i++) {
+            if (token == mockAdditionalRescueTokens[i]) {
+                return true;
+            }
+        }
+        return false;
     }
 
     function _getAssetPriceFromOracleImplementation(address asset) internal view override returns (uint256) {
@@ -321,10 +329,10 @@ contract DLoopCoreMock is DLoopCoreBase {
     // --- Additional Test Wrappers for Internal Methods ---
 
     /**
-     * @dev Test wrapper for _getAdditionalRescueTokensImplementation
+     * @dev Test wrapper for isRescuableToken
      */
-    function testGetAdditionalRescueTokensImplementation() external view returns (address[] memory) {
-        return _getAdditionalRescueTokensImplementation();
+    function testisRescuableToken(address token) external view returns (bool) {
+        return isRescuableToken(token);
     }
 
     /**
@@ -436,4 +444,7 @@ contract DLoopCoreMock is DLoopCoreBase {
     function getMockAdditionalRescueTokens() external view returns (address[] memory) {
         return mockAdditionalRescueTokens;
     }
+
+    // Allow receiving native tokens for testing rescue functionality
+    receive() external payable {}
 }

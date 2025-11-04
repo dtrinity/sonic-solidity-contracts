@@ -1,4 +1,26 @@
+-include ./.env
+
+
+ROLES_NETWORK ?= sonic_mainnet
+ROLES_MANIFEST ?= manifests/sonic-mainnet-roles.json
+ROLES_SCAN_ARGS ?= --drift-check
+ROLES_TRANSFER_ARGS ?=
+ROLES_REVOKE_ARGS ?=
+
+SHARED_ENABLE_SLITHER_TARGETS := 0
 include .shared/Makefile
+
+override TS_NODE := TS_NODE_TRANSPILE_ONLY=1 TS_NODE_PROJECT=$(PROJECT_ROOT)/tsconfig.shared.json $(YARN) ts-node --project $(PROJECT_ROOT)/tsconfig.shared.json
+
+MANIFEST_DEPLOYER := $(shell node -e "const fs=require('fs');const path=require('path');try{const m=JSON.parse(fs.readFileSync(path.resolve('$(ROLES_MANIFEST)'),'utf8'));if(m.deployer){process.stdout.write(m.deployer);}}catch(e){}")
+MANIFEST_GOVERNANCE := $(shell node -e "const fs=require('fs');const path=require('path');try{const m=JSON.parse(fs.readFileSync(path.resolve('$(ROLES_MANIFEST)'),'utf8'));if(m.governance){process.stdout.write(m.governance);}}catch(e){}")
+
+network ?= $(ROLES_NETWORK)
+manifest ?= $(ROLES_MANIFEST)
+deployer ?= $(MANIFEST_DEPLOYER)
+governance ?= $(MANIFEST_GOVERNANCE)
+
+$(shell mkdir -p reports/roles)
 
 ##############
 ## Testing  ##
@@ -74,7 +96,6 @@ explorer.verify.sonic_testnet: ## Verify contracts on sonic testnet
 		exit 1; \
 	fi
 	@ETHERSCAN_API_KEY="$(ETHERSCAN_API_KEY)" yarn hardhat --network sonic_testnet etherscan-verify
-
 explorer.verify.sonic_mainnet: ## Verify contracts on sonic mainnet
 	@echo "Verifying contracts on sonic mainnet..."
 	@if [ -z "$(ETHERSCAN_API_KEY)" ]; then \
@@ -82,6 +103,30 @@ explorer.verify.sonic_mainnet: ## Verify contracts on sonic mainnet
 		exit 1; \
 	fi
 	@ETHERSCAN_API_KEY="$(ETHERSCAN_API_KEY)" yarn hardhat --network sonic_mainnet etherscan-verify
+
+explorer.verify.focused: ## Verify a single contract on specified network (usage: make explorer.verify.focused network=sonic_testnet contract=ContractName)
+	@if [ -z "$(ETHERSCAN_API_KEY)" ]; then \
+		echo "ETHERSCAN_API_KEY environment variable must be set"; \
+		exit 1; \
+	fi
+	@if [ "$(network)" = "" ]; then \
+		echo "Must provide 'network' argument. Example: 'make explorer.verify.focused network=sonic_testnet contract=MyContract'"; \
+		exit 1; \
+	fi
+	@if [ "$(contract)" = "" ]; then \
+		echo "Must provide 'contract' argument. Example: 'make explorer.verify.focused network=sonic_testnet contract=MyContract'"; \
+		exit 1; \
+	fi
+	@if [ "$(network)" = "sonic_testnet" ]; then \
+		echo "Verifying $(contract) on sonic testnet..."; \
+		ETHERSCAN_API_KEY="$(ETHERSCAN_API_KEY)" yarn hardhat --network sonic_testnet etherscan-verify --contract-name $(contract); \
+	elif [ "$(network)" = "sonic_mainnet" ]; then \
+		echo "Verifying $(contract) on sonic mainnet..."; \
+		ETHERSCAN_API_KEY="$(ETHERSCAN_API_KEY)" yarn hardhat --network sonic_mainnet etherscan-verify --contract-name $(contract); \
+	else \
+		echo "Unsupported network: $(network). Use 'sonic_testnet' or 'sonic_mainnet'"; \
+		exit 1; \
+	fi
 
 ##############
 ## Building ##

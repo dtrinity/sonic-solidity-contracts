@@ -5,14 +5,25 @@ SHELL := /bin/bash
 
 YARN ?= yarn
 
+SHARED_ENABLE_HELP ?= 1
+SHARED_ENABLE_SLITHER_TARGETS ?= 1
+SHARED_ENABLE_ROLES_TARGETS ?= 1
+
+ROLES_SCAN_ARGS ?=
+ROLES_GRANT_ARGS ?=
+ROLES_TRANSFER_ARGS ?=
+ROLES_REVOKE_ARGS ?=
+
 shared_makefile := $(lastword $(MAKEFILE_LIST))
 SHARED_ROOT := $(abspath $(dir $(shared_makefile)))
 PROJECT_ROOT := $(abspath $(SHARED_ROOT)/..)
 TS_NODE := TS_NODE_PROJECT=$(SHARED_ROOT)/tsconfig.json $(YARN) ts-node --project $(SHARED_ROOT)/tsconfig.json
 
+ifeq ($(SHARED_ENABLE_HELP),1)
 help: ## Show this help menu
 	@echo "Usage:"
 	@grep -h -E '^[a-zA-Z0-9_.-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-22s\033[0m %s\n", $$1, $$2}'
+endif
 
 lint: lint.fix lint.solhint ## Run shared lint suite with fixes and Solhint
 
@@ -53,6 +64,7 @@ lint.typescript: lint.eslint ## Run TypeScript/JavaScript ESLint with fixes
 
 lint.typescript.check: lint.eslint.check ## Run TypeScript/JavaScript ESLint in check mode
 
+ifeq ($(SHARED_ENABLE_SLITHER_TARGETS),1)
 slither: ## Run Slither using shared workflow defaults
 	@$(TS_NODE) $(SHARED_ROOT)/scripts/analysis/slither.ts default
 
@@ -68,6 +80,7 @@ slither.focused: ## Run Slither on a specific contract (make slither.focused con
 
 slither.ensure: ## Ensure Slither is installed via the shared helper
 	@$(TS_NODE) $(SHARED_ROOT)/scripts/analysis/slither.ts --ensure-only
+endif
 
 analyze.shared: ## Run the shared static analysis suite (Slither + Mythril, etc.)
 	@$(TS_NODE) $(SHARED_ROOT)/scripts/analysis/run-all.ts
@@ -120,6 +133,7 @@ shared.sanity.oracle-addresses: ## Print oracle source addresses for provided ke
 shared.metrics.nsloc: ## Generate Solidity non-comment SLOC metrics
 	@$(TS_NODE) $(SHARED_ROOT)/scripts/deployments/nsloc.ts
 
+ifeq ($(SHARED_ENABLE_ROLES_TARGETS),1)
 roles.scan: ## Scan contracts for role assignments and ownership (make roles.scan network=network deployer=address governance=address)
 	@if [ "$(network)" = "" ]; then \
 		echo "Must provide 'network' argument."; \
@@ -133,45 +147,41 @@ roles.scan: ## Scan contracts for role assignments and ownership (make roles.sca
 		echo "Must provide 'governance' argument."; \
 		exit 1; \
 	fi
-	@$(TS_NODE) $(SHARED_ROOT)/scripts/roles/scan-roles.ts --network "$(network)" --deployer "$(deployer)" --governance "$(governance)"
+	@$(TS_NODE) $(SHARED_ROOT)/scripts/roles/scan-roles.ts --network "$(network)" --deployer "$(deployer)" --governance "$(governance)" $(if $(manifest),--manifest "$(manifest)",) $(ROLES_SCAN_ARGS)
 
-roles.transfer: ## Transfer roles from deployer to governance (make roles.transfer network=network deployer=address governance=address [--yes])
+roles.grant: ## Grant DEFAULT_ADMIN_ROLE to governance (make roles.grant network=network manifest=path [--dry-run] [--yes])
 	@if [ "$(network)" = "" ]; then \
 		echo "Must provide 'network' argument."; \
 		exit 1; \
 	fi
-	@if [ "$(deployer)" = "" ]; then \
-		echo "Must provide 'deployer' argument."; \
+	@if [ "$(manifest)" = "" ]; then \
+		echo "Must provide 'manifest' argument."; \
 		exit 1; \
 	fi
-	@if [ "$(governance)" = "" ]; then \
-		echo "Must provide 'governance' argument."; \
-		exit 1; \
-	fi
-	@$(TS_NODE) $(SHARED_ROOT)/scripts/roles/transfer-roles.ts --network "$(network)" --deployer "$(deployer)" --governance "$(governance)" $(if $(yes),--yes,)
+	@$(TS_NODE) $(SHARED_ROOT)/scripts/roles/grant-default-admin.ts --network "$(network)" --manifest "$(manifest)" $(if $(yes),--yes,) $(ROLES_GRANT_ARGS)
 
-roles.revoke: ## Revoke deployer roles via Safe batch (make roles.revoke network=network deployer=address governance=address safe_address=address chain_id=number)
+roles.transfer: ## Transfer Ownable ownership to governance (make roles.transfer network=network manifest=path [--dry-run] [--yes])
 	@if [ "$(network)" = "" ]; then \
 		echo "Must provide 'network' argument."; \
 		exit 1; \
 	fi
-	@if [ "$(deployer)" = "" ]; then \
-		echo "Must provide 'deployer' argument."; \
+	@if [ "$(manifest)" = "" ]; then \
+		echo "Must provide 'manifest' argument."; \
 		exit 1; \
 	fi
-	@if [ "$(governance)" = "" ]; then \
-		echo "Must provide 'governance' argument."; \
+	@$(TS_NODE) $(SHARED_ROOT)/scripts/roles/transfer-ownership.ts --network "$(network)" --manifest "$(manifest)" $(if $(yes),--yes,) $(ROLES_TRANSFER_ARGS)
+
+roles.revoke: ## Revoke deployer roles via Safe batch (make roles.revoke network=network manifest=path)
+	@if [ "$(network)" = "" ]; then \
+		echo "Must provide 'network' argument."; \
 		exit 1; \
 	fi
-	@if [ "$(safe_address)" = "" ]; then \
-		echo "Must provide 'safe_address' argument."; \
+	@if [ "$(manifest)" = "" ]; then \
+		echo "Must provide 'manifest' argument."; \
 		exit 1; \
 	fi
-	@if [ "$(chain_id)" = "" ]; then \
-		echo "Must provide 'chain_id' argument."; \
-		exit 1; \
-	fi
-	@$(TS_NODE) $(SHARED_ROOT)/scripts/roles/revoke-roles.ts --network "$(network)" --deployer "$(deployer)" --governance "$(governance)" --safe-address "$(safe_address)" --chain-id "$(chain_id)"
+	@$(TS_NODE) $(SHARED_ROOT)/scripts/roles/revoke-roles.ts --network "$(network)" --manifest "$(manifest)" $(ROLES_REVOKE_ARGS)
+endif
 
 .PHONY: \
 	help \
@@ -183,4 +193,4 @@ roles.revoke: ## Revoke deployer roles via Safe batch (make roles.revoke network
 	analyze.shared guardrails shared.update shared.setup \
 	shared.sanity.deploy-ids shared.sanity.deploy-clean shared.sanity.deploy-addresses shared.sanity.oracle-addresses \
 	shared.metrics.nsloc \
-	roles.scan roles.transfer roles.revoke
+	roles.scan roles.grant roles.transfer roles.revoke

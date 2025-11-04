@@ -2,7 +2,14 @@ import { ZeroAddress } from "ethers";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 
 import { ONE_PERCENT_BPS } from "../../typescript/common/bps_constants";
-import { DS_TOKEN_ID, DUSD_TOKEN_ID, INCENTIVES_PROXY_ID, SDUSD_DSTAKE_TOKEN_ID } from "../../typescript/deploy-ids";
+import {
+  DS_ISSUER_V2_CONTRACT_ID,
+  DS_TOKEN_ID,
+  DUSD_ISSUER_V2_CONTRACT_ID,
+  DUSD_TOKEN_ID,
+  INCENTIVES_PROXY_ID,
+  SDUSD_DSTAKE_TOKEN_ID,
+} from "../../typescript/deploy-ids";
 import { ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT, ORACLE_AGGREGATOR_PRICE_DECIMALS } from "../../typescript/oracle_aggregator/constants";
 import {
   rateStrategyDUSD,
@@ -24,6 +31,13 @@ export async function getConfig(_hre: HardhatRuntimeEnvironment): Promise<Config
   // Token info will only be populated after their deployment
   const dUSDDeployment = await _hre.deployments.getOrNull(DUSD_TOKEN_ID);
   const dSDeployment = await _hre.deployments.getOrNull(DS_TOKEN_ID);
+
+  // Fetch IssuerV2 deployments
+  const _dUSDIssuerV2Deployment = await _hre.deployments.getOrNull(DUSD_ISSUER_V2_CONTRACT_ID);
+  const dSIssuerV2Deployment = await _hre.deployments.getOrNull(DS_ISSUER_V2_CONTRACT_ID);
+
+  // Fetch RedeemerV2 deployments
+  const dSRedeemerV2Deployment = await _hre.deployments.getOrNull("RedeemerV2_DS");
   const USDCDeployment = await _hre.deployments.getOrNull("USDC");
   const USDSDeployment = await _hre.deployments.getOrNull("USDS");
   const sUSDSDeployment = await _hre.deployments.getOrNull("sUSDS");
@@ -516,6 +530,16 @@ export async function getConfig(_hre: HardhatRuntimeEnvironment): Promise<Config
         initialAdmin: user1,
         initialSlippageBps: 100, // 1% max slippage for periphery
         pool: "frxUSD_USDC_CurvePool", // Deployment name (localhost) or address (testnet/mainnet)
+      },
+    },
+    nativeMintingGateways: {
+      wSDSGateway: {
+        name: "wS to dS Native Minting Gateway",
+        wNativeToken: emptyStringIfUndefined(wSTokenDeployment?.address),
+        dStableIssuer: emptyStringIfUndefined(dSIssuerV2Deployment?.address),
+        dStableRedeemer: emptyStringIfUndefined(dSRedeemerV2Deployment?.address),
+        dStableToken: emptyStringIfUndefined(dSDeployment?.address),
+        initialOwner: user1,
       },
     },
   };
