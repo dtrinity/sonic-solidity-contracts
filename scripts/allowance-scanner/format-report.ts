@@ -128,10 +128,7 @@ function loadReport(filePath: string): ReportEntry[] {
         allowance.formattedAllowance,
         `entry[${index}].allowances[${allowanceIndex}].formattedAllowance`,
       );
-      const onChainAllowance = expectString(
-        allowance.onChainAllowance,
-        `entry[${index}].allowances[${allowanceIndex}].onChainAllowance`,
-      );
+      const onChainAllowance = expectString(allowance.onChainAllowance, `entry[${index}].allowances[${allowanceIndex}].onChainAllowance`);
 
       return {
         owner,
