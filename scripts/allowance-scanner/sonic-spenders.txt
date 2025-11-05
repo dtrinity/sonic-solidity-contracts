@@ -1,0 +1,11 @@
+# Sonic swap/spender contracts
+0x21c28f31521A25C98d99002d857447B0C3fC0DBE # Sonic OdosRepayAdapter
+0x112EBE4f04E745975551880974454B56764C1e7F # Sonic OdosRepayAdapterV2
+0x0b0cCC881660dfe660066e27DeBad16965260CaD # Sonic OdosWithdrawSwapAdapter
+0x9ee939DdC8eaAAc72d3cAE793b12a09D92624E4a # Sonic OdosLiquiditySwapAdapterV2
+0x6DF9A77c866e8a9C998286bDa5A17543e2105991 # Sonic OdosLiquiditySwapAdapter
+0x19E3Aeb751c90dBc4D884547760631B97cad4b32 # Sonic Allowance Adapter (legacy)
+0xfAEEfE857296Ec061A537B31fB1341955826b52a # Sonic Allowance Adapter (legacy)
+0x951Ed02C90A0185575Dc82e94088b9d3016b7263 # Sonic Allowance Adapter (legacy)
+0xB8445316dB44C05c5D2fE37f610B773a072432C1 # Sonic Allowance Adapter (legacy)
+0xB7c8B7C260D3CF0cc3ccF1AADF5a55d0C5032EB1 # Sonic Allowance Adapter (legacy)

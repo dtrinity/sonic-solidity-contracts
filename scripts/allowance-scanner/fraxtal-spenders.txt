@@ -1,0 +1,6 @@
+# Fraxtal swap/spender contracts
+0xC7878A1dD9cf82f5db84dC7157F623edeE52d247 # Fraxtal OdosWithdrawSwapAdapter
+0x78c4438c37809Dae02167640Bd8b6Ac7E590f847 # Fraxtal OdosRepayAdapter
+0xA860D1f093092440BBeadc0B85f1F14C004AB6f6 # Fraxtal OdosLiquiditySwapAdapter
+0x9A8aF808Dd8884c7CaaFc6c90ABdC3f9EA418a83 # Fraxtal Allowance Adapter (legacy)
+0x95c0afea3f48D4e3a5fE51b62e8B9F8538B8Ff11 # Fraxtal Allowance Adapter (legacy)
