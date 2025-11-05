@@ -4,3 +4,6 @@
 0xA860D1f093092440BBeadc0B85f1F14C004AB6f6 # Fraxtal OdosLiquiditySwapAdapter
 0x9A8aF808Dd8884c7CaaFc6c90ABdC3f9EA418a83 # Fraxtal Allowance Adapter (legacy)
 0x95c0afea3f48D4e3a5fE51b62e8B9F8538B8Ff11 # Fraxtal Allowance Adapter (legacy)
+0x5652362750F76a5635470AdBB111f24080f8220B # Fraxtal SwapCollateralAdapter (historic)
+0xe517C2b632D75DB53026bBBc6b80AC58433E4b97 # Fraxtal SwapCollateralAdapter (historic)
+0x0Fd66456f10D9b850F37Fa129236176B4f982864 # Fraxtal SwapCollateralAdapter (historic)
