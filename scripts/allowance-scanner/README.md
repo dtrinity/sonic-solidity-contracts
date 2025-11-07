@@ -41,6 +41,7 @@ Key options:
 - `--chain-id` — numeric chain ID (Sonic `146`, Fraxtal `252`).
 - `--from-block`, `--to-block` — optional block range; default is full history with TTL-aware cache refresh for `latest`.
 - `--skip-rpc` — skips on-chain verification (useful when seeding cache). Otherwise, provide `--rpc-url` for live allowance checks.
+- `--etherscan-delay-ms`, `--etherscan-max-retries`, `--etherscan-retry-backoff-ms` — tune pacing and exponential backoff when Etherscan throttles or drops connections (defaults: `210 ms`, `4`, `750 ms`).
 - `--multicall-address`, `--multicall-batch-size` — override multicall config if the default (0xcA11…CA11) is unsupported.
 - `--cache-dir`, `--cache-ttl-seconds` — control incremental cache writes. Cache files live under `.cache/allowance-scanner/` keyed by `(chainId, token, spender, fromBlock, pageSize)` and persist after each page of results, allowing safe interruption/resumption.
 
@@ -77,7 +78,7 @@ Options:
 - `--out <path>` — optional output file (prints to stdout when omitted).
 - `--no-headers` — omit the header row from the CSV output.
 
-CSV columns: `Owner`, `Spender`, `Token` (symbol + address where available), `FormattedAllowance`.
+CSV columns: `Owner`, `Spender`, `Token` (symbol + address where available), `TokenBalance`, `FormattedAllowance`.
 
 ## Generated Artifacts
 
@@ -87,6 +88,6 @@ CSV columns: `Owner`, `Spender`, `Token` (symbol + address where available), `Fo
 ## Troubleshooting
 
 - **Unknown file extension `.ts`** — run via `yarn ts-node --transpile-only ...`.
-- **Etherscan rate limits (HTTP 429)** — increase `--etherscan-delay-ms` (default `210 ms`) or narrow block ranges.
+- **Etherscan rate limits / dropped sockets** — increase `--etherscan-delay-ms`, raise `--etherscan-max-retries`, or widen `--etherscan-retry-backoff-ms`.
 - **Multicall failures** — script automatically falls back to per-address RPC calls; adjust `--rpc-concurrency` and `--rpc-delay-ms` if rate-limited.
 - **No allowances returned** — confirm address casing, ensure spender is indexed (`topic2`), and verify the token is ERC-20 compliant. Re-run with `--skip-rpc` to inspect raw event values.

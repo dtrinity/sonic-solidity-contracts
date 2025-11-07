@@ -16,6 +16,8 @@ interface CliOptions {
   pageSize: number;
   maxPages?: number;
   etherscanDelayMs: number;
+  etherscanMaxRetries: number;
+  etherscanRetryBackoffMs: number;
   rpcDelayMs: number;
   rpcConcurrency: number;
   skipRpcVerification: boolean;
@@ -42,6 +44,7 @@ interface AllowanceRecord {
   token: string;
   spender: string;
   onChainAllowance: bigint;
+  tokenBalance?: bigint;
   eventValue: bigint;
   blockNumber: number;
   logIndex: number;
@@ -89,8 +92,10 @@ interface CachedApprovalFile {
 
 const APPROVAL_TOPIC = "0x8c5be1e5ebec7d5bd14f71427d1e84f3dd0314c0f7b2291e5b200ac8c7c3b925";
 const ALLOWANCE_SELECTOR = "0xdd62ed3e";
+const BALANCE_OF_SELECTOR = "0x70a08231";
 const ERC20_ABI = [
   "function allowance(address owner, address spender) view returns (uint256)",
+  "function balanceOf(address owner) view returns (uint256)",
   "function symbol() view returns (string)",
   "function decimals() view returns (uint8)",
 ];
@@ -197,6 +202,8 @@ async function main(): Promise<void> {
   const cache = new ApprovalCache(options.cacheDir);
 
   const tokenMetadataCache = new Map<string, TokenMetadata>();
+  const tokenBalanceCache = new Map<string, bigint>();
+  let warnedBalanceUnavailable = false;
   const results: Array<{
     token: string;
     spender: string;
@@ -247,6 +254,22 @@ async function main(): Promise<void> {
           options.multicallAddress,
           options.multicallBatchSize,
         ).then((records) => records.filter((entry) => entry.onChainAllowance > 0n));
+      }
+
+      if (provider && allowances.length > 0) {
+        await populateTokenBalances(
+          provider,
+          token,
+          allowances,
+          options.rpcDelayMs,
+          options.rpcConcurrency,
+          tokenBalanceCache,
+          options.multicallAddress,
+          options.multicallBatchSize,
+        );
+      } else if (!provider && allowances.length > 0 && !warnedBalanceUnavailable) {
+        console.warn("Token balances not fetched because RPC provider is unavailable (likely due to --skip-rpc).");
+        warnedBalanceUnavailable = true;
       }
 
       results.push({ token, spender, metadata, allowances });
@@ -316,6 +339,8 @@ function parseCli(argv: string[]): CliOptions {
   const pageSize = Math.min(Math.max(parseInteger(argMap.get("page-size"), 1000), 1), 1000);
   const maxPages = argMap.has("max-pages") ? parseInteger(argMap.get("max-pages"), 1) : undefined;
   const etherscanDelayMs = Math.max(parseInteger(argMap.get("etherscan-delay-ms"), 210), 0);
+  const etherscanMaxRetries = Math.max(parseInteger(argMap.get("etherscan-max-retries"), 4), 0);
+  const etherscanRetryBackoffMs = Math.max(parseInteger(argMap.get("etherscan-retry-backoff-ms"), 750), 0);
   const rpcDelayMs = Math.max(parseInteger(argMap.get("rpc-delay-ms"), 0), 0);
   const rpcConcurrency = Math.max(parseInteger(argMap.get("rpc-concurrency"), 4), 1);
   const cacheDir = path.resolve(process.cwd(), argMap.get("cache-dir") ?? DEFAULT_CACHE_DIR);
@@ -349,6 +374,8 @@ function parseCli(argv: string[]): CliOptions {
     pageSize,
     maxPages,
     etherscanDelayMs,
+    etherscanMaxRetries,
+    etherscanRetryBackoffMs,
     rpcDelayMs,
     rpcConcurrency,
     skipRpcVerification,
@@ -467,6 +494,8 @@ async function loadApprovalLogsWithCache(
         options.pageSize,
         options.maxPages,
         options.etherscanDelayMs,
+        options.etherscanMaxRetries,
+        options.etherscanRetryBackoffMs,
         async (pageLogs, _page) => {
           if (pageLogs.length === 0) {
             return;
@@ -518,6 +547,8 @@ async function fetchApprovalEvents(
   pageSize: number,
   maxPages: number | undefined,
   delayMs: number,
+  maxRetries: number,
+  retryBackoffMs: number,
   onPage?: (logs: ApprovalLog[], page: number) => Promise<void> | void,
 ): Promise<ApprovalLog[]> {
   const entries: ApprovalLog[] = [];
@@ -542,31 +573,83 @@ async function fetchApprovalEvents(
       apikey: etherscanApiKey,
     });
 
-    const response = await fetch(`https://api.etherscan.io/v2/api?${params.toString()}`);
+    const url = `https://api.etherscan.io/v2/api?${params.toString()}`;
+    const maxAttempts = Math.max(maxRetries, 0) + 1;
+    let data:
+      | {
+          status: string;
+          message: string;
+          result: Array<{
+            topics: string[];
+            data: string;
+            timeStamp?: string;
+            blockNumber: string;
+            logIndex: string;
+            transactionHash: string;
+          }>;
+        }
+      | undefined;
 
-    if (!response.ok) {
-      throw new Error(`Failed to fetch logs: HTTP ${response.status} ${response.statusText}`);
-    }
-
-    const data = (await response.json()) as {
-      status: string;
-      message: string;
-      result: Array<{
-        topics: string[];
-        data: string;
-        timeStamp?: string;
-        blockNumber: string;
-        logIndex: string;
-        transactionHash: string;
-      }>;
-    };
-
-    if (data.status === "0") {
-      if (data.message === "No records found") {
-        break;
+    for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+      if (attempt > 0 && retryBackoffMs > 0) {
+        await sleep(computeBackoffDelay(retryBackoffMs, attempt - 1));
       }
 
-      throw new Error(`Etherscan error: ${data.message}`);
+      let response: Response;
+      try {
+        response = await fetch(url);
+      } catch (error) {
+        if (attempt === maxAttempts - 1) {
+          throw new Error(`Failed to fetch logs after ${maxAttempts} attempts: ${(error as Error).message}`);
+        }
+        console.warn(
+          `Etherscan request failed for ${token} -> ${spender} (page ${page}, attempt ${attempt + 1}/${maxAttempts}): ${(error as Error).message}`,
+        );
+        continue;
+      }
+
+      if (!response.ok) {
+        if (attempt === maxAttempts - 1 || !shouldRetryStatus(response.status)) {
+          throw new Error(`Failed to fetch logs: HTTP ${response.status} ${response.statusText}`);
+        }
+
+        console.warn(
+          `Etherscan HTTP ${response.status} for ${token} -> ${spender} (page ${page}, attempt ${attempt + 1}/${maxAttempts}); retrying...`,
+        );
+        continue;
+      }
+
+      try {
+        data = (await response.json()) as typeof data;
+      } catch (error) {
+        if (attempt === maxAttempts - 1) {
+          throw new Error(`Failed to parse Etherscan response after ${maxAttempts} attempts: ${(error as Error).message}`);
+        }
+        console.warn(
+          `Failed to parse Etherscan response for ${token} -> ${spender} (page ${page}, attempt ${attempt + 1}/${maxAttempts}); retrying...`,
+        );
+        continue;
+      }
+
+      if (data.status === "0") {
+        if (data.message === "No records found") {
+          return entries;
+        }
+
+        if (attempt === maxAttempts - 1 || !shouldRetryEtherscanMessage(data.message)) {
+          throw new Error(`Etherscan error: ${data.message}`);
+        }
+
+        console.warn(`Etherscan throttled ${token} -> ${spender} (page ${page}, attempt ${attempt + 1}/${maxAttempts}): ${data.message}`);
+        data = undefined;
+        continue;
+      }
+
+      break;
+    }
+
+    if (!data) {
+      throw new Error("Unexpected empty response from Etherscan.");
     }
 
     const pageEntries: ApprovalLog[] = [];
@@ -641,6 +724,27 @@ function approvalLogKey(log: ApprovalLog): string {
   return `${log.blockNumber}:${log.logIndex}:${log.transactionHash}`;
 }
 
+function shouldRetryStatus(status: number): boolean {
+  return status === 408 || status === 425 || status === 429 || (status >= 500 && status < 600);
+}
+
+function shouldRetryEtherscanMessage(message: string | undefined): boolean {
+  if (!message) {
+    return false;
+  }
+
+  const normalized = message.toLowerCase();
+  return normalized.includes("rate limit") || normalized.includes("max rate") || normalized.includes("busy processing");
+}
+
+function computeBackoffDelay(baseDelayMs: number, attempt: number): number {
+  if (baseDelayMs <= 0) {
+    return 0;
+  }
+  const clampedAttempt = Math.min(attempt, 6);
+  return baseDelayMs * 2 ** clampedAttempt;
+}
+
 function collectLatestApprovals(logs: ApprovalLog[]): ApprovalLog[] {
   const latestByOwner = new Map<string, ApprovalLog>();
 
@@ -682,6 +786,65 @@ async function verifyAllowances(
   }
 
   return verifyAllowancesIndividually(provider, token, spender, events, rpcDelayMs, rpcConcurrency);
+}
+
+async function populateTokenBalances(
+  provider: JsonRpcProvider,
+  token: string,
+  allowances: AllowanceRecord[],
+  rpcDelayMs: number,
+  rpcConcurrency: number,
+  cache: Map<string, bigint>,
+  multicallAddress: string | undefined,
+  multicallBatchSize: number | undefined,
+): Promise<void> {
+  if (allowances.length === 0) {
+    return;
+  }
+
+  const owners = Array.from(new Set(allowances.map((entry) => entry.owner)));
+  const balances = new Map<string, bigint>();
+  const missingOwners: string[] = [];
+
+  for (const owner of owners) {
+    const cacheKey = makeBalanceCacheKey(token, owner);
+    if (cache.has(cacheKey)) {
+      balances.set(owner, cache.get(cacheKey)!);
+    } else {
+      missingOwners.push(owner);
+    }
+  }
+
+  if (missingOwners.length > 0) {
+    const batchSize = Math.max(multicallBatchSize ?? 100, 1);
+    let fetched: Map<string, bigint> | undefined;
+
+    if (multicallAddress) {
+      try {
+        fetched = await readBalancesWithMulticall(provider, token, missingOwners, multicallAddress, batchSize, rpcDelayMs);
+      } catch (error) {
+        console.warn(`Multicall balance query failed, falling back to individual calls: ${(error as Error).message}`);
+      }
+    }
+
+    if (!fetched) {
+      fetched = await readBalancesIndividually(provider, token, missingOwners, rpcDelayMs, rpcConcurrency);
+    }
+
+    fetched.forEach((value, owner) => {
+      const cacheKey = makeBalanceCacheKey(token, owner);
+      cache.set(cacheKey, value);
+      balances.set(owner, value);
+    });
+  }
+
+  for (const allowance of allowances) {
+    const cacheKey = makeBalanceCacheKey(token, allowance.owner);
+    if (!balances.has(allowance.owner) && cache.has(cacheKey)) {
+      balances.set(allowance.owner, cache.get(cacheKey)!);
+    }
+    allowance.tokenBalance = balances.get(allowance.owner);
+  }
 }
 
 async function verifyAllowancesWithMulticall(
@@ -786,6 +949,90 @@ async function verifyAllowancesIndividually(
   return results;
 }
 
+async function readBalancesWithMulticall(
+  provider: JsonRpcProvider,
+  token: string,
+  owners: string[],
+  multicallAddress: string,
+  batchSize: number,
+  rpcDelayMs: number,
+): Promise<Map<string, bigint>> {
+  const multicallInterface = new Interface(MULTICALL3_ABI);
+  const erc20Interface = new Interface(ERC20_ABI);
+  const balances = new Map<string, bigint>();
+
+  for (let i = 0; i < owners.length; i += batchSize) {
+    const chunk = owners.slice(i, i + batchSize);
+    const calls = chunk.map((owner) => ({
+      target: token,
+      allowFailure: true,
+      callData: erc20Interface.encodeFunctionData("balanceOf", [owner]),
+    }));
+
+    const encoded = multicallInterface.encodeFunctionData("aggregate3", [calls]);
+    const raw = await provider.call({ to: multicallAddress, data: encoded });
+    const decoded = multicallInterface.decodeFunctionResult("aggregate3", raw);
+    const results = decoded[0] as Array<{ success: boolean; returnData: string }>;
+
+    for (let j = 0; j < chunk.length; j += 1) {
+      const owner = chunk[j];
+      const callResult = results[j];
+      let value = 0n;
+
+      if (callResult?.success && callResult.returnData && callResult.returnData !== "0x") {
+        value = BigInt(callResult.returnData);
+      }
+
+      balances.set(owner, value);
+    }
+
+    if (rpcDelayMs > 0 && i + batchSize < owners.length) {
+      await sleep(rpcDelayMs);
+    }
+  }
+
+  return balances;
+}
+
+async function readBalancesIndividually(
+  provider: JsonRpcProvider,
+  token: string,
+  owners: string[],
+  rpcDelayMs: number,
+  concurrency: number,
+): Promise<Map<string, bigint>> {
+  const balances = new Map<string, bigint>();
+
+  if (owners.length === 0) {
+    return balances;
+  }
+
+  let cursor = 0;
+  const workerCount = Math.min(Math.max(concurrency, 1), owners.length);
+
+  async function worker(): Promise<void> {
+    while (true) {
+      const index = cursor;
+      cursor += 1;
+
+      if (index >= owners.length) {
+        return;
+      }
+
+      const owner = owners[index];
+      const balance = await readBalance(provider, token, owner);
+      balances.set(owner, balance);
+
+      if (rpcDelayMs > 0) {
+        await sleep(rpcDelayMs);
+      }
+    }
+  }
+
+  await Promise.all(Array.from({ length: workerCount }, () => worker()));
+  return balances;
+}
+
 async function readAllowance(provider: JsonRpcProvider, token: string, owner: string, spender: string): Promise<bigint> {
   const data = `${ALLOWANCE_SELECTOR}${padAddress(owner)}${padAddress(spender)}`;
 
@@ -802,8 +1049,28 @@ async function readAllowance(provider: JsonRpcProvider, token: string, owner: st
   }
 }
 
+async function readBalance(provider: JsonRpcProvider, token: string, owner: string): Promise<bigint> {
+  const data = `${BALANCE_OF_SELECTOR}${padAddress(owner)}`;
+
+  try {
+    const raw = await provider.call({ to: token, data });
+    if (!raw || raw === "0x") {
+      return 0n;
+    }
+
+    return BigInt(raw);
+  } catch (error) {
+    console.warn(`Failed to read balance for ${owner} on ${token}: ${(error as Error).message}`);
+    return 0n;
+  }
+}
+
 function padAddress(address: string): string {
   return address.toLowerCase().replace(/^0x/, "").padStart(64, "0");
+}
+
+function makeBalanceCacheKey(token: string, owner: string): string {
+  return `${token.toLowerCase()}|${owner.toLowerCase()}`;
 }
 
 async function getTokenMetadata(
@@ -857,6 +1124,8 @@ function renderOutput(
       spender: entry.spender,
       allowances: entry.allowances.map((item) => ({
         owner: item.owner,
+        tokenBalance: item.tokenBalance !== undefined ? item.tokenBalance.toString() : undefined,
+        formattedTokenBalance: item.tokenBalance !== undefined ? formatUnits(item.tokenBalance, entry.metadata.decimals) : undefined,
         onChainAllowance: item.onChainAllowance.toString(),
         formattedAllowance: formatUnits(item.onChainAllowance, entry.metadata.decimals),
         lastApprovalEvent: {
@@ -887,11 +1156,12 @@ function renderOutput(
     console.log(`  Positive allowances: ${entry.allowances.length}`);
     for (const allowance of entry.allowances) {
       const formattedOnChain = formatUnits(allowance.onChainAllowance, entry.metadata.decimals);
+      const formattedBalance = allowance.tokenBalance !== undefined ? formatUnits(allowance.tokenBalance, entry.metadata.decimals) : "n/a";
       const formattedEvent = formatUnits(allowance.eventValue, entry.metadata.decimals);
       const timestamp = allowance.timeStamp ? new Date(allowance.timeStamp * 1000).toISOString() : "unknown";
 
       console.log(
-        `    Owner: ${allowance.owner} | Current: ${formattedOnChain} | Last event: ${formattedEvent} | Block: ${allowance.blockNumber} | Tx: ${allowance.transactionHash} | Time: ${timestamp}`,
+        `    Owner: ${allowance.owner} | Balance: ${formattedBalance} | Current: ${formattedOnChain} | Last event: ${formattedEvent} | Block: ${allowance.blockNumber} | Tx: ${allowance.transactionHash} | Time: ${timestamp}`,
       );
     }
 

@@ -5,6 +5,8 @@ interface ReportAllowance {
   owner: string;
   onChainAllowance: string;
   formattedAllowance: string;
+  tokenBalance?: string;
+  formattedTokenBalance?: string;
   lastApprovalEvent?: {
     rawValue: string;
     formattedValue: string;
@@ -134,6 +136,8 @@ function loadReport(filePath: string): ReportEntry[] {
         owner,
         formattedAllowance,
         onChainAllowance,
+        tokenBalance: typeof allowance.tokenBalance === "string" ? allowance.tokenBalance : undefined,
+        formattedTokenBalance: typeof allowance.formattedTokenBalance === "string" ? allowance.formattedTokenBalance : undefined,
         lastApprovalEvent: allowance.lastApprovalEvent,
       };
     });
@@ -160,6 +164,7 @@ interface Row {
   spender: string;
   token: string;
   symbol?: string;
+  formattedTokenBalance?: string;
   formattedAllowance: string;
 }
 
@@ -173,6 +178,7 @@ function extractRows(entries: ReportEntry[]): Row[] {
         spender: entry.spender,
         token: entry.token,
         symbol: entry.symbol,
+        formattedTokenBalance: allowance.formattedTokenBalance,
         formattedAllowance: allowance.formattedAllowance,
       });
     }
@@ -206,7 +212,7 @@ function formatRows(rows: Row[], includeHeaders: boolean): string {
     return "No positive allowances found.";
   }
 
-  const header = includeHeaders ? ["Owner", "Spender", "Token", "FormattedAllowance"] : [];
+  const header = includeHeaders ? ["Owner", "Spender", "Token", "TokenBalance", "FormattedAllowance"] : [];
   const lines: string[] = [];
 
   if (header.length > 0) {
@@ -215,7 +221,7 @@ function formatRows(rows: Row[], includeHeaders: boolean): string {
 
   for (const row of rows) {
     const label = row.symbol ? `${row.symbol} (${row.token})` : row.token;
-    lines.push([row.owner, row.spender, label, row.formattedAllowance].join(","));
+    lines.push([row.owner, row.spender, label, row.formattedTokenBalance ?? "", row.formattedAllowance].join(","));
   }
 
   return lines.join("\n");
