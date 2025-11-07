@@ -91,13 +91,24 @@ clean-deployments: ## Clean the deployments for a given network which matches at
 
 explorer.verify.sonic_testnet: ## Verify contracts on sonic testnet
 	@echo "Verifying contracts on sonic testnet..."
-	@yarn hardhat --network sonic_testnet etherscan-verify --api-key 4EJCRRD3JKIE6TKF6ME7AKVYWFEJI79A26 --api-url "https://api.etherscan.io/v2/api?chainid=14601"
-
+	@if [ -z "$(ETHERSCAN_API_KEY)" ]; then \
+		echo "ETHERSCAN_API_KEY environment variable must be set"; \
+		exit 1; \
+	fi
+	@ETHERSCAN_API_KEY="$(ETHERSCAN_API_KEY)" yarn hardhat --network sonic_testnet etherscan-verify
 explorer.verify.sonic_mainnet: ## Verify contracts on sonic mainnet
 	@echo "Verifying contracts on sonic mainnet..."
-	@yarn hardhat --network sonic_mainnet etherscan-verify --api-key 4EJCRRD3JKIE6TKF6ME7AKVYWFEJI79A26 --api-url "https://api.etherscan.io/v2/api?chainid=146"
+	@if [ -z "$(ETHERSCAN_API_KEY)" ]; then \
+		echo "ETHERSCAN_API_KEY environment variable must be set"; \
+		exit 1; \
+	fi
+	@ETHERSCAN_API_KEY="$(ETHERSCAN_API_KEY)" yarn hardhat --network sonic_mainnet etherscan-verify
 
 explorer.verify.focused: ## Verify a single contract on specified network (usage: make explorer.verify.focused network=sonic_testnet contract=ContractName)
+	@if [ -z "$(ETHERSCAN_API_KEY)" ]; then \
+		echo "ETHERSCAN_API_KEY environment variable must be set"; \
+		exit 1; \
+	fi
 	@if [ "$(network)" = "" ]; then \
 		echo "Must provide 'network' argument. Example: 'make explorer.verify.focused network=sonic_testnet contract=MyContract'"; \
 		exit 1; \
@@ -108,18 +119,10 @@ explorer.verify.focused: ## Verify a single contract on specified network (usage
 	fi
 	@if [ "$(network)" = "sonic_testnet" ]; then \
 		echo "Verifying $(contract) on sonic testnet..."; \
-		echo "Network: sonic_testnet"; \
-		echo "API URL: https://api.etherscan.io/v2/api?chainid=14601"; \
-		echo "Contract Name: $(contract)"; \
-		echo "Running verification command..."; \
-		yarn hardhat --network sonic_testnet etherscan-verify --api-key 4EJCRRD3JKIE6TKF6ME7AKVYWFEJI79A26 --api-url "https://api.etherscan.io/v2/api?chainid=14601" --contract-name $(contract) --verbose; \
+		ETHERSCAN_API_KEY="$(ETHERSCAN_API_KEY)" yarn hardhat --network sonic_testnet etherscan-verify --contract-name $(contract); \
 	elif [ "$(network)" = "sonic_mainnet" ]; then \
 		echo "Verifying $(contract) on sonic mainnet..."; \
-		echo "Network: sonic_mainnet"; \
-		echo "API URL: https://api.etherscan.io/v2/api?chainid=146"; \
-		echo "Contract Name: $(contract)"; \
-		echo "Running verification command..."; \
-		yarn hardhat --network sonic_mainnet etherscan-verify --api-key 4EJCRRD3JKIE6TKF6ME7AKVYWFEJI79A26 --api-url "https://api.etherscan.io/v2/api?chainid=146" --contract-name $(contract) --verbose; \
+		ETHERSCAN_API_KEY="$(ETHERSCAN_API_KEY)" yarn hardhat --network sonic_mainnet etherscan-verify --contract-name $(contract); \
 	else \
 		echo "Unsupported network: $(network). Use 'sonic_testnet' or 'sonic_mainnet'"; \
 		exit 1; \
