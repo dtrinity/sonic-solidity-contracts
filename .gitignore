@@ -35,5 +35,8 @@ reports/slither/
 # Mythril analysis reports
 reports/mythril/
 
+# Verification artifacts
+reports/verification/
+
 # Role automation reports
 reports/roles/*.json

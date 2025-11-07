@@ -257,15 +257,13 @@ const config: HardhatUserConfig = {
   },
   etherscan: {
     // Used for verifying single contracts when hardhat-deploy auto verify doesn't work
-    apiKey: {
-      sonic_mainnet: "4EJCRRD3JKIE6TKF6ME7AKVYWFEJI79A26",
-    },
+    apiKey: process.env.ETHERSCAN_API_KEY ?? "",
     customChains: [
       {
         network: "sonic_mainnet",
         chainId: 146,
         urls: {
-          apiURL: "https://api.sonicscan.org/api",
+          apiURL: "https://api.etherscan.io/v2/api",
           browserURL: "https://sonicscan.org",
         },
       },
