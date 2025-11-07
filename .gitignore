@@ -7,6 +7,7 @@ node_modules
 # Hardhat files
 /cache
 /artifacts
+.cache/
 
 # TypeChain files
 /typechain
@@ -40,3 +41,4 @@ reports/verification/
 
 # Role automation reports
 reports/roles/*.json
+reports/allowance-scanner/
