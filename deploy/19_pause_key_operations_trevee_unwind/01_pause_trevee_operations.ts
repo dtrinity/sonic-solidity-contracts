@@ -96,6 +96,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment): Pr
   }
 
   const dUsdCollaterals = (config.dStables.dUSD?.collaterals || []).filter((address) => address && address !== ZeroAddress);
+
   if (dUsdCollaterals.length === 0) {
     console.warn("⚠️ No dUSD collateral addresses configured; skipping mint/redeem pause enforcement.");
   } else {
@@ -111,12 +112,14 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment): Pr
 
       for (const collateral of dUsdCollaterals) {
         const supported = await collateralVault.isCollateralSupported(collateral);
+
         if (!supported) {
           console.warn(`⚠️ Collateral ${collateral} is not supported by the vault; skipping.`);
           continue;
         }
 
         const mintPaused = await issuer.assetMintingPaused(collateral);
+
         if (mintPaused) {
           console.log(`✅ Minting already paused for collateral ${collateral}.`);
         } else {
