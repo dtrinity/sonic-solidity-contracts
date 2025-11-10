@@ -4,6 +4,7 @@ import {
   rateStrategyHighLiquidityVolatile,
   rateStrategyMediumLiquidityStable,
   rateStrategyMediumLiquidityVolatile,
+  rateStrategyZeroBorrow,
 } from "./interest-rate-strategies";
 import { eContractid, IReserveParams } from "./types";
 
@@ -29,12 +30,13 @@ const baseDStableConfig: IReserveParams = {
 
 export const strategyDUSD: IReserveParams = {
   ...baseDStableConfig,
-  strategy: rateStrategyDUSD,
+  strategy: rateStrategyZeroBorrow,
   supplyCap: "2500000", // Specific to dUSD
 };
 
 export const strategyDS: IReserveParams = {
   ...baseDStableConfig,
+  strategy: rateStrategyZeroBorrow,
   supplyCap: "5000000", // Specific to dS
 };
 
