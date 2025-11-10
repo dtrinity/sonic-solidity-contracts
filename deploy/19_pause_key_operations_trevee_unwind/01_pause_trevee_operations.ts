@@ -118,9 +118,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment): Pr
           continue;
         }
 
-        const mintPaused = await issuer.assetMintingPaused(collateral);
-
-        if (mintPaused) {
+        if (await issuer.assetMintingPaused(collateral)) {
           console.log(`✅ Minting already paused for collateral ${collateral}.`);
         } else {
           console.log(`⏸️ Pausing minting for collateral ${collateral}...`);
@@ -144,8 +142,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment): Pr
           }
         }
 
-        const redemptionPaused = await redeemer.assetRedemptionPaused(collateral);
-        if (redemptionPaused) {
+        if (await redeemer.assetRedemptionPaused(collateral)) {
           console.log(`✅ Redemption already paused for collateral ${collateral}.`);
         } else {
           console.log(`⏸️ Pausing redemption for collateral ${collateral}...`);
