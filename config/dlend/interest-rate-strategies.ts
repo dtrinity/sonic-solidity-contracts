@@ -72,3 +72,16 @@ export const rateStrategyMediumLiquidityStable: IInterestRateStrategyParams = {
   stableRateExcessOffset: ethers.parseUnits("0", 27).toString(),
   optimalStableToTotalDebtRatio: ethers.parseUnits("0", 27).toString(),
 };
+
+export const rateStrategyZeroBorrow: IInterestRateStrategyParams = {
+  name: "rateStrategyZeroBorrow",
+  optimalUsageRatio: ethers.parseUnits("0.8", 27).toString(),
+  baseVariableBorrowRate: "0",
+  variableRateSlope1: "0",
+  variableRateSlope2: "0",
+  stableRateSlope1: "0",
+  stableRateSlope2: "0",
+  baseStableRateOffset: "0",
+  stableRateExcessOffset: "0",
+  optimalStableToTotalDebtRatio: "0",
+};
