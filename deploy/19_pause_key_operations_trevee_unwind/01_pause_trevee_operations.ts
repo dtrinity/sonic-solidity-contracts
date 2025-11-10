@@ -56,7 +56,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment): Pr
 
   let requirementsComplete = true;
 
-  const reserveTargets: { symbol: string; address?: string }[] = [
+  const reserveTargets: { symbol: string; address: string }[] = [
     { symbol: "dUSD", address: config.tokenAddresses.dUSD },
     { symbol: "dS", address: config.tokenAddresses.dS },
   ];
@@ -65,8 +65,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment): Pr
     const { symbol, address } = target;
 
     if (!address || address === ZeroAddress) {
-      console.warn(`⚠️ Skipping ${symbol} reserve strategy update because address is not configured.`);
-      continue;
+      throw new Error(`Missing token address for ${symbol}. Cannot update reserve strategy.`);
     }
 
     const reserveData = await pool.getReserveData(address);
@@ -104,13 +103,13 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment): Pr
   const dUsdCollaterals = (config.dStables.dUSD?.collaterals || []).filter((address) => address && address !== ZeroAddress);
 
   if (dUsdCollaterals.length === 0) {
-    console.warn("⚠️ No dUSD collateral addresses configured; skipping mint/redeem pause enforcement.");
+    throw new Error("No dUSD collateral addresses configured; cannot enforce mint/redeem pauses.");
   } else {
     const issuerDeployment = await deployments.getOrNull(DUSD_ISSUER_V2_CONTRACT_ID);
     const redeemerDeployment = await deployments.getOrNull(DUSD_REDEEMER_V2_CONTRACT_ID);
 
     if (!issuerDeployment || !redeemerDeployment) {
-      console.warn("⚠️ Missing IssuerV2 or RedeemerV2 deployments for dUSD; skipping mint/redeem pause enforcement.");
+      throw new Error("Missing IssuerV2 or RedeemerV2 deployments for dUSD; aborting Trevee unwind script.");
     } else {
       const issuer = await ethers.getContractAt("IssuerV2", issuerDeployment.address, deployerSigner);
       const redeemer = await ethers.getContractAt("RedeemerV2", redeemerDeployment.address, deployerSigner);
