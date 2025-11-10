@@ -4,11 +4,7 @@ import { DeployFunction } from "hardhat-deploy/types";
 
 import { getConfig } from "../../config/config";
 import { rateStrategyZeroBorrow } from "../../config/dlend/interest-rate-strategies";
-import {
-  DUSD_ISSUER_V2_CONTRACT_ID,
-  DUSD_REDEEMER_V2_CONTRACT_ID,
-  POOL_ADDRESSES_PROVIDER_ID,
-} from "../../typescript/deploy-ids";
+import { DUSD_ISSUER_V2_CONTRACT_ID, DUSD_REDEEMER_V2_CONTRACT_ID, POOL_ADDRESSES_PROVIDER_ID } from "../../typescript/deploy-ids";
 import { GovernanceExecutor } from "../../typescript/hardhat/governance";
 
 const STRATEGY_DEPLOYMENT_ID = `ReserveStrategy-${rateStrategyZeroBorrow.name}`;
@@ -76,7 +72,10 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment): Pr
     }
 
     console.log(`🔄 Updating ${symbol} reserve to zero borrow rate strategy...`);
-    const safeTxData = configurator.interface.encodeFunctionData("setReserveInterestRateStrategyAddress", [address, zeroStrategyDeployment.address]);
+    const safeTxData = configurator.interface.encodeFunctionData("setReserveInterestRateStrategyAddress", [
+      address,
+      zeroStrategyDeployment.address,
+    ]);
     const complete = await governance.tryOrQueue(
       async () => {
         const tx = await configurator.setReserveInterestRateStrategyAddress(address, zeroStrategyDeployment.address);
