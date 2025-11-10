@@ -107,12 +107,23 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment): Pr
   } else {
     const issuerDeployment = await deployments.getOrNull(DUSD_ISSUER_V2_CONTRACT_ID);
     const redeemerDeployment = await deployments.getOrNull(DUSD_REDEEMER_V2_CONTRACT_ID);
+    const issuerAddress = issuerDeployment?.address || process.env.DUSD_ISSUER_V2_ADDRESS;
+    const redeemerAddress = redeemerDeployment?.address || process.env.DUSD_REDEEMER_V2_ADDRESS;
 
-    if (!issuerDeployment || !redeemerDeployment) {
-      throw new Error("Missing IssuerV2 or RedeemerV2 deployments for dUSD; aborting Trevee unwind script.");
+    if (!issuerAddress || !redeemerAddress) {
+      throw new Error(
+        "Missing IssuerV2 or RedeemerV2 deployments for dUSD; provide DUSD_ISSUER_V2_ADDRESS and DUSD_REDEEMER_V2_ADDRESS env vars to override.",
+      );
     } else {
-      const issuer = await ethers.getContractAt("IssuerV2", issuerDeployment.address, deployerSigner);
-      const redeemer = await ethers.getContractAt("RedeemerV2", redeemerDeployment.address, deployerSigner);
+      if (!issuerDeployment) {
+        console.log(`ℹ️ Using IssuerV2 override from env: ${issuerAddress}`);
+      }
+
+      if (!redeemerDeployment) {
+        console.log(`ℹ️ Using RedeemerV2 override from env: ${redeemerAddress}`);
+      }
+      const issuer = await ethers.getContractAt("IssuerV2", issuerAddress, deployerSigner);
+      const redeemer = await ethers.getContractAt("RedeemerV2", redeemerAddress, deployerSigner);
       const collateralVault = await ethers.getContractAt("CollateralVault", await issuer.collateralVault(), deployerSigner);
 
       for (const collateral of dUsdCollaterals) {
@@ -135,7 +146,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment): Pr
               console.log(`   ➕ Minting paused for ${collateral}.`);
             },
             () => ({
-              to: issuerDeployment.address,
+              to: issuerAddress,
               value: "0",
               data: safeTxData,
             }),
@@ -159,7 +170,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment): Pr
               console.log(`   ➕ Redemption paused for ${collateral}.`);
             },
             () => ({
-              to: redeemerDeployment.address,
+              to: redeemerAddress,
               value: "0",
               data: safeTxData,
             }),
@@ -182,7 +193,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment): Pr
             console.log("   ➕ Global minting paused on IssuerV2.");
           },
           () => ({
-            to: issuerDeployment.address,
+            to: issuerAddress,
             value: "0",
             data: safeTxData,
           }),
@@ -206,7 +217,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment): Pr
             console.log("   ➕ Global redemption paused on RedeemerV2.");
           },
           () => ({
-            to: redeemerDeployment.address,
+            to: redeemerAddress,
             value: "0",
             data: safeTxData,
           }),
