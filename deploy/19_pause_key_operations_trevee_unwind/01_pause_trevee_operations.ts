@@ -5,6 +5,7 @@ import { DeployFunction } from "hardhat-deploy/types";
 import { getConfig } from "../../config/config";
 import { rateStrategyZeroBorrow } from "../../config/dlend/interest-rate-strategies";
 import { DUSD_ISSUER_V2_CONTRACT_ID, DUSD_REDEEMER_V2_CONTRACT_ID, POOL_ADDRESSES_PROVIDER_ID } from "../../typescript/deploy-ids";
+import { isMainnet } from "../../typescript/hardhat/deploy";
 import { GovernanceExecutor } from "../../typescript/hardhat/governance";
 
 const STRATEGY_DEPLOYMENT_ID = `ReserveStrategy-${rateStrategyZeroBorrow.name}`;
@@ -14,6 +15,11 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment): Pr
   const { deployer } = await hre.getNamedAccounts();
   const deployerSigner = await ethers.getSigner(deployer);
   const config = await getConfig(hre);
+
+  if (!isMainnet(hre.network.name)) {
+    console.log("ℹ️ Trevee unwind script is mainnet-only. Skipping on this network.");
+    return true;
+  }
 
   const governance = new GovernanceExecutor(hre, deployerSigner, config.safeConfig);
   await governance.initialize();
