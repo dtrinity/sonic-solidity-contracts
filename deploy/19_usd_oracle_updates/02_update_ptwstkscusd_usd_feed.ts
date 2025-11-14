@@ -225,10 +225,11 @@ async function executeUpdate(hre: HardhatRuntimeEnvironment): Promise<boolean> {
     `    ℹ️ Candidate composite price=${diagnostics.candidatePrice}, leg1=${diagnostics.priceInBase1}, leg2=${diagnostics.priceInBase2}`,
   );
 
-  let updateComplete = false;
+  const removalRequired = existingFeed.feed1 !== ZeroAddress;
+  let removalComplete = false;
 
   // Remove existing feed if it exists
-  if (existingFeed.feed1 !== ZeroAddress) {
+  if (removalRequired) {
     const removeComplete = await executor.tryOrQueue(
       async () => {
         const tx = await wrapper.removeCompositeFeed(ptwstkscUSDAddress);
@@ -241,7 +242,7 @@ async function executeUpdate(hre: HardhatRuntimeEnvironment): Promise<boolean> {
     if (!removeComplete) {
       console.log(`    📝 Queued Safe transaction to remove existing feed.`);
     } else {
-      updateComplete = true;
+      removalComplete = true;
     }
   }
 
@@ -276,11 +277,10 @@ async function executeUpdate(hre: HardhatRuntimeEnvironment): Promise<boolean> {
 
   if (!addComplete) {
     console.log(`    📝 Queued Safe transaction to add updated feed.`);
-  } else {
-    updateComplete = true;
   }
 
   // Verify price if update completed immediately
+  const updateComplete = addComplete && (!removalRequired || removalComplete);
   if (updateComplete) {
     try {
       const price = await wrapper.getAssetPrice(ptwstkscUSDAddress);
