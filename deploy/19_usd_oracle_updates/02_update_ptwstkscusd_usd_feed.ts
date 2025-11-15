@@ -186,7 +186,8 @@ async function executeUpdate(hre: HardhatRuntimeEnvironment): Promise<boolean> {
   const ptwstkscUSDAddress = config.tokenAddresses.PTwstkscUSD;
 
   if (!ptwstkscUSDAddress) {
-    throw new Error("PTwstkscUSD address not found in config");
+    console.log("\n⚠️ PT-wstkscUSD address not configured for this network; skipping PT-wstkscUSD oracle update.");
+    return true;
   }
 
   // Feed addresses
