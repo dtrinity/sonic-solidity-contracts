@@ -267,4 +267,3 @@ contract ChainlinkSafeRateProviderCompositeWrapperWithUSDThresholding is BaseCha
         return p;
     }
 }
-

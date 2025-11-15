@@ -281,6 +281,7 @@ async function executeUpdate(hre: HardhatRuntimeEnvironment): Promise<boolean> {
 
   // Verify price if update completed immediately
   const updateComplete = addComplete && (!removalRequired || removalComplete);
+
   if (updateComplete) {
     try {
       const price = await wrapper.getAssetPrice(ptwstkscUSDAddress);
