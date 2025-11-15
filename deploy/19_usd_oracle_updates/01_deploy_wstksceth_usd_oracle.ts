@@ -431,7 +431,8 @@ async function executeDeployment(hre: HardhatRuntimeEnvironment): Promise<boolea
   const wstkscETHAddress = config.tokenAddresses.wstkscETH;
 
   if (!wstkscETHAddress) {
-    throw new Error("wstkscETH address not found in config");
+    console.log("\n⚠️ wstkscETH address not configured for this network; skipping wstkscETH oracle update.");
+    return true;
   }
 
   // Feed addresses from existing deployments
