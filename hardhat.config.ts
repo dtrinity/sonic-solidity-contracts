@@ -81,6 +81,16 @@ const config: HardhatUserConfig = {
       },
     ],
     overrides: {
+      "contracts/oracle_aggregator/wrapper/ChainlinkSafeRateProviderCompositeWrapperWithUSDThresholding.sol": {
+        version: "0.8.20",
+        settings: {
+          optimizer: {
+            enabled: true,
+            runs: 200,
+          },
+          viaIR: true,
+        },
+      },
       // Testing harness that imports DLoopCoreDLend; ensure the compilation job uses IR
       "contracts/testing/dloop/DLoopCoreDLendHarness.sol": {
         version: "0.8.20",
