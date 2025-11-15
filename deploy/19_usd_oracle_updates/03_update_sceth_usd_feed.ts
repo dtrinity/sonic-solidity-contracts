@@ -115,7 +115,8 @@ async function executeUpdate(hre: HardhatRuntimeEnvironment): Promise<boolean> {
   const scETHAddress = config.tokenAddresses.scETH;
 
   if (!scETHAddress) {
-    throw new Error("scETH address not found in config");
+    console.log("\n⚠️ scETH address not configured for this network; skipping scETH oracle update.");
+    return true;
   }
 
   // Feed addresses
