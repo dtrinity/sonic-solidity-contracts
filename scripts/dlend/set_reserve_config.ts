@@ -73,6 +73,7 @@ const main = async (): Promise<void> => {
       from: deployer,
       args,
       log: true,
+      skipIfAlreadyDeployed: true,
     });
   }
 
