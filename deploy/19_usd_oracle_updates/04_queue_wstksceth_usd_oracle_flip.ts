@@ -2,10 +2,10 @@ import { Signer, ZeroAddress } from "ethers";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
 
-import { SafeTransactionData } from "../../typescript/safe/types";
 import { getConfig } from "../../config/config";
 import { USD_CHAINLINK_SAFE_RATE_PROVIDER_COMPOSITE_WRAPPER_WITH_USD_ID, USD_ORACLE_AGGREGATOR_ID } from "../../typescript/deploy-ids";
 import { GovernanceExecutor } from "../../typescript/hardhat/governance";
+import { SafeTransactionData } from "../../typescript/safe/types";
 
 const RATIO_PRECISION = 10_000n;
 const MAX_RATIO = 10n * RATIO_PRECISION; // 10x
@@ -62,11 +62,7 @@ async function verifyCompositeFeedReadiness(
   feedConfig: ChainlinkCompositeFeedWithUSDConfig,
 ): Promise<{ composite: any; candidatePrice: bigint }> {
   const { ethers } = hre;
-  const wrapper = await ethers.getContractAt(
-    "ChainlinkSafeRateProviderCompositeWrapperWithUSDThresholding",
-    wrapperAddress,
-    signer,
-  );
+  const wrapper = await ethers.getContractAt("ChainlinkSafeRateProviderCompositeWrapperWithUSDThresholding", wrapperAddress, signer);
   const composite = await wrapper.compositeFeeds(feedConfig.feedAsset);
 
   if (composite.feed1 === ZeroAddress || composite.rateProvider === ZeroAddress || composite.feed3 === ZeroAddress) {
@@ -230,8 +226,7 @@ async function executeOracleFlip(hre: HardhatRuntimeEnvironment): Promise<boolea
       await oracleAggregator.setOracle(wstkscETHAddress, wrapperAddress);
       console.log(`    ✅ Oracle flipped for wstkscETH`);
     },
-    () =>
-      createSetOracleTransaction(oracleAggregatorDeployment.address, wstkscETHAddress, wrapperAddress, oracleAggregator.interface),
+    () => createSetOracleTransaction(oracleAggregatorDeployment.address, wstkscETHAddress, wrapperAddress, oracleAggregator.interface),
   );
 
   if (!complete) {
