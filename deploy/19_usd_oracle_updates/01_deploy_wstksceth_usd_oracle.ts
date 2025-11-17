@@ -543,7 +543,7 @@ async function executeDeployment(hre: HardhatRuntimeEnvironment): Promise<boolea
   }
 
   console.log("\n✅ All operations completed successfully.");
-  console.log(`   ➡️ Run phase 2 updater script to flip the OracleAggregator once governance approves this deployment.`);
+  console.log(`   ➡️ Execute the queue-wstksceth-usd-oracle-flip deploy tag once governance signs off to flip the OracleAggregator.`);
   console.log(`\n≻ ${__filename.split("/").slice(-2).join("/")}: ✅`);
   return true;
 }
