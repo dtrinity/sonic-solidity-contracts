@@ -260,7 +260,7 @@ export async function getConfig(_hre: HardhatRuntimeEnvironment): Promise<Config
               fixedPrice: 0n,
             },
             [scETHAddress]: {
-              feed: "0x19A95E6203A0611b6be322c25b63Ec989fFE15c1", // scETH/USD Chainlink price feed
+              feed: "0x824364077993847f71293B24ccA8567c00c2de11", // WETH/USD Chainlink price feed
               lowerThreshold: 0n, // No thresholding
               fixedPrice: 0n,
             },
@@ -305,7 +305,7 @@ export async function getConfig(_hre: HardhatRuntimeEnvironment): Promise<Config
             [wstkscETHAddress]: {
               feedAsset: wstkscETHAddress,
               feed1: "0xaA0eA5aa28dCB4280d0469167Bb8Bf99F51427D3", // Our own ChainlinkDecimalConverter which wraps the wstkscETH/stkscETH Chainlink feed and converts 18 -> 8 decimals
-              feed2: "0x19A95E6203A0611b6be322c25b63Ec989fFE15c1", // scETH/USD Chainlink price feed
+              feed2: "0x824364077993847f71293B24ccA8567c00c2de11", // WETH/USD Chainlink price feed
               lowerThresholdInBase1: 0n, // No thresholding
               fixedPriceInBase1: 0n,
               lowerThresholdInBase2: 0n, // No thresholding
@@ -323,10 +323,10 @@ export async function getConfig(_hre: HardhatRuntimeEnvironment): Promise<Config
             [ptwstkscUSDAddress]: {
               feedAsset: ptwstkscUSDAddress,
               feed1: "0x2EfEb81d6A0E5638bfe917C6cFCeb42989058d08", // Our own ChainlinkDecimalConverter which wraps the PT-wstkscUSD/scUSD Pendle Chainlink feed and converts 18 -> 8 decimals
-              feed2: "0xACE5e348a341a740004304c2c228Af1A4581920F", // scUSD/USD Chainlink price feed
+              feed2: "0x55bCa887199d5520B3Ce285D41e6dC10C08716C9", // usdc/USD Chainlink price feed
               lowerThresholdInBase1: 0n, // No thresholding
               fixedPriceInBase1: 0n,
-              lowerThresholdInBase2: ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT, // Only threshold scUSD/USD
+              lowerThresholdInBase2: ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT, // Only threshold usdc/USD
               fixedPriceInBase2: ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT,
             },
             [wOSAddress]: {

@@ -51,6 +51,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment): Pr
     from: deployer,
     args: strategyArguments,
     log: true,
+    skipIfAlreadyDeployed: true,
   });
   const zeroStrategyAddress = zeroStrategyDeployment.address.toLowerCase();
 
