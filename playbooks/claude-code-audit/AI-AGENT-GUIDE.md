@@ -17,7 +17,7 @@ ls -la ../reports/
 1. Check `reports/` for existing Slither/Mythril outputs
 2. Read module design docs by looking up `*design.md`
 3. Review severity guide: see [Severity Matrix](01-audit-best-practices.md#severity-matrix)
-4. Follow the Memento ticketing workflow described in [CLAUDE.md](../../CLAUDE.md)
+4. Follow the agent guidance described in [AGENTS.md](../../AGENTS.md)
 
 ## 🎯 Parallel Audit Strategy
 
