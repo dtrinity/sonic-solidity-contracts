@@ -8,17 +8,6 @@ import { GovernanceExecutor } from "../../typescript/hardhat/governance";
 import { SafeTransactionData } from "../../typescript/safe/types";
 
 /**
- * Build Safe payload for removeCompositeFeed(asset).
- */
-function createRemoveCompositeFeedTx(wrapperAddress: string, asset: string, wrapperInterface: any): SafeTransactionData {
-  return {
-    to: wrapperAddress,
-    value: "0",
-    data: wrapperInterface.encodeFunctionData("removeCompositeFeed", [asset]),
-  };
-}
-
-/**
  * Build Safe payload for addCompositeFeed(asset, feed1, feed2, thresholds...).
  */
 function createAddCompositeFeedTx(
@@ -117,21 +106,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment): Pr
   console.log(`   old feed2: ${currentFeed2}`);
   console.log(`   new feed2 (S/USD): ${sUsdFeed}`);
 
-  let allComplete = true;
-
-  const removed = await executor.tryOrQueue(
-    async () => {
-      await wrapper.removeCompositeFeed(wOSAddress);
-      console.log(`   ✅ Removed existing wOS composite feed`);
-    },
-    () => createRemoveCompositeFeedTx(wrapperDeployment.address, wOSAddress, wrapper.interface),
-  );
-
-  if (!removed) {
-    allComplete = false;
-  }
-
-  const added = await executor.tryOrQueue(
+  const complete = await executor.tryOrQueue(
     async () => {
       await wrapper.addCompositeFeed(
         wOSAddress,
@@ -156,12 +131,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment): Pr
       ),
   );
 
-  if (!added) {
-    allComplete = false;
-  }
-
-  if (!allComplete) {
-    const flushed = await executor.flush("Remove OS/S dependency from wOS/USD composite feed");
+  if (!complete) {
+    const flushed = await executor.flush("Overwrite wOS/USD composite feed to remove OS/S dependency");
 
     if (executor.useSafe) {
       if (!flushed) {
