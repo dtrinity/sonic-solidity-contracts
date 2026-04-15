@@ -2,6 +2,8 @@ import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
 
 import { getConfig } from "../../config/config";
+import { assertPriceContinuity, OraclePriceSample, readOraclePriceSample } from "../_shared/oracle-price-sanity";
+import { OracleMigrationConfig } from "./01_update_s_chainlink_feeds";
 import {
   USD_ORACLE_AGGREGATOR_ID,
   USD_REDSTONE_COMPOSITE_WRAPPER_WITH_THRESHOLDING_ID,
@@ -17,12 +19,17 @@ type SafeTransactionData = {
 
 const SANITY_TOLERANCE_BPS = 100n; // 1%
 
-const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment): Promise<boolean> {
+export async function executeStage2(
+  hre: HardhatRuntimeEnvironment,
+  options?: {
+    config?: OracleMigrationConfig;
+  },
+): Promise<boolean> {
   const { deployments, ethers } = hre;
   const { deployer } = await hre.getNamedAccounts();
   const deployerSigner = await ethers.getSigner(deployer);
 
-  const config = await getConfig(hre);
+  const config = options?.config ?? (await getConfig(hre));
   const governance = new GovernanceExecutor(hre, deployerSigner, config.safeConfig);
   await governance.initialize();
 
@@ -60,21 +67,17 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment): Pr
       );
     }
 
-    const wrapperPrice = await redstoneWrapper.getAssetPrice(asset);
-    let aggregatorPrice: bigint | undefined = undefined;
+    const wrapperPrice = await readOraclePriceSample("USD_RedstoneChainlinkWrapper", redstoneWrapper, asset);
+    let aggregatorPrice: OraclePriceSample | undefined = undefined;
 
     try {
-      aggregatorPrice = await oracleAggregator.getAssetPrice(asset);
+      aggregatorPrice = await readOraclePriceSample("USD_OracleAggregator", oracleAggregator, asset);
     } catch (error) {
       console.warn(`⚠️ Current oracle price unavailable for ${asset}: ${error}`);
     }
 
     if (aggregatorPrice !== undefined) {
-      const withinTolerance = isWithinTolerance(wrapperPrice, aggregatorPrice, SANITY_TOLERANCE_BPS);
-
-      if (!withinTolerance) {
-        throw new Error(`Wrapper/oracle price drift for ${asset}: wrapper ${wrapperPrice} vs oracle ${aggregatorPrice}. Aborting Stage 2.`);
-      }
+      assertPriceContinuity(aggregatorPrice, wrapperPrice, SANITY_TOLERANCE_BPS, `Wrapper/oracle price drift for ${asset}`);
     }
 
     const currentOracle = await oracleAggregator.assetOracles(asset);
@@ -122,21 +125,17 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment): Pr
       throw new Error("stS composite feed does not match configuration. Run Stage 1 (update_s_chainlink_feeds) before Stage 2.");
     }
 
-    const compositePrice = await redstoneCompositeWrapper.getAssetPrice(stSAddress);
-    let stSAggregatorPrice: bigint | undefined = undefined;
+    const compositePrice = await readOraclePriceSample("USD_RedstoneChainlinkCompositeWrapperWithThresholding", redstoneCompositeWrapper, stSAddress);
+    let stSAggregatorPrice: OraclePriceSample | undefined = undefined;
 
     try {
-      stSAggregatorPrice = await oracleAggregator.getAssetPrice(stSAddress);
+      stSAggregatorPrice = await readOraclePriceSample("USD_OracleAggregator", oracleAggregator, stSAddress);
     } catch (error) {
       console.warn(`⚠️ Current oracle price unavailable for stS: ${error}`);
     }
 
     if (stSAggregatorPrice !== undefined) {
-      const withinTolerance = isWithinTolerance(compositePrice, stSAggregatorPrice, SANITY_TOLERANCE_BPS);
-
-      if (!withinTolerance) {
-        throw new Error(`Wrapper/oracle price drift for stS: wrapper ${compositePrice} vs oracle ${stSAggregatorPrice}. Aborting Stage 2.`);
-      }
+      assertPriceContinuity(stSAggregatorPrice, compositePrice, SANITY_TOLERANCE_BPS, "Wrapper/oracle price drift for stS");
     }
 
     const currentStSOracle = await oracleAggregator.assetOracles(stSAddress);
@@ -175,23 +174,11 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment): Pr
 
   console.log("📬 Safe transaction batch prepared for Stage 2 (Chainlink S/USD oracle switch).");
   return true;
-};
-
-/**
- * Check whether two prices fall within the provided tolerance (in BPS).
- *
- * @param newPrice - Newly observed price
- * @param referencePrice - Reference price to compare against
- * @param toleranceBps - Maximum tolerated deviation in basis points
- */
-function isWithinTolerance(newPrice: bigint, referencePrice: bigint, toleranceBps: bigint): boolean {
-  if (referencePrice === 0n) {
-    return newPrice === 0n;
-  }
-
-  const diff = newPrice > referencePrice ? newPrice - referencePrice : referencePrice - newPrice;
-  return diff * 10_000n <= referencePrice * toleranceBps;
 }
+
+const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment): Promise<boolean> {
+  return executeStage2(hre);
+};
 
 func.tags = ["oracle", "usd-oracle", "chainlink", "s-feed-stage2"];
 func.dependencies = [USD_REDSTONE_ORACLE_WRAPPER_ID, USD_REDSTONE_COMPOSITE_WRAPPER_WITH_THRESHOLDING_ID, "update-s-chainlink-feeds"];

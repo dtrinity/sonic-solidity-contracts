@@ -4,6 +4,7 @@ import { getConfig as getLocalhostConfig } from "./networks/localhost";
 import { getConfig as getSonicMainNetConfig } from "./networks/sonic_mainnet";
 import { getConfig as getSonicTestNetConfig } from "./networks/sonic_testnet";
 import { Config } from "./types";
+import { getEffectiveNetworkName } from "../typescript/hardhat/network";
 
 /**
  * Get the configuration for the network
@@ -12,7 +13,7 @@ import { Config } from "./types";
  * @returns The configuration for the network
  */
 export async function getConfig(hre: HardhatRuntimeEnvironment): Promise<Config> {
-  switch (hre.network.name) {
+  switch (getEffectiveNetworkName(hre)) {
     case "sonic_testnet":
       return getSonicTestNetConfig(hre);
     case "sonic_mainnet":
@@ -21,6 +22,6 @@ export async function getConfig(hre: HardhatRuntimeEnvironment): Promise<Config>
     case "localhost":
       return getLocalhostConfig(hre);
     default:
-      throw new Error(`Unknown network: ${hre.network.name}`);
+      throw new Error(`Unknown network: ${getEffectiveNetworkName(hre)}`);
   }
 }

@@ -13,6 +13,7 @@ import {
 } from "../../typescript/deploy-ids";
 import { ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT, ORACLE_AGGREGATOR_PRICE_DECIMALS } from "../../typescript/oracle_aggregator/constants";
 import { fetchTokenInfo } from "../../typescript/token/utils";
+import { getEffectiveNetworkName } from "../../typescript/hardhat/network";
 import {
   rateStrategyDUSD,
   rateStrategyHighLiquidityStable,
@@ -86,11 +87,17 @@ export async function getConfig(_hre: HardhatRuntimeEnvironment): Promise<Config
   const aTokenDUSDDeployment = await _hre.deployments.getOrNull("dLEND-dUSD");
 
   // Fetch dUSD token decimals from the contract if deployed
-  let dUSDDecimals = 0;
+  let dUSDDecimals = 18;
 
   if (dUSDDeployment?.address) {
-    const dUSDTokenInfo = await fetchTokenInfo(_hre, dUSDDeployment.address);
-    dUSDDecimals = dUSDTokenInfo.decimals;
+    // Historical fork tests do not need live token metadata and Hardhat cannot
+    // always infer chain hardfork history for arbitrary Sonic blocks. Keep the
+    // live-network path unchanged while avoiding that extra RPC dependency on
+    // forked `hardhat` runs.
+    if (_hre.network.name !== "hardhat" || getEffectiveNetworkName(_hre) !== "sonic_mainnet") {
+      const dUSDTokenInfo = await fetchTokenInfo(_hre, dUSDDeployment.address);
+      dUSDDecimals = dUSDTokenInfo.decimals;
+    }
 
     if (dUSDDecimals < 1) {
       throw Error("dUSD token decimals must be greater than 0");

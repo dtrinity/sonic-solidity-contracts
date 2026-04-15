@@ -12,6 +12,8 @@ import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { getEnvPrivateKeys } from "./typescript/hardhat/named-accounts";
 
 const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
+const deploymentsPath = process.env.HARDHAT_DEPLOYMENTS_PATH || "./deployments";
+const hardhatSaveDeployments = process.env.HARDHAT_SAVE_DEPLOYMENTS === "true";
 
 // Wrapper function to add a delay to transactions
 
@@ -216,7 +218,15 @@ const config: HardhatUserConfig = {
     hardhat: {
       deploy: ["deploy-mocks", "deploy"],
       allowUnlimitedContractSize: true,
-      saveDeployments: false, // allow testing without needing to remove the previous deployments
+      chains: {
+        146: {
+          hardforkHistory: {
+            shanghai: 0,
+          },
+        },
+      },
+      hardfork: "shanghai",
+      saveDeployments: hardhatSaveDeployments,
     },
     localhost: {
       deploy: ["deploy-mocks", "deploy"],
@@ -249,7 +259,7 @@ const config: HardhatUserConfig = {
     tests: "./test",
     cache: "./cache",
     artifacts: "./artifacts",
-    deployments: "./deployments",
+    deployments: deploymentsPath,
     deploy: "./deploy",
   },
   gasReporter: {

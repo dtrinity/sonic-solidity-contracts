@@ -2,6 +2,7 @@ import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
 
 import { getConfig } from "../../config/config";
+import { Config } from "../../config/types";
 import { USD_REDSTONE_COMPOSITE_WRAPPER_WITH_THRESHOLDING_ID, USD_REDSTONE_ORACLE_WRAPPER_ID } from "../../typescript/deploy-ids";
 import { GovernanceExecutor } from "../../typescript/hardhat/governance";
 
@@ -11,12 +12,19 @@ type SafeTransactionData = {
   data: string;
 };
 
-const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment): Promise<boolean> {
+export type OracleMigrationConfig = Pick<Config, "oracleAggregators" | "safeConfig" | "tokenAddresses">;
+
+export async function executeStage1(
+  hre: HardhatRuntimeEnvironment,
+  options?: {
+    config?: OracleMigrationConfig;
+  },
+): Promise<boolean> {
   const { deployments, ethers } = hre;
   const { deployer } = await hre.getNamedAccounts();
   const deployerSigner = await ethers.getSigner(deployer);
 
-  const config = await getConfig(hre);
+  const config = options?.config ?? (await getConfig(hre));
   const governance = new GovernanceExecutor(hre, deployerSigner, config.safeConfig);
   await governance.initialize();
 
@@ -161,6 +169,10 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment): Pr
   console.log("📬 Safe transaction batch prepared for Stage 1 (Chainlink S/USD feed configuration).");
   console.log("📝 After governance executes, run Stage 2 to switch oracle aggregators.");
   return true;
+}
+
+const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment): Promise<boolean> {
+  return executeStage1(hre);
 };
 
 func.tags = ["oracle", "usd-oracle", "chainlink", "s-feed-stage1"];
