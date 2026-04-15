@@ -3,6 +3,7 @@ import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
 
 import { getConfig } from "../../config/config";
+import { Config } from "../../config/types";
 import { USD_CHAINLINK_SAFE_RATE_PROVIDER_COMPOSITE_WRAPPER_ID, USD_ORACLE_AGGREGATOR_ID } from "../../typescript/deploy-ids";
 import { ensureDefaultAdminExistsAndRevokeFrom } from "../../typescript/hardhat/access_control";
 import { GovernanceExecutor } from "../../typescript/hardhat/governance";
@@ -200,6 +201,64 @@ function createAddCompositeFeedTransaction(
 const ZERO_BYTES_32 = "0x0000000000000000000000000000000000000000000000000000000000000000";
 
 /**
+ * Check whether a Safe transaction has already been queued.
+ *
+ * @param executor - Governance executor tracking queued Safe transactions
+ * @param transaction - Safe transaction candidate to search for
+ * @returns True when an identical transaction is already queued
+ */
+function hasQueuedTransaction(executor: GovernanceExecutor, transaction: SafeTransactionData): boolean {
+  return executor.queuedTransactions.some(
+    (queued) => queued.to === transaction.to && queued.value === transaction.value && queued.data === transaction.data,
+  );
+}
+
+/**
+ * Ensure governance can execute wrapper management calls once a Safe batch is signed.
+ *
+ * @param wrapper - Wrapper contract instance
+ * @param wrapperAddress - Wrapper address used in queued transactions
+ * @param governanceMultisig - Governance Safe address
+ * @param executor - Governance executor used for direct or queued writes
+ * @returns True when governance already has the role or it was granted immediately
+ */
+async function ensureGovernanceCanManageWrapper(
+  wrapper: any,
+  wrapperAddress: string,
+  governanceMultisig: string,
+  executor: GovernanceExecutor,
+): Promise<boolean> {
+  if (!executor.useSafe) {
+    return true;
+  }
+
+  const oracleManagerRole = await wrapper.ORACLE_MANAGER_ROLE();
+  const governanceHasRole = await wrapper.hasRole(oracleManagerRole, governanceMultisig);
+
+  if (governanceHasRole) {
+    console.log(`    ✓ Governance already has ORACLE_MANAGER_ROLE on ${wrapperAddress}`);
+    return true;
+  }
+
+  const grantRoleTx = createGrantRoleTransaction(wrapperAddress, oracleManagerRole, governanceMultisig, wrapper.interface);
+
+  if (hasQueuedTransaction(executor, grantRoleTx)) {
+    console.log(`    📝 ORACLE_MANAGER_ROLE grant already queued for governance on ${wrapperAddress}`);
+    return false;
+  }
+
+  const complete = await executor.tryOrQueue(
+    async () => {
+      await wrapper.grantRole(oracleManagerRole, governanceMultisig);
+      console.log(`    ➕ Granted ORACLE_MANAGER_ROLE to governance ${governanceMultisig}`);
+    },
+    () => grantRoleTx,
+  );
+
+  return complete;
+}
+
+/**
  * Wrapper for ensureDefaultAdminExistsAndRevokeFrom that returns boolean status
  *
  * @param hre - Hardhat runtime environment
@@ -292,15 +351,20 @@ async function migrateOracleWrapperRolesIdempotent(
   let noPendingActions = true;
 
   for (const role of roles) {
-    if (!(await wrapper.hasRole(role.hash, governanceMultisig))) {
+    const grantRoleTx = createGrantRoleTransaction(wrapperAddress, role.hash, governanceMultisig, wrapper.interface);
+
+    if (!(await wrapper.hasRole(role.hash, governanceMultisig)) && !hasQueuedTransaction(executor, grantRoleTx)) {
       const complete = await executor.tryOrQueue(
         async () => {
           await wrapper.grantRole(role.hash, governanceMultisig);
           console.log(`    ➕ Granted ${role.name} to governance ${governanceMultisig}`);
         },
-        () => createGrantRoleTransaction(wrapperAddress, role.hash, governanceMultisig, wrapper.interface),
+        () => grantRoleTx,
       );
       if (!complete) noPendingActions = false;
+    } else if (hasQueuedTransaction(executor, grantRoleTx)) {
+      console.log(`    📝 ${role.name} grant already queued for governance`);
+      noPendingActions = false;
     } else {
       console.log(`    ✓ ${role.name} already granted to governance`);
     }
@@ -352,13 +416,15 @@ async function migrateOracleWrapperRolesIdempotent(
  * Handle the wrapper deployment/configuration phase on networks where the script runs.
  *
  * @param hre - Hardhat runtime environment.
+ * @param options - Optional overrides for tests.
+ * @param options.config - Optional config override used by local smoke tests.
  * @returns True when the deployment completed or actions were queued.
  */
-async function executeDeployment(hre: HardhatRuntimeEnvironment): Promise<boolean> {
+export async function executeDeployment(hre: HardhatRuntimeEnvironment, options?: { config?: Config }): Promise<boolean> {
   const { deployments, ethers } = hre;
   const { deployer } = await hre.getNamedAccounts();
   const deployerSigner = await ethers.getSigner(deployer);
-  const config = await getConfig(hre);
+  const config = options?.config ?? (await getConfig(hre));
 
   // Initialize governance executor (decides Safe vs direct execution)
   const executor = new GovernanceExecutor(hre, deployerSigner, config.safeConfig);
@@ -400,7 +466,27 @@ async function executeDeployment(hre: HardhatRuntimeEnvironment): Promise<boolea
   if (Object.keys(chainlinkFeeds).length > 0) {
     console.log(`\n🔧 Configuring ChainlinkSafeRateProviderComposite feeds...`);
 
+    const governanceReadyForWrapperOps = await ensureGovernanceCanManageWrapper(wrapper, wrapperAddress, governanceMultisig, executor);
+
+    if (!governanceReadyForWrapperOps) {
+      allOperationsComplete = false;
+    }
+
     for (const [_assetAddress, feedConfig] of Object.entries(chainlinkFeeds)) {
+      const existingFeed = await wrapper.compositeFeeds(feedConfig.feedAsset);
+      const existingMatchesConfig =
+        existingFeed.feed1.toLowerCase() === feedConfig.chainlinkFeed.toLowerCase() &&
+        existingFeed.rateProvider.toLowerCase() === feedConfig.rateProvider.toLowerCase() &&
+        existingFeed.primaryThreshold.lowerThresholdInBase === (feedConfig.lowerThresholdInBase1 ?? 0n) &&
+        existingFeed.primaryThreshold.fixedPriceInBase === (feedConfig.fixedPriceInBase1 ?? 0n) &&
+        existingFeed.secondaryThreshold.lowerThresholdInBase === (feedConfig.lowerThresholdInBase2 ?? 0n) &&
+        existingFeed.secondaryThreshold.fixedPriceInBase === (feedConfig.fixedPriceInBase2 ?? 0n);
+
+      if (existingMatchesConfig) {
+        console.log(`  ✅ Composite feed already configured for asset ${feedConfig.feedAsset}; skipping.`);
+        continue;
+      }
+
       console.log(`  📊 Adding composite feed for asset ${feedConfig.feedAsset}...`);
 
       const diagnostics = await buildCompositePriceDiagnostics(ethers, feedConfig, baseCurrencyUnit, deployerSigner);

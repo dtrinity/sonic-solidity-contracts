@@ -3,6 +3,7 @@ import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
 
 import { getConfig } from "../../config/config";
+import { Config } from "../../config/types";
 import { USD_CHAINLINK_SAFE_RATE_PROVIDER_COMPOSITE_WRAPPER_ID, USD_ORACLE_AGGREGATOR_ID } from "../../typescript/deploy-ids";
 import { GovernanceExecutor } from "../../typescript/hardhat/governance";
 import { SafeTransactionData } from "../../typescript/safe/types";
@@ -45,6 +46,81 @@ function createSetOracleTransaction(
     value: "0",
     data: aggregatorInterface.encodeFunctionData("setOracle", [asset, oracle]),
   };
+}
+
+/**
+ * Build a Safe transaction payload to grant a role on a target contract.
+ *
+ * @param contractAddress - Contract that should receive the call
+ * @param role - Role hash to grant
+ * @param grantee - Address receiving the role
+ * @param contractInterface - Contract interface used to encode calldata
+ * @returns Encoded Safe transaction for `grantRole`
+ */
+function createGrantRoleTransaction(contractAddress: string, role: string, grantee: string, contractInterface: any): SafeTransactionData {
+  return {
+    to: contractAddress,
+    value: "0",
+    data: contractInterface.encodeFunctionData("grantRole", [role, grantee]),
+  };
+}
+
+/**
+ * Check whether a Safe transaction has already been queued.
+ *
+ * @param executor - Governance executor tracking queued Safe transactions
+ * @param transaction - Safe transaction candidate to search for
+ * @returns True when an identical transaction is already queued
+ */
+function hasQueuedTransaction(executor: GovernanceExecutor, transaction: SafeTransactionData): boolean {
+  return executor.queuedTransactions.some(
+    (queued) => queued.to === transaction.to && queued.value === transaction.value && queued.data === transaction.data,
+  );
+}
+
+/**
+ * Ensure governance can execute OracleAggregator writes once a Safe batch is signed.
+ *
+ * @param oracleAggregator - OracleAggregator contract instance
+ * @param aggregatorAddress - OracleAggregator address used in queued transactions
+ * @param governanceMultisig - Governance Safe address
+ * @param executor - Governance executor used for direct or queued writes
+ * @returns True when governance already has the role or it was granted immediately
+ */
+async function ensureGovernanceCanManageAggregator(
+  oracleAggregator: any,
+  aggregatorAddress: string,
+  governanceMultisig: string,
+  executor: GovernanceExecutor,
+): Promise<boolean> {
+  if (!executor.useSafe) {
+    return true;
+  }
+
+  const oracleManagerRole = await oracleAggregator.ORACLE_MANAGER_ROLE();
+  const governanceHasRole = await oracleAggregator.hasRole(oracleManagerRole, governanceMultisig);
+
+  if (governanceHasRole) {
+    console.log(`✓ Governance already has ORACLE_MANAGER_ROLE on OracleAggregator`);
+    return true;
+  }
+
+  const grantRoleTx = createGrantRoleTransaction(aggregatorAddress, oracleManagerRole, governanceMultisig, oracleAggregator.interface);
+
+  if (hasQueuedTransaction(executor, grantRoleTx)) {
+    console.log(`📝 ORACLE_MANAGER_ROLE grant already queued for OracleAggregator`);
+    return false;
+  }
+
+  const complete = await executor.tryOrQueue(
+    async () => {
+      await oracleAggregator.grantRole(oracleManagerRole, governanceMultisig);
+      console.log(`➕ Granted ORACLE_MANAGER_ROLE to governance ${governanceMultisig} on OracleAggregator`);
+    },
+    () => grantRoleTx,
+  );
+
+  return complete;
 }
 
 /**
@@ -97,11 +173,10 @@ async function verifyCompositeFeedReadiness(
   const priceFeed = new ethers.Contract(composite.feed1, PRICE_FEED_ABI, signer);
   const onchainFeedDecimalsRaw = await priceFeed.decimals();
   const onchainFeedDecimals = typeof onchainFeedDecimalsRaw === "number" ? onchainFeedDecimalsRaw : Number(onchainFeedDecimalsRaw);
+  const cachedFeedDecimals = typeof composite.feed1Decimals === "number" ? composite.feed1Decimals : Number(composite.feed1Decimals);
 
-  if (onchainFeedDecimals !== composite.feed1Decimals) {
-    throw new Error(
-      `Feed decimals changed for ${feedConfig.feedAsset}: cached=${composite.feed1Decimals}, on-chain=${onchainFeedDecimals}`,
-    );
+  if (onchainFeedDecimals !== cachedFeedDecimals) {
+    throw new Error(`Feed decimals changed for ${feedConfig.feedAsset}: cached=${cachedFeedDecimals}, on-chain=${onchainFeedDecimals}`);
   }
 
   const roundData = await priceFeed.latestRoundData();
@@ -126,13 +201,15 @@ async function verifyCompositeFeedReadiness(
  * Execute the oracle flip stage on networks where the composite wrapper is ready.
  *
  * @param hre - Hardhat runtime environment.
+ * @param options - Optional overrides for tests.
+ * @param options.config - Optional config override used by local smoke tests.
  * @returns True when flips complete or governance payloads are queued.
  */
-async function executeOracleFlip(hre: HardhatRuntimeEnvironment): Promise<boolean> {
+export async function executeOracleFlip(hre: HardhatRuntimeEnvironment, options?: { config?: Config }): Promise<boolean> {
   const { deployments, ethers } = hre;
   const { deployer } = await hre.getNamedAccounts();
   const deployerSigner = await ethers.getSigner(deployer);
-  const config = await getConfig(hre);
+  const config = options?.config ?? (await getConfig(hre));
 
   const executor = new GovernanceExecutor(hre, deployerSigner, config.safeConfig);
   await executor.initialize();
@@ -159,6 +236,17 @@ async function executeOracleFlip(hre: HardhatRuntimeEnvironment): Promise<boolea
 
   let allOperationsComplete = true;
   const wrapperAddressLower = wrapperAddress.toLowerCase();
+
+  const governanceReadyForAggregatorOps = await ensureGovernanceCanManageAggregator(
+    oracleAggregator,
+    oracleAggregatorDeployment.address,
+    governanceMultisig,
+    executor,
+  );
+
+  if (!governanceReadyForAggregatorOps) {
+    allOperationsComplete = false;
+  }
 
   for (const [_assetAddress, feedConfig] of Object.entries(chainlinkFeeds)) {
     const asset = feedConfig.feedAsset;
