@@ -6,6 +6,11 @@ export const USD_API3_COMPOSITE_WRAPPER_WITH_THRESHOLDING_ID = "USD_API3Composit
 export const USD_REDSTONE_ORACLE_WRAPPER_ID = "USD_RedstoneChainlinkWrapper";
 export const USD_REDSTONE_WRAPPER_WITH_THRESHOLDING_ID = "USD_RedstoneChainlinkWrapperWithThresholding";
 export const USD_REDSTONE_COMPOSITE_WRAPPER_WITH_THRESHOLDING_ID = "USD_RedstoneChainlinkCompositeWrapperWithThresholding";
+// Neutral aliases keep new code readable while preserving historical deployment lookup strings.
+export const USD_CHAINLINK_FEED_WRAPPER_ID = USD_REDSTONE_ORACLE_WRAPPER_ID;
+export const USD_CHAINLINK_FEED_WRAPPER_WITH_THRESHOLDING_ID = USD_REDSTONE_WRAPPER_WITH_THRESHOLDING_ID;
+export const USD_CHAINLINK_COMPOSITE_FEED_WRAPPER_WITH_THRESHOLDING_ID = USD_REDSTONE_COMPOSITE_WRAPPER_WITH_THRESHOLDING_ID;
+export const USD_CHAINLINK_WRAPPER_WITH_THRESHOLDING_ID = "USD_ChainlinkWrapperWithThresholding";
 
 // Pendle PT Oracles
 export const PENDLE_CHAINLINK_ORACLE_FACTORY_ID = "PendleChainlinkOracleFactory";
@@ -23,10 +28,16 @@ export const S_API3_COMPOSITE_WRAPPER_WITH_THRESHOLDING_ID = "S_API3CompositeWra
 export const S_REDSTONE_ORACLE_WRAPPER_ID = "S_RedstoneWrapper";
 export const S_REDSTONE_WRAPPER_WITH_THRESHOLDING_ID = "S_RedstoneWrapperWithThresholding";
 export const S_REDSTONE_COMPOSITE_WRAPPER_WITH_THRESHOLDING_ID = "S_RedstoneCompositeWrapperWithThresholding";
+// Neutral aliases keep new code readable while preserving historical deployment lookup strings.
+export const S_CHAINLINK_FEED_WRAPPER_ID = S_REDSTONE_ORACLE_WRAPPER_ID;
+export const S_CHAINLINK_FEED_WRAPPER_WITH_THRESHOLDING_ID = S_REDSTONE_WRAPPER_WITH_THRESHOLDING_ID;
+export const S_CHAINLINK_COMPOSITE_FEED_WRAPPER_WITH_THRESHOLDING_ID = S_REDSTONE_COMPOSITE_WRAPPER_WITH_THRESHOLDING_ID;
+export const S_CHAINLINK_WRAPPER_WITH_THRESHOLDING_ID = "S_ChainlinkWrapperWithThresholding";
 export const USD_CHAINLINK_SAFE_RATE_PROVIDER_COMPOSITE_WRAPPER_ID = "USD_ChainlinkSafeRateProviderCompositeWrapperWithThresholding";
 export const USD_CHAINLINK_SAFE_RATE_PROVIDER_COMPOSITE_WRAPPER_WITH_USD_ID =
   "USD_ChainlinkSafeRateProviderCompositeWrapperWithUSDThresholding";
 export const USD_ERC4626_SAFE_RATE_PROVIDER_WRAPPER_ID = "USD_ERC4626SafeRateProviderWrapperWithThresholding";
+export const USD_ERC4626_RATE_PROVIDER_THIRD_FEED_WRAPPER_ID = "USD_ERC4626RateProviderThirdFeedWrapperWithThresholding";
 
 // dUSD
 export const DUSD_TOKEN_ID = "dUSD";

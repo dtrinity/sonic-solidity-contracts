@@ -1,3 +1,5 @@
+import { DeployFunction } from "hardhat-deploy/types";
+
 type ReadableOracle = {
   getAssetPrice(asset: string): Promise<bigint>;
   getPriceInfo?(asset: string): Promise<{ price: bigint; isAlive: boolean } | [bigint, boolean]>;
@@ -77,3 +79,15 @@ function formatError(error: unknown): string {
 
   return String(error);
 }
+
+// This file lives under deploy/ for reuse by fork verification tests, so provide
+// a no-op deploy export to keep hardhat-deploy from treating it as an invalid script.
+const func: DeployFunction = async function () {
+  return true;
+};
+
+func.skip = async () => true;
+func.tags = [];
+func.id = "shared-oracle-price-sanity";
+
+export default func;

@@ -3,8 +3,9 @@ import { DeployFunction } from "hardhat-deploy/types";
 
 import { getConfig } from "../../config/config";
 import { Config } from "../../config/types";
-import { USD_REDSTONE_COMPOSITE_WRAPPER_WITH_THRESHOLDING_ID, USD_REDSTONE_ORACLE_WRAPPER_ID } from "../../typescript/deploy-ids";
+import { USD_CHAINLINK_FEED_WRAPPER_ID } from "../../typescript/deploy-ids";
 import { GovernanceExecutor } from "../../typescript/hardhat/governance";
+import { LEGACY_CHAINLINK_FEED_WRAPPER_ARTIFACT } from "../../typescript/oracle-wrapper-artifacts";
 
 type SafeTransactionData = {
   to: string;
@@ -12,7 +13,53 @@ type SafeTransactionData = {
   data: string;
 };
 
-export type OracleMigrationConfig = Pick<Config, "oracleAggregators" | "safeConfig" | "tokenAddresses">;
+export type OracleMigrationConfig = Pick<Config, "oracleAggregators" | "safeConfig" | "tokenAddresses" | "walletAddresses">;
+
+function createGrantRoleTransaction(contractAddress: string, role: string, grantee: string, contractInterface: any): SafeTransactionData {
+  return {
+    to: contractAddress,
+    value: "0",
+    data: contractInterface.encodeFunctionData("grantRole", [role, grantee]),
+  };
+}
+
+function hasQueuedTransaction(executor: GovernanceExecutor, transaction: SafeTransactionData): boolean {
+  return executor.queuedTransactions.some(
+    (queued) => queued.to === transaction.to && queued.value === transaction.value && queued.data === transaction.data,
+  );
+}
+
+async function ensureGovernanceCanManageWrapper(
+  wrapper: any,
+  wrapperAddress: string,
+  governanceMultisig: string,
+  executor: GovernanceExecutor,
+): Promise<boolean> {
+  if (!executor.useSafe) {
+    return true;
+  }
+
+  const oracleManagerRole = await wrapper.ORACLE_MANAGER_ROLE();
+  if (await wrapper.hasRole(oracleManagerRole, governanceMultisig)) {
+    console.log(`✓ Governance already has ORACLE_MANAGER_ROLE on ${wrapperAddress}`);
+    return true;
+  }
+
+  const grantRoleTx = createGrantRoleTransaction(wrapperAddress, oracleManagerRole, governanceMultisig, wrapper.interface);
+  if (hasQueuedTransaction(executor, grantRoleTx)) {
+    console.log(`📝 ORACLE_MANAGER_ROLE grant already queued for governance on ${wrapperAddress}`);
+    return false;
+  }
+
+  return executor.tryOrQueue(
+    async () => {
+      const tx = await wrapper.grantRole(oracleManagerRole, governanceMultisig);
+      await tx.wait();
+      console.log(`➕ Granted ORACLE_MANAGER_ROLE to governance ${governanceMultisig}`);
+    },
+    () => grantRoleTx,
+  );
+}
 
 export async function executeStage1(
   hre: HardhatRuntimeEnvironment,
@@ -28,13 +75,10 @@ export async function executeStage1(
   const governance = new GovernanceExecutor(hre, deployerSigner, config.safeConfig);
   await governance.initialize();
 
-  const redstoneWrapperDeployment = await deployments.get(USD_REDSTONE_ORACLE_WRAPPER_ID);
-  const redstoneWrapper = await ethers.getContractAt("RedstoneChainlinkWrapper", redstoneWrapperDeployment.address, deployerSigner);
-
-  const redstoneCompositeDeployment = await deployments.get(USD_REDSTONE_COMPOSITE_WRAPPER_WITH_THRESHOLDING_ID);
-  const redstoneCompositeWrapper = await ethers.getContractAt(
-    "RedstoneChainlinkCompositeWrapperWithThresholding",
-    redstoneCompositeDeployment.address,
+  const chainlinkWrapperDeployment = await deployments.get(USD_CHAINLINK_FEED_WRAPPER_ID);
+  const chainlinkWrapper = await ethers.getContractAt(
+    LEGACY_CHAINLINK_FEED_WRAPPER_ARTIFACT,
+    chainlinkWrapperDeployment.address,
     deployerSigner,
   );
 
@@ -43,6 +87,17 @@ export async function executeStage1(
   const sAssets = [config.tokenAddresses.wS, config.tokenAddresses.dS].filter((address): address is string =>
     Boolean(address && address !== ""),
   );
+  let hasPendingGovernance = false;
+
+  const governanceReady = await ensureGovernanceCanManageWrapper(
+    chainlinkWrapper,
+    chainlinkWrapperDeployment.address,
+    config.walletAddresses.governanceMultisig,
+    governance,
+  );
+  if (!governanceReady) {
+    hasPendingGovernance = true;
+  }
 
   for (const asset of sAssets) {
     const expectedFeed = plainFeeds[asset];
@@ -51,39 +106,40 @@ export async function executeStage1(
       throw new Error(`No S/USD plain feed configured for asset ${asset}. Update the config before running this script.`);
     }
 
-    const currentFeed = await redstoneWrapper.assetToFeed(asset);
+    const currentFeed = await chainlinkWrapper.assetToFeed(asset);
 
     let feedUpdatedImmediately = false;
 
     if (currentFeed.toLowerCase() !== expectedFeed.toLowerCase()) {
       const safeTx: SafeTransactionData = {
-        to: redstoneWrapperDeployment.address,
+        to: chainlinkWrapperDeployment.address,
         value: "0",
-        data: redstoneWrapper.interface.encodeFunctionData("setFeed", [asset, expectedFeed]),
+        data: chainlinkWrapper.interface.encodeFunctionData("setFeed", [asset, expectedFeed]),
       };
 
       const complete = await governance.tryOrQueue(
         async () => {
-          const tx = await redstoneWrapper.setFeed(asset, expectedFeed);
+          const tx = await chainlinkWrapper.setFeed(asset, expectedFeed);
           await tx.wait();
-          console.log(`🔄 Updated Redstone wrapper feed for asset ${asset} to ${expectedFeed}`);
+          console.log(`🔄 Updated Chainlink feed wrapper for asset ${asset} to ${expectedFeed}`);
         },
         () => safeTx,
       );
 
       if (!complete) {
+        hasPendingGovernance = true;
         console.log(`📝 Queued Safe transaction to set feed for asset ${asset}.`);
       } else {
         feedUpdatedImmediately = true;
       }
     } else {
-      console.log(`✅ Redstone wrapper already configured for asset ${asset}.`);
+      console.log(`✅ Chainlink feed wrapper already configured for asset ${asset}.`);
       feedUpdatedImmediately = true;
     }
 
     if (feedUpdatedImmediately) {
       try {
-        const price = await redstoneWrapper.getAssetPrice(asset);
+        const price = await chainlinkWrapper.getAssetPrice(asset);
         console.log(`💵 Wrapper price for ${asset}: ${price}`);
       } catch (error) {
         throw new Error(`Failed to read wrapper price for ${asset} even after direct update. ${error}`);
@@ -93,81 +149,26 @@ export async function executeStage1(
     }
   }
 
-  const stSAddress = config.tokenAddresses.stS;
-  const compositeFeeds = config.oracleAggregators.USD.redstoneOracleAssets?.compositeRedstoneOracleWrappersWithThresholding || {};
-  const stSCompositeConfig = stSAddress ? compositeFeeds[stSAddress] : undefined;
+  console.log("ℹ️ stS/USD composite migration is handled by the Chainlink wrapper in deploy/20; skipping legacy composite update.");
 
-  if (stSAddress && stSCompositeConfig) {
-    const existingComposite = await redstoneCompositeWrapper.compositeFeeds(stSAddress);
+  if (hasPendingGovernance) {
+    const flushed = await governance.flush("Stage 1: configure Chainlink S/USD feeds");
 
-    const needsUpdate =
-      existingComposite.feed1.toLowerCase() !== stSCompositeConfig.feed1.toLowerCase() ||
-      existingComposite.feed2.toLowerCase() !== stSCompositeConfig.feed2.toLowerCase() ||
-      existingComposite.primaryThreshold.lowerThresholdInBase !== stSCompositeConfig.lowerThresholdInBase1 ||
-      existingComposite.primaryThreshold.fixedPriceInBase !== stSCompositeConfig.fixedPriceInBase1 ||
-      existingComposite.secondaryThreshold.lowerThresholdInBase !== stSCompositeConfig.lowerThresholdInBase2 ||
-      existingComposite.secondaryThreshold.fixedPriceInBase !== stSCompositeConfig.fixedPriceInBase2;
-
-    let compositeUpdatedImmediately = false;
-
-    if (needsUpdate) {
-      const args = [
-        stSCompositeConfig.feedAsset,
-        stSCompositeConfig.feed1,
-        stSCompositeConfig.feed2,
-        stSCompositeConfig.lowerThresholdInBase1,
-        stSCompositeConfig.fixedPriceInBase1,
-        stSCompositeConfig.lowerThresholdInBase2,
-        stSCompositeConfig.fixedPriceInBase2,
-      ] as const;
-
-      const safeTx: SafeTransactionData = {
-        to: redstoneCompositeDeployment.address,
-        value: "0",
-        data: redstoneCompositeWrapper.interface.encodeFunctionData("addCompositeFeed", [...args]),
-      };
-
-      const complete = await governance.tryOrQueue(
-        async () => {
-          const tx = await redstoneCompositeWrapper.addCompositeFeed(...args);
-          await tx.wait();
-          console.log(`🔄 Updated stS composite feed to use Chainlink S/USD feed.`);
-        },
-        () => safeTx,
-      );
-
-      if (!complete) {
-        console.log(`📝 Queued Safe transaction to update stS composite feed.`);
-      } else {
-        compositeUpdatedImmediately = true;
+    if (governance.useSafe) {
+      if (!flushed) {
+        throw new Error("Failed to create Safe batch for S/USD Chainlink feed configuration.");
       }
-    } else {
-      console.log("✅ stS composite feed already configured for Chainlink S/USD.");
-      compositeUpdatedImmediately = true;
+
+      console.log("📬 Safe transaction batch prepared for Stage 1 (Chainlink S/USD feed configuration).");
+      console.log("📝 After governance executes, run Stage 2 to switch oracle aggregators.");
+      return false;
     }
 
-    if (compositeUpdatedImmediately) {
-      try {
-        const price = await redstoneCompositeWrapper.getAssetPrice(stSAddress);
-        console.log(`💵 Composite wrapper price for stS: ${price}`);
-      } catch (error) {
-        throw new Error(`Failed to read stS composite price after direct update. ${error}`);
-      }
-    } else {
-      console.log("ℹ️ Composite wrapper price for stS will be available once the Safe transaction is executed.");
-    }
-  } else {
-    console.log("⚠️ No stS composite configuration found; skipping composite feed updates.");
+    console.log("\n❌ Non-Safe mode: direct execution failed and no Safe batch was prepared.");
+    return false;
   }
 
-  const flushed = await governance.flush("Stage 1: configure Chainlink S/USD feeds");
-
-  if (!flushed) {
-    throw new Error("Failed to create Safe batch for S/USD Chainlink feed configuration.");
-  }
-
-  console.log("📬 Safe transaction batch prepared for Stage 1 (Chainlink S/USD feed configuration).");
-  console.log("📝 After governance executes, run Stage 2 to switch oracle aggregators.");
+  console.log("✅ Stage 1 Chainlink S/USD feed configuration completed or was already in place.");
   return true;
 }
 
@@ -176,7 +177,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment): Pr
 };
 
 func.tags = ["oracle", "usd-oracle", "chainlink", "s-feed-stage1"];
-func.dependencies = [USD_REDSTONE_ORACLE_WRAPPER_ID, USD_REDSTONE_COMPOSITE_WRAPPER_WITH_THRESHOLDING_ID];
+func.dependencies = [USD_CHAINLINK_FEED_WRAPPER_ID];
 func.runAtTheEnd = true;
 func.id = "update-s-chainlink-feeds";
 

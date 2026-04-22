@@ -10,11 +10,7 @@ import { SafeManager } from "@dtrinity/shared-hardhat-tools";
 import { assertOraclePriceAlive, assertPriceContinuity, readOraclePriceSample } from "../../deploy/_shared/oracle-price-sanity";
 import { executeStage1, OracleMigrationConfig } from "../../deploy/18_oracle_migrations/01_update_s_chainlink_feeds";
 import { executeStage2 } from "../../deploy/18_oracle_migrations/02_switch_s_chainlink_oracles";
-import {
-  USD_ORACLE_AGGREGATOR_ID,
-  USD_REDSTONE_COMPOSITE_WRAPPER_WITH_THRESHOLDING_ID,
-  USD_REDSTONE_ORACLE_WRAPPER_ID,
-} from "../../typescript/deploy-ids";
+import { USD_ORACLE_AGGREGATOR_ID, USD_REDSTONE_ORACLE_WRAPPER_ID } from "../../typescript/deploy-ids";
 
 const ENABLE_ENV = "ORACLE_MIGRATION_FORK_TESTS";
 const WORKER_ENV = "ORACLE_MIGRATION_FORK_WORKER";
@@ -37,11 +33,6 @@ type AssetSnapshot = {
 
 type FeedSnapshot = AssetSnapshot & {
   feed: string;
-};
-
-type CompositeSnapshot = AssetSnapshot & {
-  feed1: string;
-  feed2: string;
 };
 
 describe("Oracle migration verification on Sonic fork", () => {
@@ -110,92 +101,72 @@ describe("Oracle migration verification on Sonic fork", () => {
 
         const oracleAggregatorDeployment = await deployments.get(USD_ORACLE_AGGREGATOR_ID);
         const redstoneWrapperDeployment = await deployments.get(USD_REDSTONE_ORACLE_WRAPPER_ID);
-        const redstoneCompositeDeployment = await deployments.get(USD_REDSTONE_COMPOSITE_WRAPPER_WITH_THRESHOLDING_ID);
 
         const oracleAggregator = await ethers.getContractAt("OracleAggregator", oracleAggregatorDeployment.address, defaultSigner);
         const redstoneWrapper = await ethers.getContractAt("RedstoneChainlinkWrapper", redstoneWrapperDeployment.address, defaultSigner);
-        const redstoneComposite = await ethers.getContractAt(
-          "RedstoneChainlinkCompositeWrapperWithThresholding",
-          redstoneCompositeDeployment.address,
-          defaultSigner,
-        );
 
         const wS = requiredAddress(config.tokenAddresses.wS, "wS");
         const dS = requiredAddress(config.tokenAddresses.dS, "dS");
-        const stS = requiredAddress(config.tokenAddresses.stS, "stS");
         const expectedSFeed = requiredAddress(
           config.oracleAggregators.USD.redstoneOracleAssets?.plainRedstoneOracleWrappers?.[wS],
           "wS Chainlink S/USD feed",
-        );
-        const expectedStSFeed2 = requiredAddress(
-          config.oracleAggregators.USD.redstoneOracleAssets?.compositeRedstoneOracleWrappersWithThresholding?.[stS]?.feed2,
-          "stS composite feed2",
         );
 
         const targetAssets = [wS, dS];
         const unrelatedAssets = ["0x80Eede496655FB9047dd39d9f418d5483ED600df", "0x29219dd400f2Bf60E5a23d13Be72B486D4038894"];
 
         const preStage1Feeds = await snapshotFeedAssets(oracleAggregator, redstoneWrapper, targetAssets);
-        const preStage1Composite = await snapshotCompositeAsset(oracleAggregator, redstoneComposite, stS);
         const unrelatedBefore = await snapshotOracleMappings(oracleAggregator, unrelatedAssets);
         const migrationsBefore = readMigrations();
 
-        expect(preStage1Feeds.map((snapshot) => snapshot.aggregatorOracle.toLowerCase())).to.not.include(redstoneWrapperDeployment.address.toLowerCase());
+        expect(preStage1Feeds.map((snapshot) => snapshot.aggregatorOracle.toLowerCase())).to.not.include(
+          redstoneWrapperDeployment.address.toLowerCase(),
+        );
         expect(preStage1Feeds.map((snapshot) => snapshot.feed)).to.deep.equal([hre.ethers.ZeroAddress, hre.ethers.ZeroAddress]);
-        expect(preStage1Composite.aggregatorOracle.toLowerCase()).to.equal(redstoneCompositeDeployment.address.toLowerCase());
-        expect(preStage1Composite.feed2.toLowerCase()).to.not.equal(expectedStSFeed2.toLowerCase());
 
         const stage1Complete = await executeStage1(hre, { config });
-        expect(stage1Complete).to.equal(true);
+        expect(stage1Complete).to.equal(false);
         writeMigrationKey(STAGE1_ID);
 
         const stage1Migrations = readMigrations();
         expectMigrationKeysUnchangedExcept(migrationsBefore, stage1Migrations, [STAGE1_ID]);
         expect(recordedBatches).to.have.length(1);
-        expect(recordedBatches[0]).to.have.length(3);
+        expect(recordedBatches[0]).to.have.length(2);
 
-        const stage1FunctionNames = recordedBatches[0].map((transaction) => parseFunctionName(transaction, {
-          [redstoneWrapperDeployment.address.toLowerCase()]: redstoneWrapper,
-          [redstoneCompositeDeployment.address.toLowerCase()]: redstoneComposite,
-        }));
-        expect(stage1FunctionNames).to.deep.equal(["setFeed", "setFeed", "addCompositeFeed"]);
+        const stage1FunctionNames = recordedBatches[0].map((transaction) =>
+          parseFunctionName(transaction, {
+            [redstoneWrapperDeployment.address.toLowerCase()]: redstoneWrapper,
+          }),
+        );
+        expect(stage1FunctionNames).to.deep.equal(["setFeed", "setFeed"]);
 
         await executeQueuedBatch(recordedBatches[0], await impersonateAccount(config.safeConfig.safeAddress), {
           [redstoneWrapperDeployment.address.toLowerCase()]: redstoneWrapper,
-          [redstoneCompositeDeployment.address.toLowerCase()]: redstoneComposite,
         });
 
         const postStage1Feeds = await snapshotFeedAssets(oracleAggregator, redstoneWrapper, targetAssets);
-        const postStage1Composite = await snapshotCompositeAsset(oracleAggregator, redstoneComposite, stS);
 
         for (const snapshot of postStage1Feeds) {
           expect(snapshot.feed.toLowerCase()).to.equal(expectedSFeed.toLowerCase());
           assertOraclePriceAlive(snapshot.aggregatorPrice, `Stage 1 aggregator price for ${snapshot.asset}`);
         }
 
-        expect(postStage1Composite.feed2.toLowerCase()).to.equal(expectedStSFeed2.toLowerCase());
-        assertOraclePriceAlive(postStage1Composite.aggregatorPrice, "Stage 1 composite price for stS");
-
         for (const [index, asset] of targetAssets.entries()) {
           const wrapperPrice = await readOraclePriceSample("USD_RedstoneChainlinkWrapper", redstoneWrapper, asset);
           assertOraclePriceAlive(wrapperPrice, `Stage 1 wrapper price for ${asset}`);
-          assertPriceContinuity(preStage1Feeds[index].aggregatorPrice, wrapperPrice, SANITY_TOLERANCE_BPS, `Stage 1 continuity for ${asset}`);
+          assertPriceContinuity(
+            preStage1Feeds[index].aggregatorPrice,
+            wrapperPrice,
+            SANITY_TOLERANCE_BPS,
+            `Stage 1 continuity for ${asset}`,
+          );
         }
 
-        const compositePrice = await readOraclePriceSample(
-          "USD_RedstoneChainlinkCompositeWrapperWithThresholding",
-          redstoneComposite,
-          stS,
-        );
-        assertOraclePriceAlive(compositePrice, "Stage 1 composite wrapper price for stS");
-        assertPriceContinuity(preStage1Composite.aggregatorPrice, compositePrice, SANITY_TOLERANCE_BPS, "Stage 1 continuity for stS");
-
         const stage2Complete = await executeStage2(hre, { config });
-        expect(stage2Complete).to.equal(true);
-        writeMigrationKey(STAGE2_ID);
+        expect(stage2Complete).to.equal(false);
 
-        const stage2Migrations = readMigrations();
-        expectMigrationKeysUnchangedExcept(stage1Migrations, stage2Migrations, [STAGE2_ID]);
+        const pendingStage2Migrations = readMigrations();
+        expectMigrationKeysUnchangedExcept(stage1Migrations, pendingStage2Migrations, []);
         expect(recordedBatches).to.have.length(2);
         expect(recordedBatches[1]).to.have.length(2);
 
@@ -209,9 +180,12 @@ describe("Oracle migration verification on Sonic fork", () => {
         await executeQueuedBatch(recordedBatches[1], await impersonateAccount(config.safeConfig.safeAddress), {
           [oracleAggregatorDeployment.address.toLowerCase()]: oracleAggregator,
         });
+        writeMigrationKey(STAGE2_ID);
+
+        const stage2Migrations = readMigrations();
+        expectMigrationKeysUnchangedExcept(stage1Migrations, stage2Migrations, [STAGE2_ID]);
 
         const postStage2Feeds = await snapshotFeedAssets(oracleAggregator, redstoneWrapper, targetAssets);
-        const postStage2Composite = await snapshotCompositeAsset(oracleAggregator, redstoneComposite, stS);
         const unrelatedAfter = await snapshotOracleMappings(oracleAggregator, unrelatedAssets);
 
         for (const snapshot of postStage2Feeds) {
@@ -220,14 +194,14 @@ describe("Oracle migration verification on Sonic fork", () => {
           assertOraclePriceAlive(snapshot.aggregatorPrice, `Stage 2 aggregator price for ${snapshot.asset}`);
         }
 
-        expect(postStage2Composite.aggregatorOracle.toLowerCase()).to.equal(redstoneCompositeDeployment.address.toLowerCase());
-        expect(postStage2Composite.feed2.toLowerCase()).to.equal(expectedStSFeed2.toLowerCase());
-        assertOraclePriceAlive(postStage2Composite.aggregatorPrice, "Stage 2 aggregator price for stS");
-
         for (const [index, snapshot] of postStage2Feeds.entries()) {
-          assertPriceContinuity(preStage1Feeds[index].aggregatorPrice, snapshot.aggregatorPrice, SANITY_TOLERANCE_BPS, `Stage 2 continuity for ${snapshot.asset}`);
+          assertPriceContinuity(
+            preStage1Feeds[index].aggregatorPrice,
+            snapshot.aggregatorPrice,
+            SANITY_TOLERANCE_BPS,
+            `Stage 2 continuity for ${snapshot.asset}`,
+          );
         }
-        assertPriceContinuity(preStage1Composite.aggregatorPrice, postStage2Composite.aggregatorPrice, SANITY_TOLERANCE_BPS, "Stage 2 continuity for stS");
         expect(unrelatedAfter).to.deep.equal(unrelatedBefore);
 
         const builderFilesBeforeReruns = listSafeBuilderFiles();
@@ -262,9 +236,7 @@ describe("Oracle migration verification on Sonic fork", () => {
         expect(listSafeBuilderFiles()).to.deep.equal(builderFilesBeforeReruns);
 
         const finalFeeds = await snapshotFeedAssets(oracleAggregator, redstoneWrapper, targetAssets);
-        const finalComposite = await snapshotCompositeAsset(oracleAggregator, redstoneComposite, stS);
         expect(finalFeeds).to.deep.equal(postStage2Feeds);
-        expect(finalComposite).to.deep.equal(postStage2Composite);
       });
     });
   } else {
@@ -320,18 +292,6 @@ async function snapshotFeedAssets(oracleAggregator: any, wrapper: any, assets: s
       feed: await wrapper.assetToFeed(asset),
     })),
   );
-}
-
-async function snapshotCompositeAsset(oracleAggregator: any, composite: any, asset: string): Promise<CompositeSnapshot> {
-  const feeds = await composite.compositeFeeds(asset);
-
-  return {
-    aggregatorOracle: await oracleAggregator.assetOracles(asset),
-    aggregatorPrice: await readOraclePriceSample("USD_OracleAggregator", oracleAggregator, asset),
-    asset,
-    feed1: feeds.feed1,
-    feed2: feeds.feed2,
-  };
 }
 
 async function snapshotOracleMappings(oracleAggregator: any, assets: string[]): Promise<Record<string, string>> {
@@ -416,7 +376,11 @@ function resetMigrationKeys(filePath: string, keys: string[]): void {
   fs.writeFileSync(filePath, JSON.stringify(migrations, null, 2));
 }
 
-function expectMigrationKeysUnchangedExcept(before: Record<string, number>, after: Record<string, number>, allowedChangedKeys: string[]): void {
+function expectMigrationKeysUnchangedExcept(
+  before: Record<string, number>,
+  after: Record<string, number>,
+  allowedChangedKeys: string[],
+): void {
   const allowed = new Set(allowedChangedKeys);
   const allKeys = new Set([...Object.keys(before), ...Object.keys(after)]);
 
@@ -493,6 +457,10 @@ async function buildOracleMigrationConfig(): Promise<OracleMigrationConfig> {
       rpcUrl: resolveRpcUrl(),
       safeAddress: governanceMultisig,
       threshold: 2,
+    },
+    walletAddresses: {
+      governanceMultisig,
+      incentivesVault: "0x4B4B5cC616be4cd1947B93f2304d36b3e80D3ef6",
     },
     tokenAddresses: {
       dS: dSDeployment.address,
