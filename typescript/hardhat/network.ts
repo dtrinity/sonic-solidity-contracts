@@ -10,6 +10,8 @@ type ForkingConfig = {
  * hardhat-deploy uses HARDHAT_DEPLOY_FORK to load deployments for fork tests,
  * but the repo config previously keyed only off hre.network.name. Mirror the
  * hardhat-deploy convention so forked tests can reuse live network config.
+ *
+ * @param hre - Hardhat runtime environment.
  */
 export function getEffectiveNetworkName(hre: HardhatRuntimeEnvironment): string {
   if (process.env.HARDHAT_DEPLOY_FORK) {

@@ -114,10 +114,11 @@ describe("Safe-mode oracle rollout scripts", () => {
     const phaseOneBuilderFiles = listSafeBuilderFiles();
     expect(phaseOneBuilderFiles).to.have.length(1);
     const phaseOneBuilder = JSON.parse(fs.readFileSync(phaseOneBuilderFiles[0], "utf8"));
-    expect(phaseOneBuilder.transactions.map((transaction: SafeTransactionData) => parseFunctionName(fixture.contracts.wrapper, transaction.data))).to.deep.equal([
-      "grantRole",
-      "addCompositeFeed",
-    ]);
+    expect(
+      phaseOneBuilder.transactions.map((transaction: SafeTransactionData) =>
+        parseFunctionName(fixture.contracts.wrapper, transaction.data),
+      ),
+    ).to.deep.equal(["grantRole", "addCompositeFeed"]);
 
     await executeQueuedBatch(phaseOneBatch, fixture.governanceSigner, {
       [fixture.wrapperAddress.toLowerCase()]: fixture.contracts.wrapper,
@@ -125,7 +126,10 @@ describe("Safe-mode oracle rollout scripts", () => {
 
     expect(await fixture.contracts.wrapper.hasRole(fixture.oracleManagerRole, await fixture.governanceSigner.getAddress())).to.equal(true);
     const configuredFeed = await fixture.contracts.wrapper.compositeFeeds(fixture.feedAsset);
-    expect(configuredFeed.feed1).to.equal(fixture.config.oracleAggregators.USD.safeRateProviderAssets!.chainlinkSafeRateProviderCompositeWrappers![fixture.feedAsset].chainlinkFeed);
+    expect(configuredFeed.feed1).to.equal(
+      fixture.config.oracleAggregators.USD.safeRateProviderAssets!.chainlinkSafeRateProviderCompositeWrappers![fixture.feedAsset]
+        .chainlinkFeed,
+    );
 
     const phaseOneRerunResult = await executeCompositeDeployment(hre, { config: fixture.config });
     expect(phaseOneRerunResult).to.equal(true);
@@ -149,7 +153,9 @@ describe("Safe-mode oracle rollout scripts", () => {
     expect(phaseTwoBuilderFiles).to.have.length(2);
     const phaseTwoBuilder = JSON.parse(fs.readFileSync(phaseTwoBuilderFiles[1], "utf8"));
     expect(
-      phaseTwoBuilder.transactions.map((transaction: SafeTransactionData) => parseFunctionName(fixture.contracts.aggregator, transaction.data)),
+      phaseTwoBuilder.transactions.map((transaction: SafeTransactionData) =>
+        parseFunctionName(fixture.contracts.aggregator, transaction.data),
+      ),
     ).to.deep.equal(["grantRole", "setOracle"]);
 
     await executeQueuedBatch(phaseTwoBatch, fixture.governanceSigner, {
@@ -172,8 +178,9 @@ describe("Safe-mode oracle rollout scripts", () => {
     });
 
     const invalidConfig = structuredClone(fixture.config) as Config;
-    invalidConfig.oracleAggregators.USD.safeRateProviderAssets!.chainlinkSafeRateProviderCompositeWrappers![fixture.feedAsset].chainlinkFeed =
-      await fixture.contracts.currentOracle.getAddress();
+    invalidConfig.oracleAggregators.USD.safeRateProviderAssets!.chainlinkSafeRateProviderCompositeWrappers![
+      fixture.feedAsset
+    ].chainlinkFeed = await fixture.contracts.currentOracle.getAddress();
 
     await expect(executeCompositeOracleFlip(hre, { config: invalidConfig })).to.be.rejectedWith(
       `Configured feed ${fixture.config.oracleAggregators.USD.safeRateProviderAssets!.chainlinkSafeRateProviderCompositeWrappers![fixture.feedAsset].chainlinkFeed} does not match expected Chainlink feed ${await fixture.contracts.currentOracle.getAddress()}`,
@@ -297,7 +304,11 @@ async function setupRolloutFixture(): Promise<RolloutFixture> {
   await (await aggregator.revokeRole(aggregatorOracleManagerRole, deployerAddress)).wait();
   await (await aggregator.revokeRole(aggregatorDefaultAdminRole, deployerAddress)).wait();
 
-  await saveDeployment(USD_CHAINLINK_SAFE_RATE_PROVIDER_COMPOSITE_WRAPPER_ID, "ChainlinkSafeRateProviderCompositeWrapperWithThresholding", wrapper);
+  await saveDeployment(
+    USD_CHAINLINK_SAFE_RATE_PROVIDER_COMPOSITE_WRAPPER_ID,
+    "ChainlinkSafeRateProviderCompositeWrapperWithThresholding",
+    wrapper,
+  );
   await saveDeployment(USD_ORACLE_AGGREGATOR_ID, "OracleAggregator", aggregator);
 
   const chainlinkFeedAddress = await chainlinkFeed.getAddress();

@@ -3,10 +3,7 @@ import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
 
 import { getConfig } from "../../config/config";
-import {
-  S_CHAINLINK_WRAPPER_WITH_THRESHOLDING_ID,
-  S_ORACLE_AGGREGATOR_ID,
-} from "../../typescript/deploy-ids";
+import { S_CHAINLINK_WRAPPER_WITH_THRESHOLDING_ID, S_ORACLE_AGGREGATOR_ID } from "../../typescript/deploy-ids";
 import { GovernanceExecutor } from "../../typescript/hardhat/governance";
 import { CHAINLINK_WRAPPER_WITH_THRESHOLDING_ARTIFACT } from "../../typescript/oracle-wrapper-artifacts";
 
@@ -88,6 +85,14 @@ function createSetFeedTransaction(wrapperAddress: string, asset: string, feed: s
   };
 }
 
+/**
+ * Build a Safe transaction payload to update an OracleAggregator route.
+ *
+ * @param aggregatorAddress - OracleAggregator contract address.
+ * @param asset - Asset address to configure.
+ * @param oracle - New oracle address for the asset.
+ * @param aggregatorInterface - Contract interface used to encode the call.
+ */
 function createSetOracleTransaction(
   aggregatorAddress: string,
   asset: string,
@@ -101,6 +106,14 @@ function createSetOracleTransaction(
   };
 }
 
+/**
+ * Build a Safe transaction payload for granting a role.
+ *
+ * @param contractAddress - Contract address that owns the role.
+ * @param role - Role identifier to grant.
+ * @param grantee - Account that should receive the role.
+ * @param contractInterface - Contract interface used to encode the call.
+ */
 function createGrantRoleTransaction(contractAddress: string, role: string, grantee: string, contractInterface: any): SafeTransactionData {
   return {
     to: contractAddress,
@@ -109,6 +122,14 @@ function createGrantRoleTransaction(contractAddress: string, role: string, grant
   };
 }
 
+/**
+ * Build a Safe transaction payload for revoking a role.
+ *
+ * @param contractAddress - Contract address that owns the role.
+ * @param role - Role identifier to revoke.
+ * @param account - Account that should lose the role.
+ * @param contractInterface - Contract interface used to encode the call.
+ */
 function createRevokeRoleTransaction(contractAddress: string, role: string, account: string, contractInterface: any): SafeTransactionData {
   return {
     to: contractAddress,
@@ -117,12 +138,27 @@ function createRevokeRoleTransaction(contractAddress: string, role: string, acco
   };
 }
 
+/**
+ * Check whether an equivalent Safe transaction is already queued.
+ *
+ * @param executor - Governance executor tracking queued transactions.
+ * @param transaction - Transaction payload to search for.
+ */
 function hasQueuedTransaction(executor: GovernanceExecutor, transaction: SafeTransactionData): boolean {
   return executor.queuedTransactions.some(
     (queued) => queued.to === transaction.to && queued.value === transaction.value && queued.data === transaction.data,
   );
 }
 
+/**
+ * Ensure governance can manage a contract before queueing dependent operations.
+ *
+ * @param contract - Contract instance that exposes ORACLE_MANAGER_ROLE.
+ * @param contractAddress - Contract address.
+ * @param governanceMultisig - Governance multisig that should hold the role.
+ * @param executor - Governance executor used for direct calls or Safe queueing.
+ * @param label - Human-readable label used in logs.
+ */
 async function ensureGovernanceCanManageContract(
   contract: any,
   contractAddress: string,
@@ -135,12 +171,14 @@ async function ensureGovernanceCanManageContract(
   }
 
   const oracleManagerRole = await contract.ORACLE_MANAGER_ROLE();
+
   if (await contract.hasRole(oracleManagerRole, governanceMultisig)) {
     console.log(`   ✓ Governance already has ORACLE_MANAGER_ROLE on ${label}`);
     return true;
   }
 
   const grantRoleTx = createGrantRoleTransaction(contractAddress, oracleManagerRole, governanceMultisig, contract.interface);
+
   if (hasQueuedTransaction(executor, grantRoleTx)) {
     console.log(`   📝 ORACLE_MANAGER_ROLE grant already queued for governance on ${label}`);
     return false;
@@ -156,6 +194,15 @@ async function ensureGovernanceCanManageContract(
   );
 }
 
+/**
+ * Migrate wrapper roles from the deployer to governance.
+ *
+ * @param hre - Hardhat runtime environment.
+ * @param wrapperAddress - Wrapper contract address.
+ * @param deployerSigner - Signer currently holding the roles.
+ * @param governanceMultisig - Governance multisig that should receive the roles.
+ * @param executor - Governance executor used for direct calls or Safe queueing.
+ */
 async function migrateWrapperRoles(
   hre: HardhatRuntimeEnvironment,
   wrapperAddress: string,
@@ -179,6 +226,7 @@ async function migrateWrapperRoles(
     }
 
     const grantRoleTx = createGrantRoleTransaction(wrapperAddress, role.hash, governanceMultisig, wrapper.interface);
+
     if (hasQueuedTransaction(executor, grantRoleTx)) {
       console.log(`   📝 ${role.name} grant already queued for governance`);
       complete = false;
@@ -200,6 +248,7 @@ async function migrateWrapperRoles(
   for (const role of [...roles].reverse()) {
     const deployerHasRole = await wrapper.hasRole(role.hash, deployerAddress);
     const governanceHasRole = await wrapper.hasRole(role.hash, governanceMultisig);
+
     if (!deployerHasRole || !governanceHasRole) {
       continue;
     }
@@ -284,6 +333,7 @@ async function executeUpdate(hre: HardhatRuntimeEnvironment): Promise<boolean> {
     executor,
     "S-base Chainlink wrapper",
   );
+
   if (!wrapperGovernanceReady) {
     hasPendingGovernance = true;
   }
@@ -296,6 +346,7 @@ async function executeUpdate(hre: HardhatRuntimeEnvironment): Promise<boolean> {
       executor,
       "S_OracleAggregator",
     );
+
     if (!aggregatorGovernanceReady) {
       hasPendingGovernance = true;
     }
@@ -349,6 +400,7 @@ async function executeUpdate(hre: HardhatRuntimeEnvironment): Promise<boolean> {
       },
       () => createSetOracleTransaction(oracleAggregatorDeployment.address, stSAddress, wrapperAddress, oracleAggregator.interface),
     );
+
     if (!flipComplete) {
       hasPendingGovernance = true;
     }
@@ -356,6 +408,7 @@ async function executeUpdate(hre: HardhatRuntimeEnvironment): Promise<boolean> {
 
   console.log("\n🔐 Migrating S-base Chainlink wrapper roles to governance...");
   const rolesComplete = await migrateWrapperRoles(hre, wrapperAddress, deployerSigner, config.walletAddresses.governanceMultisig, executor);
+
   if (!rolesComplete) {
     hasPendingGovernance = true;
   }

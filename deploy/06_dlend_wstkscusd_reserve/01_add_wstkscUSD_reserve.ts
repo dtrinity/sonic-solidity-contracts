@@ -2,11 +2,16 @@ import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
 
 import { getConfig } from "../../config/config";
-import { setupNewReserves } from "../../typescript/dlend";
 import { USD_ERC4626_RATE_PROVIDER_THIRD_FEED_WRAPPER_ID, USD_ORACLE_AGGREGATOR_ID } from "../../typescript/deploy-ids";
+import { setupNewReserves } from "../../typescript/dlend";
 
 const reserveSymbol = "wstkscUSD";
 
+/**
+ * Ensure the wstkscUSD reserve is only added after the new oracle route is live.
+ *
+ * @param hre - Hardhat runtime environment.
+ */
 async function assertWstkscUSDOracleReady(hre: HardhatRuntimeEnvironment): Promise<void> {
   const { deployer } = await hre.getNamedAccounts();
   const signer = await hre.ethers.getSigner(deployer);
@@ -18,6 +23,7 @@ async function assertWstkscUSDOracleReady(hre: HardhatRuntimeEnvironment): Promi
   }
 
   const thirdFeedConfig = config.oracleAggregators.USD.safeRateProviderAssets?.erc4626RateProviderThirdFeedWrappers?.[wstkscUSDAddress];
+
   if (!thirdFeedConfig) {
     return;
   }
@@ -27,6 +33,7 @@ async function assertWstkscUSDOracleReady(hre: HardhatRuntimeEnvironment): Promi
   const oracleAggregator = await hre.ethers.getContractAt("OracleAggregator", oracleAggregatorDeployment.address, signer);
 
   const configuredOracle = await oracleAggregator.assetOracles(wstkscUSDAddress);
+
   if (configuredOracle.toLowerCase() !== wrapperDeployment.address.toLowerCase()) {
     throw new Error(
       `wstkscUSD OracleAggregator route is not ready. Expected ${wrapperDeployment.address}, found ${configuredOracle}. Execute the queued ${USD_ERC4626_RATE_PROVIDER_THIRD_FEED_WRAPPER_ID} governance oracle flip before adding the reserve.`,

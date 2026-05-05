@@ -167,6 +167,14 @@ function createAddCompositeFeedTransaction(
   };
 }
 
+/**
+ * Build a Safe transaction payload to set a single-feed wrapper route.
+ *
+ * @param wrapperAddress - Wrapper contract address.
+ * @param asset - Asset address to configure.
+ * @param feed - Feed address to install for the asset.
+ * @param wrapperInterface - Contract interface used to encode the call.
+ */
 function createSetFeedTransaction(wrapperAddress: string, asset: string, feed: string, wrapperInterface: any): SafeTransactionData {
   return {
     to: wrapperAddress,
@@ -175,6 +183,15 @@ function createSetFeedTransaction(wrapperAddress: string, asset: string, feed: s
   };
 }
 
+/**
+ * Build a Safe transaction payload to set thresholding on a single-feed wrapper route.
+ *
+ * @param wrapperAddress - Wrapper contract address.
+ * @param asset - Asset address to configure.
+ * @param lowerThresholdInBase - Threshold above which the price is clamped.
+ * @param fixedPriceInBase - Fixed replacement price to use when clamped.
+ * @param wrapperInterface - Contract interface used to encode the call.
+ */
 function createSetThresholdConfigTransaction(
   wrapperAddress: string,
   asset: string,
@@ -189,6 +206,14 @@ function createSetThresholdConfigTransaction(
   };
 }
 
+/**
+ * Build a Safe transaction payload for granting a role.
+ *
+ * @param contractAddress - Contract address that owns the role.
+ * @param role - Role identifier to grant.
+ * @param grantee - Account that should receive the role.
+ * @param contractInterface - Contract interface used to encode the call.
+ */
 function createGrantRoleTransaction(contractAddress: string, role: string, grantee: string, contractInterface: any): SafeTransactionData {
   return {
     to: contractAddress,
@@ -197,6 +222,14 @@ function createGrantRoleTransaction(contractAddress: string, role: string, grant
   };
 }
 
+/**
+ * Build a Safe transaction payload for revoking a role.
+ *
+ * @param contractAddress - Contract address that owns the role.
+ * @param role - Role identifier to revoke.
+ * @param account - Account that should lose the role.
+ * @param contractInterface - Contract interface used to encode the call.
+ */
 function createRevokeRoleTransaction(contractAddress: string, role: string, account: string, contractInterface: any): SafeTransactionData {
   return {
     to: contractAddress,
@@ -205,12 +238,26 @@ function createRevokeRoleTransaction(contractAddress: string, role: string, acco
   };
 }
 
+/**
+ * Check whether an equivalent Safe transaction is already queued.
+ *
+ * @param executor - Governance executor tracking queued transactions.
+ * @param transaction - Transaction payload to search for.
+ */
 function hasQueuedTransaction(executor: GovernanceExecutor, transaction: SafeTransactionData): boolean {
   return executor.queuedTransactions.some(
     (queued) => queued.to === transaction.to && queued.value === transaction.value && queued.data === transaction.data,
   );
 }
 
+/**
+ * Ensure governance can manage the wrapper before queueing composite feed updates.
+ *
+ * @param wrapper - Wrapper contract instance.
+ * @param wrapperAddress - Wrapper contract address.
+ * @param governanceMultisig - Governance multisig that should hold the roles.
+ * @param executor - Governance executor used for direct calls or Safe queueing.
+ */
 async function ensureGovernanceCanManageWrapper(
   wrapper: any,
   wrapperAddress: string,
@@ -222,12 +269,14 @@ async function ensureGovernanceCanManageWrapper(
   }
 
   const oracleManagerRole = await wrapper.ORACLE_MANAGER_ROLE();
+
   if (await wrapper.hasRole(oracleManagerRole, governanceMultisig)) {
     console.log(`   ✓ Governance already has ORACLE_MANAGER_ROLE on ${wrapperAddress}`);
     return true;
   }
 
   const grantRoleTx = createGrantRoleTransaction(wrapperAddress, oracleManagerRole, governanceMultisig, wrapper.interface);
+
   if (hasQueuedTransaction(executor, grantRoleTx)) {
     console.log(`   📝 ORACLE_MANAGER_ROLE grant already queued for governance on ${wrapperAddress}`);
     return false;
@@ -243,6 +292,15 @@ async function ensureGovernanceCanManageWrapper(
   );
 }
 
+/**
+ * Migrate wrapper roles from the deployer to governance.
+ *
+ * @param hre - Hardhat runtime environment.
+ * @param wrapperAddress - Wrapper contract address.
+ * @param deployerSigner - Signer currently holding the roles.
+ * @param governanceMultisig - Governance multisig that should receive the roles.
+ * @param executor - Governance executor used for direct calls or Safe queueing.
+ */
 async function migrateWrapperRoles(
   hre: HardhatRuntimeEnvironment,
   wrapperAddress: string,
@@ -266,6 +324,7 @@ async function migrateWrapperRoles(
     }
 
     const grantRoleTx = createGrantRoleTransaction(wrapperAddress, role.hash, governanceMultisig, wrapper.interface);
+
     if (hasQueuedTransaction(executor, grantRoleTx)) {
       console.log(`   📝 ${role.name} grant already queued for governance`);
       complete = false;
@@ -287,6 +346,7 @@ async function migrateWrapperRoles(
   for (const role of [...roles].reverse()) {
     const deployerHasRole = await wrapper.hasRole(role.hash, deployerAddress);
     const governanceHasRole = await wrapper.hasRole(role.hash, governanceMultisig);
+
     if (!deployerHasRole || !governanceHasRole) {
       continue;
     }
@@ -368,6 +428,7 @@ async function executeUpdate(hre: HardhatRuntimeEnvironment): Promise<boolean> {
     config.walletAddresses.governanceMultisig,
     executor,
   );
+
   if (!governanceReady) {
     hasPendingGovernance = true;
   }
@@ -593,6 +654,7 @@ async function executeUpdate(hre: HardhatRuntimeEnvironment): Promise<boolean> {
 
   console.log("\n🔐 Migrating Chainlink wrapper roles to governance...");
   const rolesComplete = await migrateWrapperRoles(hre, wrapperAddress, deployerSigner, config.walletAddresses.governanceMultisig, executor);
+
   if (!rolesComplete) {
     hasPendingGovernance = true;
   }

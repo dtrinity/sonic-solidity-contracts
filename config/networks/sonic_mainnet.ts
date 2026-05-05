@@ -11,9 +11,9 @@ import {
   DUSD_TOKEN_ID,
   INCENTIVES_PROXY_ID,
 } from "../../typescript/deploy-ids";
+import { getEffectiveNetworkName } from "../../typescript/hardhat/network";
 import { ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT, ORACLE_AGGREGATOR_PRICE_DECIMALS } from "../../typescript/oracle_aggregator/constants";
 import { fetchTokenInfo } from "../../typescript/token/utils";
-import { getEffectiveNetworkName } from "../../typescript/hardhat/network";
 import {
   rateStrategyDUSD,
   rateStrategyHighLiquidityStable,

@@ -25,6 +25,14 @@ type ThirdFeedConfig = {
   fixedPriceInBase3: bigint;
 };
 
+/**
+ * Build a Safe transaction payload to update an OracleAggregator route.
+ *
+ * @param aggregatorAddress - OracleAggregator contract address.
+ * @param asset - Asset address to configure.
+ * @param oracle - New oracle address for the asset.
+ * @param aggregatorInterface - Contract interface used to encode the call.
+ */
 function createSetOracleTransaction(
   aggregatorAddress: string,
   asset: string,
@@ -38,6 +46,14 @@ function createSetOracleTransaction(
   };
 }
 
+/**
+ * Build a Safe transaction payload for granting a role.
+ *
+ * @param contractAddress - Contract address that owns the role.
+ * @param role - Role identifier to grant.
+ * @param grantee - Account that should receive the role.
+ * @param contractInterface - Contract interface used to encode the call.
+ */
 function createGrantRoleTransaction(contractAddress: string, role: string, grantee: string, contractInterface: any): SafeTransactionData {
   return {
     to: contractAddress,
@@ -46,12 +62,26 @@ function createGrantRoleTransaction(contractAddress: string, role: string, grant
   };
 }
 
+/**
+ * Check whether an equivalent Safe transaction is already queued.
+ *
+ * @param executor - Governance executor tracking queued transactions.
+ * @param transaction - Transaction payload to search for.
+ */
 function hasQueuedTransaction(executor: GovernanceExecutor, transaction: SafeTransactionData): boolean {
   return executor.queuedTransactions.some(
     (queued) => queued.to === transaction.to && queued.value === transaction.value && queued.data === transaction.data,
   );
 }
 
+/**
+ * Ensure governance can manage the OracleAggregator before queueing oracle flips.
+ *
+ * @param oracleAggregator - OracleAggregator contract instance.
+ * @param aggregatorAddress - OracleAggregator contract address.
+ * @param governanceMultisig - Governance multisig that should hold the role.
+ * @param executor - Governance executor used for direct calls or Safe queueing.
+ */
 async function ensureGovernanceCanManageAggregator(
   oracleAggregator: any,
   aggregatorAddress: string,
@@ -63,12 +93,14 @@ async function ensureGovernanceCanManageAggregator(
   }
 
   const oracleManagerRole = await oracleAggregator.ORACLE_MANAGER_ROLE();
+
   if (await oracleAggregator.hasRole(oracleManagerRole, governanceMultisig)) {
     console.log(`✓ Governance already has ORACLE_MANAGER_ROLE on OracleAggregator`);
     return true;
   }
 
   const grantRoleTx = createGrantRoleTransaction(aggregatorAddress, oracleManagerRole, governanceMultisig, oracleAggregator.interface);
+
   if (hasQueuedTransaction(executor, grantRoleTx)) {
     console.log(`📝 ORACLE_MANAGER_ROLE grant already queued for OracleAggregator`);
     return false;
@@ -83,6 +115,12 @@ async function ensureGovernanceCanManageAggregator(
   );
 }
 
+/**
+ * Compare an on-chain wrapper config against the expected feed configuration.
+ *
+ * @param existingFeed - Current on-chain feed config.
+ * @param feedConfig - Expected feed config from repo config.
+ */
 function feedMatchesConfig(existingFeed: any, feedConfig: ThirdFeedConfig): boolean {
   return (
     existingFeed.erc4626Vault.toLowerCase() === feedConfig.erc4626Vault.toLowerCase() &&
@@ -97,6 +135,14 @@ function feedMatchesConfig(existingFeed: any, feedConfig: ThirdFeedConfig): bool
   );
 }
 
+/**
+ * Validate that the three-leg wrapper is configured and pricing correctly before an oracle flip.
+ *
+ * @param hre - Hardhat runtime environment.
+ * @param signer - Signer used for read-only calls.
+ * @param wrapperAddress - Wrapper contract address.
+ * @param feedConfig - Expected feed config from repo config.
+ */
 async function verifyThirdFeedReadiness(
   hre: HardhatRuntimeEnvironment,
   signer: Signer,
@@ -129,6 +175,13 @@ async function verifyThirdFeedReadiness(
   return { feed, candidatePrice };
 }
 
+/**
+ * Queue or execute OracleAggregator flips for assets using the three-leg wrapper.
+ *
+ * @param hre - Hardhat runtime environment.
+ * @param options - Optional execution overrides.
+ * @param options.config - Preloaded config override used by tests or composed scripts.
+ */
 export async function executeOracleFlip(hre: HardhatRuntimeEnvironment, options?: { config?: Config }): Promise<boolean> {
   const { deployments, ethers } = hre;
   const { deployer } = await hre.getNamedAccounts();
@@ -150,6 +203,7 @@ export async function executeOracleFlip(hre: HardhatRuntimeEnvironment, options?
   const oracleAggregator = await ethers.getContractAt("OracleAggregator", oracleAggregatorDeployment.address, deployerSigner);
 
   const feeds = config.oracleAggregators.USD.safeRateProviderAssets?.erc4626RateProviderThirdFeedWrappers || {};
+
   if (Object.keys(feeds).length === 0) {
     console.log(`ℹ️  No ERC4626RateProviderThirdFeed feeds configured in config; nothing to queue.`);
     console.log(`\n≻ ${__filename.split("/").slice(-2).join("/")}: ✅`);
@@ -175,6 +229,7 @@ export async function executeOracleFlip(hre: HardhatRuntimeEnvironment, options?
     );
 
     const currentOracleAddress = await oracleAggregator.assetOracles(asset);
+
     if (currentOracleAddress.toLowerCase() === wrapperAddress.toLowerCase()) {
       console.log(`    ✅ OracleAggregator already points to ${wrapperAddress}; skipping.`);
       continue;

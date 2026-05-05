@@ -41,6 +41,13 @@ type ThreeLegDiagnostics = {
   thirdFeedDecimals: number;
 };
 
+/**
+ * Apply thresholding to a single price leg using the wrapper's convention.
+ *
+ * @param priceInBase - Raw leg price expressed in base units.
+ * @param lowerThreshold - Threshold above which the leg is clamped.
+ * @param fixedPrice - Replacement price used when clamped.
+ */
 function applyThreshold(priceInBase: bigint, lowerThreshold: bigint, fixedPrice: bigint): bigint {
   if (lowerThreshold > 0n && priceInBase > lowerThreshold) {
     return fixedPrice;
@@ -48,12 +55,27 @@ function applyThreshold(priceInBase: bigint, lowerThreshold: bigint, fixedPrice:
   return priceInBase;
 }
 
+/**
+ * Read ERC20 decimals through a lightweight contract instance.
+ *
+ * @param ethers - Hardhat ethers helper.
+ * @param token - Token address whose decimals should be read.
+ * @param signer - Signer used for read-only calls.
+ */
 async function getTokenDecimals(ethers: HardhatRuntimeEnvironment["ethers"], token: string, signer: Signer): Promise<number> {
   const contract = new ethers.Contract(token, ERC20_METADATA_ABI, signer);
   const raw = await contract.decimals();
   return typeof raw === "number" ? raw : Number(raw);
 }
 
+/**
+ * Build live diagnostics for the ERC4626/rate-provider/third-feed pricing path.
+ *
+ * @param ethers - Hardhat ethers helper.
+ * @param config - Three-leg feed configuration being validated.
+ * @param baseCurrencyUnit - Base currency scaling factor for the wrapper.
+ * @param signer - Signer used for read-only calls.
+ */
 async function buildThreeLegDiagnostics(
   ethers: HardhatRuntimeEnvironment["ethers"],
   config: ThirdFeedConfig,
@@ -75,6 +97,7 @@ async function buildThreeLegDiagnostics(
   const assetDecimals = await getTokenDecimals(ethers, config.feedAsset, signer);
   const rateProviderUnit = 10n ** BigInt(assetDecimals);
   const rateProviderRate = BigInt(await rateProvider.getRateSafe());
+
   if (rateProviderRate === 0n) {
     throw new Error(`Rate provider ${config.rateProvider} returned zero rate`);
   }
@@ -82,12 +105,14 @@ async function buildThreeLegDiagnostics(
 
   const thirdFeedDecimalsRaw = await thirdFeed.decimals();
   const thirdFeedDecimals = typeof thirdFeedDecimalsRaw === "number" ? thirdFeedDecimalsRaw : Number(thirdFeedDecimalsRaw);
+
   if (thirdFeedDecimals === 0) {
     throw new Error(`Third feed ${config.thirdFeed} reports 0 decimals`);
   }
 
   const roundData = await thirdFeed.latestRoundData();
   const thirdFeedAnswer = BigInt(roundData.answer ?? roundData[1]);
+
   if (thirdFeedAnswer <= 0n) {
     throw new Error(`Third feed ${config.thirdFeed} returned non-positive answer ${thirdFeedAnswer}`);
   }
@@ -112,6 +137,14 @@ async function buildThreeLegDiagnostics(
   };
 }
 
+/**
+ * Build a Safe transaction payload for granting a role.
+ *
+ * @param contractAddress - Contract address that owns the role.
+ * @param role - Role identifier to grant.
+ * @param grantee - Account that should receive the role.
+ * @param contractInterface - Contract interface used to encode the call.
+ */
 function createGrantRoleTransaction(contractAddress: string, role: string, grantee: string, contractInterface: any): SafeTransactionData {
   return {
     to: contractAddress,
@@ -120,6 +153,14 @@ function createGrantRoleTransaction(contractAddress: string, role: string, grant
   };
 }
 
+/**
+ * Build a Safe transaction payload for revoking a role.
+ *
+ * @param contractAddress - Contract address that owns the role.
+ * @param role - Role identifier to revoke.
+ * @param account - Account that should lose the role.
+ * @param contractInterface - Contract interface used to encode the call.
+ */
 function createRevokeRoleTransaction(contractAddress: string, role: string, account: string, contractInterface: any): SafeTransactionData {
   return {
     to: contractAddress,
@@ -128,6 +169,13 @@ function createRevokeRoleTransaction(contractAddress: string, role: string, acco
   };
 }
 
+/**
+ * Build a Safe transaction payload to configure a three-leg wrapper route.
+ *
+ * @param wrapperAddress - Wrapper contract address.
+ * @param feedConfig - Feed configuration to install.
+ * @param wrapperInterface - Contract interface used to encode the call.
+ */
 function createSetFeedTransaction(wrapperAddress: string, feedConfig: ThirdFeedConfig, wrapperInterface: any): SafeTransactionData {
   return {
     to: wrapperAddress,
@@ -147,12 +195,26 @@ function createSetFeedTransaction(wrapperAddress: string, feedConfig: ThirdFeedC
   };
 }
 
+/**
+ * Check whether an equivalent Safe transaction is already queued.
+ *
+ * @param executor - Governance executor tracking queued transactions.
+ * @param transaction - Transaction payload to search for.
+ */
 function hasQueuedTransaction(executor: GovernanceExecutor, transaction: SafeTransactionData): boolean {
   return executor.queuedTransactions.some(
     (queued) => queued.to === transaction.to && queued.value === transaction.value && queued.data === transaction.data,
   );
 }
 
+/**
+ * Ensure governance can manage the wrapper before queueing feed updates.
+ *
+ * @param wrapper - Wrapper contract instance.
+ * @param wrapperAddress - Wrapper contract address.
+ * @param governanceMultisig - Governance multisig that should hold the role.
+ * @param executor - Governance executor used for direct calls or Safe queueing.
+ */
 async function ensureGovernanceCanManageWrapper(
   wrapper: any,
   wrapperAddress: string,
@@ -164,12 +226,14 @@ async function ensureGovernanceCanManageWrapper(
   }
 
   const oracleManagerRole = await wrapper.ORACLE_MANAGER_ROLE();
+
   if (await wrapper.hasRole(oracleManagerRole, governanceMultisig)) {
     console.log(`    ✓ Governance already has ORACLE_MANAGER_ROLE on ${wrapperAddress}`);
     return true;
   }
 
   const grantRoleTx = createGrantRoleTransaction(wrapperAddress, oracleManagerRole, governanceMultisig, wrapper.interface);
+
   if (hasQueuedTransaction(executor, grantRoleTx)) {
     console.log(`    📝 ORACLE_MANAGER_ROLE grant already queued for governance on ${wrapperAddress}`);
     return false;
@@ -184,6 +248,16 @@ async function ensureGovernanceCanManageWrapper(
   );
 }
 
+/**
+ * Migrate wrapper roles from the deployer to governance.
+ *
+ * @param hre - Hardhat runtime environment.
+ * @param wrapperAddress - Wrapper contract address.
+ * @param wrapper - Wrapper contract instance.
+ * @param deployerSigner - Signer currently holding the roles.
+ * @param governanceMultisig - Governance multisig that should receive the roles.
+ * @param executor - Governance executor used for direct calls or Safe queueing.
+ */
 async function migrateOracleWrapperRoles(
   hre: HardhatRuntimeEnvironment,
   wrapperAddress: string,
@@ -218,6 +292,7 @@ async function migrateOracleWrapperRoles(
       deployerSigner,
       manualActions,
     );
+
     if (manualActions.length > 0 && executor.useSafe) {
       complete = false;
     }
@@ -233,6 +308,12 @@ async function migrateOracleWrapperRoles(
   return complete;
 }
 
+/**
+ * Compare an on-chain wrapper config against the expected feed configuration.
+ *
+ * @param existingFeed - Current on-chain feed config.
+ * @param feedConfig - Expected feed config from repo config.
+ */
 function feedMatchesConfig(existingFeed: any, feedConfig: ThirdFeedConfig): boolean {
   return (
     existingFeed.erc4626Vault.toLowerCase() === feedConfig.erc4626Vault.toLowerCase() &&
@@ -247,6 +328,13 @@ function feedMatchesConfig(existingFeed: any, feedConfig: ThirdFeedConfig): bool
   );
 }
 
+/**
+ * Deploy and configure the ERC4626/rate-provider/third-feed wrapper.
+ *
+ * @param hre - Hardhat runtime environment.
+ * @param options - Optional execution overrides.
+ * @param options.config - Preloaded config override used by tests or composed scripts.
+ */
 export async function executeDeployment(hre: HardhatRuntimeEnvironment, options?: { config?: Config }): Promise<boolean> {
   const { deployments, ethers } = hre;
   const { deployer } = await hre.getNamedAccounts();
@@ -292,6 +380,7 @@ export async function executeDeployment(hre: HardhatRuntimeEnvironment, options?
 
     for (const [_asset, feedConfig] of Object.entries(feeds)) {
       const existingFeed = await wrapper.feeds(feedConfig.feedAsset);
+
       if (feedMatchesConfig(existingFeed, feedConfig)) {
         console.log(`  ✅ 3-leg feed already configured for asset ${feedConfig.feedAsset}; skipping.`);
         continue;

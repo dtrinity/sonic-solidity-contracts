@@ -82,6 +82,14 @@ function createSetFeedTransaction(wrapperAddress: string, asset: string, feed: s
   };
 }
 
+/**
+ * Build a Safe transaction payload for granting a role.
+ *
+ * @param contractAddress - Contract address that owns the role.
+ * @param role - Role identifier to grant.
+ * @param grantee - Account that should receive the role.
+ * @param contractInterface - Contract interface used to encode the call.
+ */
 function createGrantRoleTransaction(contractAddress: string, role: string, grantee: string, contractInterface: any): SafeTransactionData {
   return {
     to: contractAddress,
@@ -90,12 +98,26 @@ function createGrantRoleTransaction(contractAddress: string, role: string, grant
   };
 }
 
+/**
+ * Check whether an equivalent Safe transaction is already queued.
+ *
+ * @param executor - Governance executor tracking queued transactions.
+ * @param transaction - Transaction payload to search for.
+ */
 function hasQueuedTransaction(executor: GovernanceExecutor, transaction: SafeTransactionData): boolean {
   return executor.queuedTransactions.some(
     (queued) => queued.to === transaction.to && queued.value === transaction.value && queued.data === transaction.data,
   );
 }
 
+/**
+ * Ensure governance can manage the wrapper before queueing feed updates.
+ *
+ * @param wrapper - Wrapper contract instance.
+ * @param wrapperAddress - Wrapper contract address.
+ * @param governanceMultisig - Governance multisig that should hold the role.
+ * @param executor - Governance executor used for direct calls or Safe queueing.
+ */
 async function ensureGovernanceCanManageWrapper(
   wrapper: any,
   wrapperAddress: string,
@@ -107,12 +129,14 @@ async function ensureGovernanceCanManageWrapper(
   }
 
   const oracleManagerRole = await wrapper.ORACLE_MANAGER_ROLE();
+
   if (await wrapper.hasRole(oracleManagerRole, governanceMultisig)) {
     console.log(`   ✓ Governance already has ORACLE_MANAGER_ROLE on ${wrapperAddress}`);
     return true;
   }
 
   const grantRoleTx = createGrantRoleTransaction(wrapperAddress, oracleManagerRole, governanceMultisig, wrapper.interface);
+
   if (hasQueuedTransaction(executor, grantRoleTx)) {
     console.log(`   📝 ORACLE_MANAGER_ROLE grant already queued for governance on ${wrapperAddress}`);
     return false;
@@ -174,6 +198,7 @@ async function executeUpdate(hre: HardhatRuntimeEnvironment): Promise<boolean> {
     config.walletAddresses.governanceMultisig,
     executor,
   );
+
   if (!governanceReady) {
     hasPendingGovernance = true;
   }

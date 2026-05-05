@@ -1,10 +1,10 @@
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 
+import { getEffectiveNetworkName } from "../typescript/hardhat/network";
 import { getConfig as getLocalhostConfig } from "./networks/localhost";
 import { getConfig as getSonicMainNetConfig } from "./networks/sonic_mainnet";
 import { getConfig as getSonicTestNetConfig } from "./networks/sonic_testnet";
 import { Config } from "./types";
-import { getEffectiveNetworkName } from "../typescript/hardhat/network";
 
 /**
  * Get the configuration for the network
