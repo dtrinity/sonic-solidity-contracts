@@ -14,11 +14,25 @@ import {
   SafeTransactionData,
 } from "./types";
 
+type SafeProtocolKitLike = {
+  getOwners(): Promise<string[]>;
+  getThreshold(): Promise<number>;
+  createTransaction(input: { transactions: SafeTransactionData[] }): Promise<unknown>;
+  getTransactionHash(transaction: unknown): Promise<string>;
+};
+
+type SafeProtocolKitFactory = (input: {
+  hre: HardhatRuntimeEnvironment;
+  signer: Signer;
+  safeConfig: SafeConfig;
+}) => Promise<SafeProtocolKitLike>;
+
 /**
  * SafeManager provides a comprehensive wrapper around Safe Protocol Kit
  * for automated multi-signature governance operations.
  */
 export class SafeManager {
+  private static protocolKitFactory?: SafeProtocolKitFactory;
   private protocolKit?: Safe;
   private apiKit?: SafeApiKit;
   private signer: Signer;
@@ -43,6 +57,15 @@ export class SafeManager {
   }
 
   /**
+   * Override Safe protocol-kit initialization for tests.
+   *
+   * @param factory Optional factory to substitute for Safe.init
+   */
+  static setProtocolKitFactory(factory?: SafeProtocolKitFactory): void {
+    SafeManager.protocolKitFactory = factory;
+  }
+
+  /**
    * Initialize Safe Protocol Kit and optionally API Kit
    *
    * @returns void when initialization completes
@@ -61,14 +84,22 @@ export class SafeManager {
         signerAddress = this.config.owners?.[0] || this.config.safeAddress;
       }
 
-      this.protocolKit = await Safe.init({
-        // Safe Protocol Kit v4 expects an EIP-1193 provider (e.g., window.ethereum or Hardhat's provider)
-        provider: this.hre.network.provider,
-        // Provide a hex address string to avoid triggering Passkey signer flow
-        // Use an explicitly typed async IIFE to satisfy the linter's explicit return type rule
-        signer: signerAddress,
-        safeAddress: this.config.safeAddress,
-      });
+      if (SafeManager.protocolKitFactory) {
+        this.protocolKit = (await SafeManager.protocolKitFactory({
+          hre: this.hre,
+          signer: this.signer,
+          safeConfig: this.config,
+        })) as Safe;
+      } else {
+        this.protocolKit = await Safe.init({
+          // Safe Protocol Kit v4 expects an EIP-1193 provider (e.g., window.ethereum or Hardhat's provider)
+          provider: this.hre.network.provider,
+          // Provide a hex address string to avoid triggering Passkey signer flow
+          // Use an explicitly typed async IIFE to satisfy the linter's explicit return type rule
+          signer: signerAddress,
+          safeAddress: this.config.safeAddress,
+        });
+      }
 
       // Verify Safe configuration
       await this.verifySafeConfiguration();

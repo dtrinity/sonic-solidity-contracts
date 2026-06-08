@@ -185,6 +185,20 @@ export interface OracleAggregatorConfig {
         fixedPriceInBase2: bigint;
       };
     };
+    erc4626RateProviderThirdFeedWrappers?: {
+      [assetAddress: string]: {
+        feedAsset: string;
+        erc4626Vault: string;
+        rateProvider: string;
+        thirdFeed: string;
+        lowerThresholdInBase1: bigint;
+        fixedPriceInBase1: bigint;
+        lowerThresholdInBase2: bigint;
+        fixedPriceInBase2: bigint;
+        lowerThresholdInBase3: bigint;
+        fixedPriceInBase3: bigint;
+      };
+    };
     erc4626SafeRateProviderWrappers?: {
       [assetAddress: string]: {
         feedAsset: string;

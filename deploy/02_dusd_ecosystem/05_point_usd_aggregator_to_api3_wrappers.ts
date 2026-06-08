@@ -8,85 +8,26 @@ import {
   USD_API3_WRAPPER_WITH_THRESHOLDING_ID,
   USD_ORACLE_AGGREGATOR_ID,
 } from "../../typescript/deploy-ids";
+import { applyApi3RoutingPlan, buildUsdOracleRoutingPlan } from "../../typescript/oracle_aggregator/deploy-helpers";
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const config = await getConfig(hre);
+  const routingPlan = buildUsdOracleRoutingPlan(config.oracleAggregators.USD);
 
-  // Get USD OracleAggregator contract
   const oracleAggregatorDeployment = await hre.deployments.get(USD_ORACLE_AGGREGATOR_ID);
   const oracleAggregator = await hre.ethers.getContractAt("OracleAggregator", oracleAggregatorDeployment.address);
 
-  // Get API3Wrapper for plain feeds
   const api3WrapperDeployment = await hre.deployments.get(USD_API3_ORACLE_WRAPPER_ID);
-  const api3WrapperAddress = api3WrapperDeployment.address;
-
-  // Get API3WrapperWithThresholding for feeds with thresholding
   const api3WrapperWithThresholdingDeployment = await hre.deployments.get(USD_API3_WRAPPER_WITH_THRESHOLDING_ID);
-  const api3WrapperWithThresholdingAddress = api3WrapperWithThresholdingDeployment.address;
-
-  // Get API3CompositeWrapperWithThresholding for composite feeds
   const api3CompositeWrapperDeployment = await hre.deployments.get(USD_API3_COMPOSITE_WRAPPER_WITH_THRESHOLDING_ID);
-  const api3CompositeWrapperAddress = api3CompositeWrapperDeployment.address;
 
-  // Set plain API3 wrapper for assets
-  const plainFeeds = config.oracleAggregators.USD.api3OracleAssets.plainApi3OracleWrappers || {};
-
-  for (const [assetAddress, _source] of Object.entries(plainFeeds)) {
-    const currentOracle = await oracleAggregator.assetOracles(assetAddress);
-
-    if (currentOracle.toLowerCase() !== api3WrapperAddress.toLowerCase()) {
-      const tx = await oracleAggregator.setOracle(assetAddress, api3WrapperAddress);
-      await tx.wait();
-      console.log(`Set plain API3 wrapper for asset ${assetAddress} to ${api3WrapperAddress}`);
-    } else {
-      console.log(`Plain API3 wrapper for asset ${assetAddress} already set to ${api3WrapperAddress}. Skipping.`);
-    }
-  }
-
-  // Set API3 wrapper with thresholding for assets
-  const thresholdFeeds = config.oracleAggregators.USD.api3OracleAssets.api3OracleWrappersWithThresholding || {};
-
-  for (const [assetAddress, _config] of Object.entries(thresholdFeeds)) {
-    const currentOracle = await oracleAggregator.assetOracles(assetAddress);
-
-    if (currentOracle.toLowerCase() !== api3WrapperWithThresholdingAddress.toLowerCase()) {
-      const tx = await oracleAggregator.setOracle(assetAddress, api3WrapperWithThresholdingAddress);
-      await tx.wait();
-      console.log(`Set API3 wrapper with thresholding for asset ${assetAddress} to ${api3WrapperWithThresholdingAddress}`);
-    } else {
-      console.log(
-        `API3 wrapper with thresholding for asset ${assetAddress} already set to ${api3WrapperWithThresholdingAddress}. Skipping.`,
-      );
-    }
-  }
-
-  // Set composite API3 wrapper for assets
-  const compositeFeeds = config.oracleAggregators.USD.api3OracleAssets.compositeApi3OracleWrappersWithThresholding || {};
-
-  for (const [_assetAddress, feedConfig] of Object.entries(compositeFeeds)) {
-    const typedFeedConfig = feedConfig as {
-      feedAsset: string;
-      proxy1: string;
-      proxy2: string;
-      lowerThresholdInBase1: bigint;
-      fixedPriceInBase1: bigint;
-      lowerThresholdInBase2: bigint;
-      fixedPriceInBase2: bigint;
-    };
-
-    const currentOracle = await oracleAggregator.assetOracles(typedFeedConfig.feedAsset);
-
-    if (currentOracle.toLowerCase() !== api3CompositeWrapperAddress.toLowerCase()) {
-      const tx = await oracleAggregator.setOracle(typedFeedConfig.feedAsset, api3CompositeWrapperAddress);
-      await tx.wait();
-      console.log(`Set composite API3 wrapper for asset ${typedFeedConfig.feedAsset} to ${api3CompositeWrapperAddress}`);
-    } else {
-      console.log(`Composite API3 wrapper for asset ${typedFeedConfig.feedAsset} already set to ${api3CompositeWrapperAddress}. Skipping.`);
-    }
-  }
+  await applyApi3RoutingPlan(routingPlan.api3, oracleAggregator, {
+    plainWrapper: api3WrapperDeployment.address,
+    thresholdWrapper: api3WrapperWithThresholdingDeployment.address,
+    compositeWrapper: api3CompositeWrapperDeployment.address,
+  });
 
   console.log(`🔮 ${__filename.split("/").slice(-2).join("/")}: ✅`);
-  // Return true to indicate deployment success
   return true;
 };
 

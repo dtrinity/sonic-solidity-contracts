@@ -85,6 +85,13 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment): Pr
   const feedConfig = allCompositeFeeds[wstkscUSDAddress];
 
   if (!feedConfig) {
+    const erc4626ThirdFeedConfigs = config.oracleAggregators.USD.safeRateProviderAssets?.erc4626RateProviderThirdFeedWrappers || {};
+
+    if (erc4626ThirdFeedConfigs[wstkscUSDAddress]) {
+      console.log(`- Legacy composite feed config for wstkscUSD not found; using ERC4626 rate-provider third-feed wrapper path instead.`);
+      return true;
+    }
+
     throw new Error(`Configuration for wstkscUSD not found in compositeRedstoneOracleWrappersWithThresholding`);
   }
 

@@ -11,6 +11,7 @@ import {
   DUSD_TOKEN_ID,
   INCENTIVES_PROXY_ID,
 } from "../../typescript/deploy-ids";
+import { getEffectiveNetworkName } from "../../typescript/hardhat/network";
 import { ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT, ORACLE_AGGREGATOR_PRICE_DECIMALS } from "../../typescript/oracle_aggregator/constants";
 import { fetchTokenInfo } from "../../typescript/token/utils";
 import {
@@ -86,11 +87,17 @@ export async function getConfig(_hre: HardhatRuntimeEnvironment): Promise<Config
   const aTokenDUSDDeployment = await _hre.deployments.getOrNull("dLEND-dUSD");
 
   // Fetch dUSD token decimals from the contract if deployed
-  let dUSDDecimals = 0;
+  let dUSDDecimals = 18;
 
   if (dUSDDeployment?.address) {
-    const dUSDTokenInfo = await fetchTokenInfo(_hre, dUSDDeployment.address);
-    dUSDDecimals = dUSDTokenInfo.decimals;
+    // Historical fork tests do not need live token metadata and Hardhat cannot
+    // always infer chain hardfork history for arbitrary Sonic blocks. Keep the
+    // live-network path unchanged while avoiding that extra RPC dependency on
+    // forked `hardhat` runs.
+    if (_hre.network.name !== "hardhat" || getEffectiveNetworkName(_hre) !== "sonic_mainnet") {
+      const dUSDTokenInfo = await fetchTokenInfo(_hre, dUSDDeployment.address);
+      dUSDDecimals = dUSDTokenInfo.decimals;
+    }
 
     if (dUSDDecimals < 1) {
       throw Error("dUSD token decimals must be greater than 0");
@@ -245,12 +252,12 @@ export async function getConfig(_hre: HardhatRuntimeEnvironment): Promise<Config
           },
           redstoneOracleWrappersWithThresholding: {
             [frxUSDAddress]: {
-              feed: "0xC3346631E0A9720582fB9CAbdBEA22BC2F57741b", // frxUSD/USD Redstone price feed
+              feed: "0xCa1371745467bAe4F9768aF689D50F55D1E75f8e", // frxUSD/USD API3 price feed
               lowerThreshold: ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT,
               fixedPrice: ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT,
             },
             [USDCeAddress]: {
-              feed: "0x3587a73AA02519335A8a6053a97657BECe0bC2Cc", // USDC/USD Redstone price feed
+              feed: "0x55bCa887199d5520B3Ce285D41e6dC10C08716C9", // USDC/USD Chainlink price feed
               lowerThreshold: ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT,
               fixedPrice: ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT,
             },
@@ -264,43 +271,30 @@ export async function getConfig(_hre: HardhatRuntimeEnvironment): Promise<Config
               lowerThreshold: 0n, // No thresholding
               fixedPrice: 0n,
             },
+            [scUSDAddress]: {
+              feed: "0x55bCa887199d5520B3Ce285D41e6dC10C08716C9", // USDC/USD Chainlink price feed (scUSD ≈ USDC 1:1)
+              lowerThreshold: ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT,
+              fixedPrice: ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT,
+            },
           },
           compositeRedstoneOracleWrappersWithThresholding: {
             [sfrxUSDAddress]: {
               feedAsset: sfrxUSDAddress,
-              feed1: "0xebE443E20ADf302B59419648c4dbA0c7299cf1A2", // sfrxUSD/frxUSD Redstone Fundamental feed
-              feed2: "0xC3346631E0A9720582fB9CAbdBEA22BC2F57741b", // frxUSD/USD Redstone price feed
+              feed1: "0xD2FB92548227143FDE27B37Aa71CfE4e35Bd478D", // sfrxUSD/frxUSD Chainlink price feed
+              feed2: "0xCa1371745467bAe4F9768aF689D50F55D1E75f8e", // frxUSD/USD API3 price feed
               lowerThresholdInBase1: 0n, // No thresholding
               fixedPriceInBase1: 0n,
               lowerThresholdInBase2: ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT, // Only threshold frxUSD/USD
               fixedPriceInBase2: ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT,
             },
-            [scUSDAddress]: {
-              feedAsset: scUSDAddress,
-              feed1: "0xb81131B6368b3F0a83af09dB4E39Ac23DA96C2Db", // scUSD/USDC Redstone Fundamental feed
-              feed2: "0x3587a73AA02519335A8a6053a97657BECe0bC2Cc", // USDC/USD Redstone price feed
-              lowerThresholdInBase1: 0n, // No thresholding
-              fixedPriceInBase1: 0n,
-              lowerThresholdInBase2: ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT, // Only threshold scUSD/USD
-              fixedPriceInBase2: ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT,
-            },
             [stSAddress]: {
               feedAsset: stSAddress,
-              feed1: "0x65d0F14f7809CdC4f90c3978c753C4671b6B815b", // stS/S Redstone Fundamental feed
+              feed1: "0xf97A2074fCCFDcD2FF567faEbfE235eCF0091c3D", // stS/S Chainlink price feed
               feed2: "0xc76dFb89fF298145b417d221B2c747d84952e01d", // S/USD Chainlink price feed
               lowerThresholdInBase1: 0n, // No thresholding
               fixedPriceInBase1: 0n,
               lowerThresholdInBase2: 0n, // Do not threshold S/USD
               fixedPriceInBase2: 0n,
-            },
-            [wstkscUSDAddress]: {
-              feedAsset: wstkscUSDAddress,
-              feed1: "0x39EEB8955948B980d9ad09F92F95cdD980751ce1", // Our own ChainlinkDecimalConverter which wraps the wstkscUSD/stkscUSD Chainlink feed and converts 18 -> 8 decimals
-              feed2: "0xACE5e348a341a740004304c2c228Af1A4581920F", // scUSD/USD Chainlink price feed
-              lowerThresholdInBase1: 0n, // No thresholding
-              fixedPriceInBase1: 0n,
-              lowerThresholdInBase2: ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT, // Only threshold scUSD/USD
-              fixedPriceInBase2: ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT,
             },
             [wstkscETHAddress]: {
               feedAsset: wstkscETHAddress,
@@ -314,7 +308,7 @@ export async function getConfig(_hre: HardhatRuntimeEnvironment): Promise<Config
             [ptaUSDCAddress]: {
               feedAsset: ptaUSDCAddress,
               feed1: "0xc65F6b9dBAFa2A9243CeceDbf80EE9a79d6ADf09", // Our own ChainlinkDecimalConverter which wraps the PT-aUSDC/USDC Pendle Chainlink feed and converts 18 -> 8 decimals
-              feed2: "0x3587a73AA02519335A8a6053a97657BECe0bC2Cc", // USDC/USD Redstone price feed
+              feed2: "0x55bCa887199d5520B3Ce285D41e6dC10C08716C9", // USDC/USD Chainlink price feed
               lowerThresholdInBase1: 0n, // No thresholding
               fixedPriceInBase1: 0n,
               lowerThresholdInBase2: ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT, // Only threshold USDC/USD
@@ -353,15 +347,19 @@ export async function getConfig(_hre: HardhatRuntimeEnvironment): Promise<Config
           },
         },
         safeRateProviderAssets: {
-          chainlinkSafeRateProviderCompositeWrappers: {
+          chainlinkSafeRateProviderCompositeWrappers: {},
+          erc4626RateProviderThirdFeedWrappers: {
             [wstkscUSDAddress]: {
               feedAsset: wstkscUSDAddress,
-              chainlinkFeed: "0x39EEB8955948B980d9ad09F92F95cdD980751ce1", // wstkscUSD/stkscUSD Chainlink feed
+              erc4626Vault: wstkscUSDAddress, // Trevee Earn: wstkscUSD token itself is the ERC4626 vault/share token
               rateProvider: "0x13cCc810DfaA6B71957F2b87060aFE17e6EB8034", // stkscUSD/scUSD Trevee AccountantWithFixedRate
-              lowerThresholdInBase1: 0n, // No thresholding on wstkscUSD/stkscUSD since rate goes up over time
+              thirdFeed: "0x55bCa887199d5520B3Ce285D41e6dC10C08716C9", // Use USDC/USD under the scUSD ~= USDC assumption for redstone removal
+              lowerThresholdInBase1: 0n, // No thresholding on the ERC4626 share conversion
               fixedPriceInBase1: 0n,
-              lowerThresholdInBase2: ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT, // Threshold on stkscUSD/scUSD since rebasing token should never go above 1:1
+              lowerThresholdInBase2: ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT, // Threshold on stkscUSD/scUSD since the rebasing token should not exceed 1:1
               fixedPriceInBase2: ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT,
+              lowerThresholdInBase3: ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT, // Threshold the USD leg to 1 under the scUSD ~= USDC assumption
+              fixedPriceInBase3: ORACLE_AGGREGATOR_BASE_CURRENCY_UNIT,
             },
           },
         },
@@ -377,7 +375,7 @@ export async function getConfig(_hre: HardhatRuntimeEnvironment): Promise<Config
         },
         redstoneOracleAssets: {
           plainRedstoneOracleWrappers: {
-            [stSAddress]: "0x65d0F14f7809CdC4f90c3978c753C4671b6B815b", // stS/S Redstone Fundamental feed
+            [stSAddress]: "0xf97A2074fCCFDcD2FF567faEbfE235eCF0091c3D", // stS/S Chainlink price feed
           },
           redstoneOracleWrappersWithThresholding: {},
           compositeRedstoneOracleWrappersWithThresholding: {},
