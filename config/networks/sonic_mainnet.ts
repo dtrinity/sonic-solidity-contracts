@@ -332,7 +332,7 @@ export async function getConfig(_hre: HardhatRuntimeEnvironment): Promise<Config
             [wOSAddress]: {
               feedAsset: wOSAddress,
               feed1: "0x19E84B1f41d1Eb2ff22baC55797bD767558585De", // Our own ChainlinkDecimalConverter which wraps the wOS/OS Chainlink feed and converts 18 -> 8 decimals
-              feed2: "0xF6819756b86678dEd7A0aECD983697c4F7D42bbc", // Our own ChainlinkCompositeAggregator which composes OS/S and S/USD
+              feed2: "0xc76dFb89fF298145b417d221B2c747d84952e01d", // S/USD Chainlink feed (OS is assumed to be 1:1 with S)
               lowerThresholdInBase1: 0n, // No thresholding
               fixedPriceInBase1: 0n,
               lowerThresholdInBase2: 0n, // No thresholding
